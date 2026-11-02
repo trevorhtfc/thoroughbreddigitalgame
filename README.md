@@ -10,9 +10,9 @@ Home for the Thoroughbred digital games (the quick Thoroughbred Ascot game and t
 | `assets/silks/` | Owners' silks artwork, one image per set of colours. |
 | `assets/portraits/` | Horse head portraits for menus and cards. |
 | `godot-prototype/` | The earlier Godot race scene (Godot 4.7). Kept for reference: its cameras, running-order panel and silks recolouring are being carried across to the web version. |
-| `silks/` | Traditional 3D silks: `silks.json` describes each set (body, sleeves, cap) and `textures/` holds them painted for the jacket. |
+| `silks/` | Traditional silks: `silks.json` describes each set (body, sleeves, cap); `textures/` holds them painted for the 3D jacket and `icons/` as racecard icons, plus the pattern catalogue. |
 | `tools/` | Scripts that build the horse and silks; see `tools/README.md`. |
-| `race-view/` | The web race view. `index.html` is the single-horse gallop test: one horse with a chosen coat and silks galloping down an Ascot straight, with the jockey's riding building through the race. `race-view/assets` holds web copies of the silks thumbnails and 3D silks, the tint mask and the horse model repackaged for the web, so the originals above stay untouched. |
+| `race-view/` | The web race view. `index.html` is the single-horse gallop test: one horse with a chosen coat and silks galloping down an Ascot straight, with the jockey's riding building through the race. `silks.html` is the Silks Workbench: your artwork beside the traditional silks on a 3D jockey, the pattern catalogue and the zone test. `race-view/assets` holds web copies of the silks thumbnails and 3D silks, the tint mask and the horse model repackaged for the web, so the originals above stay untouched. |
 | `assets/models/tint_masks/` | Masks for the neutral model: coat, points (mane, tail, lower legs) and silks. |
 
 ## Adding files

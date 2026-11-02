@@ -8,16 +8,16 @@ Scripts that build the game's horse and silks. Nothing here is tied to the web: 
 
 | Step | Script | What it does |
 |---|---|---|
-| 1 | `tools/blender/rebuild_gallop.py` | Rebuilds the gallop so the legs follow a real gallop footfall (Muybridge, 1878): left hind, right hind, left fore, right fore, then suspension with the legs gathered. Hooves stay planted on the turf while in stance. |
-| 2 | `tools/blender/repattern_jacket.py` | Gives the jockey's silks a proper pattern layout (body, left sleeve, right sleeve, cap), replacing the old projection that mirrored every design. |
-| 3 | `tools/blender/rig_jockey.py` | Adds jockey bones (hips, chest, head, arms, forearms), binds his upper body to them and keys the riding actions. |
+| 1 | `tools/blender/rebuild_gallop.py` | Rebuilds the gallop so the legs follow a real gallop footfall (Muybridge, 1878): left hind, right hind, left fore, right fore, then suspension with the legs gathered. Hooves stay planted while in stance. Each leg joint is a hinge limited to its natural range, so hocks never fold the wrong way. Adds a head-and-neck nod, lowest as the leading fore takes the weight. |
+| 2 | `tools/blender/repattern_jacket.py` | Zones the jockey's silks into body, left sleeve, right sleeve and cap. Cuts clean seams at the armholes and cap rim, folds the stray silk patches on the body mesh into the silks, and lays each zone out in its own band of the texture so nothing mirrors. |
+| 3 | `tools/blender/rig_jockey.py` | Adds jockey bones (hips, chest, head, arms, forearms), binds his upper body to them and keys the riding actions, with elbows pumping in push and drive. Keeps the mane with the horse, and lets the hair under his hands follow them softly so it doesn't tear. |
 | 4 | `tools/blender/export_glb.py` | Exports glTF, keeping only the channels each action actually moves. |
 
 The Blender file after step 3 is kept as `assets/models/master/racehorse_master.blend`.
 
 ```
 python tools/blender/rebuild_gallop.py   -- assets/models/racehorse_neutral.glb step1.blend
-python tools/blender/repattern_jacket.py -- step1.blend step2.blend
+python tools/blender/repattern_jacket.py -- step1.blend race-view/assets/tint-mask.png step2.blend
 python tools/blender/rig_jockey.py       -- step2.blend race-view/assets/tint-mask.png step3.blend
 python tools/blender/export_glb.py       -- step3.blend assets/models/racehorse_rigged.glb
 ```
@@ -43,17 +43,26 @@ The horse's texture is neutral grey. `assets/models/tint_masks/` holds masks for
 
 ## Silks
 
-`silks/silks.json` describes each set of silks the way registered colours are written: body, sleeves and cap, each a colour plus an optional pattern in a second colour. `tools/silks/make_silks.py` paints them into the jacket's texture layout (`silks/textures/`). Your menu artwork in `assets/silks/` is separate and stays as it is.
+`silks/silks.json` describes each set of silks the way registered colours are written: body, sleeves and cap, each a colour plus an optional pattern in a second colour. The 17 sets are read from your menu artwork in `assets/silks/` (left strip = sleeves, top semicircle = cap, the rest = body), with the palette sampled from it. The artwork itself stays as it is for menus.
+
+`tools/silks/make_silks.py` paints every set two ways from the same pattern code, so they always agree:
+
+- `silks/textures/` — the texture the 3D jockey wears
+- `silks/icons/` — a flat racecard-style icon
+
+It also paints the pattern catalogue (`catalogue-*`), the five-zone test (`zones`) and writes `silks/catalogue.json` with each set's registered-colours description.
 
 ```
-python tools/silks/make_silks.py silks/silks.json silks/textures 1024
+python tools/silks/make_silks.py silks/silks.json silks 1024
 ```
 
 Patterns available:
 
-- **Body:** plain, hoops, stripes, sash, crossbelts, chevron, inverted chevron, braces, halved, quartered, spots, large spots, disc, star, diamond, epaulets, panel, seams, collar and cuffs
-- **Sleeves:** plain, hoops, stripes, chevrons, armlets, cuffs, spots, diabolo
-- **Cap:** plain, quartered, striped, hooped, spots, star, peak
+- **Body:** plain, hoops, hooped band, stripes, sash, crossbelts, chevron, inverted chevron, chevrons, braces, halved, quartered, spots, large spots, disc, star, diamond, epaulets, panel, seams, check
+- **Sleeves:** plain, hoops, stripes, halved, chevrons, armlets, cuffs, spots, diabolo, seams
+- **Cap:** plain, quartered, halved, striped, hooped, spots, star, diamond, peak
+
+To add a set of silks, add one entry to `silks.json` and run the script.
 
 ## Web
 

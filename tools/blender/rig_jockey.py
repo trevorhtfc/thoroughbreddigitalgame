@@ -68,8 +68,11 @@ for p in me.polygons:
 
 co = np.array([v.co[:] for v in me.vertices])
 x, y, z = co.T
-upper = silk_vert | (~horse_vert & (z > 0.455) & (x > -0.02) & (x < 0.25) & (np.abs(y) < 0.11))
-reins = ~horse_vert & ~upper & (x >= 0.15) & (x < 0.33) & (z > 0.43) & (np.abs(y) < 0.06)
+# the mane along the neck crest sits right under the jockey's hands; keep it with the horse
+mane = ~silk_vert & (np.abs(y) < 0.025) & (((x > 0.16) & (z < 0.48)) |
+                                          ((x > 0.185) & (np.abs(z - (0.49 + (x - 0.2) * 0.55)) < 0.022)))
+upper = silk_vert | (~horse_vert & ~mane & (z > 0.455) & (x > -0.02) & (x < 0.25) & (np.abs(y) < 0.11))
+reins = ~horse_vert & ~upper & ~mane & (x >= 0.15) & (x < 0.33) & (z > 0.43) & (z < 0.475) & (np.abs(y) < 0.06)   # below the mane
 print("jockey upper verts", int(upper.sum()), "rein verts", int(reins.sum()))
 
 def seg_dist(p, a, b):
@@ -123,6 +126,31 @@ for i in np.where(reins)[0].tolist():
             pass
     groups["jockey_forearm." + side].add([int(i)], f, "REPLACE")
 
+# Soft hold: the gloves are joined onto the mane in the model, so mane near the
+# hands follows them partly, fading out over 3 cm (9 cm full size). Without this
+# the hair between hands and neck tears into spikes when the arms pump.
+from scipy.spatial import cKDTree
+glove = upper & ~silk_vert & (x > 0.15) & (z < 0.48)
+if glove.any():
+    tree = cKDTree(co[glove])
+    hold = ~upper & ~horse_vert | (horse_vert & (z > 0.43) & (x > 0.14) & (x < 0.3) & (np.abs(y) < 0.06))
+    hold &= ~upper
+    cand = np.where(hold)[0]
+    dist, idx = tree.query(co[cand])
+    glove_idx = np.where(glove)[0]
+    for i, dd, gi in zip(cand.tolist(), dist.tolist(), idx.tolist()):
+        f = 0.85 * max(0.0, 1.0 - dd / 0.03)
+        if f <= 0.01:
+            continue
+        side = "L" if co[glove_idx[gi]][1] > 0 else "R"
+        for g in old_groups:
+            try:
+                g.add([i], g.weight(i) * (1 - f), "REPLACE")
+            except RuntimeError:
+                pass
+        groups["jockey_forearm." + side].add([i], f, "REPLACE")
+    print("soft-hold verts", int(sum(1 for dd in dist if dd < 0.03)))
+
 # ---------------- riding actions ----------------
 for pb in arm.pose.bones:
     pb.rotation_mode = "QUATERNION"
@@ -138,11 +166,12 @@ ROLL = (1, 0, 0)
 
 # Effort shapes: amplitudes in degrees. Phase 0 = start of the stride; the horse's head
 # goes down and forward over the leading fore's stance, so the push peaks at PEAK.
-PEAK = 0.12
+PEAK = 0.20          # matches the horse's head nod in rebuild_gallop.py
 RIDES = {
-    "ride_quiet": dict(chest=1.5, chest_base=0, head=-1.0, arm=4, fore=3, roll=0.5, hips=0.4),
-    "ride_push":  dict(chest=7, chest_base=3, head=-4, arm=20, fore=16, roll=1.5, hips=1.5),
-    "ride_drive": dict(chest=11, chest_base=6, head=-6, arm=32, fore=26, roll=3, hips=2.5),
+    # arm: shoulder swing, fore: elbow opening/closing, out: elbows flaring as the hands come back
+    "ride_quiet": dict(chest=1.5, chest_base=0, head=-1.0, arm=4, fore=6, out=1.5, roll=0.5, hips=0.4),
+    "ride_push":  dict(chest=7, chest_base=3, head=-4, arm=26, fore=42, out=8, roll=1.5, hips=1.5),
+    "ride_drive": dict(chest=11, chest_base=6, head=-6, arm=38, fore=62, out=13, roll=3, hips=2.5),
 }
 
 def wave(p, lag=0.0):
@@ -163,8 +192,17 @@ for name, a in RIDES.items():
         }
         for side in ("L", "R"):
             # arms reach forward (negative pitch) as the horse's head goes down, elbows open with them
-            poses["jockey_arm." + side] = rot_about(arm.pose.bones["jockey_arm." + side], PITCH, -a["arm"] * (0.5 + 0.5 * w) + a["chest_base"] * 0.5)
-            poses["jockey_forearm." + side] = rot_about(arm.pose.bones["jockey_forearm." + side], PITCH, -a["fore"] * (0.5 + 0.5 * wave(p, 0.04)))
+            # Pumping: as the horse's head goes down the hands push forward along the neck,
+            # shoulders swinging forward and elbows opening; then they draw back with the
+            # elbows bending and flaring out. f = 1 fully forward, 0 fully back.
+            f = 0.5 + 0.5 * w
+            fe = 0.5 + 0.5 * wave(p, 0.03)                      # elbow follows a touch later
+            s = 1.0 if side == "L" else -1.0
+            pa = arm.pose.bones["jockey_arm." + side]
+            pf = arm.pose.bones["jockey_forearm." + side]
+            poses["jockey_arm." + side] = (rot_about(pa, PITCH, -a["arm"] * (f - 0.4) + a["chest_base"] * 0.5)
+                                           @ rot_about(pa, ROLL, s * a["out"] * (1 - f)))
+            poses["jockey_forearm." + side] = rot_about(pf, PITCH, a["fore"] * (fe - 0.55))
         for bn, q in poses.items():
             pb = arm.pose.bones[bn]
             pb.rotation_quaternion = q

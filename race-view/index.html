@@ -139,10 +139,8 @@ const COATS = [
 ];
 // Silks: menu artwork (thumbnails) plus traditional 3D silks described in silks.json (body, sleeves, cap).
 // colour = main body colour, used for the few small silk areas on the jockey outside the jacket.
-const SILK_DATA = await fetch("assets/silks.json").then((r) => r.json());
-const SILKS = SILK_DATA.silks.map((s) => ({
-  id: s.id, name: s.name, description: s.description, colour: SILK_DATA.palette[s.body.colour],
-}));
+const SILK_DATA = await fetch("assets/silks-catalogue.json").then((r) => r.json());
+const SILKS = SILK_DATA.silks.map((s) => ({ id: s.id, name: s.name, description: s.description, colour: s.colour }));
 
 const RACE_M = 1006;          // 5 furlongs
 const FURLONG = 201.17;

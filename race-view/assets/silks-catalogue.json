@@ -1,0 +1,405 @@
+{
+ "silks": [
+  {
+   "id": "alcohol-free",
+   "name": "Alcohol Free",
+   "description": "Purple, ice blue chevron, ice blue cap",
+   "colour": "#4a33b8"
+  },
+  {
+   "id": "ballydoyle-orange",
+   "name": "Ballydoyle Orange",
+   "description": "Royal blue, orange disc, royal blue and orange striped sleeves, royal blue and orange striped cap",
+   "colour": "#1d4ae6"
+  },
+  {
+   "id": "bradsell",
+   "name": "Bradsell",
+   "description": "Red, red and white striped sleeves, red and white striped cap",
+   "colour": "#f0281c"
+  },
+  {
+   "id": "cheveley-park",
+   "name": "Cheveley Park",
+   "description": "Red, white sash, royal blue cap",
+   "colour": "#f0281c"
+  },
+  {
+   "id": "desert-crown",
+   "name": "Desert Crown",
+   "description": "Royal blue, lemon chevron, lemon cap, royal blue spots",
+   "colour": "#1d4ae6"
+  },
+  {
+   "id": "godolphin",
+   "name": "Godolphin",
+   "description": "Royal blue",
+   "colour": "#1d4ae6"
+  },
+  {
+   "id": "judmonte",
+   "name": "Judmonte",
+   "description": "Mint green, pink sash, white sleeves, pink cap",
+   "colour": "#6df096"
+  },
+  {
+   "id": "liberty-lane",
+   "name": "Liberty Lane",
+   "description": "Lemon, large black spots, lemon cap, black spots",
+   "colour": "#e6f232"
+  },
+  {
+   "id": "nashwa",
+   "name": "Nashwa",
+   "description": "Mint green, mint green and white striped sleeves",
+   "colour": "#6df096"
+  },
+  {
+   "id": "sea-the-stars",
+   "name": "Sea The Stars",
+   "description": "Lemon, indigo cap, lemon star",
+   "colour": "#e6f232"
+  },
+  {
+   "id": "shadwell",
+   "name": "Shadwell",
+   "description": "Royal blue, white epaulets, white and royal blue striped cap",
+   "colour": "#1d4ae6"
+  },
+  {
+   "id": "starlust",
+   "name": "Starlust",
+   "description": "Pink, mint green chevron, pink and mint green halved sleeves, mint green and pink halved cap",
+   "colour": "#f08ef0"
+  },
+  {
+   "id": "stradivarius",
+   "name": "Stradivarius",
+   "description": "Black, lemon cap",
+   "colour": "#17191a"
+  },
+  {
+   "id": "swingalong",
+   "name": "Swingalong",
+   "description": "Navy, large lemon spots",
+   "colour": "#20335a"
+  },
+  {
+   "id": "wantan-2",
+   "name": "Wantan 2",
+   "description": "Gold, royal blue sleeves, royal blue cap",
+   "colour": "#e4c84c"
+  },
+  {
+   "id": "watnan",
+   "name": "Watnan",
+   "description": "Royal blue, gold sleeves, red cap",
+   "colour": "#1d4ae6"
+  },
+  {
+   "id": "yellow-black-epilite",
+   "name": "Yellow Black Epilite",
+   "description": "Lemon, black epaulets",
+   "colour": "#e6f232"
+  }
+ ],
+ "catalogue": [
+  {
+   "id": "catalogue-body-plain",
+   "name": "Plain",
+   "zone": "body",
+   "pattern": "plain",
+   "colour": "#1f2f5e"
+  },
+  {
+   "id": "catalogue-body-hoops",
+   "name": "Hoops",
+   "zone": "body",
+   "pattern": "hoops",
+   "colour": "#1f2f5e"
+  },
+  {
+   "id": "catalogue-body-stripes",
+   "name": "Stripes",
+   "zone": "body",
+   "pattern": "stripes",
+   "colour": "#1f2f5e"
+  },
+  {
+   "id": "catalogue-body-sash",
+   "name": "Sash",
+   "zone": "body",
+   "pattern": "sash",
+   "colour": "#1f2f5e"
+  },
+  {
+   "id": "catalogue-body-crossbelts",
+   "name": "Crossbelts",
+   "zone": "body",
+   "pattern": "crossbelts",
+   "colour": "#1f2f5e"
+  },
+  {
+   "id": "catalogue-body-chevron",
+   "name": "Chevron",
+   "zone": "body",
+   "pattern": "chevron",
+   "colour": "#1f2f5e"
+  },
+  {
+   "id": "catalogue-body-inverted-chevron",
+   "name": "Inverted chevron",
+   "zone": "body",
+   "pattern": "inverted chevron",
+   "colour": "#1f2f5e"
+  },
+  {
+   "id": "catalogue-body-chevrons",
+   "name": "Chevrons",
+   "zone": "body",
+   "pattern": "chevrons",
+   "colour": "#1f2f5e"
+  },
+  {
+   "id": "catalogue-body-braces",
+   "name": "Braces",
+   "zone": "body",
+   "pattern": "braces",
+   "colour": "#1f2f5e"
+  },
+  {
+   "id": "catalogue-body-halved",
+   "name": "Halved",
+   "zone": "body",
+   "pattern": "halved",
+   "colour": "#1f2f5e"
+  },
+  {
+   "id": "catalogue-body-quartered",
+   "name": "Quartered",
+   "zone": "body",
+   "pattern": "quartered",
+   "colour": "#1f2f5e"
+  },
+  {
+   "id": "catalogue-body-spots",
+   "name": "Spots",
+   "zone": "body",
+   "pattern": "spots",
+   "colour": "#1f2f5e"
+  },
+  {
+   "id": "catalogue-body-large-spots",
+   "name": "Large spots",
+   "zone": "body",
+   "pattern": "large spots",
+   "colour": "#1f2f5e"
+  },
+  {
+   "id": "catalogue-body-disc",
+   "name": "Disc",
+   "zone": "body",
+   "pattern": "disc",
+   "colour": "#1f2f5e"
+  },
+  {
+   "id": "catalogue-body-star",
+   "name": "Star",
+   "zone": "body",
+   "pattern": "star",
+   "colour": "#1f2f5e"
+  },
+  {
+   "id": "catalogue-body-diamond",
+   "name": "Diamond",
+   "zone": "body",
+   "pattern": "diamond",
+   "colour": "#1f2f5e"
+  },
+  {
+   "id": "catalogue-body-epaulets",
+   "name": "Epaulets",
+   "zone": "body",
+   "pattern": "epaulets",
+   "colour": "#1f2f5e"
+  },
+  {
+   "id": "catalogue-body-panel",
+   "name": "Panel",
+   "zone": "body",
+   "pattern": "panel",
+   "colour": "#1f2f5e"
+  },
+  {
+   "id": "catalogue-body-seams",
+   "name": "Seams",
+   "zone": "body",
+   "pattern": "seams",
+   "colour": "#1f2f5e"
+  },
+  {
+   "id": "catalogue-body-check",
+   "name": "Check",
+   "zone": "body",
+   "pattern": "check",
+   "colour": "#1f2f5e"
+  },
+  {
+   "id": "catalogue-body-hooped-band",
+   "name": "Hooped band",
+   "zone": "body",
+   "pattern": "hooped band",
+   "colour": "#1f2f5e"
+  },
+  {
+   "id": "catalogue-sleeves-plain",
+   "name": "Plain",
+   "zone": "sleeves",
+   "pattern": "plain",
+   "colour": "#1f2f5e"
+  },
+  {
+   "id": "catalogue-sleeves-hoops",
+   "name": "Hoops",
+   "zone": "sleeves",
+   "pattern": "hoops",
+   "colour": "#1f2f5e"
+  },
+  {
+   "id": "catalogue-sleeves-stripes",
+   "name": "Stripes",
+   "zone": "sleeves",
+   "pattern": "stripes",
+   "colour": "#1f2f5e"
+  },
+  {
+   "id": "catalogue-sleeves-halved",
+   "name": "Halved",
+   "zone": "sleeves",
+   "pattern": "halved",
+   "colour": "#1f2f5e"
+  },
+  {
+   "id": "catalogue-sleeves-chevrons",
+   "name": "Chevrons",
+   "zone": "sleeves",
+   "pattern": "chevrons",
+   "colour": "#1f2f5e"
+  },
+  {
+   "id": "catalogue-sleeves-armlets",
+   "name": "Armlets",
+   "zone": "sleeves",
+   "pattern": "armlets",
+   "colour": "#1f2f5e"
+  },
+  {
+   "id": "catalogue-sleeves-cuffs",
+   "name": "Cuffs",
+   "zone": "sleeves",
+   "pattern": "cuffs",
+   "colour": "#1f2f5e"
+  },
+  {
+   "id": "catalogue-sleeves-spots",
+   "name": "Spots",
+   "zone": "sleeves",
+   "pattern": "spots",
+   "colour": "#1f2f5e"
+  },
+  {
+   "id": "catalogue-sleeves-diabolo",
+   "name": "Diabolo",
+   "zone": "sleeves",
+   "pattern": "diabolo",
+   "colour": "#1f2f5e"
+  },
+  {
+   "id": "catalogue-sleeves-seams",
+   "name": "Seams",
+   "zone": "sleeves",
+   "pattern": "seams",
+   "colour": "#1f2f5e"
+  },
+  {
+   "id": "catalogue-cap-plain",
+   "name": "Plain",
+   "zone": "cap",
+   "pattern": "plain",
+   "colour": "#1f2f5e"
+  },
+  {
+   "id": "catalogue-cap-quartered",
+   "name": "Quartered",
+   "zone": "cap",
+   "pattern": "quartered",
+   "colour": "#1f2f5e"
+  },
+  {
+   "id": "catalogue-cap-halved",
+   "name": "Halved",
+   "zone": "cap",
+   "pattern": "halved",
+   "colour": "#1f2f5e"
+  },
+  {
+   "id": "catalogue-cap-striped",
+   "name": "Striped",
+   "zone": "cap",
+   "pattern": "striped",
+   "colour": "#1f2f5e"
+  },
+  {
+   "id": "catalogue-cap-hooped",
+   "name": "Hooped",
+   "zone": "cap",
+   "pattern": "hooped",
+   "colour": "#1f2f5e"
+  },
+  {
+   "id": "catalogue-cap-spots",
+   "name": "Spots",
+   "zone": "cap",
+   "pattern": "spots",
+   "colour": "#1f2f5e"
+  },
+  {
+   "id": "catalogue-cap-star",
+   "name": "Star",
+   "zone": "cap",
+   "pattern": "star",
+   "colour": "#1f2f5e"
+  },
+  {
+   "id": "catalogue-cap-diamond",
+   "name": "Diamond",
+   "zone": "cap",
+   "pattern": "diamond",
+   "colour": "#1f2f5e"
+  },
+  {
+   "id": "catalogue-cap-peak",
+   "name": "Peak",
+   "zone": "cap",
+   "pattern": "peak",
+   "colour": "#1f2f5e"
+  }
+ ],
+ "zones": {
+  "id": "zones",
+  "legend": {
+   "body front": "test body front",
+   "body back": "test body back",
+   "left sleeve": "test left",
+   "right sleeve": "test right",
+   "cap": "test cap"
+  },
+  "colours": {
+   "body front": "#e2b21c",
+   "body back": "#d8d8d4",
+   "left sleeve": "#d83a30",
+   "right sleeve": "#2f54d8",
+   "cap": "#2fae4a"
+  }
+ }
+}
