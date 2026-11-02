@@ -45,7 +45,7 @@
   {
    "id": "liberty-lane",
    "name": "Liberty Lane",
-   "description": "Lemon, large black spots, lemon cap, black spots",
+   "description": "Lemon, three black spots, lemon cap, four black spots",
    "colour": "#e6f232"
   },
   {
@@ -81,7 +81,7 @@
   {
    "id": "swingalong",
    "name": "Swingalong",
-   "description": "Navy, large lemon spots",
+   "description": "Navy, three lemon spots",
    "colour": "#20335a"
   },
   {
@@ -252,6 +252,13 @@
    "colour": "#1f2f5e"
   },
   {
+   "id": "catalogue-body-three-spots",
+   "name": "Three spots",
+   "zone": "body",
+   "pattern": "three spots",
+   "colour": "#1f2f5e"
+  },
+  {
    "id": "catalogue-sleeves-plain",
    "name": "Plain",
    "zone": "sleeves",
@@ -361,6 +368,13 @@
    "name": "Spots",
    "zone": "cap",
    "pattern": "spots",
+   "colour": "#1f2f5e"
+  },
+  {
+   "id": "catalogue-cap-four-spots",
+   "name": "Four spots",
+   "zone": "cap",
+   "pattern": "four spots",
    "colour": "#1f2f5e"
   },
   {

@@ -66,9 +66,9 @@
       "cap": { "colour": "pink" } },
 
     { "id": "liberty-lane", "name": "Liberty Lane",
-      "body": { "colour": "lemon", "pattern": "large spots", "colour2": "black" },
+      "body": { "colour": "lemon", "pattern": "three spots", "colour2": "black" },
       "sleeves": { "colour": "lemon" },
-      "cap": { "colour": "lemon", "pattern": "spots", "colour2": "black" } },
+      "cap": { "colour": "lemon", "pattern": "four spots", "colour2": "black" } },
 
     { "id": "nashwa", "name": "Nashwa",
       "body": { "colour": "mint green" },
@@ -96,7 +96,7 @@
       "cap": { "colour": "lemon" } },
 
     { "id": "swingalong", "name": "Swingalong",
-      "body": { "colour": "navy", "pattern": "large spots", "colour2": "lemon" },
+      "body": { "colour": "navy", "pattern": "three spots", "colour2": "lemon" },
       "sleeves": { "colour": "navy" },
       "cap": { "colour": "navy" } },
 

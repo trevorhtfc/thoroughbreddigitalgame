@@ -48,7 +48,7 @@ for p in me.polygons:
     c = p.center
     if not (-0.03 < c.x < 0.27 and c.z > 0.425 and abs(c.y) < 0.12):
         continue
-    if c.x > 0.175 and c.z < 0.553 and abs(c.y) < 0.035:      # face and goggles stay as they are
+    if c.x > 0.155 and c.z > 0.495 and c.z < 0.556 and abs(c.y) < 0.04:   # face, chin, goggles stay as they are
         continue
     # sample the corners, edge midpoints and centre; move the face only if it is almost all silk
     uvs = [tuple(uv[l].uv) for l in p.loop_indices]
@@ -107,7 +107,7 @@ zone = np.full(n, -1)
 zone[silk] = 0
 cap = silk & (side(C, RIM) > 0) & (np.linalg.norm(C - HEAD, axis=1) < 0.068) & (x > 0.14)
 for s_, k in ((1, 1), (-1, 2)):
-    sl = silk & ~cap & (side(C, ARMHOLE[s_]) > 0) & (arm_d(C, s_) < 0.032)
+    sl = silk & ~cap & (side(C, ARMHOLE[s_]) > 0) & (arm_d(C, s_) < 0.032) & (y * s_ > 0.035)
     sl |= silk & ~cap & (x > 0.15) & (z < 0.48) & (y * s_ > 0.03)        # cuffs at the hands
     zone[sl] = k
 zone[cap] = 3
@@ -143,6 +143,13 @@ print("silk faces", int(silk.sum()), {NAMES[k]: int((zone == k).sum()) for k in 
 
 # ---------- 3. unwrap ----------
 co = np.array([v.co[:] for v in me.vertices])
+# smooth normals by welded position, so split seams don't give jumpy directions
+_acc = {}
+for v in me.vertices:
+    k = tuple(np.round(v.co[:], 5))
+    _acc[k] = _acc.get(k, np.zeros(3)) + np.array(v.normal[:])
+vn = np.array([_acc[tuple(np.round(v.co[:], 5))] for v in me.vertices])
+vn /= np.maximum(np.linalg.norm(vn, axis=1, keepdims=True), 1e-9)
 bodyv = co[sorted({v for i in np.where(zone == 0)[0] for v in me.polygons[int(i)].vertices})]
 X0, X1 = float(bodyv[:, 0].min()), 0.175
 
@@ -153,9 +160,19 @@ AXIS_Z = [0.499, 0.510, 0.519, 0.510, 0.495]
 def torso_zc(px):
     return float(np.interp(px, AXIS_X, AXIS_Z))
 
-def body_uv(p):
+def body_uv(p, n=None):
+    """Angle round the torso from the centre line, steered by the surface direction
+    so the jacket curling down over the seat still counts as back, not front."""
     px, py, pz = p
-    a = math.atan2(py, -(pz - torso_zc(px))) / (2 * math.pi)   # 0 chest, .25 left, .5 back
+    ry, rz = py, -(pz - torso_zc(px))
+    rl = math.hypot(ry, rz) or 1.0
+    ry, rz = ry / rl, rz / rl
+    if n is not None:
+        ny, nz = n[1], -n[2]
+        nl = math.hypot(ny, nz)
+        if nl > 0.2:
+            ry, rz = ry + 1.5 * ny / nl, rz + 1.5 * nz / nl
+    a = math.atan2(ry, rz) / (2 * math.pi)                     # 0 chest, .25 left, .5 back
     return (a + 0.25) % 1.0, min(max((px - X0) / (X1 - X0), 0.0), 1.0)
 
 def sleeve_fn(s):
@@ -198,7 +215,10 @@ for k, name in NAMES.items():
     fn = FN[name]
     for i in np.where(zone == k)[0]:
         p = me.polygons[int(i)]
-        uvs = [fn(co[me.loops[li].vertex_index]) for li in p.loop_indices]
+        if name == "body":
+            uvs = [fn(co[me.loops[li].vertex_index], vn[me.loops[li].vertex_index]) for li in p.loop_indices]
+        else:
+            uvs = [fn(co[me.loops[li].vertex_index]) for li in p.loop_indices]
         us = [u for u, _ in uvs]
         if max(us) - min(us) > 0.5:                      # face straddles the wrap seam
             uvs = [((u + 1.0) if u < 0.5 else u, v) for u, v in uvs]

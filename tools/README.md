@@ -17,8 +17,8 @@ The Blender file after step 3 is kept as `assets/models/master/racehorse_master.
 
 ```
 python tools/blender/rebuild_gallop.py   -- assets/models/racehorse_neutral.glb step1.blend
-python tools/blender/repattern_jacket.py -- step1.blend race-view/assets/tint-mask.png step2.blend
-python tools/blender/rig_jockey.py       -- step2.blend race-view/assets/tint-mask.png step3.blend
+python tools/blender/repattern_jacket.py -- step1.blend assets/models/tint_masks/build-mask.png step2.blend
+python tools/blender/rig_jockey.py       -- step2.blend assets/models/tint_masks/build-mask.png step3.blend
 python tools/blender/export_glb.py       -- step3.blend assets/models/racehorse_rigged.glb
 ```
 
@@ -39,7 +39,7 @@ Blend the jockey by effort (0 quiet, 1 push, 2 drive) and the horse by a slightl
 
 ### Colouring the horse
 
-The horse's texture is neutral grey. `assets/models/tint_masks/` holds masks for the coat, the points (mane, tail, lower legs) and the silk areas on the body mesh. Multiply each masked area by the chosen colour, keeping the grey texture's light and shade. `tools/web/make_tint_mask.py` packs them into one RGB texture (R coat, G points, B silks).
+The horse's texture is neutral grey. `assets/models/tint_masks/` holds masks for the coat, the points (mane, tail, lower legs) and the silk areas on the body mesh. Multiply each masked area by the chosen colour, keeping the grey texture's light and shade. `tools/web/make_tint_mask.py` packs them into one RGB texture (R coat, G points, B silks); show everything outside the masks (tack) in neutral grey. Its `--build` version, `build-mask.png`, also marks leftover silk patches and is only for the Blender steps.
 
 ## Silks
 
@@ -58,9 +58,9 @@ python tools/silks/make_silks.py silks/silks.json silks 1024
 
 Patterns available:
 
-- **Body:** plain, hoops, hooped band, stripes, sash, crossbelts, chevron, inverted chevron, chevrons, braces, halved, quartered, spots, large spots, disc, star, diamond, epaulets, panel, seams, check
+- **Body:** plain, hoops, hooped band, stripes, sash, crossbelts, chevron, inverted chevron, chevrons, braces, halved, quartered, spots, large spots, three spots, disc, star, diamond, epaulets, panel, seams, check
 - **Sleeves:** plain, hoops, stripes, halved, chevrons, armlets, cuffs, spots, diabolo, seams
-- **Cap:** plain, quartered, halved, striped, hooped, spots, star, diamond, peak
+- **Cap:** plain, quartered, halved, striped, hooped, spots, four spots, star, diamond, peak
 
 To add a set of silks, add one entry to `silks.json` and run the script.
 

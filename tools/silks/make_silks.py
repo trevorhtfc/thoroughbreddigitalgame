@@ -32,9 +32,9 @@ SS = 3
 
 BODY_PATTERNS = ["plain", "hoops", "stripes", "sash", "crossbelts", "chevron", "inverted chevron", "chevrons",
                  "braces", "halved", "quartered", "spots", "large spots", "disc", "star", "diamond",
-                 "epaulets", "panel", "seams", "check", "hooped band"]
+                 "epaulets", "panel", "seams", "check", "hooped band", "three spots"]
 SLEEVE_PATTERNS = ["plain", "hoops", "stripes", "halved", "chevrons", "armlets", "cuffs", "spots", "diabolo", "seams"]
-CAP_PATTERNS = ["plain", "quartered", "halved", "striped", "hooped", "spots", "star", "diamond", "peak"]
+CAP_PATTERNS = ["plain", "quartered", "halved", "striped", "hooped", "spots", "four spots", "star", "diamond", "peak"]
 
 
 def hexrgb(h):
@@ -86,6 +86,8 @@ def body_mask(pattern, u, h, asp=1.9):
     Y = (h - 0.5) * asp                                       # height in half-widths, 0 at mid-body
     if p == "spots": return spots(u * 4 * 2.6, (Y + 10) * 2.6, 0.27)
     if p == "large spots": return spots(u * 4 * 1.25, (Y + 10) * 1.25, 0.3)
+    if p == "three spots":                                    # big spots on the sash line, left shoulder to right hip
+        return ((np.hypot(L - 0.68, Y - 0.95) < 0.42) | (np.hypot(L, Y) < 0.42) | (np.hypot(L + 0.68, Y + 0.95) < 0.42))
     if p == "disc": return np.hypot(L, Y) < 0.62
     if p == "star": return star(L, Y, 0.75)
     if p == "diamond": return (np.abs(L) * 1.3 + np.abs(Y)) < 0.85
@@ -121,6 +123,9 @@ def cap_mask(pattern, u, v):
     if p == "striped": return (np.floor(u * 12) % 2) == 1
     if p == "hooped": return (np.floor(v * 5) % 2) == 1
     if p == "spots": return spots(u * 8, v * 2.2, 0.27)
+    if p == "four spots":                                     # two by two on the front of the cap
+        X, Yc = (u - 0.5) * 3.2, (0.5 - v) * 1.1
+        return ((np.hypot(np.abs(X) - 0.2, np.abs(Yc) - 0.17) < 0.13))
     if p == "star": return star((u - 0.5) * 3.2, (0.55 - v) * 1.1, 0.42)
     if p == "diamond": return (np.abs(u - 0.5) * 3.2 + np.abs(v - 0.5) * 1.3) < 0.45
     if p == "peak": return (v > 0.85) & (np.abs(u - 0.5) < 0.18)
@@ -252,6 +257,7 @@ def describe(entry):
         if pat in ("hoops", "stripes", "halved", "quartered", "check", "chevrons"):
             return ("%s %s" % (two(p), {"check": "check"}.get(pat, pat))).capitalize()
         if pat == "large spots": return "%s, large %s spots" % (p["colour"].capitalize(), p["colour2"])
+        if pat == "three spots": return "%s, three %s spots" % (p["colour"].capitalize(), p["colour2"])
         return "%s, %s %s" % (p["colour"].capitalize(), p["colour2"], pat)
     def sleeve_phrase(p):
         pat = p.get("pattern") or "plain"
@@ -265,6 +271,7 @@ def describe(entry):
         if pat == "plain": return "%s cap" % p["colour"]
         if pat in ("quartered", "halved", "striped", "hooped"): return "%s %s cap" % (two(p), pat)
         if pat == "spots": return "%s cap, %s spots" % (p["colour"], p["colour2"])
+        if pat == "four spots": return "%s cap, four %s spots" % (p["colour"], p["colour2"])
         return "%s cap, %s %s" % (p["colour"], p["colour2"], pat)
     parts = [body_phrase(b)]
     plain_same = lambda p: (p.get("pattern") or "plain") == "plain" and p["colour"] == b["colour"]
