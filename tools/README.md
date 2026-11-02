@@ -74,12 +74,12 @@ To add a set of silks, add one entry to `silks.json` and run the script.
 
 ## Courses
 
-A course is a data file in `courses/` (see `courses/ascot-home-straight.json`): the centre line, track width and lanes, rails, winning post, furlong poles, paths, tree rows, the TV cameras and the director's rules (which camera at which point of the race). Positions are in metres: x = direction of running, y = up, z = across the course (+ towards the stands). Any engine builds the course from this file.
+A course is a data file in `courses/` (see `courses/ascot-home-straight.json`): the centre line, track width and lanes, rails, winning post, furlong poles, paths, tree clumps, woodland strips, the TV cameras and the director's rules (which camera at which point of the race). Positions are in metres: x = direction of running, y = up, z = across the course (+ towards the stands). Any engine builds the course from this file.
 
 | Script | What it does |
 |---|---|
 | `tools/blender/build_course_props.py` | Builds the course furniture in Blender (running rail module, heritage winning post with the spiral pole and roundel, furlong poles 1–7) and exports `assets/models/course/course_props.glb`, with the source in `assets/models/master/course_props.blend`. |
-| `tools/course/paint_scenery.py` | Paints the illustrated textures into `assets/course/textures/`: `turf.png` (soft lanes along the track, no grid), `grass.png`, `path.png` and `trees.png` (four painted trees, lit from the upper left, used as upright cut-outs). |
+| `tools/course/paint_scenery.py` | Paints the illustrated textures into `assets/course/textures/`: `turf.png` (soft lanes along the track, no grid), `grass.png`, `path.png` `trees.png` (four painted trees in gouache masses, lit from the upper left, used as upright cut-outs) and `treeline.png` / `treeline_far.png` (continuous painted woodland that tiles left to right, for the tree lines behind the course). |
 
 ```
 python tools/blender/build_course_props.py -- assets/models/course/course_props.glb assets/models/master/course_props.blend

@@ -59,6 +59,13 @@ button {
 button[aria-pressed="true"] { background: var(--green); color: var(--cream); border-color: var(--green); }
 button:focus-visible { outline: 2px solid var(--cream-edge); outline-offset: 2px; }
 .fps { font-variant-numeric: tabular-nums; font-size: 0.75rem; opacity: 0.8; min-width: 6.5em; }
+.diag {
+  position: fixed; top: 10px; right: 10px; z-index: 5; max-width: 360px; padding: 8px 10px;
+  background: rgba(20, 30, 22, 0.86); color: #f3ead2; border-radius: 3px; font: 12px/1.45 ui-monospace, Menlo, monospace;
+}
+.diag #diagText { white-space: pre-wrap; }
+.diag-sw { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 6px; }
+.diag-sw button { font-size: 0.72rem; padding: 3px 6px; }
 .loading {
   position: fixed; inset: 0; display: grid; place-items: center; pointer-events: none;
   font-family: var(--display); font-size: 1.4rem; letter-spacing: 0.1em; color: var(--cream);
@@ -129,7 +136,9 @@ const POST = COURSE.winningPost.at;
 
 // ---------- Renderer ----------
 const canvas = document.getElementById("scene");
-const renderer = new THREE.WebGLRenderer({ canvas, antialias: false, preserveDrawingBuffer: params.has("still") });
+const renderer = new THREE.WebGLRenderer({ canvas, antialias: false, powerPreference: "high-performance", preserveDrawingBuffer: params.has("still") });
+renderer.info.autoReset = false;
+const LAYERS = { horses: [], trees: [], rails: [], kick: [] };   // for the diagnostics panel
 renderer.shadowMap.enabled = true;
 
 // Quality presets. Most of the cost is filling pixels: a Retina Mac at full resolution draws four
@@ -251,16 +260,24 @@ function seeded(seed) { let s = seed >>> 0; return () => ((s = (s * 1664525 + 10
   for (const row of COURSE.trees) {
     const [ax, az] = row.from, [bx, bz] = row.to;
     const L = Math.hypot(bx - ax, bz - az);
+    // Clumps of one to a few trees, with gaps, so the line never looks planted in rows.
+    const [cMin, cMax] = row.clump || [1, 1];
     for (let r = 0; r < (row.rows || 1); r++) {
-      for (let d = 0; d < L; d += row.spacing) {
+      for (let d = 0; d < L; d += row.spacing * (0.7 + rnd() * 0.6)) {
+        if (rnd() < (row.skip || 0)) continue;
         const t = d / L;
         const away = Math.sign(az) * r * (row.rowGap || 0);
-        spots.push({
-          x: ax + (bx - ax) * t + (rnd() - 0.5) * 2 * row.jitter[0],
-          z: az + (bz - az) * t + away + (rnd() - 0.5) * 2 * row.jitter[1],
-          h: row.height[0] + rnd() * (row.height[1] - row.height[0]),
-          kind: Math.floor(rnd() * 4),
-        });
+        const cx = ax + (bx - ax) * t + (rnd() - 0.5) * 2 * row.jitter[0];
+        const cz = az + (bz - az) * t + away + (rnd() - 0.5) * 2 * row.jitter[1];
+        const n = cMin + Math.floor(rnd() * (cMax - cMin + 1));
+        for (let k = 0; k < n; k++) {
+          spots.push({
+            x: cx + (k ? (rnd() - 0.5) * 16 : 0),
+            z: cz + (k ? (rnd() - 0.5) * 8 * Math.sign(az) - Math.sign(az) * 3 : 0),
+            h: row.height[0] + rnd() * (row.height[1] - row.height[0]),
+            kind: Math.floor(rnd() * 4),
+          });
+        }
       }
     }
   }
@@ -274,7 +291,7 @@ function seeded(seed) { let s = seed >>> 0; return () => ((s = (s * 1664525 + 10
   geo.setAttribute("aKind", new THREE.InstancedBufferAttribute(kind, 1));
   geo.setAttribute("aSize", new THREE.InstancedBufferAttribute(size, 2));
   const mat = new THREE.ShaderMaterial({
-    uniforms: { atlas: { value: atlas }, fogColor: { value: HAZE }, fogNear: { value: scene.fog.near }, fogFar: { value: scene.fog.far }, bright: { value: 1.55 } },
+    uniforms: { atlas: { value: atlas }, fogColor: { value: HAZE }, fogNear: { value: scene.fog.near }, fogFar: { value: scene.fog.far }, bright: { value: 1.3 } },
     vertexShader: `
       attribute float aKind; attribute vec2 aSize;
       varying vec2 vUv; varying float vDepth;
@@ -316,6 +333,36 @@ function seeded(seed) { let s = seed >>> 0; return () => ((s = (s * 1664525 + 10
   });
   trees.frustumCulled = false;
   scene.add(shadows, trees);
+  LAYERS.trees.push(shadows, trees);
+
+  // Woodland: long painted strips of trees behind the course, one quad each (cheap to draw).
+  for (const w of COURSE.woodland || []) {
+    const t = texLoader.load(`assets/course/${w.texture}.png`);
+    t.colorSpace = THREE.SRGBColorSpace;
+    t.wrapS = THREE.RepeatWrapping;
+    t.anisotropy = 8;
+    // A zig-zag ribbon rather than a flat wall: the line wanders in and out every 40 m or so,
+    // so it has depth from the side and never lies flat to a camera looking down the course.
+    const tile = w.height * (w.aspect || 6.4);           // keep the painting's proportions
+    const wr = seeded(Math.round(w.z * 7 + 3));
+    const pos = [], uv = [], idx = [];
+    let u = w.offset || 0, prev = null;
+    for (let x = w.from, i = 0; x <= w.to; x += 34 + wr() * 18, i++) {
+      const z = w.z + (wr() - 0.5) * 2 * (w.wander ?? 14);
+      if (prev) u += Math.hypot(x - prev[0], z - prev[1]) / tile;
+      pos.push(x, 0, z, x, w.height, z); uv.push(u, 0, u, 1);
+      if (i) { const k = i * 2; idx.push(k - 2, k, k - 1, k - 1, k, k + 1); }
+      prev = [x, z];
+    }
+    const geo = new THREE.BufferGeometry();
+    geo.setAttribute("position", new THREE.Float32BufferAttribute(pos, 3));
+    geo.setAttribute("uv", new THREE.Float32BufferAttribute(uv, 2));
+    geo.setIndex(idx);
+    const strip = new THREE.Mesh(geo,
+      new THREE.MeshBasicMaterial({ map: t, alphaTest: 0.5, side: THREE.DoubleSide, color: new THREE.Color(1.1, 1.1, 1.06) }));
+    scene.add(strip);
+    LAYERS.trees.push(strip);
+  }
 }
 
 // ---------- Models (glTF, repackaged for the web host) ----------
@@ -354,16 +401,23 @@ function placeProps(gltf) {
   const m = new THREE.Matrix4(), rot = new THREE.Matrix4().makeRotationY(Math.PI);
   for (const side of R.sides) {
     const z = (HALF_W + R.gap) * (side === "near" ? 1 : -1);
+    // In 60 m lengths, so the rail out of shot (and outside the shadow area) isn't drawn at all.
+    const CHUNK = 20;
     for (const part of parts) {
-      const rails = new THREE.InstancedMesh(part.geometry, part.material, count);
-      for (let i = 0; i < count; i++) {
-        const x = X0 + i * R.spacing;
-        if (side === "near") m.makeTranslation(x, 0, z);
-        else m.makeTranslation(x + R.spacing, 0, z).multiply(rot);
-        rails.setMatrixAt(i, m);
+      for (let c0 = 0; c0 < count; c0 += CHUNK) {
+        const n = Math.min(CHUNK, count - c0);
+        const rails = new THREE.InstancedMesh(part.geometry, part.material, n);
+        for (let i = 0; i < n; i++) {
+          const x = X0 + (c0 + i) * R.spacing;
+          if (side === "near") m.makeTranslation(x, 0, z);
+          else m.makeTranslation(x + R.spacing, 0, z).multiply(rot);
+          rails.setMatrixAt(i, m);
+        }
+        rails.computeBoundingSphere();
+        rails.castShadow = rails.receiveShadow = true;
+        scene.add(rails);
+        LAYERS.rails.push(rails);
       }
-      rails.castShadow = rails.receiveShadow = true;
-      scene.add(rails);
     }
   }
   const sideZ = (side) => (HALF_W + R.gap + 0.7) * (side === "near" ? 1 : -1);
@@ -609,6 +663,42 @@ const qButtons = [["auto", "Auto"], ...ORDER.map((k) => [k, QUALITY[k].label])].
   b.dataset.q = id; return b;
 });
 const fpsEl = document.createElement("span"); fpsEl.className = "fps"; qEl.append(fpsEl);
+
+// Diagnostics (?debug=1, or tap the frame rate): what each frame costs, and switches to take
+// parts of the scene out one at a time to see which one is slow on this machine.
+const diag = { on: params.has("debug"), shadows: true, js: 0, draw: 0, n: 0 };
+const diagEl = document.createElement("div"); diagEl.className = "diag"; diagEl.hidden = !diag.on;
+document.body.append(diagEl);
+const gpuName = (() => {
+  const gl = renderer.getContext();
+  const ext = gl.getExtension("WEBGL_debug_renderer_info");
+  return ext ? gl.getParameter(ext.UNMASKED_RENDERER_WEBGL) : gl.getParameter(gl.RENDERER);
+})();
+diagEl.innerHTML = `<div id="diagText"></div><div class="diag-sw"></div>`;
+const swEl = diagEl.querySelector(".diag-sw");
+for (const [key, label] of [["horses", "Horses"], ["trees", "Trees"], ["rails", "Rails"], ["kick", "Turf kick"], ["shadows", "Shadows"]]) {
+  const b = button(swEl, label, () => {
+    const on = b.getAttribute("aria-pressed") !== "true";
+    b.setAttribute("aria-pressed", on);
+    if (key === "shadows") { diag.shadows = on; sun.castShadow = on; scene.traverse((o) => { if (o.material) [].concat(o.material).forEach((m) => (m.needsUpdate = true)); }); }
+    else LAYERS[key].forEach((o) => (o.visible = on));
+    perf.reset();
+  });
+  b.setAttribute("aria-pressed", "true");
+}
+fpsEl.style.cursor = "pointer";
+fpsEl.onclick = () => { diag.on = !diag.on; diagEl.hidden = !diag.on; };
+function showDiag(fps) {
+  if (!diag.on) return;
+  const i = renderer.info;
+  const n = Math.max(1, diag.n);
+  document.getElementById("diagText").textContent =
+    `${fps} fps · ${QUALITY[qLevel].label} · ${renderer.domElement.width}×${renderer.domElement.height}\n` +
+    `Graphics: ${gpuName}\n` +
+    `Per frame: scripts ${(diag.js / n).toFixed(1)} ms, drawing ${(diag.draw / n).toFixed(1)} ms\n` +
+    `${i.render.calls} draw calls, ${(i.render.triangles / 1000).toFixed(0)}k triangles`;
+  diag.js = diag.draw = diag.n = 0;
+}
 function syncQuality() { qButtons.forEach((b) => b.setAttribute("aria-pressed", b.dataset.q === qMode)); }
 syncQuality();
 
@@ -650,6 +740,7 @@ const perf = {
       if (next) applyQuality(next);
     }
     fpsEl.textContent = `${fps} fps · ${QUALITY[qLevel].label}`;
+    showDiag(fps);
   },
 };
 document.getElementById("pause").onclick = (e) => {
@@ -700,6 +791,7 @@ try {
     for (const c of clips) { actions[c.name] = mixer.clipAction(c); actions[c.name].play(); }
     mixer.setTime((i * 0.137) % 0.48);
     scene.add(obj);
+    LAYERS.horses.push(obj);
     runners.push({ obj, mixer, actions, effort: 0 });
   }
   document.getElementById("loading").hidden = true;
@@ -717,6 +809,7 @@ scene.add(contact);
 const clods = new THREE.InstancedMesh(new THREE.IcosahedronGeometry(1, 0), new THREE.MeshLambertMaterial({ color: "#ffffff" }), KICK.maxClods);
 clods.frustumCulled = false; clods.count = 0; clods.castShadow = false;
 scene.add(clods);
+LAYERS.kick.push(clods);
 const CLOD_COLOURS = ["#5a4430", "#6d5238", "#567e36", "#44702e", "#5f8a3c", "#7a9a48"].map((c) => new THREE.Color(c));
 const live = [];
 const kickRnd = seeded(99);
@@ -776,6 +869,7 @@ const toRunEl = document.getElementById("toRun"), toRunLabel = document.querySel
 const clock = new THREE.Clock();
 let framesDrawn = 0, stillFrames = 0, kickWarm = false;
 function frame() {
+  const t0 = performance.now();
   const rawDt = clock.getDelta();
   const dt = Math.min(rawDt, 0.05);
   if (runners.length && !params.has("still")) perf.tick(rawDt);
@@ -828,11 +922,14 @@ function frame() {
   const every = QUALITY[qLevel].shadowEvery;
   sun.shadow.autoUpdate = every === 1;
   if (every > 1 && framesDrawn % every === 0) sun.shadow.needsUpdate = true;
+  const t1 = performance.now();
+  renderer.info.reset();
   renderer.setRenderTarget(rt);
   renderer.render(scene, camera);
   renderer.setRenderTarget(null);
   renderer.render(postScene, postCam);
   framesDrawn++;
+  diag.js += t1 - t0; diag.draw += performance.now() - t1; diag.n++;
   // ?still=1 (used for checking screenshots): draw a few frames once loaded, then stop.
   if (params.has("still") && runners.length && texturesPending === 0 && ++stillFrames >= 3) { window.__ready = true; return; }
   requestAnimationFrame(frame);
