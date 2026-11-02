@@ -1,0 +1,54 @@
+[gd_scene load_steps=8 format=3]
+
+[ext_resource type="Script" path="res://scripts/race.gd" id="1_race"]
+[ext_resource type="Script" path="res://scripts/track.gd" id="2_track"]
+[ext_resource type="Script" path="res://scripts/race_camera.gd" id="3_cam"]
+[ext_resource type="Script" path="res://scripts/hud.gd" id="4_hud"]
+
+[sub_resource type="ProceduralSkyMaterial" id="Sky_mat"]
+sky_top_color = Color(0.36, 0.55, 0.82, 1)
+sky_horizon_color = Color(0.72, 0.8, 0.88, 1)
+ground_bottom_color = Color(0.25, 0.32, 0.2, 1)
+ground_horizon_color = Color(0.72, 0.8, 0.88, 1)
+sun_angle_max = 20.0
+
+[sub_resource type="Sky" id="Sky_1"]
+sky_material = SubResource("Sky_mat")
+
+[sub_resource type="Environment" id="Env_1"]
+background_mode = 2
+sky = SubResource("Sky_1")
+ambient_light_source = 3
+ambient_light_sky_contribution = 1.0
+ambient_light_energy = 0.45
+tonemap_mode = 3
+tonemap_white = 6.0
+fog_enabled = true
+fog_light_color = Color(0.72, 0.8, 0.88, 1)
+fog_density = 0.0009
+fog_sky_affect = 0.0
+
+[node name="TestRace" type="Node3D"]
+script = ExtResource("1_race")
+
+[node name="WorldEnvironment" type="WorldEnvironment" parent="."]
+environment = SubResource("Env_1")
+
+[node name="Sun" type="DirectionalLight3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 30, 0)
+rotation = Vector3(-0.733, 0.489, 0)
+light_energy = 1.0
+shadow_enabled = true
+directional_shadow_max_distance = 90.0
+
+[node name="Track" type="Node3D" parent="."]
+script = ExtResource("2_track")
+
+[node name="RaceCamera" type="Camera3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 6, 40)
+current = true
+far = 3000.0
+script = ExtResource("3_cam")
+
+[node name="HUD" type="CanvasLayer" parent="."]
+script = ExtResource("4_hud")
