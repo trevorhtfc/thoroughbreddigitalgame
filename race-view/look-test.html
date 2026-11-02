@@ -1,0 +1,648 @@
+<meta charset="utf-8">
+<title>Ascot Look Test</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Jost:wght@400;500;600&family=Cormorant+SC:wght@600;700&display=swap">
+<style>
+/* Look test for the race view: the Ascot home straight, built from courses/ascot-home-straight.json,
+   with the illustrated heritage finish. Panels use the board's cream, bottle green and gold. */
+:root {
+  --cream: #f4ead2;
+  --cream-edge: #b8954a;
+  --green: #1f5a38;
+  --green-ink: #183f2a;
+  --ink-soft: #4f5d4a;
+  --display: "Cormorant SC", "Times New Roman", serif;
+  --body: "Jost", "Helvetica Neue", Arial, sans-serif;
+  color-scheme: light;
+}
+[hidden] { display: none !important; }
+html, body { height: 100%; margin: 0; }
+body { background: #5f8a44; color: var(--green-ink); font-family: var(--body); overflow: hidden; }
+#scene { position: fixed; inset: 0; display: block; width: 100%; height: 100%; }
+
+.plate {
+  position: fixed;
+  top: calc(env(safe-area-inset-top, 0px) + 14px);
+  left: max(16px, env(safe-area-inset-left, 0px));
+  background: var(--cream);
+  border: 1px solid var(--cream-edge);
+  box-shadow: 0 0 0 3px var(--cream), 0 0 0 4px var(--cream-edge), 0 6px 18px rgba(40, 40, 20, 0.25);
+  border-radius: 3px;
+  padding: 8px 16px 9px;
+  display: flex; gap: 18px; align-items: center;
+}
+.plate h1 { margin: 0; font-family: var(--display); font-size: 1.45rem; letter-spacing: 0.08em; color: var(--green); line-height: 1; }
+.plate p { margin: 2px 0 0; font-size: 0.78rem; letter-spacing: 0.04em; color: var(--ink-soft); }
+.plate .togo { text-align: right; border-left: 1px solid rgba(184, 149, 74, 0.6); padding-left: 16px; }
+.plate .togo strong { display: block; font-family: var(--display); font-size: 1.35rem; color: var(--green); line-height: 1; font-variant-numeric: tabular-nums; }
+.plate .togo span { font-size: 0.7rem; letter-spacing: 0.12em; text-transform: uppercase; color: var(--ink-soft); }
+
+.bar {
+  position: fixed; left: 50%; transform: translateX(-50%);
+  bottom: calc(env(safe-area-inset-bottom, 0px) + 14px);
+  max-width: calc(100% - 32px);
+  background: var(--cream);
+  border: 1px solid var(--cream-edge);
+  border-radius: 3px;
+  box-shadow: 0 6px 18px rgba(40, 40, 20, 0.25);
+  padding: 6px 8px;
+  display: flex; flex-wrap: wrap; gap: 6px 14px; align-items: center; justify-content: center;
+}
+.group { display: flex; gap: 4px; align-items: center; }
+.group > span { font-size: 0.68rem; letter-spacing: 0.12em; text-transform: uppercase; color: var(--ink-soft); margin-right: 2px; }
+button {
+  font: 500 0.82rem var(--body); color: var(--green-ink); cursor: pointer;
+  background: transparent; border: 1px solid rgba(31, 90, 56, 0.35); border-radius: 3px; padding: 5px 9px;
+}
+button[aria-pressed="true"] { background: var(--green); color: var(--cream); border-color: var(--green); }
+button:focus-visible { outline: 2px solid var(--cream-edge); outline-offset: 2px; }
+.loading {
+  position: fixed; inset: 0; display: grid; place-items: center; pointer-events: none;
+  font-family: var(--display); font-size: 1.4rem; letter-spacing: 0.1em; color: var(--cream);
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
+}
+@media (max-width: 600px) {
+  .plate { padding: 6px 12px; gap: 12px; }
+  .plate h1 { font-size: 1.15rem; }
+  .plate p { display: none; }
+  .bar { gap: 4px 10px; padding: 5px 6px; }
+  .group > span { display: none; }
+  button { padding: 5px 7px; font-size: 0.78rem; }
+}
+</style>
+
+<canvas id="scene"></canvas>
+<div class="loading" id="loading">Setting up the course…</div>
+
+<div class="plate">
+  <div>
+    <h1>Thoroughbred</h1>
+    <p id="courseName">Ascot</p>
+  </div>
+  <div class="togo"><strong id="toRun">5f</strong><span>to run</span></div>
+</div>
+
+<div class="bar">
+  <div class="group" id="cams"><span>Camera</span></div>
+  <div class="group" id="finish"><span>Finish</span></div>
+  <div class="group"><button id="pause" type="button" aria-pressed="false">Pause</button><button id="restart" type="button">Restart</button></div>
+</div>
+
+<script type="importmap">
+{ "imports": {
+  "three": "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js",
+  "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/"
+} }
+</script>
+<script type="module">
+import * as THREE from "three";
+import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
+import * as SkeletonUtils from "three/addons/utils/SkeletonUtils.js";
+
+const params = new URLSearchParams(location.search);
+
+// ---------- Data (all engine-neutral files) ----------
+const COURSE = await fetch("assets/course/ascot-home-straight.json").then((r) => r.json());
+const SILK_DATA = await fetch("assets/silks-catalogue.json").then((r) => r.json());
+const SILKS = SILK_DATA.silks;
+const COATS = [
+  { name: "Bay",      body: "#7a4a2a", points: "#1d1714" },
+  { name: "Brown",    body: "#4a2e1c", points: "#17110d" },
+  { name: "Chestnut", body: "#a3552c", points: "#6a3317" },
+  { name: "Black",    body: "#2b2523", points: "#141110" },
+  { name: "Grey",     body: "#a8a6a0", points: "#6d6b66" },
+];
+document.getElementById("courseName").textContent = COURSE.name;
+
+const FURLONG = 201.17;
+const STRIDE_SPEED = 14.6;   // m/s at which the gallop loop matches the ground at scale 3
+const HORSE_SCALE = 3;
+const T = COURSE.track;
+const HALF_W = T.width / 2;
+const X0 = T.centreLine[0][0], X1 = T.centreLine[T.centreLine.length - 1][0];
+const POST = COURSE.winningPost.at;
+
+// ---------- Renderer ----------
+const canvas = document.getElementById("scene");
+const renderer = new THREE.WebGLRenderer({ canvas, antialias: false, preserveDrawingBuffer: params.has("still") });
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+
+const scene = new THREE.Scene();
+const HAZE = new THREE.Color("#d8d7b8");
+scene.fog = new THREE.Fog(HAZE, 260, 1500);
+
+// Sky: warm afternoon gradient.
+{
+  const mat = new THREE.ShaderMaterial({
+    side: THREE.BackSide, depthWrite: false, fog: false,
+    uniforms: { top: { value: new THREE.Color("#8fb0c8") }, horizon: { value: new THREE.Color("#efe3c2") } },
+    vertexShader: "varying vec3 vP; void main(){ vP = normalize(position); gl_Position = projectionMatrix * modelViewMatrix * vec4(position,1.0); }",
+    fragmentShader: "uniform vec3 top; uniform vec3 horizon; varying vec3 vP; void main(){ float h = clamp(vP.y*2.0, 0.0, 1.0); gl_FragColor = vec4(mix(horizon, top, pow(h,0.8)), 1.0); }",
+  });
+  const sky = new THREE.Mesh(new THREE.SphereGeometry(2500, 32, 16), mat);
+  scene.add(sky);
+  scene.userData.sky = sky;
+}
+
+// Light: warm late-afternoon sun from behind the stands side, long soft shadows away from the camera.
+scene.add(new THREE.HemisphereLight("#fff0cf", "#5a7438", 1.15));
+const sun = new THREE.DirectionalLight("#ffdca6", 2.7);
+sun.castShadow = true;
+sun.shadow.mapSize.set(2048, 2048);
+Object.assign(sun.shadow.camera, { left: -50, right: 50, top: 50, bottom: -50, near: 1, far: 300 });
+sun.shadow.bias = -0.0005;
+sun.shadow.normalBias = 0.03;
+scene.add(sun, sun.target);
+const SUN_OFFSET = new THREE.Vector3(-55, 80, 60);
+
+// ---------- Textures ----------
+const texLoader = new THREE.TextureLoader();
+function tex(name, repeatX = 1, repeatY = 1) {
+  const t = texLoader.load(`assets/course/${name}.jpg`);
+  t.colorSpace = THREE.SRGBColorSpace;
+  t.wrapS = t.wrapT = THREE.RepeatWrapping;
+  t.repeat.set(repeatX, repeatY);
+  t.anisotropy = renderer.capabilities.getMaxAnisotropy();
+  return t;
+}
+
+// ---------- Ground, turf, paths ----------
+{
+  const G = COURSE.ground;
+  const ground = new THREE.Mesh(new THREE.PlaneGeometry(G.size, G.size), new THREE.MeshLambertMaterial({ map: tex(G.texture, G.size / G.tileSize, G.size / G.tileSize) }));
+  ground.rotation.x = -Math.PI / 2;
+  ground.position.set((X0 + X1) / 2, 0, 0);
+  ground.receiveShadow = true;
+  scene.add(ground);
+
+  const len = X1 - X0;
+  const turf = new THREE.Mesh(new THREE.PlaneGeometry(len, T.width), new THREE.MeshLambertMaterial({ map: tex(T.turfTexture, len / T.turfTileLength, 1) }));
+  turf.rotation.x = -Math.PI / 2;
+  turf.position.set((X0 + X1) / 2, 0.02, 0);
+  turf.receiveShadow = true;
+  scene.add(turf);
+
+  for (const p of COURSE.paths) {
+    const [ax, az] = p.from, [bx, bz] = p.to;
+    const L = Math.hypot(bx - ax, bz - az);
+    const m = new THREE.Mesh(new THREE.PlaneGeometry(L, p.width), new THREE.MeshLambertMaterial({ map: tex(p.texture, L / 12, p.width / 12) }));
+    m.rotation.x = -Math.PI / 2;
+    m.rotation.z = -Math.atan2(bz - az, bx - ax);
+    m.position.set((ax + bx) / 2, 0.015, (az + bz) / 2);
+    m.receiveShadow = true;
+    scene.add(m);
+  }
+}
+
+// ---------- Trees: painted cut-outs that turn to face the camera ----------
+function seeded(seed) { let s = seed >>> 0; return () => ((s = (s * 1664525 + 1013904223) >>> 0) / 4294967296); }
+{
+  const rnd = seeded(11);
+  const spots = [];
+  for (const row of COURSE.trees) {
+    const [ax, az] = row.from, [bx, bz] = row.to;
+    const L = Math.hypot(bx - ax, bz - az);
+    for (let r = 0; r < (row.rows || 1); r++) {
+      for (let d = 0; d < L; d += row.spacing) {
+        const t = d / L;
+        const away = Math.sign(az) * r * (row.rowGap || 0);
+        spots.push({
+          x: ax + (bx - ax) * t + (rnd() - 0.5) * 2 * row.jitter[0],
+          z: az + (bz - az) * t + away + (rnd() - 0.5) * 2 * row.jitter[1],
+          h: row.height[0] + rnd() * (row.height[1] - row.height[0]),
+          kind: Math.floor(rnd() * 4),
+        });
+      }
+    }
+  }
+  const atlas = texLoader.load("assets/course/trees.png");
+  atlas.colorSpace = THREE.SRGBColorSpace;
+  atlas.anisotropy = 8;
+  const geo = new THREE.PlaneGeometry(1, 1).translate(0, 0.5, 0);
+  const kind = new Float32Array(spots.length);
+  const size = new Float32Array(spots.length * 2);
+  spots.forEach((s, i) => { kind[i] = s.kind; size[i * 2] = s.h * (s.kind === 3 ? 1.0 : 1.0); size[i * 2 + 1] = s.h; });
+  geo.setAttribute("aKind", new THREE.InstancedBufferAttribute(kind, 1));
+  geo.setAttribute("aSize", new THREE.InstancedBufferAttribute(size, 2));
+  const mat = new THREE.ShaderMaterial({
+    uniforms: { atlas: { value: atlas }, fogColor: { value: HAZE }, fogNear: { value: scene.fog.near }, fogFar: { value: scene.fog.far }, bright: { value: 1.55 } },
+    vertexShader: `
+      attribute float aKind; attribute vec2 aSize;
+      varying vec2 vUv; varying float vDepth;
+      void main() {
+        vec3 c = (instanceMatrix * vec4(0.0, 0.0, 0.0, 1.0)).xyz;
+        vec3 right = vec3(viewMatrix[0][0], viewMatrix[1][0], viewMatrix[2][0]);
+        right.y = 0.0; right = normalize(right);
+        vec3 p = c + right * position.x * aSize.x + vec3(0.0, position.y * aSize.y, 0.0);
+        vUv = vec2((uv.x + aKind) / 4.0, uv.y);
+        vec4 mv = viewMatrix * vec4(p, 1.0);
+        vDepth = -mv.z;
+        gl_Position = projectionMatrix * mv;
+      }`,
+    fragmentShader: `
+      uniform sampler2D atlas; uniform vec3 fogColor; uniform float fogNear, fogFar, bright;
+      varying vec2 vUv; varying float vDepth;
+      void main() {
+        vec4 c = texture2D(atlas, vUv);
+        if (c.a < 0.5) discard;
+        vec3 col = c.rgb * bright;
+        col = mix(col, fogColor, smoothstep(fogNear, fogFar, vDepth));
+        gl_FragColor = vec4(col, 1.0);
+      }`,
+  });
+  const trees = new THREE.InstancedMesh(geo, mat, spots.length);
+  const shadowGeo = new THREE.PlaneGeometry(1, 1);
+  const sc = document.createElement("canvas"); sc.width = sc.height = 128;
+  const g = sc.getContext("2d");
+  const grad = g.createRadialGradient(64, 64, 4, 64, 64, 62);
+  grad.addColorStop(0, "rgba(0,0,0,1)"); grad.addColorStop(0.6, "rgba(0,0,0,0.75)"); grad.addColorStop(1, "rgba(0,0,0,0)");
+  g.fillStyle = grad; g.fillRect(0, 0, 128, 128);
+  const shadowTex = new THREE.CanvasTexture(sc);
+  const shadows = new THREE.InstancedMesh(shadowGeo, new THREE.MeshBasicMaterial({ map: shadowTex, color: "#1f3318", transparent: true, opacity: 0.5, depthWrite: false }), spots.length);
+  shadows.frustumCulled = false;
+  const m = new THREE.Matrix4(), q = new THREE.Quaternion(), s = new THREE.Vector3(), p = new THREE.Vector3();
+  const sunFlat = new THREE.Vector2(-SUN_OFFSET.x, -SUN_OFFSET.z).normalize();   // shadows fall away from the sun
+  const ang = Math.atan2(sunFlat.y, sunFlat.x);
+  spots.forEach((t, i) => {
+    m.makeTranslation(t.x, 0, t.z); trees.setMatrixAt(i, m);
+    const reach = t.h * 0.55;
+    p.set(t.x + sunFlat.x * reach * 0.6, 0.03, t.z + sunFlat.y * reach * 0.6);
+    q.setFromEuler(new THREE.Euler(-Math.PI / 2, 0, -ang, "YXZ"));
+    s.set(t.h * 1.05, t.h * 0.6, 1);
+    m.compose(p, q, s); shadows.setMatrixAt(i, m);
+  });
+  trees.frustumCulled = false;
+  scene.add(shadows, trees);
+}
+
+// ---------- Models (glTF, repackaged for the web host) ----------
+const loader = new GLTFLoader();
+async function loadModel(dir, name) {
+  const [json, b64] = await Promise.all([
+    fetch(`${dir}/${name}.json`).then((r) => { if (!r.ok) throw new Error(name + " " + r.status); return r.text(); }),
+    fetch(`${dir}/${name}-geometry.txt`).then((r) => { if (!r.ok) throw new Error(name + " geometry " + r.status); return r.text(); }),
+  ]);
+  const raw = atob(b64.trim());
+  const bin = new Uint8Array(raw.length);
+  for (let i = 0; i < raw.length; i++) bin[i] = raw.charCodeAt(i);
+  const pad = (n) => (n + 3) & ~3;
+  const jsonBytes = new TextEncoder().encode(json);
+  const jLen = pad(jsonBytes.length), bLen = pad(bin.length);
+  const glb = new Uint8Array(12 + 8 + jLen + 8 + bLen);
+  const dv = new DataView(glb.buffer);
+  dv.setUint32(0, 0x46546c67, true); dv.setUint32(4, 2, true); dv.setUint32(8, glb.length, true);
+  dv.setUint32(12, jLen, true); dv.setUint32(16, 0x4e4f534a, true);
+  glb.fill(0x20, 20, 20 + jLen); glb.set(jsonBytes, 20);
+  const b0 = 20 + jLen;
+  dv.setUint32(b0, bLen, true); dv.setUint32(b0 + 4, 0x004e4942, true);
+  glb.set(bin, b0 + 8);
+  return new Promise((resolve, reject) => loader.parse(glb.buffer, dir + "/", resolve, reject));
+}
+
+// ---------- Course furniture from Blender ----------
+function placeProps(gltf) {
+  const byName = (n) => gltf.scene.getObjectByName(n);
+  gltf.scene.traverse((o) => { if (o.isMesh) { o.castShadow = true; o.receiveShadow = true; o.material.roughness = 0.85; } });
+  // Rails: one instanced module repeated along both sides.
+  const R = COURSE.rails;
+  const mod = byName(R.model);
+  const count = Math.ceil((X1 - X0) / R.spacing);
+  const m = new THREE.Matrix4(), rot = new THREE.Matrix4().makeRotationY(Math.PI);
+  for (const side of R.sides) {
+    const rails = new THREE.InstancedMesh(mod.geometry, mod.material, count);
+    const z = (HALF_W + R.gap) * (side === "near" ? 1 : -1);
+    for (let i = 0; i < count; i++) {
+      const x = X0 + i * R.spacing;
+      if (side === "near") m.makeTranslation(x, 0, z);
+      else m.makeTranslation(x + R.spacing, 0, z).multiply(rot);
+      rails.setMatrixAt(i, m);
+    }
+    rails.castShadow = rails.receiveShadow = true;
+    scene.add(rails);
+  }
+  const sideZ = (side) => (HALF_W + R.gap + 0.7) * (side === "near" ? 1 : -1);
+  const wp = byName(COURSE.winningPost.model).clone();
+  wp.position.set(POST, 0, sideZ(COURSE.winningPost.side));
+  scene.add(wp);
+  for (const f of COURSE.furlongPoles.furlongs) {
+    const pole = byName(COURSE.furlongPoles.modelPrefix + f).clone();
+    pole.position.set(POST - f * FURLONG, 0, sideZ(COURSE.furlongPoles.side));
+    scene.add(pole);
+  }
+}
+
+// ---------- Horses ----------
+const silkTextures = new Map();
+function silkTexture(id) {
+  if (!silkTextures.has(id)) {
+    const t = texLoader.load(`assets/silks-3d/${id}.png`);
+    t.flipY = false; t.colorSpace = THREE.SRGBColorSpace; t.wrapS = THREE.RepeatWrapping; t.anisotropy = 8;
+    silkTextures.set(id, t);
+  }
+  return silkTextures.get(id);
+}
+const maskTex = texLoader.load("assets/tint-mask.png");
+maskTex.flipY = false; maskTex.colorSpace = THREE.NoColorSpace;
+
+// Coat and silks tint: multiply the neutral grey texture inside each mask (R coat, G points, B silks).
+function makeTintable(mat, u) {
+  mat.onBeforeCompile = (shader) => {
+    Object.assign(shader.uniforms, u);
+    shader.fragmentShader = shader.fragmentShader
+      .replace("#include <common>", "#include <common>\nuniform sampler2D mask; uniform vec3 coatCol; uniform vec3 pointsCol; uniform vec3 silkCol;")
+      .replace("#include <map_fragment>", `#include <map_fragment>
+        {
+          vec3 m = texture2D(mask, vMapUv).rgb;
+          float l = dot(diffuseColor.rgb, vec3(0.2126, 0.7152, 0.0722));
+          diffuseColor.rgb = vec3(l);
+          vec3 coat = coatCol * clamp(mix(1.0, l / 0.56, 0.65), 0.3, 1.25);
+          vec3 pts = pointsCol * mix(0.75, 1.2, smoothstep(0.0, 0.035, l));
+          vec3 silk = silkCol * clamp(mix(1.0, l / 0.72, 0.6), 0.4, 1.15);
+          diffuseColor.rgb = mix(diffuseColor.rgb, coat, m.r);
+          diffuseColor.rgb = mix(diffuseColor.rgb, pts, m.g);
+          diffuseColor.rgb = mix(diffuseColor.rgb, silk, m.b);
+        }`);
+  };
+  mat.customProgramCacheKey = () => "horse-tint";
+}
+
+// ---------- Placeholder race ----------
+// The real race sim will hand the viewer a timeline (each horse's distance and lane over time);
+// this stand-in makes one so the look test has a field to film. No game rules live here.
+function placeholderTimeline(n, seed) {
+  const rnd = seeded(seed);
+  const dt = 0.1, out = [];
+  const horses = Array.from({ length: n }, (_, i) => ({
+    base: 16.2 + rnd() * 0.5, kick: 0.4 + rnd() * 0.9, kickAt: 260 + rnd() * 200,
+    lane: -HALF_W + 3 + (i + 0.5) * ((T.width - 6) / n), drift: (rnd() - 0.5) * 4,
+    x: rnd() * 1.5, v: 0,
+  }));
+  for (let t = 0; t <= 90; t += dt) {
+    const frame = horses.map((h) => {
+      const toGo = POST - h.x;
+      const past = toGo < 0;
+      const want = past ? 6 : h.base + (toGo < h.kickAt ? h.kick : 0);
+      h.v += Math.sign(want - h.v) * Math.min(Math.abs(want - h.v), (h.v < 8 ? 6 : 1.2) * dt);
+      h.x += h.v * dt;
+      const effort = past ? 0 : toGo < h.kickAt * 0.55 ? 2 : toGo < h.kickAt ? 1 : 0;
+      const z = h.lane + h.drift * Math.min(1, Math.max(0, h.x - 100) / 600);
+      return [h.x, z, h.v, effort];
+    });
+    out.push(frame);
+  }
+  return { dt, frames: out };
+}
+
+const RUNNERS = Number(params.get("runners") || 8);
+const timeline = placeholderTimeline(RUNNERS, Number(params.get("seed") || 3));
+const runners = [];
+
+// ---------- Post-processing: the illustrated finish ----------
+const rt = new THREE.WebGLRenderTarget(1, 1, { type: THREE.HalfFloatType, depthTexture: new THREE.DepthTexture(1, 1) });
+const paper = (() => {
+  const c = document.createElement("canvas"); c.width = c.height = 512;
+  const g = c.getContext("2d");
+  const img = g.createImageData(512, 512);
+  const rnd = seeded(5);
+  for (let i = 0; i < img.data.length; i += 4) { const v = 128 + (rnd() - 0.5) * 70; img.data[i] = img.data[i + 1] = img.data[i + 2] = v; img.data[i + 3] = 255; }
+  g.putImageData(img, 0, 0);
+  g.globalAlpha = 0.08; g.strokeStyle = "#000";
+  for (let i = 0; i < 900; i++) { g.lineWidth = rnd() * 1.2; g.beginPath(); const x = rnd() * 512, y = rnd() * 512, a = rnd() * 6.28, l = 6 + rnd() * 26; g.moveTo(x, y); g.lineTo(x + Math.cos(a) * l, y + Math.sin(a) * l); g.stroke(); }
+  const t = new THREE.CanvasTexture(c); t.wrapS = t.wrapT = THREE.RepeatWrapping;
+  return t;
+})();
+const post = new THREE.ShaderMaterial({
+  uniforms: {
+    tColor: { value: rt.texture }, tDepth: { value: rt.depthTexture }, tPaper: { value: paper },
+    res: { value: new THREE.Vector2(1, 1) }, near: { value: 0.2 }, far: { value: 4000 }, painted: { value: 1 }, pxScale: { value: 1 },
+  },
+  vertexShader: "varying vec2 vUv; void main(){ vUv = uv; gl_Position = vec4(position.xy, 0.0, 1.0); }",
+  fragmentShader: `
+    #include <packing>
+    uniform sampler2D tColor, tDepth, tPaper;
+    uniform vec2 res; uniform float near, far, painted, pxScale;
+    varying vec2 vUv;
+    float vz(vec2 uv) { return -perspectiveDepthToViewZ(texture2D(tDepth, uv).x, near, far); }
+    vec3 aces(vec3 x) { return clamp((x * (2.51 * x + 0.03)) / (x * (2.43 * x + 0.59) + 0.14), 0.0, 1.0); }
+    vec3 toDisplay(vec3 c) { return pow(aces(c * 0.95), vec3(1.0 / 2.2)); }
+    // Kuwahara filter: flattens texture into painted patches while keeping edges.
+    vec3 kuwahara(vec2 uv) {
+      vec2 px = pxScale / res;
+      vec3 m[4]; vec3 s[4];
+      for (int k = 0; k < 4; k++) { m[k] = vec3(0.0); s[k] = vec3(0.0); }
+      const int R = 3;
+      for (int j = -R; j <= R; j++) for (int i = -R; i <= R; i++) {
+        vec3 c = toDisplay(texture2D(tColor, uv + vec2(float(i), float(j)) * px).rgb);
+        if (i <= 0 && j <= 0) { m[0] += c; s[0] += c * c; }
+        if (i >= 0 && j <= 0) { m[1] += c; s[1] += c * c; }
+        if (i <= 0 && j >= 0) { m[2] += c; s[2] += c * c; }
+        if (i >= 0 && j >= 0) { m[3] += c; s[3] += c * c; }
+      }
+      float n = float((R + 1) * (R + 1));
+      float best = 1e9; vec3 outc = vec3(0.0);
+      for (int k = 0; k < 4; k++) {
+        vec3 mu = m[k] / n; vec3 v = abs(s[k] / n - mu * mu);
+        float sig = v.r + v.g + v.b;
+        if (sig < best) { best = sig; outc = mu; }
+      }
+      return outc;
+    }
+    void main() {
+      if (painted < 0.5) { gl_FragColor = vec4(toDisplay(texture2D(tColor, vUv).rgb), 1.0); return; }
+      vec3 c = kuwahara(vUv);
+      // Soft ink outlines where depth jumps (silhouettes of horses, posts, rails, trees).
+      vec2 px = pxScale / res;
+      float d = vz(vUv);
+      float e = 0.0;
+      e += abs(vz(vUv + vec2(px.x, 0.0)) - d);
+      e += abs(vz(vUv - vec2(px.x, 0.0)) - d);
+      e += abs(vz(vUv + vec2(0.0, px.y)) - d);
+      e += abs(vz(vUv - vec2(0.0, px.y)) - d);
+      float edge = smoothstep(0.03, 0.12, e / max(d, 1.0)) * (1.0 - smoothstep(250.0, 700.0, d));
+      c = mix(c, vec3(0.17, 0.16, 0.10), edge * 0.6);
+      // Heritage grade: warm, a touch softer and less saturated, shadows cooled, blacks lifted.
+      float l = dot(c, vec3(0.299, 0.587, 0.114));
+      c = mix(vec3(l), c, 0.9);
+      c *= vec3(1.045, 1.0, 0.9);
+      c = mix(c * vec3(0.88, 0.96, 1.04), c, smoothstep(0.05, 0.55, l));
+      c = c * 0.93 + vec3(0.05, 0.045, 0.025);
+      // Paper grain and vignette.
+      float p = texture2D(tPaper, vUv * res / (512.0 * pxScale)).r;
+      c *= 0.95 + 0.1 * p;
+      float v = length((vUv - 0.5) * vec2(1.0, 0.85));
+      c *= mix(1.0, 0.8, smoothstep(0.35, 0.8, v));
+      gl_FragColor = vec4(c, 1.0);
+    }`,
+  depthTest: false, depthWrite: false,
+});
+const postScene = new THREE.Scene();
+const postCam = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1);
+postScene.add(new THREE.Mesh(new THREE.PlaneGeometry(2, 2), post));
+
+// ---------- Cameras ----------
+const camera = new THREE.PerspectiveCamera(30, 1, 0.2, 4000);
+post.uniforms.near.value = camera.near; post.uniforms.far.value = camera.far;
+const focus = new THREE.Vector3();
+const CAMS = Object.fromEntries(COURSE.cameras.map((c) => [c.id, c]));
+const state = { t: Number(params.get("t") || 0), paused: params.has("still"), cam: params.get("cam") || "auto", painted: params.get("finish") !== "plain" };
+let snap = true;
+function shotFor(leaderX) {
+  if (state.cam !== "auto") return CAMS[state.cam];
+  const d = COURSE.director.find((s) => leaderX < s.until) || COURSE.director[COURSE.director.length - 1];
+  return CAMS[d.camera];
+}
+let lastShot = null;
+function cameraTarget(leaderX, packX) {
+  const c = shotFor(leaderX);
+  if (c !== lastShot) { snap = true; lastShot = c; }
+  let pos, look;
+  if (c.fixed) {
+    pos = new THREE.Vector3(...c.fixed);
+    pos.x += (Math.min(leaderX, POST + 60) - c.fixed[0]) * (c.followX || 0);
+    look = new THREE.Vector3(...c.look);
+    look.x = c.fixed[0] + (Math.min(leaderX, POST + 80) - c.fixed[0]) * 0.6;
+  } else {
+    const x = c.follow === "leader" ? leaderX : packX;
+    pos = new THREE.Vector3(x + c.offset[0], c.offset[1], c.offset[2]);
+    look = new THREE.Vector3(x + c.look[0], c.look[1], c.look[2]);
+  }
+  return [pos, look, c.fov];
+}
+
+// ---------- Controls ----------
+function button(parent, label, onClick, id) {
+  const b = document.createElement("button"); b.type = "button"; b.textContent = label; if (id) b.id = id; b.onclick = onClick;
+  parent.append(b); return b;
+}
+const camsEl = document.getElementById("cams");
+const camButtons = [["auto", "TV director"], ...COURSE.cameras.map((c) => [c.id, c.label])].map(([id, label]) => {
+  const b = button(camsEl, label, () => { state.cam = id; snap = true; syncButtons(); }, "cam-" + id);
+  b.dataset.cam = id; return b;
+});
+const finEl = document.getElementById("finish");
+const finButtons = [["painted", "Illustrated"], ["plain", "Plain 3D"]].map(([id, label]) => {
+  const b = button(finEl, label, () => { state.painted = id === "painted"; syncButtons(); }, "finish-" + id);
+  b.dataset.fin = id; return b;
+});
+function syncButtons() {
+  camButtons.forEach((b) => b.setAttribute("aria-pressed", b.dataset.cam === state.cam));
+  finButtons.forEach((b) => b.setAttribute("aria-pressed", (b.dataset.fin === "painted") === state.painted));
+  post.uniforms.painted.value = state.painted ? 1 : 0;
+}
+syncButtons();
+document.getElementById("pause").onclick = (e) => {
+  state.paused = !state.paused;
+  e.currentTarget.setAttribute("aria-pressed", state.paused);
+  e.currentTarget.textContent = state.paused ? "Resume" : "Pause";
+};
+document.getElementById("restart").onclick = () => { state.t = 0; snap = true; };
+
+function resize() {
+  const w = window.innerWidth, h = window.innerHeight, pr = renderer.getPixelRatio();
+  renderer.setSize(w, h, false);
+  rt.setSize(Math.floor(w * pr), Math.floor(h * pr));
+  post.uniforms.res.value.set(Math.floor(w * pr), Math.floor(h * pr));
+  post.uniforms.pxScale.value = Math.max(1, pr * 0.75);
+  camera.aspect = w / h;
+  camera.updateProjectionMatrix();
+}
+window.addEventListener("resize", resize);
+resize();
+
+// ---------- Load everything ----------
+try {
+  const [props, horse] = await Promise.all([
+    loadModel("assets/course", "course-props").catch((e) => { console.warn("Course furniture missing:", e.message); return null; }),
+    loadModel("assets/model", "racehorse"),
+  ]);
+  if (props) placeProps(props);
+  const clips = horse.animations.filter((c) => c.name !== "walk");
+  for (let i = 0; i < RUNNERS; i++) {
+    const obj = SkeletonUtils.clone(horse.scene);
+    obj.scale.setScalar(HORSE_SCALE);
+    const coat = COATS[(i * 3 + 1) % COATS.length];
+    const silk = SILKS[(i * 5 + 2) % SILKS.length];
+    const u = {
+      mask: { value: maskTex }, coatCol: { value: new THREE.Color(coat.body) },
+      pointsCol: { value: new THREE.Color(coat.points) }, silkCol: { value: new THREE.Color(silk.colour) },
+    };
+    obj.traverse((o) => {
+      if (!o.isMesh) return;
+      o.castShadow = true; o.frustumCulled = false;
+      o.material = o.material.clone();
+      if (o.material.name === "silks") { o.material.map = silkTexture(silk.id); o.material.roughness = 0.6; }
+      else makeTintable(o.material, u);
+    });
+    const mixer = new THREE.AnimationMixer(obj);
+    const actions = {};
+    for (const c of clips) { actions[c.name] = mixer.clipAction(c); actions[c.name].play(); }
+    mixer.setTime((i * 0.137) % 0.48);
+    scene.add(obj);
+    runners.push({ obj, mixer, actions, effort: 0 });
+  }
+  document.getElementById("loading").hidden = true;
+} catch (err) {
+  console.error(err);
+  document.getElementById("loading").textContent = "The course didn't load. Refresh to try again.";
+}
+
+function sample(t) {
+  const f = t / timeline.dt;
+  const i = Math.min(Math.floor(f), timeline.frames.length - 2), k = Math.min(1, f - i);
+  return timeline.frames[i].map((a, j) => { const b = timeline.frames[i + 1][j]; return a.map((v, n) => v + (b[n] - v) * k); });
+}
+
+// ---------- Loop ----------
+const toRunEl = document.getElementById("toRun");
+const clock = new THREE.Clock();
+let framesDrawn = 0, stillFrames = 0;
+function frame() {
+  const dt = Math.min(clock.getDelta(), 0.05);
+  if (!state.paused) { state.t += dt; if (state.t > 75) { state.t = 0; snap = true; } }
+  const now = sample(state.t);
+  let leader = -1e9, sum = 0;
+  runners.forEach((r, i) => {
+    const [x, z, v, eff] = now[i];
+    r.obj.position.set(x, 0, z);
+    r.effort += (eff - r.effort) * Math.min(1, dt * 2);
+    const set = (n, w) => r.actions[n] && r.actions[n].setEffectiveWeight(w);
+    const e = r.effort;
+    set("ride_quiet", Math.max(0, 1 - e)); set("ride_push", e <= 1 ? e : 2 - e); set("ride_drive", Math.max(0, e - 1));
+    set("gallop", 1 - e / 4); set("gallop_drive", e / 4);
+    r.mixer.timeScale = THREE.MathUtils.clamp(v / STRIDE_SPEED, 0.25, 1.4);
+    r.mixer.update(state.paused ? 0 : dt);
+    leader = Math.max(leader, x); sum += x;
+  });
+  if (!runners.length) leader = 0;
+  const packX = runners.length ? sum / runners.length : 0;
+
+  const [pos, look, fov] = cameraTarget(leader, packX);
+  const k = snap ? 1 : 1 - Math.exp(-dt * 3);
+  camera.position.lerp(pos, k);
+  focus.lerp(look, k);
+  camera.fov += (fov - camera.fov) * k;
+  camera.updateProjectionMatrix();
+  camera.lookAt(focus);
+  snap = false;
+  const sunAt = new THREE.Vector3(packX, 0, 0);
+  sun.position.copy(sunAt).add(SUN_OFFSET); sun.target.position.copy(sunAt);
+  scene.userData.sky.position.copy(camera.position);
+
+  const left = (POST - leader) / FURLONG;
+  toRunEl.textContent = left <= 0 ? "Past the post" : left < 1 ? Math.round(left * 220) + " yds" : left.toFixed(1).replace(/\.0$/, "") + "f";
+
+  renderer.setRenderTarget(rt);
+  renderer.render(scene, camera);
+  renderer.setRenderTarget(null);
+  renderer.render(postScene, postCam);
+  framesDrawn++;
+  // ?still=1 (used for checking screenshots): draw a few frames once loaded, then stop.
+  if (params.has("still") && runners.length && ++stillFrames >= 3) { window.__ready = true; return; }
+  requestAnimationFrame(frame);
+}
+requestAnimationFrame(frame);
+</script>

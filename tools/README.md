@@ -71,3 +71,20 @@ To add a set of silks, add one entry to `silks.json` and run the script.
 ## Web
 
 `tools/web/glb_to_web.py` splits a .glb into files the claude.ai artifact host will serve (glTF JSON, the geometry as base64 text, and the images). The race view reassembles them in the browser. Other engines should use the .glb directly.
+
+## Courses
+
+A course is a data file in `courses/` (see `courses/ascot-home-straight.json`): the centre line, track width and lanes, rails, winning post, furlong poles, paths, tree rows, the TV cameras and the director's rules (which camera at which point of the race). Positions are in metres: x = direction of running, y = up, z = across the course (+ towards the stands). Any engine builds the course from this file.
+
+| Script | What it does |
+|---|---|
+| `tools/blender/build_course_props.py` | Builds the course furniture in Blender (running rail module, heritage winning post with the spiral pole and roundel, furlong poles 1–7) and exports `assets/models/course/course_props.glb`, with the source in `assets/models/master/course_props.blend`. |
+| `tools/course/paint_scenery.py` | Paints the illustrated textures into `assets/course/textures/`: `turf.png` (soft lanes along the track, no grid), `grass.png`, `path.png` and `trees.png` (four painted trees, lit from the upper left, used as upright cut-outs). |
+
+```
+python tools/blender/build_course_props.py -- assets/models/course/course_props.glb assets/models/master/course_props.blend
+python tools/course/paint_scenery.py assets/course/textures
+python tools/web/glb_to_web.py assets/models/course/course_props.glb race-view/assets/course course-props
+```
+
+The illustrated finish (painterly smoothing, soft ink outlines where depth jumps, a warm heritage grade, paper grain and vignette) is a single full-screen pass after the 3D render; `race-view/look-test.html` has the web version. Each engine needs its own copy of that pass, but it is short and self-contained.
