@@ -10,7 +10,7 @@ Scripts that build the game's horse and silks. Nothing here is tied to the web: 
 |---|---|---|
 | 1 | `tools/blender/rebuild_gallop.py` | Rebuilds the gallop so the legs follow a real gallop footfall (Muybridge, 1878): left hind, right hind, left fore, right fore, then suspension with the legs gathered. Hooves stay planted while in stance. Each leg joint is a hinge limited to its natural range, so hocks never fold the wrong way. Adds a head-and-neck nod, lowest as the leading fore takes the weight. |
 | 2 | `tools/blender/repattern_jacket.py` | Zones the jockey's silks into body, left sleeve, right sleeve and cap. Cuts clean seams at the armholes and cap rim, folds the stray silk patches on the body mesh into the silks, and lays each zone out in its own band of the texture so nothing mirrors. |
-| 3 | `tools/blender/rig_jockey.py` | Adds jockey bones (hips, chest, head, arms, forearms), binds his upper body to them and keys the riding actions, with elbows pumping in push and drive. Keeps the mane with the horse, and lets the hair under his hands follow them softly so it doesn't tear. |
+| 3 | `tools/blender/horse_drive.py` | Adds `gallop_drive`: the same stride with the neck stretched lower and a deeper nod, for the horse under pressure. The jockey stays still in the saddle as in the original model (`rig_jockey.py` is kept for later, for use with a jockey model that is separate from the horse). |
 | 4 | `tools/blender/export_glb.py` | Exports glTF, keeping only the channels each action actually moves. |
 
 The Blender file after step 3 is kept as `assets/models/master/racehorse_master.blend`.
@@ -18,7 +18,7 @@ The Blender file after step 3 is kept as `assets/models/master/racehorse_master.
 ```
 python tools/blender/rebuild_gallop.py   -- assets/models/racehorse_neutral.glb step1.blend
 python tools/blender/repattern_jacket.py -- step1.blend assets/models/tint_masks/build-mask.png step2.blend
-python tools/blender/rig_jockey.py       -- step2.blend assets/models/tint_masks/build-mask.png step3.blend
+python tools/blender/horse_drive.py      -- step2.blend step3.blend
 python tools/blender/export_glb.py       -- step3.blend assets/models/racehorse_rigged.glb
 ```
 
@@ -30,12 +30,9 @@ Every clip lasts exactly one stride (0.48 s), so they can be played together and
 |---|---|---|
 | `gallop` | horse | normal galloping |
 | `gallop_drive` | horse | the same stride with the neck stretched lower and a deeper head nod; blend in as the horse responds to pressure |
-| `ride_quiet` | jockey | sitting still, hands following the horse's head |
-| `ride_push` | jockey | hands and heels: arms pumping, body rocking with the stride |
-| `ride_drive` | jockey | all out |
 | `walk` | horse | walking (original clip) |
 
-Blend the jockey by effort (0 quiet, 1 push, 2 drive) and the horse by a slightly delayed copy of that effort, so it visibly responds a beat after the jockey asks.
+Blend `gallop` into `gallop_drive` as the horse is asked for more, so it visibly responds as the race builds.
 
 ### Colouring the horse
 

@@ -31,11 +31,9 @@ N = 48                       # samples per stride -> 100 fps
 SOLE = 0.008                 # Limb_4 tail height above the sole when planted
 
 # leg: (bone prefix, landing phase 0..1, duty, landing x, swing height)
-# Hind stance is kept short enough that the hoof stays within reach at push-off,
-# so the leg never locks dead straight.
 LEGS = {
-    "LH": ("tripo::1_Left_Limb", 0.56, 0.21, 0.04, 0.11),
-    "RH": ("tripo::1_Right_Limb", 0.68, 0.21, 0.04, 0.11),
+    "LH": ("tripo::1_Left_Limb", 0.56, 0.25, 0.02, 0.11),
+    "RH": ("tripo::1_Right_Limb", 0.68, 0.25, 0.02, 0.11),
     "LF": ("tripo::0_Left_Limb", 0.94, 0.25, 0.47, 0.17),
     "RF": ("tripo::0_Right_Limb", 0.06, 0.25, 0.47, 0.17),
 }
@@ -80,71 +78,10 @@ for k, (pre, *_rest) in LEGS.items():
     targets[k] = e
     c = arm.pose.bones[pre + "_4"].constraints.new("IK")
     c.target = e
-    c.chain_count = 5          # hip/shoulder joins in, for reach
+    c.chain_count = 4
     c.use_tail = True
     c.use_stretch = False
     c.iterations = 500
-
-# Each leg joint is a hinge in the horse's side-on plane, limited to its natural
-# range, so hocks can't fold the wrong way and knees can't bow forwards.
-# Ranges are the bend between a bone and the next one down the leg, measured
-# side-on in degrees (positive = the lower bone turns anticlockwise seen from
-# the horse's right side, i.e. towards the front).
-RANGES = {
-    "hind": [(-150, -15), (-12, 125), (-75, 110), (-45, 45)],   # stifle, hock, fetlock, pastern
-    "fore": [(-60, 60), (-150, 6), (-110, 75), (-45, 45)],      # shoulder/elbow, knee, fetlock, pastern
-}
-def side_angle(pb):
-    h, t = pb.bone.head_local, pb.bone.tail_local
-    return math.degrees(math.atan2(t.z - h.z, t.x - h.x))
-
-def posed_angle(pb):
-    return math.degrees(math.atan2(pb.tail.z - pb.head.z, pb.tail.x - pb.head.x))
-
-# Thighs and shoulders (the top bone of each leg) may only swing as far as they
-# did in the original animation, plus a small margin, so they can't poke up
-# through the rump or the withers.
-arm.animation_data.action = orig_gallop
-for k, (pre, *_rest) in LEGS.items():
-    arm.pose.bones[pre + "_4"].constraints[0].influence = 0.0   # measure the original, not the IK
-top_range = {}
-for k, (pre, *_rest) in LEGS.items():
-    pb = arm.pose.bones[pre + "_0"]
-    bends = []
-    for i in range(24):
-        fi, sub = orig_frame(CYCLE * i / 24)
-        scene.frame_set(fi, subframe=sub)
-        bends.append(((posed_angle(pb) - posed_angle(pb.parent) + 180) % 360) - 180)
-    top_range[k] = (min(bends), max(bends))
-# Left and right share one range per pair (the original's two sides were caught at
-# different moments), with room to swing forward but not up through the body.
-for pair, fwd in ((("LH", "RH"), 25), (("LF", "RF"), 25)):
-    lo = min(top_range[p][0] for p in pair) - 12
-    hi = max(top_range[p][1] for p in pair) + fwd
-    for p in pair:
-        top_range[p] = (lo, hi)
-print("thigh/shoulder ranges", {k: (round(a), round(b)) for k, (a, b) in top_range.items()})
-arm.animation_data.action = None
-for pb in arm.pose.bones:
-    pb.location, pb.rotation_quaternion, pb.scale = (0, 0, 0), (1, 0, 0, 0), (1, 1, 1)
-for k, (pre, *_rest) in LEGS.items():
-    kind = "hind" if pre.startswith("tripo::1_") else "fore"
-    for i in range(5):
-        pb = arm.pose.bones[f"{pre}_{i}"]
-        m = pb.bone.matrix_local.to_3x3()
-        ax, az = m.col[0], m.col[2]
-        use_x = abs(ax.y) >= abs(az.y)
-        sign = 1.0 if (ax.y if use_x else az.y) > 0 else -1.0
-        pb.lock_ik_y = True
-        pb.lock_ik_x, pb.lock_ik_z = (not use_x), use_x
-        parent = pb.parent if i == 0 else arm.pose.bones[f"{pre}_{i - 1}"]
-        rb = ((side_angle(pb) - side_angle(parent) + 180) % 360) - 180
-        bmin, bmax = top_range[k] if i == 0 else RANGES[kind][i - 1]
-        lo, hi = ((rb - bmax, rb - bmin) if sign > 0 else (bmin - rb, bmax - rb))
-        if use_x:
-            pb.use_ik_limit_x, pb.ik_min_x, pb.ik_max_x = True, math.radians(lo), math.radians(hi)
-        else:
-            pb.use_ik_limit_z, pb.ik_min_z, pb.ik_max_z = True, math.radians(lo), math.radians(hi)
 
 def sample(action, t, with_ik):
     arm.animation_data.action = action
@@ -154,43 +91,11 @@ def sample(action, t, with_ik):
         arm.pose.bones[pre + "_4"].constraints[0].influence = 1.0 if with_ik else 0.0
     scene.frame_set(fi, subframe=sub)
     bpy.context.view_layer.update()
-    M = {pb.name: pb.matrix.copy() for pb in arm.pose.bones}
-    if with_ik:
-        for k, (pre, *_rest) in LEGS.items():
-            planarize(M, pre)
     pose = {}
     for pb in arm.pose.bones:
-        ml = pb.bone.matrix_local
-        if pb.parent:
-            basis = (ml.inverted() @ pb.parent.bone.matrix_local) @ M[pb.parent.name].inverted() @ M[pb.name]
-        else:
-            basis = ml.inverted() @ M[pb.name]
-        pose[pb.name] = basis.decompose()
+        m = arm.convert_space(pose_bone=pb, matrix=pb.matrix, from_space="POSE", to_space="LOCAL")
+        pose[pb.name] = m.decompose()
     return pose
-
-def planarize(M, pre):
-    """Keep a leg in one upright plane from hip to hoof: the joints between are
-    moved sideways onto the straight line between the two, and each bone is
-    re-aimed with the smallest turn, so hocks and knees never bulge outwards."""
-    names = [f"{pre}_{i}" for i in range(5)]
-    lens = [arm.pose.bones[n].bone.length for n in names]
-    P = [M[names[0]].translation.copy()] + [M[n] @ Vector((0, lens[i], 0)) for i, n in enumerate(names)]
-    total = sum(lens)
-    y0, y5 = P[0].y, P[5].y
-    cur = P[0].copy()
-    acc = 0.0
-    for i, n in enumerate(names):
-        acc += lens[i]
-        want = P[i + 1].copy()
-        want.y = y0 + (y5 - y0) * acc / total
-        d = (want - cur).normalized()
-        rot3 = M[n].to_3x3()
-        bone_dir = (rot3 @ Vector((0, 1, 0))).normalized()
-        rot3 = bone_dir.rotation_difference(d).to_matrix() @ rot3
-        m4 = rot3.to_4x4()
-        m4.translation = cur
-        M[n] = m4
-        cur = cur + d * lens[i]
 
 gallop_frames = [sample(orig_gallop, CYCLE * i / N, True) for i in range(N + 1)]
 walk_len = (orig_walk.frame_range[1] - orig_walk.frame_range[0]) / ORIG_FPS
@@ -220,13 +125,11 @@ for pb in arm.pose.bones:
     pb.rotation_mode = "QUATERNION"
 gallop = write_action("gallop", gallop_frames, 1)
 
-# Head and neck nod: once per stride, lowest as the leading fore takes the weight,
-# rising through the hind stance and suspension. The poll counter-rotates a little
-# so the face stays near vertical.
-NOD_PEAK = 0.20
+# Head and neck nod, once per stride (neck bones only; legs untouched).
+NOD_PEAK = 0.12
 NOD = {"tripo::Spine_7": 0.20, "tripo::Spine_8": 0.30, "tripo::Head_0": 0.20, "tripo::Head_1": 0.15,
        "tripo::Head_2": 0.10, "tripo::Head_5": -0.25}
-NOD_DEG = 14.0
+NOD_DEG = 12.0
 def rot_about(pb, axis, deg):
     rest = pb.bone.matrix_local.to_quaternion()
     q = Quaternion(Vector(axis).normalized(), math.radians(deg))
