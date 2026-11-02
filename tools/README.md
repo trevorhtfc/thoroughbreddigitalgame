@@ -8,11 +8,11 @@ Scripts that build the game's horse and silks. Nothing here is tied to the web: 
 
 | Step | Script | What it does |
 |---|---|---|
-| 1 | `tools/blender/rebuild_gallop.py` | Rebuilds the gallop so the legs follow a real gallop footfall (Muybridge, 1878): left hind, right hind, left fore, right fore, then suspension with the legs gathered. Hooves stay planted while in stance. Each leg joint is a hinge limited to its natural range, so hocks never fold the wrong way. Adds a head-and-neck nod, lowest as the leading fore takes the weight. |
+| 1 | `tools/blender/rebuild_gallop.py` | Rebuilds the gallop so the legs follow a real gallop footfall (Muybridge, 1878): left hind, right hind, left fore, right fore, then suspension with the legs gathered. Hooves stay planted while in stance. Adds a head-and-neck nod, lowest as the leading fore takes the weight. |
 | 2 | `tools/blender/repattern_jacket.py` | Zones the jockey's silks into body, left sleeve, right sleeve and cap. Cuts clean seams at the armholes and cap rim, folds the stray silk patches on the body mesh into the silks, and lays each zone out in its own band of the texture so nothing mirrors. |
 | 3a | `tools/blender/pin_jockey.py` | Binds the whole jockey to the horse's back (Spine_4), so his face, chin and cap don't swing with the horse's head nod. Mane and reins stay with the horse. |
 | 3b | `tools/blender/rig_arms.py` | Gives the jockey's arms their own bones (upper arm and forearm each side, on the horse's back) and keys `ride_quiet`, `ride_push` and `ride_drive`: the hands push forward along the neck as the head goes down and draw back with the elbows bending. Only the sleeves and gloves move; the movement fades in from the shoulder seam, and his head, face and body stay still. |
-| 3c | `tools/blender/horse_drive.py` | Adds `gallop_drive`: the same stride with the neck stretched lower and a deeper nod, for the horse under pressure. The jockey stays still in the saddle as in the original model (`rig_jockey.py` is kept for later, for use with a jockey model that is separate from the horse). |
+| 3c | `tools/blender/horse_drive.py` | Adds `gallop_drive`: the same stride with the neck stretched lower and a deeper nod, for the horse under pressure. Horse bones only. (`rig_jockey.py`, a fuller jockey rig with body and head movement, is kept for later, for use with a jockey model that is separate from the horse.) |
 | 4 | `tools/blender/export_glb.py` | Exports glTF, keeping only the channels each action actually moves. |
 
 The Blender file after step 3 is kept as `assets/models/master/racehorse_master.blend`.
