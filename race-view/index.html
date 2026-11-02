@@ -359,7 +359,31 @@ maskTex.flipY = false;
 maskTex.colorSpace = THREE.NoColorSpace;
 tint.mask.value = maskTex;
 
-loader.load("assets/model/racehorse.json", (gltf) => {
+// The model ships as glTF JSON plus its geometry as base64 text (the artifact host serves neither .glb nor .bin).
+// Rebuild a binary glTF in memory and hand it to the loader; textures still load from their own JPG files.
+async function loadHorseModel() {
+  const [json, b64] = await Promise.all([
+    fetch("assets/model/racehorse.json").then((r) => { if (!r.ok) throw new Error("model " + r.status); return r.text(); }),
+    fetch("assets/model/racehorse-geometry.txt").then((r) => { if (!r.ok) throw new Error("geometry " + r.status); return r.text(); }),
+  ]);
+  const raw = atob(b64.trim());
+  const bin = new Uint8Array(raw.length);
+  for (let i = 0; i < raw.length; i++) bin[i] = raw.charCodeAt(i);
+  const pad = (n) => (n + 3) & ~3;
+  let jsonBytes = new TextEncoder().encode(json);
+  const jLen = pad(jsonBytes.length), bLen = pad(bin.length);
+  const glb = new Uint8Array(12 + 8 + jLen + 8 + bLen);
+  const dv = new DataView(glb.buffer);
+  dv.setUint32(0, 0x46546c67, true); dv.setUint32(4, 2, true); dv.setUint32(8, glb.length, true);
+  dv.setUint32(12, jLen, true); dv.setUint32(16, 0x4e4f534a, true);
+  glb.fill(0x20, 20, 20 + jLen); glb.set(jsonBytes, 20);
+  const b0 = 20 + jLen;
+  dv.setUint32(b0, bLen, true); dv.setUint32(b0 + 4, 0x004e4942, true);
+  glb.set(bin, b0 + 8);
+  return new Promise((resolve, reject) => loader.parse(glb.buffer, "assets/model/", resolve, reject));
+}
+
+loadHorseModel().then((gltf) => {
   horse = gltf.scene;
   horse.scale.setScalar(HORSE_SCALE);
   horse.traverse((o) => {
@@ -381,7 +405,8 @@ loader.load("assets/model/racehorse.json", (gltf) => {
   applyCoat(state.coat);
   applySilk(state.silk);
   document.getElementById("loading").hidden = true;
-}, undefined, () => {
+}).catch((err) => {
+  console.error(err);
   document.getElementById("loading").textContent = "The horse model didn't load. Refresh to try again.";
 });
 
