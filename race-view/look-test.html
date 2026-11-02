@@ -597,7 +597,7 @@ function sample(t) {
 }
 
 // ---------- Loop ----------
-const toRunEl = document.getElementById("toRun");
+const toRunEl = document.getElementById("toRun"), toRunLabel = document.querySelector(".togo span");
 const clock = new THREE.Clock();
 let framesDrawn = 0, stillFrames = 0;
 function frame() {
@@ -633,7 +633,8 @@ function frame() {
   scene.userData.sky.position.copy(camera.position);
 
   const left = (POST - leader) / FURLONG;
-  toRunEl.textContent = left <= 0 ? "Past the post" : left < 1 ? Math.round(left * 220) + " yds" : left.toFixed(1).replace(/\.0$/, "") + "f";
+  toRunEl.textContent = left <= 0 ? "Finished" : left < 1 ? Math.round(left * 220) + " yds" : left.toFixed(1).replace(/\.0$/, "") + "f";
+  toRunLabel.hidden = left <= 0;
 
   renderer.setRenderTarget(rt);
   renderer.render(scene, camera);
