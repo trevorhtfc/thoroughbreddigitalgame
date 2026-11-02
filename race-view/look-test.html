@@ -58,6 +58,7 @@ button {
 }
 button[aria-pressed="true"] { background: var(--green); color: var(--cream); border-color: var(--green); }
 button:focus-visible { outline: 2px solid var(--cream-edge); outline-offset: 2px; }
+.fps { font-variant-numeric: tabular-nums; font-size: 0.75rem; opacity: 0.8; min-width: 6.5em; }
 .loading {
   position: fixed; inset: 0; display: grid; place-items: center; pointer-events: none;
   font-family: var(--display); font-size: 1.4rem; letter-spacing: 0.1em; color: var(--cream);
@@ -87,6 +88,7 @@ button:focus-visible { outline: 2px solid var(--cream-edge); outline-offset: 2px
 <div class="bar">
   <div class="group" id="cams"><span>Camera</span></div>
   <div class="group" id="finish"><span>Finish</span></div>
+  <div class="group" id="quality"><span>Quality</span></div>
   <div class="group"><button id="pause" type="button" aria-pressed="false">Pause</button><button id="restart" type="button">Restart</button></div>
 </div>
 
@@ -128,9 +130,24 @@ const POST = COURSE.winningPost.at;
 // ---------- Renderer ----------
 const canvas = document.getElementById("scene");
 const renderer = new THREE.WebGLRenderer({ canvas, antialias: false, preserveDrawingBuffer: params.has("still") });
-renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 renderer.shadowMap.enabled = true;
-renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+
+// Quality presets. Most of the cost is filling pixels: a Retina Mac at full resolution draws four
+// times the pixels of a normal screen, each multisampled and shadowed. "Auto" starts at Medium on
+// high-resolution screens (High elsewhere) and steps down by itself if the frame rate drops.
+const DPR = window.devicePixelRatio || 1;
+const QUALITY = {
+  high:   { label: "High",   scale: Math.min(DPR, 2),    samples: 4, shadow: 4096, soft: true,  kick: 1,    edges: true, shadowEvery: 1 },
+  medium: { label: "Medium", scale: Math.min(DPR, 1.25), samples: 2, shadow: 2048, soft: false, kick: 0.6,  edges: true, shadowEvery: 1 },
+  low:    { label: "Low",    scale: Math.min(DPR, 1),    samples: 0, shadow: 1024, soft: false, kick: 0.35, edges: false, shadowEvery: 2 },
+};
+const ORDER = ["high", "medium", "low"];
+let qMode = params.get("quality") || (() => { try { return localStorage.getItem("tb-quality"); } catch { return null; } })() || "auto";
+if (qMode !== "auto" && !QUALITY[qMode]) qMode = "auto";
+let qLevel = qMode === "auto" ? (DPR > 1.5 ? "medium" : "high") : qMode;
+renderer.shadowMap.type = QUALITY[qLevel].soft ? THREE.PCFSoftShadowMap : THREE.PCFShadowMap;
+renderer.setPixelRatio(QUALITY[qLevel].scale);
+const KICK = { perSecond: 26, maxClods: 1600, share: QUALITY[qLevel].kick };   // turf kick-back
 
 const scene = new THREE.Scene();
 const HAZE = new THREE.Color("#d8d7b8");
@@ -154,7 +171,7 @@ scene.fog = new THREE.Fog(HAZE, 260, 1500);
 scene.add(new THREE.HemisphereLight("#fff0cf", "#566f36", 0.9));
 const sun = new THREE.DirectionalLight("#ffd9a0", 3.2);
 sun.castShadow = true;
-sun.shadow.mapSize.set(4096, 4096);
+sun.shadow.mapSize.set(QUALITY[qLevel].shadow, QUALITY[qLevel].shadow);
 sun.shadow.radius = 3;
 Object.assign(sun.shadow.camera, { left: -45, right: 45, top: 45, bottom: -45, near: 1, far: 300 });
 const fill = new THREE.DirectionalLight("#c9dcff", 0.55);
@@ -468,7 +485,7 @@ const timeline = placeholderTimeline(RUNNERS, Number(params.get("seed") || 3));
 const runners = [];
 
 // ---------- Post-processing: the illustrated finish ----------
-const rt = new THREE.WebGLRenderTarget(1, 1, { type: THREE.HalfFloatType, samples: 4, depthTexture: new THREE.DepthTexture(1, 1) });
+const rt = new THREE.WebGLRenderTarget(1, 1, { type: THREE.HalfFloatType, samples: QUALITY[qLevel].samples, depthTexture: new THREE.DepthTexture(1, 1) });
 const paper = (() => {
   const c = document.createElement("canvas"); c.width = c.height = 512;
   const g = c.getContext("2d");
@@ -498,6 +515,7 @@ const post = new THREE.ShaderMaterial({
     void main() {
       vec3 c = toDisplay(texture2D(tColor, vUv).rgb);
       if (painted < 0.5) { gl_FragColor = vec4(c, 1.0); return; }
+      #ifdef EDGES
       // Faint ink line where depth jumps (silhouettes of horses, posts, rails, trees): an illustrator's edge, not a cartoon outline.
       vec2 px = pxScale / res;
       float d = vz(vUv);
@@ -508,6 +526,7 @@ const post = new THREE.ShaderMaterial({
       e += abs(vz(vUv - vec2(0.0, px.y)) - d);
       float edge = smoothstep(0.05, 0.2, e / max(d, 1.0)) * (1.0 - smoothstep(120.0, 400.0, d));
       c = mix(c, c * vec3(0.42, 0.40, 0.30), edge * 0.45);
+      #endif
       // Heritage grade: warm highlights, gently cooled shadows, slightly softened saturation and lifted blacks.
       float l = dot(c, vec3(0.299, 0.587, 0.114));
       c = mix(vec3(l), c, 0.93);
@@ -522,6 +541,7 @@ const post = new THREE.ShaderMaterial({
       gl_FragColor = vec4(c, 1.0);
     }`,
   depthTest: false, depthWrite: false,
+  defines: QUALITY[qLevel].edges ? { EDGES: 1 } : {},
 });
 const postScene = new THREE.Scene();
 const postCam = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1);
@@ -578,6 +598,60 @@ function syncButtons() {
   post.uniforms.painted.value = state.painted ? 1 : 0;
 }
 syncButtons();
+
+const qEl = document.getElementById("quality");
+const qButtons = [["auto", "Auto"], ...ORDER.map((k) => [k, QUALITY[k].label])].map(([id, label]) => {
+  const b = button(qEl, label, () => {
+    qMode = id;
+    try { localStorage.setItem("tb-quality", id); } catch {}
+    applyQuality(id === "auto" ? (DPR > 1.5 ? "medium" : "high") : id);
+  }, "q-" + id);
+  b.dataset.q = id; return b;
+});
+const fpsEl = document.createElement("span"); fpsEl.className = "fps"; qEl.append(fpsEl);
+function syncQuality() { qButtons.forEach((b) => b.setAttribute("aria-pressed", b.dataset.q === qMode)); }
+syncQuality();
+
+function applyQuality(level) {
+  qLevel = level;
+  const Q = QUALITY[level];
+  renderer.setPixelRatio(Q.scale);
+  if (rt.samples !== Q.samples) { rt.samples = Q.samples; rt.dispose(); }
+  if (sun.shadow.mapSize.x !== Q.shadow) {
+    sun.shadow.mapSize.set(Q.shadow, Q.shadow);
+    if (sun.shadow.map) { sun.shadow.map.dispose(); sun.shadow.map = null; }
+  }
+  const type = Q.soft ? THREE.PCFSoftShadowMap : THREE.PCFShadowMap;
+  if (renderer.shadowMap.type !== type) {
+    renderer.shadowMap.type = type;
+    scene.traverse((o) => { if (o.material) [].concat(o.material).forEach((m) => (m.needsUpdate = true)); });
+  }
+  post.defines = Q.edges ? { EDGES: 1 } : {};
+  post.needsUpdate = true;
+  KICK.share = Q.kick;
+  sun.shadow.autoUpdate = true;
+  resize();
+  perf.reset();
+  syncQuality();
+}
+
+// Frame-time watch: shows the frame rate, and in Auto drops a level when it stays under ~45 fps.
+const perf = {
+  n: 0, sum: 0, wait: 1.5,
+  reset() { this.n = 0; this.sum = 0; this.wait = 1.5; },
+  tick(dt) {
+    if (this.wait > 0) { this.wait -= dt; return; }   // let a change settle before judging it
+    this.n++; this.sum += dt;
+    if (this.sum < 2) return;                        // judge every two seconds
+    const fps = Math.round(this.n / this.sum);
+    this.n = 0; this.sum = 0;
+    if (qMode === "auto" && fps < 45) {
+      const next = ORDER[ORDER.indexOf(qLevel) + 1];
+      if (next) applyQuality(next);
+    }
+    fpsEl.textContent = `${fps} fps · ${QUALITY[qLevel].label}`;
+  },
+};
 document.getElementById("pause").onclick = (e) => {
   state.paused = !state.paused;
   e.currentTarget.setAttribute("aria-pressed", state.paused);
@@ -640,7 +714,6 @@ contact.frustumCulled = false; contact.count = 0; contact.renderOrder = 1;
 scene.add(contact);
 
 // ---------- Turf kick-back: clods of earth and grass thrown up behind the hooves ----------
-const KICK = { perSecond: 26, maxClods: 1600 };
 const clods = new THREE.InstancedMesh(new THREE.IcosahedronGeometry(1, 0), new THREE.MeshLambertMaterial({ color: "#ffffff" }), KICK.maxClods);
 clods.frustumCulled = false; clods.count = 0; clods.castShadow = false;
 scene.add(clods);
@@ -652,7 +725,7 @@ function stepKick(dt, field) {
   // Emit: from the hind and fore hooves, thrown up and back; they leave the horse behind as it gallops on.
   for (const [x, z, v, , yaw] of field) {
     if (v < 6) continue;
-    let n = KICK.perSecond * (v / 16) * dt;
+    let n = KICK.perSecond * KICK.share * (v / 16) * dt;
     while (n > 0 && live.length < KICK.maxClods) {
       if (n < 1 && kickRnd() > n) break;
       n -= 1;
@@ -703,7 +776,9 @@ const toRunEl = document.getElementById("toRun"), toRunLabel = document.querySel
 const clock = new THREE.Clock();
 let framesDrawn = 0, stillFrames = 0, kickWarm = false;
 function frame() {
-  const dt = Math.min(clock.getDelta(), 0.05);
+  const rawDt = clock.getDelta();
+  const dt = Math.min(rawDt, 0.05);
+  if (runners.length && !params.has("still")) perf.tick(rawDt);
   if (!state.paused) { state.t += dt; if (state.t > 75) { state.t = 0; snap = true; } }
   const now = sample(state.t);
   let leader = -1e9, sum = 0;
@@ -750,6 +825,9 @@ function frame() {
   toRunEl.textContent = left <= 0 ? "Finished" : left < 1 ? Math.round(left * 220) + " yds" : left.toFixed(1).replace(/\.0$/, "") + "f";
   toRunLabel.hidden = left <= 0;
 
+  const every = QUALITY[qLevel].shadowEvery;
+  sun.shadow.autoUpdate = every === 1;
+  if (every > 1 && framesDrawn % every === 0) sun.shadow.needsUpdate = true;
   renderer.setRenderTarget(rt);
   renderer.render(scene, camera);
   renderer.setRenderTarget(null);
