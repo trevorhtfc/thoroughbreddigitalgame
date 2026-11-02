@@ -4,13 +4,14 @@ Scripts that build the game's horse and silks. Nothing here is tied to the web: 
 
 ## The horse
 
-`assets/models/racehorse_rigged.glb` is the horse to use in any engine. It is built from the colour-stripped `racehorse_neutral.glb` in four steps (run from the repo root), each a headless Blender 4.2 script (run with Blender's Python module, `bpy`):
+`assets/models/racehorse_rigged.glb` is the horse to use in any engine. It is built from the colour-stripped `racehorse_neutral.glb` in these steps (run from the repo root), each a headless Blender 4.2 script (run with Blender's Python module, `bpy`):
 
 | Step | Script | What it does |
 |---|---|---|
 | 1 | `tools/blender/rebuild_gallop.py` | Rebuilds the gallop so the legs follow a real gallop footfall (Muybridge, 1878): left hind, right hind, left fore, right fore, then suspension with the legs gathered. Hooves stay planted while in stance. Each leg joint is a hinge limited to its natural range, so hocks never fold the wrong way. Adds a head-and-neck nod, lowest as the leading fore takes the weight. |
 | 2 | `tools/blender/repattern_jacket.py` | Zones the jockey's silks into body, left sleeve, right sleeve and cap. Cuts clean seams at the armholes and cap rim, folds the stray silk patches on the body mesh into the silks, and lays each zone out in its own band of the texture so nothing mirrors. |
-| 3 | `tools/blender/horse_drive.py` | Adds `gallop_drive`: the same stride with the neck stretched lower and a deeper nod, for the horse under pressure. The jockey stays still in the saddle as in the original model (`rig_jockey.py` is kept for later, for use with a jockey model that is separate from the horse). |
+| 3a | `tools/blender/pin_jockey.py` | Binds the whole jockey to the horse's back (Spine_4), so his face, chin and cap don't swing with the horse's head nod. Mane and reins stay with the horse. |
+| 3b | `tools/blender/horse_drive.py` | Adds `gallop_drive`: the same stride with the neck stretched lower and a deeper nod, for the horse under pressure. The jockey stays still in the saddle as in the original model (`rig_jockey.py` is kept for later, for use with a jockey model that is separate from the horse). |
 | 4 | `tools/blender/export_glb.py` | Exports glTF, keeping only the channels each action actually moves. |
 
 The Blender file after step 3 is kept as `assets/models/master/racehorse_master.blend`.
@@ -18,7 +19,8 @@ The Blender file after step 3 is kept as `assets/models/master/racehorse_master.
 ```
 python tools/blender/rebuild_gallop.py   -- assets/models/racehorse_neutral.glb step1.blend
 python tools/blender/repattern_jacket.py -- step1.blend assets/models/tint_masks/build-mask.png step2.blend
-python tools/blender/horse_drive.py      -- step2.blend step3.blend
+python tools/blender/pin_jockey.py       -- step2.blend assets/models/tint_masks/build-mask.png step2b.blend
+python tools/blender/horse_drive.py      -- step2b.blend step3.blend
 python tools/blender/export_glb.py       -- step3.blend assets/models/racehorse_rigged.glb
 ```
 
