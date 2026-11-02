@@ -1,8 +1,8 @@
 """Split a .glb into files the claude.ai artifact host will serve.
 
-    python glb_to_web.py <in.glb> <out_dir>
+    python glb_to_web.py <in.glb> <out_dir> [name]
 
-Writes racehorse.json (glTF JSON), racehorse-geometry.txt (the binary
+Writes <name>.json (glTF JSON), <name>-geometry.txt (the binary
 buffer as base64) and each embedded image as a .jpg/.png. The race view
 reassembles these into a .glb in memory. Any other engine should use the
 original .glb directly.
@@ -10,6 +10,7 @@ original .glb directly.
 import sys, json, struct, base64, os, re
 
 src, out = sys.argv[1], sys.argv[2]
+name = sys.argv[3] if len(sys.argv) > 3 else "racehorse"   # output file name
 os.makedirs(out, exist_ok=True)
 d = open(src, "rb").read()
 jl = struct.unpack("<I", d[12:16])[0]
@@ -22,11 +23,11 @@ for i, im in enumerate(j.get("images", [])):
     bv = j["bufferViews"][im["bufferView"]]
     o = bv.get("byteOffset", 0)
     ext = "png" if im.get("mimeType") == "image/png" else "jpg"
-    name = re.sub(r"[^a-z0-9]+", "-", (im.get("name") or "image-%d" % i).lower()).strip("-") + "." + ext
-    open(os.path.join(out, name), "wb").write(buf[o:o + bv["byteLength"]])
+    fname = re.sub(r"[^a-z0-9]+", "-", (im.get("name") or "image-%d" % i).lower()).strip("-") + "." + ext
+    open(os.path.join(out, fname), "wb").write(buf[o:o + bv["byteLength"]])
     img_views.add(im.pop("bufferView"))
     im.pop("mimeType", None)
-    im["uri"] = name
+    im["uri"] = fname
 
 new, remap, views = bytearray(), {}, []
 for i, bv in enumerate(j["bufferViews"]):
@@ -47,6 +48,6 @@ for a in j.get("accessors", []):
         for k in ("indices", "values"):
             a["sparse"][k]["bufferView"] = remap[a["sparse"][k]["bufferView"]]
 j["buffers"] = [{"byteLength": len(new)}]
-json.dump(j, open(os.path.join(out, "racehorse.json"), "w"), separators=(",", ":"))
-open(os.path.join(out, "racehorse-geometry.txt"), "w").write(base64.b64encode(bytes(new)).decode())
+json.dump(j, open(os.path.join(out, name + ".json"), "w"), separators=(",", ":"))
+open(os.path.join(out, name + "-geometry.txt"), "w").write(base64.b64encode(bytes(new)).decode())
 print("images:", [im["uri"] for im in j.get("images", [])])
