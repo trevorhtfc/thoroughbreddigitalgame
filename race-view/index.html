@@ -73,7 +73,11 @@ button:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
   pointer-events: none;
 }
 @media (max-width: 560px) {
-  .graphic strong { font-size: 1.1rem; }
+  .graphic strong { font-size: 1.05rem; }
+  .graphic div { padding: 5px 10px; }
+  .graphic div:first-child { display: none; }
+  .card { gap: 8px 14px; padding-block: 8px calc(8px + env(safe-area-inset-bottom, 0px)); }
+  .cam { padding: 5px 8px; font-size: 0.82rem; }
   .group.silks { flex-basis: 100%; order: -1; }
 }
 </style>
@@ -85,6 +89,7 @@ button:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
   <div><small>Ascot · Straight</small><strong>5 Furlongs</strong></div>
   <div><small>To run</small><strong id="toRun">5f</strong></div>
   <div><small>Speed</small><strong id="mph">0 mph</strong></div>
+  <div><small>Jockey</small><strong id="rideLabel">Sitting quiet</strong></div>
 </div>
 
 <div class="card">
@@ -99,6 +104,10 @@ button:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
   <div class="group">
     <span class="label">Camera</span>
     <div class="row" id="cams"></div>
+  </div>
+  <div class="group">
+    <span class="label">Jockey</span>
+    <div class="row" id="rides"></div>
   </div>
   <div class="group">
     <span class="label">Race</span>
@@ -128,18 +137,12 @@ const COATS = [
   { name: "Black",    body: "#2b2523", points: "#141110" },
   { name: "Grey",     body: "#a8a6a0", points: "#6d6b66" },
 ];
-// Silks artwork; colour is the main jacket colour, used for small silk areas on the jockey outside the jacket.
-const SILKS = [
-  ["alcohol-free", "Alcohol Free", "#4828b8"], ["ballydoyle-orange", "Ballydoyle Orange", "#1848f8"],
-  ["bradsell", "Bradsell", "#f80808"], ["cheveley-park", "Cheveley Park", "#f80808"],
-  ["desert-crown", "Desert Crown", "#1848f8"], ["godolphin", "Godolphin", "#1848f8"],
-  ["judmonte", "Judmonte", "#68f898"], ["liberty-lane", "Liberty Lane", "#e8f828"],
-  ["nashwa", "Nashwa", "#68f898"], ["sea-the-stars", "Sea The Stars", "#e8f828"],
-  ["shadwell", "Shadwell", "#1848f8"], ["starlust", "Starlust", "#f888f8"],
-  ["stradivarius", "Stradivarius", "#181818"], ["swingalong", "Swingalong", "#183858"],
-  ["wantan-2", "Wantan 2", "#e8c848"], ["watnan", "Watnan", "#1848f8"],
-  ["yellow-black-epilite", "Yellow Black Epilite", "#e8f828"],
-].map(([id, name, colour]) => ({ id, name, colour }));
+// Silks: menu artwork (thumbnails) plus traditional 3D silks described in silks.json (body, sleeves, cap).
+// colour = main body colour, used for the few small silk areas on the jockey outside the jacket.
+const SILK_DATA = await fetch("assets/silks.json").then((r) => r.json());
+const SILKS = SILK_DATA.silks.map((s) => ({
+  id: s.id, name: s.name, description: s.description, colour: SILK_DATA.palette[s.body.colour],
+}));
 
 const RACE_M = 1006;          // 5 furlongs
 const FURLONG = 201.17;
@@ -152,7 +155,7 @@ const canvas = document.getElementById("scene");
 const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
 renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
-renderer.toneMappingExposure = 1.05;
+renderer.toneMappingExposure = 0.95;
 renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 
@@ -175,8 +178,8 @@ scene.fog = new THREE.Fog(SKY_HORIZON, 180, 900);
   scene.userData.sky = sky;
 }
 
-scene.add(new THREE.HemisphereLight("#dfe8f0", "#4a5a35", 1.1));
-const sun = new THREE.DirectionalLight("#fff1d6", 2.6);
+scene.add(new THREE.HemisphereLight("#dfe8f0", "#4a5a35", 1.0));
+const sun = new THREE.DirectionalLight("#fff1d6", 2.3);
 sun.castShadow = true;
 sun.shadow.mapSize.set(2048, 2048);
 Object.assign(sun.shadow.camera, { left: -14, right: 14, top: 14, bottom: -14, near: 1, far: 120 });
@@ -313,9 +316,10 @@ const texLoader = new THREE.TextureLoader();
 const silkTextures = new Map();
 function silkTexture(id) {
   if (!silkTextures.has(id)) {
-    const t = texLoader.load(`assets/silks/${id}.jpg`);
+    const t = texLoader.load(`assets/silks-3d/${id}.png`);
     t.flipY = false;                       // glTF UV convention
     t.colorSpace = THREE.SRGBColorSpace;
+    t.wrapS = THREE.RepeatWrapping;        // body, sleeves and cap wrap all the way round
     t.anisotropy = 8;
     silkTextures.set(id, t);
   }
@@ -339,9 +343,9 @@ function makeTintable(mat) {
         {
           vec3 m = texture2D(mask, vMapUv).rgb;
           float l = dot(diffuseColor.rgb, vec3(0.2126, 0.7152, 0.0722));   // linear brightness of the neutral texture
-          vec3 coat = coatCol * clamp(l / 0.56, 0.12, 1.6);
-          vec3 pts = pointsCol * mix(0.6, 1.45, smoothstep(0.0, 0.035, l));
-          vec3 silk = silkCol * clamp(l / 0.72, 0.18, 1.3);
+          vec3 coat = coatCol * clamp(mix(1.0, l / 0.56, 0.65), 0.3, 1.25);
+          vec3 pts = pointsCol * mix(0.75, 1.2, smoothstep(0.0, 0.035, l));
+          vec3 silk = silkCol * clamp(mix(1.0, l / 0.72, 0.6), 0.4, 1.15);
           diffuseColor.rgb = mix(diffuseColor.rgb, coat, m.r);
           diffuseColor.rgb = mix(diffuseColor.rgb, pts, m.g);
           diffuseColor.rgb = mix(diffuseColor.rgb, silk, m.b);
@@ -351,8 +355,9 @@ function makeTintable(mat) {
   mat.needsUpdate = true;
 }
 
-let horse = null, mixer = null, gallop = null, silksMat = null;
-const state = { x: 0, speed: 0, paused: false, finished: 0, cam: "tv", coat: 0, silk: 5 };
+let horse = null, mixer = null, silksMat = null;
+const actions = {};   // gallop, gallop_drive, ride_quiet, ride_push, ride_drive
+const state = { x: 0, speed: 0, paused: false, finished: 0, cam: "tv", coat: 0, silk: 5, ride: "auto", effort: 0, horseEffort: 0 };
 
 const maskTex = texLoader.load("assets/tint-mask.png");
 maskTex.flipY = false;
@@ -392,16 +397,21 @@ loadHorseModel().then((gltf) => {
     o.frustumCulled = false;               // skinned mesh bounds don't follow the animation
     if (o.material.name === "silks") {
       silksMat = o.material;
-      silksMat.roughness = 0.42;
+      silksMat.roughness = 0.55;
     } else {
       makeTintable(o.material);
     }
   });
   scene.add(horse);
   mixer = new THREE.AnimationMixer(horse);
-  const clip = gltf.animations.find((a) => a.name === "gallop");
-  gallop = mixer.clipAction(clip);
-  gallop.play();
+  // All clips last one stride, so they stay in step: the horse blends gallop -> gallop_drive,
+  // the jockey blends ride_quiet -> ride_push -> ride_drive, by effort.
+  for (const clip of gltf.animations) {
+    if (clip.name === "walk") continue;
+    actions[clip.name] = mixer.clipAction(clip);
+    actions[clip.name].play();
+  }
+  applyEffort(0, 0);
   applyCoat(state.coat);
   applySilk(state.silk);
   document.getElementById("loading").hidden = true;
@@ -423,6 +433,7 @@ function applySilk(i) {
   if (silksMat) { silksMat.map = silkTexture(s.id); silksMat.needsUpdate = true; }
   tint.silkCol.value.set(s.colour);
   document.getElementById("silkName").textContent = s.name;
+  document.getElementById("silkName").title = s.description;
   document.querySelectorAll(".silk").forEach((b, j) => b.setAttribute("aria-pressed", j === i));
 }
 
@@ -441,7 +452,8 @@ SILKS.forEach((s, i) => {
   const b = document.createElement("button");
   b.type = "button"; b.className = "silk"; b.id = "silk-" + s.id;
   b.style.backgroundImage = `url(assets/silks-thumbs/${s.id}.jpg)`;
-  b.setAttribute("aria-label", s.name + " silks");
+  b.setAttribute("aria-label", s.name + " silks: " + s.description);
+  b.title = s.name;
   b.onclick = () => applySilk(i);
   silksEl.append(b);
 });
@@ -463,7 +475,43 @@ document.getElementById("pause").onclick = (e) => {
   e.currentTarget.textContent = state.paused ? "Resume" : "Pause";
 };
 document.getElementById("restart").onclick = () => restart();
-function restart() { state.x = 0; state.speed = 0; state.finished = 0; snapCam = true; }
+function restart() { state.x = 0; state.speed = 0; state.finished = 0; state.effort = 0; state.horseEffort = 0; snapCam = true; }
+
+// ---------- Riding ----------
+// Effort runs 0 (sitting quiet) .. 1 (pushing) .. 2 (driving). The horse responds a moment later.
+const RIDES = [["auto", "Auto"], ["quiet", "Quiet"], ["push", "Push"], ["drive", "Drive"]];
+const RIDE_EFFORT = { quiet: 0, push: 1, drive: 2 };
+const ridesEl = document.getElementById("rides");
+RIDES.forEach(([id, name]) => {
+  const b = document.createElement("button");
+  b.type = "button"; b.className = "cam"; b.id = "ride-" + id; b.textContent = name;
+  b.onclick = () => setRide(id);
+  ridesEl.append(b);
+});
+function setRide(id) {
+  state.ride = id;
+  document.querySelectorAll("#rides .cam").forEach((b) => b.setAttribute("aria-pressed", b.id === "ride-" + id));
+}
+setRide("auto");
+function autoEffort(x) {
+  // Sits quiet through the early part, starts pushing two out, goes for everything in the final furlong.
+  const toGo = RACE_M - x;
+  if (toGo < 0) return 0;
+  if (toGo < FURLONG) return 2;
+  if (toGo < 2 * FURLONG) return 1 + Math.max(0, (1.4 * FURLONG - toGo) / (0.4 * FURLONG));
+  if (toGo < 2.3 * FURLONG) return (2.3 * FURLONG - toGo) / (0.3 * FURLONG);
+  return 0;
+}
+function applyEffort(e, h) {
+  const set = (n, w) => actions[n] && actions[n].setEffectiveWeight(w);
+  set("ride_quiet", Math.max(0, 1 - e));
+  set("ride_push", e <= 1 ? e : 2 - e);
+  set("ride_drive", Math.max(0, e - 1));
+  set("gallop", 1 - h / 2);
+  set("gallop_drive", h / 2);
+}
+const rideLabelEl = document.getElementById("rideLabel");
+function rideLabel(e) { return e < 0.5 ? "Sitting quiet" : e < 1.5 ? "Pushing" : "Driving"; }
 
 // ---------- Camera ----------
 const camera = new THREE.PerspectiveCamera(30, 1, 0.2, 2000);
@@ -496,13 +544,18 @@ function frame() {
   const dt = Math.min(clock.getDelta(), 0.05);
   if (horse && !state.paused) {
     const past = state.x > RACE_M;
-    const target = past ? 5 : CRUISE + (state.x > RACE_M - 2 * FURLONG ? 1.2 : 0);   // quickens in the last 2f, eases after the post
+    const want = state.ride === "auto" ? autoEffort(state.x) : RIDE_EFFORT[state.ride];
+    const step = (cur, to, rate) => cur + Math.sign(to - cur) * Math.min(Math.abs(to - cur), rate * dt);
+    state.effort = step(state.effort, want, 1.6);
+    state.horseEffort = step(state.horseEffort, past && state.ride === "auto" ? 0 : state.effort, 0.7);   // responds a beat later
+    const target = past && state.ride === "auto" ? 5 : CRUISE + 0.75 * state.horseEffort;   // quickens under pressure, eases after the post
     const accel = state.speed < 8 ? 6 : 3;
     state.speed += Math.sign(target - state.speed) * Math.min(Math.abs(target - state.speed), accel * dt);
     state.x += state.speed * dt;
     if (past) { state.finished += dt; if (state.finished > 6) restart(); }
     horse.position.set(state.x, 0, 0);
-    gallop.timeScale = THREE.MathUtils.clamp(state.speed / STRIDE_SPEED, 0.25, 1.4);
+    mixer.timeScale = THREE.MathUtils.clamp(state.speed / STRIDE_SPEED, 0.25, 1.4);
+    applyEffort(state.effort, state.horseEffort);
     mixer.update(dt);
   }
   if (horse) {
@@ -521,6 +574,7 @@ function frame() {
     const left = Math.max(0, RACE_M - state.x) / FURLONG;
     toRunEl.textContent = left <= 0 ? "Past the post" : left < 1 ? Math.round(left * 220) + " yds" : left.toFixed(1).replace(/\.0$/, "") + "f";
     mphEl.textContent = Math.round(state.speed * 2.237) + " mph";
+    rideLabelEl.textContent = rideLabel(state.effort);
   }
   renderer.render(scene, camera);
   requestAnimationFrame(frame);

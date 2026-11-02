@@ -1,0 +1,135 @@
+"""Rebuild the racehorse gallop so the legs follow a real gallop footfall.
+
+Run headless:  python rebuild_gallop.py -- <in.glb> <out.blend>
+(needs the `bpy` module, Blender 4.2)
+
+Keeps the original body, head and tail motion. Replaces the four legs:
+each hoof follows a planned path (planted on the turf while in stance,
+lifted and folded while swinging) and the leg bones are solved with IK
+to reach it. Footfall order is the transverse gallop seen in Muybridge's
+1878 sequence: left hind, right hind, left fore, right fore (right lead),
+then a moment of suspension with the legs gathered.
+
+The result is baked into a new "gallop" action at 100 fps (48 frames =
+one 0.48 s stride), and "walk" is resampled to the same rate.
+"""
+import bpy, sys, math
+from mathutils import Vector
+
+src, out = sys.argv[-2], sys.argv[-1]
+bpy.ops.wm.read_factory_settings(use_empty=True)
+bpy.ops.import_scene.gltf(filepath=src)
+scene = bpy.context.scene
+arm = [o for o in bpy.data.objects if o.type == "ARMATURE"][0]
+orig_gallop = bpy.data.actions["gallop_Armature"]
+orig_walk = bpy.data.actions["walk_Armature"]
+
+ORIG_FPS = 24.0
+CYCLE = 0.48                 # seconds per stride
+STRIDE = 14.6 / 3.0 * CYCLE  # body travel per stride in model units (14.6 m/s at scale 3)
+N = 48                       # samples per stride -> 100 fps
+SOLE = 0.008                 # Limb_4 tail height above the sole when planted
+
+# leg: (bone prefix, landing phase 0..1, duty, landing x, swing height)
+LEGS = {
+    "LH": ("tripo::1_Left_Limb", 0.56, 0.25, 0.02, 0.11),
+    "RH": ("tripo::1_Right_Limb", 0.68, 0.25, 0.02, 0.11),
+    "LF": ("tripo::0_Left_Limb", 0.94, 0.25, 0.47, 0.17),
+    "RF": ("tripo::0_Right_Limb", 0.06, 0.25, 0.47, 0.17),
+}
+
+def hoof_target(phase, land_phase, duty, land_x, height, y):
+    """Hoof position (armature space, z up) at a point in the stride."""
+    ls = duty * STRIDE                       # ground covered while planted
+    u = (phase - land_phase) % 1.0
+    if u < duty:                             # stance: planted, sliding back relative to the body
+        return Vector((land_x - ls * (u / duty), y, SOLE))
+    s = (u - duty) / (1.0 - duty)            # swing 0..1
+    lift_x = land_x - ls
+    hind = land_x < 0.2
+    # hind legs come through quickly after push-off; fore legs fold first, then reach
+    ease = 0.5 - 0.5 * math.cos(math.pi * (s ** 0.7 if hind else s))
+    x = lift_x + (land_x - lift_x) * ease
+    # rises fast, folds, then reaches forward and comes down
+    z = SOLE + height * math.sin(math.pi * (s ** 0.75)) ** 1.2
+    return Vector((x, y, z))
+
+def orig_frame(t):
+    f = (t % CYCLE) * ORIG_FPS
+    return int(f), f - int(f)
+
+# Lateral (y) position of each hoof: keep it where the original had it on average.
+lat = {}
+arm.animation_data.action = orig_gallop
+for k, (pre, *_rest) in LEGS.items():
+    ys = []
+    for i in range(12):
+        fi, sub = orig_frame(CYCLE * i / 12)
+        scene.frame_set(fi, subframe=sub)
+        ys.append((arm.pose.bones[pre + "_4"].tail).y)
+    lat[k] = sum(ys) / len(ys)
+
+# IK targets
+targets = {}
+for k, (pre, *_rest) in LEGS.items():
+    e = bpy.data.objects.new("ik_" + k, None)
+    scene.collection.objects.link(e)
+    e.parent = arm
+    targets[k] = e
+    c = arm.pose.bones[pre + "_4"].constraints.new("IK")
+    c.target = e
+    c.chain_count = 4
+    c.use_tail = True
+    c.use_stretch = False
+    c.iterations = 500
+
+def sample(action, t, with_ik):
+    arm.animation_data.action = action
+    fi, sub = orig_frame(t) if action is orig_gallop else (int(t * ORIG_FPS), t * ORIG_FPS - int(t * ORIG_FPS))
+    for k, (pre, land, duty, lx, h) in LEGS.items():
+        targets[k].location = hoof_target(t / CYCLE, land, duty, lx, h, lat[k])
+        arm.pose.bones[pre + "_4"].constraints[0].influence = 1.0 if with_ik else 0.0
+    scene.frame_set(fi, subframe=sub)
+    bpy.context.view_layer.update()
+    pose = {}
+    for pb in arm.pose.bones:
+        m = arm.convert_space(pose_bone=pb, matrix=pb.matrix, from_space="POSE", to_space="LOCAL")
+        pose[pb.name] = m.decompose()
+    return pose
+
+gallop_frames = [sample(orig_gallop, CYCLE * i / N, True) for i in range(N + 1)]
+walk_len = (orig_walk.frame_range[1] - orig_walk.frame_range[0]) / ORIG_FPS
+walk_n = int(round(walk_len * 50))          # sample walk at 50 fps, key every 2 frames at 100 fps
+walk_frames = [sample(orig_walk, walk_len * i / walk_n, False) for i in range(walk_n + 1)]
+
+# Drop the IK rig and write clean keyframed actions.
+for k, (pre, *_rest) in LEGS.items():
+    pb = arm.pose.bones[pre + "_4"]
+    pb.constraints.remove(pb.constraints[0])
+    bpy.data.objects.remove(targets[k])
+
+def write_action(name, frames, step):
+    act = bpy.data.actions.new(name)
+    arm.animation_data.action = act
+    for i, pose in enumerate(frames):
+        f = i * step
+        for pb in arm.pose.bones:
+            loc, rot, scl = pose[pb.name]
+            pb.location, pb.rotation_quaternion, pb.scale = loc, rot, scl
+            pb.keyframe_insert("location", frame=f)
+            pb.keyframe_insert("rotation_quaternion", frame=f)
+            pb.keyframe_insert("scale", frame=f)
+    return act
+
+for pb in arm.pose.bones:
+    pb.rotation_mode = "QUATERNION"
+gallop = write_action("gallop", gallop_frames, 1)
+walk = write_action("walk", walk_frames, 2)
+gallop.use_fake_user = walk.use_fake_user = True
+bpy.data.actions.remove(orig_gallop)
+bpy.data.actions.remove(orig_walk)
+arm.animation_data.action = gallop
+scene.render.fps = 100
+scene.frame_start, scene.frame_end = 0, N
+bpy.ops.wm.save_as_mainfile(filepath=out)
+print("saved", out)
