@@ -67,34 +67,34 @@ def to_img(a):
 
 
 # ---------- Turf ----------
-def turf(size=1024):
+def turf(size=2048):
     H = W = size
-    base = hexrgb("#5f9443")
+    base = hexrgb("#54863c")
     v = (np.arange(H)[:, None] + 0.5) / H                      # 0..1 across the track
     lane = np.floor(v * LANES)
     # Soft lanes: alternate lighter/darker with gently blended edges, and a little
     # unevenness along each lane so they read as mown, not ruled.
-    phase = np.sin((v * LANES) * math.pi) ** 2                 # 0 at lane edges, 1 mid-lane
-    alt = np.where(lane % 2 == 0, 1.0, -1.0)
-    edge_soft = 0.55 + 0.45 * phase
-    wobble = periodic_noise(H, W, 6, 1) * 0.25
-    lane_shade = alt * edge_soft * (1 + wobble) * 0.05         # +/- 5 % brightness
+    # A smooth wave across the track: one light and one dark lane per pair, blended softly.
+    wave = np.cos((v * LANES) * math.pi)
+    wave = np.sign(wave) * np.abs(wave) ** 0.6
+    wobble = periodic_noise(H, W, 6, 1) * 0.2
+    lane_shade = wave * (1 + wobble) * 0.055                   # +/- 5.5 % brightness
     big = periodic_noise(H, W, 4, 2) * 0.05                    # broad patches
     fine = periodic_noise(H, W, 90, 3) * 0.035                 # grain
     shade = 1 + lane_shade + big + fine
     warm = np.stack([1.03 + big * 0.3, 1.0 + 0 * big, 0.92 - big * 0.2], -1)
     a = base * shade[..., None] * warm
     img = to_img(a)
-    light, mid, dark = hexrgb("#7dae55"), hexrgb("#5b8f3f"), hexrgb("#44743a")
+    light, mid, dark = hexrgb("#70a04c"), hexrgb("#52843a"), hexrgb("#3e6c34")
     # Brush grain runs with the direction of running (along u).
-    strokes(img, 9000, [light, mid, dark], 26, 2, 0.0, 0.12, 60, 4)
-    strokes(img, 1800, [hexrgb("#9cc56a"), hexrgb("#b9c978")], 14, 1, 0.0, 0.2, 55, 5)
-    img = img.filter(ImageFilter.GaussianBlur(0.6))
+    strokes(img, 14000, [light, mid, dark], 20, 2, 0.0, 0.10, 50, 4)
+    strokes(img, 1800, [hexrgb("#8cb460"), hexrgb("#a6b86a")], 14, 1, 0.0, 0.2, 45, 5)
+    img = img.filter(ImageFilter.GaussianBlur(0.45))
     return img.convert("RGB")
 
 
 def grass(size=1024):
-    base = hexrgb("#5f8f40")
+    base = hexrgb("#54823a")
     big = periodic_noise(size, size, 3, 11) * 0.04
     mid = periodic_noise(size, size, 14, 12) * 0.03
     fine = periodic_noise(size, size, 120, 13) * 0.04
@@ -121,95 +121,113 @@ def _blur(a, sigma):
 def tree(size=512, seed=0, kind="oak"):
     """A painted tree, lit from the upper left like the scene's sun.
 
-    The canopy is a set of leaf masses (big soft bumps) covered in smaller leaf
-    clusters; their combined height gives a surface that is shaded like a painted
-    ball of foliage: warm highlights on the lit side, cool dark greens in the
-    hollows, a leafy broken edge, then a few dabs of light on top."""
+    The canopy is a few overlapping leaf masses in 3D. Thousands of small leaf
+    dabs are scattered over their surfaces, each shaded by how much it faces the
+    sun and how deep it sits in the crown, then painted back to front. Branches
+    show through the gaps. Drawn at twice the size and scaled down so the dabs
+    read as foliage rather than blobs."""
     r = np.random.default_rng(seed)
-    S = size
-    yy, xx = np.mgrid[0:S, 0:S].astype(float)
-    cx = S / 2
-    if kind == "poplar":
-        rx, ry, ccy = S * 0.14, S * 0.36, S * 0.50
-    elif kind == "wide":
-        rx, ry, ccy = S * 0.38, S * 0.25, S * 0.52
-    else:
-        rx, ry, ccy = S * 0.32, S * 0.29, S * 0.52
-    # Core: one soft ellipsoid so the canopy always holds together
-    d2 = ((xx - cx) / (rx * 0.85)) ** 2 + ((yy - ccy) / (ry * 0.85)) ** 2
-    height = np.sqrt(np.clip(1 - d2, 0, 1)) * min(rx, ry) * 0.8
-    # Leaf masses
-    for _ in range(9 if kind != "poplar" else 7):
-        ang = r.uniform(0, 2 * math.pi); rad = math.sqrt(r.uniform(0, 0.75))
-        x = cx + math.cos(ang) * rad * rx * 0.75; y = ccy + math.sin(ang) * rad * ry * 0.75
-        rr = min(rx, ry) * r.uniform(0.4, 0.6)
-        d2 = ((xx - x) ** 2 + (yy - y) ** 2) / rr ** 2
-        height = np.maximum(height, np.sqrt(np.clip(1 - d2, 0, 1)) * rr)
-    # Leaf clusters on the surface
-    clusters = np.zeros((S, S))
-    for _ in range(260):
-        ang = r.uniform(0, 2 * math.pi); rad = math.sqrt(r.uniform(0, 1.05))
-        x = cx + math.cos(ang) * rad * rx * 0.95; y = ccy + math.sin(ang) * rad * ry * 0.95
-        rr = S * r.uniform(0.016, 0.034)
-        d2 = ((xx - x) ** 2 + (yy - y) ** 2) / rr ** 2
-        clusters = np.maximum(clusters, np.sqrt(np.clip(1 - d2, 0, 1)) * rr)
-    leafy = periodic_noise(S, S, 70, seed + 100)
-    mask = ((height > 0.5) | ((clusters > 0.3) & (_blur(height, 6) > 1.0))).astype(float)
-    near = _blur(mask, 5) > 0.15
-    mask = _blur(mask, 1.6) + leafy * 0.18 * near
-    alpha = np.clip((mask - 0.42) * 6, 0, 1)
-    h = _blur(height, 3) + clusters * 0.6
-    gy, gx = np.gradient(h)
-    nz = np.ones_like(h) * 1.6
-    n = np.stack([-gx, -gy, nz], -1)
-    n /= np.linalg.norm(n, axis=-1, keepdims=True)
-    L = np.array([-0.55, -0.6, 0.58]); L /= np.linalg.norm(L)
-    lam = np.clip((n * L).sum(-1), 0, 1)
-    # Self-shadow towards the lower right of the canopy, and darker hollows.
-    side = np.clip(((xx - cx) / rx * 0.5 + (yy - ccy) / ry * 0.7), -1, 1)
-    occl = np.clip(clusters / (S * 0.03), 0, 1)
-    shade = lam * 0.75 + 0.25 * occl - 0.28 * np.clip(side, 0, 1) + leafy * 0.06
-    shade = np.clip(shade, 0, 1)
-    # Painted colour ramp: cool dark -> mid -> warm light -> sunlit
-    stops = [(0.0, (30, 52, 38)), (0.35, (52, 84, 44)), (0.62, (88, 122, 54)), (0.82, (132, 156, 70)), (1.0, (188, 190, 104))]
-    hue = r.normal(0, 7, 3) * np.array([1.0, 0.6, 0.3])
-    col = np.zeros((S, S, 3))
-    for (a0, c0), (a1, c1) in zip(stops, stops[1:]):
-        t = np.clip((shade - a0) / (a1 - a0), 0, 1)[..., None]
-        seg = (shade >= a0) & (shade <= a1)
-        col[seg] = (np.array(c0) * (1 - t) + np.array(c1) * t)[seg]
-    col += hue
-    # Darker rim just inside the silhouette
-    inner = _blur(alpha, 4)
-    col *= (0.8 + 0.2 * np.clip((inner - 0.5) * 3, 0, 1))[..., None]
-    # Trunk and a few branches showing under the canopy
-    trunk = np.zeros((S, S))
-    tw = S * (0.03 if kind != "wide" else 0.04)
-    top = ccy + ry * 0.3
-    t = (yy - top) / (S * 0.97 - top)
-    w = tw * (0.7 + 0.5 * np.clip(t, 0, 1))
-    trunk[(yy > top) & (yy < S * 0.97) & (np.abs(xx - cx) < w)] = 1
-    tcol = np.array([92, 70, 50]) * (0.75 + 0.35 * ((xx - cx) < 0))[..., None]
-    talpha = trunk * (1 - alpha)
-    out = col * alpha[..., None] + tcol * talpha[..., None]
-    A = np.clip(alpha + talpha, 0, 1)
-    rgb = np.clip(out / np.maximum(A, 1e-3)[..., None], 0, 255)
-    img = Image.fromarray(rgb.astype(np.uint8), "RGB")
-    img = img.filter(ImageFilter.ModeFilter(3))
-    # Dabs of light on the sunlit side (painted highlights)
+    S2 = size * 2
+    img = Image.new("RGBA", (S2, S2), (0, 0, 0, 0))
     d = ImageDraw.Draw(img)
-    for _ in range(140):
-        x = cx + r.normal(-0.3, 0.45) * rx; y = ccy + r.normal(-0.35, 0.45) * ry
-        if 0 <= int(x) < S and 0 <= int(y) < S and alpha[int(y), int(x)] > 0.9 and shade[int(y), int(x)] > 0.6:
-            rr = S * r.uniform(0.004, 0.009)
-            c = tuple(int(v) for v in np.clip(np.array([176, 186, 96]) + r.normal(0, 10, 3), 0, 255))
-            d.ellipse([x - rr, y - rr * 0.7, x + rr, y + rr * 0.7], fill=c)
-    arr = np.dstack([np.array(img).astype(float), A * 255])
-    # Bleed colour into transparent pixels so mip-mapping doesn't draw dark halos.
+    U = S2 / 2                      # 1 unit = half the image
+    cx = S2 / 2
+    def px(x, y):                   # canopy space (x right, y up) -> pixels
+        return cx + x * U, S2 * 0.96 - y * U
+    # Shape of the crown per kind: list of lobes (x, y, z, rx, ry, rz)
+    if kind == "poplar":
+        base = [(0, 1.0, 0, 0.24, 0.62, 0.24)]
+        n_lobes, spread, lobe_r = 9, (0.16, 0.55, 0.12), (0.12, 0.22)
+        trunk_top, trunk_w = 0.55, 0.045
+    elif kind == "wide":
+        base = [(0, 0.88, 0, 0.62, 0.34, 0.50)]
+        n_lobes, spread, lobe_r = 14, (0.70, 0.30, 0.40), (0.16, 0.30)
+        trunk_top, trunk_w = 0.60, 0.075
+    else:
+        base = [(0, 0.90, 0, 0.48, 0.40, 0.44)]
+        n_lobes, spread, lobe_r = 13, (0.55, 0.40, 0.35), (0.15, 0.30)
+        trunk_top, trunk_w = 0.60, 0.065
+    lobes = list(base)
+    bx, by, bz = base[0][:3]
+    for _ in range(n_lobes):
+        rr = r.uniform(*lobe_r)
+        lobes.append((bx + r.uniform(-1, 1) * spread[0], by + r.uniform(-0.8, 1) * spread[1], bz + r.uniform(-1, 1) * spread[2],
+                      rr * r.uniform(0.9, 1.2), rr * r.uniform(0.8, 1.0), rr))
+    top = max(l[1] + l[4] for l in lobes)
+    if top > 1.9:                    # keep inside the frame
+        k = 1.9 / top
+        lobes = [(x, (y - 0.5) * k + 0.5, z, a * k, b * k, c * k) for (x, y, z, a, b, c) in lobes]
+    # --- Trunk and branches ---
+    bark_dark, bark_light = np.array([70, 54, 40]), np.array([122, 98, 72])
+    def limb(x0, y0, x1, y1, w0, w1):
+        n = 12
+        for i in range(n):
+            t0, t1 = i / n, (i + 1) / n
+            xa, ya = x0 + (x1 - x0) * t0, y0 + (y1 - y0) * t0
+            xb, yb = x0 + (x1 - x0) * t1, y0 + (y1 - y0) * t1
+            wa, wb = w0 + (w1 - w0) * t0, w0 + (w1 - w0) * t1
+            pa, pb = px(xa, ya), px(xb, yb)
+            poly = [(pa[0] - wa * U, pa[1]), (pa[0] + wa * U, pa[1]), (pb[0] + wb * U, pb[1]), (pb[0] - wb * U, pb[1])]
+            d.polygon(poly, fill=tuple(int(v) for v in bark_dark) + (255,))
+            lit = [(pa[0] - wa * U, pa[1]), (pa[0] - wa * U * 0.1, pa[1]), (pb[0] - wb * U * 0.1, pb[1]), (pb[0] - wb * U, pb[1])]
+            d.polygon(lit, fill=tuple(int(v) for v in bark_light) + (255,))
+    limb(0, 0, 0.0, 0.08, trunk_w * 1.35, trunk_w)          # root flare
+    limb(0, 0.08, 0.02, trunk_top, trunk_w, trunk_w * 0.7)
+    for _ in range(5 if kind != "poplar" else 3):
+        ang = r.uniform(-0.9, 0.9)
+        L = r.uniform(0.25, 0.45)
+        y0 = trunk_top * r.uniform(0.7, 1.0)
+        limb(0.02, y0, 0.02 + math.sin(ang) * L, y0 + math.cos(ang) * L, trunk_w * 0.45, trunk_w * 0.12)
+    # --- Leaf dabs ---
+    Lsun = np.array([-0.55, 0.62, 0.56]); Lsun /= np.linalg.norm(Lsun)
+    pts = []
+    n_dabs = 9000 if kind != "poplar" else 5000
+    vols = np.array([l[3] * l[4] * l[5] for l in lobes]); vols /= vols.sum()
+    for _ in range(n_dabs):
+        li = r.choice(len(lobes), p=vols)
+        x, y, z, a, b, c = lobes[li]
+        v = r.normal(size=3); v /= np.linalg.norm(v)
+        depth = r.uniform(0.80, 1.08) ** 0.5
+        P = np.array([x + v[0] * a * depth, y + v[1] * b * depth, z + v[2] * c * depth])
+        # Hide dabs buried inside another lobe
+        buried = False
+        for (x2, y2, z2, a2, b2, c2) in lobes:
+            q = ((P[0] - x2) / a2) ** 2 + ((P[1] - y2) / b2) ** 2 + ((P[2] - z2) / c2) ** 2
+            if q < 0.6:
+                buried = True; break
+        if buried:
+            continue
+        N = np.array([v[0] / a, v[1] / b, v[2] / c]); N /= np.linalg.norm(N)
+        pts.append((P, N, depth))
+    pts.sort(key=lambda t: t[0][2])
+    stops = [(0.0, (26, 44, 34)), (0.3, (44, 72, 40)), (0.55, (76, 106, 50)), (0.78, (122, 146, 66)), (1.0, (182, 186, 102))]
+    def ramp(t):
+        for (a0, c0), (a1, c1) in zip(stops, stops[1:]):
+            if t <= a1:
+                k = (t - a0) / (a1 - a0)
+                return np.array(c0) * (1 - k) + np.array(c1) * k
+        return np.array(stops[-1][1])
+    hue = r.normal(0, 6, 3) * np.array([1.0, 0.7, 0.4])
+    ylo = min(l[1] - l[4] for l in lobes); yhi = max(l[1] + l[4] for l in lobes)
+    for P, N, depth in pts:
+        lam = max(0.0, float(N @ Lsun))
+        under = np.clip((P[1] - ylo) / (yhi - ylo), 0, 1)          # 0 at the bottom of the crown
+        shade = 0.05 + 0.78 * lam ** 1.2 + 0.20 * under + r.normal(0, 0.06)
+        col = np.clip(ramp(np.clip(shade, 0, 1)) + hue + r.normal(0, 5, 3), 0, 255)
+        X, Y = px(P[0], P[1])
+        rad = U * r.uniform(0.016, 0.030)
+        ang = r.uniform(0, math.pi)
+        e = [(X + math.cos(t) * rad * (1.0 if i % 2 == 0 else 0.62) * math.cos(ang) - math.sin(t) * rad * 0.62 * math.sin(ang),
+              Y + math.cos(t) * rad * math.sin(ang) + math.sin(t) * rad * 0.62 * math.cos(ang)) for i, t in enumerate(np.linspace(0, 2 * math.pi, 10, endpoint=False))]
+        d.polygon(e, fill=tuple(int(v) for v in col) + (255,))
+    # Scale down for smooth edges, then bleed colour under transparent pixels (no dark halos when mip-mapped).
+    out = img.resize((size, size), Image.LANCZOS)
+    arr = np.array(out).astype(float)
+    A = arr[..., 3] / 255
+    fill = np.dstack([_blur(arr[..., i] * A, 8) / np.maximum(_blur(A, 8), 1e-3) for i in range(3)])
     m = A[..., None]
-    fill = np.dstack([_blur(arr[..., i] * A, 10) / np.maximum(_blur(A, 10), 1e-3) for i in range(3)])
-    arr[..., :3] = arr[..., :3] * m + np.clip(fill, 0, 255) * (1 - m)
-    return Image.fromarray(arr.astype(np.uint8), "RGBA")
+    arr[..., :3] = arr[..., :3] * np.where(m > 0, 1, 0) + np.clip(fill, 0, 255) * np.where(m > 0, 0, 1)
+    return Image.fromarray(np.clip(arr, 0, 255).astype(np.uint8), "RGBA")
 
 
 if __name__ == "__main__":

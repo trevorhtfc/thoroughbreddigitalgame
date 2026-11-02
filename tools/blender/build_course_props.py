@@ -7,7 +7,7 @@ Blender's Z-up axes; the glTF export turns that into Y-up, so in the .glb:
 x = direction of running, y = up, z = across the course (+ = outside the near rail).
 
 Objects (each its own node in the .glb, origin at ground level):
-- rail_module    one post plus 3 m of rounded top rail, for the NEAR side: the
+- rail_module    one capped post plus 3 m of white rail with a green top, for the NEAR side: the
                  rail is at z = 0, the post just outside it (+z). Rotate 180°
                  about y for the far side. Repeat every 3 m along the course.
 - winning_post   heritage winning post: green-and-white spiral pole with the red
@@ -104,12 +104,27 @@ def box(bm, x0, x1, y0, y1, z0, z1, mi=0):
 
 
 # ---------- Running rail module ----------
-# glTF +z (outside the near rail) is Blender -y.
+# glTF +z (outside the near rail) is Blender -y. White posts with a small pyramid
+# cap, a white rounded rail with a bottle-green top, one module = 3 m.
 bm = bmesh.new()
-box(bm, -0.05, 0.05, -0.17, -0.07, 0.0, 1.0)                    # post, just outside the rail
-cylinder(bm, 0.075, 3.0, segs=12, origin=(0, 0, 0.98), axis="x")  # rounded top rail, 3 m
-cylinder(bm, 0.03, 0.14, segs=8, origin=(0, -0.12, 0.92), axis="y")  # bracket from post to rail
-new_obj("rail_module", bm, [WHITE])
+box(bm, -0.045, 0.045, -0.165, -0.075, 0.0, 0.93)                  # post, just outside the rail
+cap = bmesh.ops.create_cone(bm, cap_ends=True, segments=4, radius1=0.068, radius2=0.0, depth=0.05)
+for v in cap["verts"]:
+    v.co.rotate(__import__("mathutils").Euler((0, 0, math.pi / 4)))
+    v.co += __import__("mathutils").Vector((0, -0.12, 0.955))
+for f in {f for v in cap["verts"] for f in v.link_faces}:
+    f.smooth = False
+cylinder(bm, 0.068, 3.0, segs=14, origin=(0, 0, 0.97), axis="x")   # white rail
+cylinder(bm, 0.028, 0.12, segs=8, origin=(0, -0.13, 0.90), axis="y")  # bracket from post to rail
+# Green top: a flattened tube sitting on the rail
+before = set(bm.verts)
+cylinder(bm, 0.072, 3.0, segs=14, origin=(0, 0, 0.0), axis="x", mat_fn=lambda u, v: 1)
+for v in set(bm.verts) - before:
+    v.co.z = v.co.z * 0.5 + 1.0
+for f in bm.faces:
+    if all(v not in before for v in f.verts):
+        f.material_index = 1
+new_obj("rail_module", bm, [WHITE, GREEN])
 
 # ---------- Winning post ----------
 bm = bmesh.new()

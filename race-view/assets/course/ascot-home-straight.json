@@ -35,7 +35,7 @@
   ],
 
   "cameras": [
-    { "id": "aerial", "label": "Aerial", "follow": "leader", "offset": [-26, 30, 40], "look": [6, 0, -2], "fov": 32 },
+    { "id": "aerial", "label": "Aerial", "follow": "leader", "offset": [-22, 22, 32], "look": [2, 0, -2], "fov": 32 },
     { "id": "tv", "label": "TV", "follow": "leader", "offset": [-6, 5, 52], "look": [-3, 1.2, 0], "fov": 15 },
     { "id": "head", "label": "Head-on", "follow": "leader", "offset": [60, 6, 2], "look": [0, 0.8, 0], "fov": 16 },
     { "id": "post", "label": "At the post", "fixed": [1006, 5, 30], "look": [1006, 1.2, -6], "fov": 34, "followX": 0.35 }

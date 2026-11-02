@@ -100,6 +100,7 @@ button:focus-visible { outline: 2px solid var(--cream-edge); outline-offset: 2px
 import * as THREE from "three";
 import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 import * as SkeletonUtils from "three/addons/utils/SkeletonUtils.js";
+import { RoomEnvironment } from "three/addons/environments/RoomEnvironment.js";
 
 const params = new URLSearchParams(location.search);
 
@@ -148,19 +149,36 @@ scene.fog = new THREE.Fog(HAZE, 260, 1500);
   scene.userData.sky = sky;
 }
 
-// Light: warm late-afternoon sun from behind the stands side, long soft shadows away from the camera.
-scene.add(new THREE.HemisphereLight("#fff0cf", "#5a7438", 1.15));
-const sun = new THREE.DirectionalLight("#ffdca6", 2.7);
+// Light: warm late-afternoon sun from behind the stands side, long soft shadows away from the camera,
+// a cool fill from the far side to model the horses, and a soft studio reflection for sheen on coats and rails.
+scene.add(new THREE.HemisphereLight("#fff0cf", "#566f36", 0.9));
+const sun = new THREE.DirectionalLight("#ffd9a0", 3.2);
 sun.castShadow = true;
-sun.shadow.mapSize.set(2048, 2048);
-Object.assign(sun.shadow.camera, { left: -50, right: 50, top: 50, bottom: -50, near: 1, far: 300 });
+sun.shadow.mapSize.set(4096, 4096);
+sun.shadow.radius = 3;
+Object.assign(sun.shadow.camera, { left: -45, right: 45, top: 45, bottom: -45, near: 1, far: 300 });
+const fill = new THREE.DirectionalLight("#c9dcff", 0.55);
+fill.position.set(40, 30, -60);
+scene.add(fill);
+{
+  const pm = new THREE.PMREMGenerator(renderer);
+  scene.environment = pm.fromScene(new RoomEnvironment(), 0.04).texture;
+  scene.environmentIntensity = 0.35;
+}
 sun.shadow.bias = -0.0005;
 sun.shadow.normalBias = 0.03;
 scene.add(sun, sun.target);
 const SUN_OFFSET = new THREE.Vector3(-55, 80, 60);
 
 // ---------- Textures ----------
+// Count textures still loading, so ?still=1 screenshots wait for every image.
+let texturesPending = 0;
 const texLoader = new THREE.TextureLoader();
+const _load = texLoader.load.bind(texLoader);
+texLoader.load = (url, onLoad, onProgress, onError) => {
+  texturesPending++;
+  return _load(url, (t) => { texturesPending--; onLoad && onLoad(t); }, onProgress, (e) => { texturesPending--; onError && onError(e); });
+};
 function tex(name, repeatX = 1, repeatY = 1) {
   const t = texLoader.load(`assets/course/${name}.jpg`);
   t.colorSpace = THREE.SRGBColorSpace;
@@ -197,6 +215,16 @@ function tex(name, repeatX = 1, repeatY = 1) {
     scene.add(m);
   }
 }
+
+// Soft round shadow, used under trees and horses.
+const shadowTex = (() => {
+  const sc = document.createElement("canvas"); sc.width = sc.height = 128;
+  const g = sc.getContext("2d");
+  const grad = g.createRadialGradient(64, 64, 4, 64, 64, 62);
+  grad.addColorStop(0, "rgba(0,0,0,1)"); grad.addColorStop(0.6, "rgba(0,0,0,0.75)"); grad.addColorStop(1, "rgba(0,0,0,0)");
+  g.fillStyle = grad; g.fillRect(0, 0, 128, 128);
+  return new THREE.CanvasTexture(sc);
+})();
 
 // ---------- Trees: painted cut-outs that turn to face the camera ----------
 function seeded(seed) { let s = seed >>> 0; return () => ((s = (s * 1664525 + 1013904223) >>> 0) / 4294967296); }
@@ -256,12 +284,6 @@ function seeded(seed) { let s = seed >>> 0; return () => ((s = (s * 1664525 + 10
   });
   const trees = new THREE.InstancedMesh(geo, mat, spots.length);
   const shadowGeo = new THREE.PlaneGeometry(1, 1);
-  const sc = document.createElement("canvas"); sc.width = sc.height = 128;
-  const g = sc.getContext("2d");
-  const grad = g.createRadialGradient(64, 64, 4, 64, 64, 62);
-  grad.addColorStop(0, "rgba(0,0,0,1)"); grad.addColorStop(0.6, "rgba(0,0,0,0.75)"); grad.addColorStop(1, "rgba(0,0,0,0)");
-  g.fillStyle = grad; g.fillRect(0, 0, 128, 128);
-  const shadowTex = new THREE.CanvasTexture(sc);
   const shadows = new THREE.InstancedMesh(shadowGeo, new THREE.MeshBasicMaterial({ map: shadowTex, color: "#1f3318", transparent: true, opacity: 0.5, depthWrite: false }), spots.length);
   shadows.frustumCulled = false;
   const m = new THREE.Matrix4(), q = new THREE.Quaternion(), s = new THREE.Vector3(), p = new THREE.Vector3();
@@ -306,23 +328,26 @@ async function loadModel(dir, name) {
 // ---------- Course furniture from Blender ----------
 function placeProps(gltf) {
   const byName = (n) => gltf.scene.getObjectByName(n);
-  gltf.scene.traverse((o) => { if (o.isMesh) { o.castShadow = true; o.receiveShadow = true; o.material.roughness = 0.85; } });
+  gltf.scene.traverse((o) => { if (o.isMesh) { o.castShadow = true; o.receiveShadow = true; o.material.roughness = 0.6; } });
   // Rails: one instanced module repeated along both sides.
   const R = COURSE.rails;
-  const mod = byName(R.model);
+  const parts = [];
+  byName(R.model).traverse((o) => { if (o.isMesh) parts.push(o); });
   const count = Math.ceil((X1 - X0) / R.spacing);
   const m = new THREE.Matrix4(), rot = new THREE.Matrix4().makeRotationY(Math.PI);
   for (const side of R.sides) {
-    const rails = new THREE.InstancedMesh(mod.geometry, mod.material, count);
     const z = (HALF_W + R.gap) * (side === "near" ? 1 : -1);
-    for (let i = 0; i < count; i++) {
-      const x = X0 + i * R.spacing;
-      if (side === "near") m.makeTranslation(x, 0, z);
-      else m.makeTranslation(x + R.spacing, 0, z).multiply(rot);
-      rails.setMatrixAt(i, m);
+    for (const part of parts) {
+      const rails = new THREE.InstancedMesh(part.geometry, part.material, count);
+      for (let i = 0; i < count; i++) {
+        const x = X0 + i * R.spacing;
+        if (side === "near") m.makeTranslation(x, 0, z);
+        else m.makeTranslation(x + R.spacing, 0, z).multiply(rot);
+        rails.setMatrixAt(i, m);
+      }
+      rails.castShadow = rails.receiveShadow = true;
+      scene.add(rails);
     }
-    rails.castShadow = rails.receiveShadow = true;
-    scene.add(rails);
   }
   const sideZ = (side) => (HALF_W + R.gap + 0.7) * (side === "near" ? 1 : -1);
   const wp = byName(COURSE.winningPost.model).clone();
@@ -371,38 +396,79 @@ function makeTintable(mat, u) {
 }
 
 // ---------- Placeholder race ----------
-// The real race sim will hand the viewer a timeline (each horse's distance and lane over time);
-// this stand-in makes one so the look test has a field to film. No game rules live here.
+// The real race sim will hand the viewer a timeline (each horse's distance, lateral position and effort
+// over time); this stand-in makes one so the look test has a field to film. The steering below is the
+// kind of thing the real sim's timeline should include: horses drift into groups, tuck in behind
+// another horse, pull out to pass when they're stuck, keep a body's width apart and wander a little.
+// Each frame: [x, z, speed, effort 0..2, heading].
 function placeholderTimeline(n, seed) {
   const rnd = seeded(seed);
   const dt = 0.1, out = [];
-  const horses = Array.from({ length: n }, (_, i) => ({
-    base: 16.2 + rnd() * 0.5, kick: 0.4 + rnd() * 0.9, kickAt: 260 + rnd() * 200,
-    lane: -HALF_W + 3 + (i + 0.5) * ((T.width - 6) / n), drift: (rnd() - 0.5) * 4,
-    x: rnd() * 1.5, v: 0,
-  }));
+  const limit = HALF_W - 1.2;
+  const nGroups = n > 9 ? 3 : 2;
+  const groupBase = Array.from({ length: nGroups }, (_, g) => -limit * 0.7 + (g + 0.5) * (limit * 1.4 / nGroups));
+  const horses = Array.from({ length: n }, (_, i) => {
+    const stall = -limit + 0.5 + i * ((2 * limit - 1) / Math.max(1, n - 1));
+    let g = 0, best = 1e9;
+    groupBase.forEach((c, k) => { const dd = Math.abs(c - stall); if (dd < best) { best = dd; g = k; } });
+    return {
+      base: 16.1 + rnd() * 0.6, kick: 0.5 + rnd() * 1.0, kickAt: 220 + rnd() * 240,
+      x: rnd() * 1.2, z: stall, v: 0, vz: 0, group: g,
+      wp: rnd() * 6.28, wf: 0.25 + rnd() * 0.35, surge: rnd() * 6.28,
+    };
+  });
   for (let t = 0; t <= 90; t += dt) {
+    // Group centres drift slowly, so the bunches breathe across the course.
+    const centres = groupBase.map((c, k) => c + Math.sin(t * 0.07 + k * 2.1) * 2.5);
     const frame = horses.map((h) => {
       const toGo = POST - h.x;
       const past = toGo < 0;
-      const want = past ? 6 : h.base + (toGo < h.kickAt ? h.kick : 0);
-      h.v += Math.sign(want - h.v) * Math.min(Math.abs(want - h.v), (h.v < 8 ? 6 : 1.2) * dt);
+      let want = past ? 6 : h.base + (toGo < h.kickAt ? h.kick : 0) + Math.sin(t * 0.4 + h.surge) * 0.15;
+      // Who is just in front, and is there room either side?
+      let blocker = null, leftCrowd = 0, rightCrowd = 0;
+      for (const o of horses) {
+        if (o === h) continue;
+        const dx = o.x - h.x, dz = o.z - h.z;
+        if (dx > 0 && dx < 4.5 && Math.abs(dz) < 1.3 && (!blocker || dx < blocker.x - h.x)) blocker = o;
+        if (Math.abs(dx) < 6) { if (dz > 0 && dz < 3) rightCrowd++; if (dz < 0 && dz > -3) leftCrowd++; }
+      }
+      let az = (centres[h.group] - h.z) * 0.12;                          // drift towards its group
+      az += Math.sin(t * h.wf + h.wp) * 0.25;                           // a little wander
+      const kicking = toGo < h.kickAt;
+      if (blocker && want > blocker.v) {
+        if (kicking) az += (leftCrowd <= rightCrowd ? -1 : 1) * 1.6;    // stuck: pull out to pass
+        else want = Math.min(want, blocker.v + 0.05);                   // otherwise sit in behind
+      }
+      for (const o of horses) {                                         // keep a body's width apart
+        if (o === h) continue;
+        const dx = o.x - h.x, dz = h.z - o.z;
+        if (Math.abs(dx) < 3.4 && Math.abs(dz) < 1.7) az += Math.sign(dz || (rnd() - 0.5)) * (1.7 - Math.abs(dz)) * 2.2;
+      }
+      if (!kicking && !past) {                                          // tuck in behind the horse ahead
+        let lead = null;
+        for (const o of horses) { const dx = o.x - h.x; if (o !== h && dx > 3 && dx < 9 && Math.abs(o.z - h.z) < 2.5 && (!lead || dx < lead.x - h.x)) lead = o; }
+        if (lead) az += (lead.z - h.z) * 0.3;
+      }
+      if (h.z > limit - 0.5) az -= (h.z - limit + 0.5) * 4;            // stay off the rails
+      if (h.z < -limit + 0.5) az += (-limit + 0.5 - h.z) * 4;
+      h.vz = THREE.MathUtils.clamp((h.vz + az * dt) * 0.9, -1.3, 1.3);
+      h.v += Math.sign(want - h.v) * Math.min(Math.abs(want - h.v), (h.v < 8 ? 6 : 1.4) * dt);
       h.x += h.v * dt;
-      const effort = past ? 0 : toGo < h.kickAt * 0.55 ? 2 : toGo < h.kickAt ? 1 : 0;
-      const z = h.lane + h.drift * Math.min(1, Math.max(0, h.x - 100) / 600);
-      return [h.x, z, h.v, effort];
+      h.z += h.vz * dt;
+      const effort = past ? 0 : toGo < h.kickAt * 0.55 ? 2 : kicking ? 1 : 0;
+      return [h.x, h.z, h.v, effort, Math.atan2(h.vz, Math.max(h.v, 1))];
     });
     out.push(frame);
   }
   return { dt, frames: out };
 }
 
-const RUNNERS = Number(params.get("runners") || 8);
+const RUNNERS = Number(params.get("runners") || 12);
 const timeline = placeholderTimeline(RUNNERS, Number(params.get("seed") || 3));
 const runners = [];
 
 // ---------- Post-processing: the illustrated finish ----------
-const rt = new THREE.WebGLRenderTarget(1, 1, { type: THREE.HalfFloatType, depthTexture: new THREE.DepthTexture(1, 1) });
+const rt = new THREE.WebGLRenderTarget(1, 1, { type: THREE.HalfFloatType, samples: 4, depthTexture: new THREE.DepthTexture(1, 1) });
 const paper = (() => {
   const c = document.createElement("canvas"); c.width = c.height = 512;
   const g = c.getContext("2d");
@@ -429,32 +495,10 @@ const post = new THREE.ShaderMaterial({
     float vz(vec2 uv) { return -perspectiveDepthToViewZ(texture2D(tDepth, uv).x, near, far); }
     vec3 aces(vec3 x) { return clamp((x * (2.51 * x + 0.03)) / (x * (2.43 * x + 0.59) + 0.14), 0.0, 1.0); }
     vec3 toDisplay(vec3 c) { return pow(aces(c * 0.95), vec3(1.0 / 2.2)); }
-    // Kuwahara filter: flattens texture into painted patches while keeping edges.
-    vec3 kuwahara(vec2 uv) {
-      vec2 px = pxScale / res;
-      vec3 m[4]; vec3 s[4];
-      for (int k = 0; k < 4; k++) { m[k] = vec3(0.0); s[k] = vec3(0.0); }
-      const int R = 3;
-      for (int j = -R; j <= R; j++) for (int i = -R; i <= R; i++) {
-        vec3 c = toDisplay(texture2D(tColor, uv + vec2(float(i), float(j)) * px).rgb);
-        if (i <= 0 && j <= 0) { m[0] += c; s[0] += c * c; }
-        if (i >= 0 && j <= 0) { m[1] += c; s[1] += c * c; }
-        if (i <= 0 && j >= 0) { m[2] += c; s[2] += c * c; }
-        if (i >= 0 && j >= 0) { m[3] += c; s[3] += c * c; }
-      }
-      float n = float((R + 1) * (R + 1));
-      float best = 1e9; vec3 outc = vec3(0.0);
-      for (int k = 0; k < 4; k++) {
-        vec3 mu = m[k] / n; vec3 v = abs(s[k] / n - mu * mu);
-        float sig = v.r + v.g + v.b;
-        if (sig < best) { best = sig; outc = mu; }
-      }
-      return outc;
-    }
     void main() {
-      if (painted < 0.5) { gl_FragColor = vec4(toDisplay(texture2D(tColor, vUv).rgb), 1.0); return; }
-      vec3 c = kuwahara(vUv);
-      // Soft ink outlines where depth jumps (silhouettes of horses, posts, rails, trees).
+      vec3 c = toDisplay(texture2D(tColor, vUv).rgb);
+      if (painted < 0.5) { gl_FragColor = vec4(c, 1.0); return; }
+      // Faint ink line where depth jumps (silhouettes of horses, posts, rails, trees): an illustrator's edge, not a cartoon outline.
       vec2 px = pxScale / res;
       float d = vz(vUv);
       float e = 0.0;
@@ -462,19 +506,19 @@ const post = new THREE.ShaderMaterial({
       e += abs(vz(vUv - vec2(px.x, 0.0)) - d);
       e += abs(vz(vUv + vec2(0.0, px.y)) - d);
       e += abs(vz(vUv - vec2(0.0, px.y)) - d);
-      float edge = smoothstep(0.03, 0.12, e / max(d, 1.0)) * (1.0 - smoothstep(250.0, 700.0, d));
-      c = mix(c, vec3(0.17, 0.16, 0.10), edge * 0.6);
-      // Heritage grade: warm, a touch softer and less saturated, shadows cooled, blacks lifted.
+      float edge = smoothstep(0.05, 0.2, e / max(d, 1.0)) * (1.0 - smoothstep(120.0, 400.0, d));
+      c = mix(c, c * vec3(0.42, 0.40, 0.30), edge * 0.45);
+      // Heritage grade: warm highlights, gently cooled shadows, slightly softened saturation and lifted blacks.
       float l = dot(c, vec3(0.299, 0.587, 0.114));
-      c = mix(vec3(l), c, 0.9);
-      c *= vec3(1.045, 1.0, 0.9);
-      c = mix(c * vec3(0.88, 0.96, 1.04), c, smoothstep(0.05, 0.55, l));
-      c = c * 0.93 + vec3(0.05, 0.045, 0.025);
-      // Paper grain and vignette.
+      c = mix(vec3(l), c, 0.93);
+      c *= vec3(1.035, 1.0, 0.92);
+      c = mix(c * vec3(0.9, 0.97, 1.04), c, smoothstep(0.05, 0.5, l));
+      c = c * 0.95 + vec3(0.035, 0.03, 0.015);
+      // Barely-there grain and a soft vignette.
       float p = texture2D(tPaper, vUv * res / (512.0 * pxScale)).r;
-      c *= 0.95 + 0.1 * p;
+      c *= 0.985 + 0.03 * p;
       float v = length((vUv - 0.5) * vec2(1.0, 0.85));
-      c *= mix(1.0, 0.8, smoothstep(0.35, 0.8, v));
+      c *= mix(1.0, 0.86, smoothstep(0.4, 0.85, v));
       gl_FragColor = vec4(c, 1.0);
     }`,
   depthTest: false, depthWrite: false,
@@ -546,7 +590,7 @@ function resize() {
   renderer.setSize(w, h, false);
   rt.setSize(Math.floor(w * pr), Math.floor(h * pr));
   post.uniforms.res.value.set(Math.floor(w * pr), Math.floor(h * pr));
-  post.uniforms.pxScale.value = Math.max(1, pr * 0.75);
+  post.uniforms.pxScale.value = Math.max(1, pr);
   camera.aspect = w / h;
   camera.updateProjectionMatrix();
 }
@@ -590,6 +634,64 @@ try {
   document.getElementById("loading").textContent = "The course didn't load. Refresh to try again.";
 }
 
+// ---------- Contact shadows under the horses ----------
+const contact = new THREE.InstancedMesh(new THREE.PlaneGeometry(1, 1), new THREE.MeshBasicMaterial({ map: shadowTex, color: "#1a2410", transparent: true, opacity: 0.55, depthWrite: false }), 64);
+contact.frustumCulled = false; contact.count = 0; contact.renderOrder = 1;
+scene.add(contact);
+
+// ---------- Turf kick-back: clods of earth and grass thrown up behind the hooves ----------
+const KICK = { perSecond: 26, maxClods: 1600 };
+const clods = new THREE.InstancedMesh(new THREE.IcosahedronGeometry(1, 0), new THREE.MeshLambertMaterial({ color: "#ffffff" }), KICK.maxClods);
+clods.frustumCulled = false; clods.count = 0; clods.castShadow = false;
+scene.add(clods);
+const CLOD_COLOURS = ["#5a4430", "#6d5238", "#567e36", "#44702e", "#5f8a3c", "#7a9a48"].map((c) => new THREE.Color(c));
+const live = [];
+const kickRnd = seeded(99);
+const _m = new THREE.Matrix4(), _q = new THREE.Quaternion(), _s = new THREE.Vector3(), _p = new THREE.Vector3(), _e = new THREE.Euler();
+function stepKick(dt, field) {
+  // Emit: from the hind and fore hooves, thrown up and back; they leave the horse behind as it gallops on.
+  for (const [x, z, v, , yaw] of field) {
+    if (v < 6) continue;
+    let n = KICK.perSecond * (v / 16) * dt;
+    while (n > 0 && live.length < KICK.maxClods) {
+      if (n < 1 && kickRnd() > n) break;
+      n -= 1;
+      const hind = kickRnd() < 0.7;
+      const lx = hind ? -1.1 + kickRnd() * 0.5 : 0.7 + kickRnd() * 0.4, lz = (kickRnd() - 0.5) * 0.7;
+      const c = Math.cos(yaw), s = Math.sin(yaw);
+      const big = kickRnd() < 0.25;
+      live.push({
+        x: x + lx * c - lz * s, y: 0.05, z: z + lx * s + lz * c,
+        vx: v * (0.25 + kickRnd() * 0.35), vy: 1.0 + kickRnd() * (big ? 1.4 : 2.6), vz: (kickRnd() - 0.5) * 1.6,
+        size: big ? 0.035 + kickRnd() * 0.03 : 0.012 + kickRnd() * 0.02,
+        rot: kickRnd() * 6.28, spin: (kickRnd() - 0.5) * 20, age: 0, landed: -1,
+        col: CLOD_COLOURS[Math.floor(kickRnd() * CLOD_COLOURS.length)],
+      });
+    }
+  }
+  // Fly, fall, land, then settle into the turf.
+  for (let i = live.length - 1; i >= 0; i--) {
+    const c = live[i];
+    c.age += dt;
+    if (c.landed < 0) {
+      c.vy -= 9.8 * dt; c.x += c.vx * dt; c.y += c.vy * dt; c.z += c.vz * dt; c.rot += c.spin * dt;
+      if (c.y <= c.size * 0.5) { c.y = c.size * 0.5; c.landed = c.age; }
+    }
+    if ((c.landed >= 0 && c.age - c.landed > 0.35) || c.age > 3) live.splice(i, 1);
+  }
+}
+function drawKick() {
+  live.forEach((c, i) => {
+    const fade = c.landed >= 0 ? Math.max(0, 1 - (c.age - c.landed) / 0.35) : 1;
+    _p.set(c.x, c.y, c.z); _q.setFromEuler(_e.set(c.rot, c.rot * 0.7, 0)); _s.setScalar(c.size * (0.4 + 0.6 * fade));
+    clods.setMatrixAt(i, _m.compose(_p, _q, _s));
+    clods.setColorAt(i, c.col);
+  });
+  clods.count = live.length;
+  clods.instanceMatrix.needsUpdate = true;
+  if (clods.instanceColor) clods.instanceColor.needsUpdate = true;
+}
+
 function sample(t) {
   const f = t / timeline.dt;
   const i = Math.min(Math.floor(f), timeline.frames.length - 2), k = Math.min(1, f - i);
@@ -599,15 +701,18 @@ function sample(t) {
 // ---------- Loop ----------
 const toRunEl = document.getElementById("toRun"), toRunLabel = document.querySelector(".togo span");
 const clock = new THREE.Clock();
-let framesDrawn = 0, stillFrames = 0;
+let framesDrawn = 0, stillFrames = 0, kickWarm = false;
 function frame() {
   const dt = Math.min(clock.getDelta(), 0.05);
   if (!state.paused) { state.t += dt; if (state.t > 75) { state.t = 0; snap = true; } }
   const now = sample(state.t);
   let leader = -1e9, sum = 0;
   runners.forEach((r, i) => {
-    const [x, z, v, eff] = now[i];
+    const [x, z, v, eff, yaw] = now[i];
     r.obj.position.set(x, 0, z);
+    r.obj.rotation.y = -yaw;
+    _p.set(x - 0.15, 0.04, z); _q.setFromEuler(_e.set(-Math.PI / 2, 0, -yaw, "YXZ")); _s.set(3.0, 1.05, 1);
+    contact.setMatrixAt(i, _m.compose(_p, _q, _s));
     r.effort += (eff - r.effort) * Math.min(1, dt * 2);
     const set = (n, w) => r.actions[n] && r.actions[n].setEffectiveWeight(w);
     const e = r.effort;
@@ -618,6 +723,15 @@ function frame() {
     leader = Math.max(leader, x); sum += x;
   });
   if (!runners.length) leader = 0;
+  contact.count = runners.length; contact.instanceMatrix.needsUpdate = true;
+  if (runners.length) {
+    if (!kickWarm) {                     // jumping into the middle of a race: let the air fill with clods first
+      kickWarm = true;
+      for (let k = 30; k > 0; k--) stepKick(1 / 30, sample(Math.max(0, state.t - k / 30)));
+    }
+    if (!state.paused) stepKick(dt, now);
+    drawKick();
+  }
   const packX = runners.length ? sum / runners.length : 0;
 
   const [pos, look, fov] = cameraTarget(leader, packX);
@@ -642,7 +756,7 @@ function frame() {
   renderer.render(postScene, postCam);
   framesDrawn++;
   // ?still=1 (used for checking screenshots): draw a few frames once loaded, then stop.
-  if (params.has("still") && runners.length && ++stillFrames >= 3) { window.__ready = true; return; }
+  if (params.has("still") && runners.length && texturesPending === 0 && ++stillFrames >= 3) { window.__ready = true; return; }
   requestAnimationFrame(frame);
 }
 requestAnimationFrame(frame);
