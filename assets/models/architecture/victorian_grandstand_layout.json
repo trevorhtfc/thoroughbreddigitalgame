@@ -1,0 +1,34 @@
+{
+  "_about": "Layout of the Victorian grandstand, read by tools/blender/build_grandstand.py. Front elevation of reference/architecture/victorian-grandstand-sheet.png is the master, at realistic sizes (3.5 m storeys, stand about 124 m, clock tower about 28 m). Metres. x runs left to right along the front as seen from the lawn; the front faces the track. Change numbers here and re-run the script.",
+  "storey": 3.5,
+  "podium": 3.0,
+  "bay": 3.5,
+  "colours": {
+    "wall": "#eadcb9",
+    "trim": "#f6f0e1",
+    "podium": "#dccca6",
+    "roof": "#6e7883",
+    "glass": "#2e3c4a",
+    "door": "#3d5a45",
+    "iron": "#f6f0e1",
+    "clock_face": "#fbf8ef",
+    "clock_dark": "#1f2226",
+    "gilt": "#c9a548",
+    "steps": "#d3c6a6"
+  },
+  "segments": [
+    {"name": "porch", "kind": "veranda", "x0": 0.0, "x1": 7.0, "tiers": 1, "depth": 9.0, "setback": 0.0, "roof": "hip"},
+    {"name": "veranda_wing_low", "kind": "veranda", "x0": 7.0, "x1": 14.0, "tiers": 3, "depth": 18.0, "setback": 2.2, "roof": "flat"},
+    {"name": "veranda_wing", "kind": "veranda", "x0": 14.0, "x1": 49.0, "tiers": 4, "depth": 20.0, "setback": 2.2, "roof": "hip", "raised_from": 24.5},
+    {"name": "link", "kind": "veranda", "x0": 49.0, "x1": 56.0, "tiers": 3, "depth": 18.0, "setback": 1.2, "roof": "flat"},
+    {"name": "central_block", "kind": "block", "x0": 56.0, "x1": 77.0, "storeys": 4, "depth": 22.0, "balconies": true, "roof": "flat", "chimney": 66.0},
+    {"name": "clock_tower", "kind": "tower", "x": 79.5, "y": 6.0, "width": 7.0, "base_z": 17.0, "top_z": 24.5},
+    {"name": "ironwork_bay", "kind": "iron", "x0": 77.0, "x1": 91.0, "levels": 3, "depth": 20.0, "roof": "flat"},
+    {"name": "three_storey_block", "kind": "block", "x0": 91.0, "x1": 101.5, "storeys": 3, "depth": 20.0, "balconies": true, "roof": "flat", "roof_room": true},
+    {"name": "pavilion", "kind": "pavilion", "x0": 101.5, "x1": 124.0, "storeys": 2, "storey": 4.6, "depth": 20.0, "pitch_deg": 24}
+  ],
+  "steps": [
+    {"x": 51.5, "width": 4.2, "run": 6.0},
+    {"x": 96.5, "width": 4.2, "run": 6.0}
+  ]
+}

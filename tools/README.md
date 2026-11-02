@@ -88,3 +88,25 @@ python tools/web/glb_to_web.py assets/models/course/course_props.glb race-view/a
 ```
 
 The illustrated finish (painterly smoothing, soft ink outlines where depth jumps, a warm heritage grade, paper grain and vignette) is a single full-screen pass after the 3D render; `race-view/look-test.html` has the web version. Each engine needs its own copy of that pass, but it is short and self-contained.
+
+## Architecture
+
+The cream Victorian grandstand is rebuilt from scripted, snap-together pieces on a 3.5 m bay grid (veranda tier, windowed storey with balcony, ironwork gallery, clock tower, pavilion, steps), following the FRONT elevation of `reference/architecture/victorian-grandstand-sheet.png` at realistic sizes: 3.5 m storeys, a stand of 124 m and a clock tower of about 30 m to the finial. It is chunkier and simpler than the sheet, with the signature features exaggerated: a big clock on all four faces, bold iron lace (full arches, roundels in the spandrels, a roundel frieze and roundel balustrade) and verandas that step back as they rise.
+
+| File | What it is |
+|---|---|
+| `assets/models/architecture/victorian_grandstand_layout.json` | The layout as data: each segment's kind, position along the front, storeys or tiers, depth, setback and roof, the steps, and the colours. Change the numbers and re-run the script. |
+| `assets/models/architecture/victorian_grandstand.glb` | The stand: about 68,000 triangles in 11 meshes, one per material, so 11 draw calls. Origin at ground level in the middle of the front; the front faces +z (glTF). |
+| `assets/models/architecture/victorian_grandstand_crowd_areas.json` | Where spectators can stand: each veranda tier, gallery, balcony and flight of steps, with its floor height. |
+| `assets/models/architecture/crowd_people.glb` | Four simple spectator figures (gent in top hat, gent in hat, two ladies in hats), about 150 triangles each, with clothes, skin and hat materials to tint per instance. |
+| `assets/models/master/victorian_grandstand.blend` | The Blender master. |
+
+| Script | What it does |
+|---|---|
+| `tools/blender/build_grandstand.py` | Builds the stand and the crowd figures from the layout and exports the files above. |
+| `tools/blender/grandstand_look_test.py` | Stills of the stand in the stylised scene: on the near side of the track facing the course, with its crowd along the rail, on the lawn, up the steps and on every balcony, and the field galloping past. |
+
+```
+python -c "exec(open('tools/blender/build_grandstand.py').read())"
+python -c "exec(open('tools/blender/grandstand_look_test.py').read())" renders 32
+```
