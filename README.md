@@ -10,6 +10,8 @@ Home for the Thoroughbred digital games (the quick Thoroughbred Ascot game and t
 | `assets/silks/` | Owners' silks artwork, one image per set of colours. |
 | `assets/portraits/` | Horse head portraits for menus and cards. |
 | `godot-prototype/` | The earlier Godot race scene (Godot 4.7). Kept for reference: its cameras, running-order panel and silks recolouring are being carried across to the web version. |
+| `race-view/` | The web race view. `index.html` is the single-horse gallop test: one horse with a chosen coat and silks galloping down an Ascot straight. `race-view/assets` holds web-sized copies of the silks, the tint mask and the horse model repackaged for the web, so the originals above stay untouched. |
+| `assets/models/tint_masks/` | Masks for the neutral model: coat, points (mane, tail, lower legs) and silks. |
 
 ## Adding files
 

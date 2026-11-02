@@ -1,0 +1,504 @@
+<meta charset="utf-8">
+<title>Gallop Test</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=Barlow:wght@400;500&display=swap">
+<style>
+/* Layout: full-screen 3D scene with a TV-style race graphic top-left and a compact racecard control strip along the bottom. Single look: an afternoon at the races. */
+:root {
+  --turf: #2f5a2b;
+  --ink: #f4f1e8;
+  --ink-dim: #c9cdbd;
+  --panel: rgba(12, 28, 22, 0.82);
+  --panel-line: rgba(244, 241, 232, 0.16);
+  --gold: #d9b45a;
+  --display: "Barlow Condensed", "Arial Narrow", "Helvetica Neue", sans-serif;
+  --body: "Barlow", "Helvetica Neue", Arial, sans-serif;
+  color-scheme: dark;
+}
+[hidden] { display: none !important; }
+html, body { height: 100%; }
+body { background: var(--turf); color: var(--ink); font-family: var(--body); overflow: hidden; }
+#scene { position: fixed; inset: 0; display: block; width: 100%; height: 100%; }
+
+.graphic {
+  position: fixed;
+  top: calc(env(safe-area-inset-top, 0px) + 14px);
+  left: max(16px, env(safe-area-inset-left, 0px));
+  display: flex; align-items: stretch;
+  background: var(--panel); border-left: 4px solid var(--gold);
+  font-family: var(--display); text-transform: uppercase; letter-spacing: 0.04em;
+}
+.graphic div { display: flex; flex-direction: column; justify-content: center; padding: 6px 14px; }
+.graphic div + div { border-left: 1px solid var(--panel-line); }
+.graphic small { font-size: 0.72rem; color: var(--ink-dim); letter-spacing: 0.12em; }
+.graphic strong { font-size: 1.35rem; font-weight: 700; font-variant-numeric: tabular-nums; line-height: 1.05; }
+
+.card {
+  position: fixed; left: 0; right: 0; bottom: 0;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 12px calc(12px + env(safe-area-inset-bottom, 0px));
+  background: var(--panel); border-top: 1px solid var(--panel-line);
+  display: flex; flex-wrap: wrap; gap: 10px 22px; align-items: flex-end;
+}
+.group { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.group.silks { flex: 1 1 320px; }
+.label { font-family: var(--display); font-size: 0.75rem; letter-spacing: 0.14em; text-transform: uppercase; color: var(--ink-dim); }
+.label b { color: var(--ink); font-weight: 600; letter-spacing: 0.06em; }
+.row { display: flex; gap: 6px; }
+.silk-row { overflow-x: auto; padding-bottom: 4px; scrollbar-width: thin; }
+
+button { font: inherit; color: inherit; cursor: pointer; }
+button:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
+.coat {
+  width: 30px; height: 30px; border-radius: 50%; border: 2px solid transparent;
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,0.25);
+}
+.coat[aria-pressed="true"] { border-color: var(--gold); }
+.silk {
+  flex: 0 0 auto; width: 34px; height: 48px; padding: 0; border: 2px solid transparent;
+  background-size: cover; background-position: center;
+}
+.silk[aria-pressed="true"] { border-color: var(--gold); }
+.cam {
+  font-family: var(--display); font-weight: 600; font-size: 0.9rem; letter-spacing: 0.06em; text-transform: uppercase;
+  background: transparent; border: 1px solid var(--panel-line); padding: 6px 10px;
+}
+.cam[aria-pressed="true"] { background: var(--gold); color: #1a1a12; border-color: var(--gold); }
+
+.loading {
+  position: fixed; inset: 0; display: grid; place-items: center;
+  font-family: var(--display); font-size: 1.1rem; letter-spacing: 0.14em; text-transform: uppercase; color: var(--ink);
+  pointer-events: none;
+}
+@media (max-width: 560px) {
+  .graphic strong { font-size: 1.1rem; }
+  .group.silks { flex-basis: 100%; order: -1; }
+}
+</style>
+
+<canvas id="scene"></canvas>
+<div class="loading" id="loading">Loading the horse…</div>
+
+<div class="graphic" aria-live="polite">
+  <div><small>Ascot · Straight</small><strong>5 Furlongs</strong></div>
+  <div><small>To run</small><strong id="toRun">5f</strong></div>
+  <div><small>Speed</small><strong id="mph">0 mph</strong></div>
+</div>
+
+<div class="card">
+  <div class="group">
+    <span class="label">Coat <b id="coatName">Bay</b></span>
+    <div class="row" id="coats"></div>
+  </div>
+  <div class="group silks">
+    <span class="label">Silks <b id="silkName"></b></span>
+    <div class="row silk-row" id="silks"></div>
+  </div>
+  <div class="group">
+    <span class="label">Camera</span>
+    <div class="row" id="cams"></div>
+  </div>
+  <div class="group">
+    <span class="label">Race</span>
+    <div class="row">
+      <button class="cam" id="pause" type="button" aria-pressed="false">Pause</button>
+      <button class="cam" id="restart" type="button">Restart</button>
+    </div>
+  </div>
+</div>
+
+<script type="importmap">
+{ "imports": {
+  "three": "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js",
+  "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/"
+} }
+</script>
+<script type="module">
+import * as THREE from "three";
+import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
+
+// ---------- Data ----------
+// Coats from the Thoroughbred Ascot game: body colour plus points (mane, tail, lower legs).
+const COATS = [
+  { name: "Bay",      body: "#7a4a2a", points: "#1d1714" },
+  { name: "Brown",    body: "#4a2e1c", points: "#17110d" },
+  { name: "Chestnut", body: "#a3552c", points: "#6a3317" },
+  { name: "Black",    body: "#2b2523", points: "#141110" },
+  { name: "Grey",     body: "#a8a6a0", points: "#6d6b66" },
+];
+// Silks artwork; colour is the main jacket colour, used for small silk areas on the jockey outside the jacket.
+const SILKS = [
+  ["alcohol-free", "Alcohol Free", "#4828b8"], ["ballydoyle-orange", "Ballydoyle Orange", "#1848f8"],
+  ["bradsell", "Bradsell", "#f80808"], ["cheveley-park", "Cheveley Park", "#f80808"],
+  ["desert-crown", "Desert Crown", "#1848f8"], ["godolphin", "Godolphin", "#1848f8"],
+  ["judmonte", "Judmonte", "#68f898"], ["liberty-lane", "Liberty Lane", "#e8f828"],
+  ["nashwa", "Nashwa", "#68f898"], ["sea-the-stars", "Sea The Stars", "#e8f828"],
+  ["shadwell", "Shadwell", "#1848f8"], ["starlust", "Starlust", "#f888f8"],
+  ["stradivarius", "Stradivarius", "#181818"], ["swingalong", "Swingalong", "#183858"],
+  ["wantan-2", "Wantan 2", "#e8c848"], ["watnan", "Watnan", "#1848f8"],
+  ["yellow-black-epilite", "Yellow Black Epilite", "#e8f828"],
+].map(([id, name, colour]) => ({ id, name, colour }));
+
+const RACE_M = 1006;          // 5 furlongs
+const FURLONG = 201.17;
+const STRIDE_SPEED = 14.6;    // m/s at which the gallop loop matches the ground at scale 3
+const HORSE_SCALE = 3;
+const CRUISE = 16.6;          // about 37 mph
+
+// ---------- Renderer, scene, light ----------
+const canvas = document.getElementById("scene");
+const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1.05;
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+
+const scene = new THREE.Scene();
+const SKY_HORIZON = new THREE.Color("#cfd8d6");
+scene.fog = new THREE.Fog(SKY_HORIZON, 180, 900);
+
+// Sky dome: soft gradient, warmer near the horizon.
+{
+  const geo = new THREE.SphereGeometry(1500, 32, 16);
+  const mat = new THREE.ShaderMaterial({
+    side: THREE.BackSide, depthWrite: false, fog: false,
+    uniforms: { top: { value: new THREE.Color("#5f88b8") }, horizon: { value: new THREE.Color("#e6dcc4") } },
+    vertexShader: "varying vec3 vP; void main(){ vP = normalize(position); gl_Position = projectionMatrix * modelViewMatrix * vec4(position,1.0); }",
+    fragmentShader: "uniform vec3 top; uniform vec3 horizon; varying vec3 vP; void main(){ float h = clamp(vP.y*2.2, 0.0, 1.0); gl_FragColor = vec4(mix(horizon, top, pow(h,0.7)), 1.0); }",
+  });
+  const sky = new THREE.Mesh(geo, mat);
+  sky.renderOrder = -1;
+  scene.add(sky);
+  scene.userData.sky = sky;
+}
+
+scene.add(new THREE.HemisphereLight("#dfe8f0", "#4a5a35", 1.1));
+const sun = new THREE.DirectionalLight("#fff1d6", 2.6);
+sun.castShadow = true;
+sun.shadow.mapSize.set(2048, 2048);
+Object.assign(sun.shadow.camera, { left: -14, right: 14, top: 14, bottom: -14, near: 1, far: 120 });
+sun.shadow.bias = -0.0004;
+sun.shadow.normalBias = 0.02;
+scene.add(sun, sun.target);
+const SUN_OFFSET = new THREE.Vector3(-25, 45, 30);
+
+// ---------- Track ----------
+const TRACK_W = 26;                 // turf width (z from -13 to 13)
+const TRACK_START = -60, TRACK_END = RACE_M + 160;
+const TRACK_LEN = TRACK_END - TRACK_START;
+
+function turfTexture() {
+  // Mown stripes across the course with a little grain.
+  const c = document.createElement("canvas"); c.width = 256; c.height = 256;
+  const g = c.getContext("2d");
+  g.fillStyle = "#4f7f3a"; g.fillRect(0, 0, 128, 256);
+  g.fillStyle = "#5e9145"; g.fillRect(128, 0, 128, 256);
+  const img = g.getImageData(0, 0, 256, 256);
+  for (let i = 0; i < img.data.length; i += 4) {
+    const n = (Math.random() - 0.5) * 18;
+    img.data[i] += n; img.data[i + 1] += n; img.data[i + 2] += n * 0.6;
+  }
+  g.putImageData(img, 0, 0);
+  const t = new THREE.CanvasTexture(c);
+  t.colorSpace = THREE.SRGBColorSpace;
+  t.wrapS = t.wrapT = THREE.RepeatWrapping;
+  t.anisotropy = renderer.capabilities.getMaxAnisotropy();
+  return t;
+}
+{
+  const tex = turfTexture();
+  tex.repeat.set(TRACK_LEN / 24, 1);          // one light+dark pair every 24 m
+  const turf = new THREE.Mesh(new THREE.PlaneGeometry(TRACK_LEN, TRACK_W), new THREE.MeshStandardMaterial({ map: tex, roughness: 0.95 }));
+  turf.rotation.x = -Math.PI / 2;
+  turf.position.set(TRACK_START + TRACK_LEN / 2, 0, 0);
+  turf.receiveShadow = true;
+  scene.add(turf);
+
+  // Surrounding grass, a little darker and duller.
+  const field = new THREE.Mesh(new THREE.PlaneGeometry(4000, 4000), new THREE.MeshStandardMaterial({ color: "#3d5f2e", roughness: 1 }));
+  field.rotation.x = -Math.PI / 2;
+  field.position.set(RACE_M / 2, -0.02, 0);
+  field.receiveShadow = true;
+  scene.add(field);
+}
+
+// White running rails on both sides: posts plus a rounded top rail.
+{
+  const white = new THREE.MeshStandardMaterial({ color: "#f3f3ee", roughness: 0.5 });
+  const step = 3, count = Math.ceil(TRACK_LEN / step);
+  const postGeo = new THREE.BoxGeometry(0.08, 1.0, 0.08);
+  const posts = new THREE.InstancedMesh(postGeo, white, count * 2);
+  const m = new THREE.Matrix4();
+  let k = 0;
+  for (const z of [-TRACK_W / 2, TRACK_W / 2]) {
+    for (let i = 0; i < count; i++) { m.makeTranslation(TRACK_START + i * step, 0.5, z); posts.setMatrixAt(k++, m); }
+    const rail = new THREE.Mesh(new THREE.CylinderGeometry(0.07, 0.07, TRACK_LEN, 8), white);
+    rail.rotation.z = Math.PI / 2;
+    rail.position.set(TRACK_START + TRACK_LEN / 2, 1.02, z);
+    rail.castShadow = true;
+    scene.add(rail);
+  }
+  posts.castShadow = true;
+  scene.add(posts);
+}
+
+// Furlong markers on the far rail, counting down to the winning post.
+function labelSprite(text, bg, fg) {
+  const c = document.createElement("canvas"); c.width = 128; c.height = 128;
+  const g = c.getContext("2d");
+  g.fillStyle = bg; g.beginPath(); g.arc(64, 64, 60, 0, Math.PI * 2); g.fill();
+  g.fillStyle = fg; g.font = "700 64px 'Barlow Condensed', 'Arial Narrow', sans-serif";
+  g.textAlign = "center"; g.textBaseline = "middle"; g.fillText(text, 64, 68);
+  const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace;
+  const s = new THREE.Sprite(new THREE.SpriteMaterial({ map: t }));
+  s.scale.set(1.1, 1.1, 1);
+  return s;
+}
+{
+  const poleMat = new THREE.MeshStandardMaterial({ color: "#f3f3ee", roughness: 0.5 });
+  for (let f = 4; f >= 1; f--) {
+    const x = RACE_M - f * FURLONG;
+    const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.06, 2.4, 8), poleMat);
+    pole.position.set(x, 1.2, -TRACK_W / 2 - 0.6);
+    pole.castShadow = true;
+    const s = labelSprite(f + "", "#c8322b", "#ffffff");
+    s.position.set(x, 2.8, -TRACK_W / 2 - 0.6);
+    scene.add(pole, s);
+  }
+  // Winning post: a tall post with the round red-and-white disc.
+  const post = new THREE.Mesh(new THREE.CylinderGeometry(0.09, 0.09, 4.2, 10), poleMat);
+  post.position.set(RACE_M, 2.1, TRACK_W / 2 + 0.6);
+  const disc = labelSprite("", "#c8322b", "#fff");
+  disc.scale.set(1.6, 1.6, 1);
+  disc.position.set(RACE_M, 4.6, TRACK_W / 2 + 0.6);
+  const ring = labelSprite("", "#ffffff", "#fff");
+  ring.scale.set(2.0, 2.0, 1);
+  ring.position.set(RACE_M, 4.6, TRACK_W / 2 + 0.62);
+  ring.renderOrder = 0; disc.renderOrder = 1;
+  scene.add(post, ring, disc);
+}
+
+// Grandstand silhouette on the stands side, near the finish, and a tree line beyond the far rail.
+{
+  const stand = new THREE.Group();
+  const body = new THREE.Mesh(new THREE.BoxGeometry(320, 22, 30), new THREE.MeshStandardMaterial({ color: "#c9c3b2", roughness: 0.9 }));
+  body.position.y = 11;
+  const tiers = new THREE.Mesh(new THREE.BoxGeometry(320, 10, 14), new THREE.MeshStandardMaterial({ color: "#3a3f45", roughness: 0.9 }));
+  tiers.position.set(0, 7, -14);
+  const roof = new THREE.Mesh(new THREE.BoxGeometry(330, 1.5, 40), new THREE.MeshStandardMaterial({ color: "#e9e6dc", roughness: 0.7 }));
+  roof.position.set(0, 23, -6);
+  stand.add(body, tiers, roof);
+  stand.position.set(RACE_M - 80, 0, TRACK_W / 2 + 70);
+  scene.add(stand);
+
+  const treeMat = new THREE.MeshStandardMaterial({ color: "#2c4527", roughness: 1 });
+  const trees = new THREE.InstancedMesh(new THREE.SphereGeometry(1, 10, 8), treeMat, 220);
+  trees.frustumCulled = false;
+  const m = new THREE.Matrix4(), q = new THREE.Quaternion(), s = new THREE.Vector3(), p = new THREE.Vector3();
+  for (let i = 0; i < 220; i++) {
+    const r = 10 + Math.random() * 9;
+    s.set(r, r * (0.9 + Math.random() * 0.5), r);
+    p.set(TRACK_START - 400 + i * 10 + Math.random() * 8, r * 0.8, -TRACK_W / 2 - 380 - Math.random() * 80);
+    m.compose(p, q, s); trees.setMatrixAt(i, m);
+  }
+  scene.add(trees);
+}
+
+// ---------- Horse ----------
+const loader = new GLTFLoader();
+const texLoader = new THREE.TextureLoader();
+const silkTextures = new Map();
+function silkTexture(id) {
+  if (!silkTextures.has(id)) {
+    const t = texLoader.load(`assets/silks/${id}.jpg`);
+    t.flipY = false;                       // glTF UV convention
+    t.colorSpace = THREE.SRGBColorSpace;
+    t.anisotropy = 8;
+    silkTextures.set(id, t);
+  }
+  return silkTextures.get(id);
+}
+
+// Tint mask: R = coat, G = points (mane, tail, lower legs), B = silk areas outside the jacket.
+const tint = {
+  mask: { value: null },
+  coatCol: { value: new THREE.Color(COATS[0].body) },
+  pointsCol: { value: new THREE.Color(COATS[0].points) },
+  silkCol: { value: new THREE.Color(SILKS[0].colour) },
+};
+
+function makeTintable(mat) {
+  mat.onBeforeCompile = (shader) => {
+    Object.assign(shader.uniforms, tint);
+    shader.fragmentShader = shader.fragmentShader
+      .replace("#include <common>", "#include <common>\nuniform sampler2D mask; uniform vec3 coatCol; uniform vec3 pointsCol; uniform vec3 silkCol;")
+      .replace("#include <map_fragment>", `#include <map_fragment>
+        {
+          vec3 m = texture2D(mask, vMapUv).rgb;
+          float l = dot(diffuseColor.rgb, vec3(0.2126, 0.7152, 0.0722));   // linear brightness of the neutral texture
+          vec3 coat = coatCol * clamp(l / 0.56, 0.12, 1.6);
+          vec3 pts = pointsCol * mix(0.6, 1.45, smoothstep(0.0, 0.035, l));
+          vec3 silk = silkCol * clamp(l / 0.72, 0.18, 1.3);
+          diffuseColor.rgb = mix(diffuseColor.rgb, coat, m.r);
+          diffuseColor.rgb = mix(diffuseColor.rgb, pts, m.g);
+          diffuseColor.rgb = mix(diffuseColor.rgb, silk, m.b);
+        }`);
+  };
+  mat.customProgramCacheKey = () => "horse-tint";
+  mat.needsUpdate = true;
+}
+
+let horse = null, mixer = null, gallop = null, silksMat = null;
+const state = { x: 0, speed: 0, paused: false, finished: 0, cam: "tv", coat: 0, silk: 5 };
+
+const maskTex = texLoader.load("assets/tint-mask.png");
+maskTex.flipY = false;
+maskTex.colorSpace = THREE.NoColorSpace;
+tint.mask.value = maskTex;
+
+loader.load("assets/model/racehorse.json", (gltf) => {
+  horse = gltf.scene;
+  horse.scale.setScalar(HORSE_SCALE);
+  horse.traverse((o) => {
+    if (!o.isMesh) return;
+    o.castShadow = true;
+    o.frustumCulled = false;               // skinned mesh bounds don't follow the animation
+    if (o.material.name === "silks") {
+      silksMat = o.material;
+      silksMat.roughness = 0.42;
+    } else {
+      makeTintable(o.material);
+    }
+  });
+  scene.add(horse);
+  mixer = new THREE.AnimationMixer(horse);
+  const clip = gltf.animations.find((a) => a.name === "gallop");
+  gallop = mixer.clipAction(clip);
+  gallop.play();
+  applyCoat(state.coat);
+  applySilk(state.silk);
+  document.getElementById("loading").hidden = true;
+}, undefined, () => {
+  document.getElementById("loading").textContent = "The horse model didn't load. Refresh to try again.";
+});
+
+function applyCoat(i) {
+  state.coat = i;
+  tint.coatCol.value.set(COATS[i].body);
+  tint.pointsCol.value.set(COATS[i].points);
+  document.getElementById("coatName").textContent = COATS[i].name;
+  document.querySelectorAll(".coat").forEach((b, j) => b.setAttribute("aria-pressed", j === i));
+}
+function applySilk(i) {
+  state.silk = i;
+  const s = SILKS[i];
+  if (silksMat) { silksMat.map = silkTexture(s.id); silksMat.needsUpdate = true; }
+  tint.silkCol.value.set(s.colour);
+  document.getElementById("silkName").textContent = s.name;
+  document.querySelectorAll(".silk").forEach((b, j) => b.setAttribute("aria-pressed", j === i));
+}
+
+// ---------- Controls ----------
+const coatsEl = document.getElementById("coats");
+COATS.forEach((c, i) => {
+  const b = document.createElement("button");
+  b.type = "button"; b.className = "coat"; b.id = "coat-" + i;
+  b.style.background = `radial-gradient(circle at 35% 35%, ${c.body}, ${c.points})`;
+  b.setAttribute("aria-label", c.name + " coat");
+  b.onclick = () => applyCoat(i);
+  coatsEl.append(b);
+});
+const silksEl = document.getElementById("silks");
+SILKS.forEach((s, i) => {
+  const b = document.createElement("button");
+  b.type = "button"; b.className = "silk"; b.id = "silk-" + s.id;
+  b.style.backgroundImage = `url(assets/silks-thumbs/${s.id}.jpg)`;
+  b.setAttribute("aria-label", s.name + " silks");
+  b.onclick = () => applySilk(i);
+  silksEl.append(b);
+});
+const CAMS = [["tv", "TV"], ["side", "Alongside"], ["head", "Head-on"], ["behind", "Behind"]];
+const camsEl = document.getElementById("cams");
+CAMS.forEach(([id, name]) => {
+  const b = document.createElement("button");
+  b.type = "button"; b.className = "cam"; b.id = "cam-" + id; b.textContent = name;
+  b.onclick = () => setCam(id);
+  camsEl.append(b);
+});
+function setCam(id) {
+  state.cam = id; snapCam = true;
+  document.querySelectorAll("#cams .cam").forEach((b) => b.setAttribute("aria-pressed", b.id === "cam-" + id));
+}
+document.getElementById("pause").onclick = (e) => {
+  state.paused = !state.paused;
+  e.currentTarget.setAttribute("aria-pressed", state.paused);
+  e.currentTarget.textContent = state.paused ? "Resume" : "Pause";
+};
+document.getElementById("restart").onclick = () => restart();
+function restart() { state.x = 0; state.speed = 0; state.finished = 0; snapCam = true; }
+
+// ---------- Camera ----------
+const camera = new THREE.PerspectiveCamera(30, 1, 0.2, 2000);
+const focus = new THREE.Vector3();
+let snapCam = true;
+function camTarget(x) {
+  // Returns [camera position, look-at point, field of view] for the current shot.
+  switch (state.cam) {
+    case "side":   return [new THREE.Vector3(x - 6.5, 2.8, 7.5), new THREE.Vector3(x + 1.2, 1.5, 0), 50];
+    case "head":   return [new THREE.Vector3(x + 28, 2.2, 0.5), new THREE.Vector3(x, 1.4, 0), 24];
+    case "behind": return [new THREE.Vector3(x - 14, 4.2, 0), new THREE.Vector3(x + 4, 1.4, 0), 42];
+    default:       return [new THREE.Vector3(x - 3, 4.5, TRACK_W / 2 + 32), new THREE.Vector3(x + 1.5, 1.3, 0), 11];
+  }
+}
+setCam("tv");
+
+function resize() {
+  const w = window.innerWidth, h = window.innerHeight;
+  renderer.setSize(w, h, false);
+  camera.aspect = w / h;
+  camera.updateProjectionMatrix();
+}
+window.addEventListener("resize", resize);
+resize();
+
+// ---------- Loop ----------
+const toRunEl = document.getElementById("toRun"), mphEl = document.getElementById("mph");
+const clock = new THREE.Clock();
+function frame() {
+  const dt = Math.min(clock.getDelta(), 0.05);
+  if (horse && !state.paused) {
+    const past = state.x > RACE_M;
+    const target = past ? 5 : CRUISE + (state.x > RACE_M - 2 * FURLONG ? 1.2 : 0);   // quickens in the last 2f, eases after the post
+    const accel = state.speed < 8 ? 6 : 3;
+    state.speed += Math.sign(target - state.speed) * Math.min(Math.abs(target - state.speed), accel * dt);
+    state.x += state.speed * dt;
+    if (past) { state.finished += dt; if (state.finished > 6) restart(); }
+    horse.position.set(state.x, 0, 0);
+    gallop.timeScale = THREE.MathUtils.clamp(state.speed / STRIDE_SPEED, 0.25, 1.4);
+    mixer.update(dt);
+  }
+  if (horse) {
+    const [pos, look, fov] = camTarget(state.x);
+    const k = snapCam ? 1 : 1 - Math.exp(-dt * 4);
+    camera.position.lerp(pos, k);
+    focus.lerp(look, k);
+    camera.fov += (fov - camera.fov) * k;
+    camera.updateProjectionMatrix();
+    camera.lookAt(focus);
+    snapCam = false;
+    sun.position.copy(horse.position).add(SUN_OFFSET);
+    sun.target.position.copy(horse.position);
+    scene.userData.sky.position.copy(camera.position);
+
+    const left = Math.max(0, RACE_M - state.x) / FURLONG;
+    toRunEl.textContent = left <= 0 ? "Past the post" : left < 1 ? Math.round(left * 220) + " yds" : left.toFixed(1).replace(/\.0$/, "") + "f";
+    mphEl.textContent = Math.round(state.speed * 2.237) + " mph";
+  }
+  renderer.render(scene, camera);
+  requestAnimationFrame(frame);
+}
+requestAnimationFrame(frame);
+</script>
