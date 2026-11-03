@@ -80,7 +80,33 @@
     -4.8,
     -1.4
    ],
-   "density": 0.22,
+   "density": 0.85,
+   "group": "carn"
+  },
+  {
+   "note": "far rail by the terraces before the post",
+   "x": [
+    -100,
+    -20
+   ],
+   "z": [
+    -4.8,
+    -1.6
+   ],
+   "density": 0.6,
+   "group": "carn"
+  },
+  {
+   "note": "milling between the seating stands and the counters",
+   "x": [
+    110,
+    610
+   ],
+   "z": [
+    -20.5,
+    -13.5
+   ],
+   "density": 0.07,
    "group": "carn"
   },
   {
@@ -93,7 +119,33 @@
     -26.0,
     -22.0
    ],
-   "density": 0.035,
+   "density": 0.14,
+   "group": "carn"
+  },
+  {
+   "note": "in front of the marquees and big tops",
+   "x": [
+    -20,
+    615
+   ],
+   "z": [
+    -30.0,
+    -27.0
+   ],
+   "density": 0.12,
+   "group": "carn"
+  },
+  {
+   "note": "round the counters by the bend",
+   "x": [
+    -80,
+    -15
+   ],
+   "z": [
+    -38,
+    -27
+   ],
+   "density": 0.06,
    "group": "carn"
   },
   {
@@ -106,7 +158,7 @@
     36,
     60
    ],
-   "density": 0.03,
+   "density": 0.06,
    "group": "east2"
   }
  ],

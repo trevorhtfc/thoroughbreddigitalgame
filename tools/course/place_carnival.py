@@ -154,10 +154,14 @@ dot("IJJKLLM", 415, 680, EAST_BANDS, "east2_dots", "out", 4.0)
 dot("UUV", 415, 680, EAST_BANDS, "east2_flags", "out", 4.0)
 
 # ---- crowds round the new pieces (the old figures) ----
-DRESS["crowds"] += [
-    {"note": "far rail in front of the carnival's seating stands", "x": [110, 470], "z": [-4.8, -1.4], "density": 0.22, "group": "carn"},
-    {"note": "along the carnival path", "x": [-40, 620], "z": [-26.0, -22.0], "density": 0.035, "group": "carn"},
-    {"note": "east of the stand, among the new pieces", "x": [415, 670], "z": [36, 60], "density": 0.03, "group": "east2"},
+DRESS["crowds"] += [      # thickened 3 Nov after the owner: "the crowd is a bit thin, especially on the carnival side"
+    {"note": "far rail in front of the carnival's seating stands", "x": [110, 470], "z": [-4.8, -1.4], "density": 0.85, "group": "carn"},
+    {"note": "far rail by the terraces before the post", "x": [-100, -20], "z": [-4.8, -1.6], "density": 0.6, "group": "carn"},
+    {"note": "milling between the seating stands and the counters", "x": [110, 610], "z": [-20.5, -13.5], "density": 0.07, "group": "carn"},
+    {"note": "along the carnival path", "x": [-40, 620], "z": [-26.0, -22.0], "density": 0.14, "group": "carn"},
+    {"note": "in front of the marquees and big tops", "x": [-20, 615], "z": [-30.0, -27.0], "density": 0.12, "group": "carn"},
+    {"note": "round the counters by the bend", "x": [-80, -15], "z": [-38, -27], "density": 0.06, "group": "carn"},
+    {"note": "east of the stand, among the new pieces", "x": [415, 670], "z": [36, 60], "density": 0.06, "group": "east2"},
 ]
 DRESS["groups"].update({
     "carn_front": "carnival front row: seating stands 6 m behind the far rail, facing the track (owner's sketch 1)",
