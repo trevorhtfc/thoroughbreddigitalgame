@@ -106,6 +106,32 @@ button:focus-visible { outline: 2px solid var(--cream-edge); outline-offset: 2px
   <div class="group"><button id="pause" type="button" aria-pressed="false">Pause</button><button id="restart" type="button">Restart</button><button id="hideBar" type="button" aria-label="Hide the controls">Hide</button></div>
 </div>
 
+<script>
+// If the page can't start (an older browser, a blocked download), say so on screen instead of hanging, with
+// what to pass on. The module code below clears window.__started when it runs.
+(function () {
+  const show = (msg) => {
+    const el = document.getElementById("loading");
+    if (!el || el.hidden) return;
+    el.style.pointerEvents = "auto"; el.style.font = "500 15px/1.5 Jost, Helvetica, Arial, sans-serif";
+    el.style.letterSpacing = "0"; el.style.textAlign = "center"; el.style.padding = "0 24px";
+    el.textContent = msg + " Browser: " + navigator.userAgent;
+  };
+  window.addEventListener("error", (e) => {
+    if (e.target && e.target !== window && e.target.tagName !== "SCRIPT") return;        // an image or font: not fatal
+    if (e.target && e.target.src && e.target.src.includes("es-module-shims")) return;     // the shim itself is optional
+    show("The course didn't start: " + (e.message || "a script failed to load") + ".");
+  }, true);
+  window.addEventListener("unhandledrejection", (e) => show("The course didn't start: " + ((e.reason && e.reason.message) || e.reason) + "."));
+  setTimeout(() => {
+    if (window.__started) return;
+    const maps = typeof HTMLScriptElement !== "undefined" && HTMLScriptElement.supports && HTMLScriptElement.supports("importmap");
+    show(maps ? "The course is taking a long time to start. If nothing changes, send Claude a screenshot." : "This browser is too old for the 3D race view (it can't load the 3D library). Updating Safari, or using Chrome, will fix it.");
+  }, 20000);
+})();
+</script>
+<!-- import maps for older Safari (before 16.4): a standard shim that does nothing where they're supported -->
+<script async src="https://cdn.jsdelivr.net/npm/es-module-shims@1.10.0/dist/es-module-shims.js"></script>
 <script type="importmap">
 { "imports": {
   "three": "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js",
@@ -121,6 +147,7 @@ import { RoomEnvironment } from "three/addons/environments/RoomEnvironment.js";
 import { mergeGeometries, mergeVertices } from "three/addons/utils/BufferGeometryUtils.js";
 import { SimplifyModifier } from "three/addons/modifiers/SimplifyModifier.js";
 
+window.__started = true;
 const params = new URLSearchParams(location.search);
 
 // ---------- Data (all engine-neutral files) ----------
