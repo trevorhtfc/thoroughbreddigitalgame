@@ -193,18 +193,33 @@
    ]
   },
   {
-   "note": "behind the carnival's back row (owner's sketch 1: trees as a backdrop)",
+   "note": "right behind the carnival's back row (owner: trees just behind the final row)",
    "area": [
     -60,
-    -56,
+    -50,
     640,
-    -92
+    -60
+   ],
+   "spacing": 9,
+   "skip": 0.08,
+   "scale": [
+    1.1,
+    1.55
+   ]
+  },
+  {
+   "note": "behind those, thinning into the infield",
+   "area": [
+    -60,
+    -60,
+    640,
+    -90
    ],
    "spacing": 13,
-   "skip": 0.2,
+   "skip": 0.25,
    "scale": [
     1.05,
-    1.55
+    1.5
    ]
   },
   {

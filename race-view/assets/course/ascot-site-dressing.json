@@ -80,7 +80,20 @@
     -5.6,
     -1.4
    ],
-   "density": 1.1,
+   "density": 1.6,
+   "group": "carn"
+  },
+  {
+   "note": "far rail on east of the seating stands",
+   "x": [
+    470,
+    615
+   ],
+   "z": [
+    -5.6,
+    -1.4
+   ],
+   "density": 1.4,
    "group": "carn"
   },
   {
@@ -146,19 +159,6 @@
     -26.5
    ],
    "density": 0.4,
-   "group": "carn"
-  },
-  {
-   "note": "among and behind the marquees and big tops",
-   "x": [
-    -20,
-    615
-   ],
-   "z": [
-    -50.0,
-    -31.0
-   ],
-   "density": 0.12,
    "group": "carn"
   },
   {
