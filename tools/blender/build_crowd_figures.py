@@ -23,7 +23,7 @@ exec(open(os.path.join(REPO, "tools/blender/kit.py")).read())
 PARTS = ["jacket", "trousers", "shirt", "accent", "dress", "skin", "hair", "shoes", "hat", "hatband", "prop"]
 
 
-def rod(k, mat, p0, p1, r0, r1=None, segs=7):
+def rod(k, mat, p0, p1, r0, r1=None, segs=10):
     p0, p1 = Vector(p0), Vector(p1)
     d = p1 - p0
     m = Matrix.Translation((p0 + p1) / 2) @ d.to_track_quat("Z", "Y").to_matrix().to_4x4()
@@ -31,7 +31,7 @@ def rod(k, mat, p0, p1, r0, r1=None, segs=7):
     k._smooth(g["verts"])
 
 
-def oval(k, mat, z0, z1, r0, r1, depth=0.72, segs=10):
+def oval(k, mat, z0, z1, r0, r1, depth=0.72, segs=16):
     """A body section: an upright tapered cylinder, flattened front to back."""
     k.push(Matrix.Diagonal((1, depth, 1, 1)))
     k.cyl(mat, 0, 0, z0, z1, r0, r1, segs)
@@ -58,7 +58,9 @@ def arms(k, lady, right, left, sleeve):
         sh = (side * sx, 0, sz)
         el = (side * ex * s, ey, ez * (0.95 if lady else 1))
         ha = (side * hx * s, hy, hz * (0.95 if lady else 1))
-        rod(k, sleeve, sh, el, 0.055 if lady else 0.065, 0.05 if lady else 0.058)
+        k.sphere(sleeve, *sh, 0.07 if lady else 0.082, 2)                     # rounded shoulder
+        rod(k, sleeve, sh, el, 0.058 if lady else 0.068, 0.05 if lady else 0.058)
+        k.sphere(sleeve if not lady else "skin", *el, 0.05 if lady else 0.058, 1)   # elbow
         rod(k, sleeve if not lady else "skin", el, ha, 0.048 if lady else 0.055, 0.04 if lady else 0.048)
         k.sphere("skin", *ha, 0.042 if lady else 0.048, 1)
         if pose == "prog":
@@ -79,6 +81,8 @@ def head(k, lady, hair="short", beard=False, z=1.62):
     k.sphere("skin", 0, 0, 0, r, 2)
     k.pop()
     k.sphere("skin", 0, -r * 0.98, z - 0.01, 0.018, 1)                       # nose
+    for sx in (-1, 1):
+        k.sphere("shoes", sx * r * 0.36, -r * 0.88, z + 0.018, 0.012, 1)       # eyes
     for sx in (-1, 1):
         k.sphere("skin", sx * r * 0.88, 0.0, z, 0.022, 1)                    # ears
     if hair == "short":
@@ -124,7 +128,10 @@ def hat(k, kind, z):
 def gent(k, pose=("down", "down"), hatk="top", waistcoat=True, beard=False, build=1.0):
     k.push(Matrix.Diagonal((build, build, 1, 1)))
     for sx in (-1, 1):
-        k.box("shoes", sx * 0.1 - 0.05, sx * 0.1 + 0.05, -0.17, 0.06, 0, 0.07)
+        k.push(Matrix.Translation((sx * 0.1, -0.05, 0.04)) @ Matrix.Diagonal((0.055, 0.12, 0.045, 1)))
+        k.sphere("shoes", 0, 0, 0, 1.0, 1)
+        k.pop()
+        k.sphere("trousers", sx * 0.105, 0, 0.86, 0.085, 1)                     # hip
         rod(k, "trousers", (sx * 0.1, 0, 0.06), (sx * 0.105, 0, 0.86), 0.068, 0.085)
     oval(k, "trousers", 0.78, 0.9, 0.17, 0.18)                                # seat
     oval(k, "jacket", 0.72, 1.06, 0.205, 0.19)                                # jacket skirt
@@ -133,8 +140,8 @@ def gent(k, pose=("down", "down"), hatk="top", waistcoat=True, beard=False, buil
     k.sphere("jacket", 0, 0, 0, 0.235, 2)                                     # shoulders
     k.pop()
     # the jacket's open front: waistcoat (or shirt) in a V, white shirt and tie at the top
-    k.prism_y("accent" if waistcoat else "shirt", -0.142, -0.13, [(-0.085, 1.41), (0.085, 1.41), (0.02, 1.02), (-0.02, 1.02)])
-    k.prism_y("shirt", -0.15, -0.14, [(-0.055, 1.41), (0.055, 1.41), (0, 1.25)])
+    k.prism_y("accent" if waistcoat else "shirt", -0.142, -0.13, [(-0.055, 1.41), (0.055, 1.41), (0.012, 1.08), (-0.012, 1.08)])
+    k.prism_y("shirt", -0.15, -0.14, [(-0.04, 1.41), (0.04, 1.41), (0, 1.28)])
     k.box("hatband" if not waistcoat else "trousers", -0.016, 0.016, -0.158, -0.148, 1.27, 1.4)   # tie
     arms(k, False, pose[0], pose[1], "jacket")
     k.pop()
@@ -145,7 +152,9 @@ def gent(k, pose=("down", "down"), hatk="top", waistcoat=True, beard=False, buil
 def lady(k, pose=("down", "bag"), hatk="wide", hair="bun", build=1.0):
     k.push(Matrix.Diagonal((build, build, 1, 1)))
     for sx in (-1, 1):
-        k.box("shoes", sx * 0.07 - 0.04, sx * 0.07 + 0.04, -0.13, 0.05, 0, 0.06)
+        k.push(Matrix.Translation((sx * 0.07, -0.04, 0.035)) @ Matrix.Diagonal((0.045, 0.1, 0.038, 1)))
+        k.sphere("shoes", 0, 0, 0, 1.0, 1)
+        k.pop()
         rod(k, "skin", (sx * 0.07, 0, 0.05), (sx * 0.075, 0, 0.5), 0.045, 0.055)
     k.push(Matrix.Diagonal((1, 0.8, 1, 1)))
     k.cyl("dress", 0, 0, 0.4, 1.0, 0.3, 0.13, 16)                              # skirt
