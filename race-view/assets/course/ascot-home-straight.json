@@ -26,8 +26,12 @@
   "start": 0,
   "winningPost": {
     "at": 1006,
-    "side": "near",
-    "model": "winning_post"
+    "side": "far",
+    "model": "finish_line",
+    "file": "assets/models/architecture/finish_line.glb",
+    "railFrom": -15.2,
+    "railTo": 14.8,
+    "note": "The finish-line assembly stands on the far side, opposite the grandstand, with the post on the rail line and its red loop on the winning line. It brings its own 30 m of running rail (railFrom..railTo, metres either side of the post), so the course rail stops there."
   },
   "furlongPoles": {
     "side": "far",
@@ -152,8 +156,8 @@
       "follow": "leader",
       "offset": [
         -6,
-        5,
-        52
+        12,
+        46
       ],
       "look": [
         -3,
@@ -161,6 +165,22 @@
         0
       ],
       "fov": 15
+    },
+    {
+      "id": "stands",
+      "label": "Grandstand",
+      "follow": "leader",
+      "offset": [
+        -30,
+        13,
+        -40
+      ],
+      "look": [
+        16,
+        7,
+        40
+      ],
+      "fov": 38
     },
     {
       "id": "head",
@@ -183,7 +203,7 @@
       "label": "At the post",
       "fixed": [
         1006,
-        5,
+        7.5,
         30
       ],
       "look": [
@@ -197,12 +217,16 @@
   ],
   "director": [
     {
-      "until": 700,
+      "until": 640,
       "camera": "aerial"
     },
     {
-      "until": 900,
+      "until": 840,
       "camera": "head"
+    },
+    {
+      "until": 955,
+      "camera": "stands"
     },
     {
       "until": 1006,
@@ -254,11 +278,11 @@
     {
       "model": "victorian_grandstand",
       "file": "assets/models/architecture/victorian_grandstand.glb",
-      "x": 980,
+      "x": 1023.5,
       "z": 52,
       "faces": "course",
       "dressing": "courses/ascot-site-dressing.json",
-      "note": "Middle of the stand's front at ground level. x is a first guess (the stand just before the winning post); move it to taste."
+      "note": "Middle of the stand's front at ground level. Placed so the clock tower (17.5 m from the middle) stands directly opposite the winning post."
     }
   ]
 }

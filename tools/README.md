@@ -135,3 +135,11 @@ python -c "exec(open('tools/blender/site_props_catalogue.py').read())" site_prop
 
 `tools/blender/grandstand_look_test.py` places the pieces from the dressing file and renders two more shots: `far_side` (from the stand's balcony across the course) and `site_aerial`.
 
+### Finish line
+
+`tools/blender/build_finish_line.py` builds the finish-line assembly from `reference/architecture/finish-line-sheet.png` into `assets/models/architecture/finish_line.glb` (about 14,000 triangles): 30 m of running rail at 1.05 m, box hedges with boards standing in them, the lit race-time board, the winning post with its red loop and diamond plate, two planters, and a bracket clock on a lamp post. Its origin is the foot of the post on the rail line; the red loop stands across the course, on the winning line. `courses/ascot-home-straight.json` → `winningPost` puts it on the far side, opposite the grandstand (`side: "far"`), and says how much of the course rail it replaces (`railFrom`, `railTo`). The grandstand is placed so its clock tower is directly opposite the post.
+
+## In the web race view
+
+`race-view/look-test.html` builds the same world from the same files: the grandstand, the site components from the dressing file, the finish line opposite, and the crowd. Static pieces are merged into one mesh per material (about 40 draw calls for all the architecture). The crowd is instanced, one draw call per figure part, tinted from `crowd_palette.json`, and thinned by the quality setting (all on High, half on Medium, a quarter on Low). The diagnostics panel has switches for Buildings and Crowd. Web copies of the models and data are in `race-view/assets/architecture/` (made with `tools/web/glb_to_web.py`).
+

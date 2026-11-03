@@ -110,6 +110,7 @@ import * as THREE from "three";
 import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 import * as SkeletonUtils from "three/addons/utils/SkeletonUtils.js";
 import { RoomEnvironment } from "three/addons/environments/RoomEnvironment.js";
+import { mergeGeometries } from "three/addons/utils/BufferGeometryUtils.js";
 
 const params = new URLSearchParams(location.search);
 
@@ -138,7 +139,7 @@ const POST = COURSE.winningPost.at;
 const canvas = document.getElementById("scene");
 const renderer = new THREE.WebGLRenderer({ canvas, antialias: false, powerPreference: "high-performance", preserveDrawingBuffer: params.has("still") });
 renderer.info.autoReset = false;
-const LAYERS = { horses: [], trees: [], rails: [], kick: [] };   // for the diagnostics panel
+const LAYERS = { horses: [], trees: [], rails: [], kick: [], buildings: [], crowd: [] };   // for the diagnostics panel
 renderer.shadowMap.enabled = true;
 
 // Quality presets. Most of the cost is filling pixels: a Retina Mac at full resolution draws four
@@ -146,9 +147,9 @@ renderer.shadowMap.enabled = true;
 // high-resolution screens (High elsewhere) and steps down by itself if the frame rate drops.
 const DPR = window.devicePixelRatio || 1;
 const QUALITY = {
-  high:   { label: "High",   scale: Math.min(DPR, 2),    samples: 4, shadow: 4096, soft: true,  kick: 1,    edges: true, shadowEvery: 1 },
-  medium: { label: "Medium", scale: Math.min(DPR, 1.25), samples: 2, shadow: 2048, soft: false, kick: 0.6,  edges: true, shadowEvery: 1 },
-  low:    { label: "Low",    scale: Math.min(DPR, 1),    samples: 0, shadow: 1024, soft: false, kick: 0.35, edges: false, shadowEvery: 2 },
+  high:   { label: "High",   scale: Math.min(DPR, 2),    samples: 4, shadow: 4096, soft: true,  kick: 1,    edges: true, shadowEvery: 1, crowd: 1 },
+  medium: { label: "Medium", scale: Math.min(DPR, 1.25), samples: 2, shadow: 2048, soft: false, kick: 0.6,  edges: true, shadowEvery: 1, crowd: 0.5 },
+  low:    { label: "Low",    scale: Math.min(DPR, 1),    samples: 0, shadow: 1024, soft: false, kick: 0.35, edges: false, shadowEvery: 2, crowd: 0.25 },
 };
 const ORDER = ["high", "medium", "low"];
 let qMode = params.get("quality") || (() => { try { return localStorage.getItem("tb-quality"); } catch { return null; } })() || "auto";
@@ -399,6 +400,9 @@ function placeProps(gltf) {
   byName(R.model).traverse((o) => { if (o.isMesh) parts.push(o); });
   const count = Math.ceil((X1 - X0) / R.spacing);
   const m = new THREE.Matrix4(), rot = new THREE.Matrix4().makeRotationY(Math.PI);
+  // The finish-line assembly brings its own length of rail: leave a gap for it on its side.
+  const WP = COURSE.winningPost;
+  const gapFrom = WP.railFrom != null ? POST + WP.railFrom - R.spacing : Infinity, gapTo = WP.railTo != null ? POST + WP.railTo : -Infinity;
   for (const side of R.sides) {
     const z = (HALF_W + R.gap) * (side === "near" ? 1 : -1);
     // In 60 m lengths, so the rail out of shot (and outside the shadow area) isn't drawn at all.
@@ -407,12 +411,15 @@ function placeProps(gltf) {
       for (let c0 = 0; c0 < count; c0 += CHUNK) {
         const n = Math.min(CHUNK, count - c0);
         const rails = new THREE.InstancedMesh(part.geometry, part.material, n);
+        let k = 0;
         for (let i = 0; i < n; i++) {
           const x = X0 + (c0 + i) * R.spacing;
+          if (side === WP.side && x > gapFrom && x < gapTo) continue;
           if (side === "near") m.makeTranslation(x, 0, z);
           else m.makeTranslation(x + R.spacing, 0, z).multiply(rot);
-          rails.setMatrixAt(i, m);
+          rails.setMatrixAt(k++, m);
         }
+        rails.count = k;
         rails.computeBoundingSphere();
         rails.castShadow = rails.receiveShadow = true;
         scene.add(rails);
@@ -421,15 +428,171 @@ function placeProps(gltf) {
     }
   }
   const sideZ = (side) => (HALF_W + R.gap + 0.7) * (side === "near" ? 1 : -1);
-  const wp = byName(COURSE.winningPost.model).clone();
-  wp.position.set(POST, 0, sideZ(COURSE.winningPost.side));
-  scene.add(wp);
+  const oldPost = byName(COURSE.winningPost.model);          // the finish-line assembly is placed with the architecture
+  if (oldPost) {
+    const wp = oldPost.clone();
+    wp.position.set(POST, 0, sideZ(COURSE.winningPost.side));
+    scene.add(wp);
+  }
   for (const f of COURSE.furlongPoles.furlongs) {
     const pole = byName(COURSE.furlongPoles.modelPrefix + f).clone();
     pole.position.set(POST - f * FURLONG, 0, sideZ(COURSE.furlongPoles.side));
     scene.add(pole);
   }
 }
+
+// ---------- Architecture: grandstand, site components, finish line, crowd (all from Blender, placed from data) ----------
+const ARCH = "assets/architecture";
+const GSTAND = (COURSE.structures || []).find((s) => s.model === "victorian_grandstand");
+const crowdMeshes = [];
+
+function archMaterial(m) {
+  m.roughness = Math.max(m.roughness ?? 0.85, 0.7);
+  m.metalness = Math.min(m.metalness || 0, 0.25);
+  m.envMapIntensity = 0.7;
+  return m;
+}
+function meshesOf(obj) { const out = []; obj.updateMatrixWorld(true); obj.traverse((o) => { if (o.isMesh) out.push(o); }); return out; }
+
+// Bake many placed copies into one mesh per material: static scenery costs a handful of draw calls.
+function mergeByMaterial(items, name, shadows = true) {
+  const groups = new Map();
+  for (const [mesh, matrix] of items) {
+    const g = mesh.geometry.clone().applyMatrix4(matrix);
+    for (const k of Object.keys(g.attributes)) if (k !== "position" && k !== "normal") g.deleteAttribute(k);
+    const key = mesh.material.name;
+    if (!groups.has(key)) groups.set(key, { mat: mesh.material, geos: [] });
+    groups.get(key).geos.push(g);
+  }
+  for (const { mat, geos } of groups.values()) {
+    const m = new THREE.Mesh(mergeGeometries(geos, false), archMaterial(mat));
+    m.castShadow = shadows; m.receiveShadow = true; m.name = name + ":" + mat.name;
+    scene.add(m);
+    LAYERS.buildings.push(m);
+  }
+}
+
+function placeArchitecture({ stand, site, finish, crowd }, data) {
+  const _m = new THREE.Matrix4(), _r = new THREE.Matrix4();
+  const GX = GSTAND ? GSTAND.x : POST, GZ = GSTAND ? GSTAND.z : HALF_W + 37;
+  // The stand: front (+z in the model) turned to face the course.
+  if (stand) {
+    const root = _m.clone().makeTranslation(GX, 0, GZ).multiply(_r.makeRotationY(Math.PI));
+    mergeByMaterial(meshesOf(stand.scene).map((o) => [o, root.clone().multiply(o.matrixWorld)]), "grandstand");
+  }
+  // Site components round the stand, from the dressing file.
+  const pieceAt = (p) => _m.clone().makeTranslation(GX + p.dx, 0, GZ + p.dz).multiply(new THREE.Matrix4().makeRotationY(Math.PI + (p.turn || 0) * Math.PI / 180));
+  if (site && data.dressing) {
+    const items = [];
+    for (const p of data.dressing.pieces) {
+      const node = site.scene.getObjectByName(p.piece);
+      if (!node) { console.warn("No site piece", p.piece); continue; }
+      const at = pieceAt(p);
+      for (const o of meshesOf(node)) items.push([o, at.clone().multiply(o.matrixWorld)]);
+    }
+    mergeByMaterial(items, "site");
+  }
+  // Finish line: on the far rail, post on the winning line; its front already faces the stands.
+  if (finish) {
+    const WP = COURSE.winningPost;
+    const z = (HALF_W + COURSE.rails.gap) * (WP.side === "near" ? 1 : -1);
+    const at = _m.clone().makeTranslation(POST, 0, z);
+    if (WP.side === "near") at.multiply(_r.makeRotationY(Math.PI));
+    mergeByMaterial(meshesOf(finish.scene).map((o) => [o, at.clone().multiply(o.matrixWorld)]), "finish");
+    scene.traverse((o) => { if (o.name && o.name.startsWith("finish:fl_digit")) { o.material.emissiveIntensity = 1.4; o.castShadow = false; } });
+  }
+  if (crowd && data.palette) buildCrowd(crowd, data, GX, GZ, pieceAt);
+}
+
+// Crowd: four simple figures, instanced (one draw call per figure part), tinted per person.
+// Places people like the Blender look test: packed along the near rail, thinning back to the stand,
+// knots on the lawns, the stand's balconies, seats and floors on the site pieces, and the dressing's crowd areas.
+function buildCrowd(gltf, data, GX, GZ, pieceAt) {
+  const rnd = seeded(21);
+  const pick = (a) => a[Math.floor(rnd() * a.length)];
+  const P = data.palette;
+  const spots = [];
+  const add = (x, y, z, seated = false) => spots.push({ x, y, z, seated });
+  // the lawn between the rail and the stand
+  const nearRail = HALF_W + COURSE.rails.gap;
+  for (let z = nearRail + 1.6; z < GZ - 2; z += 0.7) {
+    const d = z - nearRail;
+    const density = d < 4 ? 0.95 : d < 8.6 ? 0.45 : 0.12;
+    for (let x = GX - 64; x < GX + 64; x += 0.62) if (rnd() < density) add(x + (rnd() - 0.5) * 0.4, 0, z + (rnd() - 0.5) * 0.4);
+  }
+  for (let g = 0; g < 26; g++) {
+    const gx = GX - 60 + rnd() * 120, gz = GZ - 26 + rnd() * 22;
+    const n = 3 + Math.floor(rnd() * 6);
+    for (let k = 0; k < n; k++) add(gx + (rnd() - 0.5) * 2.4, 0, gz + (rnd() - 0.5) * 1.8);
+  }
+  // the stand's balconies, galleries and steps (stand turned 180 degrees: x -> GX - x, y -> GZ + y)
+  for (const a of data.areas || []) {
+    if (a.kind === "lawn_front_line") continue;
+    const rows = a.y1 - a.y0 < 1.4 ? 1 : 2;
+    for (let r = 0; r < rows; r++) {
+      const ly = a.y0 + 0.15 + r * 0.75;
+      for (let x = a.x0; x < a.x1; x += 0.62) {
+        if (rnd() >= (a.kind === "steps" ? 0.35 : r === 0 ? 0.78 : 0.4)) continue;
+        let y = a.z;
+        if (a.kind === "steps") { const run = -a.y0 + 0.3; y = 3.0 * (ly + run) / run; }
+        add(GX - (x + (rnd() - 0.5) * 0.2), y, GZ + ly);
+      }
+    }
+  }
+  // seats and floors on the site pieces
+  const v = new THREE.Vector3();
+  for (const p of data.dressing?.pieces || []) {
+    const sp = data.spots?.[p.piece];
+    if (!sp) continue;
+    const at = pieceAt(p);
+    for (const [kind, fill] of [["seats", 0.62], ["stand", 0.7]]) {
+      for (const [lx, ly, lz] of sp[kind] || []) {
+        if (rnd() >= fill) continue;
+        v.set(lx, lz, -ly).applyMatrix4(at);                 // Blender (x, y, z) -> glTF (x, z, -y)
+        add(v.x, v.y, v.z, kind === "seats");
+      }
+    }
+  }
+  for (const c of data.dressing?.crowds || []) {
+    const n = Math.floor((c.dx[1] - c.dx[0]) * (c.dz[1] - c.dz[0]) * c.density);
+    for (let i = 0; i < n; i++) add(GX + c.dx[0] + rnd() * (c.dx[1] - c.dx[0]), 0, GZ + c.dz[0] + rnd() * (c.dz[1] - c.dz[0]));
+  }
+  // shuffle, so lowering the quality thins the crowd evenly instead of emptying whole areas
+  for (let i = spots.length - 1; i > 0; i--) { const j = Math.floor(rnd() * (i + 1)); [spots[i], spots[j]] = [spots[j], spots[i]]; }
+
+  const figures = ["person_gent_tophat", "person_gent", "person_lady", "person_lady_b"].map((n) => gltf.scene.getObjectByName(n)).filter(Boolean);
+  const byFig = figures.map(() => []);
+  for (const s of spots) byFig[Math.floor(rnd() * figures.length)].push(s);
+  const m = new THREE.Matrix4(), q = new THREE.Quaternion(), sc = new THREE.Vector3(), pos = new THREE.Vector3(), up = new THREE.Vector3(0, 1, 0);
+  const col = new THREE.Color();
+  figures.forEach((fig, fi) => {
+    const list = byFig[fi];
+    const lady = fig.name.includes("lady");
+    const looks = list.map(() => ({
+      clothes: pick(lady ? P.dresses : P.suits), skin: pick(P.skin), hat: pick(lady ? P.hats_lady : P.hats_gent),
+      yaw: (rnd() - 0.5) * 1.2, s: 0.94 + rnd() * 0.12,
+    }));
+    for (const part of meshesOf(fig)) {
+      const key = ["clothes", "skin", "hat"].find((k) => part.material.name.includes(k)) || "clothes";
+      const mat = new THREE.MeshLambertMaterial({ color: "#ffffff" });
+      const inst = new THREE.InstancedMesh(part.geometry, mat, list.length);
+      list.forEach((s, i) => {
+        const L = looks[i];
+        pos.set(s.x, s.y, s.z); q.setFromAxisAngle(up, L.yaw); sc.set(L.s, L.s * (s.seated ? 0.7 : 1), L.s);
+        inst.setMatrixAt(i, m.compose(pos, q, sc));
+        inst.setColorAt(i, col.set(L[key]));
+      });
+      inst.computeBoundingSphere();
+      inst.castShadow = false; inst.receiveShadow = true;
+      inst.userData.total = list.length;
+      scene.add(inst);
+      crowdMeshes.push(inst);
+      LAYERS.crowd.push(inst);
+    }
+  });
+  setCrowdShare(QUALITY[qLevel].crowd);
+}
+function setCrowdShare(share) { for (const c of crowdMeshes) c.count = Math.round(c.userData.total * share); }
 
 // ---------- Horses ----------
 const silkTextures = new Map();
@@ -676,7 +839,7 @@ const gpuName = (() => {
 })();
 diagEl.innerHTML = `<div id="diagText"></div><div class="diag-sw"></div>`;
 const swEl = diagEl.querySelector(".diag-sw");
-for (const [key, label] of [["horses", "Horses"], ["trees", "Trees"], ["rails", "Rails"], ["kick", "Turf kick"], ["shadows", "Shadows"]]) {
+for (const [key, label] of [["horses", "Horses"], ["trees", "Trees"], ["rails", "Rails"], ["buildings", "Buildings"], ["crowd", "Crowd"], ["kick", "Turf kick"], ["shadows", "Shadows"]]) {
   const b = button(swEl, label, () => {
     const on = b.getAttribute("aria-pressed") !== "true";
     b.setAttribute("aria-pressed", on);
@@ -719,6 +882,7 @@ function applyQuality(level) {
   post.defines = Q.edges ? { EDGES: 1 } : {};
   post.needsUpdate = true;
   KICK.share = Q.kick;
+  setCrowdShare(Q.crowd);
   sun.shadow.autoUpdate = true;
   resize();
   perf.reset();
@@ -764,11 +928,23 @@ resize();
 
 // ---------- Load everything ----------
 try {
-  const [props, horse] = await Promise.all([
-    loadModel("assets/course", "course-props").catch((e) => { console.warn("Course furniture missing:", e.message); return null; }),
+  const optional = (p, what) => p.catch((e) => { console.warn(what + " missing:", e.message); return null; });
+  const json = (url) => optional(fetch(url).then((r) => { if (!r.ok) throw new Error(url + " " + r.status); return r.json(); }), url);
+  const [props, horse, stand, site, finish, crowd, dressing, areas, spots, palette] = await Promise.all([
+    optional(loadModel("assets/course", "course-props"), "Course furniture"),
     loadModel("assets/model", "racehorse"),
+    optional(loadModel(ARCH, "victorian_grandstand"), "Grandstand"),
+    optional(loadModel(ARCH, "site_props"), "Site components"),
+    optional(loadModel(ARCH, "finish_line"), "Finish line"),
+    optional(loadModel(ARCH, "crowd_people"), "Crowd"),
+    GSTAND && GSTAND.dressing ? json("assets/course/" + GSTAND.dressing.split("/").pop()) : null,
+    json(ARCH + "/victorian_grandstand_crowd_areas.json"),
+    json(ARCH + "/site_props_spots.json"),
+    json(ARCH + "/crowd_palette.json"),
   ]);
   if (props) placeProps(props);
+  placeArchitecture({ stand, site, finish, crowd },
+    { dressing, areas: areas && areas.areas, spots: spots && spots.pieces, palette });
   const clips = horse.animations.filter((c) => c.name !== "walk");
   for (let i = 0; i < RUNNERS; i++) {
     const obj = SkeletonUtils.clone(horse.scene);

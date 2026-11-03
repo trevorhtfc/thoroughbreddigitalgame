@@ -90,10 +90,8 @@ for x0 in (-62, -78, 104, 120):
 before = set(bpy.data.objects)
 bpy.ops.import_scene.gltf(filepath=os.path.join(ARCH, "crowd_people.glb"))
 figures = [o for o in bpy.data.objects if o not in before and o.type == "MESH"]
-SUITS = ["#2a2c31", "#30353f", "#3b3e44", "#4a4c50", "#2a3140", "#57544f", "#6a665f", "#3d4038"]
-DRESSES = ["#c99aa6", "#9bb4c6", "#ddd2b8", "#a8605a", "#7f9a78", "#cdb46e", "#e6e0d2", "#8e7aa6", "#c98a6c", "#4f6f92", "#2f3440", "#6b4a52"]
-SKIN = ["#efc6a4", "#e2b48e", "#c99572", "#9a6a4a", "#6e4a34"]
-HATS_LADY = ["#e8e2d4", "#232327", "#c99aa6", "#bfa36c", "#9bb4c6", "#6a3038"]
+PAL = json.load(open(os.path.join(ARCH, "crowd_palette.json")))
+SUITS, DRESSES, SKIN, HATS_LADY, HATS_GENT = PAL["suits"], PAL["dresses"], PAL["skin"], PAL["hats_lady"], PAL["hats_gent"]
 
 
 def flat(hexc, rough=0.85):
@@ -118,7 +116,7 @@ for f in figures:
     for v in range(8):
         o = f.copy(); o.data = f.data.copy()
         clothes = RC.choice(DRESSES if lady else SUITS)
-        hat = RC.choice(HATS_LADY) if lady else ("#1c1c20" if RC.random() < 0.8 else "#5a5248")
+        hat = RC.choice(HATS_LADY) if lady else RC.choice(HATS_GENT)
         pick = {"clothes": mat(clothes), "skin": mat(RC.choice(SKIN)), "hat": mat(hat)}
         for i, m in enumerate(list(o.data.materials)):
             o.data.materials[i] = pick[next(k for k in pick if k in m.name)]
@@ -224,13 +222,33 @@ for o in list(bpy.data.objects):                    # keep trees out of the dres
         if (-110 < dx < 112 and -36 < dz < 24) or (-110 < dx < -20 and -122 < dz < -66):
             bpy.data.objects.remove(o, do_unlink=True)
 
+# ---------------- Finish line, opposite the stand (courses/ascot-home-straight.json) ----------------
+COURSE = json.load(open(os.path.join(REPO, "courses/ascot-home-straight.json")))
+WP = COURSE["winningPost"]
+GS = next(s for s in COURSE["structures"] if s["model"] == "victorian_grandstand")
+POST_X = STAND_AT.x + (WP["at"] - GS["x"])          # the winning line, in this scene
+before = set(bpy.data.objects)
+bpy.ops.import_scene.gltf(filepath=os.path.join(REPO, WP["file"]))
+for o in [o for o in bpy.data.objects if o not in before and o.type == "MESH"]:
+    o.location = (POST_X, 15.4, 0)                   # far rail line; its front already faces the stand
+    for m in o.data.materials:
+        key = m.name.replace("fl_", "").split(".")[0]
+        if key in ("trim", "board", "timber"):
+            painted(m)
+        add_haze(m, m.node_tree.nodes, m.node_tree.links)
+for o in list(bpy.data.objects):                     # the assembly brings its own rail
+    if o.name.startswith("rail_module") and o.location.y > 0 and POST_X + WP["railFrom"] - 3 < o.location.x < POST_X + WP["railTo"]:
+        bpy.data.objects.remove(o, do_unlink=True)
+
 # ---------------- Shots ----------------
 GSHOTS = {
-    "stand_wide": ((2, 42, 11), (22, -55, 9), 22),         # from across the course: horses, rail crowd, the whole stand
+    "stand_wide": ((2, 11, 11), (22, -55, 9), 22),         # from over the far side of the course: horses, rail crowd, the whole stand
     "stand_tv": ((40, 24, 3.2), (12, -30, 7.5), 30),        # low, with the field passing in front of the stand
     "stand_34": ((-78, 22, 24), (8, -62, 9), 28),           # three-quarter view of the stand, as on the sheet
     "far_side": ((30, -49, 13.5), (-40, 45, 2), 26),        # from the stand's balcony across the course to the far side
     "site_aerial": ((150, 95, 95), (-5, -40, 0), 24),       # high over the course: the stand and everything round it
+    "finish": ((2.5, -12, 2.6), (2.5, 20, 2.4), 30),       # down the winning line from the stand side: loop, post and boards
+    "finish_wide": ((-30, -30, 14), (6, 16, 2), 30),        # the finish line opposite the stand, with the field
 }
 if os.environ.get("PREVIEW"):
     scene.render.resolution_percentage = 50

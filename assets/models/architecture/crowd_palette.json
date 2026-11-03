@@ -1,0 +1,8 @@
+{
+  "_about": "Colours for the crowd figures (crowd_people.glb), picked at random per person. Muted heritage tones: suits in navy, greys and browns; dresses in dusty pastels; a few bright hats.",
+  "suits": ["#2a2c31", "#30353f", "#3b3e44", "#4a4c50", "#2a3140", "#57544f", "#6a665f", "#3d4038"],
+  "dresses": ["#c99aa6", "#9bb4c6", "#ddd2b8", "#a8605a", "#7f9a78", "#cdb46e", "#e6e0d2", "#8e7aa6", "#c98a6c", "#4f6f92", "#2f3440", "#6b4a52"],
+  "skin": ["#efc6a4", "#e2b48e", "#c99572", "#9a6a4a", "#6e4a34"],
+  "hats_gent": ["#1c1c20", "#1c1c20", "#1c1c20", "#1c1c20", "#5a5248"],
+  "hats_lady": ["#e8e2d4", "#232327", "#c99aa6", "#bfa36c", "#9bb4c6", "#6a3038"]
+}
