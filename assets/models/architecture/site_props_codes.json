@@ -1,0 +1,304 @@
+{
+ "_about": "Letter codes for the site components (assets/models/architecture/site_props.glb), as on reference/architecture/site-components-codes.png. Sizes in metres; footprint in the piece's own glTF axes (x across, z front-back, front facing +z), for drawing plans. Built by tools/blender/site_props_sheet.py.",
+ "codes": {
+  "A": {
+   "piece": "marquee_peaks",
+   "name": "Three-peak marquee",
+   "width": 24.8,
+   "depth": 8.8,
+   "height": 7.8,
+   "footprint": {
+    "x0": -12.38,
+    "x1": 12.38,
+    "z0": -4.38,
+    "z1": 4.38
+   }
+  },
+  "B": {
+   "piece": "marquee_clearspan",
+   "name": "Glazed clearspan marquee",
+   "width": 20.5,
+   "depth": 9.6,
+   "height": 4.4,
+   "footprint": {
+    "x0": -10.25,
+    "x1": 10.25,
+    "z0": -4.8,
+    "z1": 4.8
+   }
+  },
+  "C": {
+   "piece": "big_top",
+   "name": "Big top",
+   "width": 19.0,
+   "depth": 19.0,
+   "height": 11.2,
+   "footprint": {
+    "x0": -9.48,
+    "x1": 9.48,
+    "z0": -9.48,
+    "z1": 9.48
+   }
+  },
+  "D": {
+   "piece": "pagoda_counter",
+   "name": "Pagoda counter",
+   "width": 4.7,
+   "depth": 4.7,
+   "height": 5.6,
+   "footprint": {
+    "x0": -2.33,
+    "x1": 2.33,
+    "z0": -2.33,
+    "z1": 2.33
+   }
+  },
+  "E": {
+   "piece": "stand_open",
+   "name": "Open seating stand",
+   "width": 15.6,
+   "depth": 5.6,
+   "height": 4.0,
+   "footprint": {
+    "x0": -7.81,
+    "x1": 7.81,
+    "z0": -2.61,
+    "z1": 3.01
+   }
+  },
+  "F": {
+   "piece": "stand_covered",
+   "name": "Covered seating stand",
+   "width": 12.3,
+   "depth": 6.1,
+   "height": 5.1,
+   "footprint": {
+    "x0": -6.76,
+    "x1": 5.55,
+    "z0": -2.45,
+    "z1": 3.66
+   }
+  },
+  "G": {
+   "piece": "terrace_deck",
+   "name": "Terrace deck, parasols",
+   "width": 10.2,
+   "depth": 8.4,
+   "height": 3.3,
+   "footprint": {
+    "x0": -5.08,
+    "x1": 5.08,
+    "z0": -3.58,
+    "z1": 4.86
+   }
+  },
+  "H": {
+   "piece": "viewing_tower",
+   "name": "Viewing tower",
+   "width": 5.9,
+   "depth": 8.3,
+   "height": 7.4,
+   "footprint": {
+    "x0": -2.6,
+    "x1": 3.35,
+    "z0": -5.7,
+    "z1": 2.6
+   }
+  },
+  "I": {
+   "piece": "kiosk_awning",
+   "name": "Kiosk with awning",
+   "width": 4.7,
+   "depth": 3.9,
+   "height": 3.5,
+   "footprint": {
+    "x0": -2.35,
+    "x1": 2.35,
+    "z0": -1.45,
+    "z1": 2.43
+   }
+  },
+  "J": {
+   "piece": "booth_hut",
+   "name": "Booth hut",
+   "width": 3.3,
+   "depth": 3.0,
+   "height": 3.3,
+   "footprint": {
+    "x0": -1.65,
+    "x1": 1.65,
+    "z0": -1.45,
+    "z1": 1.5
+   }
+  },
+  "K": {
+   "piece": "kiosk_row_arched",
+   "name": "Arched kiosk row",
+   "width": 9.4,
+   "depth": 3.1,
+   "height": 3.7,
+   "footprint": {
+    "x0": -4.72,
+    "x1": 4.72,
+    "z0": -1.55,
+    "z1": 1.6
+   }
+  },
+  "L": {
+   "piece": "pagoda_kiosk",
+   "name": "Pagoda kiosk",
+   "width": 3.5,
+   "depth": 3.5,
+   "height": 6.0,
+   "footprint": {
+    "x0": -1.73,
+    "x1": 1.73,
+    "z0": -1.73,
+    "z1": 1.73
+   }
+  },
+  "M": {
+   "piece": "pergola_picnic",
+   "name": "Pergola, picnic tables",
+   "width": 8.1,
+   "depth": 4.5,
+   "height": 3.0,
+   "footprint": {
+    "x0": -4.05,
+    "x1": 4.05,
+    "z0": -2.25,
+    "z1": 2.25
+   }
+  },
+  "N": {
+   "piece": "picnic_table",
+   "name": "Picnic table",
+   "width": 1.8,
+   "depth": 1.6,
+   "height": 0.8,
+   "footprint": {
+    "x0": -0.9,
+    "x1": 0.9,
+    "z0": -0.78,
+    "z1": 0.78
+   }
+  },
+  "O": {
+   "piece": "planter_long",
+   "name": "Long planter",
+   "width": 1.9,
+   "depth": 0.7,
+   "height": 0.9,
+   "footprint": {
+    "x0": -0.94,
+    "x1": 0.94,
+    "z0": -0.34,
+    "z1": 0.34
+   }
+  },
+  "P": {
+   "piece": "planter_short",
+   "name": "Short planter",
+   "width": 1.1,
+   "depth": 0.7,
+   "height": 0.8,
+   "footprint": {
+    "x0": -0.54,
+    "x1": 0.54,
+    "z0": -0.34,
+    "z1": 0.34
+   }
+  },
+  "Q": {
+   "piece": "fence_picket",
+   "name": "Picket fence (2.5 m)",
+   "width": 2.6,
+   "depth": 0.1,
+   "height": 1.2,
+   "footprint": {
+    "x0": -1.31,
+    "x1": 1.31,
+    "z0": -0.08,
+    "z1": 0.06
+   }
+  },
+  "R": {
+   "piece": "fence_cross",
+   "name": "Cross-rail fence (2.5 m)",
+   "width": 2.7,
+   "depth": 0.2,
+   "height": 1.2,
+   "footprint": {
+    "x0": -1.33,
+    "x1": 1.33,
+    "z0": -0.08,
+    "z1": 0.08
+   }
+  },
+  "S": {
+   "piece": "barrier_rail",
+   "name": "Barrier rail",
+   "width": 3.1,
+   "depth": 0.1,
+   "height": 1.1,
+   "footprint": {
+    "x0": -1.56,
+    "x1": 1.56,
+    "z0": -0.07,
+    "z1": 0.07
+   }
+  },
+  "T": {
+   "piece": "signboard",
+   "name": "Signboard",
+   "width": 3.5,
+   "depth": 0.6,
+   "height": 3.2,
+   "footprint": {
+    "x0": -1.75,
+    "x1": 1.75,
+    "z0": -0.3,
+    "z1": 0.3
+   }
+  },
+  "U": {
+   "piece": "flagpole",
+   "name": "Flagpole",
+   "width": 1.9,
+   "depth": 0.5,
+   "height": 7.2,
+   "footprint": {
+    "x0": -0.25,
+    "x1": 1.65,
+    "z0": -0.25,
+    "z1": 0.25
+   }
+  },
+  "V": {
+   "piece": "banner_flag",
+   "name": "Banner flag",
+   "width": 1.1,
+   "depth": 0.4,
+   "height": 4.5,
+   "footprint": {
+    "x0": -0.2,
+    "x1": 0.85,
+    "z0": -0.2,
+    "z1": 0.2
+   }
+  },
+  "W": {
+   "piece": "signpost",
+   "name": "Signpost",
+   "width": 2.4,
+   "depth": 0.2,
+   "height": 2.8,
+   "footprint": {
+    "x0": -1.19,
+    "x1": 1.19,
+    "z0": -0.1,
+    "z1": 0.1
+   }
+  }
+ }
+}
