@@ -7,8 +7,13 @@ Reads  assets/models/architecture/stand_modules.json       the module catalogue 
        courses/ascot.json                                   where the stand stands (front line)
 Writes assets/models/architecture/stand_modules.glb         one node per module, to snap together in any engine
        assets/models/architecture/ascot_main_stand.glb      Ascot's assembled stand, one mesh per material
+       assets/models/architecture/ascot_main_stand_far.glb  the same stand, light distant version for the web
+                                                            (fine detail drawn simply; same outline and placing)
        assets/models/architecture/ascot_main_stand_crowd_areas.json
        assets/models/master/stand_modules.blend             Blender master
+
+Where a module butts against a neighbour (a "party" end), its end windows are left off, so no dark
+slots show where a taller block stands above a lower one.
 
 Every module is a whole number of 3.5 m bays, sits on the same 3 m podium with 3.5 m storeys and has its
 front on the shared front line, so modules butt together end to end. Runs of the same repeatable module
@@ -90,14 +95,14 @@ def end_pavilion(x0, x1, D, tiers):
     K.cyl("gilt", cx, cy, zc + 3.1, zc + 3.9, 0.04, 0.01, 6)
 
 
-def stair_bay(x0, x1, D):
+def stair_bay(x0, x1, D, party=()):
     """A narrow stair hall between wings, with a broad flight from the lawn in front."""
-    block({"x0": x0, "x1": x1, "storeys": 3, "depth": D})
+    block({"x0": x0, "x1": x1, "storeys": 3, "depth": D, "party": party})
     steps({"x": (x0 + x1) / 2, "width": x1 - x0 - 0.9, "run": MODS["stair_bay"]["frontProjection"]})
 
 
-def grand_pavilion(x0, x1, D):
-    pavilion({"x0": x0, "x1": x1, "storeys": 3, "storey": 4.0, "depth": D, "pitch_deg": 26})
+def grand_pavilion(x0, x1, D, party=()):
+    pavilion({"x0": x0, "x1": x1, "storeys": 3, "storey": 4.0, "depth": D, "pitch_deg": 26, "party": party})
     H = P + 3 * 4.0
     rise = (D / 2 + 0.8) * math.tan(math.radians(26))
     for xc in (x0 + (x1 - x0) * 0.25, x0 + (x1 - x0) * 0.75):           # dormer gables to the front
@@ -111,8 +116,9 @@ VER = {"porch": dict(tiers=1, depth=9.0, setback=0.0, roof="hip"),
        "link": dict(tiers=3, depth=18.0, setback=1.2, roof="flat")}
 
 
-def build_module(name, x0, length):
-    """Build one module (or a run of one repeatable module) with its front-left corner at x0."""
+def build_module(name, x0, length, party=()):
+    """Build one module (or a run of one repeatable module) with its front-left corner at x0.
+    party: which ends ('left', 'right') butt against a neighbour, so their end windows are left off."""
     m = MODS[name]; x1 = x0 + length
     if name in VER:
         veranda(dict(VER[name], x0=x0, x1=x1))
@@ -121,32 +127,34 @@ def build_module(name, x0, length):
     elif name == "end_pavilion":
         end_pavilion(x0, x1 - 1.6, m["depth"], m["tiers"])            # the end gallery fills the last 1.6 m
     elif name == "stair_bay":
-        stair_bay(x0, x1, m["depth"])
+        stair_bay(x0, x1, m["depth"], party)
     elif name == "clock_centre":
-        block({"x0": x0, "x1": x0 + 21.0, "storeys": 4, "depth": 22.0, "balconies": True, "chimney": x0 + 10.0})
+        block({"x0": x0, "x1": x0 + 21.0, "storeys": 4, "depth": 22.0, "balconies": True, "chimney": x0 + 10.0,
+               "party": ("right",) + tuple(p for p in party if p == "left")})
         ironwork({"x0": x0 + 21.0, "x1": x1, "levels": 3, "depth": 20.0})
         tower({"x": x0 + m["towerFromLeft"], "y": 6.0, "width": m["towerWidth"], "base_z": 17.0, "top_z": 24.5})
     elif name == "ironwork_bay":
         ironwork({"x0": x0, "x1": x1, "levels": 3, "depth": m["depth"]})
     elif name == "window_block":
-        block({"x0": x0, "x1": x1, "storeys": 4, "depth": m["depth"]})
+        block({"x0": x0, "x1": x1, "storeys": 4, "depth": m["depth"], "party": party})
     elif name == "three_storey_block":
-        block({"x0": x0, "x1": x1, "storeys": 3, "depth": m["depth"], "roof_room": True})
+        block({"x0": x0, "x1": x1, "storeys": 3, "depth": m["depth"], "roof_room": True, "party": party})
     elif name == "pavilion":
-        pavilion({"x0": x0, "x1": x1, "storeys": 2, "storey": 4.6, "depth": m["depth"], "pitch_deg": 24})
+        pavilion({"x0": x0, "x1": x1, "storeys": 2, "storey": 4.6, "depth": m["depth"], "pitch_deg": 24, "party": party})
     elif name == "grand_pavilion":
-        grand_pavilion(x0, x1, m["depth"])
+        grand_pavilion(x0, x1, m["depth"], party)
     else:
         raise KeyError(name)
 
 
-def build_placed(name, x0, length, mirror):
-    if mirror:
+def build_placed(name, x0, length, mirror, party=()):
+    if mirror:                                  # mirrored: the module's own left end is on the right
+        swap = {"left": "right", "right": "left"}
         K.push(Matrix.Translation((x0 + length, 0, 0)) @ Matrix.Diagonal((-1, 1, 1, 1)))
-        build_module(name, 0.0, length)
+        build_module(name, 0.0, length, tuple(swap[p] for p in party))
         K.pop()
     else:
-        build_module(name, x0, length)
+        build_module(name, x0, length, party)
 
 
 # ------------------------------------------------------------------ 1) the kit: one node per module
@@ -172,34 +180,46 @@ for item in ASM["order"]:
         runs[-1][1] += n
     else:
         runs.append([name, n, mir])
-cum, tower_c = 0.0, None
-for name, n, mir in runs:
-    Lm = MODS[name]["bays"] * BAY * n
-    if name == ASM["anchor"]["module"]:
-        tower_c = cum + MODS[name]["towerFromLeft"]
-    build_placed(name, cum, Lm, mir)
-    cum += Lm
-assert abs(cum - COURSE["grandstand"]["length"]) < 0.01, (cum, COURSE["grandstand"]["length"])
-stand_area(0.3, cum - 0.3, 0.0, 0.0, 0, "lawn_front_line")
+def assemble(far, coll_name, mesh_prefix):
+    """Assemble Ascot's stand from the runs, in world axes, one mesh per material."""
+    global CROWD
+    K.far = far
+    cum, tower_c = 0.0, None
+    for i, (name, n, mir) in enumerate(runs):
+        Lm = MODS[name]["bays"] * BAY * n
+        if name == ASM["anchor"]["module"]:
+            tower_c = cum + MODS[name]["towerFromLeft"]
+        party = tuple(p for p, on in (("left", i > 0), ("right", i < len(runs) - 1)) if on)
+        build_placed(name, cum, Lm, mir, party)
+        cum += Lm
+    assert abs(cum - COURSE["grandstand"]["length"]) < 0.01, (cum, COURSE["grandstand"]["length"])
+    stand_area(0.3, cum - 0.3, 0.0, 0.0, 0, "lawn_front_line")
+    coll = bpy.data.collections.new(coll_name)
+    bpy.context.scene.collection.children.link(coll)
+    # world axes: rotate 180 degrees about z so the front faces north and the left end (as seen from the
+    # track) lies east; then the clock tower's front sits at the origin.
+    TO_WORLD = Matrix.Rotation(math.pi, 4, "Z") @ Matrix.Translation((-tower_c, 0, 0))
+    tris = 0
+    for name, bm in list(K.bms.items()):
+        bmesh.ops.remove_doubles(bm, verts=bm.verts, dist=0.0005)
+        bmesh.ops.transform(bm, matrix=TO_WORLD, verts=bm.verts)
+        bmesh.ops.recalc_face_normals(bm, faces=bm.faces)
+        me = bpy.data.meshes.new(mesh_prefix + name)
+        bm.to_mesh(me); bm.free()
+        me.materials.append(MATS[name])
+        ob = bpy.data.objects.new(mesh_prefix + name, me)
+        coll.objects.link(ob)
+        tris += sum(len(p.vertices) - 2 for p in me.polygons)
+    K.bms = {}
+    K.far = False
+    print("%s: %.1f m, tower %.1f m from the east end, %d triangles, %d meshes" % (coll_name, cum, tower_c, tris, len(coll.objects)), flush=True)
+    return coll, tower_c
 
-stand_coll = bpy.data.collections.new("ascot_main_stand")
-bpy.context.scene.collection.children.link(stand_coll)
-# world axes: rotate 180 degrees about z so the front faces north and the left end (as seen from the
-# track) lies east; then the clock tower's front sits at the origin.
-TO_WORLD = Matrix.Rotation(math.pi, 4, "Z") @ Matrix.Translation((-tower_c, 0, 0))
-tris = 0
-for name, bm in list(K.bms.items()):
-    bmesh.ops.remove_doubles(bm, verts=bm.verts, dist=0.0005)
-    bmesh.ops.transform(bm, matrix=TO_WORLD, verts=bm.verts)
-    bmesh.ops.recalc_face_normals(bm, faces=bm.faces)
-    me = bpy.data.meshes.new("ascot_stand_" + name)
-    bm.to_mesh(me); bm.free()
-    me.materials.append(MATS[name])
-    ob = bpy.data.objects.new("ascot_stand_" + name, me)
-    stand_coll.objects.link(ob)
-    tris += sum(len(p.vertices) - 2 for p in me.polygons)
-K.bms = {}
-print("ascot stand: %.1f m, tower %.1f m from the east end, %d triangles, %d meshes" % (cum, tower_c, tris, len(stand_coll.objects)), flush=True)
+
+# the light distant version first (its crowd areas are dropped), then the full one
+far_coll, _ = assemble(True, "ascot_main_stand_far", "ascot_stand_far_")
+CROWD.clear()
+stand_coll, tower_c = assemble(False, "ascot_main_stand", "ascot_stand_")
 
 # crowd areas in world axes (x east, y up = floor height, z south), relative to the stand's origin
 areas = []
@@ -224,5 +244,6 @@ def export(coll, path):
 
 export(kit_coll, rp("assets/models/architecture/stand_modules.glb"))
 export(stand_coll, rp("assets/models/architecture/ascot_main_stand.glb"))
+export(far_coll, rp("assets/models/architecture/ascot_main_stand_far.glb"))
 os.makedirs(rp("assets/models/master"), exist_ok=True)
 bpy.ops.wm.save_as_mainfile(filepath=rp("assets/models/master/stand_modules.blend"), compress=True)

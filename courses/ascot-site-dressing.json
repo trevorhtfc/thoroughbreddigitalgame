@@ -1,55 +1,61 @@
 {
- "_about": "Where the site components (assets/models/architecture/site_props.glb) stand round the Victorian grandstand at Ascot. Positions are relative to the middle of the grandstand's front at ground level, in the course's axes: dx = along the direction of running, dz = across the course, + away from the track towards the stands side (the track's centre line is at dz -52; near rail -36.6, far rail -67.4). turn = degrees anticlockwise seen from above; 0 = the piece's front faces the course, 180 = it faces back towards the stands from the far side. Edit, add or remove lines to dress the ground; any engine places the same pieces from this file.",
+ "_about": "Where the site components (assets/models/architecture/site_props.glb) stand at Ascot, in WORLD axes as courses/ascot.json: origin = winning post on the inside rail, x east, z south, y up; the home straight runs along z 0 (inside/far rail) to z 30 (outer/near rail) with the horses running towards -x, and the main stand's front is on z 45.4 (stand on the horses' left). turn = degrees anticlockwise seen from above; 0 = the piece's front faces north (towards the track from the stands side), 180 = it faces south (towards the stands from the far side). An engine places each piece at (x, 0, z) turned by 180 + turn degrees about y (the pieces are modelled with their front facing +z). Edit, add or remove lines to dress the ground.",
  "anchor": {
-  "structure": "victorian_grandstand",
-  "note": "In the Blender look test the stand's front is at x 20, y -52 (Blender y = -course z)."
+  "frame": "courses/ascot.json",
+  "note": "Re-placed on 3 Nov 2026 for the full course and the 507 m stand: the old enclosures beside the 124 m stand now stand east of the new stand's end (x 405), the far-side enclosure inside the home straight opposite the stand, flags along the near rail."
+ },
+ "groups": {
+  "hosp": "hospitality enclosure east of the stand",
+  "picnic": "picnic lawn east of the stand",
+  "rail": "flags along the near rail",
+  "far": "far side, inside the home straight (carnival zone), opposite the stand"
  },
  "crowds": [
   {
    "note": "hospitality lawn by the marquee",
-   "dx": [
-    70,
-    108
+   "x": [
+    425,
+    463
    ],
-   "dz": [
-    -27,
-    -6
+   "z": [
+    39.6,
+    60.6
    ],
    "density": 0.08
   },
   {
    "note": "picnic lawn by the glazed marquee",
-   "dx": [
-    -104,
-    -68
+   "x": [
+    475,
+    511
    ],
-   "dz": [
-    -27,
-    -6
+   "z": [
+    39.6,
+    60.6
    ],
    "density": 0.06
   },
   {
    "note": "far rail",
-   "dx": [
-    -104,
-    -40
+   "x": [
+    22.5,
+    86.5
    ],
-   "dz": [
-    -71,
-    -68.5
+   "z": [
+    -3.6,
+    -1.1
    ],
    "density": 0.45
   },
   {
    "note": "round the big top",
-   "dx": [
-    -90,
-    -30
+   "x": [
+    12.5,
+    72.5
    ],
-   "dz": [
-    -104,
-    -96
+   "z": [
+    -36.6,
+    -28.6
    ],
    "density": 0.05
   }
@@ -57,567 +63,661 @@
  "pieces": [
   {
    "piece": "marquee_peaks",
-   "dx": 92,
-   "dz": 2,
-   "turn": 0
+   "x": 447,
+   "z": 68.6,
+   "turn": 0,
+   "group": "hosp"
   },
   {
    "piece": "terrace_deck",
-   "dx": 78,
-   "dz": -14,
-   "turn": 0
+   "x": 433,
+   "z": 52.6,
+   "turn": 0,
+   "group": "hosp"
   },
   {
    "piece": "pagoda_counter",
-   "dx": 69,
-   "dz": -23,
-   "turn": 0
+   "x": 424,
+   "z": 43.6,
+   "turn": 0,
+   "group": "hosp"
   },
   {
    "piece": "fence_picket",
-   "dx": 67.25,
-   "dz": -30,
-   "turn": 0
+   "x": 422.25,
+   "z": 36.6,
+   "turn": 0,
+   "group": "hosp"
   },
   {
    "piece": "fence_picket",
-   "dx": 69.75,
-   "dz": -30,
-   "turn": 0
+   "x": 424.75,
+   "z": 36.6,
+   "turn": 0,
+   "group": "hosp"
   },
   {
    "piece": "fence_picket",
-   "dx": 72.25,
-   "dz": -30,
-   "turn": 0
+   "x": 427.25,
+   "z": 36.6,
+   "turn": 0,
+   "group": "hosp"
   },
   {
    "piece": "fence_picket",
-   "dx": 74.75,
-   "dz": -30,
-   "turn": 0
+   "x": 429.75,
+   "z": 36.6,
+   "turn": 0,
+   "group": "hosp"
   },
   {
    "piece": "fence_picket",
-   "dx": 77.25,
-   "dz": -30,
-   "turn": 0
+   "x": 432.25,
+   "z": 36.6,
+   "turn": 0,
+   "group": "hosp"
   },
   {
    "piece": "fence_picket",
-   "dx": 84.75,
-   "dz": -30,
-   "turn": 0
+   "x": 439.75,
+   "z": 36.6,
+   "turn": 0,
+   "group": "hosp"
   },
   {
    "piece": "fence_picket",
-   "dx": 87.25,
-   "dz": -30,
-   "turn": 0
+   "x": 442.25,
+   "z": 36.6,
+   "turn": 0,
+   "group": "hosp"
   },
   {
    "piece": "fence_picket",
-   "dx": 89.75,
-   "dz": -30,
-   "turn": 0
+   "x": 444.75,
+   "z": 36.6,
+   "turn": 0,
+   "group": "hosp"
   },
   {
    "piece": "fence_picket",
-   "dx": 92.25,
-   "dz": -30,
-   "turn": 0
+   "x": 447.25,
+   "z": 36.6,
+   "turn": 0,
+   "group": "hosp"
   },
   {
    "piece": "fence_picket",
-   "dx": 94.75,
-   "dz": -30,
-   "turn": 0
+   "x": 449.75,
+   "z": 36.6,
+   "turn": 0,
+   "group": "hosp"
   },
   {
    "piece": "fence_picket",
-   "dx": 97.25,
-   "dz": -30,
-   "turn": 0
+   "x": 452.25,
+   "z": 36.6,
+   "turn": 0,
+   "group": "hosp"
   },
   {
    "piece": "fence_picket",
-   "dx": 99.75,
-   "dz": -30,
-   "turn": 0
+   "x": 454.75,
+   "z": 36.6,
+   "turn": 0,
+   "group": "hosp"
   },
   {
    "piece": "fence_picket",
-   "dx": 102.25,
-   "dz": -30,
-   "turn": 0
+   "x": 457.25,
+   "z": 36.6,
+   "turn": 0,
+   "group": "hosp"
   },
   {
    "piece": "fence_picket",
-   "dx": 104.75,
-   "dz": -30,
-   "turn": 0
+   "x": 459.75,
+   "z": 36.6,
+   "turn": 0,
+   "group": "hosp"
   },
   {
    "piece": "barrier_rail",
-   "dx": 67,
-   "dz": -12.5,
-   "turn": 0
+   "x": 422,
+   "z": 54.1,
+   "turn": 0,
+   "group": "hosp"
   },
   {
    "piece": "barrier_rail",
-   "dx": 70.5,
-   "dz": -12.5,
-   "turn": 0
+   "x": 425.5,
+   "z": 54.1,
+   "turn": 0,
+   "group": "hosp"
   },
   {
    "piece": "planter_long",
-   "dx": 66,
-   "dz": -6,
-   "turn": 0
+   "x": 421,
+   "z": 60.6,
+   "turn": 0,
+   "group": "hosp"
   },
   {
    "piece": "planter_long",
-   "dx": 66,
-   "dz": -1,
-   "turn": 0
+   "x": 421,
+   "z": 65.6,
+   "turn": 0,
+   "group": "hosp"
   },
   {
    "piece": "signpost",
-   "dx": 65,
-   "dz": -12,
-   "turn": -30
+   "x": 420,
+   "z": 54.6,
+   "turn": -30,
+   "group": "hosp"
   },
   {
    "piece": "marquee_clearspan",
-   "dx": -90,
-   "dz": 4,
-   "turn": 0
+   "x": 489,
+   "z": 70.6,
+   "turn": 0,
+   "group": "picnic"
   },
   {
    "piece": "pergola_picnic",
-   "dx": -76,
-   "dz": -14,
-   "turn": 0
+   "x": 503,
+   "z": 52.6,
+   "turn": 0,
+   "group": "picnic"
   },
   {
    "piece": "picnic_table",
-   "dx": -86,
-   "dz": -15,
-   "turn": 15
+   "x": 493,
+   "z": 51.6,
+   "turn": 15,
+   "group": "picnic"
   },
   {
    "piece": "picnic_table",
-   "dx": -90,
-   "dz": -19,
-   "turn": 15
+   "x": 489,
+   "z": 47.6,
+   "turn": 15,
+   "group": "picnic"
   },
   {
    "piece": "picnic_table",
-   "dx": -94,
-   "dz": -15,
-   "turn": 15
+   "x": 485,
+   "z": 51.6,
+   "turn": 15,
+   "group": "picnic"
   },
   {
    "piece": "picnic_table",
-   "dx": -84,
-   "dz": -21,
-   "turn": 15
+   "x": 495,
+   "z": 45.6,
+   "turn": 15,
+   "group": "picnic"
   },
   {
    "piece": "kiosk_awning",
-   "dx": -68,
-   "dz": -24,
-   "turn": -90
+   "x": 511,
+   "z": 42.6,
+   "turn": -90,
+   "group": "picnic"
   },
   {
    "piece": "booth_hut",
-   "dx": -68,
-   "dz": -29.5,
-   "turn": -90
+   "x": 511,
+   "z": 37.1,
+   "turn": -90,
+   "group": "picnic"
   },
   {
    "piece": "kiosk_row_arched",
-   "dx": -84,
-   "dz": -31,
-   "turn": 0
+   "x": 495,
+   "z": 35.6,
+   "turn": 0,
+   "group": "picnic"
   },
   {
    "piece": "planter_long",
-   "dx": -66,
-   "dz": -6,
-   "turn": 0
+   "x": 513,
+   "z": 60.6,
+   "turn": 0,
+   "group": "picnic"
   },
   {
    "piece": "planter_long",
-   "dx": -66,
-   "dz": -1,
-   "turn": 0
+   "x": 513,
+   "z": 65.6,
+   "turn": 0,
+   "group": "picnic"
   },
   {
    "piece": "signpost",
-   "dx": -65,
-   "dz": -12,
-   "turn": 30
+   "x": 514,
+   "z": 54.6,
+   "turn": 30,
+   "group": "picnic"
   },
   {
    "piece": "planter_short",
-   "dx": -70,
-   "dz": -11,
-   "turn": 0
+   "x": 509,
+   "z": 55.6,
+   "turn": 0,
+   "group": "picnic"
   },
   {
    "piece": "planter_short",
-   "dx": -82,
-   "dz": -11,
-   "turn": 0
+   "x": 497,
+   "z": 55.6,
+   "turn": 0,
+   "group": "picnic"
   },
   {
    "piece": "banner_flag",
-   "dx": -100,
-   "dz": -35.7,
-   "turn": 0
+   "x": 82.5,
+   "z": 30.9,
+   "turn": 0,
+   "group": "rail"
   },
   {
    "piece": "banner_flag",
-   "dx": -85,
-   "dz": -35.7,
-   "turn": 0
+   "x": 67.5,
+   "z": 30.9,
+   "turn": 0,
+   "group": "rail"
   },
   {
    "piece": "banner_flag",
-   "dx": -70,
-   "dz": -35.7,
-   "turn": 0
+   "x": 52.5,
+   "z": 30.9,
+   "turn": 0,
+   "group": "rail"
   },
   {
    "piece": "banner_flag",
-   "dx": -55,
-   "dz": -35.7,
-   "turn": 0
+   "x": 37.5,
+   "z": 30.9,
+   "turn": 0,
+   "group": "rail"
   },
   {
    "piece": "banner_flag",
-   "dx": -40,
-   "dz": -35.7,
-   "turn": 0
+   "x": 22.5,
+   "z": 30.9,
+   "turn": 0,
+   "group": "rail"
   },
   {
    "piece": "banner_flag",
-   "dx": 5,
-   "dz": -35.7,
-   "turn": 0
+   "x": -22.5,
+   "z": 30.9,
+   "turn": 0,
+   "group": "rail"
   },
   {
    "piece": "banner_flag",
-   "dx": 20,
-   "dz": -35.7,
-   "turn": 0
+   "x": -37.5,
+   "z": 30.9,
+   "turn": 0,
+   "group": "rail"
   },
   {
    "piece": "banner_flag",
-   "dx": 35,
-   "dz": -35.7,
-   "turn": 0
+   "x": -52.5,
+   "z": 30.9,
+   "turn": 0,
+   "group": "rail"
   },
   {
    "piece": "banner_flag",
-   "dx": 50,
-   "dz": -35.7,
-   "turn": 0
+   "x": -67.5,
+   "z": 30.9,
+   "turn": 0,
+   "group": "rail"
   },
   {
    "piece": "banner_flag",
-   "dx": 65,
-   "dz": -35.7,
-   "turn": 0
+   "x": -82.5,
+   "z": 30.9,
+   "turn": 0,
+   "group": "rail"
   },
   {
    "piece": "banner_flag",
-   "dx": 80,
-   "dz": -35.7,
-   "turn": 0
+   "x": -97.5,
+   "z": 30.9,
+   "turn": 0,
+   "group": "rail"
   },
   {
    "piece": "banner_flag",
-   "dx": 95,
-   "dz": -35.7,
-   "turn": 0
+   "x": -112.5,
+   "z": 30.9,
+   "turn": 0,
+   "group": "rail"
   },
   {
    "piece": "banner_flag",
-   "dx": 110,
-   "dz": -35.7,
-   "turn": 0
+   "x": -127.5,
+   "z": 30.9,
+   "turn": 0,
+   "group": "rail"
   },
   {
    "piece": "viewing_tower",
-   "dx": -36,
-   "dz": -73,
-   "turn": 180
+   "x": 18.5,
+   "z": -5.6,
+   "turn": 180,
+   "group": "far"
   },
   {
    "piece": "stand_open",
-   "dx": -60,
-   "dz": -76,
-   "turn": 180
+   "x": 42.5,
+   "z": -8.6,
+   "turn": 180,
+   "group": "far"
   },
   {
    "piece": "stand_covered",
-   "dx": -84,
-   "dz": -76,
-   "turn": 180
+   "x": 66.5,
+   "z": -8.6,
+   "turn": 180,
+   "group": "far"
   },
   {
    "piece": "signboard",
-   "dx": 50,
-   "dz": -70.5,
-   "turn": 180
+   "x": -22.5,
+   "z": -3.1,
+   "turn": 180,
+   "group": "far"
   },
   {
    "piece": "signboard",
-   "dx": 64,
-   "dz": -70.5,
-   "turn": 180
+   "x": -36.5,
+   "z": -3.1,
+   "turn": 180,
+   "group": "far"
   },
   {
    "piece": "signboard",
-   "dx": 78,
-   "dz": -70.5,
-   "turn": 180
+   "x": -50.5,
+   "z": -3.1,
+   "turn": 180,
+   "group": "far"
   },
   {
    "piece": "signboard",
-   "dx": 92,
-   "dz": -70.5,
-   "turn": 180
+   "x": -64.5,
+   "z": -3.1,
+   "turn": 180,
+   "group": "far"
   },
   {
    "piece": "fence_cross",
-   "dx": -98.75,
-   "dz": -83,
-   "turn": 180
+   "x": 81.25,
+   "z": -15.6,
+   "turn": 180,
+   "group": "far"
   },
   {
    "piece": "fence_cross",
-   "dx": -96.25,
-   "dz": -83,
-   "turn": 180
+   "x": 78.75,
+   "z": -15.6,
+   "turn": 180,
+   "group": "far"
   },
   {
    "piece": "fence_cross",
-   "dx": -93.75,
-   "dz": -83,
-   "turn": 180
+   "x": 76.25,
+   "z": -15.6,
+   "turn": 180,
+   "group": "far"
   },
   {
    "piece": "fence_cross",
-   "dx": -91.25,
-   "dz": -83,
-   "turn": 180
+   "x": 73.75,
+   "z": -15.6,
+   "turn": 180,
+   "group": "far"
   },
   {
    "piece": "fence_cross",
-   "dx": -88.75,
-   "dz": -83,
-   "turn": 180
+   "x": 71.25,
+   "z": -15.6,
+   "turn": 180,
+   "group": "far"
   },
   {
    "piece": "fence_cross",
-   "dx": -86.25,
-   "dz": -83,
-   "turn": 180
+   "x": 68.75,
+   "z": -15.6,
+   "turn": 180,
+   "group": "far"
   },
   {
    "piece": "fence_cross",
-   "dx": -83.75,
-   "dz": -83,
-   "turn": 180
+   "x": 66.25,
+   "z": -15.6,
+   "turn": 180,
+   "group": "far"
   },
   {
    "piece": "fence_cross",
-   "dx": -81.25,
-   "dz": -83,
-   "turn": 180
+   "x": 63.75,
+   "z": -15.6,
+   "turn": 180,
+   "group": "far"
   },
   {
    "piece": "fence_cross",
-   "dx": -78.75,
-   "dz": -83,
-   "turn": 180
+   "x": 61.25,
+   "z": -15.6,
+   "turn": 180,
+   "group": "far"
   },
   {
    "piece": "fence_cross",
-   "dx": -76.25,
-   "dz": -83,
-   "turn": 180
+   "x": 58.75,
+   "z": -15.6,
+   "turn": 180,
+   "group": "far"
   },
   {
    "piece": "fence_cross",
-   "dx": -73.75,
-   "dz": -83,
-   "turn": 180
+   "x": 56.25,
+   "z": -15.6,
+   "turn": 180,
+   "group": "far"
   },
   {
    "piece": "fence_cross",
-   "dx": -71.25,
-   "dz": -83,
-   "turn": 180
+   "x": 53.75,
+   "z": -15.6,
+   "turn": 180,
+   "group": "far"
   },
   {
    "piece": "fence_cross",
-   "dx": -68.75,
-   "dz": -83,
-   "turn": 180
+   "x": 51.25,
+   "z": -15.6,
+   "turn": 180,
+   "group": "far"
   },
   {
    "piece": "fence_cross",
-   "dx": -66.25,
-   "dz": -83,
-   "turn": 180
+   "x": 48.75,
+   "z": -15.6,
+   "turn": 180,
+   "group": "far"
   },
   {
    "piece": "fence_cross",
-   "dx": -63.75,
-   "dz": -83,
-   "turn": 180
+   "x": 46.25,
+   "z": -15.6,
+   "turn": 180,
+   "group": "far"
   },
   {
    "piece": "fence_cross",
-   "dx": -61.25,
-   "dz": -83,
-   "turn": 180
+   "x": 43.75,
+   "z": -15.6,
+   "turn": 180,
+   "group": "far"
   },
   {
    "piece": "fence_cross",
-   "dx": -58.75,
-   "dz": -83,
-   "turn": 180
+   "x": 41.25,
+   "z": -15.6,
+   "turn": 180,
+   "group": "far"
   },
   {
    "piece": "fence_cross",
-   "dx": -56.25,
-   "dz": -83,
-   "turn": 180
+   "x": 38.75,
+   "z": -15.6,
+   "turn": 180,
+   "group": "far"
   },
   {
    "piece": "fence_cross",
-   "dx": -53.75,
-   "dz": -83,
-   "turn": 180
+   "x": 36.25,
+   "z": -15.6,
+   "turn": 180,
+   "group": "far"
   },
   {
    "piece": "fence_cross",
-   "dx": -51.25,
-   "dz": -83,
-   "turn": 180
+   "x": 33.75,
+   "z": -15.6,
+   "turn": 180,
+   "group": "far"
   },
   {
    "piece": "fence_cross",
-   "dx": -48.75,
-   "dz": -83,
-   "turn": 180
+   "x": 31.25,
+   "z": -15.6,
+   "turn": 180,
+   "group": "far"
   },
   {
    "piece": "fence_cross",
-   "dx": -46.25,
-   "dz": -83,
-   "turn": 180
+   "x": 28.75,
+   "z": -15.6,
+   "turn": 180,
+   "group": "far"
   },
   {
    "piece": "fence_cross",
-   "dx": -43.75,
-   "dz": -83,
-   "turn": 180
+   "x": 26.25,
+   "z": -15.6,
+   "turn": 180,
+   "group": "far"
   },
   {
    "piece": "fence_cross",
-   "dx": -41.25,
-   "dz": -83,
-   "turn": 180
+   "x": 23.75,
+   "z": -15.6,
+   "turn": 180,
+   "group": "far"
   },
   {
    "piece": "big_top",
-   "dx": -70,
-   "dz": -112,
-   "turn": 180
+   "x": 52.5,
+   "z": -44.6,
+   "turn": 180,
+   "group": "far"
   },
   {
    "piece": "flagpole",
-   "dx": -52,
-   "dz": -94.5,
-   "turn": 180
+   "x": 34.5,
+   "z": -27.1,
+   "turn": 180,
+   "group": "far"
   },
   {
    "piece": "flagpole",
-   "dx": -46,
-   "dz": -94.5,
-   "turn": 180
+   "x": 28.5,
+   "z": -27.1,
+   "turn": 180,
+   "group": "far"
   },
   {
    "piece": "flagpole",
-   "dx": -40,
-   "dz": -94.5,
-   "turn": 180
+   "x": 22.5,
+   "z": -27.1,
+   "turn": 180,
+   "group": "far"
   },
   {
    "piece": "flagpole",
-   "dx": -34,
-   "dz": -94.5,
-   "turn": 180
+   "x": 16.5,
+   "z": -27.1,
+   "turn": 180,
+   "group": "far"
   },
   {
    "piece": "flagpole",
-   "dx": -28,
-   "dz": -94.5,
-   "turn": 180
+   "x": 10.5,
+   "z": -27.1,
+   "turn": 180,
+   "group": "far"
   },
   {
    "piece": "flagpole",
-   "dx": -22,
-   "dz": -94.5,
-   "turn": 180
+   "x": 4.5,
+   "z": -27.1,
+   "turn": 180,
+   "group": "far"
   },
   {
    "piece": "pagoda_kiosk",
-   "dx": -42,
-   "dz": -104,
-   "turn": 180
+   "x": 24.5,
+   "z": -36.6,
+   "turn": 180,
+   "group": "far"
   },
   {
    "piece": "kiosk_awning",
-   "dx": -96,
-   "dz": -104,
-   "turn": 180
+   "x": 78.5,
+   "z": -36.6,
+   "turn": 180,
+   "group": "far"
   },
   {
    "piece": "picnic_table",
-   "dx": -50,
-   "dz": -107,
-   "turn": 0
+   "x": 32.5,
+   "z": -39.6,
+   "turn": 0,
+   "group": "far"
   },
   {
    "piece": "picnic_table",
-   "dx": -46,
-   "dz": -107,
-   "turn": 0
+   "x": 28.5,
+   "z": -39.6,
+   "turn": 0,
+   "group": "far"
   },
   {
    "piece": "picnic_table",
-   "dx": -92,
-   "dz": -107,
-   "turn": 0
+   "x": 74.5,
+   "z": -39.6,
+   "turn": 0,
+   "group": "far"
   },
   {
    "piece": "planter_short",
-   "dx": -58,
-   "dz": -101,
-   "turn": 180
+   "x": 40.5,
+   "z": -33.6,
+   "turn": 180,
+   "group": "far"
   },
   {
    "piece": "planter_short",
-   "dx": -28,
-   "dz": -101,
-   "turn": 180
+   "x": 10.5,
+   "z": -33.6,
+   "turn": 180,
+   "group": "far"
   }
  ]
 }

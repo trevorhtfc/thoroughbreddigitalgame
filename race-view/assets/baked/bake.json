@@ -1,35 +1,40 @@
 {
- "_about": "Baked light for the static world (tools/blender/bake_static_world.py). Each image stores value / scale, sRGB-encoded. Viewer: colour = material colour x light x scale (light maps), or image x scale (ground).",
+ "_about": "Baked light for the static world (tools/blender/bake_static_world.py), world axes as courses/ascot.json. Each image stores value / scale, sRGB-encoded. Viewer: colour = material colour x light x scale (light maps), or image x scale (ground; its area is in world x, z, image top = north). 'outside' and 'turf' are the plain grass and turf colours (linear) to carry on beyond the baked ground.",
  "glb": "static_world.glb",
  "finish": {
   "mesh": "finish",
-  "lightMap": "finish_light.png",
-  "scale": 1.7872
+  "lightMap": "finish_light.jpg",
+  "scale": 1.8139
  },
  "site": {
   "mesh": "site",
-  "lightMap": "site_light.png",
-  "scale": 1.8518
+  "lightMap": "site_light.jpg",
+  "scale": 1.8613
  },
  "stand": {
   "mesh": "stand",
-  "lightMap": "stand_light.png",
-  "scale": 1.726
+  "lightMap": "stand_light.jpg",
+  "scale": 1.643
  },
  "ground": {
   "mesh": "ground",
   "map": "ground.jpg",
-  "scale": 0.7365,
+  "scale": 0.7145,
   "area": {
-   "x0": 586,
-   "x1": 1266,
-   "y0": -110.0,
-   "y1": 150.0
+   "x0": -260.0,
+   "x1": 460.0,
+   "z0": -150.0,
+   "z1": 140.0
   },
   "outside": [
-   0.131,
-   0.3462,
-   0.0628
+   0.1305,
+   0.3424,
+   0.0618
+  ],
+  "turf": [
+   0.0738,
+   0.3405,
+   0.0535
   ]
  }
 }

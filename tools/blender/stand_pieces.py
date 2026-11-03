@@ -102,8 +102,11 @@ def block(seg):
     K.box("trim", x0 - 0.3, x1 + 0.3, -0.3, D + 0.3, H + 0.4, H + 0.6)
     K.balustrade(x0, x1, 0.15, H + 0.6)
     K.balustrade(x0, x1, D - 0.15, H + 0.6)
+    party = seg.get("party", ())          # ends that butt against a neighbour: no end windows there
     for x in (x0, x1):
         K.balustrade(0.15, D - 0.15, x, H + 0.6, axis="y", piers=False)
+        if ("left" if x == x0 else "right") in party:
+            continue
         for k in range(N):                                                       # end windows
             K.box("glass", x - 0.05 if x == x0 else x - 0.02, x + 0.02 if x == x0 else x + 0.05, D / 2 - 0.8, D / 2 + 0.8, P + k * S + 0.6, P + k * S + 2.4)
     if seg.get("chimney"):
@@ -241,7 +244,10 @@ def pavilion(seg):
             K.box("trim", cx - (BAY - 0.7) / 2, cx + (BAY - 0.7) / 2, wf - 0.09, wf, z + St * 0.45, z + St * 0.45 + 0.07)
             K.window(cx, D, z + 0.7, 1.4, 1.9, d=1)
         stand_area(x0 + 0.4, x1 - 0.4, 0.45, wf - 0.2, z, "balcony")
+    party = seg.get("party", ())                                # ends that butt against a neighbour
     for x, d in ((x1, 1), (x0, -1)):                            # end windows
+        if ("right" if d > 0 else "left") in party:
+            continue
         for k in range(N):
             for j in (-1, 0, 1):
                 yc = D / 2 + j * 4.5

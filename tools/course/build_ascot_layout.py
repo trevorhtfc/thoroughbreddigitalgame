@@ -275,6 +275,21 @@ bends = bend_report()
 
 # ---------- write course data ----------
 def r2(P): return [[round(float(a), 2), round(float(b), 2)] for a, b in P]
+
+# ---------- running rails: the edges of the track, 0.4 m out, open at the straight mile's stalls and the chute's start ----------
+RAIL_GAP = 0.4
+rail_area = track.buffer(RAIL_GAP, join_style=2, mitre_limit=3)
+ends = [box(stalls_x + 6, -40, stalls_x + 40, W + 40),
+        Polygon([spur[0] - d * 8 - nl * 8, spur[0] + d * 0.6 - nl * 8, spur[0] + d * 0.6 + nl * (W + 8), spur[0] - d * 8 + nl * (W + 8)])]
+cut = unary_union(ends)
+rail_lines = []
+for ring in [rail_area.exterior] + list(rail_area.interiors):
+    ln = LineString(ring.coords).difference(cut)
+    for part in (ln.geoms if hasattr(ln, "geoms") else [ln]):
+        if part.length > 5:
+            rail_lines.append(r2(np.array(part.simplify(0.15).coords)))
+track_rings = [r2(np.array(track.simplify(0.3).exterior.coords))] + [r2(np.array(h.coords)) for h in track.simplify(0.3).interiors]
+
 SAMPLE = 5
 course = {
     "id": "ascot",
@@ -285,6 +300,10 @@ course = {
     "direction": "clockwise",
     "trackWidth": W,
     "furlong": F,
+    "track": {"surface": track_rings,
+              "note": "The turf as rings in world x, z: the first is the outline, the rest are holes (the infield). Built from the inside rail out to trackWidth, plus the chute and the straight mile."},
+    "rails": {"gap": RAIL_GAP, "lines": rail_lines,
+              "note": "Running rail lines, each a polyline in world x, z, 0.4 m outside the turf's edges (inside and outer rails), open at the straight-mile stalls and the chute's start."},
     "winningPost": {"at": [0, 0], "line": "across the track along x = 0, from the inside rail (z 0) to the outer rail (z %g)" % W},
     "roundCourse": {
         "length": round(float(L_loop), 1),

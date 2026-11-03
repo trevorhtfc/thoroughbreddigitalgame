@@ -35,6 +35,9 @@ class Kit:
     def __init__(self):
         self.bms = {}
         self.stack = [Matrix.Identity(4)]
+        # far = True builds the light distant version: the same outline and colours with the fine
+        # detail (balusters, glazing bars, small iron roundels, round segments) drawn simply.
+        self.far = False
 
     @property
     def M(self):
@@ -63,6 +66,8 @@ class Kit:
         bmesh.ops.create_cube(self.bm(mat), size=1.0, matrix=self.M @ matrix @ Matrix.Diagonal((sx, sy, sz, 1)))
 
     def cyl(self, mat, x, y, z0, z1, r0, r1=None, segs=8, smooth=True):
+        if self.far:
+            segs = min(segs, 6) if max(r0, r1 or r0) > 0.3 else 4
         m = Matrix.Translation((x, y, (z0 + z1) / 2))
         g = bmesh.ops.create_cone(self.bm(mat), cap_ends=True, segments=segs, radius1=r0,
                                   radius2=r0 if r1 is None else r1, depth=z1 - z0, matrix=self.M @ m)
@@ -76,12 +81,18 @@ class Kit:
                               depth=abs(y1 - y0), matrix=self.M @ m)
 
     def sphere(self, mat, x, y, z, r, sub=2, sz=1.0):
+        if self.far:
+            sub = 1 if r > 1.0 else 0 if r < 0.15 else 1
         m = Matrix.Translation((x, y, z)) @ Matrix.Diagonal((1, 1, sz, 1))
         g = bmesh.ops.create_icosphere(self.bm(mat), subdivisions=sub, radius=r, matrix=self.M @ m)
         self._smooth(g["verts"])
 
     def ring_y(self, mat, x, y, z, R, r, segs=12, minor=4):
         """A torus standing upright in the x-z plane (an iron roundel)."""
+        if self.far:
+            if R < 0.15:
+                return                                   # the frieze of little rings reads as a band anyway
+            segs, minor = 8, 3
         bm = self.bm(mat)
         rows = []
         for i in range(segs):
@@ -102,6 +113,8 @@ class Kit:
 
     def arc_band(self, mat, cx, cz, r_in, r_out, a0, a1, y0, y1, n=10):
         """A curved band in the x-z plane between angles a0..a1 (an arch rib)."""
+        if self.far:
+            n = max(3, n // 2)
         bm = self.bm(mat)
         pts = []
         for i in range(n + 1):
@@ -158,6 +171,9 @@ class Kit:
                 self.box(m, b0, b1, a0, a1, z0, z1)
         bx(lo, hi, y - 0.1, y + 0.1, z + h - 0.1, z + h)              # handrail
         bx(lo, hi, y - 0.08, y + 0.08, z, z + 0.12)                  # plinth rail
+        if self.far:                                                 # balusters read as one thin screen
+            bx(lo, hi, y - 0.025, y + 0.025, z + 0.12, z + h - 0.1)
+            return
         n = max(1, int(L / spacing))
         for i in range(1, n):
             a = lo + L * i / n
@@ -171,6 +187,9 @@ class Kit:
         def yy(a, b):
             return (y + d * a, y + d * b)
         self.box(glass, x - w / 2, x + w / 2, *yy(-0.02, 0.05), z0, z0 + h)
+        if self.far:                                                 # one frame box behind the glass
+            self.box("trim", x - w / 2 - 0.12, x + w / 2 + 0.12, *yy(0.01, 0.1), z0 - 0.1, z0 + h + 0.15)
+            return
         self.box("trim", x - w / 2 - 0.12, x + w / 2 + 0.12, *yy(0, 0.12), z0 - 0.1, z0)            # sill
         self.box("trim", x - w / 2 - 0.12, x + w / 2 + 0.12, *yy(0, 0.1), z0 + h, z0 + h + 0.15)    # head
         if panes:
@@ -180,6 +199,9 @@ class Kit:
     def screen(self, x0, x1, y, z0, h, pane=1.15):
         """A full-height glazed screen at the back of an open gallery: reads as dark and open."""
         self.box("glass", x0 + 0.2, x1 - 0.2, y - 0.02, y + 0.05, z0, z0 + h)
+        if self.far:
+            self.box("trim", x0, x1, y - 0.12, y, z0 + h, z0 + h + 0.2)
+            return
         n = max(1, round((x1 - x0 - 0.4) / pane))
         for i in range(n + 1):
             x = x0 + 0.2 + (x1 - x0 - 0.4) * i / n
@@ -189,6 +211,8 @@ class Kit:
 
     def door(self, x, y, z0, w=1.4, h=2.4, d=-1):
         self.box("door", x - w / 2, x + w / 2, y + d * -0.01, y + d * 0.06, z0, z0 + h)
+        if self.far:
+            return
         self.box("trim", x - w / 2 - 0.15, x + w / 2 + 0.15, y, y + d * 0.14, z0 + h, z0 + h + 0.25)
         self.box("trim", x - w / 2 - 0.15, x - w / 2, y, y + d * 0.1, z0, z0 + h)
         self.box("trim", x + w / 2, x + w / 2 + 0.15, y, y + d * 0.1, z0, z0 + h)
