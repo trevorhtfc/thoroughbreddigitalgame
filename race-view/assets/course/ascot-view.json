@@ -172,14 +172,15 @@
   }
  ],
  "clearOf": {
-  "track": 9,
+  "track": 30,
   "stand": [
    -112,
    34,
    412,
    72
   ],
-  "pieces": 9
+  "pieces": 9,
+  "note": "Loose trees stay this far (metres) from every rail, the stand box and each site piece. Track clearance 30 m (was 9) so no tree stands between the tracking car (12 m inside the rail) and the field."
  },
  "treeDetail": {
   "centre": [
@@ -222,7 +223,7 @@
   }
  },
  "raceCameras": {
-  "_about": "Camera plan agreed with the owner, 3 Nov 2026 (reference/cameras/00-owner-camera-markup.jpg and the TV grabs beside it). World axes; heights in metres. 'track': a car on the inside of the inside rail, level with a point 'behind' metres back from the middle of the field ('side' metres inside the rail), filming across the field through the rail. 'fixed': stands at 'at' and pans with the field. Zoom (fov, degrees, min and max) is worked out each frame so every horse is in shot except one or two tailed off, and the leaders never leave it.",
+  "_about": "Camera plan agreed with the owner, 3 Nov 2026 (reference/cameras/00-owner-camera-markup.jpg and the TV grabs beside it). World axes; heights in metres. Owner, 3 Nov: the cameras always run AHEAD of the horses. 'track': a car on the inside of the inside rail ('side' metres in), 'ahead' metres in front of the leader, filming back across the field through the rail. 'rail': the grandstand camera on a rail along the stand (x from rail.x[0] to rail.x[1]), 'ahead' metres in front of the leader, stopping at the winning line (x 0) so the finish is level, square on. 'fixed': stands at 'at' and pans. 'ahead' lists the distances to try, nearest first: the first that fits the field (zoom under 80% of the widest) is used, eased in, so a narrow phone screen gets a camera further ahead. Zoom (fov, degrees, min and max) is worked out each frame so every horse is in shot except one or two tailed off, and the leaders never leave it.",
   "track_loop": {
    "label": "Tracking",
    "kind": "track",
@@ -234,7 +235,15 @@
     45
    ],
    "grab": "grab-01.png",
-   "behind": 12
+   "ahead": [
+    6,
+    12,
+    20,
+    30,
+    45,
+    65,
+    90
+   ]
   },
   "track_straight": {
    "label": "Tracking",
@@ -248,36 +257,56 @@
    ],
    "grab": "grab-02.png",
    "note": "only 5 m inside the rail: the planting belt runs along the straight mile's far side",
-   "behind": 14
+   "ahead": [
+    6,
+    12,
+    20,
+    30,
+    45,
+    65,
+    90
+   ]
   },
   "grandstand": {
    "label": "Grandstand",
-   "kind": "fixed",
-   "at": [
-    300,
-    31,
-    42
-   ],
+   "kind": "rail",
    "fov": [
     2.5,
-    42
+    30
    ],
-   "note": "the box high on the stand: swings with the field round the final bend, then down the straight to the post; in front of the roof edge, high enough to see over the carnival to the final bend",
-   "grab": "grab-03.png .. grab-08.png"
+   "note": "high on the stand in front of the roof edge, on a rail from the winning line (x 0) to the stand's east end: runs ahead of the leader, swings with the field round the final bend, then down the straight, arriving level with the line for the finish",
+   "grab": "grab-03.png .. grab-08.png",
+   "rail": {
+    "x": [
+     0,
+     400
+    ],
+    "y": 31,
+    "z": 42
+   },
+   "ahead": [
+    25,
+    45,
+    70,
+    100,
+    140,
+    190,
+    250
+   ]
   },
   "lookback": {
    "label": "Looking back",
    "kind": "fixed",
    "at": [
-    -95,
-    8,
-    -55
+    -125,
+    12,
+    -45
    ],
    "fov": [
     8,
     50
    ],
-   "note": "inside the bend after the post: the field comes up the straight towards it with the stand behind, then swings away round the bend (long races)",
+   "note": "inside the bend after the post, high enough to see over the terrace decks and parasols by the far rail: the field comes up the straight towards it with the stand behind; used only while it is still ahead of the leader (long races)",
    "grab": "grab-09.png"
   },
   "sideon": {
@@ -301,7 +330,7 @@
   }
  },
  "raceDirector": {
-  "_about": "When the TV director cuts (distance to go of the leader, metres). Round course: the grandstand camera from 'grandstand' metres before each pass of the post; the look-back camera for 'lookback' metres after a pass of the post that isn't the finish; tracking otherwise. Straight mile: tracking until 'grandstand' metres out. After the finish: the side-on replay, slowed to 'replaySpeed', from 'replayFrom' metres before the line to 'replayTo' after it.",
+  "_about": "When the TV director cuts (distance to go of the leader, metres). Round course: the grandstand camera from 'grandstand' metres before each pass of the post; the look-back camera for 'lookback' metres after a pass of the post that isn't the finish; tracking otherwise. Straight mile: tracking until 'grandstand' metres out. After the finish: the side-on replay, slowed to 'replaySpeed', from 'replayFrom' metres before the line to 'replayTo' after it. The look-back camera is used only while it is still ahead of the leader.",
   "round": {
    "grandstand": 800,
    "lookback": 380

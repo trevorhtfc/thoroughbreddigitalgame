@@ -922,8 +922,12 @@ function placeholderTimeline(n, seed) {
         if (dx > 0 && dx < 4.5 && Math.abs(dz) < 1.3 && (!blocker || dx < blocker.x - h.x)) blocker = o;
         if (Math.abs(dx) < 6) { if (dz > 0 && dz < 3) rightCrowd++; if (dz < 0 && dz > -3) leftCrowd++; }
       }
-      let az = (centres[h.group] - h.z) * 0.12;                          // drift towards its group
-      az += Math.sin(t * h.wf + h.wp) * 0.25;                           // a little wander
+      // Round the loop the field strings out along the inside rail, one to three wide; it only fans out
+      // across the track once into the home straight (and on the straight mile it races in groups).
+      const onLoop = RACE.course === "round" && toGo > 700;
+      const target = onLoop ? -limit + 1.2 + h.group * 2.2 : centres[h.group];
+      let az = (target - h.z) * (onLoop ? 0.25 : 0.12);                 // drift towards its group or the rail
+      az += Math.sin(t * h.wf + h.wp) * (onLoop ? 0.08 : 0.25);         // a little wander
       const kicking = toGo < h.kickAt;
       if (blocker && want > blocker.v) {
         if (kicking) az += (leftCrowd <= rightCrowd ? -1 : 1) * 1.6;    // stuck: pull out to pass
@@ -1043,13 +1047,17 @@ const state = {
 if (state.phase === "replay") state.t = REPLAY[0] + (REPLAY[1] - REPLAY[0]) * Number(params.get("rt") || 0);   // ?rt=0..1 for checking
 let snap = true, lastShot = null;
 // The TV director: which camera, from the leader's distance to go (courses/ascot-view.json -> raceDirector).
-function directorShot(d) {
+function aheadOf(eye, u) {                                           // is a point still in front of a horse at u?
+  const r = railAt(DIST - u), [x, z] = toWorld(u, 0);
+  return (eye[0] - x) * r.tx + (eye[2] - z) * r.tz > 8;
+}
+function directorShot(d, leadU) {
   if (state.cam !== "auto" && RCAMS[state.cam] && state.cam !== "sideon") return state.cam;
   if (d < 0) return "grandstand";                                    // past the line: watch them pull up
   if (RACE.course === "straight") return d > DIR_.straight.grandstand ? "track_straight" : "grandstand";
   const L = LOOP.length, q = ((d % L) + L) % L;                       // metres to the next pass of the post
   if (q <= DIR_.round.grandstand || d <= DIR_.round.grandstand) return "grandstand";
-  if (q > L - DIR_.round.lookback && d < DIST - 50) return "lookback";
+  if (q > L - DIR_.round.lookback && d < DIST - 50 && aheadOf(RCAMS.lookback.at, leadU)) return "lookback";
   return "track_loop";
 }
 // Framing (owner, 3 Nov): every horse in shot unless one or two are tailed off; never lose the leaders.
@@ -1067,9 +1075,9 @@ function fitFov(eye, look, pts, [fmin, fmax]) {
     _v.copy(p).sub(eye);
     const z = _v.dot(_f);
     if (z < 2) continue;
-    need = Math.max(need, (Math.abs(_v.dot(_u)) + 1.5) / z, (Math.abs(_v.dot(_r)) + 2.6) / (z * camera.aspect));
+    need = Math.max(need, (Math.abs(_v.dot(_u)) + 1.3) / z, (Math.abs(_v.dot(_r)) + 1.8) / (z * camera.aspect));
   }
-  return THREE.MathUtils.clamp(2 * THREE.MathUtils.radToDeg(Math.atan(need * 1.18)), fmin, fmax);
+  return THREE.MathUtils.clamp(2 * THREE.MathUtils.radToDeg(Math.atan(need * 1.06)), fmin, fmax);
 }
 const EYE = params.get("eye"), AT = params.get("at");          // ?eye=x,y,z&at=x,y,z: a free camera, for checking
 const lerp3 = (a, b, k) => new THREE.Vector3(...a).lerp(new THREE.Vector3(...b), k);
@@ -1088,16 +1096,29 @@ function cameraTarget(now) {
   const pts = fieldInShot(now);
   const lead = pts[0];
   const box = new THREE.Box3().setFromPoints(pts), centre = box.getCenter(new THREE.Vector3());
-  const id = directorShot(DIST - leaderAt(now));
+  const leadU = leaderAt(now);
+  const id = directorShot(DIST - leadU, leadU);
   const c = RCAMS[id];
-  let eye;
-  if (c.kind === "track") {
-    const us = now.map((h) => h[0]).sort((a, b) => b - a).slice(0, pts.length);
-    // level with a point a little behind the middle of the field, so it films across and slightly ahead
-    const [x, z] = toWorld((us[0] + us[us.length - 1]) / 2 - (c.behind || 0), -HALF_W - c.side);
-    eye = new THREE.Vector3(x, c.height, z);
-  } else eye = new THREE.Vector3(...c.at);
-  let look = centre;
+  // Where the camera stands. Tracking cars and the grandstand rail camera always run AHEAD of the leader
+  // (owner, 3 Nov), and go further ahead when the field won't fit, which also suits a narrow phone screen:
+  // from further ahead the field closes up into a shorter string. The rail camera stops at the winning
+  // line, so the finish is level, square on.
+  const eyeAt = (a) => {
+    if (c.kind === "track") { const [x, z] = toWorld(leadU + a, -HALF_W - c.side); return new THREE.Vector3(x, c.height, z); }
+    if (c.kind === "rail") {
+      const [lx] = toWorld(leadU, 0);
+      return new THREE.Vector3(THREE.MathUtils.clamp(lx - a, c.rail.x[0], c.rail.x[1]), c.rail.y, c.rail.z);
+    }
+    return new THREE.Vector3(...c.at);
+  };
+  let eye, look = centre;
+  if (c.ahead) {
+    let want = c.ahead[c.ahead.length - 1];
+    for (const a of c.ahead) if (fitFov(eyeAt(a), centre, pts, c.fov) < c.fov[1] * 0.8) { want = a; break; }
+    if (state.aheadFor !== id || snap) { state.aheadFor = id; state.ahead = want; }
+    state.ahead += (want - state.ahead) * (1 - Math.exp(-(state.dt || 0.016) * 0.7));   // ease, never jump
+    eye = eyeAt(state.ahead);
+  } else eye = eyeAt(0);
   let fov = fitFov(eye, look, pts, c.fov);
   if (fov >= c.fov[1] - 0.01) {                                  // the whole field won't fit: keep the leaders
     look = centre.clone().lerp(lead, 0.45);
@@ -1380,6 +1401,7 @@ function frame() {
   if (runners.length && !params.has("still")) perf.tick(rawDt);
   // phases: before the off -> the race -> the finish again, slowed -> after the race -> round again
   const slow = state.phase === "replay" ? DIR_.replaySpeed : 1;
+  state.dt = dt;
   const step = state.paused ? 0 : dt * slow;
   if (!state.paused) {
     state.pt += dt;
