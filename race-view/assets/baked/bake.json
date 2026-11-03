@@ -4,17 +4,17 @@
  "finish": {
   "mesh": "finish",
   "lightMap": "finish_light.png",
-  "scale": 1.7509
+  "scale": 1.7872
  },
  "site": {
   "mesh": "site",
   "lightMap": "site_light.png",
-  "scale": 1.8506
+  "scale": 1.8518
  },
  "stand": {
   "mesh": "stand",
   "lightMap": "stand_light.png",
-  "scale": 1.7114
+  "scale": 1.726
  },
  "ground": {
   "mesh": "ground",

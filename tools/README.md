@@ -143,3 +143,18 @@ python -c "exec(open('tools/blender/site_props_catalogue.py').read())" site_prop
 
 `race-view/look-test.html` builds the same world from the same files: the grandstand, the site components from the dressing file, the finish line opposite, and the crowd. Static pieces are merged into one mesh per material (about 40 draw calls for all the architecture). The crowd is instanced, one draw call per figure part, tinted from `crowd_palette.json`, and thinned by the quality setting (all on High, half on Medium, a quarter on Low). The diagnostics panel has switches for Buildings and Crowd. Web copies of the models and data are in `race-view/assets/architecture/` (made with `tools/web/glb_to_web.py`).
 
+## Baked lighting and the Final Furlong test
+
+`race-view/final-furlong.html` is a small test of how close a web page can get to the Blender stills: only the last furlong, with
+- Blender's lighting baked into everything that doesn't move (`tools/blender/bake_static_world.py`): Cycles works out the stills' soft sun, sky light, bounce and shadows on the grandstand, site pieces, finish line and ground once, and stores them as light maps (`assets/models/baked/`). The page draws that scenery unlit (material colour × baked light), so it costs nothing to light.
+- the stills' leafy trees (`tools/blender/export_trees.py` → `assets/models/trees/trees.glb`), instanced, with their soft-ball shading and colouring
+- the stills' colour handling (AgX), painted sky, puffy clouds and haze, and the same sun on the horses, jockeys and crowd
+
+```
+python -c "exec(open('tools/blender/bake_static_world.py').read())" 48      # about 25 minutes; KEEP_GROUND=1 skips the ground
+python -c "exec(open('tools/blender/export_trees.py').read())"
+python tools/web/glb_to_web.py assets/models/baked/static_world.glb race-view/assets/baked static_world
+python tools/web/glb_to_web.py assets/models/trees/trees.glb race-view/assets/trees trees
+```
+Re-run the bake whenever the stand, the site pieces, their places or the finish line change.
+
