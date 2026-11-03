@@ -109,9 +109,11 @@ button:focus-visible { outline: 2px solid var(--cream-edge); outline-offset: 2px
 <script type="module">
 import * as THREE from "three";
 import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
+import { MeshoptDecoder } from "three/addons/libs/meshopt_decoder.module.js";
 import * as SkeletonUtils from "three/addons/utils/SkeletonUtils.js";
 import { RoomEnvironment } from "three/addons/environments/RoomEnvironment.js";
-import { mergeGeometries } from "three/addons/utils/BufferGeometryUtils.js";
+import { mergeGeometries, mergeVertices } from "three/addons/utils/BufferGeometryUtils.js";
+import { SimplifyModifier } from "three/addons/modifiers/SimplifyModifier.js";
 
 const params = new URLSearchParams(location.search);
 
@@ -198,6 +200,7 @@ THREE.ShaderChunk.fog_fragment = `#ifdef USE_FOG
       }`,
   });
   const sky = new THREE.Mesh(new THREE.SphereGeometry(2500, 32, 16), mat);
+  sky.renderOrder = -4;                                  // first of all, before the ground layers
   scene.add(sky);
   scene.userData.sky = sky;
   // Puffy clouds over the far side: merged soft balls with flattened undersides.
@@ -271,7 +274,7 @@ const shadowTex = (() => {
 function seeded(seed) { let s = seed >>> 0; return () => ((s = (s * 1664525 + 1013904223) >>> 0) / 4294967296); }
 
 // ---------- Models (glTF, repackaged for the web host) ----------
-const loader = new GLTFLoader();
+const loader = new GLTFLoader().setMeshoptDecoder(MeshoptDecoder);   // the baked scenery is meshopt-compressed
 async function loadModel(dir, name) {
   const text = (f) => fetch(`${dir}/${f}`).then((r) => { if (!r.ok) throw new Error(f + " " + r.status); return r.text(); });
   // Big geometry comes in parts (tools/web/glb_to_web.py notes how many in extras.geometryParts).
@@ -321,13 +324,39 @@ function distToRails(x, z) {
   return best;
 }
 
-// The turf right round the course, for wherever the baked ground stops.
+// The turf right round the course, for wherever the baked ground stops, with the soft mown lanes along the
+// running line (courses/ascot-view.json -> lanes; the ground bake draws the same stripes).
+// The ground layers (plain grass, this turf, the baked ground) lie a few centimetres apart: far off the depth
+// buffer can't tell them apart and they flashed. So the two underneath are drawn first and write no depth,
+// and the baked ground simply paints over them.
+function lanesMaterial(mat) {
+  const L = VIEW.lanes;
+  if (!L) return mat;
+  const lt = texLoader.load("assets/course/" + L.map);
+  lt.flipY = false; lt.colorSpace = THREE.NoColorSpace; lt.minFilter = THREE.LinearFilter; lt.generateMipmaps = false;
+  mat.onBeforeCompile = (sh) => {
+    sh.uniforms.lanesMap = { value: lt };
+    sh.uniforms.lanesArea = { value: new THREE.Vector4(...L.area) };
+    sh.uniforms.lanesK = { value: new THREE.Vector3(L.maxDist, Math.PI * L.lanes / L.width, L.strength) };
+    sh.vertexShader = sh.vertexShader
+      .replace("#include <common>", "#include <common>\nuniform vec4 lanesArea; varying vec2 vLaneUv;")
+      .replace("#include <fog_vertex>", `#include <fog_vertex>
+        { vec4 wp = modelMatrix * vec4(transformed, 1.0); vLaneUv = (wp.xz - lanesArea.xy) / (lanesArea.zw - lanesArea.xy); }`);
+    sh.fragmentShader = sh.fragmentShader
+      .replace("#include <common>", "#include <common>\nuniform sampler2D lanesMap; uniform vec3 lanesK; varying vec2 vLaneUv;")
+      .replace("#include <color_fragment>", `#include <color_fragment>
+        { float d = texture2D(lanesMap, vLaneUv).r * lanesK.x; diffuseColor.rgb *= 1.0 + lanesK.z * cos(lanesK.y * d); }`);
+  };
+  mat.customProgramCacheKey = () => "turf-lanes";
+  return mat;
+}
 function buildTurf(colour) {
   const shape = new THREE.Shape(SURF[0].map(([x, z]) => new THREE.Vector2(x, -z)));
   for (const h of SURF.slice(1)) shape.holes.push(new THREE.Path(h.map(([x, z]) => new THREE.Vector2(x, -z))));
   const g = new THREE.ShapeGeometry(shape).rotateX(-Math.PI / 2);
-  const m = new THREE.Mesh(g, new THREE.MeshBasicMaterial({ color: colour }));
+  const m = new THREE.Mesh(g, lanesMaterial(new THREE.MeshBasicMaterial({ color: colour, depthWrite: false })));
   m.position.y = -0.03;
+  m.renderOrder = -2;
   scene.add(m);
 }
 
@@ -404,40 +433,88 @@ function bakedTex(file) {
   t.flipY = false; t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 8;
   return t;
 }
-function placeBaked(gltf, B) {
+function bakedMaterial(m, info, tex, key) {
+  const name = m.material.name || "";
+  let mat;
+  if (key === "ground") mat = new THREE.MeshBasicMaterial({ map: tex, color: new THREE.Color(info.scale, info.scale, info.scale) });
+  else if (name.includes("digit")) mat = new THREE.MeshBasicMaterial({ color: m.material.color.clone().multiplyScalar(2.2) });
+  else {
+    const col = m.material.color.clone();
+    if (name.endsWith("glass") && VIEW.glass) col.lerp(new THREE.Color(VIEW.glass.reflect), VIEW.glass.amount);   // sky in the glass
+    mat = new THREE.MeshBasicMaterial({ color: col, lightMap: tex, lightMapIntensity: Math.PI * info.scale });
+  }
+  mat.name = name;
+  return mat;
+}
+function placeBaked(gltf, B, dressing) {
   for (const key of ["stand", "site", "finish", "ground"]) {
-    const node = gltf.scene.getObjectByName(B[key].mesh);
-    if (!node) { console.warn("Baked mesh missing:", key); continue; }
     const info = B[key];
+    if (!info || !info.mesh) continue;
+    const node = gltf.scene.getObjectByName(info.mesh);
+    if (!node) { console.warn("Baked mesh missing:", key); continue; }
     const tex = bakedTex(info.lightMap || info.map);
     for (const m of meshesOf(node)) {
-      const name = m.material.name || "";
-      let mat;
-      if (key === "ground") mat = new THREE.MeshBasicMaterial({ map: tex, color: new THREE.Color(info.scale, info.scale, info.scale) });
-      else if (name.includes("digit")) mat = new THREE.MeshBasicMaterial({ color: m.material.color.clone().multiplyScalar(2.2) });
-      else {
-        const col = m.material.color.clone();
-        if (name.endsWith("glass") && VIEW.glass) col.lerp(new THREE.Color(VIEW.glass.reflect), VIEW.glass.amount);   // sky in the glass
-        mat = new THREE.MeshBasicMaterial({ color: col, lightMap: tex, lightMapIntensity: Math.PI * info.scale });
-      }
-      mat.name = name;
-      m.material = mat;
+      m.material = bakedMaterial(m, info, tex, key);
       m.castShadow = false; m.receiveShadow = false;
       if (key !== "ground") LAYERS.buildings.push(m);
     }
     scene.add(node);
   }
-  // Beyond the baked ground: plain grass, and the turf right round the course, in the same light.
+  if (B.site && B.site.kit && dressing) placeSiteKit(gltf, B.site, dressing.pieces);
+  // Beyond the baked ground: plain grass, and the turf right round the course, in the same light
+  // (both drawn first, writing no depth: see buildTurf).
   const o = B.ground.outside, tf = B.ground.turf || [0.12, 0.3, 0.06];
-  const far = new THREE.Mesh(new THREE.PlaneGeometry(9000, 9000), new THREE.MeshBasicMaterial({ color: new THREE.Color(o[0], o[1], o[2]) }));
+  const far = new THREE.Mesh(new THREE.PlaneGeometry(9000, 9000), new THREE.MeshBasicMaterial({ color: new THREE.Color(o[0], o[1], o[2]), depthWrite: false }));
   far.rotation.x = -Math.PI / 2; far.position.set(700, -0.06, -400);
+  far.renderOrder = -3;
   scene.add(far);
   buildTurf(new THREE.Color(tf[0], tf[1], tf[2]));
-  // Live shadows of the field, laid over the baked turf of the home straight.
-  const catcher = new THREE.Mesh(new THREE.PlaneGeometry(420, 34), new THREE.ShadowMaterial({ color: "#1d2c14", opacity: 0.38 }));
+  // Live shadows of the field, laid over the baked turf of the home straight (pulled towards the camera in
+  // depth, so it never flashes against the ground beneath it).
+  const catcher = new THREE.Mesh(new THREE.PlaneGeometry(420, 34), new THREE.ShadowMaterial({ color: "#1d2c14", opacity: 0.38, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -4 }));
   catcher.rotation.x = -Math.PI / 2; catcher.position.set(60, 0.03, MID_Z);
   catcher.receiveShadow = true;
   scene.add(catcher);
+}
+
+// The site components, instanced: the bake made one mesh per piece and quarter turn (bake.json -> site.kit,
+// each in the piece's own axes), so the download holds each piece once however many copies stand round the
+// course. Every copy in courses/ascot-site-dressing.json is drawn from it: one batch per material (one draw
+// each where the browser has WEBGL_multi_draw), and copies out of shot are skipped one by one.
+function placeSiteKit(gltf, info, pieces) {
+  const tex = bakedTex(info.lightMap);
+  const quarter = (t) => (((Math.round(t / 90) % 4) + 4) % 4);
+  const byMat = new Map();
+  for (const [vkey, nodeName] of Object.entries(info.kit)) {
+    const node = gltf.scene.getObjectByName(nodeName);
+    if (!node) { console.warn("Kit piece missing:", nodeName); continue; }
+    for (const m of meshesOf(node)) {
+      const name = m.material.name || "";
+      if (!byMat.has(name)) byMat.set(name, { mat: bakedMaterial(m, info, tex, "site"), parts: new Map() });
+      const g = m.geometry.clone().applyMatrix4(m.matrixWorld);
+      for (const k of Object.keys(g.attributes)) if (!["position", "normal", "uv"].includes(k)) g.deleteAttribute(k);
+      byMat.get(name).parts.set(vkey, g);
+    }
+  }
+  const m4 = new THREE.Matrix4();
+  for (const { mat, parts } of byMat.values()) {
+    const use = pieces.filter((p) => parts.has(p.piece + "_q" + quarter(p.turn || 0)));
+    if (!use.length) continue;
+    let nv = 0, ni = 0;
+    for (const g of parts.values()) { nv += g.attributes.position.count; ni += g.index.count; }
+    const batch = new THREE.BatchedMesh(use.length, nv, ni, mat);
+    batch.sortObjects = false;
+    const ids = new Map();
+    for (const [vkey, g] of parts) ids.set(vkey, batch.addGeometry(g));
+    for (const p of use) {
+      const id = batch.addInstance(ids.get(p.piece + "_q" + quarter(p.turn || 0)));
+      batch.setMatrixAt(id, m4.makeRotationY(Math.PI + (p.turn || 0) * Math.PI / 180).setPosition(p.x, 0, p.z));
+    }
+    batch.castShadow = batch.receiveShadow = false;
+    scene.add(batch);
+    LAYERS.buildings.push(batch);
+  }
+  console.log("site kit:", Object.keys(info.kit).length, "pieces baked,", pieces.length, "placed,", byMat.size, "batches");
 }
 
 // Planting belts (tools/blender/build_planting.py, placed from courses/ascot-planting.json): Thoroughbred
@@ -531,7 +608,7 @@ function placeTrees(gltf, dressing) {
   const m4 = new THREE.Matrix4(), q = new THREE.Quaternion(), sc = new THREE.Vector3(), p = new THREE.Vector3();
   // Soft shadows on the grass, falling away from the sun.
   console.log("trees:", spots.length);
-  const shadows = new THREE.InstancedMesh(new THREE.PlaneGeometry(1, 1), new THREE.MeshBasicMaterial({ map: shadowTex, color: "#1f3318", transparent: true, opacity: 0.45, depthWrite: false }), spots.length);
+  const shadows = new THREE.InstancedMesh(new THREE.PlaneGeometry(1, 1), new THREE.MeshBasicMaterial({ map: shadowTex, color: "#1f3318", transparent: true, opacity: 0.45, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -4 }), spots.length);
   const sunFlat = new THREE.Vector2(-SUN_OFFSET.x, -SUN_OFFSET.z).normalize();
   const ang = Math.atan2(sunFlat.y, sunFlat.x);
   spots.forEach((t, i) => {
@@ -617,34 +694,138 @@ function buildCrowd(gltf, data, pieceAt) {
   const m = new THREE.Matrix4(), q = new THREE.Quaternion(), sc = new THREE.Vector3(), pos = new THREE.Vector3(), up = new THREE.Vector3(0, 1, 0);
   const col = new THREE.Color();
   figures.forEach((fig, fi) => {
-    const list = byFig[fi];
     const lady = fig.name.includes("lady");
-    const looks = list.map((s) => ({
+    const people = byFig[fi].map((s) => ({ s, L: {
       clothes: pick(lady ? P.dresses : P.suits), skin: pick(P.skin), hat: pick(lady ? P.hats_lady : P.hats_gent),
       yaw: (rnd() - 0.5) * 1.2, s: 0.94 + rnd() * 0.12,            // facing the track, as on the stands side before
-    }));
-    for (const part of meshesOf(fig)) {
-      const key = ["clothes", "skin", "hat"].find((k) => part.material.name.includes(k)) || "clothes";
-      const mat = new THREE.MeshLambertMaterial({ color: "#ffffff" });
-      const inst = new THREE.InstancedMesh(part.geometry, mat, list.length);
-      list.forEach((s, i) => {
-        const L = looks[i];
-        pos.set(s.x, s.y, s.z); q.setFromAxisAngle(up, s.z < 0 ? L.yaw + Math.PI : L.yaw); sc.set(L.s, L.s * (s.seated ? 0.7 : 1), L.s);
-        inst.setMatrixAt(i, m.compose(pos, q, sc));
-        inst.setColorAt(i, col.set(L[key]));
-      });
-      inst.computeBoundingSphere();
-      inst.castShadow = false; inst.receiveShadow = true;
-      inst.userData.total = list.length;
-      scene.add(inst);
-      crowdMeshes.push(inst);
-      LAYERS.crowd.push(inst);
+    } }));
+    // Sort into 25 m cells (keeping the shuffled order inside each cell), so whole cells can be skipped when
+    // out of shot and switched to the light figures when far off, each a single block copy.
+    const CELL = 25, cells = new Map();
+    for (const p of people) {
+      const key = Math.floor(p.s.x / CELL) + "," + Math.floor(p.s.z / CELL);
+      if (!cells.has(key)) cells.set(key, []);
+      cells.get(key).push(p);
     }
+    const n = people.length;
+    const F = { n, mats: new Float32Array(16 * n), cols: [new Float32Array(3 * n), new Float32Array(3 * n), new Float32Array(3 * n)], cells: [] };
+    let i = 0;
+    for (const list of cells.values()) {
+      const box = new THREE.Box3();
+      const start = i;
+      for (const { s, L } of list) {
+        pos.set(s.x, s.y, s.z); q.setFromAxisAngle(up, s.z < 0 ? L.yaw + Math.PI : L.yaw); sc.set(L.s, L.s * (s.seated ? 0.7 : 1), L.s);
+        m.compose(pos, q, sc).toArray(F.mats, 16 * i);
+        ["clothes", "skin", "hat"].forEach((k, j) => col.set(L[k]).toArray(F.cols[j], 3 * i));
+        box.expandByPoint(pos);
+        i++;
+      }
+      const sphere = box.getBoundingSphere(new THREE.Sphere());
+      sphere.radius += 2.5; sphere.center.y += 0.9;
+      F.cells.push({ start, count: list.length, sphere });
+    }
+    // One mesh per figure for each level of detail, its parts merged and told apart by aPart (0 clothes,
+    // 1 skin, 2 hat); the light one, for far off, has about a third of the triangles.
+    const parts = meshesOf(fig).map((p) => {
+      const g = new THREE.BufferGeometry();
+      g.setAttribute("position", p.geometry.attributes.position);
+      g.setAttribute("normal", p.geometry.attributes.normal);
+      g.setIndex(p.geometry.index);
+      return [g, ["clothes", "skin", "hat"].findIndex((k) => p.material.name.includes(k))];
+    });
+    const tag = (g, k) => { g.setAttribute("aPart", new THREE.Float32BufferAttribute(new Float32Array(g.attributes.position.count).fill(Math.max(0, k)), 1)); return g; };
+    const nearGeo = mergeGeometries(parts.map(([g, k]) => tag(g.clone(), k)));
+    const farGeo = mergeGeometries(parts.map(([g, k]) => {
+      const w0 = g.clone(); w0.deleteAttribute("normal");
+      const w = mergeVertices(w0);
+      const sg = new SimplifyModifier().modify(w, Math.floor(w.attributes.position.count * 0.65));
+      sg.computeVertexNormals();
+      return tag(sg.index ? sg.toNonIndexed() : sg, k);
+    }).map((g) => (g.index ? g.toNonIndexed() : g)));
+    const make = (geo) => {
+      const cs = [0, 1, 2].map((j) => { const a = new THREE.InstancedBufferAttribute(new Float32Array(3 * n), 3); a.setUsage(THREE.DynamicDrawUsage); geo.setAttribute("aC" + j, a); return a; });
+      const inst = new THREE.InstancedMesh(geo, crowdMaterial(), n);
+      inst.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+      inst.count = 0; inst.frustumCulled = false;
+      inst.castShadow = false; inst.receiveShadow = true;
+      scene.add(inst);
+      LAYERS.crowd.push(inst);
+      return { inst, cs };
+    };
+    F.near = make(nearGeo);
+    F.far = make(farGeo);
+    CROWD.figs.push(F);
   });
   console.log("crowd:", spots.length, "people");
   setCrowdShare(QUALITY[qLevel].crowd);
 }
-function setCrowdShare(share) { for (const c of crowdMeshes) c.count = Math.round(c.userData.total * share); }
+
+// The crowd's gentle life, in the vertex shader (nothing per person is sent each frame): a slow sway, never
+// in step with the neighbours; and as the leader comes by, those near the rail rock on their toes, lean in
+// towards the track, and some of the gents raise their hats. Who does what comes from where they stand.
+const CROWD = { figs: [], share: 1, sig: "", uniforms: { uTime: { value: 0 }, uLeader: { value: new THREE.Vector2(0, MID_Z) } }, near: 90 };
+function crowdMaterial() {
+  const mat = new THREE.MeshLambertMaterial({ color: "#ffffff" });
+  mat.onBeforeCompile = (sh) => {
+    Object.assign(sh.uniforms, CROWD.uniforms);
+    sh.vertexShader = sh.vertexShader
+      .replace("#include <common>", `#include <common>
+        attribute float aPart; attribute vec3 aC0; attribute vec3 aC1; attribute vec3 aC2;
+        uniform float uTime; uniform vec2 uLeader; varying vec3 vPartCol;`)
+      .replace("#include <begin_vertex>", `#include <begin_vertex>
+        vPartCol = aPart < 0.5 ? aC0 : aPart < 1.5 ? aC1 : aC2;
+        {
+          vec3 ip = vec3(instanceMatrix[3][0], instanceMatrix[3][1], instanceMatrix[3][2]);
+          float seed = fract(sin(dot(ip.xz, vec2(12.9898, 78.233))) * 43758.5453);
+          float h = transformed.y;
+          float sway = 0.018 * sin(uTime * (0.6 + 0.5 * seed) + seed * 6.2832);
+          float ex = smoothstep(75.0, 15.0, abs(ip.x - uLeader.x)) * smoothstep(55.0, 18.0, abs(ip.z - uLeader.y)) * step(0.2, seed);
+          float bob = ex * 0.06 * max(0.0, sin(uTime * (6.0 + 3.0 * seed) + seed * 40.0));
+          transformed.x += (sway + ex * 0.025 * sin(uTime * 2.7 + seed * 9.0)) * h;
+          transformed.z -= ex * 0.05 * h;
+          transformed.y += bob;
+          if (aPart > 1.5 && seed > 0.62) transformed.y += ex * 0.2 * smoothstep(0.35, 0.9, 0.5 + 0.5 * sin(uTime * 2.1 + seed * 31.0));
+        }`);
+    sh.fragmentShader = sh.fragmentShader
+      .replace("#include <common>", "#include <common>\nvarying vec3 vPartCol;")
+      .replace("#include <color_fragment>", "#include <color_fragment>\ndiffuseColor.rgb *= vPartCol;");
+  };
+  mat.customProgramCacheKey = () => "crowd-life";
+  return mat;
+}
+function setCrowdShare(share) { CROWD.share = share; CROWD.sig = ""; }
+// Which cells are in shot and which are far: only when that changes are the visible people copied across.
+const _fr = new THREE.Frustum(), _pm = new THREE.Matrix4();
+function updateCrowd(cam) {
+  if (!CROWD.figs.length) return;
+  _pm.multiplyMatrices(cam.projectionMatrix, cam.matrixWorldInverse);
+  _fr.setFromProjectionMatrix(_pm);
+  const plan = CROWD.figs.map((F) => F.cells.map((c) => {
+    if (!_fr.intersectsSphere(c.sphere)) return 0;
+    return c.sphere.center.distanceTo(cam.position) - c.sphere.radius < CROWD.near ? 1 : 2;
+  }));
+  const sig = CROWD.share + ":" + plan.map((p) => p.join("")).join("|");
+  if (sig === CROWD.sig) return;
+  CROWD.sig = sig;
+  CROWD.figs.forEach((F, fi) => {
+    const k = { 1: 0, 2: 0 };
+    F.cells.forEach((c, ci) => {
+      const lod = plan[fi][ci];
+      if (!lod) return;
+      const take = Math.round(c.count * CROWD.share);
+      if (!take) return;
+      const T = lod === 1 ? F.near : F.far, at = k[lod];
+      T.inst.instanceMatrix.array.set(F.mats.subarray(16 * c.start, 16 * (c.start + take)), 16 * at);
+      T.cs.forEach((a, j) => a.array.set(F.cols[j].subarray(3 * c.start, 3 * (c.start + take)), 3 * at));
+      k[lod] += take;
+    });
+    for (const [lod, T] of [[1, F.near], [2, F.far]]) {
+      T.inst.count = k[lod];
+      T.inst.instanceMatrix.clearUpdateRanges(); T.inst.instanceMatrix.addUpdateRange(0, 16 * k[lod]); T.inst.instanceMatrix.needsUpdate = true;
+      for (const a of T.cs) { a.clearUpdateRanges(); a.addUpdateRange(0, 3 * k[lod]); a.needsUpdate = true; }
+    }
+  });
+}
 
 // ---------- Horses ----------
 const silkTextures = new Map();
@@ -821,7 +1002,7 @@ const postCam = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1);
 postScene.add(new THREE.Mesh(new THREE.PlaneGeometry(2, 2), post));
 
 // ---------- Cameras ----------
-const camera = new THREE.PerspectiveCamera(30, 1, 0.2, 4000);
+const camera = new THREE.PerspectiveCamera(30, 1, 0.5, 4000);   // near 0.5 (was 0.2): 2.5 times the depth precision far off
 post.uniforms.near.value = camera.near; post.uniforms.far.value = camera.far;
 const focus = new THREE.Vector3();
 const CAMS = Object.fromEntries(VIEW.cameras.map((c) => [c.id, c]));
@@ -1010,7 +1191,7 @@ try {
     json(ARCH + "/crowd_palette.json"),
   ]);
   if (props) placeProps(props);
-  if (world && bakeInfo) placeBaked(world, bakeInfo);
+  if (world && bakeInfo) placeBaked(world, bakeInfo, dressing);
   if (belts) placeBelts(belts, planting, trees);
   if (trees) placeTrees(trees, dressing);
   if (crowd && palette) {
@@ -1049,7 +1230,7 @@ try {
 }
 
 // ---------- Contact shadows under the horses ----------
-const contact = new THREE.InstancedMesh(new THREE.PlaneGeometry(1, 1), new THREE.MeshBasicMaterial({ map: shadowTex, color: "#1a2410", transparent: true, opacity: 0.55, depthWrite: false }), 64);
+const contact = new THREE.InstancedMesh(new THREE.PlaneGeometry(1, 1), new THREE.MeshBasicMaterial({ map: shadowTex, color: "#1a2410", transparent: true, opacity: 0.55, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -4 }), 64);
 contact.frustumCulled = false; contact.count = 0; contact.renderOrder = 1;
 scene.add(contact);
 
@@ -1123,7 +1304,7 @@ function frame() {
   if (runners.length && !params.has("still")) perf.tick(rawDt);
   if (!state.paused) { state.t += dt; if (state.t > T_END) { state.t = T_START; snap = true; } }
   const now = sample(state.t);
-  let leader = -1e9, sum = 0;
+  let leader = -1e9, leaderZ = MID_Z, sum = 0;
   runners.forEach((r, i) => {
     const [x, z, v, eff, yaw] = now[i];
     const wx = toWorldX(x), wz = toWorldZ(z);                 // along the course -> world
@@ -1138,7 +1319,8 @@ function frame() {
     set("gallop", 1 - e / 4); set("gallop_drive", e / 4);
     r.mixer.timeScale = THREE.MathUtils.clamp(v / STRIDE_SPEED, 0.25, 1.4);
     r.mixer.update(state.paused ? 0 : dt);
-    leader = Math.max(leader, x); sum += x;
+    if (x > leader) { leader = x; leaderZ = wz; }
+    sum += x;
   });
   if (!runners.length) leader = 0;
   contact.count = runners.length; contact.instanceMatrix.needsUpdate = true;
@@ -1163,6 +1345,10 @@ function frame() {
   const sunAt = new THREE.Vector3(toWorldX(packX), 0, MID_Z);
   sun.position.copy(sunAt).add(SUN_OFFSET); sun.target.position.copy(sunAt);
   scene.userData.sky.position.copy(camera.position);
+  CROWD.uniforms.uTime.value = performance.now() / 1000;
+  CROWD.uniforms.uLeader.value.set(toWorldX(leader), leaderZ);
+  camera.updateMatrixWorld();
+  updateCrowd(camera);
 
   const left = (POST - leader) / FURLONG;
   toRunEl.textContent = left <= 0 ? "Finished" : left < 1 ? Math.round(left * 220) + " yds" : left.toFixed(1).replace(/\.0$/, "") + "f";
@@ -1181,7 +1367,7 @@ function frame() {
     window.__count = (key) => {                               // checking aid: triangles drawn with one layer hidden
       const L = key ? LAYERS[key] : []; L.forEach((o) => (o.visible = false));
       renderer.info.reset(); renderer.render(scene, camera); const t = renderer.info.render.triangles;
-      L.forEach((o) => (o.visible = true)); return t;
+      L.forEach((o) => (o.visible = true)); renderer.render(scene, camera); return t;   // leave the full scene on screen
     };
     window.__ready = true; window.__info = `${renderer.info.render.calls} draw calls, ${(renderer.info.render.triangles / 1000).toFixed(0)}k triangles`; return;
   }

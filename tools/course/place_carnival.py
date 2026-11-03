@@ -8,7 +8,7 @@ Today's pieces stay (owner, 3 Nov); every new piece is checked against them, the
 the pieces placed before it, and nudged along x (then a little in z) to the nearest free spot. A piece with no
 free spot within reach is dropped and listed.
 
-Re-run safely: it first removes the groups it wrote last time (names starting "carn" or "east2").
+Re-run safely: it first removes the groups it wrote last time (names starting "carn", "east2" or "west").
     python3 tools/course/place_carnival.py
 """
 import json, math, os, random
@@ -23,7 +23,7 @@ CODES = json.load(open(rp("assets/models/architecture/site_props_codes.json")))[
 PIECE = {k: v["piece"] for k, v in CODES.items()}
 FOOT = {v["piece"]: v["footprint"] for v in CODES.values()}
 CLEAR = 2.0                     # metres kept clear between pieces
-OURS = ("carn", "east2")
+OURS = ("carn", "east2", "west")
 
 DRESS["pieces"] = [p for p in DRESS["pieces"] if not p.get("group", "").startswith(OURS)]
 DRESS["crowds"] = [c for c in DRESS["crowds"] if not c.get("group", "").startswith(OURS)]
@@ -129,6 +129,30 @@ for letter, x in [("H", 415), ("D", 445), ("G", 462), ("D", 480), ("G", 497), ("
 for letter, x in [("A", 425), ("C", 465), ("A", 500), ("C", 520), ("A", 550), ("C", 585), ("A", 615)]:
     put(letter, x, 80.0 if letter == "A" else 86.0, 0, "east2_back", side="out", reach=20, zreach=(0, 3, 6))
 
+# ---- past the post, beyond the stand's west end (owner, 3 Nov: "it just empties to nothing") ----
+# From the stand's west end (x -102.5) round the start of the bend to where the planting belt begins
+# (x about -143): a front line close to the rail, then seating, counters and a back row of marquees,
+# all facing the track (north).
+for letter, x, front in [("H", -121, 37.0), ("G", -134, 40.5)]:
+    put(letter, x, back_z(letter, front), 0, "west_front", side="out", reach=6, zreach=(0, 2, 4))
+for letter, x in [("F", -124), ("D", -139), ("E", -156), ("D", -174), ("F", -190)]:
+    put(letter, x, back_z(letter, 54.0), 0, "west_mid", side="out", reach=10, zreach=(0, 3, 6))
+for letter, x in [("A", -132), ("C", -166), ("A", -199)]:
+    put(letter, x, 82.0 if letter == "A" else 86.0, 0, "west_back", side="out", reach=12, zreach=(0, 3, 6))
+
+
+def edge_z(x):
+    """The turf's outer edge (south side) at x, round the start of the bend past the post."""
+    ring = COURSE["track"]["surface"][0]
+    best = None
+    for (ax, az), (bx, bz) in zip(ring, ring[1:] + ring[:1]):
+        if min(ax, bx) <= x <= max(ax, bx) and ax != bx:
+            z = az + (bz - az) * (x - ax) / (bx - ax)
+            if z > 0 and (best is None or z > best):
+                best = z
+    return best
+
+
 # ---- the small pieces and flags, dotted round both areas ----
 rng = random.Random(1103)
 
@@ -152,6 +176,11 @@ dot("V", 100, 480, [(-2.2, -2.8, 180)], "carn_flags", "rail", 4.0)     # banner 
 EAST_BANDS = [(38, 42, 0), (58, 66, 0), (90, 98, 0)]
 dot("IJJKLLM", 415, 680, EAST_BANDS, "east2_dots", "out", 4.0)
 dot("UUV", 415, 680, EAST_BANDS, "east2_flags", "out", 4.0)
+# west: the same mix round the new enclosure past the post
+WEST_BANDS = [(64, 70, 0), (96, 102, 0)]
+dot("IJJKLLM", -205, -118, WEST_BANDS, "west_dots", "out", 5.0)
+dot("UUV", -205, -118, WEST_BANDS, "west_flags", "out", 5.0)
+put("V", -110, 36.0, 0, "west_flags", side="out", reach=3)
 
 # ---- crowds round the new pieces (the old figures) ----
 DRESS["crowds"] += [      # owner, 3 Nov: "it wants to feel like a crowd, not a few folks" (density = people per square metre);
@@ -165,7 +194,19 @@ DRESS["crowds"] += [      # owner, 3 Nov: "it wants to feel like a crowd, not a 
     {"note": "in front of the marquees and big tops", "x": [-20, 615], "z": [-31.0, -26.5], "density": 0.4, "group": "carn"},
     {"note": "round the counters by the bend", "x": [-80, -15], "z": [-38, -27], "density": 0.25, "group": "carn"},
     {"note": "east of the stand, among the new pieces", "x": [415, 670], "z": [36, 60], "density": 0.15, "group": "east2"},
+    {"note": "past the post: among the seating and counters", "x": [-205, -116], "z": [44, 64], "density": 0.3, "group": "west"},
+    {"note": "past the post: in front of the marquees", "x": [-212, -116], "z": [64, 74], "density": 0.32, "group": "west"},
+    {"note": "past the post: the lawn behind the stand's end", "x": [-116, -104], "z": [37, 80], "density": 0.35, "group": "west"},
+    {"note": "past the post: behind the rail crowd, round the front line", "x": [-138, -116], "z": [33, 46], "density": 0.35, "group": "west"},
 ]
+# past the post the rail curves away north into the bend: pack it two or three deep in short boxes that
+# follow the turf's edge, from the stand's end to where the planting belt begins
+for x in range(-132, -102, 3):
+    z = edge_z(x + 1.5)
+    if z is None:
+        continue
+    DRESS["crowds"].append({"note": "past the post: along the rail into the bend", "x": [x, x + 3],
+                            "z": [round(z + 3.2, 1), round(z + 7.0, 1)], "density": 1.2, "group": "west"})
 # Nobody stands inside a piece: the footprint of every piece (world box, 0.6 m margin) for the viewer to keep
 # crowd-area people out of.
 DRESS["keepClear"] = [[round(b[0] - 0.6, 1), round(b[1] - 0.6, 1), round(b[2] + 0.6, 1), round(b[3] + 0.6, 1)]
@@ -177,7 +218,10 @@ DRESS["groups"].update({
     "carn_rail": "terrace decks and viewing towers along the far rail",
     "carn_dots": "small pieces dotted round the carnival", "carn_flags": "flags dotted round the carnival",
     "east2_front": "east of the stand, front line (owner's sketch 1)", "east2_back": "east of the stand, back row of marquees and big tops",
-    "east2_dots": "small pieces dotted east of the stand", "east2_flags": "flags dotted east of the stand"})
+    "east2_dots": "small pieces dotted east of the stand", "east2_flags": "flags dotted east of the stand",
+    "west_front": "past the post, beyond the stand's west end: front line by the rail",
+    "west_mid": "past the post: seating stands and counters", "west_back": "past the post: back row of marquees and big tops",
+    "west_dots": "small pieces dotted past the post", "west_flags": "flags dotted past the post"})
 DRESS["anchor"]["carnival"] = ("3 Nov 2026: the owner's layout sketch 1 placed by tools/course/place_carnival.py "
                                "(groups carn_* and east2_*); today's earlier pieces kept, new ones nudged clear of them.")
 

@@ -66,7 +66,7 @@ R = random.Random(7)
 HEDGES = [(-13.7, -8.3), (-7.9, -2.6), (-2.3, 2.3), (2.5, 9.4), (9.7, 13.0)]
 y0, y1, H = HEDGE
 for hx0, hx1 in HEDGES:
-    K.box("hedge", hx0 + 0.08, hx1 - 0.08, y0 + 0.08, y1 - 0.08, 0, H - 0.12)
+    K.box("hedge", hx0 + 0.08, hx1 - 0.08, y0 + 0.08, y1 - 0.08, 0, H - 0.16)
     # leafy lumps over the top and the faces, so it reads as clipped box rather than a block
     L = hx1 - hx0
     for i in range(int(L / 0.32) + 1):
@@ -131,7 +131,7 @@ board(2.8, 9.1, 1.05, 2.55)
 # ---------------------------------------------------------------- planters at the foot of the post
 for px0, px1 in ((-2.05, -0.35), (0.35, 2.05)):
     yc = 0.58
-    K.box("timber", px0, px1, yc - 0.25, yc + 0.25, 0, 0.38)
+    K.box("timber", px0, px1, yc - 0.25, yc + 0.25, 0, 0.33)                 # under the cap: a shared top flashed
     K.box("trim", px0 - 0.04, px1 + 0.04, yc - 0.29, yc + 0.29, 0.33, 0.38)
     for i in range(int((px1 - px0) / 0.11)):
         x = px0 + 0.08 + i * 0.11

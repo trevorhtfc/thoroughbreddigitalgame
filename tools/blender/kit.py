@@ -253,6 +253,101 @@ class Kit:
         self.box("trim", x0 - ov, x1 + ov, y0 - ov, y1 + ov, z, z + h)
 
 
+def drop_hidden_faces(bm, gap=0.025):
+    """Remove faces that would flash (z-fight): a face lying in (nearly) the same plane as other faces that
+    face the same way and cover it completely. A covered face goes when what covers it is the same material
+    (at the same depth or in front of it), or any material at least 1 mm in front of it. Faces of different
+    materials sharing a plane exactly are left alone (which should show is a modelling decision) and
+    reported; tools/web/find_coplanar.py lists anything left. Returns (removed, ambiguous)."""
+    try:
+        from shapely.geometry import Polygon
+        from shapely.ops import unary_union
+    except ImportError:
+        print("drop_hidden_faces: shapely missing (pip install shapely); faces left as they are", flush=True)
+        return 0, 0
+    from collections import defaultdict
+    bm.normal_update()
+    groups = defaultdict(list)
+    for f in bm.faces:
+        if f.calc_area() < 1e-7:
+            continue
+        n = f.normal
+        d = n.dot(f.verts[0].co)
+        groups[(round(n.x * 200), round(n.y * 200), round(n.z * 200), math.floor(d / gap))].append((d, f))
+    kill, ambiguous = set(), 0
+    for key, items in groups.items():
+        cand = items + groups.get(key[:3] + (key[3] + 1,), [])
+        if len(cand) < 2:
+            continue
+        n = Vector(key[:3]).normalized()
+        u = n.cross(Vector((0, 0, 1)) if abs(n.z) < 0.9 else Vector((1, 0, 0))).normalized()
+        v = n.cross(u)
+        poly = {}
+        for d, f in cand:
+            p = Polygon([(c.co.dot(u), c.co.dot(v)) for c in f.verts])
+            poly[f] = p if p.is_valid else p.buffer(0)
+        for d, f in sorted(items, key=lambda t: t[0]):            # back first
+            if f in kill:
+                continue
+            A = poly[f]
+            cover, other_mat = [], []
+            for d2, g in cand:
+                if g is f or g in kill or not A.intersects(poly[g]):
+                    continue
+                if g.material_index == f.material_index and d2 >= d - 1e-6:
+                    cover.append(poly[g])
+                elif d2 > d + 0.001:
+                    cover.append(poly[g])
+                elif abs(d2 - d) <= 0.001 and A.intersection(poly[g]).area > 1e-3:
+                    other_mat.append(g)
+            if cover and A.difference(unary_union(cover)).area < 1e-4 * max(1.0, A.area):
+                kill.add(f)
+            elif other_mat:
+                ambiguous += 1
+    # Same material, exactly the same plane, overlapping only in part (two floor slabs meeting with an
+    # overlap): cut the overlap out of the smaller face so each spot of the plane is drawn once.
+    from shapely import constrained_delaunay_triangles
+    planes = defaultdict(list)
+    for f in bm.faces:
+        if f in kill or f.calc_area() < 1e-7:
+            continue
+        nk = (round(f.normal.x * 200), round(f.normal.y * 200), round(f.normal.z * 200))
+        planes[nk + (f.material_index, round(f.normal.dot(f.verts[0].co) / 0.001))].append(f)
+    for key, fs in planes.items():
+        if len(fs) < 2:
+            continue
+        n = Vector(key[:3]).normalized()
+        u = n.cross(Vector((0, 0, 1)) if abs(n.z) < 0.9 else Vector((1, 0, 0))).normalized()
+        v = n.cross(u)
+        d0 = key[4] * 0.001
+        poly = {}
+        for f in fs:
+            p = Polygon([(c.co.dot(u), c.co.dot(v)) for c in f.verts])
+            poly[f] = p if p.is_valid else p.buffer(0)
+        acc = None
+        for f in sorted(fs, key=lambda f: -poly[f].area):             # the biggest face stays whole
+            A = poly[f]
+            if acc is not None and A.intersects(acc) and A.intersection(acc).area > 1e-4:
+                rest = A.difference(acc)
+                kill.add(f)
+                if rest.area > 1e-4:
+                    for tri in getattr(constrained_delaunay_triangles(rest.buffer(0)), "geoms", []):
+                        pts = list(tri.exterior.coords)[:3]
+                        vs = [bm.verts.new(u * x + v * y + n * d0) for x, y in pts]
+                        try:
+                            g = bm.faces.new(vs)
+                        except ValueError:
+                            continue
+                        g.material_index, g.smooth = f.material_index, f.smooth
+                        g.normal_update()
+                        if g.normal.dot(n) < 0:
+                            g.normal_flip()
+            acc = A if acc is None else acc.union(A)
+    for f in kill:
+        bm.faces.remove(f)
+    return len(kill), ambiguous
+
+
 def kit_to_object(k, name, mats, collection):
     """One mesh object with a material slot per material used; returns (object, triangles)."""
     me = bpy.data.meshes.new(name)
@@ -270,6 +365,9 @@ def kit_to_object(k, name, mats, collection):
     k.bms = {}
     bmesh.ops.remove_doubles(out, verts=out.verts, dist=0.0005)
     bmesh.ops.recalc_face_normals(out, faces=out.faces)
+    gone, amb = drop_hidden_faces(out)
+    if gone or amb:
+        print("  %s: %d hidden coplanar faces removed%s" % (name, gone, ", %d faces share a plane with another material" % amb if amb else ""), flush=True)
     out.to_mesh(me); out.free()
     for n in names:
         me.materials.append(mats[n])

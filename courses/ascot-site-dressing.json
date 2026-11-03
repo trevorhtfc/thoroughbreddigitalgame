@@ -19,7 +19,12 @@
   "east2_front": "east of the stand, front line (owner's sketch 1)",
   "east2_back": "east of the stand, back row of marquees and big tops",
   "east2_dots": "small pieces dotted east of the stand",
-  "east2_flags": "flags dotted east of the stand"
+  "east2_flags": "flags dotted east of the stand",
+  "west_front": "past the post, beyond the stand's west end: front line by the rail",
+  "west_mid": "past the post: seating stands and counters",
+  "west_back": "past the post: back row of marquees and big tops",
+  "west_dots": "small pieces dotted past the post",
+  "west_flags": "flags dotted past the post"
  },
  "crowds": [
   {
@@ -186,6 +191,188 @@
    ],
    "density": 0.15,
    "group": "east2"
+  },
+  {
+   "note": "past the post: among the seating and counters",
+   "x": [
+    -205,
+    -116
+   ],
+   "z": [
+    44,
+    64
+   ],
+   "density": 0.3,
+   "group": "west"
+  },
+  {
+   "note": "past the post: in front of the marquees",
+   "x": [
+    -212,
+    -116
+   ],
+   "z": [
+    64,
+    74
+   ],
+   "density": 0.32,
+   "group": "west"
+  },
+  {
+   "note": "past the post: the lawn behind the stand's end",
+   "x": [
+    -116,
+    -104
+   ],
+   "z": [
+    37,
+    80
+   ],
+   "density": 0.35,
+   "group": "west"
+  },
+  {
+   "note": "past the post: behind the rail crowd, round the front line",
+   "x": [
+    -138,
+    -116
+   ],
+   "z": [
+    33,
+    46
+   ],
+   "density": 0.35,
+   "group": "west"
+  },
+  {
+   "note": "past the post: along the rail into the bend",
+   "x": [
+    -132,
+    -129
+   ],
+   "z": [
+    19.2,
+    23.0
+   ],
+   "density": 1.2,
+   "group": "west"
+  },
+  {
+   "note": "past the post: along the rail into the bend",
+   "x": [
+    -129,
+    -126
+   ],
+   "z": [
+    20.7,
+    24.5
+   ],
+   "density": 1.2,
+   "group": "west"
+  },
+  {
+   "note": "past the post: along the rail into the bend",
+   "x": [
+    -126,
+    -123
+   ],
+   "z": [
+    22.2,
+    26.0
+   ],
+   "density": 1.2,
+   "group": "west"
+  },
+  {
+   "note": "past the post: along the rail into the bend",
+   "x": [
+    -123,
+    -120
+   ],
+   "z": [
+    23.6,
+    27.4
+   ],
+   "density": 1.2,
+   "group": "west"
+  },
+  {
+   "note": "past the post: along the rail into the bend",
+   "x": [
+    -120,
+    -117
+   ],
+   "z": [
+    25.0,
+    28.8
+   ],
+   "density": 1.2,
+   "group": "west"
+  },
+  {
+   "note": "past the post: along the rail into the bend",
+   "x": [
+    -117,
+    -114
+   ],
+   "z": [
+    26.1,
+    29.9
+   ],
+   "density": 1.2,
+   "group": "west"
+  },
+  {
+   "note": "past the post: along the rail into the bend",
+   "x": [
+    -114,
+    -111
+   ],
+   "z": [
+    27.1,
+    30.9
+   ],
+   "density": 1.2,
+   "group": "west"
+  },
+  {
+   "note": "past the post: along the rail into the bend",
+   "x": [
+    -111,
+    -108
+   ],
+   "z": [
+    28.1,
+    31.9
+   ],
+   "density": 1.2,
+   "group": "west"
+  },
+  {
+   "note": "past the post: along the rail into the bend",
+   "x": [
+    -108,
+    -105
+   ],
+   "z": [
+    29.1,
+    32.9
+   ],
+   "density": 1.2,
+   "group": "west"
+  },
+  {
+   "note": "past the post: along the rail into the bend",
+   "x": [
+    -105,
+    -102
+   ],
+   "z": [
+    33.2,
+    37.0
+   ],
+   "density": 1.2,
+   "group": "west"
   }
  ],
  "pieces": [
@@ -1254,6 +1441,76 @@
    "group": "east2_back"
   },
   {
+   "piece": "viewing_tower",
+   "x": -121,
+   "z": 39.6,
+   "turn": 0,
+   "group": "west_front"
+  },
+  {
+   "piece": "terrace_deck",
+   "x": -134,
+   "z": 45.36,
+   "turn": 0,
+   "group": "west_front"
+  },
+  {
+   "piece": "stand_covered",
+   "x": -124,
+   "z": 57.66,
+   "turn": 0,
+   "group": "west_mid"
+  },
+  {
+   "piece": "pagoda_counter",
+   "x": -139,
+   "z": 56.33,
+   "turn": 0,
+   "group": "west_mid"
+  },
+  {
+   "piece": "stand_open",
+   "x": -156,
+   "z": 57.01,
+   "turn": 0,
+   "group": "west_mid"
+  },
+  {
+   "piece": "pagoda_counter",
+   "x": -174,
+   "z": 56.33,
+   "turn": 0,
+   "group": "west_mid"
+  },
+  {
+   "piece": "stand_covered",
+   "x": -190,
+   "z": 57.66,
+   "turn": 0,
+   "group": "west_mid"
+  },
+  {
+   "piece": "marquee_peaks",
+   "x": -132,
+   "z": 82.0,
+   "turn": 0,
+   "group": "west_back"
+  },
+  {
+   "piece": "big_top",
+   "x": -166,
+   "z": 86.0,
+   "turn": 0,
+   "group": "west_back"
+  },
+  {
+   "piece": "marquee_peaks",
+   "x": -199,
+   "z": 82.0,
+   "turn": 0,
+   "group": "west_back"
+  },
+  {
    "piece": "pergola_picnic",
    "x": -56.9,
    "z": -30.7,
@@ -1791,6 +2048,62 @@
    "z": 39.8,
    "turn": 0,
    "group": "east2_flags"
+  },
+  {
+   "piece": "pagoda_kiosk",
+   "x": -201.5,
+   "z": 101.5,
+   "turn": 0,
+   "group": "west_dots"
+  },
+  {
+   "piece": "pagoda_kiosk",
+   "x": -172.7,
+   "z": 100.3,
+   "turn": 15,
+   "group": "west_dots"
+  },
+  {
+   "piece": "pergola_picnic",
+   "x": -146.9,
+   "z": 67.8,
+   "turn": 0,
+   "group": "west_dots"
+  },
+  {
+   "piece": "pergola_picnic",
+   "x": -134.1,
+   "z": 101.0,
+   "turn": 0,
+   "group": "west_dots"
+  },
+  {
+   "piece": "flagpole",
+   "x": -196.8,
+   "z": 66.4,
+   "turn": -15,
+   "group": "west_flags"
+  },
+  {
+   "piece": "flagpole",
+   "x": -177.5,
+   "z": 101.0,
+   "turn": 0,
+   "group": "west_flags"
+  },
+  {
+   "piece": "flagpole",
+   "x": -138.9,
+   "z": 65.9,
+   "turn": 0,
+   "group": "west_flags"
+  },
+  {
+   "piece": "flagpole",
+   "x": -126.1,
+   "z": 97.3,
+   "turn": -15,
+   "group": "west_flags"
   }
  ],
  "keepClear": [
@@ -2707,6 +3020,66 @@
    85.0
   ],
   [
+   -124.9,
+   36.4,
+   -117.8,
+   45.9
+  ],
+  [
+   -139.7,
+   39.9,
+   -128.3,
+   49.5
+  ],
+  [
+   -130.2,
+   53.4,
+   -116.6,
+   60.7
+  ],
+  [
+   -141.9,
+   53.4,
+   -136.1,
+   59.3
+  ],
+  [
+   -164.4,
+   53.4,
+   -147.6,
+   60.2
+  ],
+  [
+   -176.9,
+   53.4,
+   -171.1,
+   59.3
+  ],
+  [
+   -196.2,
+   53.4,
+   -182.6,
+   60.7
+  ],
+  [
+   -145.0,
+   77.0,
+   -119.0,
+   87.0
+  ],
+  [
+   -176.1,
+   75.9,
+   -155.9,
+   96.1
+  ],
+  [
+   -212.0,
+   77.0,
+   -186.0,
+   87.0
+  ],
+  [
    -61.5,
    -33.6,
    -52.2,
@@ -3167,6 +3540,54 @@
    38.9,
    662.5,
    40.6
+  ],
+  [
+   -203.8,
+   99.2,
+   -199.2,
+   103.8
+  ],
+  [
+   -175.4,
+   97.6,
+   -170.0,
+   103.0
+  ],
+  [
+   -151.6,
+   65.0,
+   -142.2,
+   70.6
+  ],
+  [
+   -138.8,
+   98.2,
+   -129.4,
+   103.8
+  ],
+  [
+   -199.1,
+   65.1,
+   -195.9,
+   67.3
+  ],
+  [
+   -179.8,
+   100.2,
+   -176.7,
+   101.8
+  ],
+  [
+   -141.2,
+   65.1,
+   -138.1,
+   66.8
+  ],
+  [
+   -128.4,
+   96.0,
+   -125.2,
+   98.2
   ]
  ]
 }

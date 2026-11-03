@@ -204,6 +204,9 @@ def assemble(far, coll_name, mesh_prefix):
         bmesh.ops.remove_doubles(bm, verts=bm.verts, dist=0.0005)
         bmesh.ops.transform(bm, matrix=TO_WORLD, verts=bm.verts)
         bmesh.ops.recalc_face_normals(bm, faces=bm.faces)
+        gone, _ = drop_hidden_faces(bm)                  # faces hidden under others (they flashed far off)
+        if gone:
+            print("  %s%s: %d hidden coplanar faces removed" % (mesh_prefix, name, gone), flush=True)
         me = bpy.data.meshes.new(mesh_prefix + name)
         bm.to_mesh(me); bm.free()
         me.materials.append(MATS[name])

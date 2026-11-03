@@ -196,7 +196,7 @@ def flowers(k, x0, x1, y0, y1, z, seed):
 
 
 def planter(k, x, y, L, W=0.6, H=0.5, seed=1):
-    k.box("timber", x - L / 2, x + L / 2, y - W / 2, y + W / 2, 0, H)
+    k.box("timber", x - L / 2, x + L / 2, y - W / 2, y + W / 2, 0, H - 0.06)       # the cap is the only top
     k.box("trim", x - L / 2 - 0.04, x + L / 2 + 0.04, y - W / 2 - 0.04, y + W / 2 + 0.04, H - 0.06, H)
     k.box("timber", x - L / 2 - 0.03, x + L / 2 + 0.03, y - W / 2 - 0.03, y + W / 2 + 0.03, 0, 0.08)
     for i in range(1, int(L / 0.3)):                     # board joints
@@ -251,7 +251,7 @@ def marquee_peaks(k):
         for y in (-m / 2, m / 2):
             k.cyl("trim", x, y, 0, H, 0.1, 0.08, 8)
             k.box("trim", x - 0.16, x + 0.16, y - 0.16, y + 0.16, 0, 0.18)
-            k.box("trim", x - 0.14, x + 0.14, y - 0.14, y + 0.14, H - 0.2, H)
+            k.box("trim", x - 0.14, x + 0.14, y - 0.14, y + 0.14, H - 0.2, H - 0.03)
     for y in (-m / 2, m / 2):                             # eave beams
         k.box("trim", x0, -x0, y - 0.08, y + 0.08, H - 0.25, H)
     for x in (x0, -x0):
@@ -265,8 +265,8 @@ def marquee_peaks(k):
         # canvas spandrel between the eave and an arched opening
         arch = [(xa + 0.1 + (xb - xa - 0.2) * t, H - 1.05 + 0.6 * math.sin(math.pi * t)) for t in [j / 10 for j in range(11)]]
         k.prism_y("canvas", -m / 2 - 0.02, -m / 2 + 0.02, [(xa + 0.1, H - 0.2), (xb - 0.1, H - 0.2)] + arch[::-1])
-        k.box("glass", c - 0.55, c + 0.55, m / 2 + 0.03, m / 2 + 0.05, 0.9, 1.9)
-        k.arc_band("glass", c, 1.9, 0, 0.55, 0, math.pi, m / 2 + 0.03, m / 2 + 0.05, 6)
+        k.box("glass", c - 0.55, c + 0.55, m / 2 + 0.03, m / 2 + 0.08, 0.9, 1.9)          # 5 cm proud of the canvas
+        k.arc_band("glass", c, 1.9, 0, 0.55, 0, math.pi, m / 2 + 0.03, m / 2 + 0.08, 6)
     for (xa, ya), (xb, yb) in (((x0, -m / 2 - 0.35), (-x0, -m / 2 - 0.35)), ((-x0, m / 2 + 0.35), (x0, m / 2 + 0.35)),
                                ((x0 - 0.35, m / 2), (x0 - 0.35, -m / 2)), ((-x0 + 0.35, -m / 2), (-x0 + 0.35, m / 2))):
         scallops(k, "canvas", (xa, ya), (xb, yb), H + 0.03, 0.28, 0.3)
@@ -295,9 +295,9 @@ def marquee_clearspan(k):
             k.box("trim", xa, xa + L / bays, y - 0.06, y + 0.06, H - 0.6, H - 0.54)
         k.box("trim", x0, -x0, y - 0.1, y + 0.1, H - 0.15, H)
     for d in (-1, 1):                                                                       # double doors, front middle
-        k.box("trim", d * 0.9 - 0.06, d * 0.9 + 0.06, y0 - 0.08, y0 + 0.04, 0.15, 2.3)
-    k.box("trim", -0.95, 0.95, y0 - 0.08, y0 + 0.04, 2.3, 2.4)
-    k.box("trim", -0.04, 0.04, y0 - 0.08, y0 + 0.04, 0.15, 2.3)
+        k.box("trim", d * 0.9 - 0.06, d * 0.9 + 0.06, y0 - 0.1, y0 - 0.035, 0.15, 2.3)     # door frames clear of the glass
+    k.box("trim", -0.95, 0.95, y0 - 0.1, y0 - 0.035, 2.3, 2.4)
+    k.box("trim", -0.04, 0.04, y0 - 0.1, y0 - 0.035, 0.15, 2.3)
     for x in (x0, -x0):                                                                     # glazed gable ends
         k.box("glass", x - 0.03, x + 0.03, y0 + 0.1, -y0 - 0.1, 0.15, H - 0.15)
         for j in range(1, 6):
@@ -363,9 +363,9 @@ def stand_open(k):
     for i in range(rows):
         z = z0 + i * rise
         y = y0 + i * tread
-        k.box("timber", -W / 2, W / 2, y, -y0, z - 0.12, z)
+        k.box("timber", -W / 2, W / 2, y, -y0 - 0.1, z - 0.12, z)                    # up to the back panel
         if i:
-            k.box("timber", -W / 2, W / 2, y - 0.02, y + 0.02, z - rise, z)          # riser
+            k.box("timber", -W / 2, W / 2, y - 0.02, y + 0.02, z - rise, z - 0.12)   # riser, under the tread
         n = int(W / 0.55)
         for j in range(n):
             x = -W / 2 + (j + 0.5) * W / n
@@ -379,7 +379,7 @@ def stand_open(k):
         prof = prof[:-1] + [(y0, z0)]
         k.prism_x("timber", x - 0.08, x + 0.08, prof)
         rail_run(k, (x, y0), (x, -y0), (z0, zt), 1.0, spacing=0.4)
-    k.box("timber", -W / 2, W / 2, y0 - 0.05, y0 + 0.05, 0, z0)                                    # front skirt
+    k.box("timber", -W / 2, W / 2, y0 - 0.05, y0 + 0.05, 0, z0 - 0.15)                             # front skirt
     for i in range(1, 12):
         x = -W / 2 + i * W / 12
         k.box("trim", x - 0.02, x + 0.02, y0 - 0.08, y0 - 0.05, 0.05, z0 - 0.05)
@@ -397,14 +397,14 @@ def stand_covered(k):
     D = rows * tread + 0.6
     for i in range(rows):
         z, y = z0 + i * rise, y0 + 0.3 + i * tread
-        k.box("timber", -W / 2, W / 2, y, -y0, z - 0.12, z)
+        k.box("timber", -W / 2, W / 2, y, -y0 - 0.1, z - 0.12, z)
         n = int(W / 0.55)
         for j in range(n):
             x = -W / 2 + (j + 0.5) * W / n
             seat(k, x, y + tread * 0.45, z)
             seats.append([round(x, 2), round(y + tread * 0.45, 2), round(z + 0.05, 2)])
     k.box("timber", -W / 2, W / 2, y0, y0 + 0.3, 0, z0)
-    k.box("timber", -W / 2, W / 2, y0, -y0, 0, z0 - 0.12)
+    k.box("timber", -W / 2 + 0.03, W / 2 - 0.03, y0 + 0.3, -y0 - 0.1, 0, z0 - 0.12)
     k.box("timber", -W / 2, W / 2, -y0 - 0.1, -y0, 0, 3.7)                                         # back wall
     rail_run(k, (-W / 2, y0 + 0.1), (W / 2, y0 + 0.1), z0, 0.95, spacing=0.14)
     for x in (-W / 2, W / 2):
@@ -413,14 +413,14 @@ def stand_covered(k):
     posts = [-W / 2 + i * W / 5 for i in range(6)]
     for x in posts:
         for y in (y0 + 0.1, -y0 - 0.1):
-            k.cyl("trim", x, y, 0, Hp, 0.09, 0.08, 8)
+            k.cyl("trim", x, y, 0, Hp - 0.03, 0.09, 0.08, 8)
     for xa, xb in zip(posts[:-1], posts[1:]):                                                     # arched brackets
         c, r = (xa + xb) / 2, (xb - xa) / 2
         k.arc_band("trim", c, Hp - 1.0, r - 0.1, r, 0.25, math.pi - 0.25, y0 + 0.05, y0 + 0.15, 10)
         for sgn in (-1, 1):
             k.arc_band("trim", c + sgn * (r - 0.55), Hp - 0.55, 0.45, 0.53, math.pi / 2 if sgn > 0 else 0, math.pi if sgn > 0 else math.pi / 2, y0 + 0.06, y0 + 0.14, 5)
     k.box("trim", -W / 2 - 0.1, W / 2 + 0.1, y0, y0 + 0.2, Hp - 0.3, Hp)
-    k.box("trim", -W / 2 - 0.1, W / 2 + 0.1, -y0 - 0.2, -y0, Hp - 0.3, Hp)
+    k.box("trim", -W / 2 - 0.1, W / 2 + 0.1, -y0 - 0.2, -y0 + 0.05, Hp - 0.3, Hp)               # 5 cm proud of the back wall
     k.hip_roof(-W / 2, W / 2, y0 + 0.1, -y0 - 0.1, Hp, 1.2, 0.5)
     stair(k, -W / 2 - 1.7, -W / 2 - 0.2, y0 - 1.6, y0 + 0.3, z0)
     return {"seats": seats}
@@ -429,7 +429,8 @@ def stand_covered(k):
 def terrace_deck(k):
     W, D, h = 10.0, 7.0, 0.7
     k.box("timber", -W / 2, W / 2, -D / 2, D / 2, 0, h)
-    k.box("trim", -W / 2 - 0.05, W / 2 + 0.05, -D / 2 - 0.05, D / 2 + 0.05, h - 0.08, h)
+    # edging stops 3 cm under the deck top: sharing the top face made the deck flash (owner, 3 Nov)
+    k.box("trim", -W / 2 - 0.05, W / 2 + 0.05, -D / 2 - 0.05, D / 2 + 0.05, h - 0.11, h - 0.03)
     for i in range(1, 20):
         x = -W / 2 + i * W / 20
         k.box("trim", x - 0.015, x + 0.015, -D / 2 - 0.07, -D / 2, 0.06, h - 0.1)
@@ -492,7 +493,7 @@ def kiosk_body(k, x0, x1, D, H, hatch=True):
     if hatch:
         w = (x1 - x0) - 0.9
         c = (x0 + x1) / 2
-        k.box("dark", c - w / 2, c + w / 2, -D / 2 - 0.02, -D / 2 + 0.12, 1.05, 2.05)
+        k.box("dark", c - w / 2, c + w / 2, -D / 2 - 0.05, -D / 2 + 0.12, 1.05, 2.05)   # 5 cm proud: 2 cm flashed far off
         k.box("trim", c - w / 2 - 0.1, c + w / 2 + 0.1, -D / 2 - 0.3, -D / 2 + 0.05, 0.98, 1.06)   # counter
         k.box("trim", c - w / 2 - 0.08, c + w / 2 + 0.08, -D / 2 - 0.05, -D / 2, 2.05, 2.15)
 

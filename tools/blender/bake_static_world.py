@@ -8,9 +8,16 @@ main stand (its light distant version, assets/models/architecture/ascot_main_sta
 components (courses/ascot-site-dressing.json) and the finish line, with the planting belts' hedge and
 trees standing by to cast their shadows, then lets Cycles work out the soft light, bounce light and shadows once:
 
-  assets/models/baked/static_world.glb   four meshes in world axes, each with a lightmap UV
-  assets/models/baked/*_light.jpg        light on the stand, site pieces and finish line (light only;
+  assets/models/baked/static_world.glb   the stand, finish line and ground in world axes, and the site kit:
+                                          one mesh per site piece and facing (kit_<piece>_q<0..3>, in the
+                                          piece's own axes, as site_props.glb), each with a lightmap UV
+  assets/models/baked/*_light.jpg        light on the stand, site kit and finish line (light only;
                                           the engine multiplies it by each material's colour)
+
+The site pieces are not baked where they stand. Each piece type is baked once for each way it faces
+(its turn rounded to a quarter turn), standing alone on open grass under the same sun and sky, and the
+viewer draws every copy from that one mesh (instancing): the download and memory no longer grow with
+the number of copies. Copies keep their soft shadows on the ground, which still bakes with every copy in place.
   assets/models/baked/ground.jpg         the ground's own colour and light together round the home
                                           straight's last 2 furlongs (turf, lanes, grass, paths and the
                                           soft shadows the buildings and trees cast on them)
@@ -39,6 +46,10 @@ RAIL_GAP = COURSE["rails"]["gap"]
 FRONT = COURSE["grandstand"]["frontLine"]
 # Ground area to bake (world x, z): the last 2 furlongs and the post, both sides of the track.
 GROUND = {"x0": -260.0, "x1": 700.0, "z0": -150.0, "z1": 140.0, "w": 5120, "h": 1548}
+SMOKE = bool(os.environ.get("SMOKE"))          # SMOKE=1: tiny images, 1 sample, to check the script runs end to end
+if SMOKE:
+    SAMPLES = 1; GROUND.update(w=640, h=194)
+    OUT = os.path.join(REPO, "assets/models/baked_smoke"); os.makedirs(OUT, exist_ok=True)
 bpy.ops.wm.read_factory_settings(use_empty=True)
 scene = bpy.context.scene
 
@@ -75,7 +86,8 @@ sun.rotation_euler = (math.radians(56), 0, math.radians(-118))
 
 # ---------------- ground: the stills' turf, lanes, grass and paths ----------------
 def ground_mask():
-    """Track (red) and paths (green) drawn over the ground area, from the course data."""
+    """Track (red), paths (green) and the soft lanes (blue: tools/course/build_lane_field.py, the same
+    stripes the race view draws on the turf beyond the baked ground) over the ground area."""
     g = GROUND
     sx, sz = g["w"] / (g["x1"] - g["x0"]), g["h"] / (g["z1"] - g["z0"])
     px = lambda x, z: ((x - g["x0"]) * sx, (z - g["z0"]) * sz)       # image row 0 = the north edge (z0)
@@ -88,6 +100,15 @@ def ground_mask():
     for p in VIEW.get("paths", []):
         (ax, az), (bx, bz) = p["from"], p["to"]
         d.line([px(ax, az), px(bx, bz)], fill=(0, 255, 0), width=max(1, int(p["width"] * sz)))
+    import importlib.util
+    spec = importlib.util.spec_from_file_location("lane_field", os.path.join(REPO, "tools/course/build_lane_field.py"))
+    lf = importlib.util.module_from_spec(spec); spec.loader.exec_module(lf)
+    L = VIEW["lanes"]
+    dist = lf.distance_field(g["x0"], g["z0"], g["x1"], g["z1"], None, (g["w"], g["h"]))   # row 0 = north
+    lanes = lf.lanes_value(dist, L["lanes"], L["width"])
+    rgb = np.array(im)
+    rgb[..., 2] = (lanes * 255 + 0.5).astype(np.uint8)
+    im = Image.fromarray(rgb, "RGB")
     path = os.path.join(OUT, "_ground_mask.png")
     im.filter(ImageFilter.GaussianBlur(1.2)).save(path)
     return path
@@ -102,16 +123,15 @@ def ground_material():
     mask.interpolation = "Linear"; mask.extension = "EXTEND"
     uvn = gn.new("ShaderNodeUVMap"); uvn.uv_map = "lightmap"; gl.new(uvn.outputs["UV"], mask.inputs["Vector"])
     msep = gn.new("ShaderNodeSeparateColor"); gl.new(mask.outputs["Color"], msep.inputs[0])
-    # lanes across the home straight: soft stripes, 8 to the 30 m width (Blender y = -world z)
-    yoff = gn.new("ShaderNodeMath"); yoff.operation = "ADD"; yoff.inputs[1].default_value = W / 2; gl.new(sxyz.outputs["Y"], yoff.inputs[0])
-    lanes = gn.new("ShaderNodeMath"); lanes.operation = "MULTIPLY"; lanes.inputs[1].default_value = math.pi * 8 / 30
-    gl.new(yoff.outputs[0], lanes.inputs[0])
-    cosn = gn.new("ShaderNodeMath"); cosn.operation = "COSINE"; gl.new(lanes.outputs[0], cosn.inputs[0])
+    # soft lanes along the running line, round the bends too: the mask's blue channel holds
+    # 0.5 + 0.5 cos(pi * 8 * d / 30), d = metres from the turf's edge; back to -1..1 here
+    cosn = gn.new("ShaderNodeMath"); cosn.operation = "MULTIPLY_ADD"; cosn.inputs[1].default_value = 2.0; cosn.inputs[2].default_value = -1.0
+    gl.new(msep.outputs[2], cosn.inputs[0])
     noise = gn.new("ShaderNodeTexNoise"); noise.inputs["Scale"].default_value = 0.04; noise.inputs["Detail"].default_value = 3
     gl.new(tco.outputs["Object"], noise.inputs["Vector"])
     turf_r = ramp(gn, [(0.0, "#2f7a2c"), (0.5, "#4f9a38"), (1.0, "#74b448")])
     grass_r = ramp(gn, [(0.0, "#4f8a32"), (0.5, "#76a442"), (1.0, "#b4bc5a")])
-    tv = gn.new("ShaderNodeMath"); tv.operation = "MULTIPLY_ADD"; tv.inputs[1].default_value = 0.13; tv.inputs[2].default_value = 0.5
+    tv = gn.new("ShaderNodeMath"); tv.operation = "MULTIPLY_ADD"; tv.inputs[1].default_value = 0.17; tv.inputs[2].default_value = 0.5
     gl.new(cosn.outputs[0], tv.inputs[0])
     tv2 = gn.new("ShaderNodeMath"); tv2.operation = "ADD"; gl.new(tv.outputs[0], tv2.inputs[0])
     nb = gn.new("ShaderNodeMath"); nb.operation = "MULTIPLY_ADD"; nb.inputs[1].default_value = 0.5; nb.inputs[2].default_value = -0.25
@@ -181,16 +201,46 @@ for o in stand_parts:                                          # built in world 
 stand = join(stand_parts, "stand")
 
 lib = {o.name.split(".")[0]: o for o in import_glb(os.path.join(arch, "site_props.glb"))}
+for o in lib.values():
+    o.parent = None
+quarter = lambda turn: int(round(turn / 90.0)) % 4
+# every copy in place, only to cast its shadow on the ground (and on its neighbours' ground)
 copies = []
 for p in DRESS["pieces"]:
-    src = lib[p["piece"]]
-    o = src.copy()
+    o = lib[p["piece"]].copy()
     scene.collection.objects.link(o)
     o.matrix_world = Matrix.Translation((p["x"], -p["z"], 0)) @ Matrix.Rotation(math.pi + math.radians(p.get("turn", 0)), 4, "Z")
     copies.append(o)
+site_shadow = join(copies, "site_shadow")
+# the kit: one copy of each piece for each quarter turn it is used at, in a row on open grass far from the course
+VARIANTS = sorted({(p["piece"], quarter(p.get("turn", 0))) for p in DRESS["pieces"]})
+STUDIO = (4000.0, 4000.0, 70.0)                                # Blender x, y of the first spot; spacing
+studio_at = {}
+vcopies = []
+for i, (piece, q) in enumerate(VARIANTS):
+    o = lib[piece].copy(); o.data = lib[piece].data.copy()
+    scene.collection.objects.link(o)
+    M = Matrix.Translation((STUDIO[0] + (i % 8) * STUDIO[2], STUDIO[1] + (i // 8) * STUDIO[2], 0)) @ Matrix.Rotation(math.pi + q * math.pi / 2, 4, "Z")
+    o.matrix_world = M
+    studio_at[i] = M
+    a = o.data.attributes.new("variant", "INT", "FACE")
+    a.data.foreach_set("value", [i] * len(o.data.polygons))
+    vcopies.append(o)
 for o in lib.values():
     bpy.data.objects.remove(o, do_unlink=True)
-site = join(copies, "site")
+site = join(vcopies, "site_kit")
+# open grass under the studio row, for the bounce light and the shadow at each piece's foot
+sme = bpy.data.meshes.new("studio_ground")
+sbm = bmesh.new()
+sx1, sy1 = STUDIO[0] + 8 * STUDIO[2], STUDIO[1] + (len(VARIANTS) // 8 + 1) * STUDIO[2]
+sbm.faces.new([sbm.verts.new(c) for c in ((STUDIO[0] - 200, STUDIO[1] - 200, 0), (sx1 + 200, STUDIO[1] - 200, 0), (sx1 + 200, sy1 + 200, 0), (STUDIO[0] - 200, sy1 + 200, 0))])
+sbm.to_mesh(sme); sbm.free()
+sgm = bpy.data.materials.new("studio_grass"); sgm.use_nodes = True
+sgm.node_tree.nodes["Principled BSDF"].inputs["Base Color"].default_value = srgb("#76a442")
+sgm.node_tree.nodes["Principled BSDF"].inputs["Roughness"].default_value = 0.95
+sme.materials.append(sgm)
+scene.collection.objects.link(bpy.data.objects.new("studio_ground", sme))
+print("site kit: %d pieces x facings for %d copies" % (len(VARIANTS), len(DRESS["pieces"])), flush=True)
 
 # the finish line stands on the far (inside) rail, its post on the rail line and red loop on the winning line,
 # facing the stands (it was modelled for the far side: front facing the track)
@@ -222,7 +272,7 @@ for o in tlib.values():
 
 
 # ---------------- lightmap UVs ----------------
-def lightmap_uv(o):
+def lightmap_uv(o, margin=0.0012):
     for l in list(o.data.uv_layers):
         o.data.uv_layers.remove(l)
     o.data.uv_layers.new(name="lightmap")
@@ -233,12 +283,12 @@ def lightmap_uv(o):
     bpy.ops.uv.smart_project(angle_limit=math.radians(66), island_margin=0.0, scale_to_bounds=False)
     # Thousands of small islands (balusters, posts, frames): pack them tightly by their boxes so the
     # image is used well; a fixed margin of a few pixels keeps neighbours from bleeding into each other.
-    bpy.ops.uv.pack_islands(rotate=True, scale=True, margin_method="FRACTION", margin=0.0012, shape_method="AABB")
+    bpy.ops.uv.pack_islands(rotate=True, scale=True, margin_method="FRACTION", margin=margin, shape_method="AABB")
     bpy.ops.object.mode_set(mode="OBJECT")
 
 
-for o in (stand, site, finish):
-    lightmap_uv(o)
+for o, margin in ((stand, 0.0012), (site, 0.0012), (finish, 0.0012)):   # bigger margins collapse the islands (thousands of them)
+    lightmap_uv(o, margin)
 print("lightmap UVs done", flush=True)
 
 # ---------------- bake ----------------
@@ -285,13 +335,13 @@ def encode(px, path, scale, jpeg=False, blur=1.0):
 
 INFO = {"_about": "Baked light for the static world (tools/blender/bake_static_world.py), world axes as courses/ascot.json. Each image stores value / scale, sRGB-encoded. Viewer: colour = material colour x light x scale (light maps), or image x scale (ground; its area is in world x, z, image top = north). 'outside' and 'turf' are the plain grass and turf colours (linear) to carry on beyond the baked ground.",
         "glb": "static_world.glb"}
-for o, name, size in ((finish, "finish", 2048), (site, "site", 4096), (stand, "stand", 3072)):
+for o, name, size in ((finish, "finish", 2048), (site, "site", 2048), (stand, "stand", 3072)):
     import time; t0 = time.time()
-    px = bake(o, name, size, size, "light")
+    px = bake(o, name, size // 8 if SMOKE else size, size // 8 if SMOKE else size, "light")
     lum = px[..., :3].max(axis=2)[px[..., 3] > 0.5]
     scale = float(np.percentile(lum, 99.5)) * 1.05 if lum.size else 1.0
     encode(px, os.path.join(OUT, name + "_light.jpg"), scale, jpeg=True, blur=0)
-    INFO[name] = {"mesh": name, "lightMap": name + "_light.jpg", "scale": round(scale, 4)}
+    INFO[name] = {"mesh": o.name, "lightMap": name + "_light.jpg", "scale": round(scale, 4)}
     print("baked %s in %.0fs, scale %.3f" % (name, time.time() - t0, scale), flush=True)
 
 t0 = time.time()
@@ -313,9 +363,36 @@ if px is not None:
                       "turf": [round(float(c), 4) for c in np.median(turf[::20], axis=0)]}
     print("baked ground in %.0fs, scale %.3f" % (time.time() - t0, scale), flush=True)
 
+# ---------------- the site kit back into one mesh per piece and facing, in the piece's own axes ----------------
+kit_objs = []
+vals = np.empty(len(site.data.polygons), dtype=np.int32)
+site.data.attributes["variant"].data.foreach_get("value", vals)
+for i, (piece, q) in enumerate(VARIANTS):
+    me = site.data.copy()
+    bm = bmesh.new(); bm.from_mesh(me)
+    bm.faces.ensure_lookup_table()
+    bmesh.ops.delete(bm, geom=[f for f, v in zip(bm.faces, vals) if v != i], context="FACES")
+    bmesh.ops.transform(bm, matrix=studio_at[i].inverted(), verts=bm.verts)
+    bm.to_mesh(me); bm.free()
+    me.attributes.remove(me.attributes["variant"])
+    nm = "kit_%s_q%d" % (piece, q)
+    ob = bpy.data.objects.new(nm, me); me.name = nm
+    scene.collection.objects.link(ob)
+    # drop material slots this piece doesn't use, so the viewer gets no empty parts
+    used = {p.material_index for p in me.polygons}
+    for k in sorted(range(len(me.materials)), reverse=True):
+        if k not in used:
+            me.materials.pop(index=k)                     # shifts the faces' material indices down
+    kit_objs.append(ob)
+INFO["site"]["mesh"] = None
+INFO["site"]["kit"] = {"%s_q%d" % v: "kit_%s_q%d" % v for v in VARIANTS}
+INFO["site"]["note"] = ("Instanced: one mesh per piece and quarter turn, in the piece's own axes. Place each copy in "
+                        "courses/ascot-site-dressing.json with kit_<piece>_q<round(turn/90) mod 4> at (x, 0, z), turned "
+                        "180 + turn degrees about y, as site_props.glb.")
+
 # ---------------- export: meshes with their lightmap UVs ----------------
 bpy.ops.object.select_all(action="DESELECT")
-for o in (stand, site, finish, ground):
+for o in (stand, finish, ground, *kit_objs):
     o.select_set(True)
     for m in o.data.materials:                       # drop the bake image nodes again
         for n in [n for n in m.node_tree.nodes if n.type == "TEX_IMAGE"]:

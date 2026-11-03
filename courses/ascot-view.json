@@ -240,6 +240,59 @@
     1,
     4
    ]
+  },
+  {
+   "note": "behind the enclosure past the post (owner: no bare grass anywhere round the course)",
+   "area": [
+    -260,
+    108,
+    -110,
+    175
+   ],
+   "spacing": 18,
+   "skip": 0.25,
+   "scale": [
+    1.0,
+    1.45
+   ]
+  },
+  {
+   "note": "open ground beyond the bend, outside the planting belt",
+   "area": [
+    -520,
+    -300,
+    -205,
+    260
+   ],
+   "spacing": 30,
+   "skip": 0.45,
+   "scale": [
+    1.0,
+    1.5
+   ],
+   "clump": [
+    1,
+    3
+   ]
+  },
+  {
+   "note": "infield inside the bend, kept back from the rails",
+   "area": [
+    -175,
+    -60,
+    -40,
+    -330
+   ],
+   "spacing": 34,
+   "skip": 0.6,
+   "scale": [
+    1.0,
+    1.4
+   ],
+   "clump": [
+    1,
+    3
+   ]
   }
  ],
  "clearOf": {
@@ -264,5 +317,19 @@
   "reflect": "#7f93a6",
   "amount": 0.3,
   "note": "Window glass on the baked buildings picks up this much of the sky's reflection, so big glazed screens read as glass rather than dark holes."
+ },
+ "lanes": {
+  "_about": "Soft mown lanes along the running line (tools/course/build_lane_field.py). map: grey = metres from the turf's edge / maxDist (row 0 = z0, north). Stripes: 0.5 + 0.5 cos(pi * lanes * d / width), brightening the turf by +-strength. The ground bake draws the same stripes.",
+  "map": "lanes.png",
+  "area": [
+   -195.0,
+   -979.0,
+   1630.0,
+   38.0
+  ],
+  "maxDist": 20.0,
+  "lanes": 8,
+  "width": 30,
+  "strength": 0.14
  }
 }
