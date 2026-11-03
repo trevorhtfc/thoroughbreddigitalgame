@@ -38,7 +38,7 @@ W = COURSE["trackWidth"]
 RAIL_GAP = COURSE["rails"]["gap"]
 FRONT = COURSE["grandstand"]["frontLine"]
 # Ground area to bake (world x, z): the last 2 furlongs and the post, both sides of the track.
-GROUND = {"x0": -260.0, "x1": 460.0, "z0": -150.0, "z1": 140.0, "w": 4096, "h": 1650}
+GROUND = {"x0": -260.0, "x1": 700.0, "z0": -150.0, "z1": 140.0, "w": 5120, "h": 1548}
 bpy.ops.wm.read_factory_settings(use_empty=True)
 scene = bpy.context.scene
 
@@ -285,7 +285,7 @@ def encode(px, path, scale, jpeg=False, blur=1.0):
 
 INFO = {"_about": "Baked light for the static world (tools/blender/bake_static_world.py), world axes as courses/ascot.json. Each image stores value / scale, sRGB-encoded. Viewer: colour = material colour x light x scale (light maps), or image x scale (ground; its area is in world x, z, image top = north). 'outside' and 'turf' are the plain grass and turf colours (linear) to carry on beyond the baked ground.",
         "glb": "static_world.glb"}
-for o, name, size in ((finish, "finish", 2048), (site, "site", 3072), (stand, "stand", 3072)):
+for o, name, size in ((finish, "finish", 2048), (site, "site", 4096), (stand, "stand", 3072)):
     import time; t0 = time.time()
     px = bake(o, name, size, size, "light")
     lum = px[..., :3].max(axis=2)[px[..., 3] > 0.5]
