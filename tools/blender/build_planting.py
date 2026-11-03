@@ -4,19 +4,20 @@
 
 Reads  courses/ascot.json                         zones.planting (the belt outline: from `gap` to
                                                   gap + depth metres outside the track), the rails
-Writes assets/models/course/planting_belts.glb    `planting_belt`: one dark, dense tree mass (a lumpy
-                                                  canopy of overlapping crowns, vertex-coloured from a
-                                                  dark base to sunlit tops) in WORLD axes, place at the
-                                                  origin; `board_navy`, `board_white`, `board_green`,
-                                                  `board_cream`: one Thoroughbred advertising board each
-                                                  (6 m long, front faces +z, origin at the middle of its
-                                                  foot), sharing one image
+Writes assets/models/course/planting_belts.glb    `planting_hedge`: a low, dense hedge (about 3.5 m,
+                                                  lumpy, rounded) a few metres behind the far rails,
+                                                  in WORLD axes, place at the origin; `board_navy`,
+                                                  `board_white`, `board_green`, `board_cream`: one
+                                                  Thoroughbred advertising board each (6 m long, front
+                                                  faces +z, origin at the middle of its foot)
        assets/models/course/ad_boards.png         the boards' artwork (four designs, one per row)
-       courses/ascot-boards.json                  where each board stands (x, z, turn, design)
+       courses/ascot-planting.json                where each board stands, and the rows of leafy trees
+                                                  (assets/models/trees/trees.glb) that fill the belt
+                                                  behind the hedge and stand above it
        assets/models/master/planting_belts.blend  Blender master
 
-World axes as courses/ascot.json: x east, z south, y up. Like the TV pictures of Ascot's far side: a
-tight wall of trees a few metres behind the outer rail, with a line of boards in front of it.
+World axes as courses/ascot.json: x east, z south, y up. Like the TV pictures of Ascot's far side: boards
+just behind the rail, a hedge closing the view at eye level, and real trees standing behind and above it.
 """
 import json, math, os
 import numpy as np
@@ -65,131 +66,90 @@ def srgb(h):
     return np.array([(v / 12.92 if v <= 0.04045 else ((v + 0.055) / 1.055) ** 2.4) for v in c])
 
 
-# ---------------------------------------------------------------- 1) the tree mass
-def resample_ring(coords, step):
+# ---------------------------------------------------------------- 1) the hedge
+# A low, dense hedge a few metres behind the boards closes the view at eye level, so nothing behind
+# it needs designing; the trees (placed below, drawn from the leafy tree models) stand behind and above it.
+HEDGE_AT, HEDGE_W = GAP + 1.8, 3.2          # middle of the hedge, metres from the turf's edge; its width
+STEP = 1.5
+
+
+def lines_in_belt(dist):
+    """Lines running dist metres outside the turf, kept only where the planting belt runs."""
+    area = track.buffer(dist, join_style=1, quad_segs=24)
+    rings = [area.exterior] + list(area.interiors)
     out = []
-    for a, b in zip(coords[:-1], coords[1:]):
-        a, b = np.array(a), np.array(b)
-        n = max(1, int(np.ceil(np.linalg.norm(b - a) / step)))
-        out += [a + (b - a) * k / n for k in range(n)]
-    return np.array(out)
+    for r in rings:
+        part = LineString(r.coords).intersection(belts.buffer(0.6))
+        for g in (part.geoms if hasattr(part, "geoms") else [part]):
+            if g.geom_type == "LineString" and g.length > 12:
+                out.append(g)
+    return out
 
 
-def canopy(poly):
-    # crowns: a jittered scatter of overlapping domes, with now and then a taller one standing proud
-    minx, miny, maxx, maxy = poly.bounds
-    gx, gy = np.meshgrid(np.arange(minx, maxx, 6.5), np.arange(miny, maxy, 6.5))
-    cpts = np.c_[gx.ravel(), gy.ravel()] + rng.uniform(-2.6, 2.6, (gx.size, 2))
-    cpts = cpts[shapely.contains_xy(poly.buffer(1.0), cpts[:, 0], cpts[:, 1])]
-    nC = len(cpts)
-    dtr = shapely.distance(track, shapely.points(cpts))         # how far behind the rail each crown stands
-    front = np.clip((dtr - GAP) / DEPTH, 0, 1)
-    tall = rng.random(nC) < 0.06
-    rad = rng.uniform(4.6, 7.4, nC) * (0.85 + 0.2 * front) * (1 + 0.25 * tall)
-    top = rng.uniform(12.5, 17.5, nC) * (0.88 + 0.16 * front) + tall * rng.uniform(3.0, 5.5, nC)
-    tint = rng.random(nC)                                   # per-crown colour variety
-    ctree = cKDTree(cpts)
-
-    # surface points: the outline at ground, a ring just inside it at canopy height, and a grid inside
-    edge = np.vstack([resample_ring(np.array(r.coords), 2.0) for r in [poly.exterior] + list(poly.interiors)])
-    inner = poly.buffer(-1.6, join_style=1)
-    rings = [inner] if inner.geom_type == "Polygon" else list(inner.geoms)
-    lip = np.vstack([resample_ring(np.array(r.coords), 2.2) for p in rings for r in [p.exterior] + list(p.interiors)])
-    gx, gy = np.meshgrid(np.arange(minx, maxx, 2.8), np.arange(miny, maxy, 2.8))
-    grid = np.c_[gx.ravel(), gy.ravel()] + rng.uniform(-0.9, 0.9, (gx.size, 2))
-    grid = grid[shapely.contains_xy(poly.buffer(-3.0), grid[:, 0], grid[:, 1])]
-    pts = np.vstack([edge, lip, grid])
-    is_edge = np.r_[np.ones(len(edge), bool), np.zeros(len(lip) + len(grid), bool)]
-
-    # height: the highest crown dome over each point
-    h = np.zeros(len(pts)); own = np.zeros(len(pts), int); rel = np.zeros(len(pts))
-    for i, nb in enumerate(ctree.query_ball_point(pts, 8.0)):
-        best = 0.0
-        for c in nb:
-            dd = np.linalg.norm(pts[i] - cpts[c]) / rad[c]
-            if dd < 1.0:
-                cap = 0.3 * top[c]
-                v = top[c] - cap + cap * math.sqrt(1 - dd * dd)
-                if v > best:
-                    best, own[i], rel[i] = v, c, 1 - dd
-        if best == 0.0 and len(nb):                           # between crowns: the canopy beneath them
-            c = min(nb, key=lambda c: np.linalg.norm(pts[i] - cpts[c]))
-            best, own[i], rel[i] = top[c] * 0.62, c, 0.0
-        h[i] = best
-    # where the belt simply stops (an end cut across it, not its rail-side or back edge), let the trees
-    # step down over the last 30 m instead of ending in a wall
-    caps = []
-    for ring in [poly.exterior] + list(poly.interiors):
-        c_ = np.array(ring.coords)
-        for p0, p1 in zip(c_[:-1], c_[1:]):
-            mid = Point((p0 + p1) / 2)
-            if GAP + 2.5 < track.distance(mid) < GAP + DEPTH - 2.5:
-                caps.append(LineString([p0, p1]))
-    if caps:
-        dcap = shapely.distance(unary_union(caps), shapely.points(pts))
-        f = np.clip(dcap / 30.0, 0, 1)
-        h *= 0.35 + 0.65 * f * f * (3 - 2 * f)
-    # the face on the rail side leans out a little at mid height, so it reads as foliage, not a cliff
-    h[is_edge] = 0.0
-    lipm = np.zeros(len(pts), bool); lipm[len(edge):len(edge) + len(lip)] = True
-    h[lipm] *= 0.55
-
-    # normals bent out from each crown's middle, so every crown shades as one soft ball (as the trees do)
-    cc = np.c_[cpts[own], top[own] - 0.55 * top[own]]
-    nrm = np.c_[pts - cc[:, :2], h - cc[:, 2]]
-    nrm[:, :2] /= np.maximum(rad[own], 1.0)[:, None]
-    nrm[:, 2] = nrm[:, 2] / np.maximum(0.45 * top[own], 1.0) + 0.35
-    nrm /= np.linalg.norm(nrm, axis=1, keepdims=True)
-
-    # triangles inside the belt only
-    tri = Delaunay(pts).simplices
-    cen = pts[tri].mean(axis=1)
-    keep = shapely.contains_xy(poly, cen[:, 0], cen[:, 1])
-    e = np.max([np.linalg.norm(pts[tri[:, a]] - pts[tri[:, b]], axis=1) for a, b in ((0, 1), (1, 2), (2, 0))], axis=0)
-    tri = tri[keep & (e < 9.0)]
-
-    # colour: dark base, deep green body, lighter sunlit domes; a few crowns warmer or bluer
-    dark, body, lit = srgb("#22391a"), srgb("#38592a"), srgb("#6f9447")
-    warm, cool = srgb("#6e7a35"), srgb("#2c5040")
-    t = np.clip(h / np.maximum(top[own], 1.0), 0, 1)
-    col = dark[None] * (1 - t[:, None]) + body[None] * t[:, None]
-    w_ = (rel ** 1.5 * 0.9 * t)[:, None]
-    col = col * (1 - w_) + lit[None] * w_
-    tw = tint[own]
-    col = np.where((tw > 0.86)[:, None], col * 0.55 + warm[None] * 0.45 * np.maximum(t, 0.3)[:, None], col)
-    col = np.where((tw < 0.12)[:, None], col * 0.6 + cool[None] * 0.4, col)
-    col *= rng.uniform(0.9, 1.08, (len(pts), 1))
-    return pts, h, tri, col, nrm
+def noise1(s, seed):
+    """Smooth 1-D value noise in -1..1 (s in samples)."""
+    r = np.random.default_rng(seed).uniform(-1, 1, int(s.max()) + 3)
+    i = np.floor(s).astype(int); f = s - i; f = f * f * (3 - 2 * f)
+    return r[i] * (1 - f) + r[i + 1] * f
 
 
-me = bpy.data.meshes.new("planting_belt")
+PROFILE = [(-1.0, 0.0), (-0.92, 0.55), (-0.62, 0.9), (-0.2, 1.0), (0.2, 1.0), (0.62, 0.9), (0.92, 0.55), (1.0, 0.0)]
+hedge_dark, hedge_mid, hedge_top = srgb("#2e4c25"), srgb("#426d33"), srgb("#76a54b")
+me = bpy.data.meshes.new("planting_hedge")
 bm = bmesh.new()
 cl = bm.loops.layers.color.new("Col")
-ntri = 0
-all_n = []
-for poly in belt_list:
-    pts, h, tri, col, nrm = canopy(poly)
-    all_n.append(nrm)
-    vs = [bm.verts.new((p[0], -p[1], hh)) for p, hh in zip(pts, h)]      # Blender y = -world z
-    vid = {v: i for i, v in enumerate(vs)}
-    for a, b, c in tri:
-        try:
-            f = bm.faces.new((vs[a], vs[b], vs[c]))
-        except ValueError:
-            continue
-        f.smooth = True
+nrm_all = []
+hedge_len = 0.0
+for li, ln in enumerate(lines_in_belt(HEDGE_AT)):
+    n = max(2, int(ln.length / STEP) + 1)
+    ss = np.linspace(0, ln.length, n)
+    P = np.array([[ln.interpolate(t).x, ln.interpolate(t).y] for t in ss])
+    T = np.gradient(P, axis=0); T /= np.linalg.norm(T, axis=1, keepdims=True)
+    N = np.c_[-T[:, 1], T[:, 0]]
+    probe = shapely.distance(track, shapely.points(P + N * 1.0)) < shapely.distance(track, shapely.points(P - N * 1.0))
+    N[probe] *= -1                                        # N points away from the track
+    k = ss / STEP
+    H = 3.5 + 0.55 * noise1(k / 4.0, 11 + li) + 0.3 * noise1(k / 1.3, 31 + li)
+    bulge = 0.35 * noise1(k / 2.0, 51 + li)
+    end = np.clip(np.minimum(ss, ln.length - ss) / 6.0, 0, 1)   # round the ends off
+    H *= 0.3 + 0.7 * end
+    hedge_len += ln.length
+    rows = []
+    for i in range(n):
+        row = []
+        for w, hf in PROFILE:
+            off = w * HEDGE_W / 2 * (1 + (bulge[i] if w < 0 else 0) * 0.5)
+            x, z = P[i] + N[i] * off
+            y = H[i] * hf
+            v = bm.verts.new((x, -z, y))
+            row.append(v)
+            # soft rounded shading: out from the hedge's core, leaning up
+            nv = np.array([N[i][0] * w, N[i][1] * w, 0.0]) + np.array([0, 0, 0.9 * hf + 0.2])
+            nrm_all.append(nv / np.linalg.norm(nv))
+        rows.append(row)
+    for i in range(n - 1):
+        for j in range(len(PROFILE) - 1):
+            f = bm.faces.new((rows[i][j], rows[i + 1][j], rows[i + 1][j + 1], rows[i][j + 1]))
+            f.smooth = True
+    mott = rng.uniform(0.82, 1.12, (n, len(PROFILE)))
+    cols = {}                                             # by height in the hedge, mottled
+    for i in range(n):
+        for j, (w, hf) in enumerate(PROFILE):
+            c = hedge_dark * (1 - hf) + (hedge_mid * (1 - hf ** 3) + hedge_top * hf ** 3) * hf
+            cols[rows[i][j]] = np.clip(c * mott[i, j], 0, 1)
+    for f in bm.faces:
         for lp in f.loops:
-            lp[cl] = (*np.clip(col[vid[lp.vert]], 0, 1), 1.0)
-        ntri += 1
+            if lp.vert in cols:
+                lp[cl] = (*cols[lp.vert], 1.0)
 bmesh.ops.recalc_face_normals(bm, faces=bm.faces)
-for f in bm.faces:                                         # every face looks up and outwards
+for f in bm.faces:
     if f.normal.z < -0.2:
         f.normal_flip()
 bm.to_mesh(me); bm.free()
-nv = np.vstack(all_n)
-me.normals_split_custom_set_from_vertices([(n[0], -n[1], n[2]) for n in nv])   # Blender y = -world z
-for a in [a for a in me.color_attributes if a.name != "Col"]:
-    me.color_attributes.remove(a)
+nv = np.array(nrm_all)
+me.normals_split_custom_set_from_vertices([(a[0], -a[1], a[2]) for a in nv])      # Blender y = -world z
+for a_ in [a_ for a_ in me.color_attributes if a_.name != "Col"]:
+    me.color_attributes.remove(a_)
 me.color_attributes.active_color = me.color_attributes["Col"]
 me.color_attributes.render_color_index = me.color_attributes.active_color_index
 mat = bpy.data.materials.new("planting_foliage"); mat.use_nodes = True
@@ -197,9 +157,26 @@ nt = mat.node_tree; ca = nt.nodes.new("ShaderNodeVertexColor"); ca.layer_name = 
 bsdf = nt.nodes["Principled BSDF"]; nt.links.new(ca.outputs["Color"], bsdf.inputs["Base Color"])
 bsdf.inputs["Roughness"].default_value = 1.0
 me.materials.append(mat)
-belt_ob = bpy.data.objects.new("planting_belt", me)
+belt_ob = bpy.data.objects.new("planting_hedge", me)
 scene.collection.objects.link(belt_ob)
-print("planting belt: %d triangles over %.0f m2" % (ntri, belts.area), flush=True)
+print("hedge: %.0f m, %d triangles" % (hedge_len, sum(len(p.vertices) - 2 for p in me.polygons)), flush=True)
+
+# ---------------------------------------------------------------- 1b) the trees behind the hedge
+# Rows of the leafy tree models (assets/models/trees/trees.glb), filling the belt behind the hedge:
+# a smaller front row, taller rows behind, now and then a poplar. Placed here, drawn by any engine.
+KINDS = ["oak_a", "oak_b", "oak_c", "wide_a", "wide_b"]
+trees = []
+for r, (dist, spacing, sc) in enumerate(((GAP + 5.5, 8.5, (1.0, 1.3)), (GAP + 11.5, 9.0, (1.25, 1.6)), (GAP + 18.0, 10.0, (1.35, 1.75)))):
+    for ln in lines_in_belt(dist):
+        s_ = rng.uniform(0, spacing)
+        while s_ < ln.length:
+            p = ln.interpolate(s_)
+            x, z = p.x + rng.uniform(-1.6, 1.6), p.y + rng.uniform(-1.6, 1.6)
+            if belts.contains(Point(x, z)):
+                kind = "poplar_a" if rng.random() < 0.1 and r > 0 else KINDS[int(rng.integers(len(KINDS)))]
+                trees.append([round(x, 2), round(z, 2), kind, round(float(rng.uniform(*sc)), 2), round(float(rng.uniform(0, 360)), 0)])
+            s_ += spacing * rng.uniform(0.75, 1.25)
+print("belt trees: %d" % len(trees), flush=True)
 
 
 # ---------------------------------------------------------------- 2) the boards' artwork
@@ -300,9 +277,10 @@ for ring in rings:
         turn = math.degrees(math.atan2(nx, nz))
         place.append([round(p.x, 2), round(p.y, 2), round(turn, 1), DESIGNS[k % 4][0]])
         k += 1
-json.dump({"_about": "Thoroughbred advertising boards along the far rails, in front of the planting belts. Built by tools/blender/build_planting.py from courses/ascot.json; re-run it rather than editing. Each line: x, z (world axes as courses/ascot.json), turn (degrees anticlockwise seen from above; 0 = the board's front faces +z, south), design (node board_<design> in assets/models/course/planting_belts.glb).",
-           "model": "assets/models/course/planting_belts.glb", "length": BOARD_LEN, "behindRail": BOARD_BACK,
-           "boards": place}, open(rp("courses/ascot-boards.json"), "w"), indent=0)
+json.dump({"_about": "The planting belts round the far rails, as built by tools/blender/build_planting.py from courses/ascot.json (re-run it rather than editing). World axes as courses/ascot.json (x east, z south). boards: x, z, turn (degrees anticlockwise seen from above; 0 = the board's front faces +z, south), design (node board_<design> in the model). trees: x, z, tree (crown and trunk nodes <tree>_crown, <tree>_crown_far and <tree>_trunk in assets/models/trees/trees.glb), scale, turn. The hedge (node planting_hedge) is in world axes already.",
+           "model": "assets/models/course/planting_belts.glb", "trees_model": "assets/models/trees/trees.glb",
+           "boardLength": BOARD_LEN, "boardsBehindRail": BOARD_BACK, "hedgeBehindRail": HEDGE_AT,
+           "boards": place, "trees": trees}, open(rp("courses/ascot-planting.json"), "w"), separators=(",", ":"))
 print("boards: %d along %.0f m" % (len(place), len(place) * (BOARD_LEN + 0.25)), flush=True)
 
 # ---------------------------------------------------------------- export

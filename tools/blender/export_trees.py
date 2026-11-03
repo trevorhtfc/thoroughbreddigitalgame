@@ -8,7 +8,9 @@ crown's centre) and stores the stills' colouring (dark base to sunlit top, with 
 as vertex colours, so any engine lit by the same sun and sky draws the same trees.
 
 Writes assets/models/trees/trees.glb: for each variant <name>_crown and <name>_trunk
-(oak_a, oak_b, oak_c, wide_a, wide_b, poplar_a, bush_a, bush_b), origin at the foot of the trunk.
+(oak_a, oak_b, oak_c, wide_a, wide_b, poplar_a, bush_a, bush_b), origin at the foot of the trunk, plus
+<name>_crown_far: the same crown much lighter (about a fifth of the triangles, same colours and
+shading) for trees seen from a long way off, such as the planting belts round the far rails.
 """
 import os, sys, math
 import bpy
@@ -26,6 +28,7 @@ SEEDS = {"oak_a": 1, "oak_b": 2, "wide_a": 3, "oak_c": 4, "poplar_a": 5, "wide_b
 HUES = [("#1c4a2a", "#3f8034", "#86bd4a", "#d6e07a"), ("#1d4834", "#367a48", "#74b25c", "#bfe08a"),
         ("#2a4a20", "#56862e", "#a2c048", "#e6dc72")]
 TARGET_TRIS = {"oak": 1400, "wide": 1400, "poplar": 900, "bush": 500}
+FAR_TRIS = {"oak": 220, "wide": 220, "poplar": 150, "bush": 100}
 
 
 def ramp4(stops, t):
@@ -74,6 +77,20 @@ for name, seed in SEEDS.items():
         attr.data[i].color = ramp4(hue, t) + (1.0,)
     me.color_attributes.active_color = attr
     me.materials.clear(); me.materials.append(bpy.data.materials.get("leaves%d" % (seed % 3)))
+    # the distant version: decimate the finished crown (colours ride along), then bend its normals the same way
+    far = crown.copy(); far.data = me.copy(); far.name = name + "_crown_far"
+    lib.objects.link(far)
+    dm = far.modifiers.new("far", "DECIMATE"); dm.ratio = min(1.0, FAR_TRIS[kind] / max(1, sum(len(p.vertices) - 2 for p in me.polygons)))
+    bpy.context.view_layer.objects.active = far
+    far.select_set(True)
+    bpy.ops.object.modifier_apply(modifier="far")
+    far.select_set(False)
+    fn = []
+    for v in far.data.vertices:
+        sv = v.co - centre; sv.z /= max(0.6, stretch); sv.normalize()
+        k = v.normal * 0.4 + sv * 0.6; k.normalize()
+        fn.append(k)
+    far.data.normals_split_custom_set_from_vertices(fn)
     trunk_src = next((o for o in col.objects if o.name.endswith("_trunk")), None)
     if trunk_src:
         trunk_src.name = name + "_source_trunk"

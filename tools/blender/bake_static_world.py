@@ -5,8 +5,8 @@
 Sets the scene up exactly as the stylised stills light it (same sun, same painted sky, same grass and
 turf colours) on the full course (courses/ascot.json, world axes: x east, z south, y up), places the
 main stand (its light distant version, assets/models/architecture/ascot_main_stand_far.glb), the site
-components (courses/ascot-site-dressing.json) and the finish line, with the planting belts standing
-by to cast their shadows, then lets Cycles work out the soft light, bounce light and shadows once:
+components (courses/ascot-site-dressing.json) and the finish line, with the planting belts' hedge and
+trees standing by to cast their shadows, then lets Cycles work out the soft light, bounce light and shadows once:
 
   assets/models/baked/static_world.glb   four meshes in world axes, each with a lightmap UV
   assets/models/baked/*_light.jpg        light on the stand, site pieces and finish line (light only;
@@ -200,12 +200,25 @@ for o in fparts:
     o.matrix_world = Matrix.Translation((0, RAIL_GAP, 0)) @ o.matrix_world
 finish = join(fparts, "finish")
 
-# the planting belts only cast their shadows on the ground here; the viewer lights them live
-belt_parts = [o for o in import_glb(os.path.join(REPO, "assets/models/course/planting_belts.glb"))]
-for o in belt_parts:
-    if o.name.split(".")[0] != "planting_belt":
+# the planting belts' hedge and the trees behind it only cast their shadows on the ground here; the
+# viewer lights them live. Only the trees over the baked ground are brought in.
+for o in import_glb(os.path.join(REPO, "assets/models/course/planting_belts.glb")):
+    if o.name.split(".")[0] != "planting_hedge":
         bpy.data.objects.remove(o, do_unlink=True)
-print("placed: stand %d, site %d, finish %d faces" % (len(stand.data.polygons), len(site.data.polygons), len(finish.data.polygons)), flush=True)
+PLANT = json.load(open(os.path.join(REPO, "courses/ascot-planting.json")))
+tlib = {o.name.split(".")[0]: o for o in import_glb(os.path.join(REPO, "assets/models/trees/trees.glb"))}
+for o in tlib.values():
+    o.parent = None
+for x, z, tree, sc, turn in PLANT["trees"]:
+    if not (GROUND["x0"] - 30 < x < GROUND["x1"] + 30 and GROUND["z0"] - 30 < z < GROUND["z1"] + 30):
+        continue
+    for part in ("_crown", "_trunk"):
+        src = tlib.get(tree + part)
+        if src:
+            o = src.copy(); scene.collection.objects.link(o)
+            o.matrix_world = Matrix.Translation((x, -z, 0)) @ Matrix.Rotation(math.radians(turn), 4, "Z") @ Matrix.Diagonal((sc, sc, sc, 1))
+for o in tlib.values():
+    bpy.data.objects.remove(o, do_unlink=True)
 
 
 # ---------------- lightmap UVs ----------------

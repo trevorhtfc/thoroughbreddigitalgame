@@ -413,7 +413,11 @@ function placeBaked(gltf, B) {
       let mat;
       if (key === "ground") mat = new THREE.MeshBasicMaterial({ map: tex, color: new THREE.Color(info.scale, info.scale, info.scale) });
       else if (name.includes("digit")) mat = new THREE.MeshBasicMaterial({ color: m.material.color.clone().multiplyScalar(2.2) });
-      else mat = new THREE.MeshBasicMaterial({ color: m.material.color.clone(), lightMap: tex, lightMapIntensity: Math.PI * info.scale });
+      else {
+        const col = m.material.color.clone();
+        if (name.endsWith("glass") && VIEW.glass) col.lerp(new THREE.Color(VIEW.glass.reflect), VIEW.glass.amount);   // sky in the glass
+        mat = new THREE.MeshBasicMaterial({ color: col, lightMap: tex, lightMapIntensity: Math.PI * info.scale });
+      }
       mat.name = name;
       m.material = mat;
       m.castShadow = false; m.receiveShadow = false;
@@ -434,22 +438,24 @@ function placeBaked(gltf, B) {
   scene.add(catcher);
 }
 
-// Planting belts and boards (tools/blender/build_planting.py): one dark tree mass tight behind the outer
-// rails, lit live like the trees, and the Thoroughbred boards in front of it, placed from courses/ascot-boards.json.
-function placeBelts(gltf, boards) {
-  const belt = gltf.scene.getObjectByName("planting_belt");
-  if (belt) {
-    for (const m of meshesOf(belt)) {
+// Planting belts (tools/blender/build_planting.py, placed from courses/ascot-planting.json): Thoroughbred
+// boards just behind the far rails, a low dense hedge closing the view at eye level, and rows of the
+// leafy trees behind and above it. Lit live like the loose trees.
+const TD = VIEW.treeDetail;
+const isNear = (x, z) => Math.hypot(x - TD.centre[0], z - TD.centre[1]) < TD.nearRadius;
+function placeBelts(gltf, planting, treeLib) {
+  const hedge = gltf.scene.getObjectByName("planting_hedge");
+  if (hedge) {
+    for (const m of meshesOf(hedge)) {
       m.material = new THREE.MeshLambertMaterial({ vertexColors: true });
-      m.castShadow = false; m.receiveShadow = false;
       LAYERS.trees.push(m);
     }
-    scene.add(belt);
+    scene.add(hedge);
   }
-  if (!boards) return;
-  const m4 = new THREE.Matrix4(), q = new THREE.Quaternion(), one = new THREE.Vector3(1, 1, 1), p = new THREE.Vector3(), up = new THREE.Vector3(0, 1, 0);
+  if (!planting) return;
+  const m4 = new THREE.Matrix4(), q = new THREE.Quaternion(), one = new THREE.Vector3(1, 1, 1), sc = new THREE.Vector3(), p = new THREE.Vector3(), up = new THREE.Vector3(0, 1, 0);
   const byDesign = new Map();
-  for (const b of boards.boards) { if (!byDesign.has(b[3])) byDesign.set(b[3], []); byDesign.get(b[3]).push(b); }
+  for (const b of planting.boards) { if (!byDesign.has(b[3])) byDesign.set(b[3], []); byDesign.get(b[3]).push(b); }
   for (const [design, list] of byDesign) {
     const node = gltf.scene.getObjectByName("board_" + design);
     if (!node) continue;
@@ -457,6 +463,34 @@ function placeBelts(gltf, boards) {
       const mat = new THREE.MeshLambertMaterial({ color: part.material.color, map: part.material.map || null });
       const inst = new THREE.InstancedMesh(part.geometry, mat, list.length);
       list.forEach(([x, z, turn], i) => inst.setMatrixAt(i, m4.compose(p.set(x, 0, z), q.setFromAxisAngle(up, turn * Math.PI / 180), one)));
+      inst.computeBoundingSphere();
+      scene.add(inst);
+      LAYERS.trees.push(inst);
+    }
+  }
+  if (treeLib) instanceTrees(treeLib, planting.trees.map(([x, z, tree, s, turn]) => ({ x, z, tree, s, turn, belt: true })));
+}
+
+// Instance tree models: full crowns near the action, light crowns further off (see treeDetail).
+const treeMat = new THREE.MeshLambertMaterial({ vertexColors: true });
+function instanceTrees(gltf, list) {
+  const groups = new Map();
+  for (const t of list) {
+    const near = isNear(t.x, t.z);
+    const parts = [near ? "_crown" : "_crown_far"].concat(near || !t.belt ? ["_trunk"] : []);
+    for (const part of parts) {
+      const key = t.tree + part;
+      if (!groups.has(key)) groups.set(key, []);
+      groups.get(key).push(t);
+    }
+  }
+  const m4 = new THREE.Matrix4(), q = new THREE.Quaternion(), sc = new THREE.Vector3(), p = new THREE.Vector3(), up = new THREE.Vector3(0, 1, 0);
+  for (const [key, ts] of groups) {
+    const node = gltf.scene.getObjectByName(key) || gltf.scene.getObjectByName(key.replace("_far", ""));
+    if (!node) continue;
+    for (const mesh of meshesOf(node)) {
+      const inst = new THREE.InstancedMesh(mesh.geometry, treeMat, ts.length);
+      ts.forEach((t, i) => { q.setFromAxisAngle(up, (t.turn || 0) * Math.PI / 180); sc.set(t.s, t.s * (t.sy || 1), t.s); inst.setMatrixAt(i, m4.compose(p.set(t.x, 0, t.z), q, sc)); });
       inst.computeBoundingSphere();
       scene.add(inst);
       LAYERS.trees.push(inst);
@@ -490,27 +524,9 @@ function placeTrees(gltf, dressing) {
       }
     }
   }
-  const groups = new Map();
-  for (const sp of spots) {
-    const v = names[Math.floor(rnd() * names.length)];
-    if (!groups.has(v)) groups.set(v, []);
-    groups.get(v).push(sp);
-  }
-  const mat = new THREE.MeshLambertMaterial({ vertexColors: true });
-  const m4 = new THREE.Matrix4(), q = new THREE.Quaternion(), sc = new THREE.Vector3(), p = new THREE.Vector3(), up = new THREE.Vector3(0, 1, 0);
-  for (const [v, list] of groups) {
-    for (const part of ["_crown", "_trunk"]) {
-      const node = gltf.scene.getObjectByName(v + part);
-      if (!node) continue;
-      for (const mesh of meshesOf(node)) {
-        const inst = new THREE.InstancedMesh(mesh.geometry, mat, list.length);
-        list.forEach((t, i) => { q.setFromAxisAngle(up, rnd() * 6.28); sc.set(t.s, t.s * (0.92 + rnd() * 0.18), t.s); inst.setMatrixAt(i, m4.compose(p.set(t.x, 0, t.z), q, sc)); });
-        inst.computeBoundingSphere();
-        scene.add(inst);
-        LAYERS.trees.push(inst);
-      }
-    }
-  }
+  for (const sp of spots) { sp.tree = names[Math.floor(rnd() * names.length)]; sp.turn = rnd() * 360; sp.sy = 0.92 + rnd() * 0.18; }
+  instanceTrees(gltf, spots);
+  const m4 = new THREE.Matrix4(), q = new THREE.Quaternion(), sc = new THREE.Vector3(), p = new THREE.Vector3();
   // Soft shadows on the grass, falling away from the sun.
   console.log("trees:", spots.length);
   const shadows = new THREE.InstancedMesh(new THREE.PlaneGeometry(1, 1), new THREE.MeshBasicMaterial({ map: shadowTex, color: "#1f3318", transparent: true, opacity: 0.45, depthWrite: false }), spots.length);
@@ -971,7 +987,7 @@ try {
   const optional = (p, what) => p.catch((e) => { console.warn(what + " missing:", e.message); return null; });
   const json = (url) => optional(fetch(url).then((r) => { if (!r.ok) throw new Error(url + " " + r.status); return r.json(); }), url);
   const file = (path) => "assets/course/" + path.split("/").pop();
-  const [props, horse, world, trees, belts, crowd, bakeInfo, dressing, boards, areas, spots, palette] = await Promise.all([
+  const [props, horse, world, trees, belts, crowd, bakeInfo, dressing, planting, areas, spots, palette] = await Promise.all([
     optional(loadModel("assets/course", "course-props"), "Course furniture"),
     loadModel("assets/model", "racehorse"),
     optional(loadModel("assets/baked", "static_world"), "Baked scenery"),
@@ -980,14 +996,14 @@ try {
     optional(loadModel(ARCH, "crowd_people"), "Crowd"),
     json("assets/baked/bake.json"),
     json(file(VIEW.dressing)),
-    json(file(VIEW.boards)),
+    json(file(VIEW.planting)),
     json(ARCH + "/ascot_main_stand_crowd_areas.json"),
     json(ARCH + "/site_props_spots.json"),
     json(ARCH + "/crowd_palette.json"),
   ]);
   if (props) placeProps(props);
   if (world && bakeInfo) placeBaked(world, bakeInfo);
-  if (belts) placeBelts(belts, boards);
+  if (belts) placeBelts(belts, planting, trees);
   if (trees) placeTrees(trees, dressing);
   if (crowd && palette) {
     const pieceAt = (p) => new THREE.Matrix4().makeTranslation(p.x, 0, p.z).multiply(new THREE.Matrix4().makeRotationY(Math.PI + (p.turn || 0) * Math.PI / 180));

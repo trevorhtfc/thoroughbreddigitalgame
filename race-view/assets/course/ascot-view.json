@@ -1,8 +1,8 @@
 {
- "_about": "What the race view needs at Ascot beyond the layout itself: TV cameras, the director's rules, paths and where loose trees grow. World axes as courses/ascot.json: origin = winning post on the inside rail, x east, z south, y up; on the home straight the horses run towards -x, z 0 = inside (far) rail, z 30 = outer (near) rail, the main stand's front is on z 45.4. Follow cameras sit at the leader's x plus offset[0], at height offset[1] and at z offset[2] (absolute); they look at the leader's x plus look[0], height look[1], z look[2]. Fixed cameras sit at fixed[] and drift with the leader by followX. The director picks the camera by the leader's distance to the post (metres to go; negative once past it).",
+ "_about": "What the race view needs at Ascot beyond the layout itself: TV cameras, the director's rules, paths, where loose trees grow and how much detail trees get. World axes as courses/ascot.json: origin = winning post on the inside rail, x east, z south, y up; on the home straight the horses run towards -x, z 0 = inside (far) rail, z 30 = outer (near) rail, the main stand's front is on z 45.4. Follow cameras sit at the leader's x plus offset[0], at height offset[1] and at z offset[2] (absolute); they look at the leader's x plus look[0], height look[1], z look[2]. Fixed cameras sit at fixed[] and drift with the leader by followX. The director picks the camera by the leader's distance to the post (metres to go; negative once past it).",
  "course": "courses/ascot.json",
  "dressing": "courses/ascot-site-dressing.json",
- "boards": "courses/ascot-boards.json",
+ "planting": "courses/ascot-planting.json",
  "homeStraight": {
   "runTowards": [
    -1,
@@ -210,21 +210,6 @@
     1,
     4
    ]
-  },
-  {
-   "note": "west of the bend, outside the planting",
-   "area": [
-    -420,
-    -260,
-    -200,
-    120
-   ],
-   "spacing": 20,
-   "skip": 0.25,
-   "scale": [
-    1.2,
-    1.7
-   ]
   }
  ],
  "clearOf": {
@@ -236,5 +221,18 @@
    72
   ],
   "pieces": 9
+ },
+ "treeDetail": {
+  "centre": [
+   60,
+   15
+  ],
+  "nearRadius": 450,
+  "note": "Trees within nearRadius metres of centre use the full leafy crowns; further off, the light _crown_far versions (belt trees there also drop their trunks, which the hedge hides)."
+ },
+ "glass": {
+  "reflect": "#7f93a6",
+  "amount": 0.3,
+  "note": "Window glass on the baked buildings picks up this much of the sky's reflection, so big glazed screens read as glass rather than dark holes."
  }
 }
