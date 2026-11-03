@@ -94,6 +94,7 @@ button:focus-visible { outline: 2px solid var(--cream-edge); outline-offset: 2px
 </div>
 
 <div class="bar">
+  <div class="group" id="races"><span>Race</span></div>
   <div class="group" id="cams"><span>Camera</span></div>
   <div class="group" id="finish"><span>Finish</span></div>
   <div class="group" id="quality"><span>Quality</span></div>
@@ -129,21 +130,42 @@ const COATS = [
   { name: "Black",    body: "#2b2523", points: "#141110" },
   { name: "Grey",     body: "#a8a6a0", points: "#6d6b66" },
 ];
-document.getElementById("courseName").textContent = COURSE.name + " · final furlong";
+const RACE_ID = VIEW.races[params.get("race")] ? params.get("race") : "long";
+const RACE = VIEW.races[RACE_ID];
+document.getElementById("courseName").textContent = COURSE.name + " · " + RACE.label.toLowerCase();
 
 // World axes (courses/ascot.json): x east, z south, y up; the winning post on the inside rail is the origin.
 // On the home straight the horses run towards -x between the inside rail (z 0) and the outer rail (z 30);
 // the stand's front is on z 45.4, on their left. The race itself is worked out along the course
-// (u = metres run, v = across, + towards the stands) and turned into world positions only to draw it.
+// (u = metres run since the start, v = across the track, 0 in the middle, + towards the outer rail) and
+// turned into world positions only to draw it, along the race's course path:
+//   round: the round course's inside rail, a closed loop in running order from the post, so a race longer
+//          than the loop passes the post more than once; straight: the straight mile's inside rail (z 0).
 const FURLONG = COURSE.furlong;
 const STRIDE_SPEED = 14.6;   // m/s at which the gallop loop matches the ground at scale 3
 const HORSE_SCALE = 3;
 const HALF_W = COURSE.trackWidth / 2;
-const POST = 1006;                                   // u at the winning post in the placeholder race
-const RUN = VIEW.homeStraight.runTowards, MID_Z = VIEW.homeStraight.centreZ;
-const DIR = Math.sign(RUN[0]);                       // -1: running towards -x
-const toWorldX = (u) => (u - POST) * DIR;            // world x of a point u along the straight (post at x 0)
-const toWorldZ = (v) => MID_Z + v;
+const MID_Z = VIEW.homeStraight.centreZ;
+const DIST = RACE.distance;                          // u at the winning line
+const LOOP = (() => {
+  const pts = COURSE.roundCourse.insideRail.points, n = pts.length, sp = COURSE.roundCourse.insideRail.spacing;
+  return { pts, n, sp, length: n * sp };
+})();
+// Point on the race's inside rail with d metres still to run, and the running direction there.
+function railAt(d) {
+  if (RACE.course === "straight") return { x: d, z: 0, tx: -1, tz: 0 };
+  const L = LOOP.length, s = (((-d) % L) + L) % L, f = s / LOOP.sp, i = Math.floor(f) % LOOP.n, j = (i + 1) % LOOP.n, k = f - Math.floor(f);
+  const [ax, az] = LOOP.pts[i], [bx, bz] = LOOP.pts[j];
+  const len = Math.hypot(bx - ax, bz - az) || 1;
+  return { x: ax + (bx - ax) * k, z: az + (bz - az) * k, tx: (bx - ax) / len, tz: (bz - az) / len };
+}
+// u along, v across -> world x, z (the outer side is on the horses' left: clockwise course)
+function toWorld(u, v) {
+  const r = railAt(DIST - u), w = HALF_W + v;
+  return [r.x + r.tz * w, r.z - r.tx * w];
+}
+// the model faces +x; turned to run along the course, plus its own drift across (yaw)
+const headingAt = (u, yaw) => { const r = railAt(DIST - u); return Math.atan2(-r.tz, r.tx) + yaw; };
 const FRONT = COURSE.grandstand.frontLine;
 
 // ---------- Renderer ----------
@@ -879,16 +901,17 @@ function placeholderTimeline(n, seed) {
     let g = 0, best = 1e9;
     groupBase.forEach((c, k) => { const dd = Math.abs(c - stall); if (dd < best) { best = dd; g = k; } });
     return {
-      base: 16.1 + rnd() * 0.6, kick: 0.5 + rnd() * 1.0, kickAt: 220 + rnd() * 240,
+      base: 16.3 + rnd() * 0.22, kick: 0.4 + rnd() * 0.8, kickAt: 220 + rnd() * 240,   // close in pace: a bunched field, as on TV
       x: rnd() * 1.2, z: stall, v: 0, vz: 0, group: g,
       wp: rnd() * 6.28, wf: 0.25 + rnd() * 0.35, surge: rnd() * 6.28,
     };
   });
-  for (let t = 0; t <= 90; t += dt) {
+  const tMax = DIST / 14 + 25;
+  for (let t = 0; t <= tMax; t += dt) {
     // Group centres drift slowly, so the bunches breathe across the course.
     const centres = groupBase.map((c, k) => c + Math.sin(t * 0.07 + k * 2.1) * 2.5);
     const frame = horses.map((h) => {
-      const toGo = POST - h.x;
+      const toGo = DIST - h.x;
       const past = toGo < 0;
       let want = past ? 6 : h.base + (toGo < h.kickAt ? h.kick : 0) + Math.sin(t * 0.4 + h.surge) * 0.15;
       // Who is just in front, and is there room either side?
@@ -932,10 +955,13 @@ function placeholderTimeline(n, seed) {
 
 const RUNNERS = Number(params.get("runners") || 12);
 const timeline = placeholderTimeline(RUNNERS, Number(params.get("seed") || 3));
-// Only the final furlong is shown: from about 230 m out to just past the post, then round again.
+// The whole race, then the finish again side-on in slow motion, then round again (see the director below).
+const DIR_ = VIEW.raceDirector;
 const leaderAt = (f) => Math.max(...f.map((h) => h[0]));
-const T_START = timeline.frames.findIndex((f) => leaderAt(f) > POST - 230) * timeline.dt;
-const T_END = timeline.frames.findIndex((f) => leaderAt(f) > POST + 110) * timeline.dt;   // on into the bend
+const timeAt = (u) => Math.max(0, timeline.frames.findIndex((f) => leaderAt(f) > u)) * timeline.dt;
+const T_FINISH = timeAt(DIST);
+const T_END = T_FINISH + DIR_.afterFinish;
+const REPLAY = [timeAt(DIST - DIR_.replayFrom), timeAt(DIST + DIR_.replayTo)];
 const runners = [];
 
 // ---------- Post-processing: the illustrated finish ----------
@@ -1005,37 +1031,79 @@ postScene.add(new THREE.Mesh(new THREE.PlaneGeometry(2, 2), post));
 const camera = new THREE.PerspectiveCamera(30, 1, 0.5, 4000);   // near 0.5 (was 0.2): 2.5 times the depth precision far off
 post.uniforms.near.value = camera.near; post.uniforms.far.value = camera.far;
 const focus = new THREE.Vector3();
-const CAMS = Object.fromEntries(VIEW.cameras.map((c) => [c.id, c]));
-const state = { t: params.has("t") ? Number(params.get("t")) : T_START, paused: params.has("still"), cam: params.get("cam") || "auto", painted: params.get("finish") !== "plain" };
-let snap = true;
-// leaderX is the leader's world x; on the home straight that is also the distance to go (the post is at x 0).
-const toGoOf = (x) => x * DIR * -1;
-function shotFor(leaderX) {
-  if (state.cam !== "auto") return CAMS[state.cam];
-  const toGo = toGoOf(leaderX);
-  const d = VIEW.director.find((s) => toGo > s.untilToGo) || VIEW.director[VIEW.director.length - 1];
-  return CAMS[d.camera];
+const RCAMS = VIEW.raceCameras, SET = VIEW.setPieces;
+// The show runs in phases: the grandstand set piece before the off, the race (cut by the TV director, or
+// one camera picked by hand), the finish again side-on in slow motion, and a set piece after it.
+const PHASES = ["prelude", "race", "replay", "postlude"];
+const state = {
+  phase: params.get("phase") || (params.has("t") ? "race" : "prelude"), pt: 0,
+  t: params.has("t") ? Number(params.get("t")) : 0, paused: params.has("still"),
+  cam: params.get("cam") || "auto", painted: params.get("finish") !== "plain",
+};
+if (state.phase === "replay") state.t = REPLAY[0] + (REPLAY[1] - REPLAY[0]) * Number(params.get("rt") || 0);   // ?rt=0..1 for checking
+let snap = true, lastShot = null;
+// The TV director: which camera, from the leader's distance to go (courses/ascot-view.json -> raceDirector).
+function directorShot(d) {
+  if (state.cam !== "auto" && RCAMS[state.cam] && state.cam !== "sideon") return state.cam;
+  if (d < 0) return "grandstand";                                    // past the line: watch them pull up
+  if (RACE.course === "straight") return d > DIR_.straight.grandstand ? "track_straight" : "grandstand";
+  const L = LOOP.length, q = ((d % L) + L) % L;                       // metres to the next pass of the post
+  if (q <= DIR_.round.grandstand || d <= DIR_.round.grandstand) return "grandstand";
+  if (q > L - DIR_.round.lookback && d < DIST - 50) return "lookback";
+  return "track_loop";
 }
-let lastShot = null;
-// how far past the post a fixed camera keeps following (metres, in the running direction)
-const clampPast = (x, m) => (DIR < 0 ? Math.max(x, -m) : Math.min(x, m));
-const EYE = params.get("eye"), AT = params.get("at");          // ?eye=x,y,z&at=x,y,z: a free camera, for checking
-function cameraTarget(leaderX, packX) {
-  if (EYE && AT) return [new THREE.Vector3(...EYE.split(",").map(Number)), new THREE.Vector3(...AT.split(",").map(Number)), Number(params.get("fov") || 40)];
-  const c = shotFor(leaderX);
-  if (c !== lastShot) { snap = true; lastShot = c; }
-  let pos, look;
-  if (c.fixed) {
-    pos = new THREE.Vector3(...c.fixed);
-    pos.x += (clampPast(leaderX, 60) - c.fixed[0]) * (c.followX || 0);
-    look = new THREE.Vector3(...c.look);
-    if (c.followX) look.x = c.fixed[0] + (clampPast(leaderX, 80) - c.fixed[0]) * 0.6;
-  } else {
-    const x = c.follow === "leader" ? leaderX : packX;
-    pos = new THREE.Vector3(x + c.offset[0], c.offset[1], c.offset[2]);
-    look = new THREE.Vector3(x + c.look[0], c.look[1], c.look[2]);
+// Framing (owner, 3 Nov): every horse in shot unless one or two are tailed off; never lose the leaders.
+const _v = new THREE.Vector3(), _f = new THREE.Vector3(), _r = new THREE.Vector3(), _u = new THREE.Vector3(), UP = new THREE.Vector3(0, 1, 0);
+function fieldInShot(now) {
+  const order = now.map((h, i) => [h[0], i]).sort((a, b) => b[0] - a[0]);
+  let keep = order.length;
+  for (let k = 0; k < 2 && keep > 2; k++) if (order[keep - 2][0] - order[keep - 1][0] > 25) keep--; else break;
+  return order.slice(0, keep).map(([u, i]) => { const [x, z] = toWorld(now[i][0], now[i][1]); return new THREE.Vector3(x, 1.3, z); });
+}
+function fitFov(eye, look, pts, [fmin, fmax]) {
+  _f.copy(look).sub(eye).normalize(); _r.crossVectors(_f, UP).normalize(); _u.crossVectors(_r, _f);
+  let need = 0;
+  for (const p of pts) {
+    _v.copy(p).sub(eye);
+    const z = _v.dot(_f);
+    if (z < 2) continue;
+    need = Math.max(need, (Math.abs(_v.dot(_u)) + 1.5) / z, (Math.abs(_v.dot(_r)) + 2.6) / (z * camera.aspect));
   }
-  return [pos, look, c.fov];
+  return THREE.MathUtils.clamp(2 * THREE.MathUtils.radToDeg(Math.atan(need * 1.18)), fmin, fmax);
+}
+const EYE = params.get("eye"), AT = params.get("at");          // ?eye=x,y,z&at=x,y,z: a free camera, for checking
+const lerp3 = (a, b, k) => new THREE.Vector3(...a).lerp(new THREE.Vector3(...b), k);
+function cameraTarget(now) {
+  if (EYE && AT) return [new THREE.Vector3(...EYE.split(",").map(Number)), new THREE.Vector3(...AT.split(",").map(Number)), Number(params.get("fov") || 40), "free"];
+  if (state.phase === "prelude" || state.phase === "postlude") {
+    const S = SET[state.phase], k = THREE.MathUtils.smoothstep(state.pt / S.seconds, 0, 1);
+    return [lerp3(S.eye[0], S.eye[1], k), lerp3(S.at[0], S.at[1], k), S.fov, state.phase];
+  }
+  if (state.phase === "replay") {
+    const c = RCAMS.sideon, look = new THREE.Vector3(...c.look);
+    const [lx] = toWorld(leaderAt(now), 0);
+    look.x += THREE.MathUtils.clamp(lx - look.x, -12, 18) * 0.8;          // pans a little with the leader
+    return [new THREE.Vector3(...c.at), look, c.fov[0], "sideon"];
+  }
+  const pts = fieldInShot(now);
+  const lead = pts[0];
+  const box = new THREE.Box3().setFromPoints(pts), centre = box.getCenter(new THREE.Vector3());
+  const id = directorShot(DIST - leaderAt(now));
+  const c = RCAMS[id];
+  let eye;
+  if (c.kind === "track") {
+    const us = now.map((h) => h[0]).sort((a, b) => b - a).slice(0, pts.length);
+    // level with a point a little behind the middle of the field, so it films across and slightly ahead
+    const [x, z] = toWorld((us[0] + us[us.length - 1]) / 2 - (c.behind || 0), -HALF_W - c.side);
+    eye = new THREE.Vector3(x, c.height, z);
+  } else eye = new THREE.Vector3(...c.at);
+  let look = centre;
+  let fov = fitFov(eye, look, pts, c.fov);
+  if (fov >= c.fov[1] - 0.01) {                                  // the whole field won't fit: keep the leaders
+    look = centre.clone().lerp(lead, 0.45);
+    fov = fitFov(eye, look, pts.slice(0, Math.max(3, Math.ceil(pts.length / 2))), c.fov);
+  }
+  return [eye, look, fov, id];
 }
 
 // ---------- Controls ----------
@@ -1044,10 +1112,18 @@ function button(parent, label, onClick, id) {
   parent.append(b); return b;
 }
 const camsEl = document.getElementById("cams");
-const camButtons = [["auto", "TV director"], ...VIEW.cameras.map((c) => [c.id, c.label])].map(([id, label]) => {
+const camChoices = [["auto", "TV director"], [RACE.course === "straight" ? "track_straight" : "track_loop", "Tracking"], ["grandstand", "Grandstand"]]
+  .concat(RACE.course === "round" ? [["lookback", "Looking back"]] : []);
+const camButtons = camChoices.map(([id, label]) => {
   const b = button(camsEl, label, () => { state.cam = id; snap = true; syncButtons(); }, "cam-" + id);
   b.dataset.cam = id; return b;
 });
+const racesEl = document.getElementById("races");
+for (const [id, r] of Object.entries(VIEW.races)) {
+  if (id.startsWith("_")) continue;
+  const b = button(racesEl, r.label, () => { const p = new URLSearchParams(location.search); p.set("race", id); p.delete("t"); p.delete("phase"); location.search = p.toString(); }, "race-" + id);
+  b.setAttribute("aria-pressed", id === RACE_ID);
+}
 const finEl = document.getElementById("finish");
 finEl.hidden = true;                          // no illustrated filter in this test
 const finButtons = [["painted", "Illustrated"], ["plain", "Plain 3D"]].map(([id, label]) => {
@@ -1157,7 +1233,7 @@ document.getElementById("pause").onclick = (e) => {
   e.currentTarget.setAttribute("aria-pressed", state.paused);
   e.currentTarget.textContent = state.paused ? "Resume" : "Pause";
 };
-document.getElementById("restart").onclick = () => { state.t = T_START; snap = true; };
+document.getElementById("restart").onclick = () => { state.phase = "prelude"; state.pt = 0; state.t = 0; snap = true; live.length = 0; };
 
 function resize() {
   const w = window.innerWidth, h = window.innerHeight, pr = renderer.getPixelRatio();
@@ -1278,7 +1354,7 @@ function stepKick(dt, field) {
 function drawKick() {
   live.forEach((c, i) => {
     const fade = c.landed >= 0 ? Math.max(0, 1 - (c.age - c.landed) / 0.35) : 1;
-    _p.set(toWorldX(c.x), c.y, toWorldZ(c.z)); _q.setFromEuler(_e.set(c.rot, c.rot * 0.7, 0)); _s.setScalar(c.size * (0.4 + 0.6 * fade));
+    const [wx, wz] = toWorld(c.x, c.z); _p.set(wx, c.y, wz); _q.setFromEuler(_e.set(c.rot, c.rot * 0.7, 0)); _s.setScalar(c.size * (0.4 + 0.6 * fade));
     clods.setMatrixAt(i, _m.compose(_p, _q, _s));
     clods.setColorAt(i, c.col);
   });
@@ -1302,15 +1378,25 @@ function frame() {
   const rawDt = clock.getDelta();
   const dt = Math.min(rawDt, 0.05);
   if (runners.length && !params.has("still")) perf.tick(rawDt);
-  if (!state.paused) { state.t += dt; if (state.t > T_END) { state.t = T_START; snap = true; } }
+  // phases: before the off -> the race -> the finish again, slowed -> after the race -> round again
+  const slow = state.phase === "replay" ? DIR_.replaySpeed : 1;
+  const step = state.paused ? 0 : dt * slow;
+  if (!state.paused) {
+    state.pt += dt;
+    if (state.phase === "prelude") { if (state.pt > SET.prelude.seconds) { state.phase = "race"; state.pt = 0; state.t = 0; snap = true; } }
+    else if (state.phase === "race") { state.t += dt; if (state.t > T_END) { state.phase = "replay"; state.pt = 0; state.t = REPLAY[0]; snap = true; live.length = 0; } }
+    else if (state.phase === "replay") { state.t += step; if (state.t > REPLAY[1]) { state.phase = "postlude"; state.pt = 0; state.t = T_END; snap = true; } }
+    else if (state.phase === "postlude" && state.pt > SET.postlude.seconds) { state.phase = "prelude"; state.pt = 0; state.t = 0; snap = true; live.length = 0; }
+  }
   const now = sample(state.t);
-  let leader = -1e9, leaderZ = MID_Z, sum = 0;
+  let leader = -1e9, leaderZ = MID_Z, sum = 0, leaderXw = 0;
   runners.forEach((r, i) => {
     const [x, z, v, eff, yaw] = now[i];
-    const wx = toWorldX(x), wz = toWorldZ(z);                 // along the course -> world
+    const [wx, wz] = toWorld(x, z);                            // along the course -> world
+    const head = headingAt(x, yaw);
     r.obj.position.set(wx, 0, wz);
-    r.obj.rotation.y = DIR < 0 ? Math.PI + yaw : -yaw;        // the model faces +x; turned to run towards -x
-    _p.set(toWorldX(x - 0.15), 0.04, wz); _q.setFromEuler(_e.set(-Math.PI / 2, 0, DIR < 0 ? yaw : -yaw, "YXZ")); _s.set(3.0, 1.05, 1);
+    r.obj.rotation.y = head;
+    _p.set(wx - Math.cos(head) * 0.15, 0.04, wz + Math.sin(head) * 0.15); _q.setFromEuler(_e.set(-Math.PI / 2, 0, head - Math.PI, "YXZ")); _s.set(3.0, 1.05, 1);
     contact.setMatrixAt(i, _m.compose(_p, _q, _s));
     r.effort += (eff - r.effort) * Math.min(1, dt * 2);
     const set = (n, w) => r.actions[n] && r.actions[n].setEffectiveWeight(w);
@@ -1318,8 +1404,8 @@ function frame() {
     set("ride_quiet", Math.max(0, 1 - e)); set("ride_push", e <= 1 ? e : 2 - e); set("ride_drive", Math.max(0, e - 1));
     set("gallop", 1 - e / 4); set("gallop_drive", e / 4);
     r.mixer.timeScale = THREE.MathUtils.clamp(v / STRIDE_SPEED, 0.25, 1.4);
-    r.mixer.update(state.paused ? 0 : dt);
-    if (x > leader) { leader = x; leaderZ = wz; }
+    r.mixer.update(step);
+    if (x > leader) { leader = x; leaderZ = wz; leaderXw = wx; }
     sum += x;
   });
   if (!runners.length) leader = 0;
@@ -1329,30 +1415,34 @@ function frame() {
       kickWarm = true;
       for (let k = 30; k > 0; k--) stepKick(1 / 30, sample(Math.max(0, state.t - k / 30)));
     }
-    if (!state.paused) stepKick(dt, now);
+    if (!state.paused) stepKick(step, now);
     drawKick();
   }
-  const packX = runners.length ? sum / runners.length : 0;
+  const packU = runners.length ? sum / runners.length : 0;
 
-  const [pos, look, fov] = cameraTarget(toWorldX(leader), toWorldX(packX));
-  const k = snap ? 1 : 1 - Math.exp(-dt * 3);
+  const [pos, look, fov, shot] = runners.length ? cameraTarget(now) : [camera.position.clone(), focus.clone(), camera.fov, "none"];
+  if (shot !== lastShot) { snap = true; lastShot = shot; }
+  const moving = shot === "prelude" || shot === "postlude";
+  const k = snap || moving ? 1 : 1 - Math.exp(-dt * 3), kf = snap || moving ? 1 : 1 - Math.exp(-dt * 2);
   camera.position.lerp(pos, k);
   focus.lerp(look, k);
-  camera.fov += (fov - camera.fov) * k;
+  camera.fov += (fov - camera.fov) * kf;
   camera.updateProjectionMatrix();
   camera.lookAt(focus);
   snap = false;
-  const sunAt = new THREE.Vector3(toWorldX(packX), 0, MID_Z);
+  const [sx, sz] = toWorld(packU, 0);
+  const sunAt = new THREE.Vector3(sx, 0, sz);
   sun.position.copy(sunAt).add(SUN_OFFSET); sun.target.position.copy(sunAt);
   scene.userData.sky.position.copy(camera.position);
   CROWD.uniforms.uTime.value = performance.now() / 1000;
-  CROWD.uniforms.uLeader.value.set(toWorldX(leader), leaderZ);
+  CROWD.uniforms.uLeader.value.set(leaderXw, leaderZ);
   camera.updateMatrixWorld();
   updateCrowd(camera);
 
-  const left = (POST - leader) / FURLONG;
-  toRunEl.textContent = left <= 0 ? "Finished" : left < 1 ? Math.round(left * 220) + " yds" : left.toFixed(1).replace(/\.0$/, "") + "f";
-  toRunLabel.hidden = left <= 0;
+  const left = (DIST - leader) / FURLONG;
+  toRunEl.textContent = state.phase === "prelude" ? RACE.label : state.phase === "replay" ? "Replay" : left <= 0 ? "Finished"
+    : left < 1 ? Math.round(left * 220) + " yds" : left.toFixed(1).replace(/\.0$/, "") + "f";
+  toRunLabel.hidden = left <= 0 || state.phase === "prelude" || state.phase === "replay";
 
   const every = QUALITY[qLevel].shadowEvery;
   sun.shadow.autoUpdate = every === 1;

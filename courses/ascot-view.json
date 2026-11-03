@@ -11,130 +11,6 @@
   "centreZ": 15,
   "note": "Along the home straight: running direction (x, z) and the middle of the track."
  },
- "cameras": [
-  {
-   "id": "aerial",
-   "label": "Aerial",
-   "follow": "leader",
-   "offset": [
-    24,
-    24,
-    50
-   ],
-   "look": [
-    -4,
-    0,
-    12
-   ],
-   "fov": 32
-  },
-  {
-   "id": "tv",
-   "label": "TV",
-   "follow": "leader",
-   "offset": [
-    8,
-    10,
-    44
-   ],
-   "look": [
-    2,
-    1.4,
-    12
-   ],
-   "fov": 17
-  },
-  {
-   "id": "stands",
-   "label": "Grandstand",
-   "follow": "leader",
-   "offset": [
-    32,
-    13,
-    -26
-   ],
-   "look": [
-    -18,
-    9,
-    50
-   ],
-   "fov": 40
-  },
-  {
-   "id": "head",
-   "label": "Head-on",
-   "follow": "leader",
-   "offset": [
-    -60,
-    6,
-    17
-   ],
-   "look": [
-    0,
-    0.8,
-    15
-   ],
-   "fov": 16
-  },
-  {
-   "id": "post",
-   "label": "At the post",
-   "fixed": [
-    0,
-    7.5,
-    40
-   ],
-   "look": [
-    0,
-    1.2,
-    8
-   ],
-   "fov": 34,
-   "followX": 0.35
-  },
-  {
-   "id": "bend",
-   "label": "The bend",
-   "fixed": [
-    40,
-    9,
-    24
-   ],
-   "look": [
-    -150,
-    4,
-    -30
-   ],
-   "fov": 42,
-   "followX": 0.0
-  }
- ],
- "director": [
-  {
-   "untilToGo": 366,
-   "camera": "aerial"
-  },
-  {
-   "untilToGo": 166,
-   "camera": "head"
-  },
-  {
-   "untilToGo": 51,
-   "camera": "stands"
-  },
-  {
-   "untilToGo": 0,
-   "camera": "tv"
-  },
-  {
-   "untilToGo": -40,
-   "camera": "post"
-  },
-  {
-   "untilToGo": -99999,
-   "camera": "bend"
-  }
- ],
  "paths": [
   {
    "from": [
@@ -193,11 +69,11 @@
    ]
   },
   {
-   "note": "right behind the carnival's back row (owner: trees just behind the final row)",
+   "note": "right behind the carnival's back row (owner: trees just behind the final row) (cut back to x 520 so the grandstand camera sees the final bend)",
    "area": [
     -60,
     -50,
-    640,
+    520,
     -60
    ],
    "spacing": 9,
@@ -208,11 +84,11 @@
    ]
   },
   {
-   "note": "behind those, thinning into the infield",
+   "note": "behind those, thinning into the infield (cut back to x 520 so the grandstand camera sees the final bend)",
    "area": [
     -60,
     -60,
-    640,
+    520,
     -90
    ],
    "spacing": 13,
@@ -223,11 +99,11 @@
    ]
   },
   {
-   "note": "clumps in the infield, beyond the carnival",
+   "note": "clumps in the infield, beyond the carnival (stopped at x 470: the grandstand camera looks across here to the final bend)",
    "area": [
     -40,
     -60,
-    640,
+    470,
     -320
    ],
    "spacing": 34,
@@ -331,5 +207,174 @@
   "lanes": 8,
   "width": 30,
   "strength": 0.14
+ },
+ "races": {
+  "_about": "Stand-in races for filming (the real race sim will hand the viewer a timeline). course: 'round' runs along roundCourse.insideRail (a closed loop, so longer races pass the post more than once); 'straight' along the straight mile. distance in metres.",
+  "long": {
+   "label": "2 miles",
+   "course": "round",
+   "distance": 3218.7
+  },
+  "mile": {
+   "label": "Straight mile",
+   "course": "straight",
+   "distance": 1609.3
+  }
+ },
+ "raceCameras": {
+  "_about": "Camera plan agreed with the owner, 3 Nov 2026 (reference/cameras/00-owner-camera-markup.jpg and the TV grabs beside it). World axes; heights in metres. 'track': a car on the inside of the inside rail, level with a point 'behind' metres back from the middle of the field ('side' metres inside the rail), filming across the field through the rail. 'fixed': stands at 'at' and pans with the field. Zoom (fov, degrees, min and max) is worked out each frame so every horse is in shot except one or two tailed off, and the leaders never leave it.",
+  "track_loop": {
+   "label": "Tracking",
+   "kind": "track",
+   "course": "round",
+   "side": 12,
+   "height": 3.2,
+   "fov": [
+    6,
+    45
+   ],
+   "grab": "grab-01.png",
+   "behind": 12
+  },
+  "track_straight": {
+   "label": "Tracking",
+   "kind": "track",
+   "course": "straight",
+   "side": 5,
+   "height": 3.0,
+   "fov": [
+    8,
+    50
+   ],
+   "grab": "grab-02.png",
+   "note": "only 5 m inside the rail: the planting belt runs along the straight mile's far side",
+   "behind": 14
+  },
+  "grandstand": {
+   "label": "Grandstand",
+   "kind": "fixed",
+   "at": [
+    300,
+    31,
+    42
+   ],
+   "fov": [
+    2.5,
+    42
+   ],
+   "note": "the box high on the stand: swings with the field round the final bend, then down the straight to the post; in front of the roof edge, high enough to see over the carnival to the final bend",
+   "grab": "grab-03.png .. grab-08.png"
+  },
+  "lookback": {
+   "label": "Looking back",
+   "kind": "fixed",
+   "at": [
+    -95,
+    8,
+    -55
+   ],
+   "fov": [
+    8,
+    50
+   ],
+   "note": "inside the bend after the post: the field comes up the straight towards it with the stand behind, then swings away round the bend (long races)",
+   "grab": "grab-09.png"
+  },
+  "sideon": {
+   "label": "Side-on replay",
+   "kind": "fixed",
+   "at": [
+    0,
+    4.5,
+    41
+   ],
+   "look": [
+    0,
+    1.4,
+    12
+   ],
+   "fov": [
+    26,
+    26
+   ],
+   "note": "square on to the winning line, from the stand side; the finish again in slow motion; pans a little with the leader either side of the line"
+  }
+ },
+ "raceDirector": {
+  "_about": "When the TV director cuts (distance to go of the leader, metres). Round course: the grandstand camera from 'grandstand' metres before each pass of the post; the look-back camera for 'lookback' metres after a pass of the post that isn't the finish; tracking otherwise. Straight mile: tracking until 'grandstand' metres out. After the finish: the side-on replay, slowed to 'replaySpeed', from 'replayFrom' metres before the line to 'replayTo' after it.",
+  "round": {
+   "grandstand": 800,
+   "lookback": 380
+  },
+  "straight": {
+   "grandstand": 600
+  },
+  "afterFinish": 4,
+  "replayFrom": 30,
+  "replayTo": 14,
+  "replaySpeed": 0.3
+ },
+ "setPieces": {
+  "_about": "Grandstand set pieces (owner, 3 Nov: 'to portray the excellent grandstand'): camera moves before the off and after the replay. eye and at go from the first to the second over 'seconds'.",
+  "prelude": {
+   "label": "Before the off",
+   "seconds": 9,
+   "eye": [
+    [
+     -40,
+     7,
+     -3
+    ],
+    [
+     180,
+     9,
+     -3
+    ]
+   ],
+   "at": [
+    [
+     -40,
+     9,
+     70
+    ],
+    [
+     180,
+     11,
+     70
+    ]
+   ],
+   "fov": 50,
+   "grab": "grab-11.png"
+  },
+  "postlude": {
+   "label": "After the race",
+   "seconds": 8,
+   "eye": [
+    [
+     20,
+     3,
+     22
+    ],
+    [
+     60,
+     45,
+     -60
+    ]
+   ],
+   "at": [
+    [
+     0,
+     8,
+     60
+    ],
+    [
+     -10,
+     6,
+     65
+    ]
+   ],
+   "fov": 42,
+   "grab": "grab-10.png"
+  }
  }
 }
