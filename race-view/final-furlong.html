@@ -159,9 +159,9 @@ renderer.toneMappingExposure = Math.pow(2, 0.35);
 // high-resolution screens (High elsewhere) and steps down by itself if the frame rate drops.
 const DPR = window.devicePixelRatio || 1;
 const QUALITY = {
-  high:   { label: "High",   scale: Math.min(DPR, 2),    samples: 4, shadow: 4096, soft: true,  kick: 1,    edges: true, shadowEvery: 1, crowd: 0.7 },
-  medium: { label: "Medium", scale: Math.min(DPR, 1.25), samples: 2, shadow: 2048, soft: false, kick: 0.6,  edges: true, shadowEvery: 1, crowd: 0.5 },
-  low:    { label: "Low",    scale: Math.min(DPR, 1),    samples: 0, shadow: 1024, soft: false, kick: 0.35, edges: false, shadowEvery: 2, crowd: 0.25 },
+  high:   { label: "High",   scale: Math.min(DPR, 2),    samples: 4, shadow: 4096, soft: true,  kick: 1,    edges: true, shadowEvery: 1, crowd: 0.7, crowdNear: 260, crowdFar: 1200 },
+  medium: { label: "Medium", scale: Math.min(DPR, 1.25), samples: 2, shadow: 2048, soft: false, kick: 0.6,  edges: true, shadowEvery: 1, crowd: 0.5, crowdNear: 160, crowdFar: 800 },
+  low:    { label: "Low",    scale: Math.min(DPR, 1),    samples: 0, shadow: 1024, soft: false, kick: 0.35, edges: false, shadowEvery: 2, crowd: 0.3, crowdNear: 80, crowdFar: 400 },
 };
 const ORDER = ["high", "medium", "low"];
 let qMode = params.get("quality") || (() => { try { return localStorage.getItem("tb-quality"); } catch { return null; } })() || "auto";
@@ -389,7 +389,6 @@ function placeProps(gltf) {
 
 // ---------- Architecture: stand, site components, finish line, crowd (all from Blender, placed from data) ----------
 const ARCH = "assets/architecture";
-const crowdMeshes = [];
 
 function meshesOf(obj) { const out = []; obj.updateMatrixWorld(true); obj.traverse((o) => { if (o.isMesh) out.push(o); }); return out; }
 
@@ -543,46 +542,163 @@ function placeTrees(gltf, dressing) {
   LAYERS.trees.push(shadows);
 }
 
-// Crowd: four simple figures, instanced (one draw call per figure part), tinted per person. Packed along
-// the near rail and thinning back to the stand, the stand's balconies, verandas and steps, the seats and
-// floors on the site pieces, and the dressing's crowd areas. Full along the final furlong and round the
-// post; thinner up the straight, where it is only ever seen from afar.
-const CROWD_FULL = [-110, 220];
-const crowdKeep = (x, rnd) => (x >= CROWD_FULL[0] && x <= CROWD_FULL[1]) || rnd() < 0.12;
+// ---------- Crowd (tools/blender/build_crowd.py; dressed from crowd_looks.json) ----------
+// Racegoers from the crowd kit: modular bodies and hats, each vertex tagged with its colour slot (_slot)
+// and the bone that moves it (_bone). One instanced mesh per body or hat type, in a near version and a
+// light far version, plus a silhouette for people a long way off; who gets which is redone whenever the
+// camera has moved a few metres. Arms and
+// heads move in the vertex shader from the actions baked in Blender (crowd_anims.json); people switch to
+// cheering, clapping or waving as the leader comes within about 60 m.
+const CROWD_FULL = [-110, 410];   // full crowd along this stretch of x (the whole stand)
+// Three versions of every figure, by distance from the camera: detailed, light, and a silhouette.
+const CROWD = { groups: [], people: [], share: 1, nearDist: 55, nearMax: 350, farDist: 170, farMax: 2200, last: -1, uniforms: null };
+// Everyone's place, filled by buildCrowd: x, y, z, yaw, scale, squash (seated), body, hat, look row, actions, phase.
+function weighted(rnd, table) {
+  const e = Object.entries(table); let sum = 0; for (const [, w] of e) sum += w;
+  let r = rnd() * sum; for (const [k, w] of e) { if ((r -= w) <= 0) return k; } return e[e.length - 1][0];
+}
+function crowdMaterial(animTex, paletteTex, rigRows, anims) {
+  const ACT = Object.keys(anims.rigs.gent.actions);
+  const dur = ACT.map((a) => anims.rigs.gent.actions[a].duration);
+  const nf = ACT.map((a) => anims.rigs.gent.actions[a].frames.length);
+  const u = {
+    uAnim: { value: animTex }, uPalette: { value: paletteTex }, uTime: { value: 0 }, uLeaderX: { value: 1e6 },
+    uDur: { value: dur }, uFrames: { value: nf }, uRows: { value: paletteTex.image.height },
+  };
+  const mat = new THREE.MeshLambertMaterial({ color: "#ffffff" });
+  mat.onBeforeCompile = (sh) => {
+    Object.assign(sh.uniforms, u);
+    sh.vertexShader = sh.vertexShader
+      .replace("#include <common>", `#include <common>
+        attribute float _slot; attribute float _bone; attribute vec4 aCrowd; attribute vec2 aAct;
+        uniform sampler2D uAnim; uniform float uTime, uLeaderX, uRows;
+        uniform float uDur[${ACT.length}]; uniform float uFrames[${ACT.length}];
+        varying vec2 vPal;
+        vec3 qrot(vec4 q, vec3 v) { return v + 2.0 * cross(q.xyz, cross(q.xyz, v) + q.w * v); }
+        // one bone's transform at time t of an action (frames: 2 texels each, quaternion then translation)
+        void boneAt(float rig, float act, float bone, float phase, out vec4 q, out vec3 t) {
+          int ai = int(act);
+          float d = uDur[ai], n = uFrames[ai];
+          float f = fract(uTime / d + phase) * n;
+          float f0 = floor(f), f1 = mod(f0 + 1.0, n), k = f - f0;
+          int row = int((rig * ${ACT.length}.0 + act) * 6.0 + bone);
+          vec4 qa = texelFetch(uAnim, ivec2(int(f0) * 2, row), 0), qb = texelFetch(uAnim, ivec2(int(f1) * 2, row), 0);
+          if (dot(qa, qb) < 0.0) qb = -qb;
+          q = normalize(mix(qa, qb, k));
+          t = mix(texelFetch(uAnim, ivec2(int(f0) * 2 + 1, row), 0).xyz, texelFetch(uAnim, ivec2(int(f1) * 2 + 1, row), 0).xyz, k);
+        }`)
+      .replace("#include <beginnormal_vertex>", `
+        // aCrowd: look row, rig (0 gent, 1 lady), phase, unused; aAct: base action, excited action
+        float px = (modelMatrix * instanceMatrix * vec4(0.0, 0.0, 0.0, 1.0)).x;
+        // each person reacts at their own distance (45-75 m), quickly, so the cheer ripples along the rail
+        float reach = 45.0 + 30.0 * fract(aCrowd.z * 7.13);
+        float w = 1.0 - smoothstep(reach - 5.0, reach, abs(px - uLeaderX));
+        vec4 q1, q2; vec3 t1, t2;
+        boneAt(aCrowd.y, aAct.x, _bone, aCrowd.z, q1, t1);
+        boneAt(aCrowd.y, aAct.y, _bone, aCrowd.z * 1.7, q2, t2);
+        if (dot(q1, q2) < 0.0) q2 = -q2;
+        vec4 bq = normalize(mix(q1, q2, w)); vec3 bt = mix(t1, t2, w);
+        vec3 objectNormal = qrot(bq, normal);
+        #ifdef USE_TANGENT
+        vec3 objectTangent = vec3(tangent.xyz);
+        #endif
+        vPal = vec2((_slot + 0.5) / 10.0, (aCrowd.x + 0.5) / uRows);`)
+      .replace("#include <begin_vertex>", `vec3 transformed = qrot(bq, position) + bt;`);
+    sh.fragmentShader = sh.fragmentShader
+      .replace("#include <common>", "#include <common>\nuniform sampler2D uPalette; varying vec2 vPal;")
+      .replace("#include <map_fragment>", "#include <map_fragment>\n diffuseColor.rgb *= texture2D(uPalette, vPal).rgb;");
+  };
+  mat.customProgramCacheKey = () => "crowd-v1";
+  CROWD.uniforms = u;
+  return mat;
+}
+
 function buildCrowd(gltf, data, pieceAt) {
   const rnd = seeded(21);
+  const L = data.looks, A = data.anims;
+  const ACT = Object.keys(A.rigs.gent.actions);
   const pick = (a) => a[Math.floor(rnd() * a.length)];
-  const P = data.palette;
-  const spots = [];
-  const add = (x, y, z, seated = false) => { if (crowdKeep(x, rnd)) spots.push({ x, y, z, seated }); };
-  const S0 = -102.5, S1 = 405;                                  // the stand's west and east ends
-  // the lawn between the outer rail and the stand
-  const nearRail = COURSE.trackWidth + COURSE.rails.gap;
-  for (let z = nearRail + 1.6; z < FRONT - 1.5; z += 0.7) {
-    const d = z - nearRail;
-    const density = d < 4 ? 0.8 : d < 8 ? 0.35 : 0.08;
-    for (let x = S0 - 6; x < S1; x += 0.62) if (rnd() < density) add(x + (rnd() - 0.5) * 0.4, 0, z + (rnd() - 0.5) * 0.4);
+  // ---- the animation table: one row per rig x action x bone, two texels per frame
+  const maxF = Math.max(...ACT.map((a) => A.rigs.gent.actions[a].frames.length));
+  const RIGS = ["gent", "lady"];
+  const H = RIGS.length * ACT.length * 6, W = maxF * 2;
+  const ad = new Float32Array(W * H * 4);
+  RIGS.forEach((rig, ri) => ACT.forEach((act, ai) => {
+    A.rigs[rig].actions[act].frames.forEach((frame, fi) => frame.forEach(([qw, qx, qy, qz, tx, ty, tz], b) => {
+      const row = (ri * ACT.length + ai) * 6 + b, o = (row * W + fi * 2) * 4;
+      ad.set([qx, qy, qz, qw, tx, ty, tz, 0], o);
+    }));
+  }));
+  const animTex = new THREE.DataTexture(ad, W, H, THREE.RGBAFormat, THREE.FloatType);
+  animTex.needsUpdate = true;
+  // ---- looks: 48 per body-and-hat pairing, one colour per slot
+  const SLOTS = A.slots;
+  const looks = [], lookRows = new Map();
+  const col = (h) => new THREE.Color(h);
+  for (const [sex, bodies] of Object.entries(L.bodies)) {
+    for (const body of Object.keys(bodies)) {
+      for (const hat of Object.keys(L.hats[body])) {
+        const rows = [];
+        for (let i = 0; i < 48; i++) {
+          const pal = sex === "lady" ? L.colours.lady : (L.colours[body] || L.colours.gent_lounge);
+          const lk = { skin: pick(L.colours.skin), hair: pick(L.colours.hair), shirt: pick(L.colours.shirt), dark: L.colours.dark[0],
+            prop: pick(L.colours.prop), main: pick(pal.main), second: pick(pal.second), accent: pick(pal.accent) };
+          if (lk.second === lk.main) lk.second = pal.second[(pal.second.indexOf(lk.second) + 1) % pal.second.length];
+          const hc = hat !== "none" ? pick(L.colours.hat[hat]) : ["#000000", "#000000"];
+          lk.hat = hc[0].startsWith("@") ? lk[hc[0].slice(1)] : hc[0];
+          lk.band = hc[1].startsWith("@") ? lk[hc[1].slice(1)] : hc[1];
+          rows.push(looks.length); looks.push(SLOTS.map((s) => col(lk[s])));
+        }
+        lookRows.set(body + "|" + hat, rows);
+      }
+    }
   }
-  for (let g = 0; g < 40; g++) {
-    const gx = S0 + rnd() * 360, gz = nearRail + 6 + rnd() * (FRONT - nearRail - 8);
-    const n = 3 + Math.floor(rnd() * 6);
-    for (let k = 0; k < n; k++) add(gx + (rnd() - 0.5) * 2.4, 0, gz + (rnd() - 0.5) * 1.8);
+  const pd = new Float32Array(SLOTS.length * looks.length * 4);
+  looks.forEach((row, r) => row.forEach((c, k) => pd.set([c.r, c.g, c.b, 1], (r * SLOTS.length + k) * 4)));
+  const paletteTex = new THREE.DataTexture(pd, SLOTS.length, looks.length, THREE.RGBAFormat, THREE.FloatType);
+  paletteTex.needsUpdate = true;
+  const mat = crowdMaterial(animTex, paletteTex, null, A);
+
+  // ---- where people stand
+  const spots = [];
+  const add = (x, y, z, o = {}) => spots.push({ x, y, z, ...o });
+  const S0 = -102.5, S1 = 405;                                   // the stand's west and east ends
+  const nearRail = COURSE.trackWidth + COURSE.rails.gap;
+  // the lawn between the outer rail and the stand: packed at the rail and thinning back, in clusters
+  // with gaps and ragged edges (a smooth noise sets the local density)
+  const noise = (x, z) => 0.5 + 0.25 * Math.sin(x * 0.13 + Math.sin(z * 0.4) * 2.1) + 0.25 * Math.sin(x * 0.047 + 1.3 + z * 0.21);
+  for (let z = nearRail + 1.4; z < FRONT - 1.4; z += 0.68) {
+    const d = z - nearRail;
+    const base = d < 2.2 ? 0.95 : d < 4.5 ? 0.7 : d < 8 ? 0.36 : 0.1;
+    for (let x = S0 - 6; x < S1; x += 0.6) {
+      const n = noise(x, z);
+      const keep = d < 2.2 ? 0.88 + 0.12 * n : base * Math.min(1, n * 1.35) * (0.4 + n * 0.8);   // packed along the rail
+      if (rnd() < (d < 2.2 ? base * keep : keep)) add(x + (rnd() - 0.5) * 0.36, 0, z + (rnd() - 0.5) * 0.36);
+    }
+  }
+  for (let g = 0; g < 60; g++) {                                 // knots of friends on the lawn
+    const gx = S0 + rnd() * 380, gz = nearRail + 5 + rnd() * (FRONT - nearRail - 7);
+    const n = 3 + Math.floor(rnd() * 5), r = 0.7 + n * 0.12;
+    for (let k = 0; k < n; k++) {
+      const a = (k / n) * 6.28 + rnd() * 0.5;
+      add(gx + Math.cos(a) * r, 0, gz + Math.sin(a) * r * 0.8, { yaw: Math.atan2(-Math.cos(a), -Math.sin(a)) });
+    }
   }
   // the stand's verandas, balconies, galleries and steps (areas relative to the clock tower on the front line)
   for (const a of data.areas || []) {
     if (a.kind === "lawn_front_line") continue;
     const rows = a.z1 - a.z0 < 1.4 ? 1 : 2;
     for (let r = 0; r < rows; r++) {
-      const lz = a.z0 + 0.15 + r * 0.75;
-      for (let x = a.x0; x < a.x1; x += 0.62) {
-        if (rnd() >= (a.kind === "steps" ? 0.35 : r === 0 ? 0.78 : 0.4)) continue;
+      const lz = a.z0 + 0.2 + r * 0.75;
+      for (let x = a.x0 + 0.3; x < a.x1 - 0.3; x += 0.6) {
+        if (rnd() >= (a.kind === "steps" ? 0.35 : r === 0 ? 0.8 : 0.42) * (0.55 + noise(x, a.floor * 3) * 0.6)) continue;
         let y = a.floor;
         if (a.kind === "steps") y = 3.0 * (lz - a.z0 + 0.3) / (a.z1 - a.z0 + 0.6);
-        add(x + (rnd() - 0.5) * 0.2, y, FRONT + lz);
+        add(x + (rnd() - 0.5) * 0.15, y, FRONT + lz);
       }
     }
   }
-  // seats and floors on the site pieces
+  // seats and floors on the site pieces, facing the way each piece faces
   const v = new THREE.Vector3();
   for (const p of data.dressing?.pieces || []) {
     const sp = data.spots?.[p.piece];
@@ -591,52 +707,110 @@ function buildCrowd(gltf, data, pieceAt) {
     for (const [kind, fill] of [["seats", 0.62], ["stand", 0.7]]) {
       for (const [lx, ly, lz] of sp[kind] || []) {
         if (rnd() >= fill) continue;
-        v.set(lx, lz, -ly).applyMatrix4(at);                 // Blender (x, y, z) -> glTF (x, z, -y)
-        spots.push({ x: v.x, y: v.y, z: v.z, seated: kind === "seats" });
+        v.set(lx, lz, -ly).applyMatrix4(at);                       // Blender (x, y, z) -> glTF (x, z, -y)
+        add(v.x, v.y, v.z, { yaw: Math.PI + (p.turn || 0) * Math.PI / 180, seated: kind === "seats" });
       }
     }
   }
   for (const c of data.dressing?.crowds || []) {
     const n = Math.floor((c.x[1] - c.x[0]) * (c.z[1] - c.z[0]) * c.density);
-    for (let i = 0; i < n; i++) spots.push({ x: c.x[0] + rnd() * (c.x[1] - c.x[0]), y: 0, z: c.z[0] + rnd() * (c.z[1] - c.z[0]) });
+    for (let i = 0; i < n; i++) add(c.x[0] + rnd() * (c.x[1] - c.x[0]), 0, c.z[0] + rnd() * (c.z[1] - c.z[0]));
   }
+  // full along the final furlong and round the post; thinner up the straight, seen only from afar
+  const kept = spots.filter((s) => (s.x >= CROWD_FULL[0] && s.x <= CROWD_FULL[1]) || rnd() < 0.2);
   // shuffle, so lowering the quality thins the crowd evenly instead of emptying whole areas
-  for (let i = spots.length - 1; i > 0; i--) { const j = Math.floor(rnd() * (i + 1)); [spots[i], spots[j]] = [spots[j], spots[i]]; }
+  for (let i = kept.length - 1; i > 0; i--) { const j = Math.floor(rnd() * (i + 1)); [kept[i], kept[j]] = [kept[j], kept[i]]; }
 
-  const figures = ["person_gent_tophat", "person_gent", "person_lady", "person_lady_b"].map((n) => gltf.scene.getObjectByName(n)).filter(Boolean);
-  const byFig = figures.map(() => []);
-  for (const s of spots) byFig[Math.floor(rnd() * figures.length)].push(s);
-  const m = new THREE.Matrix4(), q = new THREE.Quaternion(), sc = new THREE.Vector3(), pos = new THREE.Vector3(), up = new THREE.Vector3(0, 1, 0);
-  const col = new THREE.Color();
-  figures.forEach((fig, fi) => {
-    const list = byFig[fi];
-    const lady = fig.name.includes("lady");
-    const looks = list.map((s) => ({
-      clothes: pick(lady ? P.dresses : P.suits), skin: pick(P.skin), hat: pick(lady ? P.hats_lady : P.hats_gent),
-      yaw: (rnd() - 0.5) * 1.2, s: 0.94 + rnd() * 0.12,            // facing the track, as on the stands side before
-    }));
-    for (const part of meshesOf(fig)) {
-      const key = ["clothes", "skin", "hat"].find((k) => part.material.name.includes(k)) || "clothes";
-      const mat = new THREE.MeshLambertMaterial({ color: "#ffffff" });
-      const inst = new THREE.InstancedMesh(part.geometry, mat, list.length);
-      list.forEach((s, i) => {
-        const L = looks[i];
-        pos.set(s.x, s.y, s.z); q.setFromAxisAngle(up, s.z < 0 ? L.yaw + Math.PI : L.yaw); sc.set(L.s, L.s * (s.seated ? 0.7 : 1), L.s);
-        inst.setMatrixAt(i, m.compose(pos, q, sc));
-        inst.setColorAt(i, col.set(L[key]));
-      });
-      inst.computeBoundingSphere();
-      inst.castShadow = false; inst.receiveShadow = true;
-      inst.userData.total = list.length;
-      scene.add(inst);
-      crowdMeshes.push(inst);
-      LAYERS.crowd.push(inst);
+  // ---- who they are and what they do
+  const actIndex = Object.fromEntries(ACT.map((a, i) => [a, i]));
+  const groupOf = new Map();
+  const group = (name) => {
+    if (!groupOf.has(name)) {
+      const node = (suffix) => gltf.scene.getObjectByName(name + suffix) || gltf.scene.getObjectByName(name);
+      const g = { name, near: meshesOf(node(""))[0].geometry, far: meshesOf(node("_far"))[0].geometry, tiny: meshesOf(node("_tiny"))[0].geometry, members: [] };
+      groupOf.set(name, g); CROWD.groups.push(g);
     }
-  });
-  console.log("crowd:", spots.length, "people");
+    return groupOf.get(name);
+  };
+  for (const s of kept) {
+    const sex = rnd() < L.ladyShare ? "lady" : "gent";
+    const body = weighted(rnd, L.bodies[sex]);
+    const hat = weighted(rnd, L.hats[body]);
+    const fixed = L.actions.fixed[body];
+    let base = fixed ? fixed.base : weighted(rnd, L.actions.base);
+    if (L.actions.gentOnly.includes(base) && (sex !== "gent" || hat === "none")) base = "idle";
+    const excited = fixed ? fixed.excited : weighted(rnd, L.actions.excited);
+    const facing = s.yaw != null ? s.yaw : (s.z < 0 ? 0 : Math.PI) + (rnd() - 0.5) * 0.9;   // towards the track
+    const p = {
+      x: s.x, y: s.y, z: s.z, yaw: facing, s: 0.94 + rnd() * 0.12, sy: s.seated ? 0.72 : 0.96 + rnd() * 0.08,
+      look: pick(lookRows.get(body + "|" + hat)), rig: sex === "lady" ? 1 : 0, phase: rnd(),
+      base: actIndex[base], excited: actIndex[excited],
+    };
+    CROWD.people.push(p);
+    group(body).members.push(p);
+    if (hat !== "none") group("hat_" + sex + "_" + hat).members.push(p);
+  }
+  // ---- one near and one far instanced mesh per group
+  for (const g of CROWD.groups) {
+    for (const lod of ["near", "far", "tiny"]) {
+      const n = g.members.length;
+      const geo = g[lod].clone();
+      const im = new THREE.InstancedMesh(geo, mat, n);
+      im.geometry.setAttribute("aCrowd", new THREE.InstancedBufferAttribute(new Float32Array(n * 4), 4));
+      im.geometry.setAttribute("aAct", new THREE.InstancedBufferAttribute(new Float32Array(n * 2), 2));
+      im.count = 0; im.frustumCulled = false;
+      im.castShadow = false; im.receiveShadow = false;
+      scene.add(im); LAYERS.crowd.push(im);
+      g[lod + "Mesh"] = im;
+    }
+  }
+  console.log("crowd:", CROWD.people.length, "people,", CROWD.groups.length, "kinds,", looks.length, "looks");
   setCrowdShare(QUALITY[qLevel].crowd);
 }
-function setCrowdShare(share) { for (const c of crowdMeshes) c.count = Math.round(c.userData.total * share); }
+// The near/far split, redone when the camera has moved. Each person's matrix and attributes go to the
+// near mesh of their body (and hat) if close, else the far one.
+const _cm = new THREE.Matrix4(), _cq = new THREE.Quaternion(), _cs = new THREE.Vector3(), _cp = new THREE.Vector3(), _cu = new THREE.Vector3(0, 1, 0);
+function updateCrowd(cam) {
+  if (!CROWD.groups.length) return;
+  const n = Math.round(CROWD.people.length * CROWD.share);
+  const near2 = CROWD.nearDist * CROWD.nearDist, far2 = CROWD.farDist * CROWD.farDist;
+  // the closest few hundred get the detailed version, the next couple of thousand the light one
+  const cx = cam.position.x, cy = cam.position.y, cz = cam.position.z;
+  const on = [];
+  for (let i = 0; i < CROWD.people.length; i++) {
+    const p = CROWD.people[i];
+    p.on = i < n; p.lod = "tiny";
+    if (p.on) { p.d2 = (p.x - cx) ** 2 + (p.y - cy) ** 2 + (p.z - cz) ** 2; on.push(p); }
+  }
+  on.sort((a, b) => a.d2 - b.d2);
+  for (let i = 0; i < on.length; i++) {
+    const p = on[i];
+    if (i < CROWD.nearMax && p.d2 < near2) p.lod = "near";
+    else if (i < CROWD.nearMax + CROWD.farMax && p.d2 < far2) p.lod = "far";
+    else break;
+  }
+  for (const g of CROWD.groups) {
+    const fill = { near: 0, far: 0, tiny: 0 };
+    for (const p of g.members) {
+      if (!p.on) continue;
+      const lod = p.lod, im = g[lod + "Mesh"], k = fill[lod]++;
+      _cq.setFromAxisAngle(_cu, p.yaw); _cs.set(p.s, p.s * p.sy, p.s);
+      im.setMatrixAt(k, _cm.compose(_cp.set(p.x, p.y, p.z), _cq, _cs));
+      im.geometry.attributes.aCrowd.setXYZW(k, p.look, p.rig, p.phase, 0);
+      im.geometry.attributes.aAct.setXY(k, p.base, p.excited);
+    }
+    for (const lod of ["near", "far", "tiny"]) {
+      const im = g[lod + "Mesh"];
+      im.count = fill[lod];
+      im.instanceMatrix.needsUpdate = true;
+      im.geometry.attributes.aCrowd.needsUpdate = true; im.geometry.attributes.aAct.needsUpdate = true;
+    }
+  }
+}
+function setCrowdShare(share) {
+  const Q = QUALITY[qLevel];
+  CROWD.share = share; CROWD.nearMax = Q.crowdNear; CROWD.farMax = Q.crowdFar; CROWD.last = -1;
+}
 
 // ---------- Horses ----------
 const silkTextures = new Map();
@@ -987,27 +1161,28 @@ try {
   const optional = (p, what) => p.catch((e) => { console.warn(what + " missing:", e.message); return null; });
   const json = (url) => optional(fetch(url).then((r) => { if (!r.ok) throw new Error(url + " " + r.status); return r.json(); }), url);
   const file = (path) => "assets/course/" + path.split("/").pop();
-  const [props, horse, world, trees, belts, crowd, bakeInfo, dressing, planting, areas, spots, palette] = await Promise.all([
+  const [props, horse, world, trees, belts, crowd, bakeInfo, dressing, planting, areas, spots, looks, anims] = await Promise.all([
     optional(loadModel("assets/course", "course-props"), "Course furniture"),
     loadModel("assets/model", "racehorse"),
     optional(loadModel("assets/baked", "static_world"), "Baked scenery"),
     optional(loadModel("assets/trees", "trees"), "Trees"),
     optional(loadModel("assets/course", "planting_belts"), "Planting belts"),
-    optional(loadModel(ARCH, "crowd_people"), "Crowd"),
+    optional(loadModel(ARCH, "crowd_kit"), "Crowd"),
     json("assets/baked/bake.json"),
     json(file(VIEW.dressing)),
     json(file(VIEW.planting)),
     json(ARCH + "/ascot_main_stand_crowd_areas.json"),
     json(ARCH + "/site_props_spots.json"),
-    json(ARCH + "/crowd_palette.json"),
+    json(ARCH + "/crowd_looks.json"),
+    json(ARCH + "/crowd_anims.json"),
   ]);
   if (props) placeProps(props);
   if (world && bakeInfo) placeBaked(world, bakeInfo);
   if (belts) placeBelts(belts, planting, trees);
   if (trees) placeTrees(trees, dressing);
-  if (crowd && palette) {
+  if (crowd && looks && anims) {
     const pieceAt = (p) => new THREE.Matrix4().makeTranslation(p.x, 0, p.z).multiply(new THREE.Matrix4().makeRotationY(Math.PI + (p.turn || 0) * Math.PI / 180));
-    buildCrowd(crowd, { dressing, areas: areas && areas.areas, spots: spots && spots.pieces, palette }, pieceAt);
+    buildCrowd(crowd, { dressing, areas: areas && areas.areas, spots: spots && spots.pieces, looks, anims }, pieceAt);
   }
   const clips = horse.animations.filter((c) => c.name !== "walk");
   for (let i = 0; i < RUNNERS; i++) {
@@ -1155,6 +1330,13 @@ function frame() {
   const sunAt = new THREE.Vector3(toWorldX(packX), 0, MID_Z);
   sun.position.copy(sunAt).add(SUN_OFFSET); sun.target.position.copy(sunAt);
   scene.userData.sky.position.copy(camera.position);
+  if (CROWD.uniforms) {
+    CROWD.uniforms.uTime.value = performance.now() / 1000;
+    CROWD.uniforms.uLeaderX.value = runners.length ? toWorldX(leader) : 1e6;
+    // who gets the detailed figure: redone when the camera has moved a few metres, or the quality changed
+    const moved = CROWD.lastPos ? CROWD.lastPos.distanceTo(camera.position) : Infinity;
+    if (CROWD.last < 0 || moved > 6) { updateCrowd(camera); CROWD.last = 1; CROWD.lastPos = camera.position.clone(); }
+  }
 
   const left = (POST - leader) / FURLONG;
   toRunEl.textContent = left <= 0 ? "Finished" : left < 1 ? Math.round(left * 220) + " yds" : left.toFixed(1).replace(/\.0$/, "") + "f";
