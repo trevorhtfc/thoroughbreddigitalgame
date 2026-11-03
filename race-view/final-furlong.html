@@ -598,9 +598,15 @@ function buildCrowd(gltf, data, pieceAt) {
       }
     }
   }
+  // the dressing's crowd areas, keeping everyone out of the pieces' footprints (dressing.keepClear: world boxes)
+  const clearBoxes = data.dressing?.keepClear || [];
+  const blocked = (x, z) => clearBoxes.some((b) => x > b[0] && x < b[2] && z > b[1] && z < b[3]);
   for (const c of data.dressing?.crowds || []) {
     const n = Math.floor((c.x[1] - c.x[0]) * (c.z[1] - c.z[0]) * c.density);
-    for (let i = 0; i < n; i++) spots.push({ x: c.x[0] + rnd() * (c.x[1] - c.x[0]), y: 0, z: c.z[0] + rnd() * (c.z[1] - c.z[0]) });
+    for (let i = 0; i < n; i++) {
+      const x = c.x[0] + rnd() * (c.x[1] - c.x[0]), z = c.z[0] + rnd() * (c.z[1] - c.z[0]);
+      if (!blocked(x, z)) spots.push({ x, y: 0, z });
+    }
   }
   // shuffle, so lowering the quality thins the crowd evenly instead of emptying whole areas
   for (let i = spots.length - 1; i > 0; i--) { const j = Math.floor(rnd() * (i + 1)); [spots[i], spots[j]] = [spots[j], spots[i]]; }
