@@ -281,7 +281,7 @@
       "x": 1023.5,
       "z": 52,
       "faces": "course",
-      "dressing": "courses/ascot-site-dressing.json",
+      "dressing": "courses/ascot-site-dressing-straight.json",
       "note": "Middle of the stand's front at ground level. Placed so the clock tower (17.5 m from the middle) stands directly opposite the winning post."
     }
   ]

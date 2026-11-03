@@ -1,0 +1,623 @@
+{
+ "_about": "Where the site components (assets/models/architecture/site_props.glb) stand round the Victorian grandstand at Ascot. Positions are relative to the middle of the grandstand's front at ground level, in the course's axes: dx = along the direction of running, dz = across the course, + away from the track towards the stands side (the track's centre line is at dz -52; near rail -36.6, far rail -67.4). turn = degrees anticlockwise seen from above; 0 = the piece's front faces the course, 180 = it faces back towards the stands from the far side. Edit, add or remove lines to dress the ground; any engine places the same pieces from this file.",
+ "anchor": {
+  "structure": "victorian_grandstand",
+  "note": "In the Blender look test the stand's front is at x 20, y -52 (Blender y = -course z)."
+ },
+ "crowds": [
+  {
+   "note": "hospitality lawn by the marquee",
+   "dx": [
+    70,
+    108
+   ],
+   "dz": [
+    -27,
+    -6
+   ],
+   "density": 0.08
+  },
+  {
+   "note": "picnic lawn by the glazed marquee",
+   "dx": [
+    -104,
+    -68
+   ],
+   "dz": [
+    -27,
+    -6
+   ],
+   "density": 0.06
+  },
+  {
+   "note": "far rail",
+   "dx": [
+    -104,
+    -40
+   ],
+   "dz": [
+    -71,
+    -68.5
+   ],
+   "density": 0.45
+  },
+  {
+   "note": "round the big top",
+   "dx": [
+    -90,
+    -30
+   ],
+   "dz": [
+    -104,
+    -96
+   ],
+   "density": 0.05
+  }
+ ],
+ "pieces": [
+  {
+   "piece": "marquee_peaks",
+   "dx": 92,
+   "dz": 2,
+   "turn": 0
+  },
+  {
+   "piece": "terrace_deck",
+   "dx": 78,
+   "dz": -14,
+   "turn": 0
+  },
+  {
+   "piece": "pagoda_counter",
+   "dx": 69,
+   "dz": -23,
+   "turn": 0
+  },
+  {
+   "piece": "fence_picket",
+   "dx": 67.25,
+   "dz": -30,
+   "turn": 0
+  },
+  {
+   "piece": "fence_picket",
+   "dx": 69.75,
+   "dz": -30,
+   "turn": 0
+  },
+  {
+   "piece": "fence_picket",
+   "dx": 72.25,
+   "dz": -30,
+   "turn": 0
+  },
+  {
+   "piece": "fence_picket",
+   "dx": 74.75,
+   "dz": -30,
+   "turn": 0
+  },
+  {
+   "piece": "fence_picket",
+   "dx": 77.25,
+   "dz": -30,
+   "turn": 0
+  },
+  {
+   "piece": "fence_picket",
+   "dx": 84.75,
+   "dz": -30,
+   "turn": 0
+  },
+  {
+   "piece": "fence_picket",
+   "dx": 87.25,
+   "dz": -30,
+   "turn": 0
+  },
+  {
+   "piece": "fence_picket",
+   "dx": 89.75,
+   "dz": -30,
+   "turn": 0
+  },
+  {
+   "piece": "fence_picket",
+   "dx": 92.25,
+   "dz": -30,
+   "turn": 0
+  },
+  {
+   "piece": "fence_picket",
+   "dx": 94.75,
+   "dz": -30,
+   "turn": 0
+  },
+  {
+   "piece": "fence_picket",
+   "dx": 97.25,
+   "dz": -30,
+   "turn": 0
+  },
+  {
+   "piece": "fence_picket",
+   "dx": 99.75,
+   "dz": -30,
+   "turn": 0
+  },
+  {
+   "piece": "fence_picket",
+   "dx": 102.25,
+   "dz": -30,
+   "turn": 0
+  },
+  {
+   "piece": "fence_picket",
+   "dx": 104.75,
+   "dz": -30,
+   "turn": 0
+  },
+  {
+   "piece": "barrier_rail",
+   "dx": 67,
+   "dz": -12.5,
+   "turn": 0
+  },
+  {
+   "piece": "barrier_rail",
+   "dx": 70.5,
+   "dz": -12.5,
+   "turn": 0
+  },
+  {
+   "piece": "planter_long",
+   "dx": 66,
+   "dz": -6,
+   "turn": 0
+  },
+  {
+   "piece": "planter_long",
+   "dx": 66,
+   "dz": -1,
+   "turn": 0
+  },
+  {
+   "piece": "signpost",
+   "dx": 65,
+   "dz": -12,
+   "turn": -30
+  },
+  {
+   "piece": "marquee_clearspan",
+   "dx": -90,
+   "dz": 4,
+   "turn": 0
+  },
+  {
+   "piece": "pergola_picnic",
+   "dx": -76,
+   "dz": -14,
+   "turn": 0
+  },
+  {
+   "piece": "picnic_table",
+   "dx": -86,
+   "dz": -15,
+   "turn": 15
+  },
+  {
+   "piece": "picnic_table",
+   "dx": -90,
+   "dz": -19,
+   "turn": 15
+  },
+  {
+   "piece": "picnic_table",
+   "dx": -94,
+   "dz": -15,
+   "turn": 15
+  },
+  {
+   "piece": "picnic_table",
+   "dx": -84,
+   "dz": -21,
+   "turn": 15
+  },
+  {
+   "piece": "kiosk_awning",
+   "dx": -68,
+   "dz": -24,
+   "turn": -90
+  },
+  {
+   "piece": "booth_hut",
+   "dx": -68,
+   "dz": -29.5,
+   "turn": -90
+  },
+  {
+   "piece": "kiosk_row_arched",
+   "dx": -84,
+   "dz": -31,
+   "turn": 0
+  },
+  {
+   "piece": "planter_long",
+   "dx": -66,
+   "dz": -6,
+   "turn": 0
+  },
+  {
+   "piece": "planter_long",
+   "dx": -66,
+   "dz": -1,
+   "turn": 0
+  },
+  {
+   "piece": "signpost",
+   "dx": -65,
+   "dz": -12,
+   "turn": 30
+  },
+  {
+   "piece": "planter_short",
+   "dx": -70,
+   "dz": -11,
+   "turn": 0
+  },
+  {
+   "piece": "planter_short",
+   "dx": -82,
+   "dz": -11,
+   "turn": 0
+  },
+  {
+   "piece": "banner_flag",
+   "dx": -100,
+   "dz": -35.7,
+   "turn": 0
+  },
+  {
+   "piece": "banner_flag",
+   "dx": -85,
+   "dz": -35.7,
+   "turn": 0
+  },
+  {
+   "piece": "banner_flag",
+   "dx": -70,
+   "dz": -35.7,
+   "turn": 0
+  },
+  {
+   "piece": "banner_flag",
+   "dx": -55,
+   "dz": -35.7,
+   "turn": 0
+  },
+  {
+   "piece": "banner_flag",
+   "dx": -40,
+   "dz": -35.7,
+   "turn": 0
+  },
+  {
+   "piece": "banner_flag",
+   "dx": 5,
+   "dz": -35.7,
+   "turn": 0
+  },
+  {
+   "piece": "banner_flag",
+   "dx": 20,
+   "dz": -35.7,
+   "turn": 0
+  },
+  {
+   "piece": "banner_flag",
+   "dx": 35,
+   "dz": -35.7,
+   "turn": 0
+  },
+  {
+   "piece": "banner_flag",
+   "dx": 50,
+   "dz": -35.7,
+   "turn": 0
+  },
+  {
+   "piece": "banner_flag",
+   "dx": 65,
+   "dz": -35.7,
+   "turn": 0
+  },
+  {
+   "piece": "banner_flag",
+   "dx": 80,
+   "dz": -35.7,
+   "turn": 0
+  },
+  {
+   "piece": "banner_flag",
+   "dx": 95,
+   "dz": -35.7,
+   "turn": 0
+  },
+  {
+   "piece": "banner_flag",
+   "dx": 110,
+   "dz": -35.7,
+   "turn": 0
+  },
+  {
+   "piece": "viewing_tower",
+   "dx": -36,
+   "dz": -73,
+   "turn": 180
+  },
+  {
+   "piece": "stand_open",
+   "dx": -60,
+   "dz": -76,
+   "turn": 180
+  },
+  {
+   "piece": "stand_covered",
+   "dx": -84,
+   "dz": -76,
+   "turn": 180
+  },
+  {
+   "piece": "signboard",
+   "dx": 50,
+   "dz": -70.5,
+   "turn": 180
+  },
+  {
+   "piece": "signboard",
+   "dx": 64,
+   "dz": -70.5,
+   "turn": 180
+  },
+  {
+   "piece": "signboard",
+   "dx": 78,
+   "dz": -70.5,
+   "turn": 180
+  },
+  {
+   "piece": "signboard",
+   "dx": 92,
+   "dz": -70.5,
+   "turn": 180
+  },
+  {
+   "piece": "fence_cross",
+   "dx": -98.75,
+   "dz": -83,
+   "turn": 180
+  },
+  {
+   "piece": "fence_cross",
+   "dx": -96.25,
+   "dz": -83,
+   "turn": 180
+  },
+  {
+   "piece": "fence_cross",
+   "dx": -93.75,
+   "dz": -83,
+   "turn": 180
+  },
+  {
+   "piece": "fence_cross",
+   "dx": -91.25,
+   "dz": -83,
+   "turn": 180
+  },
+  {
+   "piece": "fence_cross",
+   "dx": -88.75,
+   "dz": -83,
+   "turn": 180
+  },
+  {
+   "piece": "fence_cross",
+   "dx": -86.25,
+   "dz": -83,
+   "turn": 180
+  },
+  {
+   "piece": "fence_cross",
+   "dx": -83.75,
+   "dz": -83,
+   "turn": 180
+  },
+  {
+   "piece": "fence_cross",
+   "dx": -81.25,
+   "dz": -83,
+   "turn": 180
+  },
+  {
+   "piece": "fence_cross",
+   "dx": -78.75,
+   "dz": -83,
+   "turn": 180
+  },
+  {
+   "piece": "fence_cross",
+   "dx": -76.25,
+   "dz": -83,
+   "turn": 180
+  },
+  {
+   "piece": "fence_cross",
+   "dx": -73.75,
+   "dz": -83,
+   "turn": 180
+  },
+  {
+   "piece": "fence_cross",
+   "dx": -71.25,
+   "dz": -83,
+   "turn": 180
+  },
+  {
+   "piece": "fence_cross",
+   "dx": -68.75,
+   "dz": -83,
+   "turn": 180
+  },
+  {
+   "piece": "fence_cross",
+   "dx": -66.25,
+   "dz": -83,
+   "turn": 180
+  },
+  {
+   "piece": "fence_cross",
+   "dx": -63.75,
+   "dz": -83,
+   "turn": 180
+  },
+  {
+   "piece": "fence_cross",
+   "dx": -61.25,
+   "dz": -83,
+   "turn": 180
+  },
+  {
+   "piece": "fence_cross",
+   "dx": -58.75,
+   "dz": -83,
+   "turn": 180
+  },
+  {
+   "piece": "fence_cross",
+   "dx": -56.25,
+   "dz": -83,
+   "turn": 180
+  },
+  {
+   "piece": "fence_cross",
+   "dx": -53.75,
+   "dz": -83,
+   "turn": 180
+  },
+  {
+   "piece": "fence_cross",
+   "dx": -51.25,
+   "dz": -83,
+   "turn": 180
+  },
+  {
+   "piece": "fence_cross",
+   "dx": -48.75,
+   "dz": -83,
+   "turn": 180
+  },
+  {
+   "piece": "fence_cross",
+   "dx": -46.25,
+   "dz": -83,
+   "turn": 180
+  },
+  {
+   "piece": "fence_cross",
+   "dx": -43.75,
+   "dz": -83,
+   "turn": 180
+  },
+  {
+   "piece": "fence_cross",
+   "dx": -41.25,
+   "dz": -83,
+   "turn": 180
+  },
+  {
+   "piece": "big_top",
+   "dx": -70,
+   "dz": -112,
+   "turn": 180
+  },
+  {
+   "piece": "flagpole",
+   "dx": -52,
+   "dz": -94.5,
+   "turn": 180
+  },
+  {
+   "piece": "flagpole",
+   "dx": -46,
+   "dz": -94.5,
+   "turn": 180
+  },
+  {
+   "piece": "flagpole",
+   "dx": -40,
+   "dz": -94.5,
+   "turn": 180
+  },
+  {
+   "piece": "flagpole",
+   "dx": -34,
+   "dz": -94.5,
+   "turn": 180
+  },
+  {
+   "piece": "flagpole",
+   "dx": -28,
+   "dz": -94.5,
+   "turn": 180
+  },
+  {
+   "piece": "flagpole",
+   "dx": -22,
+   "dz": -94.5,
+   "turn": 180
+  },
+  {
+   "piece": "pagoda_kiosk",
+   "dx": -42,
+   "dz": -104,
+   "turn": 180
+  },
+  {
+   "piece": "kiosk_awning",
+   "dx": -96,
+   "dz": -104,
+   "turn": 180
+  },
+  {
+   "piece": "picnic_table",
+   "dx": -50,
+   "dz": -107,
+   "turn": 0
+  },
+  {
+   "piece": "picnic_table",
+   "dx": -46,
+   "dz": -107,
+   "turn": 0
+  },
+  {
+   "piece": "picnic_table",
+   "dx": -92,
+   "dz": -107,
+   "turn": 0
+  },
+  {
+   "piece": "planter_short",
+   "dx": -58,
+   "dz": -101,
+   "turn": 180
+  },
+  {
+   "piece": "planter_short",
+   "dx": -28,
+   "dz": -101,
+   "turn": 180
+  }
+ ]
+}

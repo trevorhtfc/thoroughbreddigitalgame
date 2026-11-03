@@ -175,7 +175,7 @@ for a in areas:
             x += 0.62
 print("crowd:", count, "people", flush=True)
 
-# ---------------- Site components round the stand (courses/ascot-site-dressing.json) ----------------
+# ---------------- Site components round the stand (courses/ascot-site-dressing-straight.json) ----------------
 before = set(bpy.data.objects)
 bpy.ops.import_scene.gltf(filepath=os.path.join(ARCH, "site_props.glb"))
 LIBP = {o.name.split(".")[0]: o for o in bpy.data.objects if o not in before and o.type == "MESH"}
@@ -189,7 +189,7 @@ for o in LIBP.values():
             painted(m)
         add_haze(m, m.node_tree.nodes, m.node_tree.links)
     o.hide_render = True; o.hide_viewport = True
-DRESS = json.load(open(os.path.join(REPO, "courses/ascot-site-dressing.json")))
+DRESS = json.load(open(os.path.join(REPO, "courses/ascot-site-dressing-straight.json")))   # the 124 m stand on the old straight
 SPOTS = json.load(open(os.path.join(ARCH, "site_props_spots.json")))["pieces"]
 placed = 0
 for p in DRESS["pieces"]:
