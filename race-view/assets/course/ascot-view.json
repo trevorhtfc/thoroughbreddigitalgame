@@ -223,7 +223,7 @@
   }
  },
  "raceCameras": {
-  "_about": "Camera plan agreed with the owner, 3 Nov 2026 (reference/cameras/00-owner-camera-markup.jpg and the TV grabs beside it). World axes; heights in metres. Owner, 3 Nov: the cameras always run AHEAD of the horses. 'track': a car on the inside of the inside rail ('side' metres in), 'ahead' metres in front of the leader, filming back across the field through the rail. 'rail': the grandstand camera on a rail along the stand (x from rail.x[0] to rail.x[1]), 'ahead' metres in front of the leader, stopping at the winning line (x 0) so the finish is level, square on. 'fixed': stands at 'at' and pans. 'ahead' lists the distances to try, nearest first: the first that fits the field (zoom under 80% of the widest) is used, eased in, so a narrow phone screen gets a camera further ahead. Zoom (fov, degrees, min and max) is worked out each frame so every horse is in shot except one or two tailed off, and the leaders never leave it.",
+  "_about": "Camera plan agreed with the owner, 3 Nov 2026 (reference/cameras/00-owner-camera-markup.jpg and the TV grabs beside it). World axes; heights in metres. Owner, 3 Nov: the cameras always run AHEAD of the horses. 'track': a car on the inside of the inside rail ('side' metres in), 'ahead' metres in front of the leader, filming back across the field through the rail. 'rail': the grandstand camera on a rail along the stand (x from rail.x[0] to rail.x[1]), 'ahead' metres in front of the leader, stopping at the winning line (x 0) so the finish is level, square on. 'fixed': stands at 'at' and pans. 'ahead' lists the distances to try, nearest first: the first that fits the field (zoom under 80% of the widest) is used, eased in, so a narrow phone screen gets a camera further ahead. Zoom (fov, degrees, min and max) is worked out each frame so every horse is in shot except one or two tailed off, and the leaders never leave it. 'railSide' 'outer' puts a tracking car on the grandstand side instead of the inside rail.",
   "track_loop": {
    "label": "Tracking",
    "kind": "track",
@@ -256,7 +256,7 @@
     50
    ],
    "grab": "grab-02.png",
-   "note": "only 5 m inside the rail: the planting belt runs along the straight mile's far side",
+   "note": "on the grandstand side of the straight mile (owner, 3 Nov), 5 m outside the outer rail (the planting belt is just behind it east of the stand); up to 9 m over the crowds and enclosures from x 720 westwards ('raise': x from, x to, height)",
    "ahead": [
     6,
     12,
@@ -265,6 +265,14 @@
     45,
     65,
     90
+   ],
+   "railSide": "outer",
+   "raise": [
+    [
+     -150,
+     720,
+     9
+    ]
    ]
   },
   "grandstand": {
@@ -272,13 +280,13 @@
    "kind": "rail",
    "fov": [
     2.5,
-    30
+    36
    ],
-   "note": "high on the stand in front of the roof edge, on a rail from the winning line (x 0) to the stand's east end: runs ahead of the leader, swings with the field round the final bend, then down the straight, arriving level with the line for the finish",
+   "note": "high on the stand in front of the roof edge, on a rail from just past the winning line (x -22) to the stand's east end: runs ahead of the leader, swings with the field round the final bend, then down the straight. From 'parkAt' metres out it is parked just past the line, looking back up the straight, and from 'showLineFrom' metres out it keeps the line in shot, so the finish is seen coming and is close to level at the line",
    "grab": "grab-03.png .. grab-08.png",
    "rail": {
     "x": [
-     0,
+     -22,
      400
     ],
     "y": 31,
@@ -292,7 +300,9 @@
     140,
     190,
     250
-   ]
+   ],
+   "parkAt": 150,
+   "showLineFrom": 90
   },
   "lookback": {
    "label": "Looking back",

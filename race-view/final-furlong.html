@@ -51,6 +51,10 @@ body { background: #5f8a44; color: var(--green-ink); font-family: var(--body); o
   padding: 6px 8px;
   display: flex; flex-wrap: wrap; gap: 6px 14px; align-items: center; justify-content: center;
 }
+.showbar {
+  position: fixed; right: max(12px, env(safe-area-inset-right, 0px)); bottom: calc(env(safe-area-inset-bottom, 0px) + 12px);
+  background: var(--cream); border: 1px solid var(--cream-edge); box-shadow: 0 4px 12px rgba(40, 40, 20, 0.25); opacity: 0.85;
+}
 .group { display: flex; gap: 4px; align-items: center; }
 .group > span { font-size: 0.68rem; letter-spacing: 0.12em; text-transform: uppercase; color: var(--ink-soft); margin-right: 2px; }
 button {
@@ -83,6 +87,7 @@ button:focus-visible { outline: 2px solid var(--cream-edge); outline-offset: 2px
 </style>
 
 <canvas id="scene"></canvas>
+<button id="showBar" class="showbar" type="button" hidden>Controls</button>
 <div class="loading" id="loading">Setting up the course…</div>
 
 <div class="plate">
@@ -98,7 +103,7 @@ button:focus-visible { outline: 2px solid var(--cream-edge); outline-offset: 2px
   <div class="group" id="cams"><span>Camera</span></div>
   <div class="group" id="finish"><span>Finish</span></div>
   <div class="group" id="quality"><span>Quality</span></div>
-  <div class="group"><button id="pause" type="button" aria-pressed="false">Pause</button><button id="restart" type="button">Restart</button></div>
+  <div class="group"><button id="pause" type="button" aria-pressed="false">Pause</button><button id="restart" type="button">Restart</button><button id="hideBar" type="button" aria-label="Hide the controls">Hide</button></div>
 </div>
 
 <script type="importmap">
@@ -1104,13 +1109,32 @@ function cameraTarget(now) {
   // from further ahead the field closes up into a shorter string. The rail camera stops at the winning
   // line, so the finish is level, square on.
   const eyeAt = (a) => {
-    if (c.kind === "track") { const [x, z] = toWorld(leadU + a, -HALF_W - c.side); return new THREE.Vector3(x, c.height, z); }
+    if (c.kind === "track") {
+      // inside rail (railSide "inside", the default) or the grandstand side ("outer"); up over crowds and
+      // enclosures where 'raise' says so ([x from, x to, height]), easing up and down over 40 m
+      const out = c.railSide === "outer";
+      const [x, z] = toWorld(leadU + a, out ? HALF_W + c.side : -HALF_W - c.side);
+      let y = c.height;
+      for (const [x0, x1, h] of c.raise || []) {
+        const k = Math.min(THREE.MathUtils.smoothstep(x, x0 - 40, x0), 1 - THREE.MathUtils.smoothstep(x, x1, x1 + 40));
+        y = Math.max(y, c.height + (h - c.height) * k);
+      }
+      return new THREE.Vector3(x, y, z);
+    }
     if (c.kind === "rail") {
-      const [lx] = toWorld(leadU, 0);
-      return new THREE.Vector3(THREE.MathUtils.clamp(lx - a, c.rail.x[0], c.rail.x[1]), c.rail.y, c.rail.z);
+      // ahead of the leader, but parked on the line from 'parkAt' metres out so the finish is seen coming
+      const [lx] = toWorld(leadU, 0), p = c.parkAt || 0;
+      const k = THREE.MathUtils.smoothstep(DIST - leadU, p, p * 2);
+      const x = c.rail.x[0] + (THREE.MathUtils.clamp(lx - a, c.rail.x[0], c.rail.x[1]) - c.rail.x[0]) * k;
+      return new THREE.Vector3(x, c.rail.y, c.rail.z);
     }
     return new THREE.Vector3(...c.at);
   };
+  // the winning line stays in the grandstand shot for the last 'showLineFrom' metres, so it's seen coming
+  if (c.kind === "rail" && c.showLineFrom && DIST - leadU < c.showLineFrom && DIST - leadU > -5) {
+    pts.push(new THREE.Vector3(0, 1.5, HALF_W));                      // the middle of the winning line
+    box.setFromPoints(pts); box.getCenter(centre);
+  }
   let eye, look = centre;
   if (c.ahead) {
     let want = c.ahead[c.ahead.length - 1];
@@ -1254,6 +1278,15 @@ document.getElementById("pause").onclick = (e) => {
   e.currentTarget.setAttribute("aria-pressed", state.paused);
   e.currentTarget.textContent = state.paused ? "Resume" : "Pause";
 };
+// Hide the controls (for a phone held sideways); a small button brings them back. Remembered per browser.
+const barEl = document.querySelector(".bar"), showEl = document.getElementById("showBar");
+function setBar(on) {
+  barEl.hidden = !on; showEl.hidden = on;
+  try { localStorage.setItem("tb-bar", on ? "1" : "0"); } catch {}
+}
+document.getElementById("hideBar").onclick = () => setBar(false);
+showEl.onclick = () => setBar(true);
+try { if (localStorage.getItem("tb-bar") === "0" && !params.has("still")) setBar(false); } catch {}
 document.getElementById("restart").onclick = () => { state.phase = "prelude"; state.pt = 0; state.t = 0; snap = true; live.length = 0; };
 
 function resize() {
