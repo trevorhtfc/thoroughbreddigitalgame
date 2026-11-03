@@ -55,8 +55,8 @@ wn, wl = world.node_tree.nodes, world.node_tree.links
 grad = wn.new("ShaderNodeTexGradient"); tc = wn.new("ShaderNodeTexCoord"); sep = wn.new("ShaderNodeSeparateXYZ")
 ramp = wn.new("ShaderNodeValToRGB")
 wl.new(tc.outputs["Generated"], sep.inputs[0]); wl.new(sep.outputs["Z"], ramp.inputs[0])
-ramp.color_ramp.elements[0].position = 0.5; ramp.color_ramp.elements[0].color = (0.75, 0.84, 0.92, 1)
-ramp.color_ramp.elements[1].position = 0.85; ramp.color_ramp.elements[1].color = (0.28, 0.5, 0.86, 1)
+ramp.color_ramp.elements[0].position = 0.0; ramp.color_ramp.elements[0].color = (0.62, 0.76, 0.93, 1)
+ramp.color_ramp.elements[1].position = 0.55; ramp.color_ramp.elements[1].color = (0.16, 0.38, 0.85, 1)
 wl.new(ramp.outputs[0], wn["Background"].inputs[0]); wn["Background"].inputs[1].default_value = 1.0
 bpy.ops.object.light_add(type="SUN")
 sun = bpy.context.object; sun.data.energy = 4.5; sun.data.angle = math.radians(5); sun.data.color = (1.0, 0.9, 0.76)
@@ -86,8 +86,8 @@ def camera(name, loc, look, lens):
 kit = import_glb(rp("assets/models/architecture/stand_modules.glb"))
 g = plane("ground_cat", -20, 900, -60, 60, grass)
 xs = [o.location.x for o in kit]
-mid = (min(xs) + max(xs) + 30) / 2
-camera("stand_modules_catalogue", (mid - 40, -340, 110), (mid - 40, 0, 6), 32)
+mid = (min(xs) + max(xs) + 28) / 2
+camera("stand_modules_catalogue", (mid, -300, 75), (mid, 0, 8), 24)
 for o in kit: bpy.data.objects.remove(o)
 bpy.data.objects.remove(g)
 
@@ -102,6 +102,6 @@ for y in (0.0, -W):                                          # rails along the h
     plane("rail_%d" % int(-y), -300, 1300, y - 0.12, y + 0.12, rail, 1.0)
 plane("post", -0.15, 0.15, 0.2, -0.2, flat("post", "#c0392b"), 2.6)
 
-camera("ascot_stand_wide", (140, 260, 70), (150, -FRONT - 10, 10), 26)
+camera("ascot_stand_wide", (151, 420, 55), (151, -FRONT - 10, 12), 30)
 camera("ascot_stand_34", (480, -FRONT + 60, 26), (150, -FRONT - 10, 12), 30)
 camera("ascot_stand_post", (-40, 40, 14), (10, -FRONT - 10, 14), 28)
