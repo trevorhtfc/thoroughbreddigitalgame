@@ -114,14 +114,52 @@ def radius_profile(P, closed, span=12):
 
 STEP = 1.0
 # ---------- the round course loop (inside rail) ----------
-loop_raw = to_world(catmull_rom(T["roundCourse"]["points"], closed=True))
-loop, s_loop, L_loop = resample(loop_raw, STEP, closed=True)
-loop = smooth(loop, 6, True)
-loop, s_loop, L_loop = resample(loop, STEP, closed=True)
-# start exactly at the post
-i0 = int(np.argmin(np.linalg.norm(loop, axis=1)))
-loop = np.roll(loop, -i0, 0); loop[0] = [0, 0]
-loop, s_loop, L_loop = resample(loop, STEP, closed=True)
+def build_loop(pts_px):
+    raw = to_world(catmull_rom(pts_px, closed=True))
+    lp, _, _ = resample(raw, STEP, closed=True)
+    lp = smooth(lp, 6, True)
+    lp, _, _ = resample(lp, STEP, closed=True)
+    i0 = int(np.argmin(np.linalg.norm(lp, axis=1)))  # start exactly at the post
+    lp = np.roll(lp, -i0, 0); lp[0] = [0, 0]
+    return resample(lp, STEP, closed=True)
+
+
+def eased_bend_points(phi, cfg):
+    """Replace the board's tight bend after the post with a true arc of the given inside radius.
+    The diagonal pivots (by phi, radians) about its top end so the loop keeps its traced length."""
+    pts = T["roundCourse"]["points"]
+    piv_i = pts.index(cfg["pivotPx"])
+    P = to_world([cfg["pivotPx"]])[0]
+    u = to_world([cfg["diagonalLowerPx"]])[0] - P; u /= np.linalg.norm(u)  # down the diagonal (towards the bend)
+    c, s_ = math.cos(phi), math.sin(phi)
+    u = np.array([c * u[0] - s_ * u[1], s_ * u[0] + c * u[1]])  # +phi swings the lower end west (outwards)
+    a = np.array([-1.0, 0.0])                                  # running west on the straight
+    b = -u                                                     # then up the diagonal
+    t_c = -P[1] / u[1]; C = P + u * t_c                        # corner on the line z = 0
+    theta = math.acos(np.clip(np.dot(a, b), -1, 1))
+    R = cfg["insideRadius"]; tl = R * math.tan(theta / 2)
+    T1 = C - a * tl; T2 = C + b * tl; O = T1 + np.array([0.0, -R])
+    a1 = math.atan2(T1[1] - O[1], T1[0] - O[0]); a2 = math.atan2(T2[1] - O[1], T2[0] - O[0])
+    if a2 < a1: a2 += 2 * math.pi                              # sweep west then north (angles rise with z pointing south)
+    arc = [O + R * np.array([math.cos(t), math.sin(t)]) for t in np.linspace(a1, a2, max(8, int(R * abs(a2 - a1) / 6)))]
+    straight = [np.array([x, 0.0]) for x in np.arange(-40.0, T1[0] + 1, -40.0)]
+    diag = [T2 + b * d for d in np.arange(50.0, np.linalg.norm(P - T2) - 25, 50.0)]
+    new = [np.zeros(2)] + straight + arc + diag
+    return [pts[0]] + [list(map(float, q)) for q in to_px(new[1:])] + pts[piv_i:], T1, R
+
+
+BB = T["roundCourse"].get("bottomBend")
+if BB:
+    lo, hi = -0.25, 0.25
+    for _ in range(40):
+        mid = (lo + hi) / 2
+        _, _, Lm = build_loop(eased_bend_points(mid, BB)[0])
+        lo, hi = (mid, hi) if Lm < BB["keepLoopLength"] else (lo, mid)
+    BEND_PHI = (lo + hi) / 2
+    loop_pts, BEND_T1, _ = eased_bend_points(BEND_PHI, BB)
+else:
+    loop_pts = T["roundCourse"]["points"]
+loop, s_loop, L_loop = build_loop(loop_pts)
 n_loop = left_normals(loop, True)
 r_loop = radius_profile(loop, True)
 
@@ -158,7 +196,7 @@ gzone = box(g["from"], W, g["to"], W + g["depth"])
 
 pl = Z["planting"]
 ring = track.buffer(pl["gap"] + pl["depth"], join_style=1).difference(track.buffer(pl["gap"], join_style=1))
-bend_c = to_world([[215, 935]])[0]
+bend_c = np.array([BEND_T1[0], -BB["insideRadius"]]) if BB else to_world([[215, 935]])[0]
 stop = to_world([pl["westEndStopsAtPx"]])[0]
 v = (stop - bend_c) / np.linalg.norm(stop - bend_c)
 excl = [P_in.buffer(2),
@@ -434,6 +472,7 @@ fig.suptitle(f"Main stand: {len(placed)} modules, {int(stand_len / bay)} bays of
 fig.savefig(rp("reference/course/layout/ascot-stand-plan.png"))
 plt.close(fig)
 
+if BB: print(f"bottom bend: inside radius {BB['insideRadius']} m, diagonal swung {math.degrees(BEND_PHI):.2f} deg about its top end")
 print(f"loop {L_loop:.1f} m = {L_loop / F:.2f}f; spur {spur_len:.1f} m; join at {togo_join:.1f} m to go; chute start {togo_join + spur_len:.1f} m = {(togo_join + spur_len) / F:.2f}f")
 print(f"straight mile {stalls_x:.1f} m = {stalls_x / F:.2f}f")
 print("bends:", bends)

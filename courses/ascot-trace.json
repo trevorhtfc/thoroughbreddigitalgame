@@ -7,39 +7,283 @@
     "metresPerFurlong": 201.168,
     "note": "Measured from the straight-course furlong markers: finish x 305, 1f 508, 2f 710, 3f 913, 5f 1318, 7f 1722, 8f 1925 (202.5 px each)."
   },
-  "winningPost": {"px": [305, 995], "note": "Pink line; the post is on the inside (far) rail. World origin."},
+  "winningPost": {
+    "px": [
+      305,
+      995
+    ],
+    "note": "Pink line; the post is on the inside (far) rail. World origin."
+  },
   "trackWidth": 30,
   "roundCourse": {
     "note": "Closed loop in running order (clockwise, right-handed), starting at the winning post and heading west. Inside rail.",
     "points": [
-      [305, 995], [250, 995], [215, 994], [199, 994], [183, 990], [168, 982], [156, 969], [150, 952],
-      [149, 935], [154, 919], [164, 906], [173, 893], [184, 881],
-      [232, 820], [330, 700], [427, 580], [524, 460], [589, 380],
-      [640, 317], [680, 284], [720, 264], [760, 253], [800, 249], [840, 253], [880, 265], [920, 287],
-      [960, 325], [984, 360],
-      [994, 440], [1003, 520], [1012, 600], [1021, 680], [1030, 760], [1039, 840],
-      [1039, 880], [1035, 908], [1027, 927], [1016, 944], [1000, 962], [980, 977], [956, 988], [930, 994],
-      [900, 995], [800, 995], [600, 995], [450, 995]
-    ]
+      [
+        305,
+        995
+      ],
+      [
+        250,
+        995
+      ],
+      [
+        215,
+        994
+      ],
+      [
+        199,
+        994
+      ],
+      [
+        183,
+        990
+      ],
+      [
+        168,
+        982
+      ],
+      [
+        156,
+        969
+      ],
+      [
+        150,
+        952
+      ],
+      [
+        149,
+        935
+      ],
+      [
+        154,
+        919
+      ],
+      [
+        164,
+        906
+      ],
+      [
+        173,
+        893
+      ],
+      [
+        184,
+        881
+      ],
+      [
+        232,
+        820
+      ],
+      [
+        330,
+        700
+      ],
+      [
+        427,
+        580
+      ],
+      [
+        524,
+        460
+      ],
+      [
+        589,
+        380
+      ],
+      [
+        640,
+        317
+      ],
+      [
+        680,
+        284
+      ],
+      [
+        720,
+        264
+      ],
+      [
+        760,
+        253
+      ],
+      [
+        800,
+        249
+      ],
+      [
+        840,
+        253
+      ],
+      [
+        880,
+        265
+      ],
+      [
+        920,
+        287
+      ],
+      [
+        960,
+        325
+      ],
+      [
+        984,
+        360
+      ],
+      [
+        994,
+        440
+      ],
+      [
+        1003,
+        520
+      ],
+      [
+        1012,
+        600
+      ],
+      [
+        1021,
+        680
+      ],
+      [
+        1030,
+        760
+      ],
+      [
+        1039,
+        840
+      ],
+      [
+        1039,
+        880
+      ],
+      [
+        1035,
+        908
+      ],
+      [
+        1027,
+        927
+      ],
+      [
+        1016,
+        944
+      ],
+      [
+        1000,
+        962
+      ],
+      [
+        980,
+        977
+      ],
+      [
+        956,
+        988
+      ],
+      [
+        930,
+        994
+      ],
+      [
+        900,
+        995
+      ],
+      [
+        800,
+        995
+      ],
+      [
+        600,
+        995
+      ],
+      [
+        450,
+        995
+      ]
+    ],
+    "bottomBend": {
+      "note": "Owner, 3 Nov 2026: the board's bend just past the post is too tight (about 41 m inside radius). It is rebuilt as a true arc of this inside radius; the diagonal pivots about its top end so the loop keeps exactly its traced length, so every running distance and start stays the same. The traced points between the post and the pivot are replaced.",
+      "insideRadius": 80,
+      "keepLoopLength": 2689.8,
+      "pivotPx": [
+        589,
+        380
+      ],
+      "diagonalLowerPx": [
+        232,
+        820
+      ]
+    }
   },
   "roundMileSpur": {
     "note": "The chute: the right-hand straight's inside line carried straight on north to the round-mile start (board marker 8 at the top). Running order: from the start down to where it meets the loop.",
-    "points": [[945, 22], [984, 360]],
-    "joinsLoopAt": [984, 360]
+    "points": [
+      [
+        945,
+        22
+      ],
+      [
+        984,
+        360
+      ]
+    ],
+    "joinsLoopAt": [
+      984,
+      360
+    ]
   },
   "straightMile": {
     "note": "Straight course: stalls at the far right, inside (far) rail along the board's top edge of the straight, running west to the post.",
-    "points": [[1925, 995], [305, 995]],
+    "points": [
+      [
+        1925,
+        995
+      ],
+      [
+        305,
+        995
+      ]
+    ],
     "carriesOnPastPost": 105
   },
   "boardMarkers": {
     "note": "Round-course furlong markers as drawn on the board (outer side of the right-hand straight and chute), for checking the trace.",
-    "round": {"4": [1210, 848], "5": [1190, 645], "6": [1165, 440], "7": [1140, 240], "8": [1120, 40]}
+    "round": {
+      "4": [
+        1210,
+        848
+      ],
+      "5": [
+        1190,
+        645
+      ],
+      "6": [
+        1165,
+        440
+      ],
+      "7": [
+        1140,
+        240
+      ],
+      "8": [
+        1120,
+        40
+      ]
+    }
   },
   "zones": {
     "carnival": {
       "note": "Blue: inner crowd and carnival area inside the home straight, final ~3 furlongs. Board ellipse, kept clear of the inside rail.",
-      "ellipsePx": {"centre": [640, 905], "rx": 425, "ry": 82},
+      "ellipsePx": {
+        "centre": [
+          640,
+          905
+        ],
+        "rx": 425,
+        "ry": 82
+      },
       "clearOfRail": 8
     },
     "grandstand": {
@@ -53,7 +297,10 @@
       "gap": 6,
       "depth": 22,
       "nearSideFrom": 930,
-      "westEndStopsAtPx": [105, 1130]
+      "westEndStopsAtPx": [
+        105,
+        1130
+      ]
     }
   }
 }
