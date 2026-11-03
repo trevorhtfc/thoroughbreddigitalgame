@@ -193,6 +193,21 @@
    ]
   },
   {
+   "note": "behind the carnival's back row (owner's sketch 1: trees as a backdrop)",
+   "area": [
+    -60,
+    -56,
+    640,
+    -92
+   ],
+   "spacing": 13,
+   "skip": 0.2,
+   "scale": [
+    1.05,
+    1.55
+   ]
+  },
+  {
    "note": "clumps in the infield, beyond the carnival",
    "area": [
     -40,

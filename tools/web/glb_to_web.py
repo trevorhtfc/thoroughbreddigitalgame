@@ -3,7 +3,7 @@
     python glb_to_web.py <in.glb> <out_dir> [name]
 
 Writes <name>.json (glTF JSON), <name>-geometry.txt (the binary
-buffer as base64) and each embedded image as a .jpg/.png. The race view
+buffer as base64; in parts -geometry-0.txt, -1... when over 15 MB) and each embedded image as a .jpg/.png. The race view
 reassembles these into a .glb in memory. Any other engine should use the
 original .glb directly.
 """
@@ -48,6 +48,18 @@ for a in j.get("accessors", []):
         for k in ("indices", "values"):
             a["sparse"][k]["bufferView"] = remap[a["sparse"][k]["bufferView"]]
 j["buffers"] = [{"byteLength": len(new)}]
+# The artifact host serves text files up to 16 MB: bigger geometry goes in parts (-geometry-0.txt, -1, ...),
+# split on whole base64 quads; the count is noted in the JSON (extras.geometryParts) for the loader.
+b64 = base64.b64encode(bytes(new)).decode()
+PART = 15_000_000
+for old in [f for f in os.listdir(out) if re.fullmatch(re.escape(name) + r"-geometry(-\d+)?\.txt", f)]:
+    os.remove(os.path.join(out, old))
+if len(b64) <= PART:
+    open(os.path.join(out, name + "-geometry.txt"), "w").write(b64)
+else:
+    parts = [b64[i:i + PART] for i in range(0, len(b64), PART)]
+    j.setdefault("extras", {})["geometryParts"] = len(parts)
+    for k, p in enumerate(parts):
+        open(os.path.join(out, "%s-geometry-%d.txt" % (name, k)), "w").write(p)
 json.dump(j, open(os.path.join(out, name + ".json"), "w"), separators=(",", ":"))
-open(os.path.join(out, name + "-geometry.txt"), "w").write(base64.b64encode(bytes(new)).decode())
 print("images:", [im["uri"] for im in j.get("images", [])])

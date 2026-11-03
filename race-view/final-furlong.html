@@ -273,10 +273,12 @@ function seeded(seed) { let s = seed >>> 0; return () => ((s = (s * 1664525 + 10
 // ---------- Models (glTF, repackaged for the web host) ----------
 const loader = new GLTFLoader();
 async function loadModel(dir, name) {
-  const [json, b64] = await Promise.all([
-    fetch(`${dir}/${name}.json`).then((r) => { if (!r.ok) throw new Error(name + " " + r.status); return r.text(); }),
-    fetch(`${dir}/${name}-geometry.txt`).then((r) => { if (!r.ok) throw new Error(name + " geometry " + r.status); return r.text(); }),
-  ]);
+  const text = (f) => fetch(`${dir}/${f}`).then((r) => { if (!r.ok) throw new Error(f + " " + r.status); return r.text(); });
+  // Big geometry comes in parts (tools/web/glb_to_web.py notes how many in extras.geometryParts).
+  const json = await text(`${name}.json`);
+  const parts = (JSON.parse(json).extras || {}).geometryParts;
+  const b64 = parts ? (await Promise.all(Array.from({ length: parts }, (_, k) => text(`${name}-geometry-${k}.txt`)))).map((s) => s.trim()).join("")
+                    : await text(`${name}-geometry.txt`);
   const raw = atob(b64.trim());
   const bin = new Uint8Array(raw.length);
   for (let i = 0; i < raw.length; i++) bin[i] = raw.charCodeAt(i);

@@ -4,37 +4,37 @@
  "finish": {
   "mesh": "finish",
   "lightMap": "finish_light.jpg",
-  "scale": 1.8109
+  "scale": 1.8024
  },
  "site": {
   "mesh": "site",
   "lightMap": "site_light.jpg",
-  "scale": 1.8586
+  "scale": 1.8766
  },
  "stand": {
   "mesh": "stand",
   "lightMap": "stand_light.jpg",
-  "scale": 1.6408
+  "scale": 1.6368
  },
  "ground": {
   "mesh": "ground",
   "map": "ground.jpg",
-  "scale": 0.7145,
+  "scale": 0.7114,
   "area": {
    "x0": -260.0,
-   "x1": 460.0,
+   "x1": 700.0,
    "z0": -150.0,
    "z1": 140.0
   },
   "outside": [
-   0.1301,
-   0.3411,
-   0.0614
+   0.1306,
+   0.3425,
+   0.0615
   ],
   "turf": [
-   0.0745,
-   0.3412,
-   0.0536
+   0.074,
+   0.3417,
+   0.0538
   ]
  }
 }
