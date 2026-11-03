@@ -318,6 +318,10 @@ course = {
     },
     "grandstand": {
         "assembly": "courses/ascot-grandstand-assembly.json",
+        "file": "assets/models/architecture/ascot_main_stand.glb",
+        "kit": "assets/models/architecture/stand_modules.glb",
+        "crowdAreas": "assets/models/architecture/ascot_main_stand_crowd_areas.json",
+        "placement": "The .glb is built in world axes with its origin at the clock tower on the front line: place it at (0, 0, frontLine), no turn. Built by tools/blender/build_stand_modules.py.",
         "length": stand_len, "bays": int(stand_len / bay),
         "towerAt": [0, round(front_z, 2)],
         "frontLine": round(front_z, 2),
