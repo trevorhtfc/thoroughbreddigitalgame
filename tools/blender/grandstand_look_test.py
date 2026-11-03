@@ -90,10 +90,10 @@ for x0 in (-62, -78, 104, 120):
 before = set(bpy.data.objects)
 bpy.ops.import_scene.gltf(filepath=os.path.join(ARCH, "crowd_people.glb"))
 figures = [o for o in bpy.data.objects if o not in before and o.type == "MESH"]
-SUITS = ["#23262d", "#2c3240", "#3a3e46", "#4b4f57", "#1f2a3c", "#5d5a55", "#6f6a62"]
-DRESSES = ["#e79cb2", "#8ec0e2", "#f1e4c4", "#d6524f", "#6aa86a", "#eac64a", "#fbf8f0", "#8a6cb8", "#ef8a5a", "#3e7fb8"]
+SUITS = ["#2a2c31", "#30353f", "#3b3e44", "#4a4c50", "#2a3140", "#57544f", "#6a665f", "#3d4038"]
+DRESSES = ["#c99aa6", "#9bb4c6", "#ddd2b8", "#a8605a", "#7f9a78", "#cdb46e", "#e6e0d2", "#8e7aa6", "#c98a6c", "#4f6f92", "#2f3440", "#6b4a52"]
 SKIN = ["#efc6a4", "#e2b48e", "#c99572", "#9a6a4a", "#6e4a34"]
-HATS_LADY = ["#fbf8f0", "#1f1f24", "#e79cb2", "#d8b46a", "#8ec0e2", "#7a2a3a"]
+HATS_LADY = ["#e8e2d4", "#232327", "#c99aa6", "#bfa36c", "#9bb4c6", "#6a3038"]
 
 
 def flat(hexc, rough=0.85):
@@ -128,14 +128,15 @@ for f in figures:
 count = 0
 
 
-def person(x, y, z=0.0):
+def person(x, y, z=0.0, face=None, seated=False):
     global count
     o = RC.choice(VARIANTS_P).copy()           # linked duplicate: shares the mesh
     o.location = (x, y, z)
-    o.rotation_euler = (0, 0, RC.uniform(-0.6, 0.6))
-    s = RC.uniform(0.94, 1.06); o.scale = (s, s, s)
+    o.rotation_euler = (0, 0, (face if face is not None else 0) + RC.uniform(-0.6, 0.6))
+    s = RC.uniform(0.94, 1.06); o.scale = (s, s, s * (0.7 if seated else 1.0))
     scene.collection.objects.link(o)
     count += 1
+    return o
 
 
 X0, X1 = STAND_AT.x - 64, STAND_AT.x + 64
@@ -176,11 +177,60 @@ for a in areas:
             x += 0.62
 print("crowd:", count, "people", flush=True)
 
+# ---------------- Site components round the stand (courses/ascot-site-dressing.json) ----------------
+before = set(bpy.data.objects)
+bpy.ops.import_scene.gltf(filepath=os.path.join(ARCH, "site_props.glb"))
+LIBP = {o.name.split(".")[0]: o for o in bpy.data.objects if o not in before and o.type == "MESH"}
+for o in LIBP.values():
+    for m in o.data.materials:
+        if m.get("_done"):
+            continue
+        m["_done"] = True
+        key = m.name.replace("sp_", "").split(".")[0]
+        if key in ("canvas", "timber", "trim", "wall", "roof", "board", "seat", "stripe"):
+            painted(m)
+        add_haze(m, m.node_tree.nodes, m.node_tree.links)
+    o.hide_render = True; o.hide_viewport = True
+DRESS = json.load(open(os.path.join(REPO, "courses/ascot-site-dressing.json")))
+SPOTS = json.load(open(os.path.join(ARCH, "site_props_spots.json")))["pieces"]
+placed = 0
+for p in DRESS["pieces"]:
+    src = LIBP[p["piece"]]
+    o = src.copy()                                  # linked duplicate
+    o.hide_render = False; o.hide_viewport = False
+    rot = math.pi + math.radians(p.get("turn", 0))  # front (-y in the model) turned to face the course, then the turn
+    pos = Vector((STAND_AT.x + p["dx"], STAND_AT.y - p["dz"], 0))
+    o.location = pos
+    o.rotation_euler = (0, 0, rot)
+    scene.collection.objects.link(o)
+    placed += 1
+    sp = SPOTS.get(p["piece"], {})
+    Rz = Matrix.Rotation(rot, 3, "Z")
+    for kind, fill in (("seats", 0.62), ("stand", 0.7)):
+        for lx, ly, lz in sp.get(kind, []):
+            if RC.random() < fill:
+                w = pos + Rz @ Vector((lx, ly, 0))
+                person(w.x, w.y, lz, face=rot + math.pi, seated=(kind == "seats"))
+# Crowds on the lawns and along the far rail.
+for c in DRESS.get("crowds", []):
+    area = (c["dx"][1] - c["dx"][0]) * (c["dz"][1] - c["dz"][0])
+    for i in range(int(area * c["density"])):
+        dx, dz = RC.uniform(*c["dx"]), RC.uniform(*c["dz"])
+        person(STAND_AT.x + dx, STAND_AT.y - dz)
+print("site components:", placed, "placed; people now", count, flush=True)
+for o in list(bpy.data.objects):                    # keep trees out of the dressed areas
+    if o.name.startswith("tree") and o.type == "EMPTY":
+        dx, dz = o.location.x - STAND_AT.x, STAND_AT.y - o.location.y
+        if (-110 < dx < 112 and -36 < dz < 24) or (-110 < dx < -20 and -122 < dz < -66):
+            bpy.data.objects.remove(o, do_unlink=True)
+
 # ---------------- Shots ----------------
 GSHOTS = {
     "stand_wide": ((2, 42, 11), (22, -55, 9), 22),         # from across the course: horses, rail crowd, the whole stand
     "stand_tv": ((40, 24, 3.2), (12, -30, 7.5), 30),        # low, with the field passing in front of the stand
     "stand_34": ((-78, 22, 24), (8, -62, 9), 28),           # three-quarter view of the stand, as on the sheet
+    "far_side": ((30, -49, 13.5), (-40, 45, 2), 26),        # from the stand's balcony across the course to the far side
+    "site_aerial": ((150, 95, 95), (-5, -40, 0), 24),       # high over the course: the stand and everything round it
 }
 if os.environ.get("PREVIEW"):
     scene.render.resolution_percentage = 50

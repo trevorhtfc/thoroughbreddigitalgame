@@ -1,0 +1,18 @@
+{
+  "_about": "Colours for the site components (tools/blender/build_site_props.py). Canvas and painted timber in the grandstand's creams; a soft sage green for the big top's stripes.",
+  "canvas": "#f2ede1",
+  "stripe": "#8ea58a",
+  "timber": "#ebe3d1",
+  "trim": "#f6f0e1",
+  "wall": "#ebe3d1",
+  "roof": "#d8d1c2",
+  "glass": "#2e3c4a",
+  "dark": "#34383e",
+  "seat": "#e4dccb",
+  "board": "#f8f4ea",
+  "metal": "#d9d6cf",
+  "leaf": "#5c8048",
+  "flower": "#e2a3b4",
+  "flower_white": "#f7f1e6",
+  "flag": "#f4efe4"
+}

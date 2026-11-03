@@ -249,5 +249,16 @@
       "offset": 0.13,
       "wander": 22
     }
+  ],
+  "structures": [
+    {
+      "model": "victorian_grandstand",
+      "file": "assets/models/architecture/victorian_grandstand.glb",
+      "x": 980,
+      "z": 52,
+      "faces": "course",
+      "dressing": "courses/ascot-site-dressing.json",
+      "note": "Middle of the stand's front at ground level. x is a first guess (the stand just before the winning post); move it to taste."
+    }
   ]
 }

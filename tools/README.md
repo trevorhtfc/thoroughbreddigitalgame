@@ -91,18 +91,19 @@ The illustrated finish (painterly smoothing, soft ink outlines where depth jumps
 
 ## Architecture
 
-The cream Victorian grandstand is rebuilt from scripted, snap-together pieces on a 3.5 m bay grid (veranda tier, windowed storey with balcony, ironwork gallery, clock tower, pavilion, steps), following the FRONT elevation of `reference/architecture/victorian-grandstand-sheet.png` at realistic sizes: 3.5 m storeys, a stand of 124 m and a clock tower of about 30 m to the finial. It is chunkier and simpler than the sheet, with the signature features exaggerated: a big clock on all four faces, bold iron lace (full arches, roundels in the spandrels, a roundel frieze and roundel balustrade) and verandas that step back as they rise.
+The cream Victorian grandstand is rebuilt from scripted, snap-together pieces on a 3.5 m bay grid (veranda tier, windowed storey with balcony, ironwork gallery, clock tower, pavilion, steps), following the FRONT elevation of `reference/architecture/victorian-grandstand-sheet.png` at realistic sizes: 3.5 m storeys, a stand of 124 m and a clock tower of about 30 m to the finial. It is chunkier and simpler than the sheet, with the signature features drawn out but kept believable: a clock on all four faces, bold iron lace (full arches, roundels in the spandrels, a roundel frieze and roundel balustrade) and verandas that step back as they rise.
 
 | File | What it is |
 |---|---|
 | `assets/models/architecture/victorian_grandstand_layout.json` | The layout as data: each segment's kind, position along the front, storeys or tiers, depth, setback and roof, the steps, and the colours. Change the numbers and re-run the script. |
-| `assets/models/architecture/victorian_grandstand.glb` | The stand: about 68,000 triangles in 11 meshes, one per material, so 11 draw calls. Origin at ground level in the middle of the front; the front faces +z (glTF). |
+| `assets/models/architecture/victorian_grandstand.glb` | The stand: about 72,000 triangles in 11 meshes, one per material, so 11 draw calls. Origin at ground level in the middle of the front; the front faces +z (glTF). |
 | `assets/models/architecture/victorian_grandstand_crowd_areas.json` | Where spectators can stand: each veranda tier, gallery, balcony and flight of steps, with its floor height. |
 | `assets/models/architecture/crowd_people.glb` | Four simple spectator figures (gent in top hat, gent in hat, two ladies in hats), about 150 triangles each, with clothes, skin and hat materials to tint per instance. |
 | `assets/models/master/victorian_grandstand.blend` | The Blender master. |
 
 | Script | What it does |
 |---|---|
+| `tools/blender/kit.py` | The shared building kit (boxes, columns, arches, roundels, balustrades, windows, roofs) used by both build scripts. |
 | `tools/blender/build_grandstand.py` | Builds the stand and the crowd figures from the layout and exports the files above. |
 | `tools/blender/grandstand_look_test.py` | Stills of the stand in the stylised scene: on the near side of the track facing the course, with its crowd along the rail, on the lawn, up the steps and on every balcony, and the field galloping past. |
 
@@ -110,3 +111,27 @@ The cream Victorian grandstand is rebuilt from scripted, snap-together pieces on
 python -c "exec(open('tools/blender/build_grandstand.py').read())"
 python -c "exec(open('tools/blender/grandstand_look_test.py').read())" renders 32
 ```
+
+### Site components
+
+The pieces that dress the ground round the stand, from `reference/architecture/site-components-sheet.png`, built the same way. Each is a separate node in `assets/models/architecture/site_props.glb` (about 38,000 triangles for all 23), with its origin on the ground at the middle of its footprint and its front facing +z (glTF): `marquee_peaks`, `marquee_clearspan`, `big_top`, `pagoda_counter`, `stand_open`, `stand_covered`, `terrace_deck`, `viewing_tower`, `kiosk_awning`, `booth_hut`, `kiosk_row_arched`, `pagoda_kiosk`, `pergola_picnic`, `picnic_table`, `planter_long`, `planter_short`, `fence_picket`, `fence_cross`, `barrier_rail`, `signboard`, `flagpole`, `banner_flag`, `signpost`.
+
+| File | What it is |
+|---|---|
+| `assets/models/architecture/site_props_colours.json` | Canvas, painted timber, the big top's sage stripe, flowers and so on. |
+| `assets/models/architecture/site_props_spots.json` | Seats and standing spots on each piece, for crowds. |
+| `courses/ascot-site-dressing.json` | Where each piece stands, relative to the middle of the grandstand's front (dx along the running, dz across, turn in degrees), plus crowd areas on the lawns and the far rail. Add, move or remove lines to dress the ground. |
+| `courses/ascot-home-straight.json` → `structures` | Where the grandstand stands on the course, pointing to the dressing file. |
+
+| Script | What it does |
+|---|---|
+| `tools/blender/build_site_props.py` | Builds the 23 pieces and exports the files above, with the master in `assets/models/master/site_props.blend`. |
+| `tools/blender/site_props_catalogue.py` | Renders the pieces laid out like the crib sheet, on grey, to compare. |
+
+```
+python -c "exec(open('tools/blender/build_site_props.py').read())"
+python -c "exec(open('tools/blender/site_props_catalogue.py').read())" site_props_catalogue.png 40
+```
+
+`tools/blender/grandstand_look_test.py` places the pieces from the dressing file and renders two more shots: `far_side` (from the stand's balcony across the course) and `site_aerial`.
+

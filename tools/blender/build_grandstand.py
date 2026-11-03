@@ -38,225 +38,11 @@ COL = LAYOUT["colours"]
 bpy.ops.wm.read_factory_settings(use_empty=True)
 
 
-def srgb(h):
-    h = h.lstrip("#")
-    c = [int(h[i:i + 2], 16) / 255 for i in (0, 2, 4)]
-    return tuple((v / 12.92 if v <= 0.04045 else ((v + 0.055) / 1.055) ** 2.4) for v in c) + (1.0,)
-
-
-def material(name, hexc, rough=0.85, metal=0.0):
-    m = bpy.data.materials.new(name)
-    m.use_nodes = True
-    b = m.node_tree.nodes["Principled BSDF"]
-    b.inputs["Base Color"].default_value = srgb(hexc)
-    b.inputs["Roughness"].default_value = rough
-    b.inputs["Metallic"].default_value = metal
-    m.diffuse_color = srgb(hexc)
-    return m
+exec(open(os.path.join(REPO, "tools/blender/kit.py")).read())
 
 
 MATS = {k: material("gs_" + k, v, rough={"glass": 0.25, "gilt": 0.4, "roof": 0.75}.get(k, 0.85),
-                    metal={"gilt": 0.6}.get(k, 0.0)) for k, v in COL.items()}
-
-
-class Kit:
-    """Collects geometry per material; every piece is placed through a transform stack."""
-
-    def __init__(self):
-        self.bms = {}
-        self.stack = [Matrix.Identity(4)]
-
-    @property
-    def M(self):
-        return self.stack[-1]
-
-    def push(self, m):
-        self.stack.append(self.M @ m)
-
-    def pop(self):
-        self.stack.pop()
-
-    def bm(self, mat):
-        if mat not in self.bms:
-            self.bms[mat] = bmesh.new()
-        return self.bms[mat]
-
-    # ---- primitives ----
-    def box(self, mat, x0, x1, y0, y1, z0, z1):
-        if x1 < x0: x0, x1 = x1, x0
-        if y1 < y0: y0, y1 = y1, y0
-        if z1 < z0: z0, z1 = z1, z0
-        m = Matrix.Translation(((x0 + x1) / 2, (y0 + y1) / 2, (z0 + z1) / 2)) @ Matrix.Diagonal((x1 - x0, y1 - y0, z1 - z0, 1))
-        bmesh.ops.create_cube(self.bm(mat), size=1.0, matrix=self.M @ m)
-
-    def boxm(self, mat, matrix, sx, sy, sz):
-        bmesh.ops.create_cube(self.bm(mat), size=1.0, matrix=self.M @ matrix @ Matrix.Diagonal((sx, sy, sz, 1)))
-
-    def cyl(self, mat, x, y, z0, z1, r0, r1=None, segs=8, smooth=True):
-        m = Matrix.Translation((x, y, (z0 + z1) / 2))
-        g = bmesh.ops.create_cone(self.bm(mat), cap_ends=True, segments=segs, radius1=r0,
-                                  radius2=r0 if r1 is None else r1, depth=z1 - z0, matrix=self.M @ m)
-        if smooth:
-            self._smooth(g["verts"])
-
-    def disc_y(self, mat, x, y0, y1, z, r, segs=24):
-        """A short cylinder whose axis runs along y (a clock face, a medallion)."""
-        m = Matrix.Translation((x, (y0 + y1) / 2, z)) @ Matrix.Rotation(math.pi / 2, 4, "X")
-        bmesh.ops.create_cone(self.bm(mat), cap_ends=True, segments=segs, radius1=r, radius2=r,
-                              depth=abs(y1 - y0), matrix=self.M @ m)
-
-    def sphere(self, mat, x, y, z, r, sub=2, sz=1.0):
-        m = Matrix.Translation((x, y, z)) @ Matrix.Diagonal((1, 1, sz, 1))
-        g = bmesh.ops.create_icosphere(self.bm(mat), subdivisions=sub, radius=r, matrix=self.M @ m)
-        self._smooth(g["verts"])
-
-    def ring_y(self, mat, x, y, z, R, r, segs=12, minor=4):
-        """A torus standing upright in the x-z plane (an iron roundel)."""
-        bm = self.bm(mat)
-        rows = []
-        for i in range(segs):
-            a = 2 * math.pi * i / segs
-            row = []
-            for j in range(minor):
-                b = 2 * math.pi * j / minor + math.pi / 4
-                rr = R + r * math.cos(b)
-                p = Vector((x + rr * math.cos(a), y + r * math.sin(b), z + rr * math.sin(a)))
-                row.append(bm.verts.new(self.M @ p))
-            rows.append(row)
-        fs = []
-        for i in range(segs):
-            for j in range(minor):
-                fs.append(bm.faces.new((rows[i][j], rows[(i + 1) % segs][j], rows[(i + 1) % segs][(j + 1) % minor], rows[i][(j + 1) % minor])))
-        for f in fs:
-            f.smooth = True
-
-    def arc_band(self, mat, cx, cz, r_in, r_out, a0, a1, y0, y1, n=10):
-        """A curved band in the x-z plane between angles a0..a1 (an arch rib)."""
-        bm = self.bm(mat)
-        pts = []
-        for i in range(n + 1):
-            a = a0 + (a1 - a0) * i / n
-            c, s = math.cos(a), math.sin(a)
-            pts.append([bm.verts.new(self.M @ Vector((cx + r * c, y, cz + r * s))) for r in (r_in, r_out) for y in (y0, y1)])
-        # order in each slice: (in,y0) (in,y1) (out,y0) (out,y1)
-        for i in range(n):
-            a, b = pts[i], pts[i + 1]
-            bm.faces.new((a[0], b[0], b[1], a[1]))      # inner soffit
-            bm.faces.new((a[2], a[3], b[3], b[2]))      # outer
-            bm.faces.new((a[0], a[2], b[2], b[0]))      # front
-            bm.faces.new((a[1], b[1], b[3], a[3]))      # back
-        bm.faces.new((pts[0][0], pts[0][1], pts[0][3], pts[0][2]))
-        bm.faces.new((pts[-1][0], pts[-1][2], pts[-1][3], pts[-1][1]))
-
-    def prism_x(self, mat, x0, x1, profile):
-        """Extrude a y-z polygon along x."""
-        bm = self.bm(mat)
-        a = [bm.verts.new(self.M @ Vector((x0, y, z))) for y, z in profile]
-        b = [bm.verts.new(self.M @ Vector((x1, y, z))) for y, z in profile]
-        bm.faces.new(a[::-1]); bm.faces.new(b)
-        n = len(profile)
-        for i in range(n):
-            bm.faces.new((a[i], a[(i + 1) % n], b[(i + 1) % n], b[i]))
-
-    def prism_y(self, mat, y0, y1, profile):
-        """Extrude an x-z polygon along y."""
-        bm = self.bm(mat)
-        a = [bm.verts.new(self.M @ Vector((x, y0, z))) for x, z in profile]
-        b = [bm.verts.new(self.M @ Vector((x, y1, z))) for x, z in profile]
-        bm.faces.new(a); bm.faces.new(b[::-1])
-        n = len(profile)
-        for i in range(n):
-            bm.faces.new((a[(i + 1) % n], a[i], b[i], b[(i + 1) % n]))
-
-    @staticmethod
-    def _smooth(verts):
-        for f in {f for v in verts for f in v.link_faces}:
-            f.smooth = True
-
-    # ---- pieces ----
-    def balustrade(self, x0, x1, y, z, h=1.05, mat="trim", spacing=0.42, axis="x", piers=True):
-        """Top rail, bottom rail, square balusters, piers at the ends. Along x, or along y at x=y."""
-        L = abs(x1 - x0)
-        if L < 0.3:
-            return
-        lo, hi = min(x0, x1), max(x0, x1)
-
-        def bx(a0, a1, b0, b1, z0, z1, m=mat):
-            if axis == "x":
-                self.box(m, a0, a1, b0, b1, z0, z1)
-            else:
-                self.box(m, b0, b1, a0, a1, z0, z1)
-        bx(lo, hi, y - 0.13, y + 0.13, z + h - 0.12, z + h)          # handrail
-        bx(lo, hi, y - 0.1, y + 0.1, z, z + 0.14)                    # plinth rail
-        n = max(1, int(L / spacing))
-        for i in range(1, n):
-            a = lo + L * i / n
-            bx(a - 0.055, a + 0.055, y - 0.055, y + 0.055, z + 0.14, z + h - 0.12)
-        if piers:
-            for a in (lo, hi):
-                bx(a - 0.16, a + 0.16, y - 0.16, y + 0.16, z, z + h + 0.1)
-
-    def window(self, x, y, z0, w, h, d=-1, glass="glass", panes=True):
-        """A window on a wall face at y; d = which way the face looks (-1 = front, +1 = back)."""
-        def yy(a, b):
-            return (y + d * a, y + d * b)
-        self.box(glass, x - w / 2, x + w / 2, *yy(-0.02, 0.05), z0, z0 + h)
-        self.box("trim", x - w / 2 - 0.12, x + w / 2 + 0.12, *yy(0, 0.16), z0 - 0.14, z0)          # sill
-        self.box("trim", x - w / 2 - 0.12, x + w / 2 + 0.12, *yy(0, 0.13), z0 + h, z0 + h + 0.2)   # head
-        if panes:
-            self.box("trim", x - 0.04, x + 0.04, *yy(0, 0.09), z0, z0 + h)                         # mullion
-            self.box("trim", x - w / 2, x + w / 2, *yy(0, 0.09), z0 + h * 0.62, z0 + h * 0.62 + 0.07)  # transom
-
-    def screen(self, x0, x1, y, z0, h, pane=1.15):
-        """A full-height glazed screen at the back of an open gallery: reads as dark and open."""
-        self.box("glass", x0 + 0.2, x1 - 0.2, y - 0.02, y + 0.05, z0, z0 + h)
-        n = max(1, round((x1 - x0 - 0.4) / pane))
-        for i in range(n + 1):
-            x = x0 + 0.2 + (x1 - x0 - 0.4) * i / n
-            self.box("trim", x - 0.045, x + 0.045, y - 0.07, y, z0, z0 + h)
-        self.box("trim", x0 + 0.2, x1 - 0.2, y - 0.07, y, z0 + h * 0.7, z0 + h * 0.7 + 0.06)
-        self.box("trim", x0, x1, y - 0.12, y, z0 + h, z0 + h + 0.2)
-
-    def door(self, x, y, z0, w=1.4, h=2.4, d=-1):
-        self.box("door", x - w / 2, x + w / 2, y + d * -0.01, y + d * 0.06, z0, z0 + h)
-        self.box("trim", x - w / 2 - 0.15, x + w / 2 + 0.15, y, y + d * 0.14, z0 + h, z0 + h + 0.25)
-        self.box("trim", x - w / 2 - 0.15, x - w / 2, y, y + d * 0.1, z0, z0 + h)
-        self.box("trim", x + w / 2, x + w / 2 + 0.15, y, y + d * 0.1, z0, z0 + h)
-
-    def hip_roof(self, x0, x1, y0, y1, z, rise, ov=0.6, mat="roof"):
-        bm = self.bm(mat)
-        X0, X1, Y0, Y1 = x0 - ov, x1 + ov, y0 - ov, y1 + ov
-        h = min((Y1 - Y0) / 2, (X1 - X0) / 2 - 0.01)
-        yc = (Y0 + Y1) / 2
-        v = lambda x, y, zz: bm.verts.new(self.M @ Vector((x, y, zz)))
-        b0, b1, b2, b3 = v(X0, Y0, z), v(X1, Y0, z), v(X1, Y1, z), v(X0, Y1, z)
-        r0, r1 = v(X0 + h, yc, z + rise), v(X1 - h, yc, z + rise)
-        for f in ((b0, b1, r1, r0), (b2, b3, r0, r1), (b3, b0, r0), (b1, b2, r1), (b3, b2, b1, b0)):
-            bm.faces.new(f)
-        # fascia board round the eaves and a light ridge capping
-        self.box("trim", X0, X1, Y0 - 0.05, Y0 + 0.15, z - 0.35, z)
-        self.box("trim", X0, X1, Y1 - 0.15, Y1 + 0.05, z - 0.35, z)
-        self.box("trim", X0 - 0.05, X0 + 0.15, Y0, Y1, z - 0.35, z)
-        self.box("trim", X1 - 0.15, X1 + 0.05, Y0, Y1, z - 0.35, z)
-        if X1 - h > X0 + h + 0.2:
-            self.box("trim", X0 + h, X1 - h, yc - 0.12, yc + 0.12, z + rise - 0.05, z + rise + 0.12)
-
-    def gable_roof(self, x0, x1, y0, y1, z, pitch_deg, ov=0.8):
-        D = y1 - y0
-        rise = (D / 2 + ov) * math.tan(math.radians(pitch_deg))
-        yc, t = (y0 + y1) / 2, 0.3
-        self.prism_x("roof", x0 - ov, x1 + ov, [
-            (y0 - ov, z), (y0 - ov, z + t), (yc, z + rise + t), (y1 + ov, z + t), (y1 + ov, z), (yc, z + rise)])
-        # gable walls under the roof at both ends, with bargeboards
-        for x in (x0, x1):
-            self.prism_x("wall", x - 0.2 if x == x0 else x, x if x == x0 else x + 0.2,
-                         [(y0, z - 0.01), (y1, z - 0.01), (yc, z + rise - 0.25 * (D / 2) / (D / 2 + ov))])
-        self.box("trim", x0 - ov, x1 + ov, yc - 0.15, yc + 0.15, z + rise + t - 0.05, z + rise + t + 0.15)
-        self.box("trim", x0 - ov, x1 + ov, y0 - ov - 0.05, y0 - ov + 0.12, z - 0.35, z + 0.05)
-        return rise
-
-    def cornice(self, x0, x1, y0, y1, z, ov=0.35, h=0.45):
-        self.box("trim", x0 - ov, x1 + ov, y0 - ov, y1 + ov, z, z + h)
+                    metal={"gilt": 0.3}.get(k, 0.0)) for k, v in COL.items()}
 
 
 K = Kit()
@@ -437,11 +223,11 @@ def tower(seg):
             K.box("trim", px - 0.5, px + 0.5, py - 0.5, py + 0.5, zb - 1.0, zt)
     K.box("trim", cx - hw - 0.25, cx + hw + 0.25, y0 - 0.25, y0 + w + 0.25, zb - 0.4, zb)   # base band
     zc = zb + (zt - zb) * 0.52
-    R = hw - 0.75                                               # big, exaggerated clock
+    R = hw - 1.25                                               # a prominent clock, not a cartoon one
     for rot in range(4):
         K.push(Matrix.Translation((cx, cy, 0)) @ Matrix.Rotation(rot * math.pi / 2, 4, "Z") @ Matrix.Translation((-cx, -cy, 0)))
         f = y0                                                  # this face, before rotation
-        K.disc_y("trim", cx, f - 0.12, f + 0.1, zc, R + 0.28, 28)
+        K.disc_y("trim", cx, f - 0.12, f + 0.1, zc, R + 0.2, 28)
         K.disc_y("clock_dark", cx, f - 0.2, f - 0.1, zc, R + 0.05, 28)
         K.disc_y("clock_face", cx, f - 0.26, f - 0.18, zc, R - 0.1, 28)
         for h in range(12):
@@ -450,9 +236,9 @@ def tower(seg):
                    0.1 if h % 3 else 0.17, 0.04, 0.42 if h % 3 else 0.55)
         for ang, ln, wd in ((math.radians(55), R * 0.5, 0.18), (math.radians(-60), R * 0.8, 0.11)):
             K.boxm("clock_dark", Matrix.Translation((cx, f - 0.31, zc)) @ Matrix.Rotation(-ang, 4, "Y") @ Matrix.Translation((0, 0, ln / 2 - 0.15)), wd, 0.04, ln)
-        K.sphere("gilt", cx, f - 0.33, zc, 0.13, 1)
+        K.sphere("clock_dark", cx, f - 0.33, zc, 0.1, 1)
         # pediment-like hood over the clock
-        K.prism_y("trim", f - 0.35, f + 0.1, [(cx - R - 0.5, zc + R + 0.35), (cx + R + 0.5, zc + R + 0.35), (cx, zc + R + 1.05)])
+        K.prism_y("trim", f - 0.35, f + 0.1, [(cx - R - 0.5, zc + R + 0.35), (cx + R + 0.5, zc + R + 0.35), (cx, zc + R + 0.7)])
         K.box("glass", cx - 0.35, cx + 0.35, f - 0.04, f + 0.05, zb + 0.2, zb + 1.6)
         K.pop()
     K.cornice(cx - hw, cx + hw, y0, y0 + w, zt, 0.45, 0.55)
@@ -463,10 +249,10 @@ def tower(seg):
     for sx in (-1, 1):                                           # corner piers with urns
         for sy in (-1, 1):
             px, py = cx + sx * (hw - 0.1), cy + sy * (hw - 0.1)
-            K.box("trim", px - 0.32, px + 0.32, py - 0.32, py + 0.32, zr, zr + 1.35)
-            K.cyl("trim", px, py, zr + 1.35, zr + 1.6, 0.18, 0.28)
-            K.sphere("trim", px, py, zr + 1.85, 0.3, 2, 1.2)
-            K.sphere("trim", px, py, zr + 2.2, 0.1, 1)
+            K.box("trim", px - 0.26, px + 0.26, py - 0.26, py + 0.26, zr, zr + 1.3)
+            K.cyl("trim", px, py, zr + 1.3, zr + 1.5, 0.14, 0.2)
+            K.sphere("trim", px, py, zr + 1.68, 0.2, 2, 1.2)
+            K.sphere("trim", px, py, zr + 1.92, 0.07, 1)
     cw = w * 0.42                                                # cupola
     K.box("wall", cx - cw / 2, cx + cw / 2, cy - cw / 2, cy + cw / 2, zr, zr + 2.2)
     for rot in range(4):
@@ -477,8 +263,8 @@ def tower(seg):
     K.cornice(cx - cw / 2, cx + cw / 2, cy - cw / 2, cy + cw / 2, zr + 2.2, 0.3, 0.35)
     K.sphere("roof", cx, cy, zr + 2.55, cw / 2 + 0.05, 2, 0.7)
     K.cyl("trim", cx, cy, zr + 3.2, zr + 3.55, 0.18, 0.12)
-    K.sphere("gilt", cx, cy, zr + 3.85, 0.38, 2)
-    K.cyl("gilt", cx, cy, zr + 4.1, zr + 4.9, 0.06, 0.01, 6)
+    K.sphere("gilt", cx, cy, zr + 3.75, 0.24, 2)
+    K.cyl("gilt", cx, cy, zr + 3.95, zr + 4.7, 0.045, 0.01, 6)
 
 
 # ------------------------------------------------------------------ pavilion
