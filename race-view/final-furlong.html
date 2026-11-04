@@ -164,6 +164,12 @@ const COATS = [
 ];
 const RACE_ID = VIEW.races[params.get("race")] ? params.get("race") : "long";
 const RACE = VIEW.races[RACE_ID];
+const ROUND = RACE.course !== "straight";            // round course or round mile: the TV director's round-course rules
+// Where the stalls stand and each stall's draw (courses/ascot-stalls.json, tools/course/place_stalls.py); the race
+// engine reads the same file. The race starts as the gates open: race time 0, distance 0.
+const STALLS = await fetch("assets/course/ascot-stalls.json").then((r) => r.json());
+const START = STALLS.starts[RACE.start];
+const PRE = VIEW.startSequence;
 document.getElementById("courseName").textContent = COURSE.name + " · " + RACE.label.toLowerCase();
 
 // World axes (courses/ascot.json): x east, z south, y up; the winning post on the inside rail is the origin.
@@ -187,9 +193,27 @@ const LOOP = (() => {
   });
   return { pts, n, sp, length: n * sp, tan };
 })();
+// The round mile starts up the chute (roundMileSpur), a straight run that joins the loop.
+const SPUR = (() => {
+  const s = COURSE.roundMileSpur, [fx, fz] = s.from, [tx, tz] = s.to, l = Math.hypot(tx - fx, tz - fz);
+  return { join: s.distanceToGoAtJoin, len: l, to: s.to, dir: [(tx - fx) / l, (tz - fz) / l] };
+})();
+// A race longer than the loop passes its own start again (2 miles): its stalls are towed away after the off.
+const STALLS_COME_BACK = RACE.course === "round" && DIST > LOOP.length - 50;
 // Point on the race's inside rail with d metres still to run, and the running direction there.
 function railAt(d) {
   if (RACE.course === "straight") return { x: d, z: 0, tx: -1, tz: 0 };
+  if (RACE.course === "roundMile" && d > SPUR.join - 15) {
+    const [dx, dz] = SPUR.dir, k = d - SPUR.join;
+    if (k >= 15) return { x: SPUR.to[0] - dx * k, z: SPUR.to[1] - dz * k, tx: dx, tz: dz };
+    // the last 15 m of the chute and the first 15 m of the loop blend one line into the other
+    const a = loopAt(d), w = THREE.MathUtils.smoothstep(k, -15, 15), cx = SPUR.to[0] - dx * k, cz = SPUR.to[1] - dz * k;
+    const tx = a.tx + (dx - a.tx) * w, tz = a.tz + (dz - a.tz) * w, tl = Math.hypot(tx, tz) || 1;
+    return { x: a.x + (cx - a.x) * w, z: a.z + (cz - a.z) * w, tx: tx / tl, tz: tz / tl };
+  }
+  return loopAt(d);
+}
+function loopAt(d) {
   const L = LOOP.length, s = (((-d) % L) + L) % L, f = s / LOOP.sp, i = Math.floor(f) % LOOP.n, j = (i + 1) % LOOP.n, k = f - Math.floor(f);
   const [ax, az] = LOOP.pts[i], [bx, bz] = LOOP.pts[j];
   // the running direction blends smoothly from one 5 m sample to the next: a direction that stepped at
@@ -212,7 +236,7 @@ const FRONT = COURSE.grandstand.frontLine;
 const canvas = document.getElementById("scene");
 const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: "high-performance", preserveDrawingBuffer: params.has("still") });
 renderer.info.autoReset = false;
-const LAYERS = { horses: [], trees: [], rails: [], kick: [], buildings: [], crowd: [] };   // for the diagnostics panel
+const LAYERS = { horses: [], trees: [], rails: [], kick: [], buildings: [], crowd: [], stalls: [] };   // for the diagnostics panel
 renderer.shadowMap.enabled = true;
 // Colour handled as Blender handles the stills: AgX, lifted a third of a stop.
 renderer.toneMapping = THREE.AgXToneMapping;
@@ -478,6 +502,95 @@ function placeProps(gltf) {
     pole.position.set(f.at[0], 0, f.at[1] - COURSE.rails.gap - 0.7);
     scene.add(pole);
   }
+}
+
+// ---------- The starting stalls (tools/blender/build_stalls.py; placed from courses/ascot-stalls.json) ----------
+// The kit is one bay that repeats, a closing partition, an end tower, two half-gates and the numbers. The row is
+// laid out in the start's own frame: x from the inside rail across the track, z the way the horses run.
+// Everything that doesn't move is merged into one mesh per material; the gates are instanced so they can swing.
+const STALL_GATES = [];                                   // { mesh, local (piece in the gate's frame), hinge, sign }
+let stallsGroup = null;
+function buildStalls(gltf, kit) {
+  const S = START, P = kit.pitch, T = kit.towerWidth, n = RUNNERS;
+  const [x0, z0] = S.insideRailAt, [ox, oz] = S.towardsOuterRail, [rx, rz] = S.runningDirection;
+  const row = new THREE.Matrix4().makeBasis(new THREE.Vector3(ox, 0, oz), new THREE.Vector3(0, 1, 0), new THREE.Vector3(rx, 0, rz)).setPosition(x0, 0, z0);
+  const at = (x, y = 0) => new THREE.Matrix4().makeTranslation(x, y, 0);
+  const place = [];                                       // [node name, matrix in the row's frame]
+  const units = STALLS.unitsForField[n];
+  const left = (k) => S.stalls[k - 1].fromInsideRail - P / 2;          // a stall's left edge, from the inside rail
+  units.forEach(([a, b], u) => {
+    place.push(["stall_tower", at(left(a) - T)]);
+    for (let k = a; k <= b; k++) {
+      place.push(["stall_bay", at(left(k))]);
+      place.push(["stall_num_" + k, at(left(k) + kit.numberBoard.centre[0], kit.numberBoard.centre[1])]);
+    }
+    place.push(["stall_partition", at(left(b) + P)]);
+    if (b - a >= 2) place.push(["stall_plaque", at((left(a) + left(b) + P) / 2, kit.plaque.height)]);   // too long for a short unit
+    if (u === units.length - 1) place.push(["stall_tower", at(left(b) + P)]);
+  });
+  // merge the static pieces, one mesh per material
+  const byMat = new Map();
+  const keep = (g) => { for (const k of Object.keys(g.attributes)) if (k !== "position" && k !== "normal") g.deleteAttribute(k); return g; };
+  gltf.scene.updateMatrixWorld(true);
+  for (const [name, m] of place) {
+    const node = gltf.scene.getObjectByName(name);
+    if (!node) continue;
+    const inv = new THREE.Matrix4().copy(node.matrixWorld).invert();
+    node.traverse((o) => {
+      if (!o.isMesh) return;
+      const g = keep(o.geometry.clone()).applyMatrix4(new THREE.Matrix4().multiplyMatrices(row, m).multiply(inv).multiply(o.matrixWorld));
+      const key = o.material.name;
+      if (!byMat.has(key)) byMat.set(key, { mat: o.material, geoms: [] });
+      byMat.get(key).geoms.push(g);
+    });
+  }
+  stallsGroup = new THREE.Group();
+  for (const { mat, geoms } of byMat.values()) {
+    mat.roughness = Math.max(mat.roughness, 0.6);
+    const mesh = new THREE.Mesh(mergeGeometries(geoms), mat);
+    mesh.castShadow = mesh.receiveShadow = true;
+    stallsGroup.add(mesh);
+  }
+  // the gates: an instance per stall for every part of each half-gate
+  for (const [side, sign] of [["left", -1], ["right", 1]]) {
+    const node = gltf.scene.getObjectByName("stall_gate_" + side);
+    const inv = new THREE.Matrix4().copy(node.matrixWorld).invert();
+    node.traverse((o) => {
+      if (!o.isMesh) return;
+      const g = keep(o.geometry.clone()).applyMatrix4(new THREE.Matrix4().multiplyMatrices(inv, o.matrixWorld));
+      const mesh = new THREE.InstancedMesh(g, o.material, n);
+      mesh.castShadow = mesh.receiveShadow = true;
+      mesh.frustumCulled = false;
+      stallsGroup.add(mesh);
+      STALL_GATES.push({ mesh, row, hinge: (k) => left(k) + kit.gateHinge[side], sign });
+    });
+  }
+  scene.add(stallsGroup);
+  LAYERS.stalls.push(stallsGroup);
+  setGates(0);
+}
+// Swing every gate open by 'k' (0 shut, 1 fully open: STALLS.gates.openDegrees).
+const _gm = new THREE.Matrix4(), _gr = new THREE.Matrix4();
+let gatesAt = -1;
+function setGates(k) {
+  if (k === gatesAt) return;
+  gatesAt = k;
+  const a = THREE.MathUtils.degToRad(STALLS.gates.openDegrees) * k;
+  for (const g of STALL_GATES) {
+    for (let i = 0; i < g.mesh.count; i++) {
+      _gm.makeTranslation(g.hinge(i + 1), 0, 0).multiply(_gr.makeRotationY(g.sign * a));
+      g.mesh.setMatrixAt(i, _gm.premultiply(g.row));
+    }
+    g.mesh.instanceMatrix.needsUpdate = true;
+  }
+}
+// How far open the gates are at race time t (they spring open at the off, with a little bounce at the stops).
+function gateOpening(t) {
+  if (t <= 0) return 0;
+  const k = t / STALLS.gates.swingSeconds;
+  if (k >= 1.6) return 1;
+  if (k < 1) return 1 - Math.pow(1 - k, 2.2);
+  return 1 - 0.04 * Math.sin((k - 1) / 0.6 * Math.PI);
 }
 
 // ---------- Architecture: stand, site components, finish line, crowd (all from Blender, placed from data) ----------
@@ -929,7 +1042,10 @@ function makeTintable(mat, u) {
 // over time); this stand-in makes one so the look test has a field to film. The steering below is the
 // kind of thing the real sim's timeline should include: horses drift into groups, tuck in behind
 // another horse, pull out to pass when they're stuck, keep a body's width apart and wander a little.
-// Each frame: [x, z, speed, effort 0..2, heading].
+// Each frame: [x, z, speed, effort 0..2, heading]. x is metres run from the gate line (each horse's middle: at the
+// off they stand STAND metres behind it, noses at the gates), z is across the track as the draw puts them
+// (courses/ascot-stalls.json: stall n's 'across'). Time 0 is the off: the gates opening.
+const STAND = STALLS.horseStandsBehind;
 function placeholderTimeline(n, seed) {
   const rnd = seeded(seed);
   const dt = 0.1, out = [];
@@ -937,12 +1053,14 @@ function placeholderTimeline(n, seed) {
   const nGroups = n > 9 ? 3 : 2;
   const groupBase = Array.from({ length: nGroups }, (_, g) => -limit * 0.7 + (g + 0.5) * (limit * 1.4 / nGroups));
   const horses = Array.from({ length: n }, (_, i) => {
-    const stall = -limit + 0.5 + i * ((2 * limit - 1) / Math.max(1, n - 1));
+    const stall = START.stalls[i].across;             // horse i is drawn in stall i + 1
     let g = 0, best = 1e9;
     groupBase.forEach((c, k) => { const dd = Math.abs(c - stall); if (dd < best) { best = dd; g = k; } });
     return {
       base: 16.3 + rnd() * 0.22, kick: 0.4 + rnd() * 0.8, kickAt: 220 + rnd() * 240,   // close in pace: a bunched field, as on TV
-      x: rnd() * 1.2, z: stall, v: 0, vz: 0, group: g,
+      x: -STAND, z: stall, v: 0, vz: 0, group: g,
+      // reaction to the gates: most break within a fifth of a second, now and then one is slowly away
+      react: rnd() < 0.12 ? 0.45 + rnd() * 0.35 : 0.05 + rnd() * 0.2,
       wp: rnd() * 6.28, wf: 0.25 + rnd() * 0.35, surge: rnd() * 6.28,
     };
   });
@@ -964,7 +1082,7 @@ function placeholderTimeline(n, seed) {
       }
       // Round the loop the field strings out along the inside rail, one to three wide; it only fans out
       // across the track once into the home straight (and on the straight mile it races in groups).
-      const onLoop = RACE.course === "round" && toGo > 700;
+      const onLoop = ROUND && toGo > 700;
       const target = onLoop ? -limit + 1.2 + h.group * 2.2 : centres[h.group];
       let az = (target - h.z) * (onLoop ? 0.25 : 0.12);                 // drift towards its group or the rail
       az += Math.sin(t * h.wf + h.wp) * (onLoop ? 0.08 : 0.25);         // a little wander
@@ -985,7 +1103,11 @@ function placeholderTimeline(n, seed) {
       }
       if (h.z > limit - 0.5) az -= (h.z - limit + 0.5) * 4;            // stay off the rails
       if (h.z < -limit + 0.5) az += (-limit + 0.5 - h.z) * 4;
-      h.vz = THREE.MathUtils.clamp((h.vz + az * dt) * 0.9, -1.3, 1.3);
+      // out of the stalls dead straight (they're between the partitions until clear of the gates), then the
+      // steering comes in gently over the first 40 m, as the field sorts itself out after the break
+      const free = THREE.MathUtils.smoothstep(h.x, 2, 40);
+      h.vz = THREE.MathUtils.clamp((h.vz + az * free * dt) * 0.9, -1.3 * free, 1.3 * free);
+      if (t < h.react) want = 0;
       h.v += Math.sign(want - h.v) * Math.min(Math.abs(want - h.v), (h.v < 8 ? 6 : 1.4) * dt);
       h.x += h.v * dt;
       h.z += h.vz * dt;
@@ -997,7 +1119,7 @@ function placeholderTimeline(n, seed) {
   return { dt, frames: out };
 }
 
-const RUNNERS = Number(params.get("runners") || 12);
+const RUNNERS = THREE.MathUtils.clamp(Number(params.get("runners") || 12), 1, STALLS.maxRunners);
 const timeline = placeholderTimeline(RUNNERS, Number(params.get("seed") || 3));
 // The whole race, then the finish again side-on in slow motion, then round again (see the director below).
 const DIR_ = VIEW.raceDirector;
@@ -1076,11 +1198,12 @@ const camera = new THREE.PerspectiveCamera(30, 1, 0.5, 4000);   // near 0.5 (was
 post.uniforms.near.value = camera.near; post.uniforms.far.value = camera.far;
 const focus = new THREE.Vector3();
 const RCAMS = VIEW.raceCameras, SET = VIEW.setPieces;
-// The show runs in phases: the grandstand set piece before the off, the race (cut by the TV director, or
+// The show runs in phases: the grandstand set piece before the off, the horses standing in the stalls (the
+// view's own pre-roll: courses/ascot-view.json -> startSequence), the race from the off (cut by the TV director, or
 // one camera picked by hand), the finish again side-on in slow motion, and a set piece after it.
-const PHASES = ["prelude", "race", "replay", "postlude"];
+const PHASES = ["prelude", "stalls", "race", "replay", "postlude"];
 const state = {
-  phase: params.get("phase") || (params.has("t") ? "race" : "prelude"), pt: 0,
+  phase: params.get("phase") || (params.has("t") ? "race" : "prelude"), pt: Number(params.get("pt") || 0),
   t: params.has("t") ? Number(params.get("t")) : 0, paused: params.has("still"),
   cam: params.get("cam") || "auto", painted: params.get("finish") !== "plain",
 };
@@ -1120,6 +1243,43 @@ function fitFov(eye, look, pts, [fmin, fmax], pad = 1.06) {
   }
   return THREE.MathUtils.clamp(2 * THREE.MathUtils.radToDeg(Math.atan(need * pad)), fmin, fmax);
 }
+// The start camera (courses/ascot-view.json -> raceCameras.start): low on the outer side, in front of the stalls,
+// looking back across their faces. It frames the row while the horses stand in, holds as the gates open and the
+// field breaks, panning with them, until startSequence.holdAfterOff seconds or the leader nears the camera.
+const startWorld = (across, ahead) => {                // a point in the start's frame -> world x, z
+  const [x0, z0] = START.insideRailAt, [ox, oz] = START.towardsOuterRail, [rx, rz] = START.runningDirection;
+  return [x0 + ox * across + rx * ahead, z0 + oz * across + rz * ahead];
+};
+function startShot(now) {
+  const c = RCAMS.start;
+  if (!c || (state.cam !== "auto" && state.cam !== "start")) return false;
+  return state.t < PRE.holdAfterOff && leaderAt(now) < (state.startAhead || [].concat(c.ahead)[0]) - PRE.passAt;
+}
+function startTarget(now) {
+  const c = RCAMS.start;
+  const ends = [START.stalls[0], START.stalls[RUNNERS - 1]].flatMap((st) => {
+    const [x, z] = startWorld(st.fromInsideRail, 0.3);
+    return [new THREE.Vector3(x, 0.4, z), new THREE.Vector3(x, 3.4, z)];       // the gates and the boards above them
+  });
+  // 'ahead' lists the distances to try, nearest first: the first from which the whole row fits the screen (a
+  // phone held upright needs the camera further off). Chosen once a run, so the shot never creeps.
+  const eyeAt = (a) => { const [ex, ez] = startWorld(COURSE.trackWidth + c.side, a); return new THREE.Vector3(ex, c.height, ez); };
+  if (state.startFor !== camera.aspect) {
+    const list = [].concat(c.ahead), mid = new THREE.Box3().setFromPoints(ends).getCenter(new THREE.Vector3());
+    state.startAhead = list.find((a) => fitFov(eyeAt(a), mid, ends, c.fov, 1.04) < c.fov[1] * 0.95) ?? list[list.length - 1];
+    state.startFor = camera.aspect;
+  }
+  const eye = eyeAt(state.startAhead);
+  const field = fieldInShot(now);
+  // the whole row while they're in and as they break; then the row lets go and the camera follows the field
+  const k = state.phase === "stalls" ? 0 : THREE.MathUtils.smoothstep(state.t, 0.8, 2.6);
+  const pts = k < 0.5 ? ends.concat(field) : field;
+  const centre = new THREE.Box3().setFromPoints(pts).getCenter(new THREE.Vector3());
+  const rowMid = new THREE.Box3().setFromPoints(ends).getCenter(new THREE.Vector3());
+  const look = rowMid.lerp(centre, k);
+  const [ax, az] = toWorld(leaderAt(now), 0);
+  return { eye, look, fov: fitFov(eye, look, pts, c.fov, 1.04), id: "start", anchor: new THREE.Vector3(ax, 1.3, az), guard: field.slice(0, 2), range: c.fov };
+}
 const EYE = params.get("eye"), AT = params.get("at");          // ?eye=x,y,z&at=x,y,z: a free camera, for checking
 const lerp3 = (a, b, k) => new THREE.Vector3(...a).lerp(new THREE.Vector3(...b), k);
 // Returns { eye, look, fov, id, anchor, guard }. During the race the frame loop keeps the look point tied to
@@ -1128,6 +1288,7 @@ const lerp3 = (a, b, k) => new THREE.Vector3(...a).lerp(new THREE.Vector3(...b),
 function cameraTarget(now) {
   const still = (eye, look, fov, id) => ({ eye, look, fov, id });
   if (EYE && AT) return still(new THREE.Vector3(...EYE.split(",").map(Number)), new THREE.Vector3(...AT.split(",").map(Number)), Number(params.get("fov") || 40), "free");
+  if (state.phase === "stalls" || (state.phase === "race" && startShot(now))) return startTarget(now);
   if (state.phase === "prelude" || state.phase === "postlude") {
     const S = SET[state.phase], k = THREE.MathUtils.smoothstep(state.pt / S.seconds, 0, 1);
     return still(lerp3(S.eye[0], S.eye[1], k), lerp3(S.at[0], S.at[1], k), S.fov, state.phase);
@@ -1329,7 +1490,7 @@ function setBar(on) {
 document.getElementById("hideBar").onclick = () => setBar(false);
 showEl.onclick = () => setBar(true);
 try { if (localStorage.getItem("tb-bar") === "0" && !params.has("still")) setBar(false); } catch {}
-document.getElementById("restart").onclick = () => { state.phase = "prelude"; state.pt = 0; state.t = 0; snap = true; live.length = 0; };
+document.getElementById("restart").onclick = () => { gatesAt = -1; state.phase = "prelude"; state.pt = 0; state.t = 0; snap = true; live.length = 0; };
 
 function resize() {
   const w = window.innerWidth, h = window.innerHeight, pr = renderer.getPixelRatio();
@@ -1348,7 +1509,7 @@ try {
   const optional = (p, what) => p.catch((e) => { console.warn(what + " missing:", e.message); return null; });
   const json = (url) => optional(fetch(url).then((r) => { if (!r.ok) throw new Error(url + " " + r.status); return r.json(); }), url);
   const file = (path) => "assets/course/" + path.split("/").pop();
-  const [props, horse, world, trees, belts, crowd, bakeInfo, dressing, planting, areas, spots, palette] = await Promise.all([
+  const [props, horse, world, trees, belts, crowd, bakeInfo, dressing, planting, areas, spots, palette, stalls, stallKit] = await Promise.all([
     optional(loadModel("assets/course", "course-props"), "Course furniture"),
     loadModel("assets/model", "racehorse"),
     optional(loadModel("assets/baked", "static_world"), "Baked scenery"),
@@ -1361,7 +1522,10 @@ try {
     json(ARCH + "/ascot_main_stand_crowd_areas.json"),
     json(ARCH + "/site_props_spots.json"),
     json(ARCH + "/crowd_palette.json"),
+    optional(loadModel("assets/course", "starting_stalls"), "Starting stalls"),
+    json("assets/course/starting_stalls_kit.json"),
   ]);
+  if (stalls && stallKit) buildStalls(stalls, stallKit);
   if (props) placeProps(props);
   if (world && bakeInfo) placeBaked(world, bakeInfo, dressing);
   if (belts) placeBelts(belts, planting, trees);
@@ -1370,7 +1534,7 @@ try {
     const pieceAt = (p) => new THREE.Matrix4().makeTranslation(p.x, 0, p.z).multiply(new THREE.Matrix4().makeRotationY(Math.PI + (p.turn || 0) * Math.PI / 180));
     buildCrowd(crowd, { dressing, areas: areas && areas.areas, spots: spots && spots.pieces, palette }, pieceAt);
   }
-  const clips = horse.animations.filter((c) => c.name !== "walk");
+  const clips = horse.animations;
   for (let i = 0; i < RUNNERS; i++) {
     const obj = SkeletonUtils.clone(horse.scene);
     obj.scale.setScalar(HORSE_SCALE);
@@ -1517,7 +1681,8 @@ function frame() {
   const step = state.paused ? 0 : dt * slow;
   if (!state.paused) {
     state.pt += dt;
-    if (state.phase === "prelude") { if (state.pt > SET.prelude.seconds) { state.phase = "race"; state.pt = 0; state.t = 0; snap = true; } }
+    if (state.phase === "prelude") { if (state.pt > SET.prelude.seconds) { state.phase = "stalls"; state.pt = 0; state.t = 0; snap = true; } }
+    else if (state.phase === "stalls") { if (state.pt > PRE.standSeconds) { state.phase = "race"; state.pt = 0; state.t = 0; } }   // the off: no cut
     else if (state.phase === "race") { state.t += dt; if (state.t > T_END) { state.phase = "replay"; state.pt = 0; state.t = REPLAY[0]; snap = true; live.length = 0; } }
     else if (state.phase === "replay") { state.t += step; if (state.t > REPLAY[1]) { state.phase = "postlude"; state.pt = 0; state.t = T_END; snap = true; } }
     else if (state.phase === "postlude" && state.pt > SET.postlude.seconds) { state.phase = "prelude"; state.pt = 0; state.t = 0; snap = true; live.length = 0; }
@@ -1536,8 +1701,10 @@ function frame() {
     const set = (n, w) => r.actions[n] && r.actions[n].setEffectiveWeight(w);
     const e = r.effort;
     set("ride_quiet", Math.max(0, 1 - e)); set("ride_push", e <= 1 ? e : 2 - e); set("ride_drive", Math.max(0, e - 1));
-    set("gallop", 1 - e / 4); set("gallop_drive", e / 4);
-    r.mixer.timeScale = THREE.MathUtils.clamp(v / STRIDE_SPEED, 0.25, 1.4);
+    // standing in the stalls: the walk pose, barely moving (a horse shifting its weight); into the gallop as it breaks
+    const w = 1 - THREE.MathUtils.smoothstep(v, 0.3, 4.5);
+    set("walk", w); set("gallop", (1 - e / 4) * (1 - w)); set("gallop_drive", (e / 4) * (1 - w));
+    r.mixer.timeScale = v < 0.3 ? 0.06 : THREE.MathUtils.clamp(v / STRIDE_SPEED, 0.3, 1.4);
     r.mixer.update(step);
     if (x > leader) { leader = x; leaderZ = wz; leaderXw = wx; }
     sum += x;
@@ -1553,6 +1720,12 @@ function frame() {
     drawKick();
   }
   const packU = runners.length ? sum / runners.length : 0;
+  // the gates: shut until the off, then spring open; on a race that comes back past its own start (2 miles)
+  // the stalls are towed away once the field is well down the course
+  if (stallsGroup) {
+    setGates(state.phase === "race" ? gateOpening(state.t) : state.phase === "prelude" || state.phase === "stalls" ? 0 : 1);
+    stallsGroup.visible = !(STALLS_COME_BACK && (state.phase === "race" || state.phase === "replay" || state.phase === "postlude") && leader > PRE.hideAfter);
+  }
 
   updateCamera(now, dt);
   const [sx, sz] = toWorld(packU, 0);
@@ -1565,9 +1738,9 @@ function frame() {
   updateCrowd(camera);
 
   const left = (DIST - leader) / FURLONG;
-  toRunEl.textContent = state.phase === "prelude" ? RACE.label : state.phase === "replay" ? "Replay" : left <= 0 ? "Finished"
+  toRunEl.textContent = state.phase === "prelude" ? RACE.label : state.phase === "stalls" ? "All in" : state.phase === "replay" ? "Replay" : left <= 0 ? "Finished"
     : left < 1 ? Math.round(left * 220) + " yds" : left.toFixed(1).replace(/\.0$/, "") + "f";
-  toRunLabel.hidden = left <= 0 || state.phase === "prelude" || state.phase === "replay";
+  toRunLabel.hidden = left <= 0 || state.phase === "prelude" || state.phase === "stalls" || state.phase === "replay";
 
   const every = QUALITY[qLevel].shadowEvery;
   sun.shadow.autoUpdate = every === 1;
