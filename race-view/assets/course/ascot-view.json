@@ -223,7 +223,7 @@
   }
  },
  "raceCameras": {
-  "_about": "Camera plan agreed with the owner, 3 Nov 2026 (reference/cameras/00-owner-camera-markup.jpg, the TV grabs beside it, and two whole Royal Ascot races he recorded: reference/cameras/tv-straight-*.jpg, tv-round-*.jpg). World axes; heights in metres. Owner, 4 Nov: three things matter: the tracking camera ahead of the leaders; the grandstand camera swinging round the bend and following them down the straight, as tight as possible; a smooth pan to the finish where they cross the line square on to the camera, so the winner is easy to judge. 'track': a car beside the rail ('side' metres off it; railSide 'outer' = the grandstand side), 'ahead' metres in front of the leader, filming back across the field. 'rail': on a rail along the stand front, 'ahead' of the leader. 'fixed': stands at 'at' and pans. 'ahead' lists the distances to try, nearest first; the first that fits the framed horses (zoom under 80% of the widest) is used, eased in. frame: 'field' = every horse except one or two tailed off; 'leaders' = the horses within 'window' metres of the leader. leadRoom: metres of space kept ahead of them. fov: zoom range, degrees.",
+  "_about": "Camera plan agreed with the owner, 3 Nov 2026 (reference/cameras/00-owner-camera-markup.jpg, the TV grabs beside it, and two whole Royal Ascot races he recorded: reference/cameras/tv-straight-*.jpg, tv-round-*.jpg). World axes; heights in metres. Owner, 4 Nov: three things matter: the tracking camera ahead of the leaders; the grandstand camera swinging round the bend and following them down the straight, as tight as possible; a smooth pan to the finish where they cross the line square on to the camera, so the winner is easy to judge. 'track': a car beside the rail ('side' metres off it; railSide 'outer' = the grandstand side), 'ahead' metres in front of the leader, filming back across the field. 'fixed': stands at 'at' and pans. closeIn [from, to, window]: eases from the field to the horses within 'window' m of the leader between 'from' and 'to' metres out. 'ahead' lists the distances to try, nearest first; the first that fits the framed horses (zoom under 80% of the widest) is used, eased in. frame: 'field' = every horse except one or two tailed off; 'leaders' = the horses within 'window' metres of the leader. leadRoom: metres of space kept ahead of them. fov: zoom range, degrees.",
   "track_loop": {
    "label": "Tracking",
    "kind": "track",
@@ -281,30 +281,25 @@
   },
   "grandstand": {
    "label": "Grandstand",
-   "kind": "rail",
+   "kind": "fixed",
    "fov": [
-    2,
+    1.5,
     22
    ],
-   "note": "high on the stand in front of the roof edge, on a rail along the stand: ahead of the leader, swings with the field round the final bend, then down the straight as tight as the field allows (TV: tv-straight-*.jpg 24-78 s, tv-round-*.jpg 58-78 s). Well ahead with a long lens, as on TV: the field comes up the straight towards it, compressed, with the rail running diagonally across the picture",
+   "note": "the TV grandstand camera: high in the stand ON the winning line, one camera with no cuts (owner, 4 Nov: the finish must be the grandstand camera). Long lens up the course: picks the field up as they swing round the final bend, follows them down the straight framing the field, closes in on the leading group over the last 'closeIn' metres ([from, to, window]), and pans round until they cross the line square on to it. Lower in the stand (12 m up on the front of the stand, 28 m from the middle of the track) so the finish is close to side-on.",
    "grab": "grab-03.png .. grab-08.png",
-   "rail": {
-    "x": [
-     0,
-     400
-    ],
-    "y": 31,
-    "z": 42
-   },
-   "ahead": [
-    110,
-    150,
-    200,
-    260,
-    330
-   ],
    "frame": "field",
-   "leadRoom": 3
+   "leadRoom": 3,
+   "at": [
+    0,
+    12,
+    43
+   ],
+   "closeIn": [
+    260,
+    60,
+    10
+   ]
   },
   "lookback": {
    "label": "Looking back",
@@ -339,27 +334,10 @@
     26
    ],
    "note": "square on to the winning line, from the stand side; the finish again in slow motion; pans a little with the leader either side of the line"
-  },
-  "finish": {
-   "label": "Finish",
-   "kind": "fixed",
-   "at": [
-    0,
-    9,
-    44
-   ],
-   "frame": "leaders",
-   "window": 10,
-   "leadRoom": 1.5,
-   "fov": [
-    3,
-    26
-   ],
-   "note": "on the winning line, low in the front of the stand: picks up the leaders about a furlong out, pans with them and zooms in, so they cross the line square on to the camera (TV: tv-round-*.jpg 80-86 s, tv-straight-*.jpg 98 s)"
   }
  },
  "raceDirector": {
-  "_about": "When the TV director cuts (distance to go of the leader, metres). Straight mile: tracking until straight.grandstand out, the grandstand camera until 'finish' out, then the finish camera on the line. Round course: the grandstand camera from round.grandstand metres before each pass of the post; the look-back camera for round.lookback metres after a pass that isn't the finish (only while still ahead of the leader); tracking otherwise; the finish camera for the last 'finish' metres. After the finish: the side-on replay, slowed to replaySpeed, from replayFrom metres before the line to replayTo after it.",
+  "_about": "When the TV director cuts (distance to go of the leader, metres). Straight mile: tracking until straight.grandstand out, then the grandstand camera to the line and beyond (no cut at the finish). Round course: the grandstand camera from round.grandstand metres before each pass of the post; the look-back camera for round.lookback metres after a pass that isn't the finish (only while still ahead of the leader); tracking otherwise. After the finish: the side-on replay, slowed to replaySpeed, from replayFrom metres before the line to replayTo after it.",
   "round": {
    "grandstand": 800,
    "lookback": 380
@@ -370,8 +348,7 @@
   "afterFinish": 4,
   "replayFrom": 30,
   "replayTo": 14,
-  "replaySpeed": 0.3,
-  "finish": 200
+  "replaySpeed": 0.3
  },
  "setPieces": {
   "_about": "Grandstand set pieces (owner, 3 Nov: 'to portray the excellent grandstand'): camera moves before the off and after the replay. eye and at go from the first to the second over 'seconds'.",

@@ -181,15 +181,23 @@ const MID_Z = VIEW.homeStraight.centreZ;
 const DIST = RACE.distance;                          // u at the winning line
 const LOOP = (() => {
   const pts = COURSE.roundCourse.insideRail.points, n = pts.length, sp = COURSE.roundCourse.insideRail.spacing;
-  return { pts, n, sp, length: n * sp };
+  const tan = pts.map((_, i) => {                                     // direction at each sample: across its neighbours
+    const [px, pz] = pts[(i - 1 + n) % n], [qx, qz] = pts[(i + 1) % n], l = Math.hypot(qx - px, qz - pz) || 1;
+    return [(qx - px) / l, (qz - pz) / l];
+  });
+  return { pts, n, sp, length: n * sp, tan };
 })();
 // Point on the race's inside rail with d metres still to run, and the running direction there.
 function railAt(d) {
   if (RACE.course === "straight") return { x: d, z: 0, tx: -1, tz: 0 };
   const L = LOOP.length, s = (((-d) % L) + L) % L, f = s / LOOP.sp, i = Math.floor(f) % LOOP.n, j = (i + 1) % LOOP.n, k = f - Math.floor(f);
   const [ax, az] = LOOP.pts[i], [bx, bz] = LOOP.pts[j];
-  const len = Math.hypot(bx - ax, bz - az) || 1;
-  return { x: ax + (bx - ax) * k, z: az + (bz - az) * k, tx: (bx - ax) / len, tz: (bz - az) / len };
+  // the running direction blends smoothly from one 5 m sample to the next: a direction that stepped at
+  // each sample made the horses, the tracking car and the camera's aim twitch every third of a second on the bends
+  const ta = LOOP.tan[i], tb = LOOP.tan[j];
+  let tx = ta[0] + (tb[0] - ta[0]) * k, tz = ta[1] + (tb[1] - ta[1]) * k;
+  const tl = Math.hypot(tx, tz) || 1;
+  return { x: ax + (bx - ax) * k, z: az + (bz - az) * k, tx: tx / tl, tz: tz / tl };
 }
 // u along, v across -> world x, z (the outer side is on the horses' left: clockwise course)
 function toWorld(u, v) {
@@ -1085,7 +1093,7 @@ function aheadOf(eye, u) {                                           // is a poi
 }
 function directorShot(d, leadU) {
   if (state.cam !== "auto" && RCAMS[state.cam] && state.cam !== "sideon") return state.cam;
-  if (d <= DIR_.finish) return "finish";                               // on the line: they cross it square on
+  if (d < 0) return "grandstand";                                    // past the line: stay on the grandstand camera
   if (RACE.course === "straight") return d > DIR_.straight.grandstand ? "track_straight" : "grandstand";
   const L = LOOP.length, q = ((d % L) + L) % L;                       // metres to the next pass of the post
   if (q <= DIR_.round.grandstand || d <= DIR_.round.grandstand) return "grandstand";
@@ -1169,7 +1177,20 @@ function cameraTarget(now) {
     state.ahead += (want - state.ahead) * (1 - Math.exp(-(state.dt || 0.016) * 0.7));   // ease, never jump
     eye = eyeAt(state.ahead);
   } else eye = eyeAt(0);
-  return { eye, look: centre, fov: fitFov(eye, centre, pts, c.fov), id, anchor: lead.clone(), guard: field.slice(0, 2), range: c.fov };
+  let look = centre, fov = fitFov(eye, centre, pts, c.fov);
+  // closing in: over the last stretch the camera eases from the whole field to the leading group, so
+  // the finish is as tight as possible, with no cut ([start, end] metres out, and the group's window)
+  if (c.closeIn) {
+    const [from, to, win] = c.closeIn, k = 1 - THREE.MathUtils.smoothstep(DIST - leadU, to, from);
+    if (k > 0) {
+      const grp = field.filter((p, i) => i < 2 || leadU - p.u <= win);
+      const gc = new THREE.Box3().setFromPoints(grp).getCenter(new THREE.Vector3()).addScaledVector(run, c.leadRoom || 0);
+      look = centre.clone().lerp(gc, k);
+      fov = THREE.MathUtils.lerp(fitFov(eye, look, pts, c.fov), fitFov(eye, look, grp, c.fov), k);
+    }
+  }
+  const [ax, az] = toWorld(leadU, 0);
+  return { eye, look, fov, id, anchor: new THREE.Vector3(ax, 1.3, az), guard: field.slice(0, 2), range: c.fov };
 }
 
 // ---------- Controls ----------
@@ -1444,6 +1465,43 @@ function sample(t) {
   return timeline.frames[i].map((a, j) => { const b = timeline.frames[i + 1][j]; return a.map((v, n) => v + (b[n] - v) * k); });
 }
 
+function updateCamera(now, dt) {
+  const T = runners.length ? cameraTarget(now) : { eye: camera.position.clone(), look: focus.clone(), fov: camera.fov, id: "none" };
+  if (T.id !== lastShot) { snap = true; lastShot = T.id; }
+  // Cuts are clean cuts. Within a shot the camera stands where it should (it's already moving smoothly with
+  // the field); the look point rides with the leader and only its offset from the leader is smoothed; the
+  // zoom widens quickly and tightens slowly, and never lets the leaders out.
+  camera.position.copy(T.eye);
+  if (T.anchor) {
+    const off = T.look.clone().sub(T.anchor);
+    if (snap || !state.lookOff) state.lookOff = off; else state.lookOff.lerp(off, 1 - Math.exp(-dt * 2.2));
+    focus.copy(T.anchor).add(state.lookOff);
+    const guard = fitFov(T.eye, focus, T.guard, T.range, 1.12);
+    let f = Math.max(T.fov, guard);
+    if (snap) camera.fov = f;
+    else camera.fov += (f - camera.fov) * (1 - Math.exp(-dt * (f > camera.fov ? 6 : 0.9)));
+    camera.fov = Math.max(camera.fov, guard);
+  } else { focus.copy(T.look); camera.fov = T.fov; }
+  camera.updateProjectionMatrix();
+  camera.lookAt(focus);
+  snap = false;
+}
+// Checking aid: run the director over a stretch of race and report each step's shot, zoom and how far the
+// view turned (degrees), to find jumps without watching it: window.__camTrace(t0, t1, dt).
+window.__camTrace = (t0, t1, step = 1 / 30) => {
+  const out = [], d0 = new THREE.Vector3(), d1 = new THREE.Vector3();
+  state.phase = "race";
+  snap = true;
+  for (let t = t0; t <= t1; t += step) {
+    state.t = t; state.dt = step;
+    camera.getWorldDirection(d0);
+    updateCamera(sample(t), step);
+    camera.updateMatrixWorld(); camera.getWorldDirection(d1);
+    out.push([+t.toFixed(2), lastShot, +camera.fov.toFixed(2), +THREE.MathUtils.radToDeg(d0.angleTo(d1)).toFixed(2)]);
+  }
+  return out;
+};
+
 // ---------- Loop ----------
 const toRunEl = document.getElementById("toRun"), toRunLabel = document.querySelector(".togo span");
 const clock = new THREE.Clock();
@@ -1496,25 +1554,7 @@ function frame() {
   }
   const packU = runners.length ? sum / runners.length : 0;
 
-  const T = runners.length ? cameraTarget(now) : { eye: camera.position.clone(), look: focus.clone(), fov: camera.fov, id: "none" };
-  if (T.id !== lastShot) { snap = true; lastShot = T.id; }
-  // Cuts are clean cuts. Within a shot the camera stands where it should (it's already moving smoothly with
-  // the field); the look point rides with the leader and only its offset from the leader is smoothed; the
-  // zoom widens quickly and tightens slowly, and never lets the leaders out.
-  camera.position.copy(T.eye);
-  if (T.anchor) {
-    const off = T.look.clone().sub(T.anchor);
-    if (snap || !state.lookOff) state.lookOff = off; else state.lookOff.lerp(off, 1 - Math.exp(-dt * 2.2));
-    focus.copy(T.anchor).add(state.lookOff);
-    const guard = fitFov(T.eye, focus, T.guard, T.range, 1.12);
-    let f = Math.max(T.fov, guard);
-    if (snap) camera.fov = f;
-    else camera.fov += (f - camera.fov) * (1 - Math.exp(-dt * (f > camera.fov ? 6 : 0.9)));
-    camera.fov = Math.max(camera.fov, guard);
-  } else { focus.copy(T.look); camera.fov = T.fov; }
-  camera.updateProjectionMatrix();
-  camera.lookAt(focus);
-  snap = false;
+  updateCamera(now, dt);
   const [sx, sz] = toWorld(packU, 0);
   const sunAt = new THREE.Vector3(sx, 0, sz);
   sun.position.copy(sunAt).add(SUN_OFFSET); sun.target.position.copy(sunAt);
