@@ -1,0 +1,186 @@
+<!doctype html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Horse Studio</title>
+<style>
+  :root { --bg: #dfe6d6; --ink: #1f3a2c; --panel: #f6efe0; --line: #c9b98f; }
+  html, body { margin: 0; height: 100%; background: var(--bg); color: var(--ink); font: 14px/1.4 system-ui, sans-serif; overflow: hidden; }
+  canvas { display: block; width: 100%; height: 100%; }
+  .bar { position: fixed; left: 12px; right: 12px; bottom: 12px; display: flex; flex-wrap: wrap; gap: 8px 14px; align-items: center;
+         background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 8px 12px; }
+  .bar label { display: flex; gap: 6px; align-items: center; }
+  .bar select, .bar input { font: inherit; }
+  .tag { position: fixed; top: 12px; font: 600 15px/1 Georgia, serif; background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 6px 10px; }
+  [hidden] { display: none !important; }
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<div class="tag" id="tagL" style="left:12px" hidden>Current horse (v1)</div>
+<div class="tag" id="tagR" style="right:12px" hidden>New horse (v2)</div>
+<div class="bar" id="bar">
+  <label>Silks <select id="silk"></select></label>
+  <label>Coat <select id="coat"></select></label>
+  <label>Effort <input id="eff" type="range" min="0" max="3" step="0.05" value="0"></label>
+  <label>View <select id="view"><option>side</option><option>front34</option><option>back34</option><option>back</option><option>top</option><option>jockey</option><option>jback</option><option>face</option><option>head</option><option>legs</option></select></label>
+  <label><input id="spin" type="checkbox"> Turn</label>
+  <button id="play" type="button">Pause</button>
+</div>
+<script async src="https://cdn.jsdelivr.net/npm/es-module-shims@1.10.0/dist/es-module-shims.js"></script>
+<script type="importmap">
+{ "imports": {
+  "three": "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js",
+  "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/"
+} }
+</script>
+<script type="module">
+// Horse Studio: the current horse (v1) and the new one (v2) side by side, close up, for checking the
+// silks, the gallop and the jockey's riding. ?compare=1 shows both; ?horse=v1|v2 shows one.
+// Checking aids: ?still=1&t=<stride seconds>&eff=<0..3>&view=<name>&silk=<id>&coat=<n>
+import * as THREE from "three";
+import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
+import { MeshoptDecoder } from "three/addons/libs/meshopt_decoder.module.js";
+import * as SkeletonUtils from "three/addons/utils/SkeletonUtils.js";
+import { RoomEnvironment } from "three/addons/environments/RoomEnvironment.js";
+import * as V2 from "./horse-v2.js";
+
+const params = new URLSearchParams(location.search);
+const STILL = params.has("still");
+const SILK_DATA = await fetch("assets/silks-catalogue.json").then((r) => r.json());
+const SILKS = SILK_DATA.silks;
+const COATS = [
+  { name: "Bay", body: "#7a4a2a", points: "#1d1714" }, { name: "Brown", body: "#4a2e1c", points: "#17110d" },
+  { name: "Chestnut", body: "#a3552c", points: "#6a3317" }, { name: "Black", body: "#2b2523", points: "#141110" },
+  { name: "Grey", body: "#a8a6a0", points: "#6d6b66" },
+];
+const canvas = document.getElementById("c");
+const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, preserveDrawingBuffer: STILL });
+renderer.setPixelRatio(Math.min(2, devicePixelRatio));
+renderer.toneMapping = THREE.AgXToneMapping; renderer.toneMappingExposure = Math.pow(2, 0.35);
+renderer.shadowMap.enabled = true; renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+const scene = new THREE.Scene();
+scene.background = new THREE.Color("#b9cfe0");
+scene.add(new THREE.HemisphereLight(new THREE.Color("#7fb2e2"), new THREE.Color("#5c7c38"), 2.4));
+const sun = new THREE.DirectionalLight(new THREE.Color().setRGB(1.0, 0.9, 0.76, THREE.LinearSRGBColorSpace), 5.0);
+sun.position.set(-6, 9, 5); sun.castShadow = true; sun.shadow.mapSize.set(2048, 2048);
+Object.assign(sun.shadow.camera, { left: -5, right: 5, top: 5, bottom: -5, near: 1, far: 30 }); sun.shadow.bias = -0.0004;
+scene.add(sun);
+{ const pm = new THREE.PMREMGenerator(renderer); scene.environment = pm.fromScene(new RoomEnvironment(), 0.04).texture; scene.environmentIntensity = 0.2; }
+const ground = new THREE.Mesh(new THREE.CircleGeometry(30, 64), new THREE.MeshLambertMaterial({ color: "#6f9a4a" }));
+ground.rotation.x = -Math.PI / 2; ground.receiveShadow = true; scene.add(ground);
+const camera = new THREE.PerspectiveCamera(30, 1, 0.05, 200);
+
+const loader = new GLTFLoader(); loader.setMeshoptDecoder(MeshoptDecoder);
+const texLoader = new THREE.TextureLoader();
+let pending = 0;
+const tex = (url, srgb = true) => { pending++; const t = texLoader.load(url, () => pending--, undefined, () => pending--); t.flipY = false; if (srgb) t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 8; return t; };
+async function loadModel(dir, name) {
+  const text = (f) => fetch(`${dir}/${f}`).then((r) => { if (!r.ok) throw new Error(f + " " + r.status); return r.text(); });
+  const json = await text(`${name}.json`);
+  const parts = (JSON.parse(json).extras || {}).geometryParts;
+  const b64 = parts ? (await Promise.all(Array.from({ length: parts }, (_, k) => text(`${name}-geometry-${k}.txt`)))).map((s) => s.trim()).join("") : await text(`${name}-geometry.txt`);
+  const raw = atob(b64.trim()); const bin = new Uint8Array(raw.length); for (let i = 0; i < raw.length; i++) bin[i] = raw.charCodeAt(i);
+  const pad = (n) => (n + 3) & ~3, jsonBytes = new TextEncoder().encode(json), jLen = pad(jsonBytes.length), bLen = pad(bin.length);
+  const glb = new Uint8Array(28 + jLen + bLen); const dv = new DataView(glb.buffer);
+  dv.setUint32(0, 0x46546c67, true); dv.setUint32(4, 2, true); dv.setUint32(8, glb.length, true);
+  dv.setUint32(12, jLen, true); dv.setUint32(16, 0x4e4f534a, true); glb.fill(0x20, 20, 20 + jLen); glb.set(jsonBytes, 20);
+  dv.setUint32(20 + jLen, bLen, true); dv.setUint32(24 + jLen, 0x004e4942, true); glb.set(bin, 28 + jLen);
+  return new Promise((res, rej) => loader.parse(glb.buffer, dir + "/", res, rej));
+}
+
+// ---- v1: exactly as Final Furlong draws it ----
+const maskTex = tex("assets/tint-mask.png", false);
+const silkTex = new Map();
+const silkTexture = (id) => { if (!silkTex.has(id)) { const t = tex(`assets/silks-3d/${id}.png`); t.wrapS = THREE.RepeatWrapping; silkTex.set(id, t); } return silkTex.get(id); };
+function makeTintable(mat, u) {
+  mat.onBeforeCompile = (shader) => {
+    Object.assign(shader.uniforms, u);
+    shader.fragmentShader = shader.fragmentShader
+      .replace("#include <common>", "#include <common>\nuniform sampler2D mask; uniform vec3 coatCol; uniform vec3 pointsCol; uniform vec3 silkCol;")
+      .replace("#include <map_fragment>", `#include <map_fragment>
+        { vec3 m = texture2D(mask, vMapUv).rgb; float l = dot(diffuseColor.rgb, vec3(0.2126, 0.7152, 0.0722)); diffuseColor.rgb = vec3(l);
+          vec3 coat = coatCol * clamp(mix(1.0, l / 0.56, 0.65), 0.3, 1.25); vec3 pts = pointsCol * mix(0.75, 1.2, smoothstep(0.0, 0.035, l));
+          vec3 silk = silkCol * clamp(mix(1.0, l / 0.72, 0.6), 0.4, 1.15);
+          diffuseColor.rgb = mix(diffuseColor.rgb, coat, m.r); diffuseColor.rgb = mix(diffuseColor.rgb, pts, m.g); diffuseColor.rgb = mix(diffuseColor.rgb, silk, m.b); }`);
+  };
+  mat.customProgramCacheKey = () => "horse-tint";
+}
+function makeV1(gltf, coat, silk) {
+  const obj = SkeletonUtils.clone(gltf.scene); obj.scale.setScalar(3);
+  const u = { mask: { value: maskTex }, coatCol: { value: new THREE.Color(coat.body) }, pointsCol: { value: new THREE.Color(coat.points) }, silkCol: { value: new THREE.Color(silk.colour) } };
+  obj.traverse((o) => { if (!o.isMesh) return; o.castShadow = true; o.frustumCulled = false; o.material = o.material.clone();
+    if (o.material.name === "silks") { o.material.map = silkTexture(silk.id); o.material.roughness = 0.6; } else makeTintable(o.material, u); });
+  const mixer = new THREE.AnimationMixer(obj), actions = {};
+  for (const c of gltf.animations) { actions[c.name] = mixer.clipAction(c); actions[c.name].play(); }
+  return { obj, mixer, actions, kind: "v1",
+    update(dt, v, eff) {
+      const e = Math.min(2, eff), set = (n, w) => actions[n] && actions[n].setEffectiveWeight(w);
+      set("ride_quiet", Math.max(0, 1 - e)); set("ride_push", e <= 1 ? e : 2 - e); set("ride_drive", Math.max(0, e - 1));
+      set("walk", 0); set("gallop", 1 - e / 4); set("gallop_drive", e / 4);
+      mixer.timeScale = v / 14.6; mixer.update(dt);
+    },
+    setTime(t) { mixer.setTime(t); } };
+}
+
+const mode = params.get("compare") ? "compare" : params.get("horse") || "v2";
+const want = mode === "compare" ? ["v1", "v2"] : [mode];
+const silkSel = document.getElementById("silk"), coatSel = document.getElementById("coat");
+SILKS.forEach((s) => silkSel.add(new Option(s.name, s.id)));
+(SILK_DATA.catalogue || []).forEach((s) => silkSel.add(new Option("Pattern: " + s.zone + " " + s.name.toLowerCase(), s.id)));
+const ALL_SILKS = SILKS.concat(SILK_DATA.catalogue || []); COATS.forEach((c, i) => coatSel.add(new Option(c.name, i)));
+silkSel.value = params.get("silk") || "cheveley-park"; coatSel.value = params.get("coat") || 0;
+document.getElementById("eff").value = params.get("eff") || 0; document.getElementById("view").value = params.get("view") || "side";
+const protos = {};
+if (want.includes("v1")) protos.v1 = await loadModel("assets/model", "racehorse");
+if (want.includes("v2")) protos.v2 = await V2.loadHorse(loadModel, "assets/model-v2", tex);
+let horses = [];
+function build() {
+  horses.forEach((h) => scene.remove(h.obj)); horses = [];
+  const silk = ALL_SILKS.find((s) => s.id === silkSel.value), coat = COATS[+coatSel.value];
+  want.forEach((k, i) => {
+    const h = k === "v1" ? makeV1(protos.v1, coat, silk) : V2.makeRunner(protos.v2, { coat, silk, seed: +(params.get("seed") || 7), texLoader: tex });
+    h.obj.position.z = want.length > 1 ? (i ? -1.6 : 1.6) : 0;
+    scene.add(h.obj); horses.push(h);
+  });
+  document.getElementById("tagL").hidden = document.getElementById("tagR").hidden = want.length < 2;
+}
+build();
+silkSel.onchange = coatSel.onchange = build;
+const VIEWS = {   // eye, look point (metres; the horse faces +x) and zoom
+  side: [[0.3, 1.6, 6.6], [0.15, 1.3, 0], 25], front34: [[3.8, 2.1, 4.4], [0.3, 1.4, 0], 26], back34: [[-3.4, 2.5, 3.2], [0, 1.45, 0], 26],
+  back: [[-4.6, 2.3, 0.01], [0, 1.55, 0], 24], top: [[-1.2, 5.6, 2.2], [0.25, 1.4, 0], 26], jockey: [[1.2, 2.3, 3.4], [0.35, 1.68, 0], 22],
+  jback: [[-1.6, 2.6, 1.1], [0.3, 1.68, 0], 24], head: [[2.9, 1.9, 2.6], [1.2, 1.6, 0], 24], face: [[1.75, 1.85, 0.9], [0.62, 1.7, 0], 22],
+  legs: [[0.2, 0.7, 6], [0, 0.6, 0], 28],
+};
+function place() {
+  const w = innerWidth, h = innerHeight; renderer.setSize(w, h, false); camera.aspect = w / h;
+  const [e, a, f] = VIEWS[document.getElementById("view").value];
+  const spread = want.length > 1 ? 1.75 : 1;
+  camera.fov = f * (want.length > 1 && camera.aspect > 1 ? 1.25 : 1) * (camera.aspect < 1 ? 1.6 : 1);
+  camera.position.set(e[0] * spread, e[1], e[2] * spread); camera.lookAt(a[0], a[1], a[2]); camera.updateProjectionMatrix();
+}
+let playing = !STILL, spinA = 0;
+document.getElementById("play").onclick = (ev) => { playing = !playing; ev.target.textContent = playing ? "Pause" : "Play"; };
+const clock = new THREE.Clock();
+const T0 = Number(params.get("t") || 0.1);
+horses.forEach((h) => { h.update(5, 14.6, +document.getElementById("eff").value, null, 0); h.setTime(T0); });   // settle the riding first
+const LEVEL = params.get("level");
+let frames = 0;
+function frame() {
+  const dt = Math.min(0.05, clock.getDelta());
+  place();
+  const eff = +document.getElementById("eff").value;
+  if (document.getElementById("spin").checked) spinA += dt * 0.4;
+  horses.forEach((h) => { h.obj.rotation.y = spinA; h.update(playing ? dt : 0, 14.6, eff, LEVEL ? null : camera); if (LEVEL && h.setLevel) h.setLevel(+LEVEL); });
+  renderer.render(scene, camera);
+  if (STILL && pending === 0 && ++frames > 3) { window.__ready = true; window.__info = "studio"; return; }
+  requestAnimationFrame(frame);
+}
+if (STILL) { document.getElementById("bar").hidden = true; }
+window.__set = (t, eff) => { horses.forEach((h) => { h.setTime(t); h.update(0, 14.6, eff, camera); }); renderer.render(scene, camera); };
+frame();
+</script>
+</body>
+</html>

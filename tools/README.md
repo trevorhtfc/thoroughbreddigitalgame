@@ -162,3 +162,35 @@ python tools/web/glb_to_web.py assets/models/trees/trees.glb race-view/assets/tr
 ```
 Re-run the bake whenever the stand, the site pieces, their places or the finish line change.
 
+
+## The horse and jockey, v2 (quality test, Nov 2026)
+
+A second horse and jockey built beside the first. **v1 is untouched** (tag `horse-v1-backup`): `racehorse_rigged.glb`, `racehorse_neutral.glb`, the v1 master and the v1 scripts above are exactly as they were, and Final Furlong still uses v1 unless the page is opened with `?horse=v2`.
+
+| File | What it is |
+|---|---|
+| `tools/blender/build_racehorse_v2.py` | Builds v2 from the v1 master (read only) in one go, headless, about 40 seconds. |
+| `assets/models/racehorse_v2.glb` | The v2 model for any engine: three detail levels sharing one rig, every clip, textures embedded (silks show the five-zone test). |
+| `assets/models/master/racehorse_v2.blend` | The v2 master. |
+| `assets/models/racehorse_v2_rig.json` | What each clip is and how to blend them by speed and effort; the variety ranges; the colouring rule. |
+| `tools/silks/make_silks_v2.py` | Paints the silks in the v2 layout (`silks/textures-v2/`, web copy `race-view/assets/silks-3d-v2/`), using the same pattern rules as `make_silks.py` (imported, unchanged). |
+| `tools/web/package_racehorse_v2.py` | Squeezes the web copy (meshopt) into `race-view/assets/model-v2/`. |
+| `race-view/horse-v2.js` | The web viewer's v2 horse: colouring, detail levels, the riding and the variety. |
+| `race-view/horse-studio.html` | Close-up checking page: v1 and v2 side by side (`?compare=1`), any silks, coat, effort and view. |
+
+```
+python -c "exec(open('tools/blender/build_racehorse_v2.py').read())"          # WEB_GLB=<path> for the web copy (default /tmp)
+python tools/silks/make_silks_v2.py silks/silks.json 1024
+python tools/web/package_racehorse_v2.py /tmp/racehorse_v2_web.glb
+```
+
+**What v2 changes**
+- **Colour zones as vertex colours.** Every face belongs to one zone. On the main material the vertex colour is the mask: R coat, G points (mane, tail, lower legs), B the jockey's skin; everything else (tack, breeches, boots, gloves, goggles) keeps the neutral texture. Colours stop exactly at the zone edges, so nothing leaks: no coat on the jockey's face, no cap colour down his neck, no sleeve colour on his gloves or the mane, no jacket flecks on his breeches, no pale patches in the mane. No tint-mask texture is needed.
+- **Silks layout v2.** Body (wrapping right round the torso, so the back is its own pattern), two sleeves and the cap as a disc, each with a gutter painted in its own colour, so zones can't bleed into each other at a distance.
+- **A new cap**: a smooth dome fitted to the old one, a little closer on the head, with a proper peak. The blocky old cap and its flap down the neck are gone.
+- **The jacket and breeches ironed** (the crumpled facets smoothed), the boots taken out of the coat colour.
+- **A jockey rig** on the horse's back: hips, chest, head, arms, forearms, hands and a whip. His legs stay in the irons. His hands are cut free of the reins and mane so they can move without dragging them.
+- **Riding clips** (one stride each, played with the gallop): `ride_quiet` (effort 0), `ride_push` (1: hands and heels, back pumping), `ride_drive` (2: bigger, lower), `ride_whip` (3: driving with the left hand, one stroke a stride with the right). Blend by the timeline's effort.
+- **Gallop v2**: `gallop_v2` and `gallop_v2_drive` add a tail carried up off the quarters that swings behind the stride, a fuller head and neck nod, and the loin flexing with the hind legs.
+- **Variety** (cosmetic per runner, from its seed): additive ramp clips `jky_crouch_low`, `jky_crouch_high`, `jky_elbows_out`, `jky_hands_long`, `horse_head_high`, `horse_head_low`, `horse_tail_high`, played held at their end with a weight 0..1; plus a stride rhythm of ±4.5% and the jockey's timing up to 0.04 s off the stride.
+- **Detail levels**: `racehorse_v2_close` (smoothed, about 45k triangles), `racehorse_v2` (race, about 18.7k: lighter than v1's 19.3k), `racehorse_v2_far` (about 7.2k). The race view picks by size on screen and allows only a few close at once.

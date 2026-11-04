@@ -1,0 +1,58 @@
+{
+ "about": "racehorse_v2: how to play the clips. Every clip is one stride (0.48 s) unless noted; play them together and in step. Scale playback by speed / 14.6 m/s (model scaled x3).",
+ "detailLevels": {
+  "racehorse_v2_close": "within about 25 m of the camera (or the horse fills a quarter of the screen)",
+  "racehorse_v2": "the race view",
+  "racehorse_v2_far": "beyond about 80 m"
+ },
+ "triangles": {
+  "racehorse_v2_close": 44728,
+  "racehorse_v2": 18735,
+  "racehorse_v2_far": 7188
+ },
+ "horse": {
+  "gallop_v2": "normal galloping",
+  "gallop_v2_drive": "under pressure: neck lower, deeper nod, tail higher; blend in a beat after the jockey asks",
+  "walk": "walking / standing in the stalls (from v1)"
+ },
+ "jockey": {
+  "ride_quiet": "effort 0: sitting still, hands on the neck",
+  "ride_push": "effort 1: hands and heels, arms pushing with the stride, back pumping",
+  "ride_drive": "effort 2: the same, bigger and lower",
+  "ride_whip": "effort 3: drive with the left hand, whip in the right, one stroke a stride"
+ },
+ "effort": "timeline effort 0..3. Weights: quiet = max(0, 1 - e); push = max(0, 1 - |e - 1|); drive = max(0, 1 - |e - 2|); whip = max(0, e - 2). The horse: gallop_v2_drive = min(1, e / 2) of a copy of e delayed about 0.4 s.",
+ "variety": {
+  "additive": "ramp clips: rest at the start, the pose at the end. Play additively, held at the end, weight 0..1, chosen once per runner from its seed.",
+  "jky_crouch_low": [
+   0,
+   1
+  ],
+  "jky_crouch_high": [
+   0,
+   1
+  ],
+  "jky_elbows_out": [
+   0,
+   1
+  ],
+  "jky_hands_long": [
+   0,
+   1
+  ],
+  "horse_head_high": [
+   0,
+   1
+  ],
+  "horse_head_low": [
+   0,
+   1
+  ],
+  "horse_tail_high": [
+   0,
+   1
+  ],
+  "stride": "cadence x0.95..1.05 per horse; the jockey's clips run 0..0.04 s off the horse's stride per jockey"
+ },
+ "colours": "main material: vertex colour R = coat, G = points (mane, tail, lower legs), B = jockey's skin. Multiply the grey texture's light and shade by the chosen colour inside each. Silks material: the owner's v2 silks texture times the vertex colour (fabric creases)."
+}

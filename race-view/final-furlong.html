@@ -100,6 +100,7 @@ button:focus-visible { outline: 2px solid var(--cream-edge); outline-offset: 2px
 
 <div class="bar">
   <div class="group" id="races"><span>Race</span></div>
+  <div class="group" id="horses"><span>Horse</span></div>
   <div class="group" id="cams"><span>Camera</span></div>
   <div class="group" id="finish"><span>Finish</span></div>
   <div class="group" id="quality"><span>Quality</span></div>
@@ -146,6 +147,7 @@ import * as SkeletonUtils from "three/addons/utils/SkeletonUtils.js";
 import { RoomEnvironment } from "three/addons/environments/RoomEnvironment.js";
 import { mergeGeometries, mergeVertices } from "three/addons/utils/BufferGeometryUtils.js";
 import { SimplifyModifier } from "three/addons/modifiers/SimplifyModifier.js";
+import * as HorseV2 from "./horse-v2.js";
 
 window.__started = true;
 const params = new URLSearchParams(location.search);
@@ -181,6 +183,8 @@ document.getElementById("courseName").textContent = COURSE.name + " · " + RACE.
 //          than the loop passes the post more than once; straight: the straight mile's inside rail (z 0).
 const FURLONG = COURSE.furlong;
 const STRIDE_SPEED = 14.6;   // m/s at which the gallop loop matches the ground at scale 3
+// Which horse and jockey: the current one (v1, the default) or the quality test (?horse=v2, horse-v2.js).
+const HORSE_V = params.get("horse") === "v2" ? "v2" : "v1";
 const HORSE_SCALE = 3;
 const HALF_W = COURSE.trackWidth / 2;
 const MID_Z = VIEW.homeStraight.centreZ;
@@ -1047,7 +1051,7 @@ function makeTintable(mat, u) {
 // over time); this stand-in makes one so the look test has a field to film. The steering below is the
 // kind of thing the real sim's timeline should include: horses drift into groups, tuck in behind
 // another horse, pull out to pass when they're stuck, keep a body's width apart and wander a little.
-// Each frame: [x, z, speed, effort 0..2, heading]. x is metres run from the gate line (each horse's middle: at the
+// Each frame: [x, z, speed, effort 0..3, heading] (effort 0 quiet, 1 pushing, 2 driving, 3 the whip). x is metres run from the gate line (each horse's middle: at the
 // off they stand STAND metres behind it, noses at the gates), z is across the track as the draw puts them
 // (courses/ascot-stalls.json: stall n's 'across'). Time 0 is the off: the gates opening.
 const STAND = STALLS.horseStandsBehind;
@@ -1116,7 +1120,8 @@ function placeholderTimeline(n, seed) {
       h.v += Math.sign(want - h.v) * Math.min(Math.abs(want - h.v), (h.v < 8 ? 6 : 1.4) * dt);
       h.x += h.v * dt;
       h.z += h.vz * dt;
-      const effort = past ? 0 : toGo < h.kickAt * 0.55 ? 2 : kicking ? 1 : 0;
+      // effort: 0 quiet, 1 pushing, 2 driving, 3 under the whip (about half the jockeys, close home)
+      const effort = past ? 0 : toGo < h.kickAt * 0.3 && h.kick > 0.8 ? 3 : toGo < h.kickAt * 0.55 ? 2 : kicking ? 1 : 0;
       return [h.x, h.z, h.v, effort, Math.atan2(h.vz, Math.max(h.v, 1))];
     });
     out.push(frame);
@@ -1133,6 +1138,7 @@ const timeAt = (u) => Math.max(0, timeline.frames.findIndex((f) => leaderAt(f) >
 const T_FINISH = timeAt(DIST);
 const T_END = T_FINISH + DIR_.afterFinish;
 const REPLAY = [timeAt(DIST - DIR_.replayFrom), timeAt(DIST + DIR_.replayTo)];
+window.__T = { finish: T_FINISH, end: T_END, replay: REPLAY };      // checking aid: key race times
 const runners = [];
 
 // ---------- Post-processing: the illustrated finish ----------
@@ -1286,6 +1292,7 @@ function startTarget(now) {
   return { eye, look, fov: fitFov(eye, look, pts, c.fov, 1.04), id: "start", anchor: new THREE.Vector3(ax, 1.3, az), guard: field.slice(0, 2), range: c.fov };
 }
 const EYE = params.get("eye"), AT = params.get("at");          // ?eye=x,y,z&at=x,y,z: a free camera, for checking
+const NEAR = params.get("near") && params.get("near").split(",").map(Number);
 const lerp3 = (a, b, k) => new THREE.Vector3(...a).lerp(new THREE.Vector3(...b), k);
 // Returns { eye, look, fov, id, anchor, guard }. During the race the frame loop keeps the look point tied to
 // the leader (anchor) and smooths only the offset from it, so a moving field never drags behind the camera
@@ -1293,6 +1300,11 @@ const lerp3 = (a, b, k) => new THREE.Vector3(...a).lerp(new THREE.Vector3(...b),
 function cameraTarget(now) {
   const still = (eye, look, fov, id) => ({ eye, look, fov, id });
   if (EYE && AT) return still(new THREE.Vector3(...EYE.split(",").map(Number)), new THREE.Vector3(...AT.split(",").map(Number)), Number(params.get("fov") || 40), "free");
+  if (NEAR && now[NEAR[0]]) {                                     // ?near=horse,ahead,side,height,fov: close up on one horse, for checking
+    const [i, a, s, h, f = 30] = NEAR, [x, z, , , yaw] = now[i], [wx, wz] = toWorld(x, z), hd = headingAt(x, yaw);
+    const fx = Math.cos(hd), fz = -Math.sin(hd), rx = Math.sin(hd), rz = Math.cos(hd);
+    return still(new THREE.Vector3(wx + fx * a + rx * s, h, wz + fz * a + rz * s), new THREE.Vector3(wx + fx * 0.3, 1.75, wz + fz * 0.3), f, "near");
+  }
   if (state.phase === "stalls" || (state.phase === "race" && startShot(now))) return startTarget(now);
   if (state.phase === "prelude" || state.phase === "postlude") {
     const S = SET[state.phase], k = THREE.MathUtils.smoothstep(state.pt / S.seconds, 0, 1);
@@ -1376,6 +1388,15 @@ for (const [id, r] of Object.entries(VIEW.races)) {
   if (id.startsWith("_")) continue;
   const b = button(racesEl, r.label, () => { const p = new URLSearchParams(location.search); p.set("race", id); p.delete("t"); p.delete("phase"); location.search = p.toString(); }, "race-" + id);
   b.setAttribute("aria-pressed", id === RACE_ID);
+}
+const horsesEl = document.getElementById("horses");
+for (const [id, label] of [["v1", "Current"], ["v2", "New (v2)"]]) {
+  const b = button(horsesEl, label, () => {
+    const p = new URLSearchParams(location.search);
+    if (id === "v2") p.set("horse", "v2"); else p.delete("horse");
+    location.search = p.toString();
+  }, "horse-" + id);
+  b.setAttribute("aria-pressed", id === HORSE_V);
 }
 const finEl = document.getElementById("finish");
 finEl.hidden = true;                          // no illustrated filter in this test
@@ -1516,7 +1537,8 @@ try {
   const file = (path) => "assets/course/" + path.split("/").pop();
   const [props, horse, world, trees, belts, crowd, bakeInfo, dressing, planting, areas, spots, palette, stalls, stallKit] = await Promise.all([
     optional(loadModel("assets/course", "course-props"), "Course furniture"),
-    loadModel("assets/model", "racehorse"),
+    HORSE_V === "v2" ? HorseV2.loadHorse(loadModel, "assets/model-v2", (url, srgb) => { const t = texLoader.load(url); t.flipY = false; if (srgb) t.colorSpace = THREE.SRGBColorSpace; return t; })
+                     : loadModel("assets/model", "racehorse"),
     optional(loadModel("assets/baked", "static_world"), "Baked scenery"),
     optional(loadModel("assets/trees", "trees"), "Trees"),
     optional(loadModel("assets/course", "planting_belts"), "Planting belts"),
@@ -1539,8 +1561,18 @@ try {
     const pieceAt = (p) => new THREE.Matrix4().makeTranslation(p.x, 0, p.z).multiply(new THREE.Matrix4().makeRotationY(Math.PI + (p.turn || 0) * Math.PI / 180));
     buildCrowd(crowd, { dressing, areas: areas && areas.areas, spots: spots && spots.pieces, palette }, pieceAt);
   }
-  const clips = horse.animations;
-  for (let i = 0; i < RUNNERS; i++) {
+  const v2Tex = (url, srgb) => { const t = texLoader.load(url); t.flipY = false; if (srgb) t.colorSpace = THREE.SRGBColorSpace; return t; };
+  for (let i = 0; i < RUNNERS && HORSE_V === "v2"; i++) {
+    const coat = COATS[(i * 3 + 1) % COATS.length];
+    const silk = SILKS[(i * 5 + 2) % SILKS.length];
+    const h = HorseV2.makeRunner(horse, { coat, silk, seed: i + 1, texLoader: v2Tex });
+    h.setTime((i * 0.137) % 0.48);
+    scene.add(h.obj);
+    LAYERS.horses.push(h.obj);
+    runners.push({ obj: h.obj, v2: h, effort: 0 });
+  }
+  const clips = HORSE_V === "v2" ? [] : horse.animations;
+  for (let i = 0; i < RUNNERS && HORSE_V === "v1"; i++) {
     const obj = SkeletonUtils.clone(horse.scene);
     obj.scale.setScalar(HORSE_SCALE);
     const coat = COATS[(i * 3 + 1) % COATS.length];
@@ -1702,7 +1734,15 @@ function frame() {
     r.obj.rotation.y = head;
     _p.set(wx - Math.cos(head) * 0.15, 0.04, wz + Math.sin(head) * 0.15); _q.setFromEuler(_e.set(-Math.PI / 2, 0, head - Math.PI, "YXZ")); _s.set(3.0, 1.05, 1);
     contact.setMatrixAt(i, _m.compose(_p, _q, _s));
-    r.effort += (eff - r.effort) * Math.min(1, dt * 2);
+    if (r.v2) {                                            // the v2 horse: its own riding, gallop and detail levels
+      if (params.has("still") && !r.started) { r.v2.update(5, v, eff, null, 0); r.started = true; }   // stills: settle the riding first
+      r.v2.update(dt, v, eff, null, step);
+      if (x > leader) { leader = x; leaderZ = wz; leaderXw = wx; }
+      sum += x;
+      return;
+    }
+    if (params.has("still") && !r.started) { r.effort = Math.min(2, eff); r.started = true; }   // stills: start at the timeline's effort
+    r.effort += (Math.min(2, eff) - r.effort) * Math.min(1, dt * 2);
     const set = (n, w) => r.actions[n] && r.actions[n].setEffectiveWeight(w);
     const e = r.effort;
     set("ride_quiet", Math.max(0, 1 - e)); set("ride_push", e <= 1 ? e : 2 - e); set("ride_drive", Math.max(0, e - 1));
@@ -1733,6 +1773,10 @@ function frame() {
   }
 
   updateCamera(now, dt);
+  if (HORSE_V === "v2" && runners.length) {           // v2: detail levels by size on screen, a few close at most
+    camera.updateMatrixWorld();
+    HorseV2.chooseLevels(runners.map((r) => r.v2), camera, { close: { high: 4, medium: 2, low: 0 }[qLevel] });
+  }
   const [sx, sz] = toWorld(packU, 0);
   const sunAt = new THREE.Vector3(sx, 0, sz);
   sun.position.copy(sunAt).add(SUN_OFFSET); sun.target.position.copy(sunAt);
