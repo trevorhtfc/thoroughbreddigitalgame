@@ -348,7 +348,20 @@ for p in me.polygons:
 # horses showed pale manes). The jockey's face and hands are kept out of it.
 mane = np.isin(zone, ["horse", "kit"]) & ~face_head & (np.abs(y) < 0.034) & (x > 0.155) & (x < 0.40) & (z > 0.445 + (x - 0.155) * 0.3)
 zone[mane] = "horse"
-hz[mane] = "points"
+# ...but only the hair: the band is wider than the mane, and the skin on top of the neck under it is coat. The
+# original painting tells them apart (the mane is painted black and grey, the neck bay brown); dark mane on top of
+# the neck caught the sun as a pale grey patch.
+def paint_coat(rgb):                                 # warm brown, not the mane's black and grey highlights
+    h, s_, v = colorsys.rgb_to_hsv(*rgb)
+    return v > 0.2 and s_ > 0.35 and (h * 360 < 50 or h * 360 > 345)
+_neck = 0
+for i in np.where(mane)[0]:
+    rgb = orig_rgb(me.polygons[int(i)])
+    if rgb is not None and paint_coat(rgb):
+        hz[i] = "coat"; mane[i] = False; _neck += 1
+    else:
+        hz[i] = "points"
+print("mane band: hair", int(mane.sum()), "neck under it (coat)", _neck)
 # The tail: everything bound to the tail bones
 TAIL = {vg["bone_%d" % k] for k in range(34, 41)}
 for p in me.polygons:

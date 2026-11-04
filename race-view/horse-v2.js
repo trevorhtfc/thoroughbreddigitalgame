@@ -68,7 +68,9 @@ function mainMaterial(src, maps, u) {
           vec3 c = vec3(l);
           vec3 coat = coatCol * clamp(mix(1.0, l / 0.56, 0.65), 0.3, 1.25);
           vec3 pts = pointsCol * mix(0.75, 1.2, smoothstep(0.0, 0.035, l));
-          c = mix(c, coat, zm.r); c = mix(c, pts, zm.g); c = mix(c, tex * skinTone, zm.b);${debug.zones ? "\n          c = zm;" : ""}
+          float hk = zm.r + zm.g;                       // coat and points share the blend at the mane's edge,
+          vec3 hc = (coat * zm.r + pts * zm.g) / max(hk, 1e-4);   // with none of the grey texture showing through
+          c = mix(c, hc, clamp(hk, 0.0, 1.0)); c = mix(c, tex * skinTone, zm.b);${debug.zones ? "\n          c = zm;" : ""}
           diffuseColor.rgb = c;
         }`);
   };
