@@ -165,7 +165,9 @@ crest_v = (np.abs(vy) < 0.04) & (vz < 0.49 + (vx - 0.2) * 0.55 + 0.03)
 head_v = (np.linalg.norm(co - np.array([0.205, 0.0, 0.555]), axis=1) < 0.075) & (vz > 0.5) & ~crest_v & ~mane_v
 body_v = ~horse_v & ~mane_v & (vz > 0.455) & (vx > -0.02) & (vx < 0.25) & (np.abs(vy) < 0.11)
 # his body stops at his chest; further forward only his hands (on the reins) are his, not the horse's neck
-body_v &= (vx < 0.19) | (np.abs(vy) > 0.03)
+_hands = np.array([[0.192, 0.045, 0.438], [0.168, 0.050, 0.450], [0.192, -0.045, 0.438], [0.168, -0.050, 0.450]])
+_near_hand = np.min(np.linalg.norm(co[:, None, :] - _hands[None], axis=2), axis=1) < 0.035
+body_v &= (vx < 0.19) | _near_hand
 v_jockey = silk_v | head_v | body_v
 v_head = head_v
 x, y, z = C.T
@@ -475,7 +477,7 @@ cd = np.array([c.color[:] for c in col.data])
 acc, cnt = {}, {}
 lv = np.array([l.vertex_index for l in me.loops])
 for p in me.polygons:
-    if zone[p.index] in ("coat", "points", "tack"):
+    if zone[p.index] in ("coat", "points"):              # tack doesn't dilute the coat (no pale halo round the reins)
         for l in p.loop_indices:
             k = lv[l]; acc[k] = acc.get(k, 0) + cd[l, :2]; cnt[k] = cnt.get(k, 0) + 1
 for p in me.polygons:
