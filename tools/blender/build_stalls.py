@@ -8,7 +8,8 @@ Royal Hunt Cup), in the race view's soft heritage look: Ascot green padding, cre
 number boards under a cream top board. Simplified: no straps, catches, springs or stitching, grilles as a
 few bars, the tower's lattice as a few diagonals, no tow bar, plain wheels; the rear gates don't open.
 
-Sized to the race view's horses (about 2.9 m long at the view's scale): 1.1 m a stall, 3.2 m deep.
+Sized to the race view's horses (about 2.9 m long and 0.89 m wide at the view's scale): 1.05 m a stall, 3.2 m
+deep, end towers 0.9 m wide (owner, 4 Nov: as many stalls across the straight course as will fit).
 
 Writes assets/models/course/starting_stalls.glb (one node per piece), starting_stalls_kit.json (the sizes and
 how the pieces fit, for the viewer and tools/course/place_stalls.py) and assets/models/master/starting_stalls.blend.
@@ -35,7 +36,8 @@ OUT_DIR = os.path.join(REPO, "assets/models/course")
 bpy.ops.wm.read_factory_settings(use_empty=True)
 exec(open(os.path.join(REPO, "tools/blender/kit.py")).read())
 
-PITCH, DEPTH, TOWER = 1.1, 3.2, 1.2        # stall width (centre to centre), front to rear gates, tower width
+PITCH, DEPTH, TOWER = 1.05, 3.2, 0.9       # stall width (centre to centre), front to rear gates, tower width
+                                           # (1.05 leaves 0.93 m between partitions for horses about 0.89 m wide)
 PART = 0.12                                # padded partition thickness
 TOP = 3.0                                  # top of the overhead frame (the walkway)
 GATE = (0.42, 1.45, 2.05)                  # front gate: bottom, top of the padding, top of the grille

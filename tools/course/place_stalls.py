@@ -13,9 +13,12 @@ The draw (Ascot's convention, checked against the 2025-26 Royal Ascot draw table
 Both come to the same rule on this layout: stall 1 is the stall nearest the inside rail, numbers rising
 towards the outer rail.
 
-How a set of stalls is made up: units of up to UNIT bays, each with an end tower either side (a tower
-between neighbouring units), the first tower RAIL_GAP metres off the inside rail. Stall n stands in the
-same place whatever the field size; a field of N uses ceil(N / UNIT) units, the last one holding the rest.
+How a set of stalls is made up: one run of bays with an end tower at each end (owner, 4 Nov: towers only at
+the ends, not every five stalls, to get as many horses across the course as possible), the first tower
+RAIL_GAP metres off the turf's inside edge (the running rail is a further 0.4 m out). UNIT is kept so the
+stalls could be split into units again (Ascot's real stalls come in units of a few bays). Stall n stands in
+the same place whatever the field size; a field of N uses ceil(N / UNIT) units, the last one holding the rest.
+The top board carries a plaque over every PLAQUE_EVERY bays.
 """
 import json, math, os
 
@@ -24,9 +27,10 @@ C = json.load(open(os.path.join(REPO, "courses/ascot.json")))
 KIT = json.load(open(os.path.join(REPO, "assets/models/course/starting_stalls_kit.json")))
 P, T = KIT["pitch"], KIT["towerWidth"]
 W = C["trackWidth"]
-UNIT = 5                  # bays in a unit
-RAIL_GAP = 1.0            # inside rail to the first tower
-FAR_GAP = 0.8             # the least room left between the last tower and the outer rail
+UNIT = 99                 # bays in a unit: one unit, towers only at the ends
+PLAQUE_EVERY = 5          # a plaque on the top board over every five bays
+RAIL_GAP = 0.2            # the turf's inside edge to the first tower (0.6 m clear of the rail)
+FAR_GAP = 0.2             # the least room left between the last tower and the turf's outer edge
 
 
 def loop_at(d):
@@ -95,7 +99,7 @@ out = {
     "horseStandsBehind": KIT["horseStandsAt"]["behindFront"],
     "gates": {"swingSeconds": 0.22, "openDegrees": KIT["openDegrees"],
               "note": "Both half-gates of every stall spring open together at the off and swing out through openDegrees in swingSeconds."},
-    "kit": {"file": KIT["file"], "sizes": "assets/models/course/starting_stalls_kit.json", "unitBays": UNIT,
+    "kit": {"file": KIT["file"], "sizes": "assets/models/course/starting_stalls_kit.json", "unitBays": UNIT, "plaqueEvery": PLAQUE_EVERY,
             "railGap": RAIL_GAP, "pitch": P, "towerWidth": T, "depth": KIT["depth"]},
     "maxRunners": MAX,
     "unitsForField": {str(n): units_for(n) for n in range(1, MAX + 1)},
@@ -121,6 +125,6 @@ for key, s in starts.items():
     }
 path = os.path.join(REPO, "courses/ascot-stalls.json")
 json.dump(out, open(path, "w"), indent=1)
-print("wrote %s: up to %d runners; units of %d" % (os.path.relpath(path, REPO), MAX, UNIT))
+print("wrote %s: up to %d runners; units of up to %d bays" % (os.path.relpath(path, REPO), MAX, UNIT))
 for k, s in out["starts"].items():
     print("  %-13s %7.1f m  rail at %s  stall 1 at %s, stall %d at %s" % (k, s["distance"], s["insideRailAt"], s["stalls"][0]["at"], MAX, s["stalls"][-1]["at"]))

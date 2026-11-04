@@ -1,19 +1,19 @@
 {
  "_about": "The starting stalls kit (tools/blender/build_stalls.py). Sizes in metres, in the glTF's axes: x along the row (stall numbers rise with x), y up, the horses break out towards +z. Every node's origin is on the front line at ground level. A unit is: stall_tower, then its bays one after another (stall_bay from x 0 to pitch, partition on its left edge), closed by stall_partition at the last bay's right edge, then the next stall_tower. Gates hang on the bay's posts: stall_gate_left at x partition/2 from the bay's left edge, stall_gate_right at pitch - partition/2; open = left turns -openDegrees about y, right +openDegrees.",
  "file": "assets/models/course/starting_stalls.glb",
- "pitch": 1.1,
+ "pitch": 1.05,
  "depth": 3.2,
- "towerWidth": 1.2,
+ "towerWidth": 0.9,
  "partition": 0.12,
  "height": 3.95,
  "gateHinge": {
   "left": 0.06,
-  "right": 1.04
+  "right": 0.99
  },
  "openDegrees": 100,
  "numberBoard": {
   "centre": [
-   0.55,
+   0.525,
    2.7199999999999998,
    0.0
   ],

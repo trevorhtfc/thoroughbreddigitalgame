@@ -525,7 +525,12 @@ function buildStalls(gltf, kit) {
       place.push(["stall_num_" + k, at(left(k) + kit.numberBoard.centre[0], kit.numberBoard.centre[1])]);
     }
     place.push(["stall_partition", at(left(b) + P)]);
-    if (b - a >= 2) place.push(["stall_plaque", at((left(a) + left(b) + P) / 2, kit.plaque.height)]);   // too long for a short unit
+    // a plaque over every few bays along the top board (none over a group too short for it)
+    const every = STALLS.kit.plaqueEvery || 5;
+    for (let g = a; g <= b; g += every) {
+      const h = Math.min(g + every - 1, b);
+      if (h - g >= 2) place.push(["stall_plaque", at((left(g) + left(h) + P) / 2, kit.plaque.height)]);
+    }
     if (u === units.length - 1) place.push(["stall_tower", at(left(b) + P)]);
   });
   // merge the static pieces, one mesh per material
