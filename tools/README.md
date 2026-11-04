@@ -169,7 +169,9 @@ A second horse and jockey built beside the first. **v1 is untouched** (tag `hors
 
 | File | What it is |
 |---|---|
-| `tools/blender/build_racehorse_v2.py` | Builds v2 from the v1 master (read only) in one go, headless, about 40 seconds. |
+| `tools/blender/build_racehorse_v2.py` | Builds v2 from the v1 master (read only) in one go, headless, about 40 seconds. Also reads the original Tripo model, `assets/models/source/racehorse_3d_model_Clone1.glb` (the owner's file, read only), for the jockey's painted face and the helmet's light and shade. |
+| `assets/models/racehorse_v2_basecolor.jpg` | v2's colour texture: v1's grey texture with the jockey's face, goggles and strap painted back from the original (web copy `race-view/assets/model-v2/racehorse_v2-basecolor.jpg`). |
+| `assets/models/racehorse_v2_silks_shading.png` | One grey map in the silks layout, multiplied with every owner's silks: the original helmet's seams, rim band and peak edge (white everywhere else). |
 | `assets/models/racehorse_v2.glb` | The v2 model for any engine: three detail levels sharing one rig, every clip, textures embedded (silks show the five-zone test). |
 | `assets/models/master/racehorse_v2.blend` | The v2 master. |
 | `assets/models/racehorse_v2_rig.json` | What each clip is and how to blend them by speed and effort; the variety ranges; the colouring rule. |
@@ -185,9 +187,9 @@ python tools/web/package_racehorse_v2.py /tmp/racehorse_v2_web.glb
 ```
 
 **What v2 changes**
-- **Colour zones as vertex colours.** Every face belongs to one zone. On the main material the vertex colour is the mask: R coat, G points (mane, tail, lower legs), B the jockey's skin; everything else (tack, breeches, boots, gloves, goggles) keeps the neutral texture. Colours stop exactly at the zone edges, so nothing leaks: no coat on the jockey's face, no cap colour down his neck, no sleeve colour on his gloves or the mane, no jacket flecks on his breeches, no pale patches in the mane. No tint-mask texture is needed.
+- **Colour zones as vertex colours.** Every face belongs to one zone. On the main material the vertex colour is the mask: R coat, G points (mane, tail, lower legs), B the jockey's face (kept as painted, times his skin tone); everything else (tack, breeches, boots, gloves, goggles) keeps the neutral texture. Colours stop exactly at the zone edges, so nothing leaks: no coat on the jockey's face, no cap colour down his neck, no sleeve colour on his gloves or the mane, no jacket flecks on his breeches, no pale patches in the mane. No tint-mask texture is needed.
 - **Silks layout v2.** Body (wrapping right round the torso, so the back is its own pattern), two sleeves and the cap as a disc, each with a gutter painted in its own colour, so zones can't bleed into each other at a distance.
-- **A new cap**: a smooth dome fitted to the old one, a little closer on the head, with a proper peak. The blocky old cap and its flap down the neck are gone.
+- **The original helmet and face** (owner, 4 Nov, after the first try's new cap looked "like an old military hat"): the helmet keeps the original model's shape, its seams, dark rim band and peak edge, recoloured with the owner's cap (patterns map onto it as a disc from the crown, so quarters, stars and stripes sit right). The face, goggles, chin strap and hair are the original painting, shifted to one of seven skin tones per jockey. Round the head the original painting decides each face's zone (helmet blue, jacket colours, skin, dark). His chin and throat, which the mane band used to take (a dark "beard" under his chin once his head moved), are his again and on his head bone.
 - **The jacket and breeches ironed** (the crumpled facets smoothed), the boots taken out of the coat colour.
 - **A jockey rig** on the horse's back: hips, chest, head, arms, forearms, hands and a whip. His legs stay in the irons. His hands are cut free of the reins and mane so they can move without dragging them.
 - **Riding clips** (one stride each, played with the gallop): `ride_quiet` (effort 0), `ride_push` (1: hands and heels, back pumping), `ride_drive` (2: bigger, lower), `ride_whip` (3: driving with the left hand, one stroke a stride with the right). Blend by the timeline's effort.

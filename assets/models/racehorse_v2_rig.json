@@ -6,9 +6,9 @@
   "racehorse_v2_far": "beyond about 80 m"
  },
  "triangles": {
-  "racehorse_v2_close": 44728,
-  "racehorse_v2": 18735,
-  "racehorse_v2_far": 7188
+  "racehorse_v2_close": 42272,
+  "racehorse_v2": 17137,
+  "racehorse_v2_far": 6575
  },
  "horse": {
   "gallop_v2": "normal galloping",

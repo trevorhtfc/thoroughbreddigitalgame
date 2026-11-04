@@ -30,7 +30,7 @@ What changes from v1 (see the handover, "Horse and jockey v2"):
     variety poses for head carriage.
  7. Three detail levels: close (smoothed, more triangles), race, and far (light).
 """
-import bpy, bmesh, sys, os, math, json
+import bpy, bmesh, sys, os, math, json, struct, io
 import numpy as np
 from mathutils import Vector, Quaternion, Matrix
 from mathutils.bvhtree import BVHTree
@@ -38,6 +38,10 @@ from PIL import Image
 
 ROOT = os.path.abspath(os.environ.get("REPO", "."))
 SRC = os.path.join(ROOT, "assets/models/master/racehorse_master.blend")
+ORIG = os.path.join(ROOT, "assets/models/source/racehorse_3d_model_Clone1.glb")      # the untouched Tripo model
+NEUTRAL = os.path.join(ROOT, "race-view/assets/model/racehorse-3d-model-clone1-basecolor.jpg")   # v1's grey texture
+OUT_TEX = os.path.join(ROOT, "assets/models/racehorse_v2_basecolor.jpg")
+OUT_SHADE = os.path.join(ROOT, "assets/models/racehorse_v2_silks_shading.png")
 MASK = os.path.join(ROOT, "assets/models/tint_masks/build-mask.png")
 OUT_BLEND = os.path.join(ROOT, os.environ.get("OUT_BLEND", "assets/models/master/racehorse_v2.blend"))
 OUT_GLB = os.path.join(ROOT, os.environ.get("OUT_GLB", "assets/models/racehorse_v2.glb"))
@@ -135,6 +139,44 @@ for co_, no_ in CUTS:
     bmesh.ops.bisect_plane(bm, geom=geom, plane_co=co_, plane_no=no_, dist=1e-6)
 bm.to_mesh(me); bm.free()
 
+# Every face's place on the original texture, found on the untouched Tripo model (same shape, same place).
+blob = open(ORIG, "rb").read()
+jl = struct.unpack("<I", blob[12:16])[0]; gj = json.loads(blob[20:20 + jl]); bin0 = 28 + jl
+def glb_image(name_part):
+    for im in gj["images"]:
+        if name_part in (im.get("name") or "") or name_part in (im.get("uri") or ""):
+            bv = gj["bufferViews"][im["bufferView"]]
+            return Image.open(io.BytesIO(blob[bin0 + bv.get("byteOffset", 0): bin0 + bv.get("byteOffset", 0) + bv["byteLength"]])).convert("RGB")
+ORIG_TEX = glb_image("basecolor")
+before = set(bpy.data.objects)
+bpy.ops.import_scene.gltf(filepath=ORIG)
+imported = [o for o in bpy.data.objects if o not in before]
+src = [o for o in imported if o.type == "MESH" and o.name.startswith("tripo")][0]
+bpy.context.view_layer.update()
+sm = src.data; mw = src.matrix_world
+s_co = [mw @ v.co for v in sm.vertices]
+s_uv = sm.uv_layers.active.data
+s_tri = [tuple(p.vertices) for p in sm.polygons]
+s_luv = [[tuple(s_uv[l].uv) for l in p.loop_indices] for p in sm.polygons]
+s_tree = BVHTree.FromPolygons(s_co, s_tri)
+def bary(P, A, B, Cc):
+    v0, v1, v2 = B - A, Cc - A, P - A
+    d00, d01, d11, d20, d21 = v0.dot(v0), v0.dot(v1), v1.dot(v1), v2.dot(v0), v2.dot(v1)
+    den = d00 * d11 - d01 * d01 or 1e-12
+    b1 = (d11 * d20 - d01 * d21) / den; b2 = (d00 * d21 - d01 * d20) / den
+    return 1 - b1 - b2, b1, b2
+ORIG_UV = {}                                    # loop index -> uv on the original texture
+for p in me.polygons:
+    hit = s_tree.find_nearest(Vector(p.center))
+    if hit[2] is None: continue
+    fi = hit[2]; A, B, Cc = (s_co[k] for k in s_tri[fi][:3]); ua, ub, uc = (Vector(t) for t in s_luv[fi][:3])
+    for l in p.loop_indices:
+        w0, w1, w2 = bary(me.vertices[me.loops[l].vertex_index].co, A, B, Cc)
+        ORIG_UV[l] = tuple(ua * w0 + ub * w1 + uc * w2)
+for o in imported:
+    bpy.data.objects.remove(o, do_unlink=True)
+
+
 uv, C, MI = face_data()
 nF = len(me.polygons)
 side = lambda P, plane: (P - np.array(plane[0])) @ plane[1]
@@ -193,14 +235,14 @@ for p in me.polygons:
     else:
         zone[i] = "horse"
 
-# Cap: everything of the old cap above the rim goes (the new cap replaces it); below the rim is his neck.
+# The helmet and face stay exactly as the original model has them (owner, 4 Nov, with his reference picture).
+# The helmet: the old cap zone above the rim, plus his own head faces above the rim at the front (the peak's
+# underside); recoloured by the cap's silks. Below the rim at the back is the jacket's collar.
 old_cap = zone == "cap"
 above_rim = side(C, RIM) > 0
 near_head = np.linalg.norm(C - HEAD, axis=1) < 0.075
-zone[old_cap & above_rim] = "cap_old"
-zone[old_cap & ~above_rim] = "skin"
-# his own head faces above the rim at the front (the old peak's underside) would poke through the new peak
-zone[(zone == "jockey") & above_rim & face_head & (x > HEAD[0] + 0.012)] = "cap_old"
+zone[old_cap & ~above_rim] = "collar"
+zone[(zone == "jockey") & above_rim & face_head] = "cap"
 # Gloves: sleeve beyond the cuff seam, and any silk on his hands
 for s, nm in ((1, "left"), (-1, "right")):
     beyond = side(C, wrist(s)) > 0
@@ -232,9 +274,68 @@ for p in me.polygons:
     if zone[i] != "jockey":
         continue
     if face_head[i]:
-        zone[i] = "skin" if tex_lum(p) > 0.10 else "kit"
+        zone[i] = "natural"                         # face, goggles, chin strap: the original painting
     else:
         zone[i] = "kit"
+
+# Round his head, the original painting decides: the helmet is the painted helmet (blue, with its black band
+# and peak edge), reached from the crown; jacket colours touching his jacket are the collar; skin and the
+# dark of the goggles, strap and hair stay painted. (Faces, not pixels: the dark band is shared, so where a
+# face is half helmet and half hair it still looks right, as the helmet's shading map keeps the dark.)
+import colorsys
+from collections import deque, Counter
+OT = np.asarray(ORIG_TEX, np.float32) / 255.0; OH = OT.shape[0]
+def orig_at(u, v):
+    return OT[int((1 - v % 1) * OH) % OH, int(u % 1 * OH) % OH]
+def orig_rgb(p):
+    ls = [l for l in p.loop_indices if l in ORIG_UV]
+    if not ls: return None
+    uvs = np.array([ORIG_UV[l] for l in ls]); c = uvs.mean(0)
+    return np.median([orig_at(*c)] + [orig_at(*(0.6 * q + 0.4 * c)) for q in uvs], axis=0)
+def paint_class(rgb):
+    h, s, v = colorsys.rgb_to_hsv(*rgb); h *= 360
+    if v < 0.2 or (v < 0.3 and s < 0.35): return "dark"
+    if 185 <= h <= 250 and s > 0.3: return "blue"
+    if 20 <= h <= 50 and s > 0.6 and v > 0.5: return "orange"
+    if ((h < 20 or h > 340) and s > 0.7) or 260 <= h <= 340: return "pinkred"
+    return "skin"
+hreg = (np.linalg.norm(C - HEAD, axis=1) < 0.09) & np.isin(zone, ["cap", "natural", "collar", "kit"])
+pcls = {}
+for i in np.where(hreg)[0]:
+    rgb = orig_rgb(me.polygons[int(i)])
+    if rgb is not None: pcls[int(i)] = paint_class(rgb)
+crown = max((i for i, k in pcls.items() if k == "blue" and above_rim[i]), key=lambda i: C[i, 2])
+helmet = {crown: 0}; q = deque([crown])
+while q:                                            # blue, and up to two faces of dark beyond it (band, peak edge)
+    a = q.popleft()
+    for b in adj[a]:
+        if b in helmet or b not in pcls or not above_rim[b]: continue
+        if pcls[b] == "blue": d = 0
+        elif pcls[b] == "dark" and helmet[a] < 2: d = helmet[a] + 1
+        else: continue
+        helmet[b] = d; q.append(b)
+jacketish = {i for i, k in pcls.items() if i not in helmet and k in ("blue", "orange", "pinkred")}
+collar = set(); seen = set()
+for i in jacketish:                                 # a patch of jacket colour joins the collar only if it meets the jacket
+    if i in seen: continue
+    comp, st = [], [i]; seen.add(i)
+    while st:
+        a = st.pop(); comp.append(a)
+        for b in adj[a]:
+            if b in jacketish and b not in seen: seen.add(b); st.append(b)
+    if any(zone[b] in ("body", "left", "right") for a in comp for b in adj[a]):
+        collar.update(comp)
+for i in pcls:
+    zone[i] = "cap" if i in helmet else "collar" if i in collar else "natural"
+for _ in range(2):                                  # lone faces take their neighbours' zone
+    flip = {}
+    for i in pcls:
+        nb = [zone[b] for b in adj[i] if b in pcls]
+        if nb:
+            k, n = Counter(nb).most_common(1)[0]
+            if k != zone[i] and n >= max(2, len(nb) - 1): flip[i] = k
+    for i, k in flip.items(): zone[i] = k
+print("head by the painting:", dict(Counter(zone[i] for i in pcls)), "painted classes:", dict(Counter(pcls.values())))
 
 # Horse: coat, points or tack, from the v1 mask sampled inside each face, then tidied by neighbours
 hz = np.full(nF, "", dtype=object)
@@ -281,119 +382,47 @@ for i in np.where(zone == "horse")[0]:
 from collections import Counter
 print("zones:", dict(Counter(zone)))
 
+# His chin and throat sit on the mane's crest line, so the mane band above took them. The faces joined to his
+# face and above the top of the mane are his again (painted, and on his head bone); the cut further down
+# parts them from the mane, so his head can move without dragging a dark web of mane under his chin.
+def chin_box(i):
+    return zone[i] in ("points", "coat", "tack") and abs(y[i]) < 0.012 and 0.175 < x[i] < 0.245 and z[i] > 0.49 + (x[i] - 0.2) * 0.55 + 0.012
+chin = [i for i in range(nF) if chin_box(i) and any(zone[j] == "natural" for j in adj[i])]
+q = deque(chin); chin = set(chin)
+while q:
+    a = q.popleft()
+    for b in adj[a]:
+        if b not in chin and chin_box(b): chin.add(b); q.append(b)
+for i in chin:
+    zone[i] = "natural"
+print("chin and throat faces back from the mane:", len(chin))
+# White flecks in his jacket: a few faces of his own mesh (an armpit, inside an elbow) sit in the silks but
+# were never part of them. Small islands of kit with only silks round them join the silks, borrowing the
+# silks mapping and fabric creases from their neighbours at each shared corner.
+uvd = me.uv_layers["UVMap"].data; col0 = me.color_attributes["Color"]
+at_vert = {}
+for p in me.polygons:
+    if p.material_index == SILK and zone[p.index] in ("body", "left", "right"):
+        for l in p.loop_indices:
+            at_vert.setdefault((zone[p.index], me.loops[l].vertex_index), (tuple(uvd[l].uv), tuple(col0.data[l].color)))
+islands = 0
+for comp in components(zone == "kit"):
+    if len(comp) > 10: continue
+    ring = Counter(zone[b] for a in comp for b in adj[a] if zone[b] != "kit")
+    if not ring or sum(ring[k] for k in ("body", "left", "right")) < 0.8 * sum(ring.values()): continue
+    k = max(("body", "left", "right"), key=lambda q: ring[q])
+    for a in comp:
+        p = me.polygons[a]
+        got = [at_vert.get((k, me.loops[l].vertex_index)) for l in p.loop_indices]
+        known = [g for g in got if g]
+        if not known: continue
+        mu = tuple(np.mean([g[0] for g in known], axis=0)); mc = tuple(np.mean([g[1] for g in known], axis=0))
+        for l, g in zip(p.loop_indices, got):
+            uvd[l].uv = g[0] if g else mu; col0.data[l].color = g[1] if g else mc
+        p.material_index = SILK; zone[a] = k
+    islands += 1
+print("kit islands in the silks joined them:", islands)
 
-# ------------------------------------------------------------------ 3a. the new cap: a smooth dome with a proper peak
-# The dome follows the old cap's shape (rays from the middle of the head to the old surface), then is
-# smoothed and set 1.5 mm proud; it reaches 4 mm below the rim so it closes over the head neatly.
-capf = [p for p in me.polygons if zone[p.index] == "cap_old"]
-cverts = [v.co.copy() for v in me.vertices]
-tree = BVHTree.FromPolygons(cverts, [tuple(p.vertices) for p in capf])
-capco = np.array([cverts[v][:] for p in capf for v in p.vertices])
-H = Vector((float(capco[:, 0].mean()) - 0.004, 0.0, 0.551))
-rp, rn = Vector(RIM[0]), Vector(RIM[1])
-NPHI, NV, LIP = 56, 18, 0.004
-def dome_dir(th, ph):                       # th from straight up; ph 0 = forward (+x), +y = jockey's left
-    return Vector((math.sin(th) * math.cos(ph), math.sin(th) * math.sin(ph), math.cos(th)))
-def hit(d):
-    h = tree.ray_cast(H, d, 0.2)
-    return (h[0] - H).length if h[0] is not None else None
-grid = np.zeros((NV + 1, NPHI, 3))
-thmax = []
-for j in range(NPHI):
-    ph = 2 * math.pi * j / NPHI
-    lo, hi = 0.2, 2.4                          # find the angle where the surface meets the rim (less the lip)
-    r_last = 0.05
-    for _ in range(26):
-        mid = (lo + hi) / 2
-        r = hit(dome_dir(mid, ph)) or r_last
-        r_last = r
-        pt = H + dome_dir(mid, ph) * r
-        if (pt - rp).dot(rn) > -LIP: lo = mid
-        else: hi = mid
-    thmax.append(lo)
-thmax = np.convolve(np.r_[thmax[-3:], thmax, thmax[:3]], np.ones(7) / 7, "same")[3:-3]
-R = np.zeros((NV + 1, NPHI))
-for i in range(NV + 1):
-    for j in range(NPHI):
-        ph = 2 * math.pi * j / NPHI
-        th = thmax[j] * (i / NV) ** 0.9
-        R[i, j] = hit(dome_dir(th, ph)) or np.nan
-R = np.where(np.isnan(R), np.nanmean(R), R)
-R0 = R.copy()
-for _ in range(14):                            # iron out the old facets and the lumps of the old flap
-    R[1:-1] = 0.5 * R[1:-1] + 0.125 * (np.roll(R, 1, 1)[1:-1] + np.roll(R, -1, 1)[1:-1] + R[:-2] + R[2:])
-    R[-1] = 0.5 * R[-1] + 0.25 * (np.roll(R, 1, 1)[-1] + np.roll(R, -1, 1)[-1])
-    R = np.maximum(R, R0 * 0.975)                # never sink far inside the old cap (keeps the head covered)
-R[0] = R[0].mean()
-R += 0.0015
-# a touch lower in the crown than the old cap: a skull cap sits close on the head
-for i in range(NV + 1):
-    for j in range(NPHI):
-        th = thmax[j] * (i / NV) ** 0.9
-        R[i, j] *= 1.0 - 0.07 * math.cos(min(th, math.pi / 2)) ** 2
-cap_bm = bmesh.new()
-cap_uvl = cap_bm.loops.layers.uv.new("UVMap")
-cap_col = cap_bm.loops.layers.color.new("Color")
-CX, CY, CR = ATLAS["cap"][0], ATLAS["cap"][1], ATLAS["cap"][2]
-def cap_uv(vv, ph):                            # polar disc: top in the middle, rim round the edge, peak at the bottom
-    a = ph                                      # forward at the bottom of the disc, jockey's left to the right
-    return (CX + CR * vv * math.sin(a), CY + CR * vv * math.cos(a))
-verts = [[None] * NPHI for _ in range(NV + 1)]
-top = cap_bm.verts.new(H + Vector((0, 0, R[0, 0])))
-for i in range(1, NV + 1):
-    for j in range(NPHI):
-        ph = 2 * math.pi * j / NPHI
-        th = thmax[j] * (i / NV) ** 0.9
-        verts[i][j] = cap_bm.verts.new(H + dome_dir(th, ph) * R[i, j])
-def put(face, uvs, shades):
-    for l, u_, sh in zip(face.loops, uvs, shades):
-        l[cap_uvl].uv = (u_[0], 1 - u_[1]); l[cap_col] = (sh, sh, sh, 1.0)
-rimshade = lambda i: 1.0 - 0.12 * max(0.0, (i / NV - 0.75) / 0.25)
-for j in range(NPHI):
-    j2 = (j + 1) % NPHI
-    ph0, ph1 = 2 * math.pi * j / NPHI, 2 * math.pi * (j + 1) / NPHI
-    f = cap_bm.faces.new((top, verts[1][j], verts[1][j2]))
-    put(f, [cap_uv(0, (ph0 + ph1) / 2), cap_uv(1 / NV, ph0), cap_uv(1 / NV, ph1)], [1, 1, 1])
-    for i in range(1, NV):
-        f = cap_bm.faces.new((verts[i][j], verts[i + 1][j], verts[i + 1][j2], verts[i][j2]))
-        put(f, [cap_uv(i / NV, ph0), cap_uv((i + 1) / NV, ph0), cap_uv((i + 1) / NV, ph1), cap_uv(i / NV, ph1)],
-            [rimshade(i), rimshade(i + 1), rimshade(i + 1), rimshade(i)])
-# The peak: a short curved brim on the front of the rim, tipped down a little, with a rounded edge
-PEAK_HALF = math.radians(56); PEAK_LEN = 0.016; PEAK_T = 0.0016
-pk_top, pk_bot = [], []
-NP = 25
-for k in range(NP):
-    ph = -PEAK_HALF + 2 * PEAK_HALF * k / (NP - 1)
-    jf = (ph % (2 * math.pi)) / (2 * math.pi) * NPHI
-    j0 = int(jf) % NPHI; t = jf - int(jf)
-    base = verts[NV][j0].co.lerp(verts[NV][(j0 + 1) % NPHI].co, t)
-    out = Vector((math.cos(ph), math.sin(ph), 0.0))
-    length = PEAK_LEN * math.cos(ph / PEAK_HALF * math.pi / 2) ** 0.55
-    row_t, row_b = [], []
-    for s_ in range(4):
-        f_ = s_ / 3
-        pt = base + out * (length * f_) + Vector((0, 0, -0.006 * f_ ** 1.6 + 0.0005))
-        row_t.append(cap_bm.verts.new(pt + Vector((0, 0, PEAK_T / 2))))
-        row_b.append(cap_bm.verts.new(pt - Vector((0, 0, PEAK_T / 2))))
-    pk_top.append(row_t); pk_bot.append(row_b)
-def pk_uv(k, s_):
-    ph = -PEAK_HALF + 2 * PEAK_HALF * k / (NP - 1)
-    return cap_uv(0.93 + 0.02 * s_ / 3, ph)
-for k in range(NP - 1):
-    for s_ in range(3):
-        f = cap_bm.faces.new((pk_top[k][s_], pk_top[k][s_ + 1], pk_top[k + 1][s_ + 1], pk_top[k + 1][s_]))
-        put(f, [pk_uv(k, s_), pk_uv(k, s_ + 1), pk_uv(k + 1, s_ + 1), pk_uv(k + 1, s_)], [1, 1, 1, 1])
-        f = cap_bm.faces.new((pk_bot[k][s_], pk_bot[k + 1][s_], pk_bot[k + 1][s_ + 1], pk_bot[k][s_ + 1]))
-        put(f, [pk_uv(k, s_), pk_uv(k + 1, s_), pk_uv(k + 1, s_ + 1), pk_uv(k, s_ + 1)], [0.62] * 4)
-    f = cap_bm.faces.new((pk_top[k][3], pk_bot[k][3], pk_bot[k + 1][3], pk_top[k + 1][3]))
-    put(f, [pk_uv(k, 3)] * 2 + [pk_uv(k + 1, 3)] * 2, [0.85] * 4)
-for k in (0, NP - 1):
-    for s_ in range(3):
-        a, b = (pk_top[k][s_], pk_top[k][s_ + 1], pk_bot[k][s_ + 1], pk_bot[k][s_]), None
-        f = cap_bm.faces.new(a if k == NP - 1 else tuple(reversed(a)))
-        put(f, [pk_uv(k, s_)] * 4, [0.85] * 4)
-cap_me = bpy.data.meshes.new("cap_v2"); cap_bm.to_mesh(cap_me); cap_bm.free()
-print("new cap:", len(cap_me.polygons), "faces")
 
 # ------------------------------------------------------------------ 3. remove the old cap, move faces to their materials
 mat_main = me.materials[1 - SILK]; mat_main.name = "racehorse_v2_main"
@@ -413,12 +442,15 @@ class Want:
     def __call__(self, p): return zone[p.index] == self.zn
 DARK = spot(Want("kit", 0.05))
 LIGHT = spot(Want("kit", 0.92))
-SKIN = spot(Want("skin", 0.55))
 for p in me.polygons:
     zn = zone[p.index]
-    if p.material_index == SILK and zn not in ("body", "left", "right", "cap_old"):
+    if zn == "natural":                                   # his face: back to its place on the painting
         p.material_index = MAIN
-        target = SKIN if zn == "skin" else DARK if zn == "glove" else LIGHT
+        for l in p.loop_indices:
+            if l in ORIG_UV: uv[l].uv = ORIG_UV[l]
+    elif p.material_index == SILK and zn not in ("body", "left", "right", "cap", "collar"):
+        p.material_index = MAIN
+        target = DARK if zn == "glove" else LIGHT
         for l in p.loop_indices:
             uv[l].uv = target
 
@@ -428,46 +460,9 @@ shade = np.array([c.color[:] for c in col.data])
 for p in me.polygons:
     zn = zone[p.index]
     if p.material_index == MAIN:
-        m = (1.0 if zn == "coat" else 0.0, 1.0 if zn == "points" else 0.0, 1.0 if zn == "skin" else 0.0, 1.0)
+        m = (1.0 if zn == "coat" else 0.0, 1.0 if zn == "points" else 0.0, 1.0 if zn == "natural" else 0.0, 1.0)
         for l in p.loop_indices:
             col.data[l].color = m
-
-bm = bmesh.new(); bm.from_mesh(me)
-bm.faces.ensure_lookup_table()
-kill = [bm.faces[i] for i in np.where(zone == "cap_old")[0]]
-bmesh.ops.delete(bm, geom=kill, context="FACES")
-bm.to_mesh(me); bm.free()
-zone = zone[zone != "cap_old"]
-print("old cap faces removed:", len(kill))
-# anything of his head left above the rim that pokes out through the new cap (goggle strap, old peak) goes
-cap_tree = BVHTree.FromPolygons([v.co[:] for v in cap_me.vertices], [tuple(p.vertices) for p in cap_me.polygons])
-uv, C, MI = face_data()
-poke = []
-for p in me.polygons:
-    c = Vector(C[p.index])
-    if zone[p.index] in ("skin", "kit") and (c - Vector(HEAD)).length < 0.08 and (c - rp).dot(rn) > -0.003:
-        d = c - H
-        h = cap_tree.ray_cast(H, d.normalized(), d.length)
-        if h[0] is not None and (h[0] - H).length < d.length - 0.0003:
-            poke.append(p.index)
-if poke:
-    bm = bmesh.new(); bm.from_mesh(me); bm.faces.ensure_lookup_table()
-    bmesh.ops.delete(bm, geom=[bm.faces[i] for i in poke], context="FACES")
-    bm.to_mesh(me); bm.free()
-    keepz = np.ones(len(zone), bool); keepz[poke] = False
-    zone = zone[keepz]
-print("head faces poking through the new cap, removed:", len(poke))
-# join the new cap in: silks material, bound to the jockey's back like the rest of his head
-cap_obj = bpy.data.objects.new("cap_v2", cap_me); scene.collection.objects.link(cap_obj)
-cap_me.materials.append(mat_silk)
-for p in cap_me.polygons:
-    p.material_index = 0; p.use_smooth = True
-g = cap_obj.vertex_groups.new(name="tripo::Spine_4"); g.add(list(range(len(cap_me.vertices))), 1.0, "REPLACE")
-n_before = len(me.polygons)
-bpy.ops.object.select_all(action="DESELECT")
-cap_obj.select_set(True); obj.select_set(True); bpy.context.view_layer.objects.active = obj
-bpy.ops.object.join()
-zone = np.concatenate([zone, np.array(["cap"] * (len(me.polygons) - n_before), dtype=object)])
 
 # Soft colour edges between coat and points (lower legs, mane), where the two meet on the horse:
 # average the corner masks at each shared vertex, horse faces only.
@@ -517,9 +512,150 @@ for _ in range(2):
 bm.to_mesh(me); bm.free()
 print("smoothed jockey vertices:", len(movable))
 
+
+# ------------------------------------------------------------------ 4b. helmet and collar on the silks
+# The helmet keeps its own shape; its faces take the cap's disc in the silks layout (crown in the middle, the
+# rim round the edge, the peak at the rim's colour). The collar under the back of the helmet takes the top
+# of the body's band.
+uv = me.uv_layers["UVMap"].data
+C = np.array([p.center[:] for p in me.polygons])
+capf = [p for p in me.polygons if zone[p.index] == "cap"]
+capv = sorted({v for p in capf for v in p.vertices})
+cco = np.array([me.vertices[v].co[:] for v in capv])
+Hc = np.array([cco[:, 0].mean() - 0.004, 0.0, RIM[0][2] - 0.004])
+def sph(P):
+    d = np.asarray(P) - Hc
+    return np.arctan2(d[..., 1], d[..., 0]), np.arccos(np.clip(d[..., 2] / np.linalg.norm(d, axis=-1), -1, 1))
+# the rim: helmet vertices shared with his face or collar, angle from the crown at each bearing round the head
+other = {v for p in me.polygons if zone[p.index] in ("natural", "collar", "kit") for v in p.vertices}
+rimv = np.array([me.vertices[v].co[:] for v in capv if v in other])
+rph, rth = sph(rimv)
+bins = np.linspace(-math.pi, math.pi, 37)
+med = np.array([np.median(rth[(rph >= bins[k]) & (rph < bins[k + 1])]) if ((rph >= bins[k]) & (rph < bins[k + 1])).any() else np.nan for k in range(36)])
+ok = ~np.isnan(med); cen = (bins[:-1] + bins[1:]) / 2
+med = np.interp(cen, cen[ok], med[ok], period=2 * math.pi)
+def th_rim(ph):
+    return np.interp(ph, cen, med, period=2 * math.pi)
+CXd, CYd, CRd = ATLAS["cap"][0], ATLAS["cap"][1], ATLAS["cap"][2]
+for p in capf:
+    p.material_index = SILK
+    for l in p.loop_indices:
+        P = np.array(me.vertices[me.loops[l].vertex_index].co[:])
+        ph, th = sph(P)
+        vv = float(min(1.0, th / th_rim(ph)))
+        uv[l].uv = (CXd + CRd * vv * math.sin(ph), 1 - (CYd + CRd * vv * math.cos(ph)))
+X0b, Y0b, Wb, Hb = ATLAS["body"]
+for p in me.polygons:
+    if zone[p.index] != "collar":
+        continue
+    p.material_index = SILK
+    us = []
+    for l in p.loop_indices:
+        P = me.vertices[me.loops[l].vertex_index].co
+        a = math.atan2(P.y, -(P.z - 0.51)) / (2 * math.pi)
+        us.append((a + 0.25) % 1.0)
+    if max(us) - min(us) > 0.5:
+        us = [u_ + 1 if u_ < 0.5 else u_ for u_ in us]
+    for l, u_ in zip(p.loop_indices, us):
+        uv[l].uv = (X0b + Wb * u_, 1 - (Y0b + Hb * 0.985))
+print("helmet faces:", len(capf), "collar faces:", int((zone == "collar").sum()))
+
+# ------------------------------------------------------------------ 4c. textures: the face's painting back, and the silks' shading
+# (1) The main texture: v1's grey texture, with the face, goggles and chin strap painted back from the original.
+from PIL import ImageDraw, ImageFilter
+base = Image.open(NEUTRAL).convert("RGB"); S_ = base.size[0]
+orig_s = ORIG_TEX.resize(base.size, Image.LANCZOS)
+mask = Image.new("L", base.size, 0); dr = ImageDraw.Draw(mask)
+for p in me.polygons:
+    if zone[p.index] == "natural":
+        dr.polygon([(uv[l].uv[0] * S_, (1 - uv[l].uv[1]) * S_) for l in p.loop_indices], fill=255)
+mask = mask.filter(ImageFilter.MaxFilter(5))
+# where the painting shows the original jacket's or helmet's colours inside his face faces (a fleck of orange
+# behind an ear, a stripe at the collar's edge), it is darkened to his hair's colour, so no owner sees them
+fo = np.asarray(orig_s, dtype=np.float32) / 255.0
+mx, mn = fo.max(2), fo.min(2); sat = np.where(mx > 0, (mx - mn) / np.maximum(mx, 1e-6), 0)
+r_, g_, b_ = fo[..., 0], fo[..., 1], fo[..., 2]
+hue = np.degrees(np.arctan2(np.sqrt(3) * (g_ - b_), 2 * r_ - g_ - b_)) % 360
+key = (((hue > 15) & (hue < 50) & (sat > 0.65) & (mx > 0.55)) | ((hue > 260) & (hue < 340) & (sat > 0.35) & (mx > 0.35))
+       | ((hue > 185) & (hue < 250) & (sat > 0.45) & (mx > 0.3)) | (((hue < 15) | (hue > 345)) & (sat > 0.72) & (mx > 0.45))) & (np.asarray(mask) > 0)
+fo[key] = (0.13, 0.11, 0.10)
+print("face texels darkened from jacket or helmet colours:", int(key.sum()))
+orig_s = Image.fromarray((fo * 255).astype(np.uint8), "RGB")
+Image.composite(orig_s, base, mask).save(OUT_TEX, quality=90)
+print("main texture with the face painted back:", OUT_TEX)
+fa = np.asarray(orig_s, dtype=np.float32)[np.asarray(mask) > 128] / 255.0
+fa = fa[fa @ np.array([0.2126, 0.7152, 0.0722]) > 0.3]       # skin, not goggles or strap
+print("face skin, average (horse-v2.js SKIN_REF): #%02x%02x%02x" % tuple(int(round(c * 255)) for c in np.median(fa, axis=0)))
+
+# (2) The silks' shading: one shared grey map in the silks layout, multiplied with any owner's silks. Only the
+# helmet is painted on it: the original's light and shade, so the helmet keeps its seams, dark rim band and peak
+# edge as in the reference. The jacket and sleeves keep v1's crease shading in their vertex colours (the
+# original's texture there is its orange and blue stripes, which would print through every owner's silks).
+orig_np = np.asarray(ORIG_TEX, dtype=np.float32) / 255.0
+lumw = np.array([0.2126, 0.7152, 0.0722], np.float32)
+SH = 1024
+shade = np.zeros((SH, SH), np.float32); have = np.zeros((SH, SH), bool); zid = np.full((SH, SH), -1, np.int8)
+ZI = {"cap": 2}
+def sample(img, U, V):
+    h, w = img.shape[:2]
+    xs = np.clip((U % 1.0) * w, 0, w - 1).astype(int); ys = np.clip((1 - V % 1.0) * h, 0, h - 1).astype(int)
+    return img[ys, xs] @ lumw
+for p in me.polygons:
+    zn = zone[p.index]
+    if zn not in ZI or p.material_index != SILK: continue
+    ls = list(p.loop_indices)
+    if any(l not in ORIG_UV for l in ls): continue
+    img = orig_np
+    for k in range(1, len(ls) - 1):
+        tri = [ls[0], ls[k], ls[k + 1]]
+        D = np.array([(uv[l].uv[0] * SH, (1 - uv[l].uv[1]) * SH) for l in tri])
+        Sv = np.array([ORIG_UV[l] for l in tri])
+        x0, y0 = np.floor(D.min(0)).astype(int); x1, y1 = np.ceil(D.max(0)).astype(int)
+        xs, ys = np.meshgrid(np.arange(x0, x1 + 1), np.arange(y0, y1 + 1))
+        px, py = xs.ravel() + 0.5, ys.ravel() + 0.5
+        (ax, ay), (bx, by), (cx, cy) = D
+        den = (by - cy) * (ax - cx) + (cx - bx) * (ay - cy)
+        if abs(den) < 1e-9: continue
+        w0 = ((by - cy) * (px - cx) + (cx - bx) * (py - cy)) / den
+        w1 = ((cy - ay) * (px - cx) + (ax - cx) * (py - cy)) / den
+        w2 = 1 - w0 - w1
+        inside = (w0 >= -0.02) & (w1 >= -0.02) & (w2 >= -0.02)
+        if not inside.any(): continue
+        U = w0 * Sv[0, 0] + w1 * Sv[1, 0] + w2 * Sv[2, 0]; V = w0 * Sv[0, 1] + w1 * Sv[1, 1] + w2 * Sv[2, 1]
+        X = xs.ravel()[inside] % SH; Y = np.clip(ys.ravel()[inside], 0, SH - 1)
+        shade[Y, X] = sample(img, U[inside], V[inside]); have[Y, X] = True; zid[Y, X] = ZI[zn]
+for k in range(4):                                  # each zone to about 1 on its usual fabric, darker in the creases and bands
+    sel = have & (zid == k)
+    if sel.any():
+        shade[sel] = np.clip(shade[sel] / np.percentile(shade[sel], 80), 0.12, 1.0)
+for _ in range(24):                                 # fill the gutters from the nearest painted texel
+    if have.all(): break
+    acc = np.zeros_like(shade); cnt = np.zeros_like(shade)
+    for dy, dx in ((0, 1), (0, -1), (1, 0), (-1, 0)):
+        acc += np.roll(np.roll(np.where(have, shade, 0), dy, 0), dx, 1); cnt += np.roll(np.roll(have, dy, 0), dx, 1)
+    grow = ~have & (cnt > 0)
+    shade[grow] = acc[grow] / cnt[grow]; have |= grow
+shade[~have] = 1.0
+yy, xx = np.mgrid[0:SH, 0:SH]
+shade[np.hypot((xx + 0.5) / SH - CXd, (yy + 0.5) / SH - CYd) > CRd + 0.02] = 1.0   # only the helmet's disc
+Image.fromarray((shade * 255).astype(np.uint8), "L").save(OUT_SHADE, optimize=True)
+print("silks shading map:", OUT_SHADE)
+col = me.color_attributes["Color"]
+for p in me.polygons:                               # helmet: plain white (its shade is on the map)
+    if p.material_index == SILK and zone[p.index] == "cap":
+        for l in p.loop_indices:
+            col.data[l].color = (1.0, 1.0, 1.0, 1.0)
+    elif p.material_index == SILK and zone[p.index] == "collar":
+        for l in p.loop_indices:                    # collar: dark at each corner where the painting has the strap or shadow
+            f = 1.0
+            if l in ORIG_UV:
+                f = float(np.clip(max(orig_at(*ORIG_UV[l])) / 0.35, 0.1, 1.0))
+            g = f ** 2.2                                # vertex colours are linear
+            col.data[l].color = (g, g, g, 1.0)
+
 FACE_ZONE = list(zone)
 if STOP == "zones":
-    for nm, c in (("body", (0.85, 0.1, 0.1)), ("left", (0.1, 0.7, 0.1)), ("right", (0.95, 0.85, 0.1)), ("skin", (1, 0.75, 0.6)),
+    for nm, c in (("body", (0.85, 0.1, 0.1)), ("left", (0.1, 0.7, 0.1)), ("right", (0.95, 0.85, 0.1)), ("natural", (1, 0.75, 0.6)), ("collar", (0.6, 0.1, 0.4)),
                   ("kit", (0.95, 0.95, 0.95)), ("coat", (0.6, 0.35, 0.2)), ("points", (0.1, 0.08, 0.07)), ("tack", (0.5, 0.5, 0.6)), ("cap", (0.1, 0.3, 1.0)), ("glove", (0.2, 0.2, 0.2))):
         m = bpy.data.materials.new("z_" + nm); m.diffuse_color = c + (1,); me.materials.append(m)
     names = [m.name for m in me.materials]
@@ -615,9 +751,12 @@ FACE_ARM = arm_face
 bm = bmesh.new(); bm.from_mesh(me); bm.faces.ensure_lookup_table()
 cut = [e for e in bm.edges if len(e.link_faces) >= 2 and
        {("a" if arm_face[f.index] else "x" if fz[f.index] in ("left", "right", "body", "glove") else "h") for f in e.link_faces} >= {"h", "a"}]
-bmesh.ops.split_edges(bm, edges=cut)
+# and his head (face, helmet, collar) from the horse's mane and neck, where they were modelled touching
+HEADZ = {"natural", "cap", "collar"}
+cut2 = [e for e in bm.edges if len(e.link_faces) >= 2 and {fz[f.index] for f in e.link_faces} & HEADZ and {fz[f.index] for f in e.link_faces} & HORSEZ]
+bmesh.ops.split_edges(bm, edges=list(set(cut) | set(cut2)))
 bm.to_mesh(me); bm.free()
-print("hand/rein edges cut:", len(cut))
+print("hand/rein edges cut:", len(cut), "head/mane edges cut:", len(cut2))
 
 # Weights. Head (cap, face, neck under the cap) on the head bone; sleeves and gloves along each arm;
 # the jacket and seat between hips and chest; his legs stay with the horse (Spine_4).
@@ -635,13 +774,13 @@ spine4 = vg["tripo::Spine_4"]
 def seg_t(p, a, b):
     ab = b - a; t = np.clip(((p - a) @ ab) / (ab @ ab), 0, 1); return t, np.linalg.norm(p - (a + t[:, None] * ab), axis=1)
 sm = lambda e0, e1, x: np.clip((x - e0) / (e1 - e0), 0, 1) ** 2 * (3 - 2 * np.clip((x - e0) / (e1 - e0), 0, 1))
-jockey_v = np.array([bool(z_ & {"body", "left", "right", "cap", "skin", "glove"}) or
+jockey_v = np.array([bool(z_ & {"body", "left", "right", "cap", "collar", "natural", "glove"}) or
                      (("kit" in z_) and v_ok) for z_, v_ok in zip(vzones, (co[:, 2] > 0.43) & (co[:, 0] > -0.06) & (co[:, 0] < 0.25) & (np.abs(co[:, 1]) < 0.12))])
 whip_v = np.array(["whip" in z_ for z_ in vzones])
 W = {n: np.zeros(len(co)) for n in J}
 W["tripo::Spine_4"] = np.zeros(len(co))
 x_, y_, z_ = co.T
-headish = np.array([bool(zz & {"cap"}) for zz in vzones]) | (jockey_v & (np.linalg.norm(co - np.array([0.198, 0, 0.553]), axis=1) < 0.05) & (x_ > 0.158))
+headish = np.array([bool(zz & {"cap", "natural"}) for zz in vzones]) | (jockey_v & (np.linalg.norm(co - np.array([0.198, 0, 0.553]), axis=1) < 0.05) & (x_ > 0.158))
 # arms: nearest arm, distance along it
 armw = {}
 for sd in ("L", "R"):
@@ -933,6 +1072,12 @@ def finish():
         if n.type == "TEX_IMAGE":
             n.image = zimg
     zimg.pack()
+    bimg = bpy.data.images.load(OUT_TEX)                   # the main texture with the face painted back
+    bimg.name = "racehorse_v2_basecolor"
+    for n in mat_main.node_tree.nodes:
+        if n.type == "TEX_IMAGE" and any(l.to_socket.name == "Base Color" for l in n.outputs[0].links):
+            n.image = bimg
+    bimg.pack()
     bpy.ops.wm.save_as_mainfile(filepath=OUT_BLEND, compress=True)
     export(OUT_GLB, images=True)
     web = os.environ.get("WEB_GLB", "/tmp/racehorse_v2_web.glb")

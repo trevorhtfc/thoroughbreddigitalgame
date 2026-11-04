@@ -9,8 +9,10 @@ import * as SkeletonUtils from "three/addons/utils/SkeletonUtils.js";
 
 const STRIDE_SPEED = 14.6;        // m/s at which one stride clip matches the ground at scale 3
 const SCALE = 3;
-const V1 = "assets/model/racehorse-3d-model-clone1-";        // v2 reuses v1's horse textures: no extra download
-const SKIN = ["#e9bc9c", "#e0ab88", "#d39b78", "#c4875f", "#a8704f", "#8a5a3c", "#6b4430"];
+const V1 = "assets/model/racehorse-3d-model-clone1-";        // v2 reuses v1's normal and roughness maps
+// The jockey's face is the original model's painting (owner's reference). Each jockey's skin tone is that
+// painting multiplied by one of these (linear light; [1, 1, 1] = exactly as painted). Goggles stay dark.
+const SKIN = [[1.22, 1.17, 1.12], [1.1, 1.06, 1.03], [1, 1, 1], [1, 1, 1], [0.84, 0.78, 0.72], [0.6, 0.53, 0.46], [0.4, 0.34, 0.28]];
 const VARIETY = ["jky_crouch_low", "jky_crouch_high", "jky_elbows_out", "jky_hands_long", "horse_head_high", "horse_head_low", "horse_tail_high"];
 
 function seeded(seed) {
@@ -23,15 +25,19 @@ export async function loadHorse(loadModel, dir = "assets/model-v2", tex) {
   const gltf = await loadModel(dir, "racehorse_v2");
   const load = tex || ((url, srgb) => { const t = new THREE.TextureLoader().load(url); t.flipY = false; if (srgb) t.colorSpace = THREE.SRGBColorSpace; return t; });
   const maps = {
-    base: load(V1 + "basecolor.jpg", true), normal: load(V1 + "normal.jpg", false), rm: load(V1 + "rm.jpg", false),
+    base: load(dir + "/racehorse_v2-basecolor.jpg", true),          // v1's grey texture with the face painted back
+    normal: load(V1 + "normal.jpg", false), rm: load(V1 + "rm.jpg", false),
+    shade: load(dir + "/racehorse_v2-silks-shading.png", true),     // the helmet's light and shade, in the silks layout
   };
-  maps.base.anisotropy = 4;
+  maps.base.anisotropy = 4; maps.shade.wrapS = THREE.RepeatWrapping;
   const clips = {};
   for (const c of gltf.animations) {
     clips[c.name] = VARIETY.includes(c.name) ? THREE.AnimationUtils.makeClipAdditive(c.clone(), 0) : c;
   }
   return { gltf, clips, maps };
 }
+
+export const debug = { zones: false };     // checking aid: main zones (coat red, points green, face blue), silks as their uv
 
 const silkCache = new Map();
 function silkTexture(id, load) {
@@ -43,8 +49,9 @@ function silkTexture(id, load) {
   return silkCache.get(id);
 }
 
-// Main material: the neutral grey texture, multiplied by the coat, points and skin colours inside their
-// zones. The zones are vertex colours (R coat, G points, B skin), so each colour stops exactly at its edge.
+// Main material: the neutral grey texture, multiplied by the coat and points colours inside their zones; the
+// jockey's face keeps its painting (B zone), shifted to his skin tone. The zones are vertex colours (R coat,
+// G points, B face), so each colour stops exactly at its edge.
 function mainMaterial(src, maps, u) {
   const m = src.clone();
   m.map = maps.base; m.normalMap = maps.normal; m.roughnessMap = maps.rm; m.metalnessMap = maps.rm;
@@ -52,37 +59,47 @@ function mainMaterial(src, maps, u) {
   m.onBeforeCompile = (shader) => {
     Object.assign(shader.uniforms, u);
     shader.fragmentShader = shader.fragmentShader
-      .replace("#include <common>", "#include <common>\nuniform vec3 coatCol; uniform vec3 pointsCol; uniform vec3 skinCol;")
+      .replace("#include <common>", "#include <common>\nuniform vec3 coatCol; uniform vec3 pointsCol; uniform vec3 skinTone;")
       .replace("#include <color_fragment>", `
         {
           vec3 zm = vColor.rgb;
-          float l = dot(diffuseColor.rgb, vec3(0.2126, 0.7152, 0.0722));
+          vec3 tex = diffuseColor.rgb;
+          float l = dot(tex, vec3(0.2126, 0.7152, 0.0722));
           vec3 c = vec3(l);
           vec3 coat = coatCol * clamp(mix(1.0, l / 0.56, 0.65), 0.3, 1.25);
           vec3 pts = pointsCol * mix(0.75, 1.2, smoothstep(0.0, 0.035, l));
-          vec3 skin = skinCol * clamp(mix(1.0, l / 0.62, 0.55), 0.55, 1.15);
-          c = mix(c, coat, zm.r); c = mix(c, pts, zm.g); c = mix(c, skin, zm.b);
+          c = mix(c, coat, zm.r); c = mix(c, pts, zm.g); c = mix(c, tex * skinTone, zm.b);${debug.zones ? "\n          c = zm;" : ""}
           diffuseColor.rgb = c;
         }`);
   };
-  m.customProgramCacheKey = () => "horse-v2-main";
+  m.customProgramCacheKey = () => "horse-v2-main" + (debug.zones ? "-zones" : "");
   return m;
 }
-function silksMaterial(src, map) {
+// Silks: the owner's silks texture, times the fabric creases (vertex colours, jacket and sleeves) and the
+// helmet's light and shade (one shared map in the silks layout, white everywhere but the helmet).
+function silksMaterial(src, map, shade) {
   const m = src.clone();
-  m.map = map; m.color.set("#ffffff"); m.roughness = 0.62; m.metalness = 0; m.vertexColors = true;   // vertex colour = fabric creases
+  m.map = map; m.color.set("#ffffff"); m.roughness = 0.62; m.metalness = 0; m.vertexColors = true;
+  m.onBeforeCompile = (shader) => {
+    shader.uniforms.shadeMap = { value: shade };
+    shader.fragmentShader = shader.fragmentShader
+      .replace("#include <common>", "#include <common>\nuniform sampler2D shadeMap;")
+      .replace("#include <map_fragment>", "#include <map_fragment>\ndiffuseColor.rgb *= texture2D(shadeMap, vMapUv).r;" +
+        (debug.zones ? "\ndiffuseColor.rgb = vec3(fract(vMapUv), 0.0);" : ""));
+  };
+  m.customProgramCacheKey = () => "horse-v2-silks" + (debug.zones ? "-zones" : "");
   return m;
 }
 
 // One runner: { obj, update(dt, speed, effort, camera), setTime(t), level }
-export function makeRunner(proto, { coat, silk, seed = 1, texLoader, castShadow = true }) {
+export function makeRunner(proto, { coat, silk, seed = 1, texLoader, castShadow = true, skin }) {
   const rnd = seeded(seed + 17);
   const obj = SkeletonUtils.clone(proto.gltf.scene);
   obj.scale.setScalar(SCALE);
   const load = texLoader || ((url, srgb) => { const t = new THREE.TextureLoader().load(url); t.flipY = false; if (srgb) t.colorSpace = THREE.SRGBColorSpace; return t; });
   const u = {
     coatCol: { value: new THREE.Color(coat.body) }, pointsCol: { value: new THREE.Color(coat.points) },
-    skinCol: { value: new THREE.Color(SKIN[Math.floor(rnd() * SKIN.length)]) },
+    skinTone: { value: new THREE.Vector3(...SKIN[(() => { const k = Math.floor(rnd() * SKIN.length); return skin == null ? k : skin; })()]) },
   };
   const mats = new Map();
   const levels = [[], [], []];
@@ -91,7 +108,7 @@ export function makeRunner(proto, { coat, silk, seed = 1, texLoader, castShadow 
     if (!o.isSkinnedMesh) return;
     o.castShadow = castShadow; o.frustumCulled = false;
     const src = o.material;
-    if (!mats.has(src.name)) mats.set(src.name, src.name.includes("silks") ? silksMaterial(src, silkTexture(silk.id, load)) : mainMaterial(src, proto.maps, u));
+    if (!mats.has(src.name)) mats.set(src.name, src.name.includes("silks") ? silksMaterial(src, silkTexture(silk.id, load), proto.maps.shade) : mainMaterial(src, proto.maps, u));
     o.material = mats.get(src.name);
     sized.push(o);
   });

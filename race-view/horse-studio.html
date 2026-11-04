@@ -38,7 +38,7 @@
 <script type="module">
 // Horse Studio: the current horse (v1) and the new one (v2) side by side, close up, for checking the
 // silks, the gallop and the jockey's riding. ?compare=1 shows both; ?horse=v1|v2 shows one.
-// Checking aids: ?still=1&t=<stride seconds>&eff=<0..3>&view=<name>&silk=<id>&coat=<n>
+// Checking aids: ?still=1&t=<stride seconds>&eff=<0..3>&view=<name>&silk=<id>&coat=<n>&skin=<0..6 (2 = as painted)>
 import * as THREE from "three";
 import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 import { MeshoptDecoder } from "three/addons/libs/meshopt_decoder.module.js";
@@ -134,13 +134,14 @@ silkSel.value = params.get("silk") || "cheveley-park"; coatSel.value = params.ge
 document.getElementById("eff").value = params.get("eff") || 0; document.getElementById("view").value = params.get("view") || "side";
 const protos = {};
 if (want.includes("v1")) protos.v1 = await loadModel("assets/model", "racehorse");
+V2.debug.zones = params.has("zones");
 if (want.includes("v2")) protos.v2 = await V2.loadHorse(loadModel, "assets/model-v2", tex);
 let horses = [];
 function build() {
   horses.forEach((h) => scene.remove(h.obj)); horses = [];
   const silk = ALL_SILKS.find((s) => s.id === silkSel.value), coat = COATS[+coatSel.value];
   want.forEach((k, i) => {
-    const h = k === "v1" ? makeV1(protos.v1, coat, silk) : V2.makeRunner(protos.v2, { coat, silk, seed: +(params.get("seed") || 7), texLoader: tex });
+    const h = k === "v1" ? makeV1(protos.v1, coat, silk) : V2.makeRunner(protos.v2, { coat, silk, seed: +(params.get("seed") || 7), texLoader: tex, skin: params.has("skin") ? +params.get("skin") : null });
     h.obj.position.z = want.length > 1 ? (i ? -1.6 : 1.6) : 0;
     scene.add(h.obj); horses.push(h);
   });
