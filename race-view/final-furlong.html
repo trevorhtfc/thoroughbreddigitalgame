@@ -1390,7 +1390,7 @@ for (const [id, r] of Object.entries(VIEW.races)) {
   b.setAttribute("aria-pressed", id === RACE_ID);
 }
 const horsesEl = document.getElementById("horses");
-for (const [id, label] of [["v1", "Current"], ["v2", "New (v2)"]]) {
+for (const [id, label] of [["v1", "v1 (current)"], ["v2", "v2 (new)"]]) {
   const b = button(horsesEl, label, () => {
     const p = new URLSearchParams(location.search);
     if (id === "v2") p.set("horse", "v2"); else p.delete("horse");
