@@ -60,6 +60,8 @@ body { background: #5f8a44; color: var(--green-ink); font-family: var(--body); o
   border: 1px solid rgba(184, 149, 74, 0.55); border-radius: 3px; background: #fbf5e4;
   transition: transform 0.45s ease; font-variant-numeric: tabular-nums;
 }
+.in-game #races { display: none; }
+.chip.mine { box-shadow: inset 0 0 0 2px #b79042; }
 .chip.lead { border-color: var(--cream-edge); box-shadow: inset 0 0 0 1px var(--cream-edge); background: #fff8e2; }
 .chip .pos { font: 600 0.62rem var(--body); color: var(--ink-soft); line-height: 1; }
 .chip img { width: 24px; height: 30px; object-fit: contain; display: block; }
@@ -228,13 +230,26 @@ import { randomField } from "./assets/engine/field.js";
 
 window.__started = true;
 const params = new URLSearchParams(location.search);
+// In the game (Thoroughbred Ascot opens this page with ?game=1): ask the game for the race and wait for it. The game
+// sends the race (a key of courses/ascot-view.json -> races), the going, the seed and every runner's racecard in stall
+// order, plus names, 3D silks and coats; the view runs the race engine on exactly those, so it gives the game's result.
+const GAME = params.has("game");
+const GP = GAME ? await new Promise((res) => {
+  addEventListener("message", (e) => { if (e.data && e.data.type === "race") res(e.data); });
+  parent.postMessage({ type: "ready" }, "*");
+}) : null;
+if (GP) {
+  params.set("race", GP.race); params.set("going", GP.going); params.set("seed", String(GP.seed)); params.set("runners", String(GP.runners.length));
+  document.documentElement.classList.add("in-game");
+}
+const toGame = (msg) => { if (GAME) parent.postMessage(msg, "*"); };
 
 // ---------- Data (all engine-neutral files) ----------
 const COURSE = await fetch("assets/course/ascot.json").then((r) => r.json());          // the layout (world axes)
 const VIEW = await fetch("assets/course/ascot-view.json").then((r) => r.json());        // cameras, director, paths, trees
 const SILK_DATA = await fetch("assets/silks-catalogue.json").then((r) => r.json());
 const SILKS = SILK_DATA.silks;
-const silkFor = (i) => SILKS[(i * 5 + 2) % SILKS.length];          // runner i (stall i + 1) wears these colours
+const silkFor = (i) => (GP && SILKS.find((s) => s.id === GP.runners[i].silk)) || SILKS[(i * 5 + 2) % SILKS.length];   // runner i (stall i + 1) wears these colours
 // Par times and the going (courses/ascot-standards.json, shared with the race engine): the dock's pace reading.
 const STANDARDS = await fetch("assets/course/ascot-standards.json").then((r) => r.json());
 const GOING = STANDARDS.going[params.get("going")] ? params.get("going") : "Good";
@@ -245,6 +260,7 @@ const COATS = [
   { name: "Black",    body: "#2b2523", points: "#141110" },
   { name: "Grey",     body: "#a8a6a0", points: "#6d6b66" },
 ];
+const coatFor = (i) => (GP && GP.runners[i].coat) || COATS[(i * 3 + 1) % COATS.length];
 const RACE_ID = VIEW.races[params.get("race")] ? params.get("race") : "long";
 const RACE = VIEW.races[RACE_ID];
 const ROUND = RACE.course !== "straight";            // round course or round mile: the TV director's round-course rules
@@ -253,7 +269,7 @@ const ROUND = RACE.course !== "straight";            // round course or round mi
 const STALLS = await fetch("assets/course/ascot-stalls.json").then((r) => r.json());
 const START = STALLS.starts[RACE.start];
 const PRE = VIEW.startSequence;
-document.getElementById("courseName").textContent = COURSE.name + " · " + RACE.label.toLowerCase();
+document.getElementById("courseName").textContent = GP ? `${COURSE.name} · ${GP.title}` : COURSE.name + " · " + RACE.label.toLowerCase();
 
 // World axes (courses/ascot.json): x east, z south, y up; the winning post on the inside rail is the origin.
 // On the home straight the horses run towards -x between the inside rail (z 0) and the outer rail (z 30);
@@ -1139,7 +1155,7 @@ function makeTintable(mat, u) {
 const ENGINE_SETTINGS = await fetch("assets/engine/settings.json").then((r) => r.json());
 const RUNNERS = THREE.MathUtils.clamp(Number(params.get("runners") || 12), 1, STALLS.maxRunners);
 const SEED = /^\d+$/.test(params.get("seed") || "") ? params.get("seed") : "3";
-const CARD = randomField(RUNNERS, SEED, ENGINE_SETTINGS);
+const CARD = GP ? GP.runners : randomField(RUNNERS, SEED, ENGINE_SETTINGS);
 const { timeline, result: RESULT } = runRace(
   { course: RACE.course, distance: RACE.distance, start: RACE.start, going: GOING, seed: SEED }, CARD,
   { course: COURSE, stalls: STALLS, standards: STANDARDS, settings: ENGINE_SETTINGS });
@@ -1153,6 +1169,7 @@ const T_END = T_FINISH + DIR_.afterFinish;
 const REPLAY = [timeAt(DIST - DIR_.replayFrom), timeAt(DIST + DIR_.replayTo)];
 window.__T = { finish: T_FINISH, end: T_END, replay: REPLAY };      // checking aid: key race times
 const runners = [];
+let sentFinish = false;
 
 // ---------- Post-processing: the illustrated finish ----------
 const rt = new THREE.WebGLRenderTarget(1, 1, { type: THREE.HalfFloatType, samples: QUALITY[qLevel].samples, depthTexture: new THREE.DepthTexture(1, 1) });
@@ -1589,7 +1606,7 @@ try {
   }
   const v2Tex = (url, srgb) => { const t = texLoader.load(url); t.flipY = false; if (srgb) t.colorSpace = THREE.SRGBColorSpace; return t; };
   for (let i = 0; i < RUNNERS && HORSE_V === "v2"; i++) {
-    const coat = COATS[(i * 3 + 1) % COATS.length];
+    const coat = coatFor(i);
     const silk = silkFor(i);
     const h = HorseV2.makeRunner(horse, { coat, silk, seed: i + 1, texLoader: v2Tex });
     h.setTime((i * 0.137) % 0.48);
@@ -1601,7 +1618,7 @@ try {
   for (let i = 0; i < RUNNERS && HORSE_V === "v1"; i++) {
     const obj = SkeletonUtils.clone(horse.scene);
     obj.scale.setScalar(HORSE_SCALE);
-    const coat = COATS[(i * 3 + 1) % COATS.length];
+    const coat = coatFor(i);
     const silk = silkFor(i);
     const u = {
       mask: { value: maskTex }, coatCol: { value: new THREE.Color(coat.body) },
@@ -1768,7 +1785,8 @@ const DOCK = (() => {
   for (let i = 0; i < RUNNERS; i++) {
     const c = document.createElement("div"); c.className = "chip";
     c.innerHTML = `<span class="pos"></span><img alt="" src="assets/silks-icons/${silkFor(i).id}.png"><span class="no">${i + 1}</span><span class="gap"></span>`;
-    c.title = `${i + 1}: ${silkFor(i).name}`;
+    c.title = GP ? `${i + 1}: ${GP.runners[i].name}` : `${i + 1}: ${silkFor(i).name}`;
+    if (GP && GP.runners[i].mine) c.classList.add("mine");
     strip.appendChild(c); chips.push(c);
   }
   const lengths = (m) => {
@@ -1868,7 +1886,7 @@ function frame() {
     state.pt += dt;
     if (state.phase === "prelude") { if (state.pt > SET.prelude.seconds) { state.phase = "stalls"; state.pt = 0; state.t = 0; snap = true; } }
     else if (state.phase === "stalls") { if (state.pt > PRE.standSeconds) { state.phase = "race"; state.pt = 0; state.t = 0; } }   // the off: no cut
-    else if (state.phase === "race") { state.t += dt; if (state.t > T_END) { state.phase = "replay"; state.pt = 0; state.t = REPLAY[0]; snap = true; live.length = 0; } }
+    else if (state.phase === "race") { state.t += dt; if (GAME && !sentFinish && state.t > T_FINISH) { sentFinish = true; toGame({ type: "finished", order: RESULT.placed.map((p) => CARD[p.runner].id) }); } if (state.t > T_END) { state.phase = "replay"; state.pt = 0; state.t = REPLAY[0]; snap = true; live.length = 0; } }
     else if (state.phase === "replay") { state.t += step; if (state.t > REPLAY[1]) { state.phase = "postlude"; state.pt = 0; state.t = T_END; snap = true; } }
     else if (state.phase === "postlude" && state.pt > SET.postlude.seconds) { state.phase = "prelude"; state.pt = 0; state.t = 0; snap = true; live.length = 0; }
   }

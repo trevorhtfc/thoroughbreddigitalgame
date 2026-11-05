@@ -166,6 +166,12 @@ const indexOf = (list, v, what) => {
   if (i < 0) throw new Error(`Unknown ${what}: ${v}`);
   return i;
 };
+// The pace a racecard promises, from the runners' running styles alone (as the jockeys read it before the off):
+// "slow", "even", "strong" or "fast". For the game's race-day pace forecast; the race itself works it out the same way.
+export function expectedPace(settings, styles) {
+  const P = flatSettings(settings), s = styles.map((x) => indexOf(P.HORSE.STYLES, x, "style")), n = s.length || 1;
+  return PACE_NAMES[paceLevel(P, s.filter((v) => v === 0).length / n, s.filter((v) => v <= 1).length / n)];
+}
 // Steps on the trip ladder for a race distance (furlongs to the nearest rung).
 function tripStep(H, metres) {
   const f = metres / 201.168;

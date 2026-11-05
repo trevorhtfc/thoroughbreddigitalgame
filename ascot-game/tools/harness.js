@@ -1,9 +1,10 @@
 // Stable-building test harness. Runs inside the game page and uses the game's own functions:
 // newCard, PILES/pileLeft, STALLIONS/stallion/pairProblem, breed (the real breeding engine),
-// newCatalogue + RIVALS/appeal (the real sale and rival buyers), check/deckFor and simRace (the real races).
+// newCatalogue + RIVALS/appeal (the real sale and rival buyers), check and simRace (the race engine).
 (function () {
-  // Win chance by deck, measured earlier from the race simulation (used only to choose entries)
-  const WIN = { black: .22, red: .16, yellow: .115, blue: .08 };
+  // Rough win chance from the race-day rating against the best of the field (used only to choose entries; from
+  // measured engine races: level with the top band about 14%, 10 above about 50%)
+  const winChance = (h, r, c) => { const top = Math.max(...CARD.races[r.i].opp.map(o => o.rating)); return 0.85 / (1 + Math.exp(-(c.day - top - 3) / 4)); };
 
   // Best one-horse-per-race assignment (Hungarian algorithm, maximising total win chance)
   function assign(w) {
@@ -33,12 +34,12 @@
     let best = { w: 0 };
     for (const age of [2, 3, 4]) {
       const c = check({ ...h, age }, r);
-      if (c.deck) { const w = WIN[c.deck] + (c.suits ? .015 : 0) + c.eff / 1e5; if (w > best.w) best = { w, age, deck: c.deck, eff: c.eff }; }
+      if (c.ok) { const w = winChance(h, r, c) + c.eff / 1e5; if (w > best.w) best = { w, age, eff: c.eff }; }
     }
     return best;
   }
 
-  function play(P, seed, budget) {
+  async function play(P, seed, budget) {
     localStorage.clear(); newCard(seed); if (budget) S.budget = budget;
     const targets = RACES.slice().sort((a, b) => (P.stayFirst ? (b.f >= 14) - (a.f >= 14) : 0) || b.bands[3] - a.bands[3]), taken = new Set();
     const centre = (a, b) => { const x = DISTANCES.indexOf(a.optimumDistance), y = DISTANCES.indexOf(b.optimumDistance); return Math.min(x, y) * .6 + Math.max(x, y) * .4; };
@@ -87,15 +88,16 @@
     for (const [hi, ri] of assign(w)) if (w[hi][ri] > 0) { const b = bestAt(H[hi], RACES[ri]); ages[H[hi].id] = b.age; S.entries[RACES[ri].id] = H[hi].id; }
     H.forEach(h => { if (ages[h.id]) h.age = ages[h.id]; });
     // 5) Race week: the real race simulation
-    const out = { prize: 0, maxPrize: RACES.reduce((t, r) => t + r.prizes[0], 0), seed, horses: H.length, budgetLeft: S.budget, ...log, runners: 0, decks: { black: 0, red: 0, yellow: 0, blue: 0 }, wins: 0, top3: 0, empty: [], canRunAny: 0 };
+    const out = { prize: 0, maxPrize: RACES.reduce((t, r) => t + r.prizes[0], 0), seed, horses: H.length, budgetLeft: S.budget, ...log, runners: 0, wins: 0, top3: 0, empty: [], canRunAny: 0 };
     H.forEach(h => { if (RACES.some(r => bestAt(h, r).w > 0)) out.canRunAny++; });
-    RACES.forEach((r, i) => {
+    S.step = 4;
+    for (const [i, r] of RACES.entries()) {
       const id = S.entries[r.id];
-      if (!id) { out.empty.push((isOpenRace(r) ? "Handicap " : r.grade + " ") + r.ageLabel); (out.emptyNames = out.emptyNames || []).push(r.name); return; }
-      out.runners++; const c = check(horse(id), r); out.decks[c.deck]++;
-      const pos = simRace(i).indexOf(id) + 1; if (pos === 1) out.wins++; if (pos && pos <= 3) out.top3++;
+      if (!id) { out.empty.push((isOpenRace(r) ? "Handicap " : r.grade + " ") + r.ageLabel); (out.emptyNames = out.emptyNames || []).push(r.name); continue; }
+      out.runners++;
+      const pos = (await simRace(i)).order.indexOf(id) + 1; if (pos === 1) out.wins++; if (pos && pos <= 3) out.top3++;
       const won = pos && pos <= 4 ? r.prizes[pos - 1] : 0; out.prize = (out.prize || 0) + won; (out.byGrade = out.byGrade || {})[r.grade] = ((out.byGrade || {})[r.grade] || 0) + won;
-    });
+    }
     out.raceNames = RACES.map(r => r.name);
     return out;
   }
@@ -113,9 +115,9 @@
     "Card-aware planner": { plan: true, mares: { hi: 4, mid: 2 }, feeCap: 200000, keepForSale: 400000, stallion: byStarsThenCheap, lots: bestFirst, maxLots: 5, bidUpTo: 1.7 }
   };
 
-  window.HARNESS = { play, STRATS, run(name, n, start, budget) {
+  window.HARNESS = { play, STRATS, async run(name, n, start, budget) {
     const P = STRATS[name], res = [];
-    for (let k = 0; k < n; k++) res.push(play(P, (start || 50000) + k, budget));
+    for (let k = 0; k < n; k++) res.push(await play(P, (start || 50000) + k, budget));
     return res;
   } };
 })();
