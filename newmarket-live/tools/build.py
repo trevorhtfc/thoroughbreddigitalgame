@@ -4,7 +4,9 @@ import base64, json, re, sys
 from pathlib import Path
 here = Path(__file__).resolve().parent.parent
 icons = json.load(open(here / "tools" / "icons.json"))
-src = (here / "index.src.html").read_text()
+src = (here / "index.src.html").read_text().replace("%%MODULE%%", (here / "hub.src.js").read_text())
+sites = json.load(open(here / "markup" / "markup.json"))["sites"]
+src = src.replace("%%SITES%%", json.dumps([{"id": s["id"], "poly": s["poly"]} for s in sites], separators=(",", ":")))
 mark = base64.b64encode((here / "tools" / "horse-mark.png").read_bytes()).decode()
 src = src.replace("%%HORSE%%", "data:image/png;base64," + mark)
 def icon(m):
