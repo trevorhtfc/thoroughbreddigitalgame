@@ -1485,6 +1485,17 @@ const N_RACES = 10, PER_DAY = 2, MIN_HANDICAPS = 3, MIN_PATTERN = 3;
 // Handicaps are for horses rated 110 or less, on their own rating (not after the trip penalty)
 const HCAP_MAX = 110;
 const isOpenRace = r => r.grade === "Handicap" || r.grade === "Conditions";
+// Runners in each kind of race, your horse included (owner, 5 Nov): 2-year-old races 14-26; handicaps 18-26 on the
+// straight course, 18-20 round the bend; Group races 10-18 on the straight, 8-14 round the bend; Listed and
+// Conditions races 10-16. The round mile (starting in the chute) counts as round the bend.
+const FIELD_SIZE = { twoYO: [14, 26], hcapStraight: [18, 26], hcapRound: [18, 20], groupStraight: [10, 18], groupRound: [8, 14], other: [10, 16] };
+const onStraight = r => r.f <= 7 || (r.f === 8 && !r.round);
+function fieldSize(r) {
+  if (r.ages[1] === 2) return FIELD_SIZE.twoYO;
+  if (r.grade === "Handicap") return onStraight(r) ? FIELD_SIZE.hcapStraight : FIELD_SIZE.hcapRound;
+  if (r.grade.startsWith("Group")) return onStraight(r) ? FIELD_SIZE.groupStraight : FIELD_SIZE.groupRound;
+  return FIELD_SIZE.other;
+}
 let RACES = [];
 // Draw the card's ten races: two a day, a real mix (at least three of each kind), in race-time order
 function drawRaces(R) {
@@ -1552,12 +1563,24 @@ function makeCard(seed) {
         sk, a: s.a, b: s.b, silks: s.img, grounds: groundsFor(R), coat: R.pick(COATS), jockey: R.pick(jockeys), trainer: R.pick(trainers) });
     } });
     for (let k = opp.length - 1; k > 0; k--) { const j = Math.floor(R.r() * (k + 1)); [opp[k], opp[j]] = [opp[j], opp[k]]; }
-    // Their racecards come from a separate stream of the seed, so the rest of the card is drawn exactly as before.
+    // Field sizes and racecards come from a separate stream of the seed, so the rest of the card is drawn exactly as
+    // before. The field is grown (or cut) to a size for its kind of race (FIELD_SIZE), the extra runners drawn across
+    // the bands the same way.
+    const X = rngFrom(hashStr(seed + ":" + race.id)), [fLo, fHi] = fieldSize(race), want = X.int(fLo, fHi) - 1;
+    let nextId = opp.length;
+    while (opp.length > want) opp.splice(X.int(0, opp.length - 1), 1);
+    while (opp.length < want) {
+      let y = X.r() * tot, d = 0; while (d < 3 && y >= w[d]) { y -= w[d]; d++; } count[d]++;
+      let name; for (let t = 0; t < 300; t++) { name = (X.pick(NAME_A) + " " + X.pick(NAME_B)).toUpperCase(); if (!used.has(name)) break; }
+      used.add(name);
+      const sk = X.int(0, SILKS.length - 1), s = SILKS[sk];
+      opp.splice(X.int(0, opp.length), 0, { id: race.id + "-" + nextId++, name, rating: X.int(b[d], top[d]),
+        sk, a: s.a, b: s.b, silks: s.img, grounds: groundsFor(X), coat: X.pick(COATS), jockey: X.pick(jockeys), trainer: X.pick(trainers) });
+    }
     // Each is bred for this trip: the race is one of its two best distances.
-    const X = rngFrom(hashStr(seed + ":" + race.id));
     opp.forEach(o => { const up = X.r() < .5, lo = Math.max(0, Math.min(DISTANCES.length - 2, up ? race.step : race.step - 1));
       Object.assign(o, rollRacecard(X.r), { trip: [lo, lo + 1] }); });
-    return { opp, strength, count, myStall: R.int(0, opp.length), pace: R.pick(["fast", "even", "even", "slow"]), seed: R.int(1, 2e9) };
+    return { opp, strength, count, myStall: (R.int(0, opp.length), X.int(0, opp.length)), pace: R.pick(["fast", "even", "even", "slow"]), seed: R.int(1, 2e9) };
   });
   // Unproven stallions: players see the stud-book stars; this game he is really a star better or worse
   const trueStars = {};
