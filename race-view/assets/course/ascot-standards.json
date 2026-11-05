@@ -10,7 +10,8 @@
     { "key": "r1m4f", "course": "round", "distance": 2414.0, "seconds": 150.5 },
     { "key": "r1m6f", "course": "round", "distance": 2816.4, "seconds": 178.0 },
     { "key": "r2m",   "course": "round", "distance": 3218.7, "seconds": 207.0 },
-    { "key": "r2m4f", "course": "round", "distance": 4023.4, "seconds": 266.0 }
+    { "key": "r2m4f", "course": "round", "distance": 4023.4, "seconds": 266.0 },
+    { "key": "r2m6f", "course": "round", "distance": 4425.7, "seconds": 297.0 }
   ],
   "going": {
     "Heavy":   { "speed": 0.950, "sapping": 1.25 },

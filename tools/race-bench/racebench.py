@@ -7,9 +7,9 @@ LOOP=2689.8
 LOOP_BENDS=[(2617.8,2424.8,131),(1733.8,1357.8,99),(1343.8,1275.8,35),(839.8,604.8,94)]   # metres to go on the loop, degrees turned (from courses/ascot.json)
 FUR=201.168
 # rough Ascot winning times on good ground, seconds (approximate; to check against real results)
-PAR_TIME={'s5f':60.0,'s6f':73.0,'s7f':86.5,'s1m':99.5,'r1m':100.5,'r1m2f':126.0,'r1m4f':150.5,'r1m6f':178.0,'r2m':207.0,'r2m4f':266.0}
-DIST={'s5f':5*FUR,'s6f':6*FUR,'s7f':7*FUR,'s1m':8*FUR,'r1m':1649.4,'r1m2f':10*FUR,'r1m4f':12*FUR,'r1m6f':14*FUR,'r2m':16*FUR,'r2m4f':20*FUR}
-PPL={'s5f':3.0,'s6f':2.6,'s7f':2.3,'s1m':2.0,'r1m':2.0,'r1m2f':1.75,'r1m4f':1.5,'r1m6f':1.35,'r2m':1.2,'r2m4f':1.0}   # rating points per length
+PAR_TIME={'s5f':60.0,'s6f':73.0,'s7f':86.5,'s1m':99.5,'r1m':100.5,'r1m2f':126.0,'r1m4f':150.5,'r1m6f':178.0,'r2m':207.0,'r2m4f':266.0,'r2m6f':297.0}
+DIST={'s5f':5*FUR,'s6f':6*FUR,'s7f':7*FUR,'s1m':8*FUR,'r1m':1649.4,'r1m2f':10*FUR,'r1m4f':12*FUR,'r1m6f':14*FUR,'r2m':16*FUR,'r2m4f':20*FUR,'r2m6f':22*FUR}
+PPL={'s5f':3.0,'s6f':2.6,'s7f':2.3,'s1m':2.0,'r1m':2.0,'r1m2f':1.75,'r1m4f':1.5,'r1m6f':1.35,'r2m':1.2,'r2m4f':1.0,'r2m6f':0.9}   # rating points per length
 def make_course(key):
     D=DIST[key]
     if key[0]=='s': return dict(D=D,bends=[],stall1=1.625,kind='straight')

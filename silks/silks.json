@@ -1,5 +1,5 @@
 {
-  "_about": "Traditional racing silks for the 3D jockey and racecard icons. Each set is body, sleeves and cap: a colour plus an optional pattern in a second colour. Read from the menu artwork in assets/silks, where the strip on the left is the sleeves, the semicircle at the top is the cap and the rest is the body. Palette colours are sampled from that artwork. tools/silks/make_silks.py paints them; patterns are listed in tools/README.md.",
+  "_about": "Traditional racing silks for the 3D jockey and racecard icons. Each set is body, sleeves and cap: a colour plus an optional pattern in a second colour. Read from the menu artwork in assets/silks, where the strip on the left is the sleeves, the semicircle at the top is the cap and the rest is the body. Palette colours are sampled from that artwork. tools/silks/make_silks.py paints them; patterns are listed in tools/README.md. All 54 menu silks are here; 'menu' is the game's file for the same silks (ascot-game/img/silks/sNN.webp).",
   "palette": {
     "white": "#f2f4f2",
     "black": "#17191a",
@@ -16,6 +16,11 @@
     "lemon": "#e6f232",
     "gold": "#e4c84c",
     "grey": "#9a9a98",
+    "green": "#1f9a35",
+    "dark purple": "#3a1580",
+    "maroon": "#9a1f45",
+    "beige": "#ece0b0",
+    "silver": "#c6c8ca",
     "test cap": "#2fae4a",
     "test body front": "#e2b21c",
     "test body back": "#d8d8d4",
@@ -30,89 +35,885 @@
     "cap": "test cap"
   },
   "silks": [
-    { "id": "alcohol-free", "name": "Alcohol Free",
-      "body": { "colour": "purple", "pattern": "chevron", "colour2": "ice blue" },
-      "sleeves": { "colour": "purple" },
-      "cap": { "colour": "ice blue" } },
-
-    { "id": "ballydoyle-orange", "name": "Ballydoyle Orange",
-      "body": { "colour": "royal blue", "pattern": "disc", "colour2": "orange" },
-      "sleeves": { "colour": "royal blue", "pattern": "stripes", "colour2": "orange" },
-      "cap": { "colour": "royal blue", "pattern": "striped", "colour2": "orange" } },
-
-    { "id": "bradsell", "name": "Bradsell",
-      "body": { "colour": "red" },
-      "sleeves": { "colour": "red", "pattern": "stripes", "colour2": "white" },
-      "cap": { "colour": "red", "pattern": "striped", "colour2": "white" } },
-
-    { "id": "cheveley-park", "name": "Cheveley Park",
-      "body": { "colour": "red", "pattern": "sash", "colour2": "white" },
-      "sleeves": { "colour": "red" },
-      "cap": { "colour": "royal blue" } },
-
-    { "id": "desert-crown", "name": "Desert Crown",
-      "body": { "colour": "royal blue", "pattern": "chevron", "colour2": "lemon" },
-      "sleeves": { "colour": "royal blue" },
-      "cap": { "colour": "lemon", "pattern": "spots", "colour2": "royal blue" } },
-
-    { "id": "godolphin", "name": "Godolphin",
-      "body": { "colour": "royal blue" },
-      "sleeves": { "colour": "royal blue" },
-      "cap": { "colour": "royal blue" } },
-
-    { "id": "judmonte", "name": "Judmonte",
-      "body": { "colour": "mint green", "pattern": "sash", "colour2": "pink" },
-      "sleeves": { "colour": "white" },
-      "cap": { "colour": "pink" } },
-
-    { "id": "liberty-lane", "name": "Liberty Lane",
-      "body": { "colour": "lemon", "pattern": "three spots", "colour2": "black" },
-      "sleeves": { "colour": "lemon" },
-      "cap": { "colour": "lemon", "pattern": "four spots", "colour2": "black" } },
-
-    { "id": "nashwa", "name": "Nashwa",
-      "body": { "colour": "mint green" },
-      "sleeves": { "colour": "mint green", "pattern": "stripes", "colour2": "white" },
-      "cap": { "colour": "mint green" } },
-
-    { "id": "sea-the-stars", "name": "Sea The Stars",
-      "body": { "colour": "lemon" },
-      "sleeves": { "colour": "lemon" },
-      "cap": { "colour": "indigo", "pattern": "star", "colour2": "lemon" } },
-
-    { "id": "shadwell", "name": "Shadwell",
-      "body": { "colour": "royal blue", "pattern": "epaulets", "colour2": "white" },
-      "sleeves": { "colour": "royal blue" },
-      "cap": { "colour": "white", "pattern": "striped", "colour2": "royal blue" } },
-
-    { "id": "starlust", "name": "Starlust",
-      "body": { "colour": "pink", "pattern": "chevron", "colour2": "mint green" },
-      "sleeves": { "colour": "pink", "pattern": "halved", "colour2": "mint green" },
-      "cap": { "colour": "mint green", "pattern": "halved", "colour2": "pink" } },
-
-    { "id": "stradivarius", "name": "Stradivarius",
-      "body": { "colour": "black" },
-      "sleeves": { "colour": "black" },
-      "cap": { "colour": "lemon" } },
-
-    { "id": "swingalong", "name": "Swingalong",
-      "body": { "colour": "navy", "pattern": "three spots", "colour2": "lemon" },
-      "sleeves": { "colour": "navy" },
-      "cap": { "colour": "navy" } },
-
-    { "id": "wantan-2", "name": "Wantan 2",
-      "body": { "colour": "gold" },
-      "sleeves": { "colour": "royal blue" },
-      "cap": { "colour": "royal blue" } },
-
-    { "id": "watnan", "name": "Watnan",
-      "body": { "colour": "royal blue" },
-      "sleeves": { "colour": "gold" },
-      "cap": { "colour": "red" } },
-
-    { "id": "yellow-black-epilite", "name": "Yellow Black Epilite",
-      "body": { "colour": "lemon", "pattern": "epaulets", "colour2": "black" },
-      "sleeves": { "colour": "lemon" },
-      "cap": { "colour": "lemon" } }
+    {
+      "id": "aga-khan",
+      "name": "Aga Khan",
+      "menu": "s01",
+      "body": {
+        "colour": "green",
+        "pattern": "epaulets",
+        "colour2": "red"
+      },
+      "sleeves": {
+        "colour": "green"
+      },
+      "cap": {
+        "colour": "green"
+      }
+    },
+    {
+      "id": "alcohol-free",
+      "name": "Alcohol Free",
+      "menu": "s02",
+      "body": {
+        "colour": "purple",
+        "pattern": "chevron",
+        "colour2": "ice blue"
+      },
+      "sleeves": {
+        "colour": "purple"
+      },
+      "cap": {
+        "colour": "ice blue"
+      }
+    },
+    {
+      "id": "amo-2",
+      "name": "Amo 2",
+      "menu": "s03",
+      "body": {
+        "colour": "dark purple"
+      },
+      "sleeves": {
+        "colour": "dark purple"
+      },
+      "cap": {
+        "colour": "white"
+      }
+    },
+    {
+      "id": "ballydoyle-navy",
+      "name": "Ballydoyle Navy",
+      "menu": "s04",
+      "body": {
+        "colour": "navy"
+      },
+      "sleeves": {
+        "colour": "navy"
+      },
+      "cap": {
+        "colour": "navy"
+      }
+    },
+    {
+      "id": "ballydoyle-orange",
+      "name": "Ballydoyle Orange",
+      "menu": "s05",
+      "body": {
+        "colour": "royal blue",
+        "pattern": "disc",
+        "colour2": "orange"
+      },
+      "sleeves": {
+        "colour": "royal blue",
+        "pattern": "stripes",
+        "colour2": "orange"
+      },
+      "cap": {
+        "colour": "royal blue",
+        "pattern": "striped",
+        "colour2": "orange"
+      }
+    },
+    {
+      "id": "ballydoyle-pink",
+      "name": "Ballydoyle Pink",
+      "menu": "s06",
+      "body": {
+        "colour": "pink"
+      },
+      "sleeves": {
+        "colour": "pink"
+      },
+      "cap": {
+        "colour": "pink"
+      }
+    },
+    {
+      "id": "ballydoyle-purple",
+      "name": "Ballydoyle Purple",
+      "menu": "s07",
+      "body": {
+        "colour": "dark purple"
+      },
+      "sleeves": {
+        "colour": "dark purple",
+        "pattern": "stripes",
+        "colour2": "white"
+      },
+      "cap": {
+        "colour": "dark purple"
+      }
+    },
+    {
+      "id": "black-white",
+      "name": "Black & White",
+      "menu": "s08",
+      "body": {
+        "colour": "black",
+        "pattern": "hooped band",
+        "colour2": "white"
+      },
+      "sleeves": {
+        "colour": "black"
+      },
+      "cap": {
+        "colour": "black"
+      }
+    },
+    {
+      "id": "bradsell",
+      "name": "Bradsell",
+      "menu": "s09",
+      "body": {
+        "colour": "red"
+      },
+      "sleeves": {
+        "colour": "red",
+        "pattern": "stripes",
+        "colour2": "white"
+      },
+      "cap": {
+        "colour": "red",
+        "pattern": "striped",
+        "colour2": "white"
+      }
+    },
+    {
+      "id": "cheveley-park",
+      "name": "Cheveley Park",
+      "menu": "s10",
+      "body": {
+        "colour": "red",
+        "pattern": "sash",
+        "colour2": "white"
+      },
+      "sleeves": {
+        "colour": "red"
+      },
+      "cap": {
+        "colour": "royal blue"
+      }
+    },
+    {
+      "id": "circus-maximus",
+      "name": "Circus Maximus",
+      "menu": "s11",
+      "body": {
+        "colour": "navy",
+        "pattern": "crossbelts",
+        "colour2": "ice blue"
+      },
+      "sleeves": {
+        "colour": "navy",
+        "pattern": "diabolo",
+        "colour2": "ice blue"
+      },
+      "cap": {
+        "colour": "white"
+      }
+    },
+    {
+      "id": "clipper-logistics",
+      "name": "Clipper Logistics",
+      "menu": "s12",
+      "body": {
+        "colour": "silver"
+      },
+      "sleeves": {
+        "colour": "silver"
+      },
+      "cap": {
+        "colour": "silver"
+      }
+    },
+    {
+      "id": "desert-crown",
+      "name": "Desert Crown",
+      "menu": "s13",
+      "body": {
+        "colour": "royal blue",
+        "pattern": "chevron",
+        "colour2": "lemon"
+      },
+      "sleeves": {
+        "colour": "royal blue"
+      },
+      "cap": {
+        "colour": "lemon",
+        "pattern": "spots",
+        "colour2": "royal blue"
+      }
+    },
+    {
+      "id": "doha",
+      "name": "Doha",
+      "menu": "s14",
+      "body": {
+        "colour": "silver",
+        "pattern": "hoops",
+        "colour2": "gold"
+      },
+      "sleeves": {
+        "colour": "silver"
+      },
+      "cap": {
+        "colour": "maroon"
+      }
+    },
+    {
+      "id": "ebts-guard",
+      "name": "Ebts Guard",
+      "menu": "s15",
+      "body": {
+        "colour": "royal blue"
+      },
+      "sleeves": {
+        "colour": "red"
+      },
+      "cap": {
+        "colour": "royal blue",
+        "pattern": "peak",
+        "colour2": "red"
+      }
+    },
+    {
+      "id": "flamin-rib",
+      "name": "Flamin Rib",
+      "menu": "s16",
+      "body": {
+        "colour": "navy",
+        "pattern": "diamond",
+        "colour2": "ice blue"
+      },
+      "sleeves": {
+        "colour": "navy",
+        "pattern": "stripes",
+        "colour2": "ice blue"
+      },
+      "cap": {
+        "colour": "navy",
+        "pattern": "diamond",
+        "colour2": "ice blue"
+      }
+    },
+    {
+      "id": "glen-sheil",
+      "name": "Glen Sheil",
+      "menu": "s17",
+      "body": {
+        "colour": "beige"
+      },
+      "sleeves": {
+        "colour": "beige",
+        "pattern": "armlets",
+        "colour2": "navy"
+      },
+      "cap": {
+        "colour": "navy"
+      }
+    },
+    {
+      "id": "godolphin",
+      "name": "Godolphin",
+      "menu": "s18",
+      "body": {
+        "colour": "royal blue"
+      },
+      "sleeves": {
+        "colour": "royal blue"
+      },
+      "cap": {
+        "colour": "royal blue"
+      }
+    },
+    {
+      "id": "highclere",
+      "name": "Highclere",
+      "menu": "s19",
+      "body": {
+        "colour": "ice blue"
+      },
+      "sleeves": {
+        "colour": "ice blue",
+        "pattern": "armlets",
+        "colour2": "navy"
+      },
+      "cap": {
+        "colour": "navy"
+      }
+    },
+    {
+      "id": "judmonte",
+      "name": "Judmonte",
+      "menu": "s20",
+      "body": {
+        "colour": "mint green",
+        "pattern": "sash",
+        "colour2": "pink"
+      },
+      "sleeves": {
+        "colour": "white"
+      },
+      "cap": {
+        "colour": "pink"
+      }
+    },
+    {
+      "id": "king-power",
+      "name": "King Power",
+      "menu": "s21",
+      "body": {
+        "colour": "royal blue",
+        "pattern": "hooped band",
+        "colour2": "white"
+      },
+      "sleeves": {
+        "colour": "royal blue",
+        "pattern": "stripes",
+        "colour2": "white"
+      },
+      "cap": {
+        "colour": "royal blue",
+        "pattern": "striped",
+        "colour2": "white"
+      }
+    },
+    {
+      "id": "lake-forest",
+      "name": "Lake Forest",
+      "menu": "s22",
+      "body": {
+        "colour": "royal blue"
+      },
+      "sleeves": {
+        "colour": "royal blue"
+      },
+      "cap": {
+        "colour": "royal blue",
+        "pattern": "peak",
+        "colour2": "white"
+      }
+    },
+    {
+      "id": "liberty-lane",
+      "name": "Liberty Lane",
+      "menu": "s23",
+      "body": {
+        "colour": "lemon",
+        "pattern": "three spots",
+        "colour2": "black"
+      },
+      "sleeves": {
+        "colour": "lemon"
+      },
+      "cap": {
+        "colour": "lemon",
+        "pattern": "four spots",
+        "colour2": "black"
+      }
+    },
+    {
+      "id": "lord-riddleford",
+      "name": "Lord Riddleford",
+      "menu": "s24",
+      "body": {
+        "colour": "purple"
+      },
+      "sleeves": {
+        "colour": "mint green"
+      },
+      "cap": {
+        "colour": "mint green"
+      }
+    },
+    {
+      "id": "maroon-classic",
+      "name": "Maroon Classic",
+      "menu": "s25",
+      "body": {
+        "colour": "maroon"
+      },
+      "sleeves": {
+        "colour": "maroon"
+      },
+      "cap": {
+        "colour": "maroon",
+        "pattern": "star",
+        "colour2": "white"
+      }
+    },
+    {
+      "id": "masrshamn",
+      "name": "Masrshamn",
+      "menu": "s26",
+      "body": {
+        "colour": "white"
+      },
+      "sleeves": {
+        "colour": "white",
+        "pattern": "stripes",
+        "colour2": "black"
+      },
+      "cap": {
+        "colour": "white",
+        "pattern": "star",
+        "colour2": "black"
+      }
+    },
+    {
+      "id": "middleham-park",
+      "name": "Middleham Park",
+      "menu": "s27",
+      "body": {
+        "colour": "ice blue",
+        "pattern": "epaulets",
+        "colour2": "orange"
+      },
+      "sleeves": {
+        "colour": "ice blue"
+      },
+      "cap": {
+        "colour": "ice blue"
+      }
+    },
+    {
+      "id": "mill-reef",
+      "name": "Mill Reef",
+      "menu": "s28",
+      "body": {
+        "colour": "black",
+        "pattern": "hooped band",
+        "colour2": "lemon"
+      },
+      "sleeves": {
+        "colour": "black",
+        "pattern": "stripes",
+        "colour2": "lemon"
+      },
+      "cap": {
+        "colour": "black",
+        "pattern": "striped",
+        "colour2": "lemon"
+      }
+    },
+    {
+      "id": "nashwa",
+      "name": "Nashwa",
+      "menu": "s29",
+      "body": {
+        "colour": "mint green"
+      },
+      "sleeves": {
+        "colour": "mint green",
+        "pattern": "stripes",
+        "colour2": "white"
+      },
+      "cap": {
+        "colour": "mint green"
+      }
+    },
+    {
+      "id": "nathaniel",
+      "name": "Nathaniel",
+      "menu": "s30",
+      "body": {
+        "colour": "navy",
+        "pattern": "hooped band",
+        "colour2": "lemon"
+      },
+      "sleeves": {
+        "colour": "navy"
+      },
+      "cap": {
+        "colour": "lemon"
+      }
+    },
+    {
+      "id": "night-of-thunder",
+      "name": "Night Of Thunder",
+      "menu": "s31",
+      "body": {
+        "colour": "white",
+        "pattern": "sash",
+        "colour2": "red"
+      },
+      "sleeves": {
+        "colour": "white"
+      },
+      "cap": {
+        "colour": "red",
+        "pattern": "striped",
+        "colour2": "white"
+      }
+    },
+    {
+      "id": "oppenheimer",
+      "name": "Oppenheimer",
+      "menu": "s32",
+      "body": {
+        "colour": "black"
+      },
+      "sleeves": {
+        "colour": "black"
+      },
+      "cap": {
+        "colour": "red"
+      }
+    },
+    {
+      "id": "orange-black",
+      "name": "Orange & Black",
+      "menu": "s33",
+      "body": {
+        "colour": "orange"
+      },
+      "sleeves": {
+        "colour": "black"
+      },
+      "cap": {
+        "colour": "black"
+      }
+    },
+    {
+      "id": "phoenix-of-spain",
+      "name": "Phoenix of Spain",
+      "menu": "s34",
+      "body": {
+        "colour": "navy",
+        "pattern": "crossbelts",
+        "colour2": "pink"
+      },
+      "sleeves": {
+        "colour": "navy"
+      },
+      "cap": {
+        "colour": "pink"
+      }
+    },
+    {
+      "id": "pink-white",
+      "name": "Pink & White",
+      "menu": "s35",
+      "body": {
+        "colour": "white",
+        "pattern": "hooped band",
+        "colour2": "pink"
+      },
+      "sleeves": {
+        "colour": "white"
+      },
+      "cap": {
+        "colour": "pink"
+      }
+    },
+    {
+      "id": "pink-white-blue",
+      "name": "Pink, White & Blue",
+      "menu": "s36",
+      "body": {
+        "colour": "white"
+      },
+      "sleeves": {
+        "colour": "royal blue",
+        "pattern": "armlets",
+        "colour2": "pink"
+      },
+      "cap": {
+        "colour": "pink"
+      }
+    },
+    {
+      "id": "poetic-flare",
+      "name": "Poetic Flare",
+      "menu": "s37",
+      "body": {
+        "colour": "white"
+      },
+      "sleeves": {
+        "colour": "white"
+      },
+      "cap": {
+        "colour": "white",
+        "pattern": "quartered",
+        "colour2": "dark purple"
+      }
+    },
+    {
+      "id": "purple-pink",
+      "name": "Purple & Pink",
+      "menu": "s38",
+      "body": {
+        "colour": "dark purple"
+      },
+      "sleeves": {
+        "colour": "pink"
+      },
+      "cap": {
+        "colour": "pink"
+      }
+    },
+    {
+      "id": "qatar",
+      "name": "Qatar",
+      "menu": "s39",
+      "body": {
+        "colour": "maroon",
+        "pattern": "hoops",
+        "colour2": "gold"
+      },
+      "sleeves": {
+        "colour": "maroon"
+      },
+      "cap": {
+        "colour": "maroon"
+      }
+    },
+    {
+      "id": "red-white",
+      "name": "Red & White",
+      "menu": "s40",
+      "body": {
+        "colour": "white",
+        "pattern": "hooped band",
+        "colour2": "red"
+      },
+      "sleeves": {
+        "colour": "white"
+      },
+      "cap": {
+        "colour": "red"
+      }
+    },
+    {
+      "id": "red-white-black",
+      "name": "Red, White & Black",
+      "menu": "s41",
+      "body": {
+        "colour": "red"
+      },
+      "sleeves": {
+        "colour": "white"
+      },
+      "cap": {
+        "colour": "black"
+      }
+    },
+    {
+      "id": "royal",
+      "name": "Royal",
+      "menu": "s42",
+      "body": {
+        "colour": "dark purple",
+        "pattern": "hoops",
+        "colour2": "gold"
+      },
+      "sleeves": {
+        "colour": "red",
+        "pattern": "stripes",
+        "colour2": "gold"
+      },
+      "cap": {
+        "colour": "black"
+      }
+    },
+    {
+      "id": "sea-the-stars",
+      "name": "Sea The Stars",
+      "menu": "s43",
+      "body": {
+        "colour": "lemon"
+      },
+      "sleeves": {
+        "colour": "lemon"
+      },
+      "cap": {
+        "colour": "indigo",
+        "pattern": "star",
+        "colour2": "lemon"
+      }
+    },
+    {
+      "id": "shadwell",
+      "name": "Shadwell",
+      "menu": "s44",
+      "body": {
+        "colour": "royal blue",
+        "pattern": "epaulets",
+        "colour2": "white"
+      },
+      "sleeves": {
+        "colour": "royal blue"
+      },
+      "cap": {
+        "colour": "white",
+        "pattern": "striped",
+        "colour2": "royal blue"
+      }
+    },
+    {
+      "id": "silkiewilie",
+      "name": "Silkiewilie",
+      "menu": "s45",
+      "body": {
+        "colour": "ice blue",
+        "pattern": "seams",
+        "colour2": "navy"
+      },
+      "sleeves": {
+        "colour": "ice blue",
+        "pattern": "stripes",
+        "colour2": "navy"
+      },
+      "cap": {
+        "colour": "ice blue",
+        "pattern": "peak",
+        "colour2": "navy"
+      }
+    },
+    {
+      "id": "starlust",
+      "name": "Starlust",
+      "menu": "s46",
+      "body": {
+        "colour": "pink",
+        "pattern": "chevron",
+        "colour2": "mint green"
+      },
+      "sleeves": {
+        "colour": "pink",
+        "pattern": "halved",
+        "colour2": "mint green"
+      },
+      "cap": {
+        "colour": "mint green",
+        "pattern": "halved",
+        "colour2": "pink"
+      }
+    },
+    {
+      "id": "strawbridge",
+      "name": "Strawbridge",
+      "menu": "s47",
+      "body": {
+        "colour": "white",
+        "pattern": "hooped band",
+        "colour2": "mint green"
+      },
+      "sleeves": {
+        "colour": "mint green"
+      },
+      "cap": {
+        "colour": "mint green",
+        "pattern": "star",
+        "colour2": "white"
+      }
+    },
+    {
+      "id": "stradivarius",
+      "name": "Stradivarius",
+      "menu": "s48",
+      "body": {
+        "colour": "black"
+      },
+      "sleeves": {
+        "colour": "black"
+      },
+      "cap": {
+        "colour": "lemon"
+      }
+    },
+    {
+      "id": "swingalong",
+      "name": "Swingalong",
+      "menu": "s49",
+      "body": {
+        "colour": "navy",
+        "pattern": "three spots",
+        "colour2": "lemon"
+      },
+      "sleeves": {
+        "colour": "navy"
+      },
+      "cap": {
+        "colour": "navy"
+      }
+    },
+    {
+      "id": "wantan-2",
+      "name": "Wantan 2",
+      "menu": "s50",
+      "body": {
+        "colour": "gold"
+      },
+      "sleeves": {
+        "colour": "royal blue"
+      },
+      "cap": {
+        "colour": "royal blue"
+      }
+    },
+    {
+      "id": "watnan",
+      "name": "Watnan",
+      "menu": "s51",
+      "body": {
+        "colour": "royal blue"
+      },
+      "sleeves": {
+        "colour": "gold"
+      },
+      "cap": {
+        "colour": "red"
+      }
+    },
+    {
+      "id": "white-blue",
+      "name": "White & Blue",
+      "menu": "s52",
+      "body": {
+        "colour": "white",
+        "pattern": "hooped band",
+        "colour2": "royal blue"
+      },
+      "sleeves": {
+        "colour": "white"
+      },
+      "cap": {
+        "colour": "white"
+      }
+    },
+    {
+      "id": "wimbledon-hawkeye",
+      "name": "Wimbledon Hawkeye",
+      "menu": "s53",
+      "body": {
+        "colour": "lemon"
+      },
+      "sleeves": {
+        "colour": "lemon",
+        "pattern": "stripes",
+        "colour2": "black"
+      },
+      "cap": {
+        "colour": "lemon"
+      }
+    },
+    {
+      "id": "yellow-black-epilite",
+      "name": "Yellow Black Epilite",
+      "menu": "s54",
+      "body": {
+        "colour": "lemon",
+        "pattern": "epaulets",
+        "colour2": "black"
+      },
+      "sleeves": {
+        "colour": "lemon"
+      },
+      "cap": {
+        "colour": "lemon"
+      }
+    }
   ]
 }

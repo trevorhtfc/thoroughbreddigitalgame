@@ -129,7 +129,7 @@
 
  "pointsPerLength": {
   "_about": "Rating points per length at each distance (by courses/ascot-standards.json key).",
-  "s5f": 3.0, "s6f": 2.6, "s7f": 2.3, "s1m": 2.0, "r1m": 2.0, "r1m2f": 1.75, "r1m4f": 1.5, "r1m6f": 1.35, "r2m": 1.2, "r2m4f": 1.0
+  "s5f": 3.0, "s6f": 2.6, "s7f": 2.3, "s1m": 2.0, "r1m": 2.0, "r1m2f": 1.75, "r1m4f": 1.5, "r1m6f": 1.35, "r2m": 1.2, "r2m4f": 1.0, "r2m6f": 0.9
  },
 
  "horse": {

@@ -2742,6 +2742,262 @@
     }
    ],
    "_stalls": "at = the middle of the stall on the gate line (world x, z); fromInsideRail = metres from the inside rail; across = metres from the middle of the track (+ towards the outer rail), as the race view's v"
+  },
+  "twoMilesSix": {
+   "label": "2m6f",
+   "course": "round",
+   "distance": 4425.7,
+   "where": "on the loop, 1736 m before the post: the field passes the post and goes round again",
+   "insideRailAt": [
+    317.95,
+    -656.72
+   ],
+   "runningDirection": [
+    0.63302,
+    -0.77414
+   ],
+   "towardsOuterRail": [
+    -0.77414,
+    -0.63302
+   ],
+   "stall1": "inside rail, on the horses' right",
+   "stalls": [
+    {
+     "draw": 1,
+     "fromInsideRail": 1.625,
+     "across": -13.375,
+     "at": [
+      316.69,
+      -657.75
+     ]
+    },
+    {
+     "draw": 2,
+     "fromInsideRail": 2.675,
+     "across": -12.325,
+     "at": [
+      315.88,
+      -658.41
+     ]
+    },
+    {
+     "draw": 3,
+     "fromInsideRail": 3.725,
+     "across": -11.275,
+     "at": [
+      315.07,
+      -659.08
+     ]
+    },
+    {
+     "draw": 4,
+     "fromInsideRail": 4.775,
+     "across": -10.225,
+     "at": [
+      314.25,
+      -659.74
+     ]
+    },
+    {
+     "draw": 5,
+     "fromInsideRail": 5.825,
+     "across": -9.175,
+     "at": [
+      313.44,
+      -660.41
+     ]
+    },
+    {
+     "draw": 6,
+     "fromInsideRail": 6.875,
+     "across": -8.125,
+     "at": [
+      312.63,
+      -661.07
+     ]
+    },
+    {
+     "draw": 7,
+     "fromInsideRail": 7.925,
+     "across": -7.075,
+     "at": [
+      311.81,
+      -661.74
+     ]
+    },
+    {
+     "draw": 8,
+     "fromInsideRail": 8.975,
+     "across": -6.025,
+     "at": [
+      311.0,
+      -662.4
+     ]
+    },
+    {
+     "draw": 9,
+     "fromInsideRail": 10.025,
+     "across": -4.975,
+     "at": [
+      310.19,
+      -663.07
+     ]
+    },
+    {
+     "draw": 10,
+     "fromInsideRail": 11.075,
+     "across": -3.925,
+     "at": [
+      309.38,
+      -663.73
+     ]
+    },
+    {
+     "draw": 11,
+     "fromInsideRail": 12.125,
+     "across": -2.875,
+     "at": [
+      308.56,
+      -664.4
+     ]
+    },
+    {
+     "draw": 12,
+     "fromInsideRail": 13.175,
+     "across": -1.825,
+     "at": [
+      307.75,
+      -665.06
+     ]
+    },
+    {
+     "draw": 13,
+     "fromInsideRail": 14.225,
+     "across": -0.775,
+     "at": [
+      306.94,
+      -665.72
+     ]
+    },
+    {
+     "draw": 14,
+     "fromInsideRail": 15.275,
+     "across": 0.275,
+     "at": [
+      306.13,
+      -666.39
+     ]
+    },
+    {
+     "draw": 15,
+     "fromInsideRail": 16.325,
+     "across": 1.325,
+     "at": [
+      305.31,
+      -667.05
+     ]
+    },
+    {
+     "draw": 16,
+     "fromInsideRail": 17.375,
+     "across": 2.375,
+     "at": [
+      304.5,
+      -667.72
+     ]
+    },
+    {
+     "draw": 17,
+     "fromInsideRail": 18.425,
+     "across": 3.425,
+     "at": [
+      303.69,
+      -668.38
+     ]
+    },
+    {
+     "draw": 18,
+     "fromInsideRail": 19.475,
+     "across": 4.475,
+     "at": [
+      302.87,
+      -669.05
+     ]
+    },
+    {
+     "draw": 19,
+     "fromInsideRail": 20.525,
+     "across": 5.525,
+     "at": [
+      302.06,
+      -669.71
+     ]
+    },
+    {
+     "draw": 20,
+     "fromInsideRail": 21.575,
+     "across": 6.575,
+     "at": [
+      301.25,
+      -670.38
+     ]
+    },
+    {
+     "draw": 21,
+     "fromInsideRail": 22.625,
+     "across": 7.625,
+     "at": [
+      300.44,
+      -671.04
+     ]
+    },
+    {
+     "draw": 22,
+     "fromInsideRail": 23.675,
+     "across": 8.675,
+     "at": [
+      299.62,
+      -671.71
+     ]
+    },
+    {
+     "draw": 23,
+     "fromInsideRail": 24.725,
+     "across": 9.725,
+     "at": [
+      298.81,
+      -672.37
+     ]
+    },
+    {
+     "draw": 24,
+     "fromInsideRail": 25.775,
+     "across": 10.775,
+     "at": [
+      298.0,
+      -673.04
+     ]
+    },
+    {
+     "draw": 25,
+     "fromInsideRail": 26.825,
+     "across": 11.825,
+     "at": [
+      297.18,
+      -673.7
+     ]
+    },
+    {
+     "draw": 26,
+     "fromInsideRail": 27.875,
+     "across": 12.875,
+     "at": [
+      296.37,
+      -674.37
+     ]
+    }
+   ],
+   "_stalls": "at = the middle of the stall on the gate line (world x, z); fromInsideRail = metres from the inside rail; across = metres from the middle of the track (+ towards the outer rail), as the race view's v"
   }
  }
 }

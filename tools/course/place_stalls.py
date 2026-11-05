@@ -75,12 +75,13 @@ FUR = C["furlong"]
 LOOP = C["roundCourse"]["length"]
 # Every Ascot trip (the race engine's distances, courses/ascot-standards.json). Straight-course starts stand on the
 # straight course, `distance` metres up from the post (z 0 is its inside rail); round-course starts stand where the
-# distance falls on the loop (2m, 2m4f and 1m6f go past the post more than once; 2m4f starts part-way round the kink
+# distance falls on the loop (2m, 2m4f, 2m6f and 1m6f go past the post more than once; 2m4f starts part-way round the kink
 # by the chute); the round mile starts at the top of the chute.
 STRAIGHT = [("fiveFurlongs", "5f (straight)", 5 * FUR), ("sixFurlongs", "6f (straight)", 6 * FUR),
             ("sevenFurlongs", "7f (straight)", 7 * FUR), ("straightMile", "Straight mile (8f)", sm["length"])]
 ROUND = [("mileTwo", "1m2f", 10 * FUR), ("mileFour", "1m4f", 12 * FUR), ("mileSix", "1m6f", 14 * FUR),
-         ("twoMiles", "2 miles", 3218.7), ("twoMilesFour", "2m4f", 20 * FUR)]
+         ("twoMiles", "2 miles", 3218.7), ("twoMilesFour", "2m4f", 20 * FUR),
+         ("twoMilesSix", "2m6f", 22 * FUR)]
 starts = {}
 for key, label, d in STRAIGHT:
     starts[key] = {"label": label, "course": "straight", "distance": d, "rail": [d, 0.0] if key != "straightMile" else sm["stalls"],

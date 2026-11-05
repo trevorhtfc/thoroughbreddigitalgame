@@ -17,5 +17,6 @@ export const RACES = {
   r1m: { course: "roundMile", start: "roundMile" }, r1m2f: { course: "round", start: "mileTwo" },
   r1m4f: { course: "round", start: "mileFour" }, r1m6f: { course: "round", start: "mileSix" },
   r2m: { course: "round", start: "twoMiles" }, r2m4f: { course: "round", start: "twoMilesFour" },
+  r2m6f: { course: "round", start: "twoMilesSix" },
 };
 for (const [k, r] of Object.entries(RACES)) r.distance = data.stalls.starts[r.start].distance;

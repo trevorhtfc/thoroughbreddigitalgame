@@ -5,7 +5,7 @@ import { join } from "node:path";
 import { REPO } from "./data.mjs";
 const dir = join(REPO, "race-engine/check/results");
 const B = JSON.parse(readFileSync(join(dir, "bench.json"), "utf8")), E = JSON.parse(readFileSync(join(dir, "engine.json"), "utf8"));
-const NAMES = { s5f: "5f", s6f: "6f", s7f: "7f", s1m: "Straight mile", r1m: "Round mile", r1m2f: "1m2f", r1m4f: "1m4f", r1m6f: "1m6f", r2m: "2m", r2m4f: "2m4f" };
+const NAMES = { s5f: "5f", s6f: "6f", s7f: "7f", s1m: "Straight mile", r1m: "Round mile", r1m2f: "1m2f", r1m4f: "1m4f", r1m6f: "1m6f", r2m: "2m", r2m4f: "2m4f", r2m6f: "2m6f" };
 const keys = Object.keys(NAMES).filter((k) => B[k] && E[k]);
 const f2 = (v) => v.toFixed(2), pc = (v) => (v * 100).toFixed(0) + "%";
 const pair = (b, e, f) => `${f(b)} / ${f(e)}`;

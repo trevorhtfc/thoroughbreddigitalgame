@@ -270,6 +270,12 @@
    "course": "round",
    "distance": 4023.4,
    "start": "twoMilesFour"
+  },
+  "2m6f": {
+   "label": "2m6f",
+   "course": "round",
+   "distance": 4425.7,
+   "start": "twoMilesSix"
   }
  },
  "raceCameras": {
