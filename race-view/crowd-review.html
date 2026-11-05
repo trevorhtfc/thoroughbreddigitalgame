@@ -1,0 +1,2057 @@
+<meta charset="utf-8">
+<title>Crowd Review</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Jost:wght@400;500;600&family=Cormorant+SC:wght@600;700&display=swap">
+<style>
+/* Crowd review: a copy of final-furlong.html with the crowd laid out one of several ways (?crowd=A..F),
+   for the owner to compare. The race view itself is unchanged.
+   The race view's last furlong at Ascot, on the full course (courses/ascot.json, courses/ascot-view.json):
+   the 507 m main stand on the horses' left, the planting belts and boards round the far rails.
+   Panels use the board's cream, bottle green and gold. */
+:root {
+  --cream: #f4ead2;
+  --cream-edge: #b8954a;
+  --green: #1f5a38;
+  --green-ink: #183f2a;
+  --ink-soft: #4f5d4a;
+  --display: "Cormorant SC", "Times New Roman", serif;
+  --body: "Jost", "Helvetica Neue", Arial, sans-serif;
+  color-scheme: light;
+}
+[hidden] { display: none !important; }
+body.still .plate, body.still .showbar { display: none !important; }
+html, body { height: 100%; margin: 0; }
+body { background: #5f8a44; color: var(--green-ink); font-family: var(--body); overflow: hidden; }
+#scene { position: fixed; inset: 0; display: block; width: 100%; height: 100%; }
+
+.plate {
+  position: fixed;
+  top: calc(env(safe-area-inset-top, 0px) + 14px);
+  left: max(16px, env(safe-area-inset-left, 0px));
+  background: var(--cream);
+  border: 1px solid var(--cream-edge);
+  box-shadow: 0 0 0 3px var(--cream), 0 0 0 4px var(--cream-edge), 0 6px 18px rgba(40, 40, 20, 0.25);
+  border-radius: 3px;
+  padding: 8px 16px 9px;
+  display: flex; gap: 18px; align-items: center;
+}
+.plate h1 { margin: 0; font-family: var(--display); font-size: 1.45rem; letter-spacing: 0.08em; color: var(--green); line-height: 1; }
+.plate p { margin: 2px 0 0; font-size: 0.78rem; letter-spacing: 0.04em; color: var(--ink-soft); }
+.plate .togo { text-align: right; border-left: 1px solid rgba(184, 149, 74, 0.6); padding-left: 16px; }
+.plate .togo strong { display: block; font-family: var(--display); font-size: 1.35rem; color: var(--green); line-height: 1; font-variant-numeric: tabular-nums; }
+.plate .togo span { font-size: 0.7rem; letter-spacing: 0.12em; text-transform: uppercase; color: var(--ink-soft); }
+
+.bar {
+  position: fixed; left: 50%; transform: translateX(-50%);
+  bottom: calc(env(safe-area-inset-bottom, 0px) + 14px);
+  max-width: calc(100% - 32px);
+  background: var(--cream);
+  border: 1px solid var(--cream-edge);
+  border-radius: 3px;
+  box-shadow: 0 6px 18px rgba(40, 40, 20, 0.25);
+  padding: 6px 8px;
+  display: flex; flex-wrap: wrap; gap: 6px 14px; align-items: center; justify-content: center;
+}
+.showbar {
+  position: fixed; right: max(12px, env(safe-area-inset-right, 0px)); bottom: calc(env(safe-area-inset-bottom, 0px) + 12px);
+  background: var(--cream); border: 1px solid var(--cream-edge); box-shadow: 0 4px 12px rgba(40, 40, 20, 0.25); opacity: 0.85;
+}
+.group { display: flex; gap: 4px; align-items: center; }
+.group > span { font-size: 0.68rem; letter-spacing: 0.12em; text-transform: uppercase; color: var(--ink-soft); margin-right: 2px; }
+button {
+  font: 500 0.82rem var(--body); color: var(--green-ink); cursor: pointer;
+  background: transparent; border: 1px solid rgba(31, 90, 56, 0.35); border-radius: 3px; padding: 5px 9px;
+}
+button[aria-pressed="true"] { background: var(--green); color: var(--cream); border-color: var(--green); }
+button:focus-visible { outline: 2px solid var(--cream-edge); outline-offset: 2px; }
+.fps { font-variant-numeric: tabular-nums; font-size: 0.75rem; opacity: 0.8; min-width: 6.5em; }
+.diag {
+  position: fixed; top: 10px; right: 10px; z-index: 5; max-width: 360px; padding: 8px 10px;
+  background: rgba(20, 30, 22, 0.86); color: #f3ead2; border-radius: 3px; font: 12px/1.45 ui-monospace, Menlo, monospace;
+}
+.diag #diagText { white-space: pre-wrap; }
+.diag-sw { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 6px; }
+.diag-sw button { font-size: 0.72rem; padding: 3px 6px; }
+.loading {
+  position: fixed; inset: 0; display: grid; place-items: center; pointer-events: none;
+  font-family: var(--display); font-size: 1.4rem; letter-spacing: 0.1em; color: var(--cream);
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
+}
+@media (max-width: 600px) {
+  .plate { padding: 6px 12px; gap: 12px; }
+  .plate h1 { font-size: 1.15rem; }
+  .plate p { display: none; }
+  .bar { gap: 4px 10px; padding: 5px 6px; }
+  .group > span { display: none; }
+  button { padding: 5px 7px; font-size: 0.78rem; }
+}
+</style>
+
+<canvas id="scene"></canvas>
+<button id="showBar" class="showbar" type="button" hidden>Controls</button>
+<div class="loading" id="loading">Setting up the course…</div>
+
+<div class="plate">
+  <div>
+    <h1>Thoroughbred</h1>
+    <p id="courseName">Ascot</p>
+  </div>
+  <div class="togo"><strong id="toRun">5f</strong><span>to run</span></div>
+</div>
+
+<div class="bar">
+  <div class="group" id="races"><span>Race</span></div>
+  <div class="group" id="horses"><span>Horse</span></div>
+  <div class="group" id="cams"><span>Camera</span></div>
+  <div class="group" id="finish"><span>Finish</span></div>
+  <div class="group" id="quality"><span>Quality</span></div>
+  <div class="group" id="crowdOpts"><span>Crowd</span></div>
+  <div class="group"><button id="pause" type="button" aria-pressed="false">Pause</button><button id="restart" type="button">Restart</button><button id="hideBar" type="button" aria-label="Hide the controls">Hide</button></div>
+</div>
+
+<script>
+// If the page can't start (an older browser, a blocked download), say so on screen instead of hanging, with
+// what to pass on. The module code below clears window.__started when it runs.
+(function () {
+  const show = (msg) => {
+    const el = document.getElementById("loading");
+    if (!el || el.hidden) return;
+    el.style.pointerEvents = "auto"; el.style.font = "500 15px/1.5 Jost, Helvetica, Arial, sans-serif";
+    el.style.letterSpacing = "0"; el.style.textAlign = "center"; el.style.padding = "0 24px";
+    el.textContent = msg + " Browser: " + navigator.userAgent;
+  };
+  window.addEventListener("error", (e) => {
+    if (e.target && e.target !== window && e.target.tagName !== "SCRIPT") return;        // an image or font: not fatal
+    if (e.target && e.target.src && e.target.src.includes("es-module-shims")) return;     // the shim itself is optional
+    show("The course didn't start: " + (e.message || "a script failed to load") + ".");
+  }, true);
+  window.addEventListener("unhandledrejection", (e) => show("The course didn't start: " + ((e.reason && e.reason.message) || e.reason) + "."));
+  setTimeout(() => {
+    if (window.__started) return;
+    const maps = typeof HTMLScriptElement !== "undefined" && HTMLScriptElement.supports && HTMLScriptElement.supports("importmap");
+    show(maps ? "The course is taking a long time to start. If nothing changes, send Claude a screenshot." : "This browser is too old for the 3D race view (it can't load the 3D library). Updating Safari, or using Chrome, will fix it.");
+  }, 20000);
+})();
+</script>
+<!-- import maps for older Safari (before 16.4): a standard shim that does nothing where they're supported -->
+<script async src="https://cdn.jsdelivr.net/npm/es-module-shims@1.10.0/dist/es-module-shims.js"></script>
+<script type="importmap">
+{ "imports": {
+  "three": "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js",
+  "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/"
+} }
+</script>
+<script type="module">
+import * as THREE from "three";
+import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
+import { MeshoptDecoder } from "three/addons/libs/meshopt_decoder.module.js";
+import * as SkeletonUtils from "three/addons/utils/SkeletonUtils.js";
+import { RoomEnvironment } from "three/addons/environments/RoomEnvironment.js";
+import { mergeGeometries, mergeVertices } from "three/addons/utils/BufferGeometryUtils.js";
+import { SimplifyModifier } from "three/addons/modifiers/SimplifyModifier.js";
+import * as HorseV2 from "./horse-v2.js";
+
+window.__started = true;
+const params = new URLSearchParams(location.search);
+if (params.has("still")) document.body.classList.add("still");
+
+// ---------- Data (all engine-neutral files) ----------
+const COURSE = await fetch("assets/course/ascot.json").then((r) => r.json());          // the layout (world axes)
+const VIEW = await fetch("assets/course/ascot-view.json").then((r) => r.json());        // cameras, director, paths, trees
+const SILK_DATA = await fetch("assets/silks-catalogue.json").then((r) => r.json());
+const SILKS = SILK_DATA.silks;
+const COATS = [
+  { name: "Bay",      body: "#7a4a2a", points: "#1d1714" },
+  { name: "Brown",    body: "#4a2e1c", points: "#17110d" },
+  { name: "Chestnut", body: "#a3552c", points: "#6a3317" },
+  { name: "Black",    body: "#2b2523", points: "#141110" },
+  { name: "Grey",     body: "#a8a6a0", points: "#6d6b66" },
+];
+const RACE_ID = VIEW.races[params.get("race")] ? params.get("race") : "long";
+const RACE = VIEW.races[RACE_ID];
+const ROUND = RACE.course !== "straight";            // round course or round mile: the TV director's round-course rules
+// Where the stalls stand and each stall's draw (courses/ascot-stalls.json, tools/course/place_stalls.py); the race
+// engine reads the same file. The race starts as the gates open: race time 0, distance 0.
+const STALLS = await fetch("assets/course/ascot-stalls.json").then((r) => r.json());
+const START = STALLS.starts[RACE.start];
+const PRE = VIEW.startSequence;
+document.getElementById("courseName").textContent = COURSE.name + " · " + RACE.label.toLowerCase();
+
+// World axes (courses/ascot.json): x east, z south, y up; the winning post on the inside rail is the origin.
+// On the home straight the horses run towards -x between the inside rail (z 0) and the outer rail (z 30);
+// the stand's front is on z 45.4, on their left. The race itself is worked out along the course
+// (u = metres run since the start, v = across the track, 0 in the middle, + towards the outer rail) and
+// turned into world positions only to draw it, along the race's course path:
+//   round: the round course's inside rail, a closed loop in running order from the post, so a race longer
+//          than the loop passes the post more than once; straight: the straight mile's inside rail (z 0).
+const FURLONG = COURSE.furlong;
+const STRIDE_SPEED = 14.6;   // m/s at which the gallop loop matches the ground at scale 3
+// Which horse and jockey: the current one (v1, the default) or the quality test (?horse=v2, horse-v2.js).
+const HORSE_V = params.get("horse") === "v2" ? "v2" : "v1";
+const HORSE_SCALE = 3;
+const HALF_W = COURSE.trackWidth / 2;
+const MID_Z = VIEW.homeStraight.centreZ;
+const DIST = RACE.distance;                          // u at the winning line
+const LOOP = (() => {
+  const pts = COURSE.roundCourse.insideRail.points, n = pts.length, sp = COURSE.roundCourse.insideRail.spacing;
+  const tan = pts.map((_, i) => {                                     // direction at each sample: across its neighbours
+    const [px, pz] = pts[(i - 1 + n) % n], [qx, qz] = pts[(i + 1) % n], l = Math.hypot(qx - px, qz - pz) || 1;
+    return [(qx - px) / l, (qz - pz) / l];
+  });
+  return { pts, n, sp, length: n * sp, tan };
+})();
+// The round mile starts up the chute (roundMileSpur), a straight run that joins the loop.
+const SPUR = (() => {
+  const s = COURSE.roundMileSpur, [fx, fz] = s.from, [tx, tz] = s.to, l = Math.hypot(tx - fx, tz - fz);
+  return { join: s.distanceToGoAtJoin, len: l, to: s.to, dir: [(tx - fx) / l, (tz - fz) / l] };
+})();
+// A race longer than the loop passes its own start again (2 miles): its stalls are towed away after the off.
+const STALLS_COME_BACK = RACE.course === "round" && DIST > LOOP.length - 50;
+// Point on the race's inside rail with d metres still to run, and the running direction there.
+function railAt(d) {
+  if (RACE.course === "straight") return { x: d, z: 0, tx: -1, tz: 0 };
+  if (RACE.course === "roundMile" && d > SPUR.join - 15) {
+    const [dx, dz] = SPUR.dir, k = d - SPUR.join;
+    if (k >= 15) return { x: SPUR.to[0] - dx * k, z: SPUR.to[1] - dz * k, tx: dx, tz: dz };
+    // the last 15 m of the chute and the first 15 m of the loop blend one line into the other
+    const a = loopAt(d), w = THREE.MathUtils.smoothstep(k, -15, 15), cx = SPUR.to[0] - dx * k, cz = SPUR.to[1] - dz * k;
+    const tx = a.tx + (dx - a.tx) * w, tz = a.tz + (dz - a.tz) * w, tl = Math.hypot(tx, tz) || 1;
+    return { x: a.x + (cx - a.x) * w, z: a.z + (cz - a.z) * w, tx: tx / tl, tz: tz / tl };
+  }
+  return loopAt(d);
+}
+function loopAt(d) {
+  const L = LOOP.length, s = (((-d) % L) + L) % L, f = s / LOOP.sp, i = Math.floor(f) % LOOP.n, j = (i + 1) % LOOP.n, k = f - Math.floor(f);
+  const [ax, az] = LOOP.pts[i], [bx, bz] = LOOP.pts[j];
+  // the running direction blends smoothly from one 5 m sample to the next: a direction that stepped at
+  // each sample made the horses, the tracking car and the camera's aim twitch every third of a second on the bends
+  const ta = LOOP.tan[i], tb = LOOP.tan[j];
+  let tx = ta[0] + (tb[0] - ta[0]) * k, tz = ta[1] + (tb[1] - ta[1]) * k;
+  const tl = Math.hypot(tx, tz) || 1;
+  return { x: ax + (bx - ax) * k, z: az + (bz - az) * k, tx: tx / tl, tz: tz / tl };
+}
+// u along, v across -> world x, z (the outer side is on the horses' left: clockwise course)
+function toWorld(u, v) {
+  const r = railAt(DIST - u), w = HALF_W + v;
+  return [r.x + r.tz * w, r.z - r.tx * w];
+}
+// the model faces +x; turned to run along the course, plus its own drift across (yaw)
+const headingAt = (u, yaw) => { const r = railAt(DIST - u); return Math.atan2(-r.tz, r.tx) + yaw; };
+const FRONT = COURSE.grandstand.frontLine;
+
+// ---------- Renderer ----------
+const canvas = document.getElementById("scene");
+const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: "high-performance", preserveDrawingBuffer: params.has("still") });
+renderer.info.autoReset = false;
+const LAYERS = { horses: [], trees: [], rails: [], kick: [], buildings: [], crowd: [], stalls: [] };   // for the diagnostics panel
+renderer.shadowMap.enabled = true;
+// Colour handled as Blender handles the stills: AgX, lifted a third of a stop.
+renderer.toneMapping = THREE.AgXToneMapping;
+renderer.toneMappingExposure = Math.pow(2, 0.35);
+
+// Quality presets. Most of the cost is filling pixels: a Retina Mac at full resolution draws four
+// times the pixels of a normal screen, each multisampled and shadowed. "Auto" starts at Medium on
+// high-resolution screens (High elsewhere) and steps down by itself if the frame rate drops.
+const DPR = window.devicePixelRatio || 1;
+const QUALITY = {
+  high:   { label: "High",   scale: Math.min(DPR, 2),    samples: 4, shadow: 4096, soft: true,  kick: 1,    edges: true, shadowEvery: 1, crowd: 0.7 },
+  medium: { label: "Medium", scale: Math.min(DPR, 1.25), samples: 2, shadow: 2048, soft: false, kick: 0.6,  edges: true, shadowEvery: 1, crowd: 0.5 },
+  low:    { label: "Low",    scale: Math.min(DPR, 1),    samples: 0, shadow: 1024, soft: false, kick: 0.35, edges: false, shadowEvery: 2, crowd: 0.25 },
+};
+const ORDER = ["high", "medium", "low"];
+let qMode = params.get("quality") || (() => { try { return localStorage.getItem("tb-quality"); } catch { return null; } })() || "auto";
+if (qMode !== "auto" && !QUALITY[qMode]) qMode = "auto";
+let qLevel = qMode === "auto" ? (DPR > 1.5 ? "medium" : "high") : qMode;
+renderer.shadowMap.type = QUALITY[qLevel].soft ? THREE.PCFSoftShadowMap : THREE.PCFShadowMap;
+renderer.setPixelRatio(QUALITY[qLevel].scale);
+const KICK = { perSecond: 26, maxClods: 1600, share: QUALITY[qLevel].kick };   // turf kick-back
+
+const scene = new THREE.Scene();
+// Haze into the distance, as in the stills: up to 55% towards a pale blue, starting 70 m out.
+// (three.js mixes fog after its colour handling, so the haze colour is given as it should look on screen.)
+const HAZE = new THREE.Color().setRGB(0.81, 0.85, 0.89, THREE.LinearSRGBColorSpace);
+scene.fog = new THREE.Fog(HAZE, 70, 800);
+THREE.ShaderChunk.fog_fragment = `#ifdef USE_FOG
+  float fogFactor = 0.55 * (1.0 - exp(-max(vFogDepth - fogNear, 0.0) / fogFar));
+  gl_FragColor.rgb = mix(gl_FragColor.rgb, fogColor, fogFactor);
+#endif`;
+
+// Sky: the stills' painted gradient (pale at the horizon to deep blue overhead), through the same colour handling.
+{
+  const lin = (h) => new THREE.Color(h);
+  const mat = new THREE.ShaderMaterial({
+    side: THREE.BackSide, depthWrite: false, fog: false,
+    uniforms: { c0: { value: lin("#e4e6dc") }, c1: { value: lin("#b8d4ec") }, c2: { value: lin("#6faee6") }, c3: { value: lin("#3a86d6") } },
+    vertexShader: "varying vec3 vP; void main(){ vP = normalize(position); gl_Position = projectionMatrix * modelViewMatrix * vec4(position,1.0); }",
+    fragmentShader: `uniform vec3 c0, c1, c2, c3; varying vec3 vP;
+      void main(){
+        float h = max(vP.y, 0.0);
+        vec3 c = h < 0.04 ? mix(c0, c1, h / 0.04) : h < 0.14 ? mix(c1, c2, (h - 0.04) / 0.10) : mix(c2, c3, clamp((h - 0.14) / 0.31, 0.0, 1.0));
+        gl_FragColor = vec4(c * 1.05, 1.0);
+        #include <tonemapping_fragment>
+        #include <colorspace_fragment>
+      }`,
+  });
+  const sky = new THREE.Mesh(new THREE.SphereGeometry(2500, 32, 16), mat);
+  sky.renderOrder = -4;                                  // first of all, before the ground layers
+  scene.add(sky);
+  scene.userData.sky = sky;
+  // Puffy clouds over the far side: merged soft balls with flattened undersides.
+  const rc = (() => { let s = 77; return () => ((s = (s * 1664525 + 1013904223) >>> 0) / 4294967296); })();
+  const cloudMat = new THREE.MeshLambertMaterial({ color: "#f4f2ec", emissive: new THREE.Color("#9fb8d8").multiplyScalar(0.25), fog: false });
+  for (let i = 0; i < 16; i++) {
+    const W = 110 + rc() * 130, parts = [];
+    for (let k = 0, n = 5 + Math.floor(rc() * 4); k < n; k++) {
+      const r = W * (0.18 + rc() * 0.14);
+      parts.push(new THREE.IcosahedronGeometry(r, 3).translate((rc() - 0.5) * W, r * (0.1 + rc() * 0.6), (rc() - 0.5) * W * 0.3));
+    }
+    const g = mergeGeometries(parts.map((p) => p.deleteAttribute("uv") || p));
+    const p = g.attributes.position;
+    for (let k = 0; k < p.count; k++) p.setY(k, Math.max(p.getY(k), -W * 0.03));
+    g.computeVertexNormals();
+    const c = new THREE.Mesh(g, cloudMat);
+    c.position.set(-1400 + rc() * 2800, 260 + rc() * 360, -(1700 + rc() * 900));
+    c.scale.z = 0.6;
+    scene.add(c);
+  }
+}
+
+// Light, as in the stills: a warm sun (strength 5, soft-edged) from the far side and to the left,
+// and the painted sky all round. Static scenery has this light baked in by Blender; horses, jockeys,
+// crowd and rails get it live.
+const sky = new THREE.HemisphereLight(new THREE.Color("#7fb2e2"), new THREE.Color("#5c7c38"), 2.4);
+scene.add(sky);
+const sun = new THREE.DirectionalLight(new THREE.Color().setRGB(1.0, 0.9, 0.76, THREE.LinearSRGBColorSpace), 5.0);
+sun.castShadow = true;
+sun.shadow.mapSize.set(QUALITY[qLevel].shadow, QUALITY[qLevel].shadow);
+sun.shadow.radius = 4;
+Object.assign(sun.shadow.camera, { left: -45, right: 45, top: 45, bottom: -45, near: 1, far: 400 });
+{
+  const pm = new THREE.PMREMGenerator(renderer);
+  scene.environment = pm.fromScene(new RoomEnvironment(), 0.04).texture;
+  scene.environmentIntensity = 0.2;
+}
+sun.shadow.bias = -0.0005;
+sun.shadow.normalBias = 0.03;
+scene.add(sun, sun.target);
+const SUN_OFFSET = new THREE.Vector3(-110, 84, -58.5);   // Blender's sun direction, in the course's axes
+
+// ---------- Textures ----------
+// Count textures still loading, so ?still=1 screenshots wait for every image.
+let texturesPending = 0;
+const texLoader = new THREE.TextureLoader();
+const _load = texLoader.load.bind(texLoader);
+texLoader.load = (url, onLoad, onProgress, onError) => {
+  texturesPending++;
+  return _load(url, (t) => { texturesPending--; onLoad && onLoad(t); }, onProgress, (e) => { texturesPending--; onError && onError(e); });
+};
+function tex(name, repeatX = 1, repeatY = 1) {
+  const t = texLoader.load(`assets/course/${name}.jpg`);
+  t.colorSpace = THREE.SRGBColorSpace;
+  t.wrapS = t.wrapT = THREE.RepeatWrapping;
+  t.repeat.set(repeatX, repeatY);
+  t.anisotropy = renderer.capabilities.getMaxAnisotropy();
+  return t;
+}
+
+// Soft round shadow, used under trees and horses.
+const shadowTex = (() => {
+  const sc = document.createElement("canvas"); sc.width = sc.height = 128;
+  const g = sc.getContext("2d");
+  const grad = g.createRadialGradient(64, 64, 4, 64, 64, 62);
+  grad.addColorStop(0, "rgba(0,0,0,1)"); grad.addColorStop(0.6, "rgba(0,0,0,0.75)"); grad.addColorStop(1, "rgba(0,0,0,0)");
+  g.fillStyle = grad; g.fillRect(0, 0, 128, 128);
+  return new THREE.CanvasTexture(sc);
+})();
+
+function seeded(seed) { let s = seed >>> 0; return () => ((s = (s * 1664525 + 1013904223) >>> 0) / 4294967296); }
+
+// ---------- Models (glTF, repackaged for the web host) ----------
+const loader = new GLTFLoader().setMeshoptDecoder(MeshoptDecoder);   // the baked scenery is meshopt-compressed
+async function loadModel(dir, name) {
+  const text = (f) => fetch(`${dir}/${f}`).then((r) => { if (!r.ok) throw new Error(f + " " + r.status); return r.text(); });
+  // Big geometry comes in parts (tools/web/glb_to_web.py notes how many in extras.geometryParts).
+  const json = await text(`${name}.json`);
+  const parts = (JSON.parse(json).extras || {}).geometryParts;
+  const b64 = parts ? (await Promise.all(Array.from({ length: parts }, (_, k) => text(`${name}-geometry-${k}.txt`)))).map((s) => s.trim()).join("")
+                    : await text(`${name}-geometry.txt`);
+  const raw = atob(b64.trim());
+  const bin = new Uint8Array(raw.length);
+  for (let i = 0; i < raw.length; i++) bin[i] = raw.charCodeAt(i);
+  const pad = (n) => (n + 3) & ~3;
+  const jsonBytes = new TextEncoder().encode(json);
+  const jLen = pad(jsonBytes.length), bLen = pad(bin.length);
+  const glb = new Uint8Array(12 + 8 + jLen + 8 + bLen);
+  const dv = new DataView(glb.buffer);
+  dv.setUint32(0, 0x46546c67, true); dv.setUint32(4, 2, true); dv.setUint32(8, glb.length, true);
+  dv.setUint32(12, jLen, true); dv.setUint32(16, 0x4e4f534a, true);
+  glb.fill(0x20, 20, 20 + jLen); glb.set(jsonBytes, 20);
+  const b0 = 20 + jLen;
+  dv.setUint32(b0, bLen, true); dv.setUint32(b0 + 4, 0x004e4942, true);
+  glb.set(bin, b0 + 8);
+  return new Promise((resolve, reject) => loader.parse(glb.buffer, dir + "/", resolve, reject));
+}
+
+// ---------- The track, its rails and poles (course data; the pieces from Blender) ----------
+// Is a world point (x, z) on the turf? The first ring is the outline, the rest are holes.
+function inRing(r, x, z) {
+  let inside = false;
+  for (let i = 0, j = r.length - 1; i < r.length; j = i++) {
+    const [xi, zi] = r[i], [xj, zj] = r[j];
+    if ((zi > z) !== (zj > z) && x < ((xj - xi) * (z - zi)) / (zj - zi) + xi) inside = !inside;
+  }
+  return inside;
+}
+const SURF = COURSE.track.surface;
+const onTrack = (x, z) => inRing(SURF[0], x, z) && !SURF.slice(1).some((h) => inRing(h, x, z));
+function distToRails(x, z) {
+  let best = Infinity;
+  for (const line of COURSE.rails.lines) {
+    for (let i = 1; i < line.length; i++) {
+      const [ax, az] = line[i - 1], [bx, bz] = line[i];
+      const dx = bx - ax, dz = bz - az, L2 = dx * dx + dz * dz || 1;
+      const t = Math.max(0, Math.min(1, ((x - ax) * dx + (z - az) * dz) / L2));
+      best = Math.min(best, Math.hypot(x - ax - t * dx, z - az - t * dz));
+    }
+  }
+  return best;
+}
+
+// The turf right round the course, for wherever the baked ground stops, with the soft mown lanes along the
+// running line (courses/ascot-view.json -> lanes; the ground bake draws the same stripes).
+// The ground layers (plain grass, this turf, the baked ground) lie a few centimetres apart: far off the depth
+// buffer can't tell them apart and they flashed. So the two underneath are drawn first and write no depth,
+// and the baked ground simply paints over them.
+function lanesMaterial(mat) {
+  const L = VIEW.lanes;
+  if (!L) return mat;
+  const lt = texLoader.load("assets/course/" + L.map);
+  lt.flipY = false; lt.colorSpace = THREE.NoColorSpace; lt.minFilter = THREE.LinearFilter; lt.generateMipmaps = false;
+  mat.onBeforeCompile = (sh) => {
+    sh.uniforms.lanesMap = { value: lt };
+    sh.uniforms.lanesArea = { value: new THREE.Vector4(...L.area) };
+    sh.uniforms.lanesK = { value: new THREE.Vector3(L.maxDist, Math.PI * L.lanes / L.width, L.strength) };
+    sh.vertexShader = sh.vertexShader
+      .replace("#include <common>", "#include <common>\nuniform vec4 lanesArea; varying vec2 vLaneUv;")
+      .replace("#include <fog_vertex>", `#include <fog_vertex>
+        { vec4 wp = modelMatrix * vec4(transformed, 1.0); vLaneUv = (wp.xz - lanesArea.xy) / (lanesArea.zw - lanesArea.xy); }`);
+    sh.fragmentShader = sh.fragmentShader
+      .replace("#include <common>", "#include <common>\nuniform sampler2D lanesMap; uniform vec3 lanesK; varying vec2 vLaneUv;")
+      .replace("#include <color_fragment>", `#include <color_fragment>
+        { float d = texture2D(lanesMap, vLaneUv).r * lanesK.x; diffuseColor.rgb *= 1.0 + lanesK.z * cos(lanesK.y * d); }`);
+  };
+  mat.customProgramCacheKey = () => "turf-lanes";
+  return mat;
+}
+function buildTurf(colour) {
+  const shape = new THREE.Shape(SURF[0].map(([x, z]) => new THREE.Vector2(x, -z)));
+  for (const h of SURF.slice(1)) shape.holes.push(new THREE.Path(h.map(([x, z]) => new THREE.Vector2(x, -z))));
+  const g = new THREE.ShapeGeometry(shape).rotateX(-Math.PI / 2);
+  const m = new THREE.Mesh(g, lanesMaterial(new THREE.MeshBasicMaterial({ color: colour, depthWrite: false })));
+  m.position.y = -0.03;
+  m.renderOrder = -2;
+  scene.add(m);
+}
+
+function placeProps(gltf) {
+  const byName = (n) => gltf.scene.getObjectByName(n);
+  gltf.scene.traverse((o) => { if (o.isMesh) { o.castShadow = true; o.receiveShadow = true; o.material.roughness = 0.6; } });
+  // Rails: one instanced module (3 m, its track side towards -z) laid along each rail line of the course.
+  const SPACING = 3;
+  const parts = [];
+  byName("rail_module").traverse((o) => { if (o.isMesh) parts.push(o); });
+  // The finish-line assembly brings its own 30 m of rail on the far side at the post.
+  const gap = (x, z) => Math.abs(z + COURSE.rails.gap) < 1.5 && x > -16.7 && x < 16.3;
+  const spots = [];
+  for (const line of COURSE.rails.lines) {
+    // walk the line in 3 m steps
+    const pts = [];
+    let carry = 0;
+    for (let i = 1; i < line.length; i++) {
+      const [ax, az] = line[i - 1], [bx, bz] = line[i];
+      const L = Math.hypot(bx - ax, bz - az);
+      for (let d = carry; d < L; d += SPACING) pts.push([ax + (bx - ax) * d / L, az + (bz - az) * d / L]);
+      carry = (carry - L) % SPACING; if (carry < 0) carry += SPACING;
+    }
+    // which way round: the module's track side (local -z) must face the turf
+    const [p0, p1] = [pts[0], pts[1]];
+    const dx = p1[0] - p0[0], dz = p1[1] - p0[1];
+    const flip = !onTrack(p0[0] + dx * 0.5 + dz * 1.0, p0[1] + dz * 0.5 - dx * 1.0);
+    for (let i = 0; i + 1 < pts.length; i++) {
+      let [a, b] = [pts[i], pts[i + 1]];
+      if (flip) [a, b] = [b, a];
+      if (gap((a[0] + b[0]) / 2, (a[1] + b[1]) / 2)) continue;
+      spots.push([a[0], a[1], Math.atan2(-(b[1] - a[1]), b[0] - a[0])]);
+    }
+  }
+  // in chunks of 20, so the rail out of shot isn't drawn
+  const m = new THREE.Matrix4(), q = new THREE.Quaternion(), one = new THREE.Vector3(1, 1, 1), up = new THREE.Vector3(0, 1, 0), p = new THREE.Vector3();
+  const CHUNK = 20;
+  for (const part of parts) {
+    for (let c0 = 0; c0 < spots.length; c0 += CHUNK) {
+      const n = Math.min(CHUNK, spots.length - c0);
+      const rails = new THREE.InstancedMesh(part.geometry, part.material, n);
+      for (let i = 0; i < n; i++) {
+        const [x, z, yaw] = spots[c0 + i];
+        rails.setMatrixAt(i, m.compose(p.set(x, 0, z), q.setFromAxisAngle(up, yaw), one));
+      }
+      rails.computeBoundingSphere();
+      rails.castShadow = rails.receiveShadow = true;
+      scene.add(rails);
+      LAYERS.rails.push(rails);
+    }
+  }
+  // Furlong poles beyond the inside rail, up the straight mile (the round course shares the first three).
+  for (const f of COURSE.straightMile.furlongPoles) {
+    const node = byName("furlong_" + f.furlongs);
+    if (!node) continue;
+    const pole = node.clone();
+    pole.position.set(f.at[0], 0, f.at[1] - COURSE.rails.gap - 0.7);
+    scene.add(pole);
+  }
+}
+
+// ---------- The starting stalls (tools/blender/build_stalls.py; placed from courses/ascot-stalls.json) ----------
+// The kit is one bay that repeats, a closing partition, an end tower, two half-gates and the numbers. The row is
+// laid out in the start's own frame: x from the inside rail across the track, z the way the horses run.
+// Everything that doesn't move is merged into one mesh per material; the gates are instanced so they can swing.
+const STALL_GATES = [];                                   // { mesh, local (piece in the gate's frame), hinge, sign }
+let stallsGroup = null;
+function buildStalls(gltf, kit) {
+  const S = START, P = kit.pitch, T = kit.towerWidth, n = RUNNERS;
+  const [x0, z0] = S.insideRailAt, [ox, oz] = S.towardsOuterRail, [rx, rz] = S.runningDirection;
+  const row = new THREE.Matrix4().makeBasis(new THREE.Vector3(ox, 0, oz), new THREE.Vector3(0, 1, 0), new THREE.Vector3(rx, 0, rz)).setPosition(x0, 0, z0);
+  const at = (x, y = 0) => new THREE.Matrix4().makeTranslation(x, y, 0);
+  const place = [];                                       // [node name, matrix in the row's frame]
+  const units = STALLS.unitsForField[n];
+  const left = (k) => S.stalls[k - 1].fromInsideRail - P / 2;          // a stall's left edge, from the inside rail
+  units.forEach(([a, b], u) => {
+    place.push(["stall_tower", at(left(a) - T)]);
+    for (let k = a; k <= b; k++) {
+      place.push(["stall_bay", at(left(k))]);
+      place.push(["stall_num_" + k, at(left(k) + kit.numberBoard.centre[0], kit.numberBoard.centre[1])]);
+    }
+    place.push(["stall_partition", at(left(b) + P)]);
+    // a plaque over every few bays along the top board (none over a group too short for it)
+    const every = STALLS.kit.plaqueEvery || 5;
+    for (let g = a; g <= b; g += every) {
+      const h = Math.min(g + every - 1, b);
+      if (h - g >= 2) place.push(["stall_plaque", at((left(g) + left(h) + P) / 2, kit.plaque.height)]);
+    }
+    if (u === units.length - 1) place.push(["stall_tower", at(left(b) + P)]);
+  });
+  // merge the static pieces, one mesh per material
+  const byMat = new Map();
+  const keep = (g) => { for (const k of Object.keys(g.attributes)) if (k !== "position" && k !== "normal") g.deleteAttribute(k); return g; };
+  gltf.scene.updateMatrixWorld(true);
+  for (const [name, m] of place) {
+    const node = gltf.scene.getObjectByName(name);
+    if (!node) continue;
+    const inv = new THREE.Matrix4().copy(node.matrixWorld).invert();
+    node.traverse((o) => {
+      if (!o.isMesh) return;
+      const g = keep(o.geometry.clone()).applyMatrix4(new THREE.Matrix4().multiplyMatrices(row, m).multiply(inv).multiply(o.matrixWorld));
+      const key = o.material.name;
+      if (!byMat.has(key)) byMat.set(key, { mat: o.material, geoms: [] });
+      byMat.get(key).geoms.push(g);
+    });
+  }
+  stallsGroup = new THREE.Group();
+  for (const { mat, geoms } of byMat.values()) {
+    mat.roughness = Math.max(mat.roughness, 0.6);
+    const mesh = new THREE.Mesh(mergeGeometries(geoms), mat);
+    mesh.castShadow = mesh.receiveShadow = true;
+    stallsGroup.add(mesh);
+  }
+  // the gates: an instance per stall for every part of each half-gate
+  for (const [side, sign] of [["left", -1], ["right", 1]]) {
+    const node = gltf.scene.getObjectByName("stall_gate_" + side);
+    const inv = new THREE.Matrix4().copy(node.matrixWorld).invert();
+    node.traverse((o) => {
+      if (!o.isMesh) return;
+      const g = keep(o.geometry.clone()).applyMatrix4(new THREE.Matrix4().multiplyMatrices(inv, o.matrixWorld));
+      const mesh = new THREE.InstancedMesh(g, o.material, n);
+      mesh.castShadow = mesh.receiveShadow = true;
+      mesh.frustumCulled = false;
+      stallsGroup.add(mesh);
+      STALL_GATES.push({ mesh, row, hinge: (k) => left(k) + kit.gateHinge[side], sign });
+    });
+  }
+  scene.add(stallsGroup);
+  LAYERS.stalls.push(stallsGroup);
+  setGates(0);
+}
+// Swing every gate open by 'k' (0 shut, 1 fully open: STALLS.gates.openDegrees).
+const _gm = new THREE.Matrix4(), _gr = new THREE.Matrix4();
+let gatesAt = -1;
+function setGates(k) {
+  if (k === gatesAt) return;
+  gatesAt = k;
+  const a = THREE.MathUtils.degToRad(STALLS.gates.openDegrees) * k;
+  for (const g of STALL_GATES) {
+    for (let i = 0; i < g.mesh.count; i++) {
+      _gm.makeTranslation(g.hinge(i + 1), 0, 0).multiply(_gr.makeRotationY(g.sign * a));
+      g.mesh.setMatrixAt(i, _gm.premultiply(g.row));
+    }
+    g.mesh.instanceMatrix.needsUpdate = true;
+  }
+}
+// How far open the gates are at race time t (they spring open at the off, with a little bounce at the stops).
+function gateOpening(t) {
+  if (t <= 0) return 0;
+  const k = t / STALLS.gates.swingSeconds;
+  if (k >= 1.6) return 1;
+  if (k < 1) return 1 - Math.pow(1 - k, 2.2);
+  return 1 - 0.04 * Math.sin((k - 1) / 0.6 * Math.PI);
+}
+
+// ---------- Architecture: stand, site components, finish line, crowd (all from Blender, placed from data) ----------
+const ARCH = "assets/architecture";
+const crowdMeshes = [];
+
+function meshesOf(obj) { const out = []; obj.updateMatrixWorld(true); obj.traverse((o) => { if (o.isMesh) out.push(o); }); return out; }
+
+// Static scenery with Blender's lighting baked in (tools/blender/bake_static_world.py): the stand (its light
+// distant version), the site components and the finish line, drawn unlit as material colour x baked light;
+// the ground round the last two furlongs holds its own colour and light. All in world axes already.
+const BAKED = "assets/baked/";
+function bakedTex(file) {
+  const t = texLoader.load(BAKED + file);
+  t.flipY = false; t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 8;
+  return t;
+}
+function bakedMaterial(m, info, tex, key) {
+  const name = m.material.name || "";
+  let mat;
+  if (key === "ground") mat = new THREE.MeshBasicMaterial({ map: tex, color: new THREE.Color(info.scale, info.scale, info.scale) });
+  else if (name.includes("digit")) mat = new THREE.MeshBasicMaterial({ color: m.material.color.clone().multiplyScalar(2.2) });
+  else {
+    const col = m.material.color.clone();
+    if (name.endsWith("glass") && VIEW.glass) col.lerp(new THREE.Color(VIEW.glass.reflect), VIEW.glass.amount);   // sky in the glass
+    mat = new THREE.MeshBasicMaterial({ color: col, lightMap: tex, lightMapIntensity: Math.PI * info.scale });
+  }
+  mat.name = name;
+  return mat;
+}
+function placeBaked(gltf, B, dressing) {
+  for (const key of ["stand", "site", "finish", "ground"]) {
+    const info = B[key];
+    if (!info || !info.mesh) continue;
+    const node = gltf.scene.getObjectByName(info.mesh);
+    if (!node) { console.warn("Baked mesh missing:", key); continue; }
+    const tex = bakedTex(info.lightMap || info.map);
+    for (const m of meshesOf(node)) {
+      m.material = bakedMaterial(m, info, tex, key);
+      m.castShadow = false; m.receiveShadow = false;
+      if (key !== "ground") LAYERS.buildings.push(m);
+    }
+    scene.add(node);
+  }
+  if (B.site && B.site.kit && dressing) placeSiteKit(gltf, B.site, dressing.pieces);
+  // Beyond the baked ground: plain grass, and the turf right round the course, in the same light
+  // (both drawn first, writing no depth: see buildTurf).
+  const o = B.ground.outside, tf = B.ground.turf || [0.12, 0.3, 0.06];
+  const far = new THREE.Mesh(new THREE.PlaneGeometry(9000, 9000), new THREE.MeshBasicMaterial({ color: new THREE.Color(o[0], o[1], o[2]), depthWrite: false }));
+  far.rotation.x = -Math.PI / 2; far.position.set(700, -0.06, -400);
+  far.renderOrder = -3;
+  scene.add(far);
+  buildTurf(new THREE.Color(tf[0], tf[1], tf[2]));
+  // Live shadows of the field, laid over the baked turf of the home straight (pulled towards the camera in
+  // depth, so it never flashes against the ground beneath it).
+  const catcher = new THREE.Mesh(new THREE.PlaneGeometry(420, 34), new THREE.ShadowMaterial({ color: "#1d2c14", opacity: 0.38, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -4 }));
+  catcher.rotation.x = -Math.PI / 2; catcher.position.set(60, 0.03, MID_Z);
+  catcher.receiveShadow = true;
+  scene.add(catcher);
+}
+
+// The site components, instanced: the bake made one mesh per piece and quarter turn (bake.json -> site.kit,
+// each in the piece's own axes), so the download holds each piece once however many copies stand round the
+// course. Every copy in courses/ascot-site-dressing.json is drawn from it: one batch per material (one draw
+// each where the browser has WEBGL_multi_draw), and copies out of shot are skipped one by one.
+function placeSiteKit(gltf, info, pieces) {
+  const tex = bakedTex(info.lightMap);
+  const quarter = (t) => (((Math.round(t / 90) % 4) + 4) % 4);
+  const byMat = new Map();
+  for (const [vkey, nodeName] of Object.entries(info.kit)) {
+    const node = gltf.scene.getObjectByName(nodeName);
+    if (!node) { console.warn("Kit piece missing:", nodeName); continue; }
+    for (const m of meshesOf(node)) {
+      const name = m.material.name || "";
+      if (!byMat.has(name)) byMat.set(name, { mat: bakedMaterial(m, info, tex, "site"), parts: new Map() });
+      const g = m.geometry.clone().applyMatrix4(m.matrixWorld);
+      for (const k of Object.keys(g.attributes)) if (!["position", "normal", "uv"].includes(k)) g.deleteAttribute(k);
+      byMat.get(name).parts.set(vkey, g);
+    }
+  }
+  const m4 = new THREE.Matrix4();
+  for (const { mat, parts } of byMat.values()) {
+    const use = pieces.filter((p) => parts.has(p.piece + "_q" + quarter(p.turn || 0)));
+    if (!use.length) continue;
+    let nv = 0, ni = 0;
+    for (const g of parts.values()) { nv += g.attributes.position.count; ni += g.index.count; }
+    const batch = new THREE.BatchedMesh(use.length, nv, ni, mat);
+    batch.sortObjects = false;
+    const ids = new Map();
+    for (const [vkey, g] of parts) ids.set(vkey, batch.addGeometry(g));
+    for (const p of use) {
+      const id = batch.addInstance(ids.get(p.piece + "_q" + quarter(p.turn || 0)));
+      batch.setMatrixAt(id, m4.makeRotationY(Math.PI + (p.turn || 0) * Math.PI / 180).setPosition(p.x, 0, p.z));
+    }
+    batch.castShadow = batch.receiveShadow = false;
+    scene.add(batch);
+    LAYERS.buildings.push(batch);
+  }
+  console.log("site kit:", Object.keys(info.kit).length, "pieces baked,", pieces.length, "placed,", byMat.size, "batches");
+}
+
+// Planting belts (tools/blender/build_planting.py, placed from courses/ascot-planting.json): Thoroughbred
+// boards just behind the far rails, a low dense hedge closing the view at eye level, and rows of the
+// leafy trees behind and above it. Lit live like the loose trees.
+const TD = VIEW.treeDetail;
+const isNear = (x, z) => Math.hypot(x - TD.centre[0], z - TD.centre[1]) < TD.nearRadius;
+function placeBelts(gltf, planting, treeLib) {
+  const hedge = gltf.scene.getObjectByName("planting_hedge");
+  if (hedge) {
+    for (const m of meshesOf(hedge)) {
+      m.material = new THREE.MeshLambertMaterial({ vertexColors: true });
+      LAYERS.trees.push(m);
+    }
+    scene.add(hedge);
+  }
+  if (!planting) return;
+  const m4 = new THREE.Matrix4(), q = new THREE.Quaternion(), one = new THREE.Vector3(1, 1, 1), sc = new THREE.Vector3(), p = new THREE.Vector3(), up = new THREE.Vector3(0, 1, 0);
+  const byDesign = new Map();
+  for (const b of planting.boards) { if (!byDesign.has(b[3])) byDesign.set(b[3], []); byDesign.get(b[3]).push(b); }
+  for (const [design, list] of byDesign) {
+    const node = gltf.scene.getObjectByName("board_" + design);
+    if (!node) continue;
+    for (const part of meshesOf(node)) {
+      const mat = new THREE.MeshLambertMaterial({ color: part.material.color, map: part.material.map || null });
+      const inst = new THREE.InstancedMesh(part.geometry, mat, list.length);
+      list.forEach(([x, z, turn], i) => inst.setMatrixAt(i, m4.compose(p.set(x, 0, z), q.setFromAxisAngle(up, turn * Math.PI / 180), one)));
+      inst.computeBoundingSphere();
+      scene.add(inst);
+      LAYERS.trees.push(inst);
+    }
+  }
+  if (treeLib) instanceTrees(treeLib, planting.trees.map(([x, z, tree, s, turn]) => ({ x, z, tree, s, turn, belt: true })));
+}
+
+// Instance tree models: full crowns near the action, light crowns further off (see treeDetail).
+const treeMat = new THREE.MeshLambertMaterial({ vertexColors: true });
+function instanceTrees(gltf, list) {
+  const groups = new Map();
+  for (const t of list) {
+    const near = isNear(t.x, t.z);
+    const parts = [near ? "_crown" : "_crown_far"].concat(near || !t.belt ? ["_trunk"] : []);
+    for (const part of parts) {
+      const key = t.tree + part;
+      if (!groups.has(key)) groups.set(key, []);
+      groups.get(key).push(t);
+    }
+  }
+  const m4 = new THREE.Matrix4(), q = new THREE.Quaternion(), sc = new THREE.Vector3(), p = new THREE.Vector3(), up = new THREE.Vector3(0, 1, 0);
+  for (const [key, ts] of groups) {
+    const node = gltf.scene.getObjectByName(key) || gltf.scene.getObjectByName(key.replace("_far", ""));
+    if (!node) continue;
+    for (const mesh of meshesOf(node)) {
+      const inst = new THREE.InstancedMesh(mesh.geometry, treeMat, ts.length);
+      ts.forEach((t, i) => { q.setFromAxisAngle(up, (t.turn || 0) * Math.PI / 180); sc.set(t.s, t.s * (t.sy || 1), t.s); inst.setMatrixAt(i, m4.compose(p.set(t.x, 0, t.z), q, sc)); });
+      inst.computeBoundingSphere();
+      scene.add(inst);
+      LAYERS.trees.push(inst);
+    }
+  }
+}
+
+// The stills' leafy trees (tools/blender/export_trees.py), scattered where courses/ascot-view.json says:
+// behind the stand, round the enclosures, in the infield and beyond the bend. Vertex colours carry the
+// stills' dark-base-to-sunlit-top colouring; normals are bent out from each crown's centre.
+function placeTrees(gltf, dressing) {
+  const names = ["oak_a", "oak_b", "oak_c", "wide_a", "wide_b", "poplar_a"];
+  const rnd = seeded(11);
+  const CL = VIEW.clearOf, S = CL.stand;
+  const pieces = (dressing && dressing.pieces) || [];
+  const clear = (x, z) => (x > S[0] && x < S[2] && z > S[1] && z < S[3])
+    || onTrack(x, z) || distToRails(x, z) < CL.track
+    || pieces.some((p) => Math.abs(p.x - x) < CL.pieces && Math.abs(p.z - z) < CL.pieces);
+  const spots = [];
+  for (const a of VIEW.trees) {
+    const [x0, x1] = [Math.min(a.area[0], a.area[2]), Math.max(a.area[0], a.area[2])];
+    const [z0, z1] = [Math.min(a.area[1], a.area[3]), Math.max(a.area[1], a.area[3])];
+    for (let z = z0; z < z1; z += a.spacing) {
+      for (let x = x0 + rnd() * a.spacing; x < x1; x += a.spacing * (0.7 + rnd() * 0.6)) {
+        if (rnd() < (a.skip || 0)) continue;
+        const n = a.clump ? a.clump[0] + Math.floor(rnd() * (a.clump[1] - a.clump[0] + 1)) : 1;
+        for (let k = 0; k < n; k++) {
+          const tx = x + (rnd() - 0.5) * (n > 1 ? 14 : a.spacing * 0.6), tz = z + (rnd() - 0.5) * (n > 1 ? 10 : a.spacing * 0.6);
+          if (!clear(tx, tz)) spots.push({ x: tx, z: tz, s: a.scale[0] + rnd() * (a.scale[1] - a.scale[0]) });
+        }
+      }
+    }
+  }
+  for (const sp of spots) { sp.tree = names[Math.floor(rnd() * names.length)]; sp.turn = rnd() * 360; sp.sy = 0.92 + rnd() * 0.18; }
+  instanceTrees(gltf, spots);
+  const m4 = new THREE.Matrix4(), q = new THREE.Quaternion(), sc = new THREE.Vector3(), p = new THREE.Vector3();
+  // Soft shadows on the grass, falling away from the sun.
+  console.log("trees:", spots.length);
+  const shadows = new THREE.InstancedMesh(new THREE.PlaneGeometry(1, 1), new THREE.MeshBasicMaterial({ map: shadowTex, color: "#1f3318", transparent: true, opacity: 0.45, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -4 }), spots.length);
+  const sunFlat = new THREE.Vector2(-SUN_OFFSET.x, -SUN_OFFSET.z).normalize();
+  const ang = Math.atan2(sunFlat.y, sunFlat.x);
+  spots.forEach((t, i) => {
+    const h = 11 * t.s;
+    p.set(t.x + sunFlat.x * h * 0.35, 0.04, t.z + sunFlat.y * h * 0.35);
+    q.setFromEuler(new THREE.Euler(-Math.PI / 2, 0, -ang, "YXZ"));
+    shadows.setMatrixAt(i, m4.compose(p, q, sc.set(h * 0.95, h * 0.6, 1)));
+  });
+  shadows.frustumCulled = false;
+  scene.add(shadows);
+  LAYERS.trees.push(shadows);
+}
+
+// ---------- Crowd options, for review (?crowd=A..F) ----------
+// The same four simple figures as the race view (crowd_people.glb, unchanged); each option changes only
+// where they stand, how many, their heights, the colours they wear and a few props (crowd_props.glb:
+// parasols, picnic blankets, hampers, built by tools/blender/build_crowd_props.py).
+//   rail: how the crowd along the running rails is laid out     lawn: the lawn between the near rail and the stand
+//   boxes: the crowd areas in courses/ascot-site-dressing.json (carnival, enclosures)
+//   stand: the stand's verandas and balconies                  seats: the seats and floors on the site pieces
+const CROWD_OPTIONS = {
+  A: { label: "Today", note: "the race view's crowd as it is", rail: "today", lawn: "today", boxes: "today", stand: "today", seats: "today", palette: "heritage" },
+  B: { label: "Ragged rail", note: "clusters and gaps along the rails, a ragged back edge, groups behind",
+       rail: "ragged", lawn: "ragged", boxes: "ragged", stand: "today", seats: "today", palette: "heritage" },
+  C: { label: "Full house", note: "packed rails, lawn and stand, varied heights, the crowd further up the straight",
+       rail: "packed", lawn: "packed", boxes: "packed", stand: "full", seats: "full", heights: true, full: [-110, 330], palette: "heritage" },
+  D: { label: "Garden party", note: "ragged rails; lawn and carnival in small groups, picnics on blankets, some seated",
+       rail: "ragged", lawn: "groups", boxes: "picnic", stand: "today", seats: "full", heights: true, palette: "heritage" },
+  E: { label: "Royal Ascot summer", note: "Full house in a summer palette: pastels, bright hats, grey morning dress",
+       rail: "packed", lawn: "packed", boxes: "packed", stand: "full", seats: "full", heights: true, full: [-110, 330], palette: "summer" },
+  F: { label: "Summer garden party", note: "Garden party in the summer palette, with parasols",
+       rail: "ragged", lawn: "groups", boxes: "picnic", stand: "today", seats: "full", heights: true, palette: "summer", parasols: 0.22 },
+};
+const CROWD_ID = CROWD_OPTIONS[(params.get("crowd") || "A").toUpperCase()] ? (params.get("crowd") || "A").toUpperCase() : "A";
+const CO = CROWD_OPTIONS[CROWD_ID];
+const SUMMER = {
+  suits: ["#3a3f4a", "#5d6168", "#7b7f86", "#2f3746", "#8d8a80", "#cfc5ae", "#a9b6c4", "#4a4f45", "#62666d"],
+  dresses: ["#f0b9c4", "#b8d5ea", "#f4e3a1", "#c5e0bd", "#dcc8ec", "#f6d2bb", "#f3eee2", "#ec9d8b", "#9cc7c0", "#e7a8c9", "#6f8fc0", "#c9606f", "#fff3d6"],
+  hats_gent: ["#1c1c20", "#1c1c20", "#1c1c20", "#62656b", "#62656b", "#d6c590"],
+  hats_lady: ["#e2577a", "#f3cf55", "#f7f3ea", "#6fb0dd", "#b48ad6", "#ef8a5c", "#2a2a2e", "#f4b6c8", "#7cc0a0", "#ffffff"],
+};
+const PROP_COLOURS = {
+  blanket: ["#c4554a", "#3f7a5c", "#e8dcc0", "#5b78a6", "#d9a248", "#f2ece0", "#a8485a", "#7fa6b8"],
+  hamper: ["#a77d48", "#94693a", "#b98d55"],
+  canopy: ["#f7f3ea", "#f2c6d0", "#bcd9ee", "#f3e2a6", "#d6eccd", "#e3d0f0", "#ffffff", "#f0b49c", "#f7f3ea"],
+  pole: ["#3a2e26", "#d8d2c4", "#2a2a2e"],
+};
+// Anyone sat on the grass is a standing figure lowered into it, cut off at the ground in the shader.
+const CROWD_CLIP = CO.lawn === "groups" || CO.boxes === "picnic" ? 0.015 : -100;
+
+// Smooth value noise, for clusters and gaps (0..1, about 0.5 on average).
+function valueNoise2(seed) {
+  const r = seeded(seed), N = 256, P = new Float32Array(N * N).map(() => r());
+  const at = (i, j) => P[(((i % N) + N) % N) * N + (((j % N) + N) % N)];
+  return (x, z) => {
+    const i = Math.floor(x), j = Math.floor(z), fx = x - i, fz = z - j, sx = fx * fx * (3 - 2 * fx), sz = fz * fz * (3 - 2 * fz);
+    const a = at(i, j), b = at(i + 1, j), c = at(i, j + 1), d = at(i + 1, j + 1);
+    return a + (b - a) * sx + (c - a) * sz + (a - b - c + d) * sx * sz;
+  };
+}
+const _vn = valueNoise2(5);
+const fbm = (x, z) => 0.55 * _vn(x, z) + 0.3 * _vn(x * 2.1 + 17.3, z * 2.1 + 5.1) + 0.15 * _vn(x * 4.3 + 3.7, z * 4.3 + 11.9);
+const smooth = THREE.MathUtils.smoothstep;
+
+// Crowd: four simple figures, instanced (one draw call per figure part), tinted per person. Packed along
+// the near rail and thinning back to the stand, the stand's balconies, verandas and steps, the seats and
+// floors on the site pieces, and the dressing's crowd areas. Full along the final furlong and round the
+// post; thinner up the straight, where it is only ever seen from afar.
+const CROWD_FULL = CO.full || [-110, 220];
+const crowdKeep = (x, rnd) => (x >= CROWD_FULL[0] && x <= CROWD_FULL[1]) || rnd() < 0.12;
+const PROPS = { blanket: [], hamper: [] };
+function buildCrowd(gltf, data, pieceAt, propsGltf) {
+  const rnd = seeded(21);
+  const pick = (a) => a[Math.floor(rnd() * a.length)];
+  const P = CO.palette === "summer" ? Object.assign({}, data.palette, SUMMER) : data.palette;
+  const spots = [];
+  const add = (x, y, z, seated = false, extra) => { if (crowdKeep(x, rnd)) spots.push(Object.assign({ x, y, z, seated }, extra)); };
+  const S0 = -102.5, S1 = 405;                                  // the stand's west and east ends
+  const nearRail = COURSE.trackWidth + COURSE.rails.gap;
+  const clearBoxes = data.dressing?.keepClear || [];
+  const blocked = (x, z) => clearBoxes.some((b) => x > b[0] - 0.3 && x < b[2] + 0.3 && z > b[1] - 0.3 && z < b[3] + 0.3);
+  // the stand's steps down to the lawn stay clear
+  const steps = (data.areas || []).filter((a) => a.kind === "steps").map((a) => [a.x0 - 0.5, FRONT + a.z0 - 0.4, a.x1 + 0.5, FRONT + 0.5]);
+  const onSteps = (x, z) => steps.some((b) => x > b[0] && x < b[2] && z > b[1] && z < b[3]);
+  const face = (x, z, tx, tz) => Math.atan2(-(tx - x), -(tz - z));        // yaw that turns a figure (facing -z) towards (tx, tz)
+
+  // Little groups: a few standing round in a ring talking, a pair, a loose knot watching, or a picnic.
+  // Each person can carry its own facing (yaw), a sit-on-the-grass flag (sink) and a child flag (kid).
+  const group = (cx, cz, kind, ok, put, zone) => {
+    if (kind === "ring" || kind === "pair") {
+      const n = kind === "pair" ? 2 : 3 + Math.floor(rnd() * 4), r = kind === "pair" ? 0.42 : 0.38 + 0.1 * n, a0 = rnd() * 6.283;
+      for (let k = 0; k < n; k++) {
+        const a = a0 + (k / n) * 6.283 + (rnd() - 0.5) * 0.5, x = cx + Math.cos(a) * r, z = cz + Math.sin(a) * r;
+        if (ok(x, z)) put(x, 0, z, false, { yaw: face(x, z, cx, cz) + (rnd() - 0.5) * 0.4, zone, kid: CO.heights && rnd() < 0.06 });
+      }
+    } else if (kind === "knot") {
+      const n = 3 + Math.floor(rnd() * 6);
+      for (let k = 0; k < n; k++) {
+        const x = cx + (rnd() - 0.5) * 2.6, z = cz + (rnd() - 0.5) * 2.0;
+        if (ok(x, z)) put(x, 0, z, false, { zone, kid: CO.heights && rnd() < 0.08 });
+      }
+    } else if (kind === "picnic") {
+      const w = 1.7 + rnd() * 0.6, d = 1.3 + rnd() * 0.4, turn = rnd() * 3.1416, c = Math.cos(turn), s = Math.sin(turn);
+      const corners = [[-w / 2, -d / 2], [w / 2, -d / 2], [-w / 2, d / 2], [w / 2, d / 2]];
+      if (!corners.every(([u, v]) => ok(cx + u * c + v * s, cz - u * s + v * c))) return;
+      PROPS.blanket.push({ x: cx, z: cz, turn, w, d, col: pick(PROP_COLOURS.blanket) });
+      if (rnd() < 0.55) {
+        const u = (rnd() < 0.5 ? -1 : 1) * w * 0.32, v = (rnd() - 0.5) * d * 0.4;
+        PROPS.hamper.push({ x: cx + u * c + v * s, z: cz - u * s + v * c, turn: turn + (rnd() - 0.5), col: pick(PROP_COLOURS.hamper) });
+      }
+      const n = 2 + Math.floor(rnd() * 3);
+      for (let k = 0; k < n; k++) {                              // sat round the edge of the blanket, facing in
+        const a = (k / n) * 6.283 + rnd() * 0.6, u = Math.cos(a) * w * 0.36, v = Math.sin(a) * d * 0.34;
+        const x = cx + u * c + v * s, z = cz - u * s + v * c;
+        put(x, 0, z, false, { yaw: face(x, z, cx, cz) + (rnd() - 0.5) * 0.5, zone, sink: true, kid: CO.heights && rnd() < 0.15 });
+      }
+      for (let k = 0, m = Math.floor(rnd() * 2.4); k < m; k++) {  // and one or two stood beside it
+        const a = rnd() * 6.283, x = cx + Math.cos(a) * (w * 0.5 + 0.5), z = cz + Math.sin(a) * (d * 0.5 + 0.5);
+        if (ok(x, z)) put(x, 0, z, false, { yaw: face(x, z, cx, cz), zone });
+      }
+    }
+  };
+  const groupKind = (picnics) => { const r = rnd(); return r < picnics ? "picnic" : r < picnics + 0.35 ? "ring" : r < picnics + 0.55 ? "pair" : "knot"; };
+
+  // A rail crowd laid along x: its front row 'front' metres behind the rail, its depth varying along the
+  // rail (clusters several deep, thin stretches and the odd gap), its back edge ragged.
+  // dir +1: the crowd stands on the +z side of the rail (the stand side); -1: the -z side (the far side).
+  // Returns the depth along x, so the lawn behind it can start where it stops.
+  const railBand = ({ x0, x1, zRail, dir, front, maxDepth, mode, put, ok = () => true, zone = "rail", fill = 1 }) => {
+    const depthAt = (x) => {
+      const n = fbm(x / 13 + (dir > 0 ? 0 : 50), 3.3), g = fbm(x / 4.2 + 90, 7.7);
+      let d = mode === "packed" ? 2.6 + 6.5 * smooth(n, 0.3, 0.72) : 0.4 + 6.2 * smooth(n, 0.32, 0.74);
+      if (mode === "packed" ? g < 0.27 : g < 0.36) d = mode === "packed" ? Math.min(d, 1.4) : g < 0.3 ? -1 : Math.min(d, 0.7);
+      return Math.min(d, maxDepth);
+    };
+    const p0 = (mode === "packed" ? 0.94 : 0.86) * fill;
+    for (let x = x0; x < x1; x += 0.6) {
+      const depth = depthAt(x);
+      if (depth < 0) continue;
+      for (let d = 0; d < depth + 1.4; d += 0.66) {
+        const p = p0 * (1 - smooth(d, depth - 1.0, depth + 1.2));
+        if (rnd() >= p) continue;
+        const px = x + (rnd() - 0.5) * 0.3, pz = zRail + dir * (front + d + (rnd() - 0.5) * 0.3);
+        if (ok(px, pz)) put(px, 0, pz, false, { zone, yaw: (dir > 0 ? 0 : Math.PI) + (rnd() - 0.5) * (d < 1 ? 0.5 : 1.0) });
+      }
+    }
+    return depthAt;
+  };
+
+  // ---- the lawn between the near rail and the stand ----
+  const lawnBack = FRONT - 1.0;
+  if (CO.lawn === "today") {
+    for (let z = nearRail + 1.6; z < FRONT - 1.5; z += 0.7) {
+      const d = z - nearRail;
+      const density = d < 4 ? 0.8 : d < 8 ? 0.35 : 0.08;
+      for (let x = S0 - 6; x < S1; x += 0.62) if (rnd() < density) add(x + (rnd() - 0.5) * 0.4, 0, z + (rnd() - 0.5) * 0.4);
+    }
+    for (let g = 0; g < 40; g++) {
+      const gx = S0 + rnd() * 360, gz = nearRail + 6 + rnd() * (FRONT - nearRail - 8);
+      const n = 3 + Math.floor(rnd() * 6);
+      for (let k = 0; k < n; k++) add(gx + (rnd() - 0.5) * 2.4, 0, gz + (rnd() - 0.5) * 1.8);
+    }
+  } else {
+    const okLawn = (x, z) => z > nearRail + 1.2 && z < lawnBack && !onSteps(x, z) && !blocked(x, z);
+    const depthAt = railBand({ x0: S0 - 6, x1: S1, zRail: nearRail, dir: 1, front: 1.3, maxDepth: lawnBack - nearRail - 2, mode: CO.rail, put: add, ok: okLawn });
+    const behind = (x, z) => z > nearRail + 1.3 + Math.max(0, depthAt(x)) + 0.9;
+    if (CO.lawn === "packed") {
+      // filled to the stand in drifts: thick in places, thinner in others, never quite empty
+      for (let z = nearRail + 2; z < lawnBack; z += 0.68) for (let x = S0 - 6; x < S1; x += 0.6) {
+        if (!behind(x, z)) continue;
+        const n = fbm(x / 15 + 7, z / 6 + 2);
+        if (rnd() < 0.1 + 0.55 * smooth(n, 0.32, 0.7) + 0.2 * smooth(z, lawnBack - 2.5, lawnBack)) {   // and a line along the stand's front
+          const px = x + (rnd() - 0.5) * 0.3, pz = z + (rnd() - 0.5) * 0.3;
+          if (okLawn(px, pz)) add(px, 0, pz, false, { zone: "lawn" });
+        }
+      }
+    } else {
+      // a light scatter, thicker in patches, and groups dotted over the rest
+      for (let z = nearRail + 2; z < lawnBack; z += 0.7) for (let x = S0 - 6; x < S1; x += 0.62) {
+        if (!behind(x, z)) continue;
+        const n = fbm(x / 12 + 3, z / 5 + 9);
+        if (rnd() < (CO.lawn === "groups" ? 0.02 : 0.04) + 0.22 * smooth(n, 0.55, 0.75)) {
+          const px = x + (rnd() - 0.5) * 0.4, pz = z + (rnd() - 0.5) * 0.4;
+          if (okLawn(px, pz)) add(px, 0, pz, false, { zone: "lawn" });
+        }
+      }
+      const ng = CO.lawn === "groups" ? 230 : 120;
+      for (let g = 0; g < ng; g++) {
+        const gx = S0 - 4 + rnd() * (S1 - S0 + 4), gz = nearRail + 4 + rnd() * (lawnBack - nearRail - 5);
+        if (!behind(gx, gz - 1.2)) continue;
+        group(gx, gz, CO.lawn === "groups" ? groupKind(0) : "knot", (x, z) => okLawn(x, z) && behind(x, z - 0.6), add, "lawn");
+      }
+    }
+  }
+  // ---- the stand's verandas, balconies, galleries and steps (areas relative to the clock tower on the front line) ----
+  const full = CO.stand === "full";
+  for (const a of data.areas || []) {
+    if (a.kind === "lawn_front_line") continue;
+    const deep = a.z1 - a.z0;
+    const rows = full ? (deep < 1.4 ? 1 : deep < 2.1 ? 2 : 3) : deep < 1.4 ? 1 : 2;
+    for (let r = 0; r < rows; r++) {
+      const lz = a.z0 + 0.15 + r * (full ? 0.68 : 0.75);
+      for (let x = a.x0; x < a.x1; x += full ? 0.56 : 0.62) {
+        const fill = a.kind === "steps" ? (full ? 0.6 : 0.35) : full ? [0.93, 0.8, 0.55][r] : r === 0 ? 0.78 : 0.4;
+        if (rnd() >= fill) continue;
+        let y = a.floor;
+        if (a.kind === "steps") y = 3.0 * (lz - a.z0 + 0.3) / (a.z1 - a.z0 + 0.6);
+        add(x + (rnd() - 0.5) * 0.2, y, FRONT + lz, false, { zone: "stand" });
+      }
+    }
+  }
+  // ---- seats and floors on the site pieces ----
+  const v = new THREE.Vector3();
+  for (const p of data.dressing?.pieces || []) {
+    const sp = data.spots?.[p.piece];
+    if (!sp) continue;
+    const at = pieceAt(p);
+    for (const [kind, fill] of CO.seats === "full" ? [["seats", 0.9], ["stand", 0.9]] : [["seats", 0.62], ["stand", 0.7]]) {
+      for (const [lx, ly, lz] of sp[kind] || []) {
+        if (rnd() >= fill) continue;
+        v.set(lx, lz, -ly).applyMatrix4(at);                 // Blender (x, y, z) -> glTF (x, z, -y)
+        spots.push({ x: v.x, y: v.y, z: v.z, seated: kind === "seats", zone: "seat" });
+      }
+    }
+  }
+  // ---- the dressing's crowd areas, keeping everyone out of the pieces' footprints (dressing.keepClear: world boxes) ----
+  const put = (x, y, z, seated, extra) => spots.push(Object.assign({ x, y, z, seated }, extra));
+  for (const c of data.dressing?.crowds || []) {
+    const [x0, x1] = c.x, [z0, z1] = c.z;
+    const inBox = (x, z) => x > x0 && x < x1 && z > z0 && z < z1 && !blocked(x, z);
+    if (CO.boxes === "today") {
+      const n = Math.floor((x1 - x0) * (z1 - z0) * c.density);
+      for (let i = 0; i < n; i++) {
+        const x = x0 + rnd() * (x1 - x0), z = z0 + rnd() * (z1 - z0);
+        if (!blocked(x, z)) spots.push({ x, y: 0, z });
+      }
+      continue;
+    }
+    const rail = /far rail|along the rail/.test(c.note || "");
+    const packed = CO.boxes === "packed";
+    if (rail) {
+      // the rail side is the edge nearer the middle of the track
+      const towards = z1 < MID_Z ? -1 : 1, zRail = towards < 0 ? z1 + 0.7 : z0 - 0.7;
+      railBand({ x0, x1, zRail, dir: towards, front: 1.0, maxDepth: z1 - z0 - 0.3, mode: packed ? "packed" : "ragged",
+                 put, ok: inBox, zone: "rail", fill: Math.min(1, c.density / 1.4) });
+      continue;
+    }
+    // open ground: drifts and gaps on a jittered grid (no one standing inside anyone else)
+    const share = CO.boxes === "picnic" ? 0.45 : 1;
+    const target = c.density * (packed ? 1.7 : 1) * share;
+    for (let z = z0 + 0.35; z < z1; z += 0.68) for (let x = x0 + 0.3; x < x1; x += 0.6) {
+      const n = fbm(x / 14 + 31, z / 9 + 13);
+      if (rnd() >= target / 2.45 * 2.0 * smooth(n, 0.3, 0.72)) continue;
+      const px = x + (rnd() - 0.5) * 0.3, pz = z + (rnd() - 0.5) * 0.3;
+      if (inBox(px, pz)) put(px, 0, pz, false, { zone: "box", yaw: (z0 < 0 ? Math.PI : 0) + (rnd() - 0.5) * 2.2, kid: CO.heights && rnd() < 0.04 });
+    }
+    if (CO.boxes === "picnic") {
+      // the rest in groups: picnics where there's room, rings, pairs and knots
+      const ng = Math.round((x1 - x0) * (z1 - z0) * c.density * 0.55 / 4);
+      for (let g = 0; g < ng; g++) group(x0 + 1 + rnd() * (x1 - x0 - 2), z0 + 1 + rnd() * (z1 - z0 - 2), groupKind(0.4), inBox, put, "box");
+    }
+  }
+  // shuffle, so lowering the quality thins the crowd evenly instead of emptying whole areas
+  for (let i = spots.length - 1; i > 0; i--) { const j = Math.floor(rnd() * (i + 1)); [spots[i], spots[j]] = [spots[j], spots[i]]; }
+
+  const figures = ["person_gent_tophat", "person_gent", "person_lady", "person_lady_b"].map((n) => gltf.scene.getObjectByName(n)).filter(Boolean);
+  const byFig = figures.map(() => []);
+  for (const s of spots) byFig[s.kid ? (rnd() < 0.5 ? 1 : 3) : Math.floor(rnd() * figures.length)].push(s);
+  const m = new THREE.Matrix4(), q = new THREE.Quaternion(), sc = new THREE.Vector3(), pos = new THREE.Vector3(), up = new THREE.Vector3(0, 1, 0);
+  const col = new THREE.Color();
+  const parasols = [];
+  const height = (s) => s.kid ? 0.6 + rnd() * 0.12 : CO.heights ? 0.99 + (rnd() + rnd() + rnd() - 1.5) * 0.11 : 0.94 + rnd() * 0.12;
+  figures.forEach((fig, fi) => {
+    const lady = fig.name.includes("lady");
+    const people = byFig[fi].map((s) => ({ s, L: {
+      clothes: pick(lady ? P.dresses : P.suits), skin: pick(P.skin), hat: pick(lady ? P.hats_lady : P.hats_gent),
+      yaw: (rnd() - 0.5) * 1.2, s: height(s),            // facing the track, as on the stands side before
+    } }));
+    // Sort into 25 m cells (keeping the shuffled order inside each cell), so whole cells can be skipped when
+    // out of shot and switched to the light figures when far off, each a single block copy.
+    const CELL = 25, cells = new Map();
+    for (const p of people) {
+      const key = Math.floor(p.s.x / CELL) + "," + Math.floor(p.s.z / CELL);
+      if (!cells.has(key)) cells.set(key, []);
+      cells.get(key).push(p);
+    }
+    const n = people.length;
+    const F = { n, mats: new Float32Array(16 * n), cols: [new Float32Array(3 * n), new Float32Array(3 * n), new Float32Array(3 * n)], cells: [] };
+    let i = 0;
+    for (const list of cells.values()) {
+      const box = new THREE.Box3();
+      const start = i;
+      for (const { s, L } of list) {
+        pos.set(s.x, s.sink ? s.y - 0.76 * L.s : s.y, s.z);
+        q.setFromAxisAngle(up, s.yaw !== undefined ? s.yaw : s.z < 0 ? L.yaw + Math.PI : L.yaw);
+        sc.set(L.s, L.s * (s.seated ? 0.7 : 1), L.s);
+        m.compose(pos, q, sc).toArray(F.mats, 16 * i);
+        ["clothes", "skin", "hat"].forEach((k, j) => col.set(L[k]).toArray(F.cols[j], 3 * i));
+        box.expandByPoint(pos);
+        // a parasol for some of the ladies out on the grass (fewer in the thick of the rail crowd)
+        if (CO.parasols && lady && !s.kid && !s.seated && !s.sink && s.y === 0 && rnd() < CO.parasols * (s.zone === "rail" ? 0.3 : s.zone ? 1 : 0)) {
+          parasols.push({ m: m.clone(), cols: [pick(PROP_COLOURS.canopy), pick(PROP_COLOURS.pole), "#ffffff"] });
+        }
+        i++;
+      }
+      const sphere = box.getBoundingSphere(new THREE.Sphere());
+      sphere.radius += 2.5; sphere.center.y += 0.9;
+      F.cells.push({ start, count: list.length, sphere });
+    }
+    // One mesh per figure for each level of detail, its parts merged and told apart by aPart (0 clothes,
+    // 1 skin, 2 hat); the light one, for far off, has about a third of the triangles.
+    const parts = meshesOf(fig).map((p) => {
+      const g = new THREE.BufferGeometry();
+      g.setAttribute("position", p.geometry.attributes.position);
+      g.setAttribute("normal", p.geometry.attributes.normal);
+      g.setIndex(p.geometry.index);
+      return [g, ["clothes", "skin", "hat"].findIndex((k) => p.material.name.includes(k))];
+    });
+    const tag = (g, k) => { g.setAttribute("aPart", new THREE.Float32BufferAttribute(new Float32Array(g.attributes.position.count).fill(Math.max(0, k)), 1)); return g; };
+    const nearGeo = mergeGeometries(parts.map(([g, k]) => tag(g.clone(), k)));
+    const farGeo = mergeGeometries(parts.map(([g, k]) => {
+      const w0 = g.clone(); w0.deleteAttribute("normal");
+      const w = mergeVertices(w0);
+      const sg = new SimplifyModifier().modify(w, Math.floor(w.attributes.position.count * 0.65));
+      sg.computeVertexNormals();
+      return tag(sg.index ? sg.toNonIndexed() : sg, k);
+    }).map((g) => (g.index ? g.toNonIndexed() : g)));
+    const make = (geo) => {
+      const cs = [0, 1, 2].map((j) => { const a = new THREE.InstancedBufferAttribute(new Float32Array(3 * n), 3); a.setUsage(THREE.DynamicDrawUsage); geo.setAttribute("aC" + j, a); return a; });
+      const inst = new THREE.InstancedMesh(geo, crowdMaterial(), n);
+      inst.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+      inst.count = 0; inst.frustumCulled = false;
+      inst.castShadow = false; inst.receiveShadow = true;
+      scene.add(inst);
+      LAYERS.crowd.push(inst);
+      return { inst, cs };
+    };
+    F.near = make(nearGeo);
+    F.far = make(farGeo);
+    CROWD.figs.push(F);
+  });
+  // ---- props: parasols over some ladies, picnic blankets and hampers (each one draw call, coloured per copy) ----
+  const propInfo = {};
+  const placeProp = (names, list, matOf) => {
+    if (!propsGltf || !list.length) return;
+    const geo = mergeGeometries(names.map((nm, k) => {
+      const src = propsGltf.scene.getObjectByName(nm);
+      const g = new THREE.BufferGeometry();
+      g.setAttribute("position", src.geometry.attributes.position);
+      g.setAttribute("normal", src.geometry.attributes.normal);
+      g.setIndex(src.geometry.index);
+      const gg = g.clone();
+      gg.setAttribute("aPart", new THREE.Float32BufferAttribute(new Float32Array(gg.attributes.position.count).fill(k), 1));
+      return gg;
+    }));
+    const n = list.length;
+    const cs = [0, 1, 2].map((j) => { const a = new THREE.InstancedBufferAttribute(new Float32Array(3 * n), 3); geo.setAttribute("aC" + j, a); return a; });
+    const inst = new THREE.InstancedMesh(geo, crowdMaterial(), n);
+    list.forEach((it, i) => { inst.setMatrixAt(i, matOf(it)); it.cols.forEach((c, j) => col.set(c).toArray(cs[j].array, 3 * i)); });
+    inst.computeBoundingSphere();
+    inst.castShadow = false; inst.receiveShadow = true;
+    scene.add(inst);
+    LAYERS.crowd.push(inst);
+    propInfo[names[0]] = n;
+  };
+  // the parasol is held at the hand, out to one side and tipped back a little, scaled with the person
+  const hold = new THREE.Matrix4().compose(new THREE.Vector3(0.24, 1.08, 0.04), new THREE.Quaternion().setFromEuler(new THREE.Euler(0.16, 0, 0)), new THREE.Vector3(1, 1, 1));
+  placeProp(["parasol_canopy", "parasol_pole"], parasols, (it) => it.m.clone().multiply(hold));
+  const flat = (it, sx, sz) => m.compose(pos.set(it.x, 0, it.z), q.setFromAxisAngle(up, it.turn), sc.set(sx, 1, sz));
+  placeProp(["picnic_blanket"], PROPS.blanket.map((b) => Object.assign(b, { cols: [b.col, b.col, b.col] })), (b) => flat(b, b.w, b.d));
+  placeProp(["picnic_hamper"], PROPS.hamper.map((h) => Object.assign(h, { cols: [h.col, h.col, h.col] })), (h) => flat(h, 1, 1));
+  const zones = {};
+  for (const s of spots) zones[s.zone || "box"] = (zones[s.zone || "box"] || 0) + 1;
+  window.__crowdInfo = { option: CROWD_ID, label: CO.label, people: spots.length, seatedOnGrass: spots.filter((s) => s.sink).length, children: spots.filter((s) => s.kid).length, zones, props: propInfo };
+  console.log("crowd:", spots.length, "people", JSON.stringify(window.__crowdInfo));
+  setCrowdShare(QUALITY[qLevel].crowd);
+}
+
+// The crowd's gentle life, in the vertex shader (nothing per person is sent each frame): a slow sway, never
+// in step with the neighbours; and as the leader comes by, those near the rail rock on their toes, lean in
+// towards the track, and some of the gents raise their hats. Who does what comes from where they stand.
+const CROWD = { figs: [], share: 1, sig: "", uniforms: { uTime: { value: 0 }, uLeader: { value: new THREE.Vector2(0, MID_Z) } }, near: 90 };
+function crowdMaterial() {
+  const mat = new THREE.MeshLambertMaterial({ color: "#ffffff" });
+  mat.onBeforeCompile = (sh) => {
+    Object.assign(sh.uniforms, CROWD.uniforms);
+    sh.vertexShader = sh.vertexShader
+      .replace("#include <common>", `#include <common>
+        attribute float aPart; attribute vec3 aC0; attribute vec3 aC1; attribute vec3 aC2;
+        uniform float uTime; uniform vec2 uLeader; varying vec3 vPartCol; varying float vWy;`)
+      .replace("#include <begin_vertex>", `#include <begin_vertex>
+        vPartCol = aPart < 0.5 ? aC0 : aPart < 1.5 ? aC1 : aC2;
+        {
+          vec3 ip = vec3(instanceMatrix[3][0], instanceMatrix[3][1], instanceMatrix[3][2]);
+          float seed = fract(sin(dot(ip.xz, vec2(12.9898, 78.233))) * 43758.5453);
+          float h = transformed.y;
+          float sway = 0.018 * sin(uTime * (0.6 + 0.5 * seed) + seed * 6.2832);
+          float ex = smoothstep(75.0, 15.0, abs(ip.x - uLeader.x)) * smoothstep(55.0, 18.0, abs(ip.z - uLeader.y)) * step(0.2, seed);
+          float bob = ex * 0.06 * max(0.0, sin(uTime * (6.0 + 3.0 * seed) + seed * 40.0));
+          transformed.x += (sway + ex * 0.025 * sin(uTime * 2.7 + seed * 9.0)) * h;
+          transformed.z -= ex * 0.05 * h;
+          transformed.y += bob;
+          if (aPart > 1.5 && seed > 0.62) transformed.y += ex * 0.2 * smoothstep(0.35, 0.9, 0.5 + 0.5 * sin(uTime * 2.1 + seed * 31.0));
+        }
+        vWy = (modelMatrix * instanceMatrix * vec4(transformed, 1.0)).y;`);
+    sh.fragmentShader = sh.fragmentShader
+      .replace("#include <common>", "#include <common>\nvarying vec3 vPartCol; varying float vWy;")
+      .replace("#include <clipping_planes_fragment>", `#include <clipping_planes_fragment>\nif (vWy < ${CROWD_CLIP.toFixed(3)}) discard;`)
+      .replace("#include <color_fragment>", "#include <color_fragment>\ndiffuseColor.rgb *= vPartCol;");
+  };
+  mat.customProgramCacheKey = () => "crowd-life";
+  return mat;
+}
+function setCrowdShare(share) { CROWD.share = share; CROWD.sig = ""; }
+// Which cells are in shot and which are far: only when that changes are the visible people copied across.
+const _fr = new THREE.Frustum(), _pm = new THREE.Matrix4();
+function updateCrowd(cam) {
+  if (!CROWD.figs.length) return;
+  _pm.multiplyMatrices(cam.projectionMatrix, cam.matrixWorldInverse);
+  _fr.setFromProjectionMatrix(_pm);
+  const plan = CROWD.figs.map((F) => F.cells.map((c) => {
+    if (!_fr.intersectsSphere(c.sphere)) return 0;
+    return c.sphere.center.distanceTo(cam.position) - c.sphere.radius < CROWD.near ? 1 : 2;
+  }));
+  const sig = CROWD.share + ":" + plan.map((p) => p.join("")).join("|");
+  if (sig === CROWD.sig) return;
+  CROWD.sig = sig;
+  CROWD.figs.forEach((F, fi) => {
+    const k = { 1: 0, 2: 0 };
+    F.cells.forEach((c, ci) => {
+      const lod = plan[fi][ci];
+      if (!lod) return;
+      const take = Math.round(c.count * CROWD.share);
+      if (!take) return;
+      const T = lod === 1 ? F.near : F.far, at = k[lod];
+      T.inst.instanceMatrix.array.set(F.mats.subarray(16 * c.start, 16 * (c.start + take)), 16 * at);
+      T.cs.forEach((a, j) => a.array.set(F.cols[j].subarray(3 * c.start, 3 * (c.start + take)), 3 * at));
+      k[lod] += take;
+    });
+    for (const [lod, T] of [[1, F.near], [2, F.far]]) {
+      T.inst.count = k[lod];
+      T.inst.instanceMatrix.clearUpdateRanges(); T.inst.instanceMatrix.addUpdateRange(0, 16 * k[lod]); T.inst.instanceMatrix.needsUpdate = true;
+      for (const a of T.cs) { a.clearUpdateRanges(); a.addUpdateRange(0, 3 * k[lod]); a.needsUpdate = true; }
+    }
+  });
+}
+
+// ---------- Horses ----------
+const silkTextures = new Map();
+function silkTexture(id) {
+  if (!silkTextures.has(id)) {
+    const t = texLoader.load(`assets/silks-3d/${id}.png`);
+    t.flipY = false; t.colorSpace = THREE.SRGBColorSpace; t.wrapS = THREE.RepeatWrapping; t.anisotropy = 8;
+    silkTextures.set(id, t);
+  }
+  return silkTextures.get(id);
+}
+const maskTex = texLoader.load("assets/tint-mask.png");
+maskTex.flipY = false; maskTex.colorSpace = THREE.NoColorSpace;
+
+// Coat and silks tint: multiply the neutral grey texture inside each mask (R coat, G points, B silks).
+function makeTintable(mat, u) {
+  mat.onBeforeCompile = (shader) => {
+    Object.assign(shader.uniforms, u);
+    shader.fragmentShader = shader.fragmentShader
+      .replace("#include <common>", "#include <common>\nuniform sampler2D mask; uniform vec3 coatCol; uniform vec3 pointsCol; uniform vec3 silkCol;")
+      .replace("#include <map_fragment>", `#include <map_fragment>
+        {
+          vec3 m = texture2D(mask, vMapUv).rgb;
+          float l = dot(diffuseColor.rgb, vec3(0.2126, 0.7152, 0.0722));
+          diffuseColor.rgb = vec3(l);
+          vec3 coat = coatCol * clamp(mix(1.0, l / 0.56, 0.65), 0.3, 1.25);
+          vec3 pts = pointsCol * mix(0.75, 1.2, smoothstep(0.0, 0.035, l));
+          vec3 silk = silkCol * clamp(mix(1.0, l / 0.72, 0.6), 0.4, 1.15);
+          diffuseColor.rgb = mix(diffuseColor.rgb, coat, m.r);
+          diffuseColor.rgb = mix(diffuseColor.rgb, pts, m.g);
+          diffuseColor.rgb = mix(diffuseColor.rgb, silk, m.b);
+        }`);
+  };
+  mat.customProgramCacheKey = () => "horse-tint";
+}
+
+// ---------- Placeholder race ----------
+// The real race sim will hand the viewer a timeline (each horse's distance, lateral position and effort
+// over time); this stand-in makes one so the look test has a field to film. The steering below is the
+// kind of thing the real sim's timeline should include: horses drift into groups, tuck in behind
+// another horse, pull out to pass when they're stuck, keep a body's width apart and wander a little.
+// Each frame: [x, z, speed, effort 0..3, heading] (effort 0 quiet, 1 pushing, 2 driving, 3 the whip). x is metres run from the gate line (each horse's middle: at the
+// off they stand STAND metres behind it, noses at the gates), z is across the track as the draw puts them
+// (courses/ascot-stalls.json: stall n's 'across'). Time 0 is the off: the gates opening.
+const STAND = STALLS.horseStandsBehind;
+function placeholderTimeline(n, seed) {
+  const rnd = seeded(seed);
+  const dt = 0.1, out = [];
+  const limit = HALF_W - 1.2;
+  const nGroups = n > 9 ? 3 : 2;
+  const groupBase = Array.from({ length: nGroups }, (_, g) => -limit * 0.7 + (g + 0.5) * (limit * 1.4 / nGroups));
+  const horses = Array.from({ length: n }, (_, i) => {
+    const stall = START.stalls[i].across;             // horse i is drawn in stall i + 1
+    let g = 0, best = 1e9;
+    groupBase.forEach((c, k) => { const dd = Math.abs(c - stall); if (dd < best) { best = dd; g = k; } });
+    return {
+      base: 16.3 + rnd() * 0.22, kick: 0.4 + rnd() * 0.8, kickAt: 220 + rnd() * 240,   // close in pace: a bunched field, as on TV
+      x: -STAND, z: stall, v: 0, vz: 0, group: g,
+      // reaction to the gates: most break within a fifth of a second, now and then one is slowly away
+      react: rnd() < 0.12 ? 0.45 + rnd() * 0.35 : 0.05 + rnd() * 0.2,
+      wp: rnd() * 6.28, wf: 0.25 + rnd() * 0.35, surge: rnd() * 6.28,
+    };
+  });
+  const tMax = DIST / 14 + 25;
+  for (let t = 0; t <= tMax; t += dt) {
+    // Group centres drift slowly, so the bunches breathe across the course.
+    const centres = groupBase.map((c, k) => c + Math.sin(t * 0.07 + k * 2.1) * 2.5);
+    const frame = horses.map((h) => {
+      const toGo = DIST - h.x;
+      const past = toGo < 0;
+      let want = past ? 6 : h.base + (toGo < h.kickAt ? h.kick : 0) + Math.sin(t * 0.4 + h.surge) * 0.15;
+      // Who is just in front, and is there room either side?
+      let blocker = null, leftCrowd = 0, rightCrowd = 0;
+      for (const o of horses) {
+        if (o === h) continue;
+        const dx = o.x - h.x, dz = o.z - h.z;
+        if (dx > 0 && dx < 4.5 && Math.abs(dz) < 1.3 && (!blocker || dx < blocker.x - h.x)) blocker = o;
+        if (Math.abs(dx) < 6) { if (dz > 0 && dz < 3) rightCrowd++; if (dz < 0 && dz > -3) leftCrowd++; }
+      }
+      // Round the loop the field strings out along the inside rail, one to three wide; it only fans out
+      // across the track once into the home straight (and on the straight mile it races in groups).
+      const onLoop = ROUND && toGo > 700;
+      const target = onLoop ? -limit + 1.2 + h.group * 2.2 : centres[h.group];
+      let az = (target - h.z) * (onLoop ? 0.25 : 0.12);                 // drift towards its group or the rail
+      az += Math.sin(t * h.wf + h.wp) * (onLoop ? 0.08 : 0.25);         // a little wander
+      const kicking = toGo < h.kickAt;
+      if (blocker && want > blocker.v) {
+        if (kicking) az += (leftCrowd <= rightCrowd ? -1 : 1) * 1.6;    // stuck: pull out to pass
+        else want = Math.min(want, blocker.v + 0.05);                   // otherwise sit in behind
+      }
+      for (const o of horses) {                                         // keep a body's width apart
+        if (o === h) continue;
+        const dx = o.x - h.x, dz = h.z - o.z;
+        if (Math.abs(dx) < 3.4 && Math.abs(dz) < 1.7) az += Math.sign(dz || (rnd() - 0.5)) * (1.7 - Math.abs(dz)) * 2.2;
+      }
+      if (!kicking && !past) {                                          // tuck in behind the horse ahead
+        let lead = null;
+        for (const o of horses) { const dx = o.x - h.x; if (o !== h && dx > 3 && dx < 9 && Math.abs(o.z - h.z) < 2.5 && (!lead || dx < lead.x - h.x)) lead = o; }
+        if (lead) az += (lead.z - h.z) * 0.3;
+      }
+      if (h.z > limit - 0.5) az -= (h.z - limit + 0.5) * 4;            // stay off the rails
+      if (h.z < -limit + 0.5) az += (-limit + 0.5 - h.z) * 4;
+      // out of the stalls dead straight (they're between the partitions until clear of the gates), then the
+      // steering comes in gently over the first 40 m, as the field sorts itself out after the break
+      const free = THREE.MathUtils.smoothstep(h.x, 2, 40);
+      h.vz = THREE.MathUtils.clamp((h.vz + az * free * dt) * 0.9, -1.3 * free, 1.3 * free);
+      if (t < h.react) want = 0;
+      h.v += Math.sign(want - h.v) * Math.min(Math.abs(want - h.v), (h.v < 8 ? 6 : 1.4) * dt);
+      h.x += h.v * dt;
+      h.z += h.vz * dt;
+      // effort: 0 quiet, 1 pushing, 2 driving, 3 under the whip (about half the jockeys, close home)
+      const effort = past ? 0 : toGo < h.kickAt * 0.3 && h.kick > 0.8 ? 3 : toGo < h.kickAt * 0.55 ? 2 : kicking ? 1 : 0;
+      return [h.x, h.z, h.v, effort, Math.atan2(h.vz, Math.max(h.v, 1))];
+    });
+    out.push(frame);
+  }
+  return { dt, frames: out };
+}
+
+const RUNNERS = THREE.MathUtils.clamp(Number(params.get("runners") || 12), 1, STALLS.maxRunners);
+const timeline = placeholderTimeline(RUNNERS, Number(params.get("seed") || 3));
+// The whole race, then the finish again side-on in slow motion, then round again (see the director below).
+const DIR_ = VIEW.raceDirector;
+const leaderAt = (f) => Math.max(...f.map((h) => h[0]));
+const timeAt = (u) => Math.max(0, timeline.frames.findIndex((f) => leaderAt(f) > u)) * timeline.dt;
+const T_FINISH = timeAt(DIST);
+const T_END = T_FINISH + DIR_.afterFinish;
+const REPLAY = [timeAt(DIST - DIR_.replayFrom), timeAt(DIST + DIR_.replayTo)];
+window.__T = { finish: T_FINISH, end: T_END, replay: REPLAY };      // checking aid: key race times
+const runners = [];
+
+// ---------- Post-processing: the illustrated finish ----------
+const rt = new THREE.WebGLRenderTarget(1, 1, { type: THREE.HalfFloatType, samples: QUALITY[qLevel].samples, depthTexture: new THREE.DepthTexture(1, 1) });
+const paper = (() => {
+  const c = document.createElement("canvas"); c.width = c.height = 512;
+  const g = c.getContext("2d");
+  const img = g.createImageData(512, 512);
+  const rnd = seeded(5);
+  for (let i = 0; i < img.data.length; i += 4) { const v = 128 + (rnd() - 0.5) * 70; img.data[i] = img.data[i + 1] = img.data[i + 2] = v; img.data[i + 3] = 255; }
+  g.putImageData(img, 0, 0);
+  g.globalAlpha = 0.08; g.strokeStyle = "#000";
+  for (let i = 0; i < 900; i++) { g.lineWidth = rnd() * 1.2; g.beginPath(); const x = rnd() * 512, y = rnd() * 512, a = rnd() * 6.28, l = 6 + rnd() * 26; g.moveTo(x, y); g.lineTo(x + Math.cos(a) * l, y + Math.sin(a) * l); g.stroke(); }
+  const t = new THREE.CanvasTexture(c); t.wrapS = t.wrapT = THREE.RepeatWrapping;
+  return t;
+})();
+const post = new THREE.ShaderMaterial({
+  uniforms: {
+    tColor: { value: rt.texture }, tDepth: { value: rt.depthTexture }, tPaper: { value: paper },
+    res: { value: new THREE.Vector2(1, 1) }, near: { value: 0.2 }, far: { value: 4000 }, painted: { value: 1 }, pxScale: { value: 1 },
+  },
+  vertexShader: "varying vec2 vUv; void main(){ vUv = uv; gl_Position = vec4(position.xy, 0.0, 1.0); }",
+  fragmentShader: `
+    #include <packing>
+    uniform sampler2D tColor, tDepth, tPaper;
+    uniform vec2 res; uniform float near, far, painted, pxScale;
+    varying vec2 vUv;
+    float vz(vec2 uv) { return -perspectiveDepthToViewZ(texture2D(tDepth, uv).x, near, far); }
+    vec3 aces(vec3 x) { return clamp((x * (2.51 * x + 0.03)) / (x * (2.43 * x + 0.59) + 0.14), 0.0, 1.0); }
+    vec3 toDisplay(vec3 c) { return pow(aces(c * 0.95), vec3(1.0 / 2.2)); }
+    void main() {
+      vec3 c = toDisplay(texture2D(tColor, vUv).rgb);
+      if (painted < 0.5) { gl_FragColor = vec4(c, 1.0); return; }
+      #ifdef EDGES
+      // Faint ink line where depth jumps (silhouettes of horses, posts, rails, trees): an illustrator's edge, not a cartoon outline.
+      vec2 px = pxScale / res;
+      float d = vz(vUv);
+      float e = 0.0;
+      e += abs(vz(vUv + vec2(px.x, 0.0)) - d);
+      e += abs(vz(vUv - vec2(px.x, 0.0)) - d);
+      e += abs(vz(vUv + vec2(0.0, px.y)) - d);
+      e += abs(vz(vUv - vec2(0.0, px.y)) - d);
+      float edge = smoothstep(0.05, 0.2, e / max(d, 1.0)) * (1.0 - smoothstep(120.0, 400.0, d));
+      c = mix(c, c * vec3(0.42, 0.40, 0.30), edge * 0.45);
+      #endif
+      // Heritage grade: warm highlights, gently cooled shadows, slightly softened saturation and lifted blacks.
+      float l = dot(c, vec3(0.299, 0.587, 0.114));
+      c = mix(vec3(l), c, 0.93);
+      c *= vec3(1.035, 1.0, 0.92);
+      c = mix(c * vec3(0.9, 0.97, 1.04), c, smoothstep(0.05, 0.5, l));
+      c = c * 0.95 + vec3(0.035, 0.03, 0.015);
+      // Barely-there grain and a soft vignette.
+      float p = texture2D(tPaper, vUv * res / (512.0 * pxScale)).r;
+      c *= 0.985 + 0.03 * p;
+      float v = length((vUv - 0.5) * vec2(1.0, 0.85));
+      c *= mix(1.0, 0.86, smoothstep(0.4, 0.85, v));
+      gl_FragColor = vec4(c, 1.0);
+    }`,
+  depthTest: false, depthWrite: false,
+  defines: QUALITY[qLevel].edges ? { EDGES: 1 } : {},
+});
+const postScene = new THREE.Scene();
+const postCam = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1);
+postScene.add(new THREE.Mesh(new THREE.PlaneGeometry(2, 2), post));
+
+// ---------- Cameras ----------
+const camera = new THREE.PerspectiveCamera(30, 1, 0.5, 4000);   // near 0.5 (was 0.2): 2.5 times the depth precision far off
+post.uniforms.near.value = camera.near; post.uniforms.far.value = camera.far;
+const focus = new THREE.Vector3();
+const RCAMS = VIEW.raceCameras, SET = VIEW.setPieces;
+// The show runs in phases: the grandstand set piece before the off, the horses standing in the stalls (the
+// view's own pre-roll: courses/ascot-view.json -> startSequence), the race from the off (cut by the TV director, or
+// one camera picked by hand), the finish again side-on in slow motion, and a set piece after it.
+const PHASES = ["prelude", "stalls", "race", "replay", "postlude"];
+const state = {
+  phase: params.get("phase") || (params.has("t") ? "race" : "prelude"), pt: Number(params.get("pt") || 0),
+  t: params.has("t") ? Number(params.get("t")) : 0, paused: params.has("still"),
+  cam: params.get("cam") || "auto", painted: params.get("finish") !== "plain",
+};
+if (state.phase === "replay") state.t = REPLAY[0] + (REPLAY[1] - REPLAY[0]) * Number(params.get("rt") || 0);   // ?rt=0..1 for checking
+let snap = true, lastShot = null;
+// The TV director: which camera, from the leader's distance to go (courses/ascot-view.json -> raceDirector).
+function aheadOf(eye, u) {                                           // is a point still in front of a horse at u?
+  const r = railAt(DIST - u), [x, z] = toWorld(u, 0);
+  return (eye[0] - x) * r.tx + (eye[2] - z) * r.tz > 8;
+}
+function directorShot(d, leadU) {
+  if (state.cam !== "auto" && RCAMS[state.cam] && state.cam !== "sideon") return state.cam;
+  if (d < 0) return "grandstand";                                    // past the line: stay on the grandstand camera
+  if (RACE.course === "straight") return d > DIR_.straight.grandstand ? "track_straight" : "grandstand";
+  const L = LOOP.length, q = ((d % L) + L) % L;                       // metres to the next pass of the post
+  if (q <= DIR_.round.grandstand || d <= DIR_.round.grandstand) return "grandstand";
+  if (q > L - DIR_.round.lookback && d < DIST - 50 && aheadOf(RCAMS.lookback.at, leadU)) return "lookback";
+  return "track_loop";
+}
+// Framing (owner, 3 Nov): every horse in shot unless one or two are tailed off; never lose the leaders.
+const _v = new THREE.Vector3(), _f = new THREE.Vector3(), _r = new THREE.Vector3(), _u = new THREE.Vector3(), UP = new THREE.Vector3(0, 1, 0);
+function fieldInShot(now) {
+  const order = now.map((h, i) => [h[0], i]).sort((a, b) => b[0] - a[0]);
+  let keep = order.length;
+  for (let k = 0; k < 2 && keep > 2; k++) if (order[keep - 2][0] - order[keep - 1][0] > 25) keep--; else break;
+  return order.slice(0, keep).map(([u, i]) => { const [x, z] = toWorld(now[i][0], now[i][1]); return Object.assign(new THREE.Vector3(x, 1.3, z), { u }); });
+}
+// The zoom (degrees) that fits these points round 'look', with a little room round each horse.
+function fitFov(eye, look, pts, [fmin, fmax], pad = 1.06) {
+  _f.copy(look).sub(eye).normalize(); _r.crossVectors(_f, UP).normalize(); _u.crossVectors(_r, _f);
+  let need = 0;
+  for (const p of pts) {
+    _v.copy(p).sub(eye);
+    const z = _v.dot(_f);
+    if (z < 2) continue;
+    need = Math.max(need, (Math.abs(_v.dot(_u)) + 1.3) / z, (Math.abs(_v.dot(_r)) + 1.8) / (z * camera.aspect));
+  }
+  return THREE.MathUtils.clamp(2 * THREE.MathUtils.radToDeg(Math.atan(need * pad)), fmin, fmax);
+}
+// The start camera (courses/ascot-view.json -> raceCameras.start): low on the outer side, in front of the stalls,
+// looking back across their faces. It frames the row while the horses stand in, holds as the gates open and the
+// field breaks, panning with them, until startSequence.holdAfterOff seconds or the leader nears the camera.
+const startWorld = (across, ahead) => {                // a point in the start's frame -> world x, z
+  const [x0, z0] = START.insideRailAt, [ox, oz] = START.towardsOuterRail, [rx, rz] = START.runningDirection;
+  return [x0 + ox * across + rx * ahead, z0 + oz * across + rz * ahead];
+};
+function startShot(now) {
+  const c = RCAMS.start;
+  if (!c || (state.cam !== "auto" && state.cam !== "start")) return false;
+  return state.t < PRE.holdAfterOff && leaderAt(now) < (state.startAhead || [].concat(c.ahead)[0]) - PRE.passAt;
+}
+function startTarget(now) {
+  const c = RCAMS.start;
+  const ends = [START.stalls[0], START.stalls[RUNNERS - 1]].flatMap((st) => {
+    const [x, z] = startWorld(st.fromInsideRail, 0.3);
+    return [new THREE.Vector3(x, 0.4, z), new THREE.Vector3(x, 3.4, z)];       // the gates and the boards above them
+  });
+  // 'ahead' lists the distances to try, nearest first: the first from which the whole row fits the screen (a
+  // phone held upright needs the camera further off). Chosen once a run, so the shot never creeps.
+  const eyeAt = (a) => { const [ex, ez] = startWorld(COURSE.trackWidth + c.side, a); return new THREE.Vector3(ex, c.height, ez); };
+  if (state.startFor !== camera.aspect) {
+    const list = [].concat(c.ahead), mid = new THREE.Box3().setFromPoints(ends).getCenter(new THREE.Vector3());
+    state.startAhead = list.find((a) => fitFov(eyeAt(a), mid, ends, c.fov, 1.04) < c.fov[1] * 0.95) ?? list[list.length - 1];
+    state.startFor = camera.aspect;
+  }
+  const eye = eyeAt(state.startAhead);
+  const field = fieldInShot(now);
+  // the whole row while they're in and as they break; then the row lets go and the camera follows the field
+  const k = state.phase === "stalls" ? 0 : THREE.MathUtils.smoothstep(state.t, 0.8, 2.6);
+  const pts = k < 0.5 ? ends.concat(field) : field;
+  const centre = new THREE.Box3().setFromPoints(pts).getCenter(new THREE.Vector3());
+  const rowMid = new THREE.Box3().setFromPoints(ends).getCenter(new THREE.Vector3());
+  const look = rowMid.lerp(centre, k);
+  const [ax, az] = toWorld(leaderAt(now), 0);
+  return { eye, look, fov: fitFov(eye, look, pts, c.fov, 1.04), id: "start", anchor: new THREE.Vector3(ax, 1.3, az), guard: field.slice(0, 2), range: c.fov };
+}
+const EYE = params.get("eye"), AT = params.get("at");          // ?eye=x,y,z&at=x,y,z: a free camera, for checking
+const NEAR = params.get("near") && params.get("near").split(",").map(Number);
+const lerp3 = (a, b, k) => new THREE.Vector3(...a).lerp(new THREE.Vector3(...b), k);
+// Returns { eye, look, fov, id, anchor, guard }. During the race the frame loop keeps the look point tied to
+// the leader (anchor) and smooths only the offset from it, so a moving field never drags behind the camera
+// (that lag was what cropped the leading horse); 'guard' are horses that must never leave the shot.
+function cameraTarget(now) {
+  const still = (eye, look, fov, id) => ({ eye, look, fov, id });
+  if (EYE && AT) return still(new THREE.Vector3(...EYE.split(",").map(Number)), new THREE.Vector3(...AT.split(",").map(Number)), Number(params.get("fov") || 40), "free");
+  if (NEAR && now[NEAR[0]]) {                                     // ?near=horse,ahead,side,height,fov: close up on one horse, for checking
+    const [i, a, s, h, f = 30] = NEAR, [x, z, , , yaw] = now[i], [wx, wz] = toWorld(x, z), hd = headingAt(x, yaw);
+    const fx = Math.cos(hd), fz = -Math.sin(hd), rx = Math.sin(hd), rz = Math.cos(hd);
+    return still(new THREE.Vector3(wx + fx * a + rx * s, h, wz + fz * a + rz * s), new THREE.Vector3(wx + fx * 0.3, 1.75, wz + fz * 0.3), f, "near");
+  }
+  if (state.phase === "stalls" || (state.phase === "race" && startShot(now))) return startTarget(now);
+  if (state.phase === "prelude" || state.phase === "postlude") {
+    const S = SET[state.phase], k = THREE.MathUtils.smoothstep(state.pt / S.seconds, 0, 1);
+    return still(lerp3(S.eye[0], S.eye[1], k), lerp3(S.at[0], S.at[1], k), S.fov, state.phase);
+  }
+  if (state.phase === "replay") {
+    const c = RCAMS.sideon, look = new THREE.Vector3(...c.look);
+    const [lx] = toWorld(leaderAt(now), 0);
+    look.x += THREE.MathUtils.clamp(lx - look.x, -12, 18) * 0.8;          // pans a little with the leader
+    return still(new THREE.Vector3(...c.at), look, c.fov[0], "sideon");
+  }
+  const field = fieldInShot(now);
+  const leadU = leaderAt(now);
+  const id = directorShot(DIST - leadU, leadU);
+  const c = RCAMS[id];
+  // who is framed: the whole field (all but one or two tailed off), or just the leading group
+  const pts = c.frame === "leaders" ? field.filter((p, i) => i < 2 || leadU - p.u <= (c.window || 12)) : field;
+  const lead = field[0];
+  const r = railAt(DIST - leadU), run = new THREE.Vector3(r.tx, 0, r.tz);
+  const centre = new THREE.Box3().setFromPoints(pts).getCenter(new THREE.Vector3()).addScaledVector(run, c.leadRoom || 0);
+  // Where the camera stands: tracking cars and the grandstand rail camera always run AHEAD of the leader
+  // (owner, 3 Nov), further ahead when the field won't fit (a narrow phone screen); the finish camera
+  // stands on the winning line, so the leaders cross it square on.
+  const eyeAt = (a) => {
+    if (c.kind === "track") {
+      // inside rail (railSide "inside", the default) or the grandstand side ("outer"); up over crowds and
+      // enclosures where 'raise' says so ([x from, x to, height]), easing up and down over 40 m
+      const out = c.railSide === "outer";
+      const [x, z] = toWorld(leadU + a, out ? HALF_W + c.side : -HALF_W - c.side);
+      let y = c.height;
+      for (const [x0, x1, h] of c.raise || []) {
+        const k = Math.min(THREE.MathUtils.smoothstep(x, x0 - 40, x0), 1 - THREE.MathUtils.smoothstep(x, x1, x1 + 40));
+        y = Math.max(y, c.height + (h - c.height) * k);
+      }
+      return new THREE.Vector3(x, y, z);
+    }
+    if (c.kind === "rail") {
+      const [lx] = toWorld(leadU, 0);
+      return new THREE.Vector3(THREE.MathUtils.clamp(lx - a, c.rail.x[0], c.rail.x[1]), c.rail.y, c.rail.z);
+    }
+    return new THREE.Vector3(...c.at);
+  };
+  let eye;
+  if (c.ahead) {
+    let want = c.ahead[c.ahead.length - 1];
+    for (const a of c.ahead) if (fitFov(eyeAt(a), centre, pts, c.fov) < c.fov[1] * 0.8) { want = a; break; }
+    if (state.aheadFor !== id || snap) { state.aheadFor = id; state.ahead = want; }
+    state.ahead += (want - state.ahead) * (1 - Math.exp(-(state.dt || 0.016) * 0.7));   // ease, never jump
+    eye = eyeAt(state.ahead);
+  } else eye = eyeAt(0);
+  let look = centre, fov = fitFov(eye, centre, pts, c.fov);
+  // closing in: over the last stretch the camera eases from the whole field to the leading group, so
+  // the finish is as tight as possible, with no cut ([start, end] metres out, and the group's window)
+  if (c.closeIn) {
+    const [from, to, win] = c.closeIn, k = 1 - THREE.MathUtils.smoothstep(DIST - leadU, to, from);
+    if (k > 0) {
+      const grp = field.filter((p, i) => i < 2 || leadU - p.u <= win);
+      const gc = new THREE.Box3().setFromPoints(grp).getCenter(new THREE.Vector3()).addScaledVector(run, c.leadRoom || 0);
+      look = centre.clone().lerp(gc, k);
+      fov = THREE.MathUtils.lerp(fitFov(eye, look, pts, c.fov), fitFov(eye, look, grp, c.fov), k);
+    }
+  }
+  const [ax, az] = toWorld(leadU, 0);
+  return { eye, look, fov, id, anchor: new THREE.Vector3(ax, 1.3, az), guard: field.slice(0, 2), range: c.fov };
+}
+
+// ---------- Controls ----------
+function button(parent, label, onClick, id) {
+  const b = document.createElement("button"); b.type = "button"; b.textContent = label; if (id) b.id = id; b.onclick = onClick;
+  parent.append(b); return b;
+}
+const camsEl = document.getElementById("cams");
+const camChoices = [["auto", "TV director"], [RACE.course === "straight" ? "track_straight" : "track_loop", "Tracking"], ["grandstand", "Grandstand"]]
+  .concat(RACE.course === "round" ? [["lookback", "Looking back"]] : []);
+const camButtons = camChoices.map(([id, label]) => {
+  const b = button(camsEl, label, () => { state.cam = id; snap = true; syncButtons(); }, "cam-" + id);
+  b.dataset.cam = id; return b;
+});
+const racesEl = document.getElementById("races");
+for (const [id, r] of Object.entries(VIEW.races)) {
+  if (id.startsWith("_")) continue;
+  const b = button(racesEl, r.label, () => { const p = new URLSearchParams(location.search); p.set("race", id); p.delete("t"); p.delete("phase"); location.search = p.toString(); }, "race-" + id);
+  b.setAttribute("aria-pressed", id === RACE_ID);
+}
+const horsesEl = document.getElementById("horses");
+for (const [id, label] of [["v1", "v1 (current)"], ["v2", "v2 (new)"]]) {
+  const b = button(horsesEl, label, () => {
+    const p = new URLSearchParams(location.search);
+    if (id === "v2") p.set("horse", "v2"); else p.delete("horse");
+    location.search = p.toString();
+  }, "horse-" + id);
+  b.setAttribute("aria-pressed", id === HORSE_V);
+}
+const finEl = document.getElementById("finish");
+finEl.hidden = true;                          // no illustrated filter in this test
+const finButtons = [["painted", "Illustrated"], ["plain", "Plain 3D"]].map(([id, label]) => {
+  const b = button(finEl, label, () => { state.painted = id === "painted"; syncButtons(); }, "finish-" + id);
+  b.dataset.fin = id; return b;
+});
+function syncButtons() {
+  camButtons.forEach((b) => b.setAttribute("aria-pressed", b.dataset.cam === state.cam));
+  finButtons.forEach((b) => b.setAttribute("aria-pressed", (b.dataset.fin === "painted") === state.painted));
+  post.uniforms.painted.value = state.painted ? 1 : 0;
+}
+syncButtons();
+
+const qEl = document.getElementById("quality");
+const qButtons = [["auto", "Auto"], ...ORDER.map((k) => [k, QUALITY[k].label])].map(([id, label]) => {
+  const b = button(qEl, label, () => {
+    qMode = id;
+    try { localStorage.setItem("tb-quality", id); } catch {}
+    applyQuality(id === "auto" ? (DPR > 1.5 ? "medium" : "high") : id);
+  }, "q-" + id);
+  b.dataset.q = id; return b;
+});
+const fpsEl = document.createElement("span"); fpsEl.className = "fps"; qEl.append(fpsEl);
+// Crowd options: each button reloads the page with ?crowd= set, keeping the race, camera and quality.
+const crowdEl = document.getElementById("crowdOpts");
+for (const [id, o] of Object.entries(CROWD_OPTIONS)) {
+  const b = button(crowdEl, id, () => { const p = new URLSearchParams(location.search); p.set("crowd", id); location.search = p.toString(); }, "crowd-" + id);
+  b.title = id + ": " + o.label + " (" + o.note + ")";
+  b.setAttribute("aria-pressed", id === CROWD_ID);
+}
+document.getElementById("courseName").textContent = "Crowd " + CROWD_ID + " · " + CO.label;
+
+// Diagnostics (?debug=1, or tap the frame rate): what each frame costs, and switches to take
+// parts of the scene out one at a time to see which one is slow on this machine.
+const diag = { on: params.has("debug"), shadows: true, js: 0, draw: 0, n: 0 };
+const diagEl = document.createElement("div"); diagEl.className = "diag"; diagEl.hidden = !diag.on;
+document.body.append(diagEl);
+const gpuName = (() => {
+  const gl = renderer.getContext();
+  const ext = gl.getExtension("WEBGL_debug_renderer_info");
+  return ext ? gl.getParameter(ext.UNMASKED_RENDERER_WEBGL) : gl.getParameter(gl.RENDERER);
+})();
+diagEl.innerHTML = `<div id="diagText"></div><div class="diag-sw"></div>`;
+const swEl = diagEl.querySelector(".diag-sw");
+for (const [key, label] of [["horses", "Horses"], ["trees", "Trees"], ["rails", "Rails"], ["buildings", "Buildings"], ["crowd", "Crowd"], ["kick", "Turf kick"], ["shadows", "Shadows"]]) {
+  const b = button(swEl, label, () => {
+    const on = b.getAttribute("aria-pressed") !== "true";
+    b.setAttribute("aria-pressed", on);
+    if (key === "shadows") { diag.shadows = on; sun.castShadow = on; scene.traverse((o) => { if (o.material) [].concat(o.material).forEach((m) => (m.needsUpdate = true)); }); }
+    else LAYERS[key].forEach((o) => (o.visible = on));
+    perf.reset();
+  });
+  b.setAttribute("aria-pressed", "true");
+}
+fpsEl.style.cursor = "pointer";
+fpsEl.onclick = () => { diag.on = !diag.on; diagEl.hidden = !diag.on; };
+function showDiag(fps) {
+  if (!diag.on) return;
+  const i = renderer.info;
+  const n = Math.max(1, diag.n);
+  document.getElementById("diagText").textContent =
+    `${fps} fps · ${QUALITY[qLevel].label} · ${renderer.domElement.width}×${renderer.domElement.height}\n` +
+    `Graphics: ${gpuName}\n` +
+    `Per frame: scripts ${(diag.js / n).toFixed(1)} ms, drawing ${(diag.draw / n).toFixed(1)} ms\n` +
+    `${i.render.calls} draw calls, ${(i.render.triangles / 1000).toFixed(0)}k triangles`;
+  diag.js = diag.draw = diag.n = 0;
+}
+function syncQuality() { qButtons.forEach((b) => b.setAttribute("aria-pressed", b.dataset.q === qMode)); }
+syncQuality();
+
+function applyQuality(level) {
+  qLevel = level;
+  const Q = QUALITY[level];
+  renderer.setPixelRatio(Q.scale);
+  if (rt.samples !== Q.samples) { rt.samples = Q.samples; rt.dispose(); }
+  if (sun.shadow.mapSize.x !== Q.shadow) {
+    sun.shadow.mapSize.set(Q.shadow, Q.shadow);
+    if (sun.shadow.map) { sun.shadow.map.dispose(); sun.shadow.map = null; }
+  }
+  const type = Q.soft ? THREE.PCFSoftShadowMap : THREE.PCFShadowMap;
+  if (renderer.shadowMap.type !== type) {
+    renderer.shadowMap.type = type;
+    scene.traverse((o) => { if (o.material) [].concat(o.material).forEach((m) => (m.needsUpdate = true)); });
+  }
+  post.defines = Q.edges ? { EDGES: 1 } : {};
+  post.needsUpdate = true;
+  KICK.share = Q.kick;
+  setCrowdShare(Q.crowd);
+  sun.shadow.autoUpdate = true;
+  resize();
+  perf.reset();
+  syncQuality();
+}
+
+// Frame-time watch: shows the frame rate, and in Auto drops a level when it stays under ~45 fps.
+const perf = {
+  n: 0, sum: 0, wait: 1.5,
+  reset() { this.n = 0; this.sum = 0; this.wait = 1.5; },
+  tick(dt) {
+    if (this.wait > 0) { this.wait -= dt; return; }   // let a change settle before judging it
+    this.n++; this.sum += dt;
+    if (this.sum < 2) return;                        // judge every two seconds
+    const fps = Math.round(this.n / this.sum);
+    this.n = 0; this.sum = 0;
+    if (qMode === "auto" && fps < 45) {
+      const next = ORDER[ORDER.indexOf(qLevel) + 1];
+      if (next) applyQuality(next);
+    }
+    fpsEl.textContent = `${fps} fps · ${QUALITY[qLevel].label}`;
+    showDiag(fps);
+  },
+};
+document.getElementById("pause").onclick = (e) => {
+  state.paused = !state.paused;
+  e.currentTarget.setAttribute("aria-pressed", state.paused);
+  e.currentTarget.textContent = state.paused ? "Resume" : "Pause";
+};
+// Hide the controls (for a phone held sideways); a small button brings them back. Remembered per browser.
+const barEl = document.querySelector(".bar"), showEl = document.getElementById("showBar");
+function setBar(on) {
+  barEl.hidden = !on; showEl.hidden = on;
+  try { localStorage.setItem("tb-bar", on ? "1" : "0"); } catch {}
+}
+document.getElementById("hideBar").onclick = () => setBar(false);
+showEl.onclick = () => setBar(true);
+try { if (localStorage.getItem("tb-bar") === "0" && !params.has("still")) setBar(false); } catch {}
+document.getElementById("restart").onclick = () => { gatesAt = -1; state.phase = "prelude"; state.pt = 0; state.t = 0; snap = true; live.length = 0; };
+
+function resize() {
+  const w = window.innerWidth, h = window.innerHeight, pr = renderer.getPixelRatio();
+  renderer.setSize(w, h, false);
+  rt.setSize(Math.floor(w * pr), Math.floor(h * pr));
+  post.uniforms.res.value.set(Math.floor(w * pr), Math.floor(h * pr));
+  post.uniforms.pxScale.value = Math.max(1, pr);
+  camera.aspect = w / h;
+  camera.updateProjectionMatrix();
+}
+window.addEventListener("resize", resize);
+resize();
+
+// ---------- Load everything ----------
+try {
+  const optional = (p, what) => p.catch((e) => { console.warn(what + " missing:", e.message); return null; });
+  const json = (url) => optional(fetch(url).then((r) => { if (!r.ok) throw new Error(url + " " + r.status); return r.json(); }), url);
+  const file = (path) => "assets/course/" + path.split("/").pop();
+  const [props, horse, world, trees, belts, crowd, bakeInfo, dressing, planting, areas, spots, palette, stalls, stallKit, crowdProps] = await Promise.all([
+    optional(loadModel("assets/course", "course-props"), "Course furniture"),
+    HORSE_V === "v2" ? HorseV2.loadHorse(loadModel, "assets/model-v2", (url, srgb) => { const t = texLoader.load(url); t.flipY = false; if (srgb) t.colorSpace = THREE.SRGBColorSpace; return t; })
+                     : loadModel("assets/model", "racehorse"),
+    optional(loadModel("assets/baked", "static_world"), "Baked scenery"),
+    optional(loadModel("assets/trees", "trees"), "Trees"),
+    optional(loadModel("assets/course", "planting_belts"), "Planting belts"),
+    optional(loadModel(ARCH, "crowd_people"), "Crowd"),
+    json("assets/baked/bake.json"),
+    json(file(VIEW.dressing)),
+    json(file(VIEW.planting)),
+    json(ARCH + "/ascot_main_stand_crowd_areas.json"),
+    json(ARCH + "/site_props_spots.json"),
+    json(ARCH + "/crowd_palette.json"),
+    optional(loadModel("assets/course", "starting_stalls"), "Starting stalls"),
+    json("assets/course/starting_stalls_kit.json"),
+    CO.parasols || CO.boxes === "picnic" ? optional(loadModel(ARCH, "crowd_props"), "Crowd props") : null,
+  ]);
+  if (stalls && stallKit) buildStalls(stalls, stallKit);
+  if (props) placeProps(props);
+  if (world && bakeInfo) placeBaked(world, bakeInfo, dressing);
+  if (belts) placeBelts(belts, planting, trees);
+  if (trees) placeTrees(trees, dressing);
+  if (crowd && palette) {
+    const pieceAt = (p) => new THREE.Matrix4().makeTranslation(p.x, 0, p.z).multiply(new THREE.Matrix4().makeRotationY(Math.PI + (p.turn || 0) * Math.PI / 180));
+    buildCrowd(crowd, { dressing, areas: areas && areas.areas, spots: spots && spots.pieces, palette }, pieceAt, crowdProps);
+  }
+  const v2Tex = (url, srgb) => { const t = texLoader.load(url); t.flipY = false; if (srgb) t.colorSpace = THREE.SRGBColorSpace; return t; };
+  for (let i = 0; i < RUNNERS && HORSE_V === "v2"; i++) {
+    const coat = COATS[(i * 3 + 1) % COATS.length];
+    const silk = SILKS[(i * 5 + 2) % SILKS.length];
+    const h = HorseV2.makeRunner(horse, { coat, silk, seed: i + 1, texLoader: v2Tex });
+    h.setTime((i * 0.137) % 0.48);
+    scene.add(h.obj);
+    LAYERS.horses.push(h.obj);
+    runners.push({ obj: h.obj, v2: h, effort: 0 });
+  }
+  const clips = HORSE_V === "v2" ? [] : horse.animations;
+  for (let i = 0; i < RUNNERS && HORSE_V === "v1"; i++) {
+    const obj = SkeletonUtils.clone(horse.scene);
+    obj.scale.setScalar(HORSE_SCALE);
+    const coat = COATS[(i * 3 + 1) % COATS.length];
+    const silk = SILKS[(i * 5 + 2) % SILKS.length];
+    const u = {
+      mask: { value: maskTex }, coatCol: { value: new THREE.Color(coat.body) },
+      pointsCol: { value: new THREE.Color(coat.points) }, silkCol: { value: new THREE.Color(silk.colour) },
+    };
+    obj.traverse((o) => {
+      if (!o.isMesh) return;
+      o.castShadow = true; o.frustumCulled = false;
+      o.material = o.material.clone();
+      if (o.material.name === "silks") { o.material.map = silkTexture(silk.id); o.material.roughness = 0.6; }
+      else makeTintable(o.material, u);
+    });
+    const mixer = new THREE.AnimationMixer(obj);
+    const actions = {};
+    for (const c of clips) { actions[c.name] = mixer.clipAction(c); actions[c.name].play(); }
+    mixer.setTime((i * 0.137) % 0.48);
+    scene.add(obj);
+    LAYERS.horses.push(obj);
+    runners.push({ obj, mixer, actions, effort: 0 });
+  }
+  document.getElementById("loading").hidden = true;
+} catch (err) {
+  console.error(err);
+  document.getElementById("loading").textContent = "The course didn't load. Refresh to try again.";
+}
+
+// ---------- Contact shadows under the horses ----------
+const contact = new THREE.InstancedMesh(new THREE.PlaneGeometry(1, 1), new THREE.MeshBasicMaterial({ map: shadowTex, color: "#1a2410", transparent: true, opacity: 0.55, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -4 }), 64);
+contact.frustumCulled = false; contact.count = 0; contact.renderOrder = 1;
+scene.add(contact);
+
+// ---------- Turf kick-back: clods of earth and grass thrown up behind the hooves ----------
+const clods = new THREE.InstancedMesh(new THREE.IcosahedronGeometry(1, 0), new THREE.MeshLambertMaterial({ color: "#ffffff" }), KICK.maxClods);
+clods.frustumCulled = false; clods.count = 0; clods.castShadow = false;
+scene.add(clods);
+LAYERS.kick.push(clods);
+const CLOD_COLOURS = ["#5a4430", "#6d5238", "#567e36", "#44702e", "#5f8a3c", "#7a9a48"].map((c) => new THREE.Color(c));
+const live = [];
+const kickRnd = seeded(99);
+const _m = new THREE.Matrix4(), _q = new THREE.Quaternion(), _s = new THREE.Vector3(), _p = new THREE.Vector3(), _e = new THREE.Euler();
+function stepKick(dt, field) {
+  // Emit: from the hind and fore hooves, thrown up and back; they leave the horse behind as it gallops on.
+  for (const [x, z, v, , yaw] of field) {
+    if (v < 6) continue;
+    let n = KICK.perSecond * KICK.share * (v / 16) * dt;
+    while (n > 0 && live.length < KICK.maxClods) {
+      if (n < 1 && kickRnd() > n) break;
+      n -= 1;
+      const hind = kickRnd() < 0.7;
+      const lx = hind ? -1.1 + kickRnd() * 0.5 : 0.7 + kickRnd() * 0.4, lz = (kickRnd() - 0.5) * 0.7;
+      const c = Math.cos(yaw), s = Math.sin(yaw);
+      const big = kickRnd() < 0.25;
+      live.push({
+        x: x + lx * c - lz * s, y: 0.05, z: z + lx * s + lz * c,
+        vx: v * (0.25 + kickRnd() * 0.35), vy: 1.0 + kickRnd() * (big ? 1.4 : 2.6), vz: (kickRnd() - 0.5) * 1.6,
+        size: big ? 0.035 + kickRnd() * 0.03 : 0.012 + kickRnd() * 0.02,
+        rot: kickRnd() * 6.28, spin: (kickRnd() - 0.5) * 20, age: 0, landed: -1,
+        col: CLOD_COLOURS[Math.floor(kickRnd() * CLOD_COLOURS.length)],
+      });
+    }
+  }
+  // Fly, fall, land, then settle into the turf.
+  for (let i = live.length - 1; i >= 0; i--) {
+    const c = live[i];
+    c.age += dt;
+    if (c.landed < 0) {
+      c.vy -= 9.8 * dt; c.x += c.vx * dt; c.y += c.vy * dt; c.z += c.vz * dt; c.rot += c.spin * dt;
+      if (c.y <= c.size * 0.5) { c.y = c.size * 0.5; c.landed = c.age; }
+    }
+    if ((c.landed >= 0 && c.age - c.landed > 0.35) || c.age > 3) live.splice(i, 1);
+  }
+}
+function drawKick() {
+  live.forEach((c, i) => {
+    const fade = c.landed >= 0 ? Math.max(0, 1 - (c.age - c.landed) / 0.35) : 1;
+    const [wx, wz] = toWorld(c.x, c.z); _p.set(wx, c.y, wz); _q.setFromEuler(_e.set(c.rot, c.rot * 0.7, 0)); _s.setScalar(c.size * (0.4 + 0.6 * fade));
+    clods.setMatrixAt(i, _m.compose(_p, _q, _s));
+    clods.setColorAt(i, c.col);
+  });
+  clods.count = live.length;
+  clods.instanceMatrix.needsUpdate = true;
+  if (clods.instanceColor) clods.instanceColor.needsUpdate = true;
+}
+
+function sample(t) {
+  const f = t / timeline.dt;
+  const i = Math.min(Math.floor(f), timeline.frames.length - 2), k = Math.min(1, f - i);
+  return timeline.frames[i].map((a, j) => { const b = timeline.frames[i + 1][j]; return a.map((v, n) => v + (b[n] - v) * k); });
+}
+
+function updateCamera(now, dt) {
+  const T = runners.length ? cameraTarget(now) : { eye: camera.position.clone(), look: focus.clone(), fov: camera.fov, id: "none" };
+  if (T.id !== lastShot) { snap = true; lastShot = T.id; }
+  // Cuts are clean cuts. Within a shot the camera stands where it should (it's already moving smoothly with
+  // the field); the look point rides with the leader and only its offset from the leader is smoothed; the
+  // zoom widens quickly and tightens slowly, and never lets the leaders out.
+  camera.position.copy(T.eye);
+  if (T.anchor) {
+    const off = T.look.clone().sub(T.anchor);
+    if (snap || !state.lookOff) state.lookOff = off; else state.lookOff.lerp(off, 1 - Math.exp(-dt * 2.2));
+    focus.copy(T.anchor).add(state.lookOff);
+    const guard = fitFov(T.eye, focus, T.guard, T.range, 1.12);
+    let f = Math.max(T.fov, guard);
+    if (snap) camera.fov = f;
+    else camera.fov += (f - camera.fov) * (1 - Math.exp(-dt * (f > camera.fov ? 6 : 0.9)));
+    camera.fov = Math.max(camera.fov, guard);
+  } else { focus.copy(T.look); camera.fov = T.fov; }
+  camera.updateProjectionMatrix();
+  camera.lookAt(focus);
+  snap = false;
+}
+// Checking aid: run the director over a stretch of race and report each step's shot, zoom and how far the
+// view turned (degrees), to find jumps without watching it: window.__camTrace(t0, t1, dt).
+window.__camTrace = (t0, t1, step = 1 / 30) => {
+  const out = [], d0 = new THREE.Vector3(), d1 = new THREE.Vector3();
+  state.phase = "race";
+  snap = true;
+  for (let t = t0; t <= t1; t += step) {
+    state.t = t; state.dt = step;
+    camera.getWorldDirection(d0);
+    updateCamera(sample(t), step);
+    camera.updateMatrixWorld(); camera.getWorldDirection(d1);
+    out.push([+t.toFixed(2), lastShot, +camera.fov.toFixed(2), +THREE.MathUtils.radToDeg(d0.angleTo(d1)).toFixed(2)]);
+  }
+  return out;
+};
+
+// ---------- Loop ----------
+const toRunEl = document.getElementById("toRun"), toRunLabel = document.querySelector(".togo span");
+const clock = new THREE.Clock();
+let framesDrawn = 0, stillFrames = 0, kickWarm = false;
+function frame() {
+  const t0 = performance.now();
+  const rawDt = clock.getDelta();
+  const dt = Math.min(rawDt, 0.05);
+  if (runners.length && !params.has("still")) perf.tick(rawDt);
+  // phases: before the off -> the race -> the finish again, slowed -> after the race -> round again
+  const slow = state.phase === "replay" ? DIR_.replaySpeed : 1;
+  state.dt = dt;
+  const step = state.paused ? 0 : dt * slow;
+  if (!state.paused) {
+    state.pt += dt;
+    if (state.phase === "prelude") { if (state.pt > SET.prelude.seconds) { state.phase = "stalls"; state.pt = 0; state.t = 0; snap = true; } }
+    else if (state.phase === "stalls") { if (state.pt > PRE.standSeconds) { state.phase = "race"; state.pt = 0; state.t = 0; } }   // the off: no cut
+    else if (state.phase === "race") { state.t += dt; if (state.t > T_END) { state.phase = "replay"; state.pt = 0; state.t = REPLAY[0]; snap = true; live.length = 0; } }
+    else if (state.phase === "replay") { state.t += step; if (state.t > REPLAY[1]) { state.phase = "postlude"; state.pt = 0; state.t = T_END; snap = true; } }
+    else if (state.phase === "postlude" && state.pt > SET.postlude.seconds) { state.phase = "prelude"; state.pt = 0; state.t = 0; snap = true; live.length = 0; }
+  }
+  const now = sample(state.t);
+  let leader = -1e9, leaderZ = MID_Z, sum = 0, leaderXw = 0;
+  runners.forEach((r, i) => {
+    const [x, z, v, eff, yaw] = now[i];
+    const [wx, wz] = toWorld(x, z);                            // along the course -> world
+    const head = headingAt(x, yaw);
+    r.obj.position.set(wx, 0, wz);
+    r.obj.rotation.y = head;
+    _p.set(wx - Math.cos(head) * 0.15, 0.04, wz + Math.sin(head) * 0.15); _q.setFromEuler(_e.set(-Math.PI / 2, 0, head - Math.PI, "YXZ")); _s.set(3.0, 1.05, 1);
+    contact.setMatrixAt(i, _m.compose(_p, _q, _s));
+    if (r.v2) {                                            // the v2 horse: its own riding, gallop and detail levels
+      if (params.has("still") && !r.started) { r.v2.update(5, v, eff, null, 0); r.started = true; }   // stills: settle the riding first
+      r.v2.update(dt, v, eff, null, step);
+      if (x > leader) { leader = x; leaderZ = wz; leaderXw = wx; }
+      sum += x;
+      return;
+    }
+    if (params.has("still") && !r.started) { r.effort = Math.min(2, eff); r.started = true; }   // stills: start at the timeline's effort
+    r.effort += (Math.min(2, eff) - r.effort) * Math.min(1, dt * 2);
+    const set = (n, w) => r.actions[n] && r.actions[n].setEffectiveWeight(w);
+    const e = r.effort;
+    set("ride_quiet", Math.max(0, 1 - e)); set("ride_push", e <= 1 ? e : 2 - e); set("ride_drive", Math.max(0, e - 1));
+    // standing in the stalls: the walk pose, barely moving (a horse shifting its weight); into the gallop as it breaks
+    const w = 1 - THREE.MathUtils.smoothstep(v, 0.3, 4.5);
+    set("walk", w); set("gallop", (1 - e / 4) * (1 - w)); set("gallop_drive", (e / 4) * (1 - w));
+    r.mixer.timeScale = v < 0.3 ? 0.06 : THREE.MathUtils.clamp(v / STRIDE_SPEED, 0.3, 1.4);
+    r.mixer.update(step);
+    if (x > leader) { leader = x; leaderZ = wz; leaderXw = wx; }
+    sum += x;
+  });
+  if (!runners.length) leader = 0;
+  contact.count = runners.length; contact.instanceMatrix.needsUpdate = true;
+  if (runners.length) {
+    if (!kickWarm) {                     // jumping into the middle of a race: let the air fill with clods first
+      kickWarm = true;
+      for (let k = 30; k > 0; k--) stepKick(1 / 30, sample(Math.max(0, state.t - k / 30)));
+    }
+    if (!state.paused) stepKick(step, now);
+    drawKick();
+  }
+  const packU = runners.length ? sum / runners.length : 0;
+  // the gates: shut until the off, then spring open; on a race that comes back past its own start (2 miles)
+  // the stalls are towed away once the field is well down the course
+  if (stallsGroup) {
+    setGates(state.phase === "race" ? gateOpening(state.t) : state.phase === "prelude" || state.phase === "stalls" ? 0 : 1);
+    stallsGroup.visible = !(STALLS_COME_BACK && (state.phase === "race" || state.phase === "replay" || state.phase === "postlude") && leader > PRE.hideAfter);
+  }
+
+  updateCamera(now, dt);
+  if (HORSE_V === "v2" && runners.length) {           // v2: detail levels by size on screen, a few close at most
+    camera.updateMatrixWorld();
+    HorseV2.chooseLevels(runners.map((r) => r.v2), camera, { close: { high: 4, medium: 2, low: 0 }[qLevel] });
+  }
+  const [sx, sz] = toWorld(packU, 0);
+  const sunAt = new THREE.Vector3(sx, 0, sz);
+  sun.position.copy(sunAt).add(SUN_OFFSET); sun.target.position.copy(sunAt);
+  scene.userData.sky.position.copy(camera.position);
+  CROWD.uniforms.uTime.value = performance.now() / 1000;
+  CROWD.uniforms.uLeader.value.set(leaderXw, leaderZ);
+  camera.updateMatrixWorld();
+  updateCrowd(camera);
+
+  const left = (DIST - leader) / FURLONG;
+  toRunEl.textContent = state.phase === "prelude" ? RACE.label : state.phase === "stalls" ? "All in" : state.phase === "replay" ? "Replay" : left <= 0 ? "Finished"
+    : left < 1 ? Math.round(left * 220) + " yds" : left.toFixed(1).replace(/\.0$/, "") + "f";
+  toRunLabel.hidden = left <= 0 || state.phase === "prelude" || state.phase === "stalls" || state.phase === "replay";
+
+  const every = QUALITY[qLevel].shadowEvery;
+  sun.shadow.autoUpdate = every === 1;
+  if (every > 1 && framesDrawn % every === 0) sun.shadow.needsUpdate = true;
+  const t1 = performance.now();
+  renderer.info.reset();
+  renderer.render(scene, camera);
+  framesDrawn++;
+  diag.js += t1 - t0; diag.draw += performance.now() - t1; diag.n++;
+  // ?still=1 (used for checking screenshots): draw a few frames once loaded, then stop.
+  if (params.has("still") && runners.length && texturesPending === 0 && ++stillFrames >= 3) {
+    window.__count = (key) => {                               // checking aid: triangles drawn with one layer hidden
+      const L = key ? LAYERS[key] : []; L.forEach((o) => (o.visible = false));
+      renderer.info.reset(); renderer.render(scene, camera); const t = renderer.info.render.triangles;
+      L.forEach((o) => (o.visible = true)); renderer.render(scene, camera); return t;   // leave the full scene on screen
+    };
+    window.__ready = true; window.__info = `${renderer.info.render.calls} draw calls, ${(renderer.info.render.triangles / 1000).toFixed(0)}k triangles`; return;
+  }
+  requestAnimationFrame(frame);
+}
+requestAnimationFrame(frame);
+</script>
