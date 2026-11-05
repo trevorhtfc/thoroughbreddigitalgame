@@ -1,0 +1,7 @@
+{"dpr":1.5,"w":1280,"h":720,"base":"http://localhost:8765/crowd-review.html?still=1&quality=high&crowd=A&palette=summer","out":"out/r2",
+ "variants":[{"key":"1","query":"figures=1"},{"key":"1C","query":"figures=8"},{"key":"3","query":"figures=3"},{"key":"mix","query":"figures=3&mix=8"},
+             {"key":"1B","query":"figures=7"},{"key":"3B","query":"figures=9"},{"key":"3C","query":"figures=10"}],
+ "views":{"rail":{"eye":[-14,1.65,29.8],"at":[20,1.2,33.5],"fov":36},"track":{"eye":[-4,3,2],"at":[0,2.4,40],"fov":50},
+          "lawn":{"eye":[-28,7,12],"at":[12,1,38],"fov":40},"tv":{"eye":[0,12,43],"at":[220,1,12],"fov":22},
+          "above":{"eye":[10,30,26],"at":[14,0,38],"fov":40},"far":{"eye":[195,10,28],"at":[240,0,-14],"fov":40}},
+ "clip":{"keys":["1C","3","mix"],"seconds":4,"fps":25,"start":4.5,"cam":{"eye":[-6,3,-10],"at":[6,1.8,36],"fov":45}}}

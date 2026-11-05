@@ -80,6 +80,38 @@
    },
    "mean": 207,
    "max": 234
+  },
+  "7": {
+   "figures": {
+    "gent_00_top": 272,
+    "gent_01_top": 272,
+    "gent_02_boater": 248,
+    "gent_03_bowler": 264,
+    "gent_04_trilby": 248,
+    "lady_05_wide": 294,
+    "lady_06_picture": 294,
+    "lady_07_fascinator": 218,
+    "lady_08_cloche": 278,
+    "lady_09_boater": 278
+   },
+   "mean": 267,
+   "max": 294
+  },
+  "8": {
+   "figures": {
+    "gent_00_top": 368,
+    "gent_01_top": 380,
+    "gent_02_boater": 344,
+    "gent_03_bowler": 360,
+    "gent_04_trilby": 356,
+    "lady_05_wide": 390,
+    "lady_06_picture": 390,
+    "lady_07_fascinator": 326,
+    "lady_08_cloche": 386,
+    "lady_09_boater": 374
+   },
+   "mean": 367,
+   "max": 390
   }
  }
 }

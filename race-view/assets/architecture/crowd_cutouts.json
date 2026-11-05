@@ -1,5 +1,5 @@
 {
- "_about": "Painted cut-out racegoers (tools/web/build_crowd_cutouts.py). Atlas: left half shade/trim/hat/alpha, right half skin/hair/white weights (alpha 1); main colour = the rest. Each card is 1 m wide and 2 m tall, its bottom edge on the ground.",
+ "_about": "Painted cut-out racegoers (tools/web/build_crowd_cutouts.py, finish: painted). Atlas: left half shade/trim/hat/alpha, right half skin/hair/white weights (alpha 1); main colour = the rest. Each card is 1 m wide and 2 m tall, its bottom edge on the ground.",
  "cols": 8,
  "rows": 4,
  "card": [

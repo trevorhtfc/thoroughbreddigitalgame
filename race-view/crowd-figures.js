@@ -19,6 +19,11 @@ export const FIGURE_SETS = {
   4: { name: "Low-poly faceted", file: "crowd_set_4", flat: true, line: "Flat-shaded planes: arms, a hand on a hip or a race card, lapels, hair." },
   5: { name: "Soft painterly", file: "crowd_set_5", paint: true, line: "Rounded, lumpy masses with dabs of hat and colour, a brushed finish." },
   6: { name: "Lowry", file: "crowd_set_6", flat: true, line: "Thin, angular, slightly hunched figures on stick legs." },
+  // a closer look at 1 and 3 (shown to the owner as 1B, 1C, 3B and 3C)
+  7: { name: "Skittle, dressed up", short: "1B", file: "crowd_set_7", line: "Set 1 with Edwardian touches: coat-tails, waistcoats, taller top hats, wider brims, hair up." },
+  8: { name: "Skittle with arms", short: "1C", file: "crowd_set_8", line: "1B with simple arms and hands: at the sides, on a hip, holding a race card or a bag." },
+  9: { name: "Cut-outs, clean poster", short: "3B", cutout: true, atlas: "crowd_cutouts_clean", line: "The same drawings in a poster finish: two flat tones per shape, no brush." },
+  10: { name: "Cut-outs, inked", short: "3C", cutout: true, atlas: "crowd_cutouts_ink", line: "The same drawings with a dark ink outline, like a storybook." },
 };
 export const SLOTS = 6;
 const PART_OF = (name) => (/clothes|main/.test(name) ? 0 : /skin/.test(name) ? 1 : /hat/.test(name) ? 2 : /trim/.test(name) ? 3 : /hair/.test(name) ? 4 : 0);
@@ -36,8 +41,9 @@ function meshesOf(obj) { const out = []; obj.updateMatrixWorld(true); obj.traver
 export async function loadFigureSet(id, { loadModel, dir, texLoader }) {
   const S = FIGURE_SETS[id] || FIGURE_SETS[0];
   if (S.cutout) {
-    const info = await fetch(`${dir}/crowd_cutouts.json`).then((r) => r.json());
-    const atlas = await new Promise((res, rej) => texLoader.load(`${dir}/crowd_cutouts.png`, res, undefined, rej));
+    const A = S.atlas || "crowd_cutouts";
+    const info = await fetch(`${dir}/${A}.json`).then((r) => r.json());
+    const atlas = await new Promise((res, rej) => texLoader.load(`${dir}/${A}.png`, res, undefined, rej));
     atlas.anisotropy = 4;
     atlas.generateMipmaps = true; atlas.minFilter = THREE.LinearMipmapLinearFilter;
     const [w, h] = info.card;

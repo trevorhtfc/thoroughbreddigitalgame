@@ -195,8 +195,10 @@ def hat(F, kind, z, n, scale=1.0, tilt=(0.0, 0.0), smooth=None, band=True, tall=
 
 
 # ---------------------------------------------------------------------------------------- set 1
-def set1(var):
-    """Refined skittle: today's figures with a real outline."""
+def set1(var, dressed=False, arms=False):
+    """Refined skittle: today's figures with a real outline.
+    dressed (sets 7 and 8, '1B' and '1C'): Edwardian touches from set 2: coat-tails, taller top hats, wider
+    brims, ladies' hair up under the hat. arms (set 8, '1C'): simple arms and hands, in a few poses."""
     F = Fig(smooth=True)
     lady = var["lady"]
     tilt = var.get("tilt", (0.0, 0.0))
@@ -206,6 +208,13 @@ def set1(var):
         coat = var.get("coat", 0.72)
         F.loft([(coat, 0.18, 0.135), (0.98, 0.165, 0.115), (1.22, 0.19, 0.125), (1.37, 0.225, 0.13),
                 (1.45, 0.16, 0.105), (1.5, 0.065, 0.06)], 8, "fig_main", cap1=False)
+        if dressed and var["hat"] == "top":                                    # morning coat: tails behind to the knee
+            for sx in (-1, 1):
+                F.tube((sx * 0.07, -0.09, 0.98), (sx * 0.085, -0.12, 0.5), 0.055, 0.045, 4, "fig_main")
+        if dressed:                                                            # the waistcoat in the V of the coat
+            a, b, c = F.vert((-0.07, 0.138, 1.45)), F.vert((0.07, 0.138, 1.45)), F.vert((0.0, 0.14, 1.12))
+            F.face([c, b, a], "fig_trim", False)
+            F.face([a, b, c], "fig_trim", False)
         top = 1.5
     else:
         hem = var.get("hem", 0.0)
@@ -216,12 +225,46 @@ def set1(var):
             for sx in (-1, 1):
                 F.loft([(0.0, 0.035, 0.04, sx * 0.07, 0), (hem + 0.05, 0.045, 0.05, sx * 0.07, 0)], 4, "fig_skin", cap0=False, cap1=False)
         top = 1.45
+    if arms:
+        k = 0.88 if lady else 1.0
+        sh = (0.185 if lady else 0.205, 1.34 if lady else 1.39)
+        POSE = {   # right side (shoulder is fixed): elbow, hand
+            "down": [(0.235, 0.0, 1.1), (0.215, 0.04, 0.86)],
+            "hip": [(0.33, -0.03, 1.13), (0.17, 0.03, 0.97)],
+            "card": [(0.24, 0.03, 1.1), (0.11, 0.24, 1.15)],
+            "clasp": [(0.22, 0.05, 1.09), (0.03, 0.14, 0.97)],
+            "bag": [(0.22, 0.08, 1.1), (0.08, 0.18, 1.06)],
+        }
+        for side, pose in ((1, var.get("arms", ("down", "down"))[0]), (-1, var.get("arms", ("down", "down"))[1])):
+            pts = [(side * sh[0], 0.0, sh[1])] + [(side * x * k, y, z * (0.96 if lady else 1.0)) for x, y, z in POSE[pose]]
+            if pose == "clasp":
+                pts[-1] = (side * 0.03, pts[-1][1], pts[-1][2])
+            F.limb(pts, [0.05 * k, 0.043 * k, 0.037 * k], 5, "fig_main")
+            F.blob(pts[-1], 0.03 * k, 0.032 * k, 0.04 * k, 5, 2, "fig_skin")
+            if pose == "card":
+                F.card((pts[-1][0] + side * 0.015, pts[-1][1] + 0.025, pts[-1][2] + 0.065), 0.1, 0.008, 0.14, "fig_trim",
+                       rot=Matrix.Rotation(-0.5, 4, "X"))
+            if pose == "bag":
+                F.card((pts[-1][0], pts[-1][1] + 0.03, pts[-1][2] - 0.07), 0.16, 0.05, 0.1, "fig_trim", smooth=False)
     F.loft([(top - 0.04, 0.045, 0.045), (top + 0.08, 0.042, 0.042)], 5, "fig_skin", cap0=False, cap1=False)
     F.push(Matrix.Translation((0, 0, top + 0.035)) @ Matrix.Rotation(tilt[0], 4, "X") @ Matrix.Rotation(tilt[1], 4, "Y"))
     F.blob((0, 0.005, 0.1), 0.094 if lady else 0.1, 0.104, 0.115, 7, 3, "fig_skin")
-    hat(F, var["hat"], 0.185, 8, scale=0.94 if lady else 1.0)
+    if dressed and lady:
+        F.blob((0, -0.07, 0.13), 0.07, 0.06, 0.06, 6, 2, "fig_hair")          # hair up in a bun
+    if dressed:
+        hat(F, var["hat"], 0.185, 8, scale=0.94 if lady else 1.0, tall=1.18, wide=var.get("wide", 1.22 if lady else 1.04))
+    else:
+        hat(F, var["hat"], 0.185, 8, scale=0.94 if lady else 1.0)
     F.pop()
     return F
+
+
+def set7(var):
+    return set1(var, dressed=True)
+
+
+def set8(var):
+    return set1(var, dressed=True, arms=True)
 
 
 # ---------------------------------------------------------------------------------------- set 2
@@ -394,6 +437,22 @@ SETS = {
         dict(lady=L, hat="fascinator", tilt=(0.0, 0.06)), dict(lady=L, hat="cloche", tilt=(0.08, -0.03), hem=0.28),
         dict(lady=L, hat="boater", tilt=(0.02, 0.07)),
     ]),
+    7: (set7, [
+        dict(lady=G, hat="top", tilt=(0.06, 0.04)), dict(lady=G, hat="top", tilt=(-0.04, -0.06), coat=0.6),
+        dict(lady=G, hat="boater", tilt=(0.0, 0.08)), dict(lady=G, hat="bowler", tilt=(0.08, 0.0)),
+        dict(lady=G, hat="trilby", tilt=(0.02, -0.05)),
+        dict(lady=L, hat="wide", tilt=(0.06, 0.05)), dict(lady=L, hat="picture", tilt=(-0.03, -0.08), hem=0.3),
+        dict(lady=L, hat="fascinator", tilt=(0.0, 0.06)), dict(lady=L, hat="cloche", tilt=(0.08, -0.03), hem=0.28),
+        dict(lady=L, hat="boater", tilt=(0.02, 0.07)),
+    ]),
+    8: (set8, [
+        dict(lady=G, hat="top", tilt=(0.06, 0.04), arms=("down", "down")), dict(lady=G, hat="top", tilt=(-0.04, -0.06), coat=0.6, arms=("card", "down")),
+        dict(lady=G, hat="boater", tilt=(0.0, 0.08), arms=("hip", "down")), dict(lady=G, hat="bowler", tilt=(0.08, 0.0), arms=("down", "hip")),
+        dict(lady=G, hat="trilby", tilt=(0.12, -0.05), arms=("card", "down")),
+        dict(lady=L, hat="wide", tilt=(0.06, 0.05), arms=("down", "clasp")), dict(lady=L, hat="picture", tilt=(-0.03, -0.08), hem=0.3, arms=("hip", "down")),
+        dict(lady=L, hat="fascinator", tilt=(0.1, 0.06), arms=("card", "down")), dict(lady=L, hat="cloche", tilt=(0.08, -0.03), hem=0.28, arms=("bag", "down")),
+        dict(lady=L, hat="boater", tilt=(0.02, 0.07), arms=("down", "down")),
+    ]),
     2: (set2, [
         dict(lady=G, hat="top", tilt=(0.04, 0.03)), dict(lady=G, hat="top", tilt=(-0.05, -0.04)),
         dict(lady=G, hat="bowler", tilt=(0.06, 0.0)), dict(lady=G, hat="boater", tilt=(0.0, -0.06)),
@@ -426,7 +485,10 @@ SETS = {
 }
 
 summary = {"_about": "Crowd figure options (tools/blender/build_crowd_figure_sets.py): triangles per figure.", "sets": {}}
+ONLY = [int(x) for x in os.environ.get("CROWD_SETS", "").split(",") if x]
 for sid, (build, variants) in SETS.items():
+    if ONLY and sid not in ONLY:
+        continue
     coll = bpy.data.collections.new("crowd_set_%d" % sid)
     bpy.context.scene.collection.children.link(coll)
     counts = {}
@@ -445,5 +507,7 @@ for sid, (build, variants) in SETS.items():
         o.location.x = 0
     bpy.ops.export_scene.gltf(filepath=os.path.join(OUT, "crowd_set_%d.glb" % sid), export_format="GLB", use_selection=True,
                               export_yup=True, export_apply=False, export_animations=False)
+old = json.load(open(os.path.join(OUT, "crowd_sets.json"))) if ONLY and os.path.exists(os.path.join(OUT, "crowd_sets.json")) else {"sets": {}}
+old["sets"].update(summary["sets"]); summary["sets"] = old["sets"]
 json.dump(summary, open(os.path.join(OUT, "crowd_sets.json"), "w"), indent=1)
 print("done", flush=True)

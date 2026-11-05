@@ -1,0 +1,267 @@
+{
+ "_about": "Painted cut-out racegoers (tools/web/build_crowd_cutouts.py, finish: clean). Atlas: left half shade/trim/hat/alpha, right half skin/hair/white weights (alpha 1); main colour = the rest. Each card is 1 m wide and 2 m tall, its bottom edge on the ground.",
+ "cols": 8,
+ "rows": 4,
+ "card": [
+  1.0,
+  2.0
+ ],
+ "figures": [
+  {
+   "cell": [
+    0,
+    0
+   ],
+   "lady": false,
+   "hat": "top"
+  },
+  {
+   "cell": [
+    1,
+    0
+   ],
+   "lady": true,
+   "hat": "wide"
+  },
+  {
+   "cell": [
+    2,
+    0
+   ],
+   "lady": false,
+   "hat": "top"
+  },
+  {
+   "cell": [
+    3,
+    0
+   ],
+   "lady": true,
+   "hat": "picture"
+  },
+  {
+   "cell": [
+    4,
+    0
+   ],
+   "lady": false,
+   "hat": "top"
+  },
+  {
+   "cell": [
+    5,
+    0
+   ],
+   "lady": true,
+   "hat": "fascinator"
+  },
+  {
+   "cell": [
+    6,
+    0
+   ],
+   "lady": false,
+   "hat": "boater"
+  },
+  {
+   "cell": [
+    7,
+    0
+   ],
+   "lady": true,
+   "hat": "cloche"
+  },
+  {
+   "cell": [
+    0,
+    1
+   ],
+   "lady": false,
+   "hat": "bowler"
+  },
+  {
+   "cell": [
+    1,
+    1
+   ],
+   "lady": true,
+   "hat": "wide"
+  },
+  {
+   "cell": [
+    2,
+    1
+   ],
+   "lady": false,
+   "hat": "panama"
+  },
+  {
+   "cell": [
+    3,
+    1
+   ],
+   "lady": true,
+   "hat": "boater"
+  },
+  {
+   "cell": [
+    4,
+    1
+   ],
+   "lady": false,
+   "hat": "top"
+  },
+  {
+   "cell": [
+    5,
+    1
+   ],
+   "lady": true,
+   "hat": "wide"
+  },
+  {
+   "cell": [
+    6,
+    1
+   ],
+   "lady": false,
+   "hat": "top"
+  },
+  {
+   "cell": [
+    7,
+    1
+   ],
+   "lady": true,
+   "hat": "picture"
+  },
+  {
+   "cell": [
+    0,
+    2
+   ],
+   "lady": false,
+   "hat": "top"
+  },
+  {
+   "cell": [
+    1,
+    2
+   ],
+   "lady": true,
+   "hat": "fascinator"
+  },
+  {
+   "cell": [
+    2,
+    2
+   ],
+   "lady": false,
+   "hat": "boater"
+  },
+  {
+   "cell": [
+    3,
+    2
+   ],
+   "lady": true,
+   "hat": "cloche"
+  },
+  {
+   "cell": [
+    4,
+    2
+   ],
+   "lady": false,
+   "hat": "bowler"
+  },
+  {
+   "cell": [
+    5,
+    2
+   ],
+   "lady": true,
+   "hat": "wide"
+  },
+  {
+   "cell": [
+    6,
+    2
+   ],
+   "lady": false,
+   "hat": "panama"
+  },
+  {
+   "cell": [
+    7,
+    2
+   ],
+   "lady": true,
+   "hat": "boater"
+  },
+  {
+   "cell": [
+    0,
+    3
+   ],
+   "lady": false,
+   "hat": "panama"
+  },
+  {
+   "cell": [
+    1,
+    3
+   ],
+   "lady": true,
+   "hat": "fascinator"
+  },
+  {
+   "cell": [
+    2,
+    3
+   ],
+   "lady": false,
+   "hat": "panama"
+  },
+  {
+   "cell": [
+    3,
+    3
+   ],
+   "lady": true,
+   "hat": "wide"
+  },
+  {
+   "cell": [
+    4,
+    3
+   ],
+   "lady": false,
+   "hat": "bowler"
+  },
+  {
+   "cell": [
+    5,
+    3
+   ],
+   "lady": true,
+   "hat": "wide"
+  },
+  {
+   "cell": [
+    6,
+    3
+   ],
+   "lady": false,
+   "hat": "panama"
+  },
+  {
+   "cell": [
+    7,
+    3
+   ],
+   "lady": true,
+   "hat": "wide"
+  }
+ ]
+}

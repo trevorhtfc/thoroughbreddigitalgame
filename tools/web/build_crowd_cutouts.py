@@ -1,6 +1,11 @@
 """Crowd option 3, painted cut-outs: flat illustrated racegoers drawn into a texture atlas.
 
-    python3 tools/web/build_crowd_cutouts.py
+    python3 tools/web/build_crowd_cutouts.py [painted|clean|ink]
+
+Three finishes of the same 32 drawings:
+  painted (default, crowd_cutouts.png)  soft light across each shape, brush strokes, a darker edge round each shape
+  clean   (crowd_cutouts_clean.png)     a poster finish: two flat tones per shape (lit and shadow), no brush, a fine edge
+  ink     (crowd_cutouts_ink.png)       storybook: a dark ink outline round the figure and finer lines between parts
 
 Writes race-view/assets/architecture/crowd_cutouts.png and crowd_cutouts.json.
 
@@ -16,7 +21,7 @@ each pixel is rather than its colour:
 
 Drawn at 4x and averaged down, so the edges between colours are soft.
 """
-import json, math, os, random
+import json, math, os, random, sys
 import numpy as np
 from PIL import Image, ImageDraw, ImageFilter
 
@@ -27,6 +32,8 @@ COLS, ROWS = 8, 4
 W, H = CW * SS, CH * SS                  # drawing size of one cell
 PPM = W / 1.0                            # pixels per metre (the card is 1 m wide, 2 m tall)
 MAIN, SKIN, HAT, TRIM, HAIR, WHITE, DARK = range(7)
+STYLE = sys.argv[1] if len(sys.argv) > 1 else "painted"
+SUFFIX = "" if STYLE == "painted" else "_" + STYLE
 
 
 def P(x, y):
@@ -243,13 +250,25 @@ for idx in range(COLS * ROWS):
     c = Cell(100 + idx)
     kind = lady(c, idx // 2) if is_lady else gent(c, idx // 2)
     part = np.asarray(c.part).astype(np.int16)
+    if STYLE == "ink":
+        # the outline: grow the figure by a few pixels and paint the new rim as dark ink (the main colour, near black)
+        grown = np.asarray(Image.fromarray(part.astype(np.uint8)).filter(ImageFilter.MinFilter(9))).astype(np.int16)
+        rim = (part == 255) & (grown != 255)
+        part = np.where(rim, DARK, part)
     alpha = (part != 255).astype(np.float32)
     # a darker edge round every shape: where the part changes within a few pixels
     pi = Image.fromarray(part.astype(np.uint8))
-    edge = (np.asarray(pi.filter(ImageFilter.MaxFilter(7))) != np.asarray(pi.filter(ImageFilter.MinFilter(7)))).astype(np.float32)
-    edge = np.asarray(Image.fromarray((edge * 255).astype(np.uint8)).filter(ImageFilter.GaussianBlur(2)), np.float32) / 255.0
-    shade = c.shade * (1.0 + 0.42 * (brush(idx) - 0.5) * 2 * 0.5) * (1.0 - 0.38 * edge)
-    shade = np.where(part == DARK, 0.16, shade)               # shoes: the main colour, nearly black
+    k = {"painted": 7, "clean": 3, "ink": 5}[STYLE]
+    edge = (np.asarray(pi.filter(ImageFilter.MaxFilter(k))) != np.asarray(pi.filter(ImageFilter.MinFilter(k)))).astype(np.float32)
+    edge = np.asarray(Image.fromarray((edge * 255).astype(np.uint8)).filter(ImageFilter.GaussianBlur(2 if STYLE == "painted" else 1)), np.float32) / 255.0
+    if STYLE == "clean":
+        # two flat tones: lit and shadow, split where the soft light falls off; a fine edge only
+        shade = np.where(c.shade > 0.74, 0.86, 0.62) * (1.0 - 0.32 * edge)
+    elif STYLE == "ink":
+        shade = c.shade * (1.0 + 0.2 * (brush(idx) - 0.5)) * (1.0 - 0.75 * edge)
+    else:
+        shade = c.shade * (1.0 + 0.42 * (brush(idx) - 0.5) * 2 * 0.5) * (1.0 - 0.38 * edge)
+    shade = np.where(part == DARK, 0.16 if STYLE != "ink" else 0.1, shade)   # shoes (and the ink line): the main colour, nearly black
     shade = np.clip(shade, 0, 1) * alpha
     chans = [shade, (part == TRIM), (part == HAT), alpha, (part == SKIN), (part == HAIR), (part == WHITE), np.ones_like(alpha)]
     chans = [np.asarray(ch, np.float32) for ch in chans]
@@ -267,7 +286,7 @@ for idx in range(COLS * ROWS):
     info.append({"cell": [cx, cy], "lady": is_lady, "hat": kind})
 
 os.makedirs(OUT, exist_ok=True)
-Image.fromarray((np.clip(atlas, 0, 1) * 255 + 0.5).astype(np.uint8), "RGBA").save(os.path.join(OUT, "crowd_cutouts.png"), optimize=True)
-json.dump({"_about": "Painted cut-out racegoers (tools/web/build_crowd_cutouts.py). Atlas: left half shade/trim/hat/alpha, right half skin/hair/white weights (alpha 1); main colour = the rest. Each card is 1 m wide and 2 m tall, its bottom edge on the ground.",
-           "cols": COLS, "rows": ROWS, "card": [1.0, 2.0], "figures": info}, open(os.path.join(OUT, "crowd_cutouts.json"), "w"), indent=1)
+Image.fromarray((np.clip(atlas, 0, 1) * 255 + 0.5).astype(np.uint8), "RGBA").save(os.path.join(OUT, "crowd_cutouts%s.png" % SUFFIX), optimize=True)
+json.dump({"_about": "Painted cut-out racegoers (tools/web/build_crowd_cutouts.py, finish: " + STYLE + "). Atlas: left half shade/trim/hat/alpha, right half skin/hair/white weights (alpha 1); main colour = the rest. Each card is 1 m wide and 2 m tall, its bottom edge on the ground.",
+           "cols": COLS, "rows": ROWS, "card": [1.0, 2.0], "figures": info}, open(os.path.join(OUT, "crowd_cutouts%s.json" % SUFFIX), "w"), indent=1)
 print("wrote atlas", atlas.shape, sum(1 for f in info if f["lady"]), "ladies")
