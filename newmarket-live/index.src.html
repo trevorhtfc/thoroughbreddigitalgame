@@ -45,15 +45,15 @@ button:focus-visible{outline:2px solid var(--tb-gold);outline-offset:3px}
 /* the places' light: a soft rim always, warming up when the pointer is over a place or it is chosen */
 #glow .site{cursor:pointer;pointer-events:fill}
 #glow .site .hit{fill:transparent}
-#glow .halo{fill:none;stroke:#ffb54a;stroke-width:16;stroke-linejoin:round;opacity:.3;filter:url(#halo);transition:opacity .45s,stroke-width .45s}
-#glow .rim{fill:none;stroke:#ffe7a6;stroke-width:2.4;stroke-linejoin:round;opacity:.5;filter:url(#rim);transition:opacity .45s,stroke-width .45s}
-#glow .line{fill:none;stroke:#fff6dc;stroke-width:1.1;stroke-linejoin:round;opacity:.5;transition:opacity .45s}
+#glow .halo{fill:none;stroke:#ffaa3c;stroke-width:12;stroke-linejoin:round;opacity:.28;filter:url(#halo);transition:opacity .45s,stroke-width .45s}
+#glow .rim{fill:none;stroke:#ffc964;stroke-width:3;stroke-linejoin:round;opacity:.55;filter:url(#rim);transition:opacity .45s,stroke-width .45s}
+#glow .line{fill:none;stroke:#fff8e2;stroke-width:1.3;stroke-linejoin:round;opacity:.6;transition:opacity .45s}
 #glow .wash{fill:url(#washGrad);opacity:0;mix-blend-mode:screen;transition:opacity .45s}
 #glow .spark{fill:none;stroke:#fffaf0;stroke-width:2.6;stroke-linecap:round;stroke-dasharray:14 260;opacity:0;filter:url(#rim);transition:opacity .45s}
-#glow .site.hot .halo{opacity:.85;stroke-width:26}
-#glow .site.hot .rim{opacity:1;stroke-width:3.4}
-#glow .site.hot .line{opacity:.95}
-#glow .site.hot .wash{opacity:.55}
+#glow .site.hot .halo{opacity:.9;stroke-width:22}
+#glow .site.hot .rim{opacity:1;stroke-width:4}
+#glow .site.hot .line{opacity:1;stroke-width:1.6}
+#glow .site.hot .wash{opacity:.5}
 #glow .site.hot .spark{opacity:.9}
 @media (prefers-reduced-motion:no-preference){
   #glow .site .rim{animation:breathe 4.5s ease-in-out infinite}
@@ -145,8 +145,8 @@ button:focus-visible{outline:2px solid var(--tb-gold);outline-offset:3px}
       <canvas id="clouds" width="362" height="272" aria-hidden="true"></canvas>
       <svg id="glow" viewBox="0 0 1448 1086">
         <defs>
-          <filter id="halo" x="-30%" y="-30%" width="160%" height="160%"><feGaussianBlur stdDeviation="8"/></filter>
-          <filter id="rim" x="-20%" y="-20%" width="140%" height="140%"><feGaussianBlur stdDeviation="1.6"/></filter>
+          <filter id="halo" x="-30%" y="-30%" width="160%" height="160%"><feGaussianBlur stdDeviation="6"/></filter>
+          <filter id="rim" x="-20%" y="-20%" width="140%" height="140%"><feGaussianBlur stdDeviation="0.9"/></filter>
           <radialGradient id="washGrad" cx="50%" cy="50%" r="65%"><stop offset="0" stop-color="#ffe2a0" stop-opacity=".55"/><stop offset=".7" stop-color="#ffc870" stop-opacity=".3"/><stop offset="1" stop-color="#ffb050" stop-opacity=".55"/></radialGradient>
         </defs>
       </svg>

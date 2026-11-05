@@ -8,8 +8,10 @@ the board's own projection so they sit in the picture at its scale.
 Live: https://claude.ai/artifact/NnTToGjuhfCXvDK4fWkeMF
 
 ## The places
-Palace House, the Jockey Club, Tattersalls, the Stables and the National Stud each have a lit outline: the owner's
-own line from `markup/sites-markup.jpg`. It glows softly all the time, and heats up (a wider halo, a warm wash
+Each place has a lit outline that runs tight along its roof edges (`tools/tight_sites.py`): the buildings are found
+on the board inside the area the owner marked (`markup/sites-markup.jpg`). Tattersalls and the Stables take the outer
+edge of the whole complex, straight across the gaps between ranges, with the yards inside; Palace House, the Jockey
+Club and the National Stud take the buildings themselves; Warren Hill (open heath) keeps the owner's line. It glows softly all the time, and heats up (a wider halo, a warm wash
 over the site, a spark running round the edge) when the pointer is over the site or its button, or it is chosen.
 The whole site is clickable. Warren Hill's outline comes from the owner's second markup (`markup/sites-markup-2.jpg`).
 **To the Races** sits in the top right, outside the board, and opens its own card.
@@ -40,6 +42,7 @@ Run it again whenever the board image changes.
   (adds the icons, the horse mark and the site outlines from `markup/markup.json`).
 - `markup/` – the owner's clean map and markups; `markup/extract.py` lines the markups up with the clean map and
   pulls out the outlines and lines into `markup.json`.
+- `tools/tight_sites.py` – the tight outlines → `markup/sites-tight.json` (run after `tools/occlusion.py`).
 - `tools/clean_board.py` – makes `assets/newmarket-board.webp` from the clean map: mends the right-hand frame,
   paints out the labels under the buttons and the crossed-out National Stud label, and the circled horses.
 - `tools/silhouette.html` – renders the race horse mid-gallop as a silhouette → `tools/horse-mark.png`.

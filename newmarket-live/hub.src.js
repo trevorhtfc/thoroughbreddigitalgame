@@ -7,7 +7,7 @@ const REDUCED = matchMedia("(prefers-reduced-motion: reduce)").matches;
 const MW = 1448, MH = 1086;                                        // the board, in its own pixels; everything below is in these
 
 // ---------------------------------------------------------------- the places
-// Each lit outline is the owner's own line (markup/sites-markup.jpg, traced by markup/extract.py).
+// Each lit outline follows the buildings' roof edges inside the owner's marked area (tools/tight_sites.py).
 const SITES = %%SITES%%;
 const ICONS = { gavel: `%%ICON:gavel%%`, temple: `%%ICON:greek-temple%%`, stable: `%%ICON:stable%%`, head: `%%ICON:horse-head%%` };
 const PLACES = [
@@ -38,7 +38,7 @@ const smoothPath = (pts) => {                                      // a closed c
 for (const p of PLACES) {
   const site = SITES.find((s) => s.id === p.id);
   if (site) {
-    const d = smoothPath(site.poly);
+    const d = site.sharp ? "M" + site.poly.map((q) => q.join(",")).join("L") + "Z" : smoothPath(site.poly);
     const g = document.createElementNS(svgNS, "g"); g.setAttribute("class", "site"); g.id = "site-" + p.id;
     g.innerHTML = `<path class="wash" d="${d}"/><path class="halo" d="${d}"/><path class="rim" d="${d}"/><path class="line" d="${d}"/><path class="spark" d="${d}" pathLength="548"/><path class="hit" d="${d}"/>`;
     g.addEventListener("pointerenter", () => hover(p.id, true)); g.addEventListener("pointerleave", () => hover(p.id, false));
