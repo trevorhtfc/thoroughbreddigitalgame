@@ -9,6 +9,8 @@ Home for the Thoroughbred digital games (the quick Thoroughbred Ascot game and t
 | `assets/models/` | 3D models. **`racehorse_rigged.glb` is the one to use**: the horse and jockey with the rebuilt gallop with head nod, a proper silks layout and a horse-under-pressure clip; the jockey rides still in the saddle with only his arms moving (quiet, push, drive). `racehorse_neutral.glb` is the colour-stripped original it was built from; `master/racehorse_master.blend` is the Blender source. |
 | `assets/silks/` | Owners' silks artwork, one image per set of colours. |
 | `assets/portraits/` | Horse head portraits for menus and cards. |
+| `ascot-game/` | **Thoroughbred Ascot, the playable game** (the Claude artifact's files, plus test tools). Start with its `README.md`. |
+| `assets/maps/` | The Newmarket map from the board game. |
 | `godot-prototype/` | The earlier Godot race scene (Godot 4.7). Kept for reference: its cameras, running-order panel and silks recolouring are being carried across to the web version. |
 | `silks/` | Traditional silks: `silks.json` describes each set (body, sleeves, cap); `textures/` holds them painted for the 3D jacket and `icons/` as racecard icons, plus the pattern catalogue. |
 | `tools/` | Scripts that build the horse and silks; see `tools/README.md`. |
