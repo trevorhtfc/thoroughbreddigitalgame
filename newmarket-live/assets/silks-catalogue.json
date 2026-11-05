@@ -1,0 +1,641 @@
+{
+ "silks": [
+  {
+   "id": "aga-khan",
+   "name": "Aga Khan",
+   "description": "Green, red epaulets",
+   "colour": "#1f9a35"
+  },
+  {
+   "id": "alcohol-free",
+   "name": "Alcohol Free",
+   "description": "Purple, ice blue chevron, ice blue cap",
+   "colour": "#4a33b8"
+  },
+  {
+   "id": "amo-2",
+   "name": "Amo 2",
+   "description": "Dark purple, white cap",
+   "colour": "#3a1580"
+  },
+  {
+   "id": "ballydoyle-navy",
+   "name": "Ballydoyle Navy",
+   "description": "Navy",
+   "colour": "#20335a"
+  },
+  {
+   "id": "ballydoyle-orange",
+   "name": "Ballydoyle Orange",
+   "description": "Royal blue, orange disc, royal blue and orange striped sleeves, royal blue and orange striped cap",
+   "colour": "#1d4ae6"
+  },
+  {
+   "id": "ballydoyle-pink",
+   "name": "Ballydoyle Pink",
+   "description": "Pink",
+   "colour": "#f08ef0"
+  },
+  {
+   "id": "ballydoyle-purple",
+   "name": "Ballydoyle Purple",
+   "description": "Dark purple, dark purple and white striped sleeves",
+   "colour": "#3a1580"
+  },
+  {
+   "id": "black-white",
+   "name": "Black & White",
+   "description": "Black, white hooped band",
+   "colour": "#17191a"
+  },
+  {
+   "id": "bradsell",
+   "name": "Bradsell",
+   "description": "Red, red and white striped sleeves, red and white striped cap",
+   "colour": "#f0281c"
+  },
+  {
+   "id": "cheveley-park",
+   "name": "Cheveley Park",
+   "description": "Red, white sash, royal blue cap",
+   "colour": "#f0281c"
+  },
+  {
+   "id": "circus-maximus",
+   "name": "Circus Maximus",
+   "description": "Navy, ice blue crossbelts, navy and ice blue diabolo sleeves, white cap",
+   "colour": "#20335a"
+  },
+  {
+   "id": "clipper-logistics",
+   "name": "Clipper Logistics",
+   "description": "Silver",
+   "colour": "#c6c8ca"
+  },
+  {
+   "id": "desert-crown",
+   "name": "Desert Crown",
+   "description": "Royal blue, lemon chevron, lemon cap, royal blue spots",
+   "colour": "#1d4ae6"
+  },
+  {
+   "id": "doha",
+   "name": "Doha",
+   "description": "Silver and gold hoops, maroon cap",
+   "colour": "#c6c8ca"
+  },
+  {
+   "id": "ebts-guard",
+   "name": "Ebts Guard",
+   "description": "Royal blue, red sleeves, royal blue cap, red peak",
+   "colour": "#1d4ae6"
+  },
+  {
+   "id": "flamin-rib",
+   "name": "Flamin Rib",
+   "description": "Navy, ice blue diamond, navy and ice blue striped sleeves, navy cap, ice blue diamond",
+   "colour": "#20335a"
+  },
+  {
+   "id": "glen-sheil",
+   "name": "Glen Sheil",
+   "description": "Beige, beige sleeves, navy armlets, navy cap",
+   "colour": "#ece0b0"
+  },
+  {
+   "id": "godolphin",
+   "name": "Godolphin",
+   "description": "Royal blue",
+   "colour": "#1d4ae6"
+  },
+  {
+   "id": "highclere",
+   "name": "Highclere",
+   "description": "Ice blue, ice blue sleeves, navy armlets, navy cap",
+   "colour": "#bff5ee"
+  },
+  {
+   "id": "judmonte",
+   "name": "Judmonte",
+   "description": "Mint green, pink sash, white sleeves, pink cap",
+   "colour": "#6df096"
+  },
+  {
+   "id": "king-power",
+   "name": "King Power",
+   "description": "Royal blue, white hooped band, royal blue and white striped sleeves, royal blue and white striped cap",
+   "colour": "#1d4ae6"
+  },
+  {
+   "id": "lake-forest",
+   "name": "Lake Forest",
+   "description": "Royal blue, royal blue cap, white peak",
+   "colour": "#1d4ae6"
+  },
+  {
+   "id": "liberty-lane",
+   "name": "Liberty Lane",
+   "description": "Lemon, three black spots, lemon cap, four black spots",
+   "colour": "#e6f232"
+  },
+  {
+   "id": "lord-riddleford",
+   "name": "Lord Riddleford",
+   "description": "Purple, mint green sleeves, mint green cap",
+   "colour": "#4a33b8"
+  },
+  {
+   "id": "maroon-classic",
+   "name": "Maroon Classic",
+   "description": "Maroon, maroon cap, white star",
+   "colour": "#9a1f45"
+  },
+  {
+   "id": "masrshamn",
+   "name": "Masrshamn",
+   "description": "White, white and black striped sleeves, white cap, black star",
+   "colour": "#f2f4f2"
+  },
+  {
+   "id": "middleham-park",
+   "name": "Middleham Park",
+   "description": "Ice blue, orange epaulets",
+   "colour": "#bff5ee"
+  },
+  {
+   "id": "mill-reef",
+   "name": "Mill Reef",
+   "description": "Black, lemon hooped band, black and lemon striped sleeves, black and lemon striped cap",
+   "colour": "#17191a"
+  },
+  {
+   "id": "nashwa",
+   "name": "Nashwa",
+   "description": "Mint green, mint green and white striped sleeves",
+   "colour": "#6df096"
+  },
+  {
+   "id": "nathaniel",
+   "name": "Nathaniel",
+   "description": "Navy, lemon hooped band, lemon cap",
+   "colour": "#20335a"
+  },
+  {
+   "id": "night-of-thunder",
+   "name": "Night Of Thunder",
+   "description": "White, red sash, red and white striped cap",
+   "colour": "#f2f4f2"
+  },
+  {
+   "id": "oppenheimer",
+   "name": "Oppenheimer",
+   "description": "Black, red cap",
+   "colour": "#17191a"
+  },
+  {
+   "id": "orange-black",
+   "name": "Orange & Black",
+   "description": "Orange, black sleeves, black cap",
+   "colour": "#f0982c"
+  },
+  {
+   "id": "phoenix-of-spain",
+   "name": "Phoenix of Spain",
+   "description": "Navy, pink crossbelts, pink cap",
+   "colour": "#20335a"
+  },
+  {
+   "id": "pink-white",
+   "name": "Pink & White",
+   "description": "White, pink hooped band, pink cap",
+   "colour": "#f2f4f2"
+  },
+  {
+   "id": "pink-white-blue",
+   "name": "Pink, White & Blue",
+   "description": "White, royal blue sleeves, pink armlets, pink cap",
+   "colour": "#f2f4f2"
+  },
+  {
+   "id": "poetic-flare",
+   "name": "Poetic Flare",
+   "description": "White, white and dark purple quartered cap",
+   "colour": "#f2f4f2"
+  },
+  {
+   "id": "purple-pink",
+   "name": "Purple & Pink",
+   "description": "Dark purple, pink sleeves, pink cap",
+   "colour": "#3a1580"
+  },
+  {
+   "id": "qatar",
+   "name": "Qatar",
+   "description": "Maroon and gold hoops",
+   "colour": "#9a1f45"
+  },
+  {
+   "id": "red-white",
+   "name": "Red & White",
+   "description": "White, red hooped band, red cap",
+   "colour": "#f2f4f2"
+  },
+  {
+   "id": "red-white-black",
+   "name": "Red, White & Black",
+   "description": "Red, white sleeves, black cap",
+   "colour": "#f0281c"
+  },
+  {
+   "id": "royal",
+   "name": "Royal",
+   "description": "Dark purple and gold hoops, red and gold striped sleeves, black cap",
+   "colour": "#3a1580"
+  },
+  {
+   "id": "sea-the-stars",
+   "name": "Sea The Stars",
+   "description": "Lemon, indigo cap, lemon star",
+   "colour": "#e6f232"
+  },
+  {
+   "id": "shadwell",
+   "name": "Shadwell",
+   "description": "Royal blue, white epaulets, white and royal blue striped cap",
+   "colour": "#1d4ae6"
+  },
+  {
+   "id": "silkiewilie",
+   "name": "Silkiewilie",
+   "description": "Ice blue, navy seams, ice blue and navy striped sleeves, ice blue cap, navy peak",
+   "colour": "#bff5ee"
+  },
+  {
+   "id": "starlust",
+   "name": "Starlust",
+   "description": "Pink, mint green chevron, pink and mint green halved sleeves, mint green and pink halved cap",
+   "colour": "#f08ef0"
+  },
+  {
+   "id": "strawbridge",
+   "name": "Strawbridge",
+   "description": "White, mint green hooped band, mint green sleeves, mint green cap, white star",
+   "colour": "#f2f4f2"
+  },
+  {
+   "id": "stradivarius",
+   "name": "Stradivarius",
+   "description": "Black, lemon cap",
+   "colour": "#17191a"
+  },
+  {
+   "id": "swingalong",
+   "name": "Swingalong",
+   "description": "Navy, three lemon spots",
+   "colour": "#20335a"
+  },
+  {
+   "id": "wantan-2",
+   "name": "Wantan 2",
+   "description": "Gold, royal blue sleeves, royal blue cap",
+   "colour": "#e4c84c"
+  },
+  {
+   "id": "watnan",
+   "name": "Watnan",
+   "description": "Royal blue, gold sleeves, red cap",
+   "colour": "#1d4ae6"
+  },
+  {
+   "id": "white-blue",
+   "name": "White & Blue",
+   "description": "White, royal blue hooped band",
+   "colour": "#f2f4f2"
+  },
+  {
+   "id": "wimbledon-hawkeye",
+   "name": "Wimbledon Hawkeye",
+   "description": "Lemon, lemon and black striped sleeves",
+   "colour": "#e6f232"
+  },
+  {
+   "id": "yellow-black-epilite",
+   "name": "Yellow Black Epilite",
+   "description": "Lemon, black epaulets",
+   "colour": "#e6f232"
+  }
+ ],
+ "catalogue": [
+  {
+   "id": "catalogue-body-plain",
+   "name": "Plain",
+   "zone": "body",
+   "pattern": "plain",
+   "colour": "#1f2f5e"
+  },
+  {
+   "id": "catalogue-body-hoops",
+   "name": "Hoops",
+   "zone": "body",
+   "pattern": "hoops",
+   "colour": "#1f2f5e"
+  },
+  {
+   "id": "catalogue-body-stripes",
+   "name": "Stripes",
+   "zone": "body",
+   "pattern": "stripes",
+   "colour": "#1f2f5e"
+  },
+  {
+   "id": "catalogue-body-sash",
+   "name": "Sash",
+   "zone": "body",
+   "pattern": "sash",
+   "colour": "#1f2f5e"
+  },
+  {
+   "id": "catalogue-body-crossbelts",
+   "name": "Crossbelts",
+   "zone": "body",
+   "pattern": "crossbelts",
+   "colour": "#1f2f5e"
+  },
+  {
+   "id": "catalogue-body-chevron",
+   "name": "Chevron",
+   "zone": "body",
+   "pattern": "chevron",
+   "colour": "#1f2f5e"
+  },
+  {
+   "id": "catalogue-body-inverted-chevron",
+   "name": "Inverted chevron",
+   "zone": "body",
+   "pattern": "inverted chevron",
+   "colour": "#1f2f5e"
+  },
+  {
+   "id": "catalogue-body-chevrons",
+   "name": "Chevrons",
+   "zone": "body",
+   "pattern": "chevrons",
+   "colour": "#1f2f5e"
+  },
+  {
+   "id": "catalogue-body-braces",
+   "name": "Braces",
+   "zone": "body",
+   "pattern": "braces",
+   "colour": "#1f2f5e"
+  },
+  {
+   "id": "catalogue-body-halved",
+   "name": "Halved",
+   "zone": "body",
+   "pattern": "halved",
+   "colour": "#1f2f5e"
+  },
+  {
+   "id": "catalogue-body-quartered",
+   "name": "Quartered",
+   "zone": "body",
+   "pattern": "quartered",
+   "colour": "#1f2f5e"
+  },
+  {
+   "id": "catalogue-body-spots",
+   "name": "Spots",
+   "zone": "body",
+   "pattern": "spots",
+   "colour": "#1f2f5e"
+  },
+  {
+   "id": "catalogue-body-large-spots",
+   "name": "Large spots",
+   "zone": "body",
+   "pattern": "large spots",
+   "colour": "#1f2f5e"
+  },
+  {
+   "id": "catalogue-body-disc",
+   "name": "Disc",
+   "zone": "body",
+   "pattern": "disc",
+   "colour": "#1f2f5e"
+  },
+  {
+   "id": "catalogue-body-star",
+   "name": "Star",
+   "zone": "body",
+   "pattern": "star",
+   "colour": "#1f2f5e"
+  },
+  {
+   "id": "catalogue-body-diamond",
+   "name": "Diamond",
+   "zone": "body",
+   "pattern": "diamond",
+   "colour": "#1f2f5e"
+  },
+  {
+   "id": "catalogue-body-epaulets",
+   "name": "Epaulets",
+   "zone": "body",
+   "pattern": "epaulets",
+   "colour": "#1f2f5e"
+  },
+  {
+   "id": "catalogue-body-panel",
+   "name": "Panel",
+   "zone": "body",
+   "pattern": "panel",
+   "colour": "#1f2f5e"
+  },
+  {
+   "id": "catalogue-body-seams",
+   "name": "Seams",
+   "zone": "body",
+   "pattern": "seams",
+   "colour": "#1f2f5e"
+  },
+  {
+   "id": "catalogue-body-check",
+   "name": "Check",
+   "zone": "body",
+   "pattern": "check",
+   "colour": "#1f2f5e"
+  },
+  {
+   "id": "catalogue-body-hooped-band",
+   "name": "Hooped band",
+   "zone": "body",
+   "pattern": "hooped band",
+   "colour": "#1f2f5e"
+  },
+  {
+   "id": "catalogue-body-three-spots",
+   "name": "Three spots",
+   "zone": "body",
+   "pattern": "three spots",
+   "colour": "#1f2f5e"
+  },
+  {
+   "id": "catalogue-sleeves-plain",
+   "name": "Plain",
+   "zone": "sleeves",
+   "pattern": "plain",
+   "colour": "#1f2f5e"
+  },
+  {
+   "id": "catalogue-sleeves-hoops",
+   "name": "Hoops",
+   "zone": "sleeves",
+   "pattern": "hoops",
+   "colour": "#1f2f5e"
+  },
+  {
+   "id": "catalogue-sleeves-stripes",
+   "name": "Stripes",
+   "zone": "sleeves",
+   "pattern": "stripes",
+   "colour": "#1f2f5e"
+  },
+  {
+   "id": "catalogue-sleeves-halved",
+   "name": "Halved",
+   "zone": "sleeves",
+   "pattern": "halved",
+   "colour": "#1f2f5e"
+  },
+  {
+   "id": "catalogue-sleeves-chevrons",
+   "name": "Chevrons",
+   "zone": "sleeves",
+   "pattern": "chevrons",
+   "colour": "#1f2f5e"
+  },
+  {
+   "id": "catalogue-sleeves-armlets",
+   "name": "Armlets",
+   "zone": "sleeves",
+   "pattern": "armlets",
+   "colour": "#1f2f5e"
+  },
+  {
+   "id": "catalogue-sleeves-cuffs",
+   "name": "Cuffs",
+   "zone": "sleeves",
+   "pattern": "cuffs",
+   "colour": "#1f2f5e"
+  },
+  {
+   "id": "catalogue-sleeves-spots",
+   "name": "Spots",
+   "zone": "sleeves",
+   "pattern": "spots",
+   "colour": "#1f2f5e"
+  },
+  {
+   "id": "catalogue-sleeves-diabolo",
+   "name": "Diabolo",
+   "zone": "sleeves",
+   "pattern": "diabolo",
+   "colour": "#1f2f5e"
+  },
+  {
+   "id": "catalogue-sleeves-seams",
+   "name": "Seams",
+   "zone": "sleeves",
+   "pattern": "seams",
+   "colour": "#1f2f5e"
+  },
+  {
+   "id": "catalogue-cap-plain",
+   "name": "Plain",
+   "zone": "cap",
+   "pattern": "plain",
+   "colour": "#1f2f5e"
+  },
+  {
+   "id": "catalogue-cap-quartered",
+   "name": "Quartered",
+   "zone": "cap",
+   "pattern": "quartered",
+   "colour": "#1f2f5e"
+  },
+  {
+   "id": "catalogue-cap-halved",
+   "name": "Halved",
+   "zone": "cap",
+   "pattern": "halved",
+   "colour": "#1f2f5e"
+  },
+  {
+   "id": "catalogue-cap-striped",
+   "name": "Striped",
+   "zone": "cap",
+   "pattern": "striped",
+   "colour": "#1f2f5e"
+  },
+  {
+   "id": "catalogue-cap-hooped",
+   "name": "Hooped",
+   "zone": "cap",
+   "pattern": "hooped",
+   "colour": "#1f2f5e"
+  },
+  {
+   "id": "catalogue-cap-spots",
+   "name": "Spots",
+   "zone": "cap",
+   "pattern": "spots",
+   "colour": "#1f2f5e"
+  },
+  {
+   "id": "catalogue-cap-four-spots",
+   "name": "Four spots",
+   "zone": "cap",
+   "pattern": "four spots",
+   "colour": "#1f2f5e"
+  },
+  {
+   "id": "catalogue-cap-star",
+   "name": "Star",
+   "zone": "cap",
+   "pattern": "star",
+   "colour": "#1f2f5e"
+  },
+  {
+   "id": "catalogue-cap-diamond",
+   "name": "Diamond",
+   "zone": "cap",
+   "pattern": "diamond",
+   "colour": "#1f2f5e"
+  },
+  {
+   "id": "catalogue-cap-peak",
+   "name": "Peak",
+   "zone": "cap",
+   "pattern": "peak",
+   "colour": "#1f2f5e"
+  }
+ ],
+ "zones": {
+  "id": "zones",
+  "legend": {
+   "body front": "test body front",
+   "body back": "test body back",
+   "left sleeve": "test left",
+   "right sleeve": "test right",
+   "cap": "test cap"
+  },
+  "colours": {
+   "body front": "#e2b21c",
+   "body back": "#d8d8d4",
+   "left sleeve": "#d83a30",
+   "right sleeve": "#2f54d8",
+   "cap": "#2fae4a"
+  }
+ }
+}

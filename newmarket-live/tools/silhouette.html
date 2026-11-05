@@ -1,0 +1,30 @@
+<!doctype html><meta charset="utf-8"><title>Horse silhouette</title>
+<script type="importmap">{ "imports": { "three": "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js", "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/" } }</script>
+<canvas id="c" width="640" height="440"></canvas>
+<script type="module">
+// Renders the race horse, mid-gallop, side on, as a flat black shape: the badge and logo mark.
+import * as THREE from "three";
+import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
+const dir = "../assets/model", name = "racehorse";
+const text = (f) => fetch(`${dir}/${f}`).then((r) => r.text());
+const json = await text(`${name}.json`), b64 = (await text(`${name}-geometry.txt`)).trim();
+const raw = atob(b64), bin = new Uint8Array(raw.length); for (let i = 0; i < raw.length; i++) bin[i] = raw.charCodeAt(i);
+const pad = (n) => (n + 3) & ~3, jb = new TextEncoder().encode(json), jl = pad(jb.length), bl = pad(bin.length);
+const glb = new Uint8Array(28 + jl + bl), dv = new DataView(glb.buffer);
+dv.setUint32(0, 0x46546c67, true); dv.setUint32(4, 2, true); dv.setUint32(8, glb.length, true);
+dv.setUint32(12, jl, true); dv.setUint32(16, 0x4e4f534a, true); glb.fill(0x20, 20, 20 + jl); glb.set(jb, 20);
+dv.setUint32(20 + jl, bl, true); dv.setUint32(24 + jl, 0x004e4942, true); glb.set(bin, 28 + jl);
+const g = await new Promise((res, rej) => new GLTFLoader().parse(glb.buffer, dir + "/", res, rej));
+const r = new THREE.WebGLRenderer({ canvas: document.getElementById("c"), alpha: true, antialias: true, preserveDrawingBuffer: true });
+r.setClearColor(0, 0);
+const scene = new THREE.Scene(); scene.add(g.scene);
+const black = new THREE.MeshBasicMaterial({ color: 0x000000 });
+g.scene.traverse((o) => { if (o.isMesh) { o.material = black; o.frustumCulled = false; } });
+const mixer = new THREE.AnimationMixer(g.scene);
+const clip = (n) => g.animations.find((a) => a.name === n);
+mixer.clipAction(clip("gallop")).play(); mixer.clipAction(clip("ride_push")).play();
+const cam = new THREE.OrthographicCamera(-0.62, 0.62, 0.43, -0.43, 0.01, 10);
+cam.position.set(0, 0.36, 3); cam.lookAt(0, 0.36, 0);
+window.shoot = (t) => { mixer.setTime(t); r.render(scene, cam); return r.domElement.toDataURL("image/png"); };
+window.done = true;
+</script>
