@@ -16,6 +16,7 @@ It follows the test bench's rules exactly (`tools/race-bench/racebench.py`), one
 | `check/compare.mjs` | Thousands of races at every distance, the same figures as the bench's (`tools/race-bench/benchstats.py`). |
 | `check/table.mjs` | Sets the two side by side in `check/results/compare.md`. |
 | `check/one.mjs` | Runs one race and prints the result and events: `node check/one.mjs r1m 14 seed`. |
+| `check/effort.mjs` | When jockeys start pushing and driving, by place and pace: `node check/effort.mjs s1m 200`. |
 
 ## Using it
 
@@ -47,7 +48,7 @@ const { timeline, result } = runRace(
 
 **The timeline** is exactly what the race view plays: `{ dt: 0.1, frames }`, one frame every tenth of a second from the off, each runner in draw order as `[distance from the gate line (m), across from the track's middle (m), speed (m/s), effort 0–3, heading (rad)]`. It runs on past the post while the horses pull up, so the view's finish replay has something to show.
 
-**Effort** comes from what the jockey is doing: 0 cruising, 1 pushing to hold a position (running well above comfort speed), 2 in the run for home, 3 asking for everything (the tank nearly empty, or a close finish). A well-beaten horse isn't given the whip.
+**Effort** comes from what the jockey is doing, tied to the horse's energy and speed: 0 cruising; 1 pushing (running well above comfort speed, or getting busy as the run for home nears); 2 driving; 3 asking for everything (the tank nearly empty, or a close finish). The jockey feels how much his horse has left against the field and where it would finish if everyone kept going as they can: a tiring horse, or one going nowhere, is ridden first; one travelling well waits. So in a slowly run race the back markers go first and the leaders sit; in a fast one the tiring leaders are coaxed while the closers wait. A well-beaten horse isn't given the whip. Effort never changes the race.
 
 **The result**: `placed` (place, runner, draw, time, margin to the one in front and lengths behind the winner, both in lengths, plus the race-day rating, form on the day and lengths lost to traffic), `winningTime`, `parTime`, the pace (expected from the racecard, as run, and each group's on the straight course) and `events`: lead changes, short of room, switched, kicked and weakening, each with a time, distance out and a line of text.
 

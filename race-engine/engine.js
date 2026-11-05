@@ -310,7 +310,7 @@ export function runRace(race, runners, data, options = {}) {
   const frames = [];
   const want = new Float64Array(n), freeWant = new Float64Array(n), vfront = new Float64Array(n), kick = new Uint8Array(n), inB = new Uint8Array(n), blocked = new Uint8Array(n);
   const live = new Uint8Array(n), rank = new Int32Array(n), held = new Uint8Array(n), kap = new Float64Array(n);
-  const xcap = new Float64Array(n), vcap = new Float64Array(n), effort = new Uint8Array(n), vNew = new Float64Array(n);
+  const xcap = new Float64Array(n), vcap = new Float64Array(n), effort = new Uint8Array(n), vNew = new Float64Array(n), arrive = new Float64Array(n), projected = new Int32Array(n), spare = new Float64Array(n), holdV = new Float64Array(n);
   const order = Array.from({ length: n }, (_, i) => i);
   const events = [], kickedAt = new Float64Array(n).fill(NaN);
   const ev = { leader: -1, cand: -1, candT: 0, lastSwitch: new Float64Array(n).fill(-99), room: new Float64Array(n), roomFrom: new Float64Array(n).fill(NaN), roomLast: [], spells: [], weak: new Uint8Array(n) };
@@ -470,17 +470,44 @@ export function runRace(race, runners, data, options = {}) {
     // ---- effort for the race view (what the jockey is doing), and the events
     order.sort((a, b) => x[b] - x[a] || a - b);
     const leadX = x[order[0]];
+    // What the jockey can feel: how much his horse has left (the share of its top speed, over comfort, that its
+    // energy will hold to the line), against the rest of the field; and where it would finish from here if every
+    // horse kept going as it can. A tiring horse is ridden; one that is going nowhere is ridden; one that is
+    // travelling well, or will hold or gain its place, waits.
+    const spares = [];
+    for (let i = 0; i < n; i++) {
+      const T = Math.max(D - x[i], 1) / Math.max(v[i], P.HOLD_MIN_SPEED);
+      const hold = vC[i] + ref[i] * Math.sqrt(Math.max(E[i], 0) / (ref[i] * T));
+      arrive[i] = Math.max(D - x[i], 0) / Math.min(vK0[i], hold);          // seconds to the line at that speed
+      spare[i] = (hold - vC[i]) / (vK0[i] - vC[i]);
+      holdV[i] = Math.min(vK0[i], hold);
+      if (Number.isNaN(fin[i])) spares.push(spare[i]);
+    }
+    spares.sort((a, b) => a - b);
+    const midSpare = spares.length ? spares[spares.length >> 1] : 0;
+    const byArrival = order.filter((i) => Number.isNaN(fin[i])).sort((p, q) => arrive[p] - arrive[q] || p - q);
+    byArrival.forEach((i, k) => (projected[i] = k));
+    const doneCount = n - byArrival.length;
     for (let i = 0; i < n; i++) {
       const toGo = D - x[i];
       if (!Number.isNaN(fin[i]) || t < card[i].react || v[i] < 1) { effort[i] = 0; continue; }
+      const behindL = (leadX - x[i]) / P.LENGTH;
+      const place = rank[i] - doneCount, proj = projected[i];
+      const tiring = spare[i] < midSpare - EF.TIRED || !kick[i] && v[i] > holdV[i] * (1 + EF.OVER_HOLD);   // less left than its rivals, or going faster than it can last
+      const nowhere = proj >= EF.CONTEND && proj >= place && behindL > EF.CHASE_LENGTHS;   // won't get into the race as it is
+      const chasing = paceAll <= EF.SLOW_PACE && behindL > EF.CHASE_LENGTHS && place >= EF.CHASE_FROM * (n - doneCount);   // slowly run: the leaders won't come back
+      const underPressure = tiring || nowhere;
       let e;
-      if (!kick[i]) e = v[i] > vC[i] + EF.SPEND * ref[i] ? 1 : 0;
-      else {
-        e = 2;
+      if (!kick[i]) {
+        e = v[i] > vC[i] + EF.SPEND * ref[i] ? 1 : 0;                 // working to hold a place, or chasing a fast pace
+        if (toGo <= kickAt[i] + EF.EARLY_FROM && x[i] > P.EARLY && (underPressure || chasing)) e = 1;   // getting busy early
+      } else {
+        // the run for home: driven if under pressure or near the line; a horse travelling well waits
+        e = underPressure || chasing || toGo < kickAt[i] * EF.WAIT_SHARE ? 2 : 1;
         let close = false;
         if (toGo < EF.CLOSE_FROM) for (let j = 0; j < n; j++) if (j !== i && Number.isNaN(fin[j]) && Math.abs(x[j] - x[i]) < EF.CLOSE_LENGTHS * P.LENGTH) close = true;
         if (E[i] < EF.EMPTY * E0[i] || close) e = 3;
-        if (toGo < EF.BEATEN_FROM && leadX - x[i] > EF.BEATEN_LENGTHS * P.LENGTH) e = Math.min(e, 2);
+        if (toGo < EF.BEATEN_FROM && behindL > EF.BEATEN_LENGTHS) e = Math.min(e, 2);
       }
       effort[i] = e;
       // weakening: one of the leaders, out of energy and down to its comfort speed in the run for home

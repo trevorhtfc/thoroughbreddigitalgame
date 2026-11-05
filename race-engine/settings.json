@@ -143,8 +143,16 @@
  },
 
  "effort": {
-  "_about": "Effort 0-3 in the timeline, from what the jockey is doing (brainstorm, section 5): 0 at or near comfort speed; 1 spending energy to hold a position (running more than SPEND above comfort, as a share of the gap from comfort to ability speed); 2 in the run for home; 3 asking for everything: the tank below EMPTY of what it started with, or within CLOSE_LENGTHS of a rival in the last CLOSE_FROM metres. A horse more than BEATEN_LENGTHS behind the leader in the last BEATEN_FROM metres isn't given the whip (2 at most).",
+  "_about": "Effort 0-3 in the timeline, from what the jockey is doing, tied to each horse's energy and speed (owner, 5 Nov: not everyone goes at 3f; in slowly run races those at the back push earlier, in fast races the tiring leaders are coaxed while the closers wait). The jockey feels how much his horse has left (the share of its top speed, over comfort, that its energy will hold to the line) and where it would finish from here if every horse kept going as it can. A horse is 'under pressure' when it is tiring (that share more than TIRED below the field's middle value, or, before the run for home, running more than OVER_HOLD faster than its energy will hold to the line), or going nowhere (more than CHASE_LENGTHS behind the leader and no better placed at the finish than now, outside the first CONTEND), or, in a race run at pace level SLOW_PACE or slower (0 slow, 1 even, 2 strong, 3 fast), more than CHASE_LENGTHS behind the leader and in the back CHASE_FROM share of the field: the leaders won't come back to it. A horse travelling well waits. Before the run for home: 0, or 1 when running more than SPEND above comfort (as a share of the comfort-to-ability gap), and from EARLY_FROM metres before its own run for home 1 if under pressure. In the run for home: 2 if under pressure or inside WAIT_SHARE of its run-for-home distance; otherwise 1 (still travelling, the jockey waits). 3 when the tank is below EMPTY of what it started with, or within CLOSE_LENGTHS of a rival in the last CLOSE_FROM metres. A horse more than BEATEN_LENGTHS behind the leader in the last BEATEN_FROM metres isn't given the whip (2 at most). Effort is for the race view only: it never changes the race.",
   "SPEND": 1.15,
+  "EARLY_FROM": 200,
+  "TIRED": 0.2,
+  "OVER_HOLD": 0.01,
+  "CONTEND": 3,
+  "SLOW_PACE": 0,
+  "CHASE_LENGTHS": 3,
+  "CHASE_FROM": 0.5,
+  "WAIT_SHARE": 0.55,
   "EMPTY": 0.12,
   "CLOSE_FROM": 300,
   "CLOSE_LENGTHS": 1.0,
