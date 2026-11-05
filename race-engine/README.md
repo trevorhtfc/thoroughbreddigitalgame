@@ -48,7 +48,7 @@ const { timeline, result } = runRace(
 
 **The timeline** is exactly what the race view plays: `{ dt: 0.1, frames }`, one frame every tenth of a second from the off, each runner in draw order as `[distance from the gate line (m), across from the track's middle (m), speed (m/s), effort 0–3, heading (rad)]`. It runs on past the post while the horses pull up, so the view's finish replay has something to show.
 
-**The break**: most horses come out within a length of each other; about 1 in 50 misses the break and loses several lengths, keen horses far more often than calm ones (1 in 18 against 1 in 250); a horse ridden to be held up comes out a touch slower as it's settled.
+**The break**: most horses come out within a length of each other; about 1 in 50 misses the break and loses several lengths, keen horses far more often than calm ones (1 in 18 against 1 in 250). (A slower break for held-up horses, `HOLDUP_SLOW`, was tried and set to 0: it cost them too many wins.)
 
 **Effort** comes from what the jockey is doing, tied to the horse's energy and speed: 0 cruising (even at a strong pace); 1 pushing (making up ground after a check or pushing across to a place, or getting busy as the run for home nears); 2 driving; 3 asking for everything (the tank nearly empty, or a close finish). The jockey feels how much his horse has left against the field and where it would finish if everyone kept going as they can: a tiring horse, or one going nowhere, is ridden first; one travelling well waits. So in a slowly run race the back markers go first and the leaders sit; in a fast one the tiring leaders are coaxed while the closers wait. A well-beaten horse isn't given the whip. Effort never changes the race.
 

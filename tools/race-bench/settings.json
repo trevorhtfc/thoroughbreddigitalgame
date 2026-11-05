@@ -98,5 +98,5 @@
  "MISS_P_CALM": 0.004,
  "MISS_MIN": 0.5,
  "MISS_MAX": 1.0,
- "HOLDUP_SLOW": 0.1
+ "HOLDUP_SLOW": 0.0
 }
