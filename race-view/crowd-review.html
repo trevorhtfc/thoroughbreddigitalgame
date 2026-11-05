@@ -878,7 +878,8 @@ function buildCrowd(gltf, data, pieceAt, propsGltf) {
   const S0 = -102.5, S1 = 405;                                  // the stand's west and east ends
   const nearRail = COURSE.trackWidth + COURSE.rails.gap;
   const clearBoxes = data.dressing?.keepClear || [];
-  const blocked = (x, z) => clearBoxes.some((b) => x > b[0] - 0.3 && x < b[2] + 0.3 && z > b[1] - 0.3 && z < b[3] + 0.3);
+  const M = CO.boxes === "today" ? 0 : 0.3;                    // today's crowd keeps the race view's exact margins
+  const blocked = (x, z) => clearBoxes.some((b) => x > b[0] - M && x < b[2] + M && z > b[1] - M && z < b[3] + M);
   // the stand's steps down to the lawn stay clear
   const steps = (data.areas || []).filter((a) => a.kind === "steps").map((a) => [a.x0 - 0.5, FRONT + a.z0 - 0.4, a.x1 + 0.5, FRONT + 0.5]);
   const onSteps = (x, z) => steps.some((b) => x > b[0] && x < b[2] && z > b[1] && z < b[3]);
