@@ -177,7 +177,8 @@ def run(P,course='straight',N=1500,n=10,seed=7,trace=None):
         acc=np.where(v<10,6.0,1.5*np.clip(1+P.get('CLASS_ACC',0.0)*(R-100),0.5,1.6))   # and quickens out of a check sooner
         v=v+np.clip(want-v,-0.8*dt,acc*dt)
         over=np.maximum(v-np.where(inB,burst,0)-vC,0)
-        E=E-ref*(over/ref)**2*dt-np.where(keen&(vp<own)&~kick,P['KEEN_BURN'],0)*dt
+        covered=((dx>0.5)&(dx<P.get('DRAFT_LEN',8.0))&(np.abs(dz)<1.2)&other).any(2)   # shelter: tucked in behind another horse
+        E=E-ref*(over/ref)**2*dt*np.where(covered,1-P.get('DRAFT',0.0),1.0)-np.where(keen&(vp<own)&~kick,P['KEEN_BURN'],0)*dt
         kap=np.zeros((N,n))
         for (a,b,ang) in C['bends']:
             kap=np.where((toGo<=a)&(toGo>b),ang/(a-b),kap)

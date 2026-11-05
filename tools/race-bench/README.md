@@ -32,7 +32,8 @@ python3 distcheck.py r1m '{"GOING":"Softer"}' 500   # one distance, on soft grou
 | `COMFORT`, `TANK` | The speed a horse can cruise at without tiring (a share of its full speed), and how much energy it has for going faster. The tank is scaled by race length and by the going. |
 | `FOLLOW` | How closely each style (front-runner, prominent, midfield, hold-up) goes with the leaders' pace. |
 | `PACE` | The leaders' speed for slow, even, strong and fast races (set by the share of front-runners). |
-| `BURST`, `BURST_STYLE`, `BURST_DIST_EXP` | The final sprint in the last 220 m: a base burst, extra for midfield and hold-up horses, scaled up with distance (waiting pays more over further). |
+| `BURST`, `BURST_STYLE`, `BURST_DIST_EXP` | The final sprint in the last 220 m: a base burst, extra for midfield and hold-up horses, scaled by (distance / a mile) to the power 1.4, so waiting pays more over further. |
+| `DRAFT`, `DRAFT_LEN` | Shelter: less energy spent tucked in behind another horse. Off (0) for now: at 10% it punished front-runners far too much on the straight course, where the packs cover almost everyone but the leader. |
 | `SHADE_TOP`, `SHADE_TANK` | A 7f/1m type has a shade more sprint, a 1m/1m1f type a shade more stamina. |
 | `FORM_SD`, `UP_P`, `FLOP_P` | Form on the day: an everyday wobble, the odd big day, a rarer flop. |
 | `JOCKEY_READ`, `FLEX_MIX` | How often a jockey rides an adaptable horse to suit the expected pace. |
@@ -49,5 +50,5 @@ python3 distcheck.py r1m '{"GOING":"Softer"}' 500   # one distance, on soft grou
 - **A superstar** 19 points clear wins about 9 races in 10.
 - **Traffic:** about 10% of horses lose a length or more on the straight, and about 20% on the round course (the pocket on the rail).
 - **To keep tuning:**
-    - On the round course from 1m2f to 1m6f, front-runners and prominent horses still win more than real Ascot suggests.
+    - Midfield horses are a little low on the round course (about 0.7 of their share): they're the ones caught in traffic on the bend.
     - Hold-up horses on the straight course are slightly above their share.
