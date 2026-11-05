@@ -1,0 +1,543 @@
+<meta charset="utf-8">
+<title>Newmarket Board</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Jost:wght@400;500;600&family=Nunito:wght@400;600;700&family=Crimson+Pro:wght@600;700&display=swap" rel="stylesheet">
+<style>
+/* The board lies on a table and fills the window; the plate, the place labels and the location panel sit over it.
+   Colours from the Thoroughbred house style; one look in every theme (a painted board on a wooden table). */
+:root{
+  color-scheme:light;
+  --band:#446f66; --green:#3d7153; --green-hi:#346347; --gold:#b79042; --cream:#f3efe7; --panel:#fbf9f4;
+  --line:#d8d2c4; --ink:#33332b; --muted:#6b6a60; --table:#3b2a1d;
+  --display:"Jost","Futura","Avenir Next",system-ui,sans-serif;
+  --body:"Nunito",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --serif:"Crimson Pro",Georgia,"Times New Roman",serif;
+}
+html,body{height:100%;margin:0;overflow:hidden;background:var(--table);color:var(--ink);font-family:var(--body);-webkit-font-smoothing:antialiased}
+#scene{position:fixed;inset:0;width:100%;height:100%;display:block;touch-action:none;cursor:grab}
+#scene.dragging{cursor:grabbing}
+.vignette{position:fixed;inset:0;pointer-events:none;background:radial-gradient(ellipse at 50% 45%,transparent 55%,rgba(20,12,6,.45) 100%)}
+button{font:inherit;cursor:pointer}
+button:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
+
+.plate{position:fixed;top:calc(14px + env(safe-area-inset-top,0px));left:max(16px,env(safe-area-inset-left,0px));background:var(--panel);border:1px solid var(--line);border-radius:3px;padding:10px 16px 11px;box-shadow:0 6px 18px rgba(20,12,6,.3);max-width:calc(100vw - 32px)}
+.plate h1{margin:0;font-family:var(--serif);font-weight:700;font-size:24px;line-height:1;color:var(--green);letter-spacing:.01em}
+.plate p{margin:4px 0 0;font-size:13.5px;color:var(--muted)}
+
+/* Place labels: gilt pins that float over their building */
+.node{position:fixed;left:0;top:0;transform:translate(-50%,-100%);display:flex;flex-direction:column;align-items:center;gap:2px;background:none;border:0;padding:0;color:var(--ink);transition:opacity .35s}
+.node .pin{display:flex;align-items:center;gap:7px;background:var(--panel);border:1.5px solid var(--gold);border-radius:20px;padding:5px 12px 5px 6px;box-shadow:0 4px 12px rgba(20,12,6,.35);font-family:var(--display);font-weight:600;font-size:14px;letter-spacing:.06em;white-space:nowrap;transition:transform .25s,background .25s}
+.node .pin i{width:20px;height:20px;border-radius:50%;background:radial-gradient(circle at 35% 35%,#f3dc96,#b79042 60%,#7d5f22);display:grid;place-items:center;font-style:normal;font-size:11px;color:#2a210b;font-weight:600}
+.node .stem{width:2px;height:16px;background:linear-gradient(var(--gold),rgba(183,144,66,0))}
+.node:hover .pin,.node:focus-visible .pin{transform:translateY(-3px) scale(1.06);background:#fff8e2}
+.node.off{opacity:0;pointer-events:none}
+.node .bob{animation:bob 3.2s ease-in-out infinite}
+@keyframes bob{50%{transform:translateY(-4px)}}
+
+/* The location panel */
+.panel{position:fixed;right:max(16px,env(safe-area-inset-right,0px));top:50%;transform:translate(24px,-50%);opacity:0;pointer-events:none;width:min(360px,calc(100vw - 32px));background:var(--panel);border:1px solid var(--line);border-radius:3px;box-shadow:0 10px 30px rgba(20,12,6,.4);padding:20px 22px;transition:opacity .45s,transform .45s}
+.panel.on{opacity:1;transform:translate(0,-50%);pointer-events:auto}
+.panel .k{font-family:var(--display);font-weight:600;font-size:13px;letter-spacing:.16em;color:var(--gold);text-transform:uppercase}
+.panel h2{margin:4px 0 8px;font-family:var(--serif);font-weight:700;font-size:30px;line-height:1.05;color:var(--green);text-wrap:balance}
+.panel p{margin:0 0 16px;font-size:15.5px;line-height:1.5;color:var(--ink)}
+.trail{display:flex;gap:6px;margin:0 0 16px;padding:0;list-style:none}
+.trail li{flex:1;border-bottom:3px solid var(--line);padding-bottom:5px;font-size:12px;color:var(--muted);font-weight:700}
+.trail li.done{border-color:var(--green);color:var(--green)}.trail li.now{border-color:var(--gold);color:var(--ink)}
+.btns{display:flex;gap:8px;flex-wrap:wrap}
+.btn{border:none;border-radius:3px;background:var(--green);color:#f2eee7;font-weight:700;font-size:15px;padding:10px 16px}
+.btn:hover{background:var(--green-hi)}
+.btn.ghost{background:transparent;color:var(--green);box-shadow:inset 0 0 0 1px var(--green)}
+.btn.ghost:hover{background:#eef3ef}
+.tip{position:fixed;left:50%;bottom:calc(16px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:rgba(251,249,244,.92);border:1px solid var(--line);border-radius:20px;padding:7px 14px;font-size:13px;color:var(--muted);white-space:nowrap;transition:opacity .4s;pointer-events:none}
+.tip.off{opacity:0}
+.loading{position:fixed;inset:0;display:grid;place-items:center;color:#f3efe7;font-family:var(--display);letter-spacing:.2em;font-size:14px;background:var(--table);transition:opacity .6s}
+.loading.off{opacity:0;pointer-events:none}
+@media (max-width:700px){
+  .panel{top:auto;bottom:calc(12px + env(safe-area-inset-bottom,0px));right:max(12px,env(safe-area-inset-right,0px));left:max(12px,env(safe-area-inset-left,0px));width:auto;transform:translateY(24px);padding:14px 16px}
+  .panel.on{transform:none}
+  .panel h2{font-size:24px}.panel p{font-size:14px;margin-bottom:12px}
+  .plate h1{font-size:20px}.plate p{font-size:12px}
+  .node .pin{font-size:12px;padding:4px 10px 4px 5px}
+  .tip{white-space:normal;text-align:center;width:max-content;max-width:calc(100vw - 32px)}
+}
+@media (prefers-reduced-motion:reduce){.node .bob{animation:none}.panel,.node{transition:none}}
+</style>
+
+<canvas id="scene" aria-label="The Newmarket board on a table"></canvas>
+<div class="vignette"></div>
+<div class="plate"><h1>Newmarket</h1><p>Thoroughbred · the board comes to life</p></div>
+<div id="nodes"></div>
+<aside class="panel" id="panel" aria-live="polite">
+  <div class="k" id="pK"></div>
+  <h2 id="pT"></h2>
+  <ol class="trail" id="pTrail"></ol>
+  <p id="pX"></p>
+  <div class="btns" id="pB"></div>
+</aside>
+<div class="tip" id="tip">Tap a place to visit it · drag to look around</div>
+<div class="loading" id="loading">LAYING OUT THE BOARD…</div>
+
+<script async src="https://cdn.jsdelivr.net/npm/es-module-shims@1.10.0/dist/es-module-shims.js"></script>
+<script type="importmap">{ "imports": { "three": "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js" } }</script>
+<script type="module">
+import * as THREE from "three";
+
+// ---------------------------------------------------------------- the board, in map pixels (1200 x 900) and world units
+const MAP_W = 1200, MAP_H = 900, S = 0.1;                       // 10 map pixels = 1 world unit; the board is 120 x 90
+const wx = (x) => x * S - MAP_W * S / 2, wz = (y) => y * S - MAP_H * S / 2;
+const REDUCED = matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+// The pop-up pieces: cut from the board's own painting (img/cut-*.png), each hinged on the front edge of its building
+const CUTS = {
+  "tatts": { x0: 764, y0: 488, x1: 875, y1: 584 },
+  "stud": { x0: 803, y0: 390, x1: 1047, y1: 452 },
+  "stables-back": { x0: 557, y0: 640, x1: 941, y1: 766 },
+  "stables-front": { x0: 600, y0: 740, x1: 944, y1: 840 },
+};
+// The places, in the order the game visits them
+const NODES = [
+  { id: "stud", step: "Breed", name: "The National Stud", anchor: [925, 386], cuts: ["stud"],
+    text: "Buy your broodmares at the mares sale, choosing one of three from each pile, and pick a stallion for each. Every foal is born here." },
+  { id: "tatts", step: "Tattersalls", name: "Tattersalls", anchor: [818, 487], cuts: ["tatts"],
+    text: "The sale ring. Bid against the rival buyers for foals out of the mares nobody bred. When the count runs out, the hammer falls." },
+  { id: "stables", step: "Develop and enter", name: "The stables", anchor: [760, 676], cuts: ["stables-back", "stables-front"],
+    text: "Bring your horses on to 3 or 4, map out their races and send one to each. Then the horsebox leaves for Ascot." },
+];
+
+// ---------------------------------------------------------------- renderer, scene, light
+const canvas = document.getElementById("scene");
+const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+renderer.outputColorSpace = THREE.SRGBColorSpace;
+renderer.toneMapping = THREE.NoToneMapping;                     // keep the painting's own colours
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x2a1d13);
+scene.fog = new THREE.Fog(0x2a1d13, 220, 420);
+const camera = new THREE.PerspectiveCamera(38, 1, 0.5, 900);
+scene.add(new THREE.HemisphereLight(0xfff5e6, 0x8a7a60, 0.95));
+const sun = new THREE.DirectionalLight(0xfff0d8, 0.85);
+sun.position.set(-60, 110, 70);
+sun.castShadow = true;
+sun.shadow.mapSize.set(2048, 2048);
+Object.assign(sun.shadow.camera, { left: -75, right: 75, top: 60, bottom: -60, near: 10, far: 300 });
+sun.shadow.bias = -0.0004; sun.shadow.normalBias = 0.02;
+scene.add(sun);
+
+const loader = new THREE.TextureLoader();
+const tex = (url) => new Promise((res, rej) => loader.load(url, (t) => { t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = renderer.capabilities.getMaxAnisotropy(); res(t); }, undefined, rej));
+const canvasTex = (w, h, draw) => { const c = document.createElement("canvas"); c.width = w; c.height = h; draw(c.getContext("2d"), w, h); const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; return t; };
+
+// ---------------------------------------------------------------- the table and the board
+const wood = canvasTex(1024, 1024, (g, w, h) => {
+  g.fillStyle = "#5a3d27"; g.fillRect(0, 0, w, h);
+  for (let i = 0; i < 260; i++) {                                // planks of grain
+    const y = Math.random() * h, a = 0.04 + Math.random() * 0.08;
+    g.strokeStyle = Math.random() < .5 ? `rgba(30,18,10,${a})` : `rgba(150,105,65,${a})`;
+    g.lineWidth = 1 + Math.random() * 3; g.beginPath(); g.moveTo(0, y);
+    for (let x = 0; x <= w; x += 64) g.lineTo(x, y + Math.sin(x / 140 + i) * 6);
+    g.stroke();
+  }
+  g.fillStyle = "rgba(20,12,6,.35)"; for (let k = 1; k < 4; k++) g.fillRect(0, k * h / 4, w, 3);
+});
+wood.wrapS = wood.wrapT = THREE.RepeatWrapping; wood.repeat.set(3, 3);
+const table = new THREE.Mesh(new THREE.PlaneGeometry(600, 600), new THREE.MeshStandardMaterial({ map: wood, roughness: .7 }));
+table.rotation.x = -Math.PI / 2; table.position.y = -1.6; table.receiveShadow = true;
+scene.add(table);
+const BOARD_T = 1.5;
+const boardBox = new THREE.Mesh(new THREE.BoxGeometry(MAP_W * S + 1.6, BOARD_T, MAP_H * S + 1.6), new THREE.MeshStandardMaterial({ color: 0x24402f, roughness: .9 }));
+boardBox.position.y = -BOARD_T / 2 - 0.01; boardBox.castShadow = true; boardBox.receiveShadow = true;
+scene.add(boardBox);
+
+// The painted surface, with cloud shadows drifting across it
+const uTime = { value: 0 };
+const boardMat = new THREE.MeshStandardMaterial({ roughness: .92 });
+boardMat.onBeforeCompile = (sh) => {
+  sh.uniforms.uTime = uTime;
+  sh.vertexShader = sh.vertexShader.replace("#include <common>", "#include <common>\nvarying vec3 vWP;")
+    .replace("#include <begin_vertex>", "#include <begin_vertex>\nvWP = (modelMatrix * vec4(transformed, 1.0)).xyz;");
+  sh.fragmentShader = sh.fragmentShader.replace("#include <common>", `#include <common>
+    varying vec3 vWP; uniform float uTime;
+    float h2(vec2 p){ return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
+    float vn(vec2 p){ vec2 i = floor(p), f = fract(p); f = f * f * (3.0 - 2.0 * f);
+      return mix(mix(h2(i), h2(i + vec2(1,0)), f.x), mix(h2(i + vec2(0,1)), h2(i + vec2(1,1)), f.x), f.y); }
+    float fbm(vec2 p){ float s = 0.0, a = 0.5; for (int k = 0; k < 4; k++){ s += a * vn(p); p *= 2.03; a *= 0.5; } return s; }`)
+    .replace("#include <map_fragment>", `#include <map_fragment>
+    { vec2 q = vWP.xz * 0.032 + uTime * vec2(0.016, 0.006);
+      float c = smoothstep(0.52, 0.78, fbm(q));
+      diffuseColor.rgb *= 1.0 - 0.24 * c; }`);
+};
+const board = new THREE.Mesh(new THREE.PlaneGeometry(MAP_W * S, MAP_H * S), boardMat);
+board.rotation.x = -Math.PI / 2; board.receiveShadow = true;
+scene.add(board);
+
+// ---------------------------------------------------------------- paths across the board (map pixels)
+function makePath(pts, loop) {
+  const P = pts.map(([x, y]) => new THREE.Vector3(wx(x), 0, wz(y)));
+  if (loop) P.push(P[0].clone());
+  const len = [0];
+  for (let i = 1; i < P.length; i++) len.push(len[i - 1] + P[i].distanceTo(P[i - 1]));
+  return { P, len, total: len[len.length - 1], loop };
+}
+function along(path, s, out) {                                 // position and segment index at distance s
+  const T = path.total;
+  s = path.loop ? ((s % T) + T) % T : Math.max(0, Math.min(T, s));
+  let i = 1; while (i < path.len.length - 1 && path.len[i] < s) i++;
+  const a = path.P[i - 1], b = path.P[i], f = (s - path.len[i - 1]) / Math.max(1e-6, path.len[i] - path.len[i - 1]);
+  out.copy(a).lerp(b, f);
+  return i - 1;
+}
+
+// ---------------------------------------------------------------- horses, horseboxes, smoke and birds
+const COATS = [["#6e4126", "#2b1a10"], ["#4a2e1c", "#1c120b"], ["#9a5129", "#5c2e14"], ["#2e2725", "#141110"], ["#a7a39b", "#6d6b66"]];
+const SILKS = [["#1d4ae6", "#f2f4f2"], ["#f0281c", "#f2f4f2"], ["#e6d532", "#17191a"], ["#3a1580", "#f08ef0"], ["#1f9a35", "#f0281c"], ["#f2f4f2", "#1d4ae6"]];
+const FRAMES = 6;
+// A horse in profile facing right, drawn small and soft like the board's painted horses; phase 0..1 through the stride
+function drawHorse(g, ph, coat, silk, gallop) {
+  g.clearRect(0, 0, 96, 64);
+  const [c1, c2] = coat, t = ph * Math.PI * 2, amp = gallop ? 0.75 : 0.35;
+  g.lineCap = "round"; g.strokeStyle = c2; g.lineWidth = 3.4;
+  const leg = (x, off, back) => {                                // a leg swinging from the body
+    const a = Math.sin(t + off) * amp, k = Math.max(0, Math.sin(t + off + 1.2)) * (gallop ? 0.9 : 0.4);
+    const kx = x + Math.sin(a) * 9, ky = 46 + Math.cos(a) * 9;
+    g.beginPath(); g.moveTo(x, 38); g.lineTo(kx, ky); g.lineTo(kx + Math.sin(a + (back ? -k : k)) * 9, ky + 9); g.stroke();
+  };
+  leg(36, 0.0, true); leg(58, gallop ? 2.2 : 3.14, false);       // far legs first, darker
+  g.strokeStyle = c1;
+  leg(32, gallop ? 0.6 : 3.14, true); leg(62, gallop ? 2.8 : 0, false);
+  g.fillStyle = c1;
+  const lift = gallop ? Math.sin(t * 2) * 1.2 : 0;
+  g.beginPath(); g.ellipse(47, 33 + lift, 19, 8.5, 0, 0, Math.PI * 2); g.fill();                     // body
+  g.beginPath(); g.moveTo(58, 28 + lift); g.quadraticCurveTo(66, 18, 72, 12 + lift); g.lineTo(78, 15 + lift); g.quadraticCurveTo(70, 28, 66, 37 + lift); g.fill();   // neck
+  g.beginPath(); g.ellipse(80, 18 + lift, 7.5, 3.8, 0.55, 0, Math.PI * 2); g.fill();                 // head
+  g.strokeStyle = c2; g.lineWidth = 3; g.beginPath(); g.moveTo(29, 29 + lift); g.quadraticCurveTo(20, 34, 18 + Math.sin(t) * 2, 44); g.stroke();   // tail
+  if (silk) {                                                    // the rider, crouched
+    g.fillStyle = silk[0];
+    g.beginPath(); g.moveTo(44, 26 + lift); g.lineTo(58, 22 + lift); g.lineTo(60, 14 + lift); g.lineTo(50, 13 + lift); g.closePath(); g.fill();
+    g.strokeStyle = silk[0]; g.lineWidth = 3; g.beginPath(); g.moveTo(57, 16 + lift); g.lineTo(66, 20 + lift); g.stroke();
+    g.fillStyle = silk[1]; g.beginPath(); g.arc(61, 11 + lift, 3.6, 0, Math.PI * 2); g.fill();
+    g.strokeStyle = "#e8e2d2"; g.lineWidth = 2.6; g.beginPath(); g.moveTo(48, 26 + lift); g.lineTo(52, 33 + lift); g.stroke();   // breeches
+  }
+}
+const horseMats = new Map();                                     // "coat|silk|gait" -> frames
+function horseFramesFor(ci, si, gallop) {
+  const key = `${ci}|${si}|${gallop}`;
+  if (!horseMats.has(key)) horseMats.set(key, Array.from({ length: FRAMES }, (_, f) =>
+    new THREE.MeshBasicMaterial({ map: canvasTex(96, 64, (g) => drawHorse(g, f / FRAMES, COATS[ci], si < 0 ? null : SILKS[si], gallop)), transparent: true, alphaTest: 0.35, depthWrite: true })));
+  return horseMats.get(key);
+}
+const HORSE_W = 1.9, HORSE_H = HORSE_W * 64 / 96;
+const horseGeo = new THREE.PlaneGeometry(HORSE_W, HORSE_H); horseGeo.translate(0, HORSE_H / 2 - HORSE_H * 0.06, 0);
+const blobTex = canvasTex(64, 32, (g) => { const r = g.createRadialGradient(32, 16, 2, 32, 16, 30); r.addColorStop(0, "rgba(30,20,10,.55)"); r.addColorStop(1, "rgba(30,20,10,0)"); g.fillStyle = r; g.scale(1, .5); g.beginPath(); g.arc(32, 32, 30, 0, 7); g.fill(); });
+const blobMat = new THREE.MeshBasicMaterial({ map: blobTex, transparent: true, depthWrite: false });
+const blobGeo = new THREE.PlaneGeometry(HORSE_W * 0.9, HORSE_W * 0.45); blobGeo.rotateX(-Math.PI / 2);
+
+const movers = [];                                              // everything that walks, canters or drives
+function addFigure(geo, mats, opts) {
+  const g = new THREE.Group(), m = new THREE.Mesh(geo, mats.walk ? mats.walk[0] : mats[0]), b = new THREE.Mesh(blobGeo, blobMat);
+  b.position.y = 0.03; b.scale.setScalar(opts.blob || 1); g.add(b, m); scene.add(g);
+  const o = { g, m, ...opts, mats, phase: Math.random(), pos: new THREE.Vector3(), prev: new THREE.Vector3(), face: 1 };
+  movers.push(o); return o;
+}
+const rnd = (a, b) => a + Math.random() * (b - a), irnd = (a, b) => Math.floor(rnd(a, b + 1));
+// Strings of horses: a lead and followers a couple of lengths apart, each path with a speed per stretch
+const STRINGS = [
+  { name: "the gallops", pts: [[95, 197], [430, 86], [470, 112], [135, 226]], loop: true, speeds: [5.2, 1.1, 1.1, 1.1], n: 5 },
+  { name: "Warren Hill", pts: [[268, 472], [44, 318], [30, 352], [248, 494]], loop: true, speeds: [4.6, 1.0, 1.0, 1.0], n: 6 },
+  { name: "Bury Road", pts: [[862, 32], [640, 168], [532, 240], [538, 252], [646, 180], [868, 44]], loop: true, speeds: [1.0, 1.0, 1.0, 1.0, 1.0, 1.0], n: 7 },
+  { name: "Old Station Road", pts: [[655, 446], [735, 398], [1170, 592], [1176, 604], [740, 410], [660, 456]], loop: true, speeds: [1.0, 1.0, 1.0, 1.0, 1.0, 1.0], n: 5 },
+  { name: "the stable yard", pts: [[700, 702], [842, 690], [852, 728], [712, 742]], loop: true, speeds: [0.8, 0.8, 0.8, 0.8], n: 3 },
+];
+for (const st of STRINGS) {
+  st.path = makePath(st.pts, st.loop);
+  st.s = Math.random() * st.path.total;
+  st.horses = Array.from({ length: st.n }, (_, k) => {
+    const ci = irnd(0, COATS.length - 1), si = irnd(0, SILKS.length - 1);
+    return addFigure(horseGeo, { walk: horseFramesFor(ci, si, false), gallop: horseFramesFor(ci, si, true) }, { kind: "string", st, gap: k * 2.3 });
+  });
+}
+// Loose horses in the paddocks: wander, stop to graze, wander on
+const PADDOCKS = [[570, 45, 760, 125], [900, 60, 1150, 125], [880, 330, 1150, 380], [870, 140, 1000, 170]];
+for (const [x0, y0, x1, y1] of PADDOCKS) for (let k = 0; k < 3; k++) {
+  const ci = irnd(0, COATS.length - 1), f = addFigure(horseGeo, { walk: horseFramesFor(ci, -1, false), gallop: horseFramesFor(ci, -1, true) }, { kind: "loose", box: [x0, y0, x1, y1], wait: rnd(0, 4) });
+  f.pos.set(wx(rnd(x0, x1)), 0, wz(rnd(y0, y1))); f.to = f.pos.clone(); f.g.position.copy(f.pos);
+}
+// Horseboxes up and down the roads
+const boxTex = (body) => canvasTex(96, 48, (g) => {
+  g.fillStyle = body; g.fillRect(6, 10, 62, 26); g.fillRect(68, 18, 20, 18);
+  g.fillStyle = "#e9e2cf"; g.fillRect(8, 12, 58, 4); g.fillStyle = "#bcd6dd"; g.fillRect(74, 21, 10, 7);
+  g.fillStyle = "#1a1a1a"; for (const x of [20, 52, 78]) { g.beginPath(); g.arc(x, 38, 6, 0, 7); g.fill(); }
+  g.fillStyle = "#d9c27a"; g.font = "bold 9px serif"; g.fillText("THOROUGHBRED", 10, 30);
+});
+const boxGeo = new THREE.PlaneGeometry(3.4, 1.7); boxGeo.translate(0, 0.85, 0);
+const BOXES = [
+  { pts: [[520, 12], [520, 240], [470, 420], [404, 620], [348, 700]], body: "#23452f", speed: 3.2 },
+  { pts: [[332, 352], [305, 470], [340, 640], [262, 800], [176, 890]], body: "#5b2a22", speed: 2.8 },
+];
+for (const b of BOXES) { b.path = makePath(b.pts, false); b.s = Math.random() * b.path.total; b.dir = 1; b.fig = addFigure(boxGeo, [new THREE.MeshBasicMaterial({ map: boxTex(b.body), transparent: true, alphaTest: .4 })], { kind: "box", b, blob: 1.9 }); }
+
+// Chimney smoke from the town
+const smokeTex = canvasTex(64, 64, (g) => { const r = g.createRadialGradient(32, 32, 2, 32, 32, 30); r.addColorStop(0, "rgba(250,248,240,.8)"); r.addColorStop(1, "rgba(250,248,240,0)"); g.fillStyle = r; g.fillRect(0, 0, 64, 64); });
+const CHIMNEYS = [[442, 182], [486, 214], [598, 246], [470, 300], [556, 330], [858, 190], [610, 290], [372, 296]];
+const puffs = [];
+for (const [x, y] of CHIMNEYS) for (let k = 0; k < 6; k++) {
+  const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: smokeTex, transparent: true, depthWrite: false, opacity: 0 }));
+  sp.userData = { x: wx(x), z: wz(y), t: k / 6 * 5 + Math.random() }; scene.add(sp); puffs.push(sp);
+}
+// A flock of birds crossing now and then
+const birdTex = [0, 1].map((up) => canvasTex(32, 16, (g) => { g.strokeStyle = "#2b2420"; g.lineWidth = 2; g.lineCap = "round"; g.beginPath(); g.moveTo(3, up ? 4 : 10); g.quadraticCurveTo(10, up ? 4 : 12, 16, 9); g.quadraticCurveTo(22, up ? 4 : 12, 29, up ? 4 : 10); g.stroke(); }));
+const birds = Array.from({ length: 6 }, (_, k) => { const s = new THREE.Sprite(new THREE.SpriteMaterial({ map: birdTex[0], transparent: true, depthWrite: false })); s.scale.set(1.6, .8, 1); s.userData.k = k; scene.add(s); return s; });
+let flockT = 6;
+
+// ---------------------------------------------------------------- the pop-up pieces
+const cards = {};
+async function buildCards() {
+  for (const [id, c] of Object.entries(CUTS)) {
+    const t = await tex(`img/cut-${id}.png`);
+    const w = (c.x1 - c.x0) * S, h = (c.y1 - c.y0) * S;
+    const geo = new THREE.PlaneGeometry(w, h); geo.translate(0, h / 2, 0);   // hinge along its bottom edge
+    const mat = new THREE.MeshStandardMaterial({ map: t, alphaTest: 0.45, side: THREE.DoubleSide, roughness: .85 });
+    const mesh = new THREE.Mesh(geo, mat);
+    mesh.castShadow = true;
+    mesh.customDepthMaterial = new THREE.MeshDepthMaterial({ depthPacking: THREE.RGBADepthPacking, map: t, alphaTest: 0.45 });
+    const hinge = new THREE.Group(); hinge.position.set(wx((c.x0 + c.x1) / 2), 0.04, wz(c.y1)); hinge.add(mesh);
+    hinge.rotation.x = -Math.PI / 2; hinge.visible = false; scene.add(hinge);
+    cards[id] = { hinge, w, h, c, angle: 0, goal: 0, vel: 0 };                // angle 0 flat on the page .. 1 standing
+  }
+}
+const FLAT = -Math.PI / 2;
+function setCardGoal(ids, goal, delays) { ids.forEach((id, k) => { const cd = cards[id]; setTimeout(() => { cd.goal = goal; }, (delays ? delays[k] : 0) * 1000); }); }
+function stepCards(dt) {
+  for (const cd of Object.values(cards)) {
+    if (REDUCED) { cd.angle = cd.goal; cd.vel = 0; }
+    else {                                                       // a springy hinge: paper popping up, a little overshoot
+      const k = 70, d = 9.5;
+      cd.vel += ((cd.goal - cd.angle) * k - cd.vel * d) * dt; cd.angle += cd.vel * dt;
+      if (cd.goal === 0 && cd.angle < 0.004 && Math.abs(cd.vel) < 0.05) { cd.angle = 0; cd.vel = 0; }
+    }
+    cd.hinge.rotation.x = FLAT * (1 - Math.min(1.08, cd.angle));
+    cd.hinge.visible = cd.angle > 0.003;
+  }
+}
+
+// ---------------------------------------------------------------- the camera: overview, swoops and journeys
+const view = { pos: new THREE.Vector3(), at: new THREE.Vector3() };
+const pan = { x: innerWidth < innerHeight ? 14 : 0, z: 2, zoom: 1 };
+function overviewPose(out) {
+  const a = innerWidth / innerHeight, vf = THREE.MathUtils.degToRad(camera.fov), tilt = THREE.MathUtils.degToRad(34);
+  const hf = 2 * Math.atan(Math.tan(vf / 2) * a);
+  const fitW = (MAP_W * S / 2 * 1.04) / Math.tan(hf / 2), fitH = (MAP_H * S / 2 * 1.02) / Math.tan(vf / 2) * 0.86;
+  const dist = (a >= 1 ? Math.max(fitW, fitH) : fitW * 0.62) * pan.zoom;
+  out.at.set(pan.x, 0, pan.z);
+  out.pos.set(pan.x, Math.cos(tilt) * dist, pan.z + Math.sin(tilt) * dist);
+  return out;
+}
+function nodePose(node, out) {                                  // a raised three-quarter view of the risen pieces
+  const cs = node.cuts.map((id) => cards[id]);
+  const x0 = Math.min(...cs.map((c) => c.hinge.position.x - c.w / 2)), x1 = Math.max(...cs.map((c) => c.hinge.position.x + c.w / 2));
+  const zf = Math.max(...cs.map((c) => c.hinge.position.z)), zb = Math.min(...cs.map((c) => c.hinge.position.z));
+  const h = Math.max(...cs.map((c) => c.h)), w = x1 - x0;
+  const narrow = innerWidth <= 700, a = innerWidth / innerHeight, vf = THREE.MathUtils.degToRad(camera.fov), hf = 2 * Math.atan(Math.tan(vf / 2) * a);
+  const wShare = narrow ? 1 : 0.6, hShare = narrow ? 0.5 : 1;   // the part of the screen the panel leaves free
+  const fitW = (w / 2 * (narrow ? 0.78 : 1.12)) / Math.tan(hf * wShare / 2), fitH = ((h + (zf - zb) * 0.5) * 0.62) / Math.tan(vf * hShare / 2);
+  const dist = Math.max(fitW, fitH), el = THREE.MathUtils.degToRad(30);
+  out.at.set((x0 + x1) / 2, h * 0.4, (zf + zb) / 2 - 1);
+  out.pos.set(out.at.x, out.at.y + Math.sin(el) * dist, out.at.z + Math.cos(el) * dist);
+  return out;
+}
+// Room for the panel: shift the picture left (wide screens) or up (phones) while a place is open
+const shift = { k: 0, goal: 0 };
+function applyShift(dt) {
+  shift.k += (shift.goal - shift.k) * (REDUCED ? 1 : 1 - Math.exp(-dt * 2.2));
+  const narrow = innerWidth <= 700, W = innerWidth, H = innerHeight;
+  if (shift.k < 0.001) { camera.clearViewOffset(); return; }
+  camera.setViewOffset(W, H, narrow ? 0 : W * 0.2 * shift.k, narrow ? H * 0.1 * shift.k : 0, W, H);
+}
+let move = null;                                                 // { from, to, t, dur, lift, done }
+function flyTo(pose, dur, lift, done) {
+  const from = { pos: camera.position.clone(), at: view.at.clone() };
+  move = { from, to: { pos: pose.pos.clone(), at: pose.at.clone() }, t: 0, dur: REDUCED ? 0.01 : dur, lift, done };
+}
+const ease = (t) => t < .5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+function stepCamera(dt, time) {
+  if (move) {
+    move.t = Math.min(1, move.t + dt / move.dur);
+    const e = ease(move.t), arc = Math.sin(Math.PI * move.t) * (move.lift || 0);
+    camera.position.lerpVectors(move.from.pos, move.to.pos, e); camera.position.y += arc;
+    view.at.lerpVectors(move.from.at, move.to.at, e);
+    if (move.t >= 1) { const d = move.done; move = null; d && d(); }
+  } else if (mode === "board") {
+    const o = overviewPose({ pos: new THREE.Vector3(), at: new THREE.Vector3() });
+    const sway = REDUCED ? 0 : 1;                                // the board breathes: a slow drift
+    o.pos.x += Math.sin(time * 0.11) * 1.6 * sway; o.pos.y += Math.sin(time * 0.07) * 1.2 * sway;
+    camera.position.lerp(o.pos, 1 - Math.exp(-dt * 3)); view.at.lerp(o.at, 1 - Math.exp(-dt * 3));
+  } else if (mode === "node" && current) {
+    const o = nodePose(current, { pos: new THREE.Vector3(), at: new THREE.Vector3() });
+    if (!REDUCED) o.pos.x += Math.sin(time * 0.2) * 0.8;
+    camera.position.lerp(o.pos, 1 - Math.exp(-dt * 2)); view.at.lerp(o.at, 1 - Math.exp(-dt * 2));
+  }
+  camera.lookAt(view.at);
+}
+
+// ---------------------------------------------------------------- places: labels, the panel, visiting and travelling
+let mode = "board", current = null;
+const nodesEl = document.getElementById("nodes"), panel = document.getElementById("panel"), tip = document.getElementById("tip");
+for (const n of NODES) {
+  const b = document.createElement("button"); b.className = "node"; b.type = "button";
+  b.innerHTML = `<span class="bob"><span class="pin"><i>${NODES.indexOf(n) + 1}</i>${n.name}</span></span><span class="stem"></span>`;
+  b.setAttribute("aria-label", `Visit ${n.name}`);
+  b.onclick = () => visit(n);
+  b.onmouseenter = () => { if (mode === "board") setCardGoal(n.cuts, 0.16); };
+  b.onmouseleave = () => { if (mode === "board") setCardGoal(n.cuts, 0); };
+  b.onfocus = b.onmouseenter; b.onblur = b.onmouseleave;
+  nodesEl.appendChild(b); n.el = b; n.anchorV = new THREE.Vector3(wx(n.anchor[0]), 0.5, wz(n.anchor[1]));
+}
+function placeLabels() {
+  const v = new THREE.Vector3();
+  for (const n of NODES) {
+    v.copy(n.anchorV).project(camera);
+    n.el.style.left = ((v.x + 1) / 2 * innerWidth).toFixed(1) + "px"; n.el.style.top = ((1 - v.y) / 2 * innerHeight).toFixed(1) + "px";
+    n.el.classList.toggle("off", mode !== "board" || v.z > 1);
+  }
+}
+function showPanel(n) {
+  const i = NODES.indexOf(n), next = NODES[i + 1];
+  document.getElementById("pK").textContent = `Step ${i + 1} · ${n.step}`;
+  document.getElementById("pT").textContent = n.name;
+  document.getElementById("pX").textContent = n.text;
+  document.getElementById("pTrail").innerHTML = NODES.map((m, k) => `<li class="${k < i ? "done" : k === i ? "now" : ""}">${k + 1} ${m.step}</li>`).join("");
+  const B = document.getElementById("pB");
+  B.innerHTML = (next ? `<button class="btn" id="bNext" type="button">Next: ${next.step} ›</button>` : "") + `<button class="btn ghost" id="bBack" type="button">Back to the board</button>`;
+  if (next) document.getElementById("bNext").onclick = () => travel(n, next);
+  document.getElementById("bBack").onclick = () => leave(n);
+  panel.classList.add("on");
+}
+function visit(n) {
+  if (move) return;
+  mode = "travel"; current = n; tip.classList.add("off");
+  NODES.forEach((m) => m !== n && setCardGoal(m.cuts, 0));
+  shift.goal = 1;
+  flyTo(nodePose(n, { pos: new THREE.Vector3(), at: new THREE.Vector3() }), 2.4, 4, () => { mode = "node"; showPanel(n); });
+  setCardGoal(n.cuts, 1, n.cuts.map((_, k) => 1.1 + k * 0.22));
+}
+function leave(n) {
+  if (move) return;
+  panel.classList.remove("on"); setCardGoal(n.cuts, 0, n.cuts.map((_, k) => (n.cuts.length - 1 - k) * 0.15));
+  mode = "travel"; shift.goal = 0;
+  flyTo(overviewPose({ pos: new THREE.Vector3(), at: new THREE.Vector3() }), 2.2, 6, () => { mode = "board"; current = null; });
+}
+// Between steps: the pieces fold away, the camera rises off the page, glides across the town and settles at the next place
+function travel(a, b) {
+  if (move) return;
+  panel.classList.remove("on"); mode = "travel";
+  setCardGoal(a.cuts, 0, a.cuts.map((_, k) => (a.cuts.length - 1 - k) * 0.12));
+  current = b;
+  flyTo(nodePose(b, { pos: new THREE.Vector3(), at: new THREE.Vector3() }), 3.4, 26, () => { mode = "node"; showPanel(b); });
+  setCardGoal(b.cuts, 1, b.cuts.map((_, k) => 2.5 + k * 0.22));
+}
+addEventListener("keydown", (e) => { if (e.key === "Escape" && mode === "node" && current) leave(current); });
+
+// Look around the board: drag to pan, wheel or pinch to zoom
+const drag = { on: false, x: 0, y: 0, pts: new Map(), pinch: 0 };
+canvas.addEventListener("pointerdown", (e) => { if (mode !== "board") return; drag.pts.set(e.pointerId, [e.clientX, e.clientY]); drag.on = true; drag.x = e.clientX; drag.y = e.clientY; canvas.setPointerCapture(e.pointerId); canvas.classList.add("dragging"); tip.classList.add("off"); });
+canvas.addEventListener("pointermove", (e) => {
+  if (!drag.on || mode !== "board") return;
+  const prev = drag.pts.get(e.pointerId); if (!prev) return;
+  drag.pts.set(e.pointerId, [e.clientX, e.clientY]);
+  if (drag.pts.size === 2) {
+    const [p, q] = [...drag.pts.values()], d = Math.hypot(p[0] - q[0], p[1] - q[1]);
+    if (drag.pinch) pan.zoom = THREE.MathUtils.clamp(pan.zoom * drag.pinch / d, 0.4, 1.15);
+    drag.pinch = d; return;
+  }
+  const k = camera.position.distanceTo(view.at) / innerHeight * 1.1;
+  pan.x = THREE.MathUtils.clamp(pan.x - (e.clientX - prev[0]) * k, -50, 50);
+  pan.z = THREE.MathUtils.clamp(pan.z - (e.clientY - prev[1]) * k * 1.3, -38, 40);
+});
+const endDrag = (e) => { drag.pts.delete(e.pointerId); if (drag.pts.size < 2) drag.pinch = 0; if (!drag.pts.size) { drag.on = false; canvas.classList.remove("dragging"); } };
+canvas.addEventListener("pointerup", endDrag); canvas.addEventListener("pointercancel", endDrag);
+canvas.addEventListener("wheel", (e) => { if (mode !== "board") return; e.preventDefault(); pan.zoom = THREE.MathUtils.clamp(pan.zoom * Math.exp(e.deltaY * 0.0012), 0.4, 1.15); }, { passive: false });
+
+// ---------------------------------------------------------------- the living layer, every frame
+const tmp = new THREE.Vector3(), camRight = new THREE.Vector3();
+function faceCamera(o, dir) {                                    // stand-up figures turn to the camera and face their way
+  o.g.rotation.y = Math.atan2(camera.position.x - o.g.position.x, camera.position.z - o.g.position.z);
+  if (dir && dir.lengthSq() > 1e-6) { camRight.setFromMatrixColumn(camera.matrixWorld, 0); const f = Math.sign(dir.dot(camRight)) || o.face; o.face = f; }
+  o.m.scale.x = o.face;
+}
+function stepLife(dt, time) {
+  for (const st of STRINGS) {                                    // the lead sets the pace for its stretch
+    const seg = along(st.path, st.s, tmp); st.speed = st.speeds[seg]; st.s += st.speed * dt;
+  }
+  for (const o of movers) {
+    o.prev.copy(o.pos);
+    let speed = 0;
+    if (o.kind === "string") { along(o.st.path, o.st.s - o.gap, o.pos); speed = o.st.speed; }
+    else if (o.kind === "loose") {
+      if (o.wait > 0) o.wait -= dt;
+      else {
+        tmp.subVectors(o.to, o.pos); const d = tmp.length();
+        if (d < 0.2) { o.wait = rnd(2, 7); const [x0, y0, x1, y1] = o.box; o.to.set(wx(rnd(x0, x1)), 0, wz(rnd(y0, y1))); }
+        else { speed = d > 6 && Math.random() < 0.002 ? 4 : 0.8; o.pos.addScaledVector(tmp.normalize(), Math.min(d, speed * dt)); }
+      }
+    } else if (o.kind === "box") {
+      const b = o.b; b.s += b.speed * b.dir * dt;
+      if (b.s > b.path.total) { b.s = b.path.total; b.dir = -1; } if (b.s < 0) { b.s = 0; b.dir = 1; }
+      along(b.path, b.s, o.pos); speed = b.speed;
+    }
+    o.g.position.copy(o.pos);
+    tmp.subVectors(o.pos, o.prev);
+    faceCamera(o, tmp);
+    if (o.mats.walk) {                                           // stride: walk or canter, frames timed to the ground covered
+      const gallop = speed > 2.5, set = gallop ? o.mats.gallop : o.mats.walk;
+      o.phase = (o.phase + dt * (speed > 0 ? (gallop ? 2.6 : 1.4) : 0)) % 1;
+      o.m.material = set[Math.floor(o.phase * FRAMES) % FRAMES];
+    }
+  }
+  for (const p of puffs) {                                       // smoke rises, drifts with the wind and thins out
+    const u = p.userData; u.t += dt; const life = 5, a = (u.t % life) / life;
+    p.position.set(u.x + a * 3.2, 1.2 + a * 6, u.z - a * 0.8);
+    const s = 0.6 + a * 2.6; p.scale.set(s, s, 1); p.material.opacity = 0.38 * Math.sin(Math.PI * a);
+  }
+  flockT -= dt;                                                  // a flock crosses the board, then a pause
+  const fp = 1 - flockT / 22;
+  for (const b of birds) {
+    const k = b.userData.k, on = flockT > 0;
+    b.visible = on;
+    if (!on) continue;
+    b.position.set(-90 + fp * 180 + (k % 3) * 2.5, 30 + Math.sin(time * 0.7 + k) * 0.6 + k * 0.3, -20 + fp * 25 + Math.floor(k / 2) * 2.2 - k * 0.6);
+    b.material.map = birdTex[Math.floor(time * 6 + k) % 2];
+  }
+  if (flockT < -rnd(8, 16)) flockT = 22;
+}
+
+// ---------------------------------------------------------------- start
+function resize() { renderer.setSize(innerWidth, innerHeight, false); camera.aspect = innerWidth / innerHeight; camera.updateProjectionMatrix(); }
+addEventListener("resize", resize); resize();
+const clock = new THREE.Clock();
+function frame() {
+  const dt = Math.min(clock.getDelta(), 0.05), time = clock.elapsedTime;
+  uTime.value = time;
+  stepLife(dt, time); stepCards(dt); applyShift(dt); stepCamera(dt, time); placeLabels();
+  renderer.render(scene, camera);
+  requestAnimationFrame(frame);
+}
+try {
+  boardMat.map = await tex("img/board.webp"); boardMat.needsUpdate = true;
+  await buildCards();
+  const o = overviewPose({ pos: new THREE.Vector3(), at: new THREE.Vector3() });
+  camera.position.copy(o.pos).add(new THREE.Vector3(0, 40, 30)); view.at.copy(o.at);    // drop in onto the table
+  flyTo(o, 2.6, 0, () => { mode = "board"; });
+  mode = "travel";
+  document.getElementById("loading").classList.add("off");
+  window.__ready = true;
+  frame();
+} catch (e) {
+  document.getElementById("loading").textContent = "The board didn't load: " + (e && e.message ? e.message : "a file is missing") + ". Reload to try again.";
+}
+// checking aids
+window.__mode = () => mode + (move ? "+moving" : "");
+window.__visit = (id) => visit(NODES.find((n) => n.id === id));
+window.__travel = () => { const i = NODES.indexOf(current); if (current && NODES[i + 1]) travel(current, NODES[i + 1]); };
+</script>
