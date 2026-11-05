@@ -98,7 +98,11 @@ def run(P,course='straight',N=1500,n=10,seed=7,trace=None):
     vK0=vR*P['TOP']; burst=vR*(P['BURST']+P['SHADE_TOP']*shade+np.array(P.get('BURST_STYLE',[0,0,0,0]))[sty]*(D/1609.3)**P.get('BURST_DIST_EXP',0.0)); E=P['TANK']*tscale/gcost*(1-P['SHADE_TANK']*shade)
     settle=np.array(P['SETTLE'])[sty]; follow=np.array(P['FOLLOW'])[sty]; own=vR*P['OWN']
     kickAt=np.clip(P['KICK_FROM']/1609.3*D,400,1000)+g.normal(0,P['JUDGE_SD'],(N,n))
-    react=np.where(g.random((N,n))<0.1,0.5,0.12)
+    # the break (owner, 5 Nov): most within a length of each other; about 1 in 50 misses it and loses several lengths,
+    # keen (fractious) horses far more often than calm ones; horses ridden to be held up come out a touch slower
+    react=g.uniform(P['BREAK_MIN'],P['BREAK_MAX'],(N,n))
+    miss=g.random((N,n))<np.where(keen,P['MISS_P_KEEN'],P['MISS_P_CALM'])
+    react=react+np.where(miss,g.uniform(P['MISS_MIN'],P['MISS_MAX'],(N,n)),0)+np.where(sty==3,P['HOLDUP_SLOW'],0)
     x=np.full((N,n),-1.55); v=np.zeros((N,n)); vz=np.zeros((N,n)); fin=np.full((N,n),np.nan)
     extra=np.zeros((N,n)); rank700=np.full((N,n),np.nan); E700=np.full((N,n),np.nan); z700=np.full((N,n),np.nan); ovl=0.0; ovn=0
     lost=np.zeros((N,n)); since=np.full((N,n),9.0); blockedT=np.zeros((N,n)); switchT=np.zeros((N,n)); switchDir=np.zeros((N,n)); inB=np.zeros((N,n),bool)

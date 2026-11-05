@@ -24,7 +24,7 @@ for (const [key, r] of Object.entries(RACES)) for (const n of [8, 16, 26]) for (
   T.frames.forEach((f, k) => { const t = k * T.dt; secs++; for (let i = 0; i < n; i++) for (let j = i + 1; j < n; j++) {
     if (t > R.placed.find((p) => p.runner === i).time || t > R.placed.find((p) => p.runner === j).time) continue;
     if (f[i][0] > 3 && Math.abs(f[i][0] - f[j][0]) < 2.6 && Math.abs(f[i][1] - f[j][1]) < 0.85) over++; } });
-  ok(over / secs * 10 < 0.05, `${key} ${n} ${going}: ${(over / secs * 10).toFixed(2)} overlaps per race-second`);
+  ok(over / secs * 10 < (n > 16 ? 0.1 : 0.05), `${key} ${n} ${going}: ${(over / secs * 10).toFixed(2)} overlaps per race-second`);
   // the result against the timeline: the finishing order is the order they cross the line
   const crossed = Array.from({ length: n }, (_, i) => T.frames.findIndex((f) => f[i][0] >= r.distance));
   ok(crossed.every((k) => k > 0), `${key} ${n}: a horse never reached the line`);

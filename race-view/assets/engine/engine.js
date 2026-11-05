@@ -242,7 +242,6 @@ export function runRace(race, runners, data, options = {}) {
     c.form = f;
     c.skill = c.jockey != null ? P.JOCKEY_SKILL[0] + (P.JOCKEY_SKILL[1] - P.JOCKEY_SKILL[0]) * (clip(c.jockey, 1, H.JOCKEY_LEVELS) - 1) / (H.JOCKEY_LEVELS - 1)
       : rnd.uniform(P.JOCKEY_SKILL[0], P.JOCKEY_SKILL[1]);
-    c.react = rnd.chance(P.SLOW_BREAK_P) ? P.SLOW_BREAK_S : P.BREAK_S;
   }
   // the jockeys read the likely pace from the racecard and, if the horse allows, ride it to suit
   const expected = paceLevel(P, card.filter((c) => c.style === 0).length / n, card.filter((c) => c.style <= 1).length / n);
@@ -259,6 +258,14 @@ export function runRace(race, runners, data, options = {}) {
       c.ridden = want;
       if (Math.abs(want - c.style) > reach) c.keen = true;     // pushed past its flexibility it races keenly
     }
+  }
+  // the break (owner, 5 Nov): most within a length of each other; about 1 in 50 misses it and loses several lengths,
+  // keen (fractious) horses far more often than calm ones; a horse ridden to be held up comes out a touch slower
+  for (const c of card) {
+    c.react = rnd.uniform(P.BREAK_MIN, P.BREAK_MAX);
+    c.missed = rnd.chance(c.keen ? P.MISS_P_KEEN : P.MISS_P_CALM);
+    if (c.missed) c.react += rnd.uniform(P.MISS_MIN, P.MISS_MAX);
+    if (c.ridden === 3) c.react += P.HOLDUP_SLOW;
   }
   // groups on the straight course, contiguous by draw
   let groups = 1;
@@ -499,7 +506,8 @@ export function runRace(race, runners, data, options = {}) {
       const underPressure = tiring || nowhere;
       let e;
       if (!kick[i]) {
-        e = v[i] > vC[i] + EF.SPEND * ref[i] ? 1 : 0;                 // working to hold a place, or chasing a fast pace
+        // cruising, even at a strong pace; pushed only while working to make up ground (after a check, or across to a place)
+        e = x[i] > P.EARLY && v[i] > vC[i] && want[i] - v[i] > EF.CATCH_UP ? 1 : 0;
         if (toGo <= kickAt[i] + EF.EARLY_FROM && x[i] > P.EARLY && (underPressure || chasing)) e = 1;   // getting busy early
       } else {
         // the run for home: driven if under pressure or near the line; a horse travelling well waits
@@ -545,6 +553,7 @@ export function runRace(race, runners, data, options = {}) {
   // the events, in order, with the kicks that mattered and only the weakening that cost places
   for (const sp of ev.spells) if (lenNow(sp.lost) >= EV.ROOM_MIN_LENGTHS) events.push({ t: sp.t, toGo: null, kind: "short of room", runner: sp.runner, lengths: +lenNow(sp.lost).toFixed(2) });
   const placeOf = new Map(placed.map((p) => [p.runner, p.place]));
+  for (const c of card) if (c.missed) events.push({ t: 0, toGo: D, kind: "missed the break", runner: c.i });
   const firstKick = card.map((c) => c.i).filter((i) => !Number.isNaN(kickedAt[i])).sort((a, b) => kickedAt[a] - kickedAt[b])[0];
   for (const i of new Set([firstKick, winner])) if (i != null && !Number.isNaN(kickedAt[i])) events.push({ t: kickedAt[i], toGo: null, kind: "kicked", runner: i, first: i === firstKick });
   const kept = events.filter((e) => {
@@ -573,6 +582,7 @@ export function runRace(race, runners, data, options = {}) {
 function describe(e, name) {
   const who = name(e.runner), where = e.toGo >= 201 ? `${(e.toGo / 201.168).toFixed(1).replace(/\.0$/, "")}f out` : `${Math.round(e.toGo * 1.0936)} yds out`;
   switch (e.kind) {
+    case "missed the break": return `${who} missed the break`;
     case "led": return `${who} leads early`;
     case "lead change": return `${who} takes the lead from ${name(e.from)}, ${where}`;
     case "short of room": return `${who} short of room, ${where} (about ${e.lengths.toFixed(1)} L lost)`;
