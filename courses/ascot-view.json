@@ -210,12 +210,24 @@
   "strength": 0.14
  },
  "races": {
-  "_about": "Stand-in races for filming (the real race sim will hand the viewer a timeline). course: 'round' runs along roundCourse.insideRail (a closed loop, so longer races pass the post more than once); 'roundMile' up the chute (roundMileSpur) and on round the loop; 'straight' along the straight mile. distance in metres. start: which start in courses/ascot-stalls.json (where the stalls stand and each stall's draw).",
-  "long": {
-   "label": "2 miles",
-   "course": "round",
-   "distance": 3218.7,
-   "start": "twoMiles"
+  "_about": "The races the view can show, one for every Ascot trip; the race engine (race-engine/engine.js) runs each one and hands the view its timeline. course: 'round' runs along roundCourse.insideRail (a closed loop, so races over 1m6f and more pass the post more than once); 'roundMile' up the chute (roundMileSpur) and on round the loop; 'straight' along the straight course. distance in metres. start: which start in courses/ascot-stalls.json (where the stalls stand and each stall's draw). The keys 'long', 'mile' and 'roundmile' are kept so older links still work.",
+  "5f": {
+   "label": "5f",
+   "course": "straight",
+   "distance": 1005.8,
+   "start": "fiveFurlongs"
+  },
+  "6f": {
+   "label": "6f",
+   "course": "straight",
+   "distance": 1207.0,
+   "start": "sixFurlongs"
+  },
+  "7f": {
+   "label": "7f",
+   "course": "straight",
+   "distance": 1408.2,
+   "start": "sevenFurlongs"
   },
   "mile": {
    "label": "Straight mile",
@@ -228,6 +240,36 @@
    "course": "roundMile",
    "distance": 1649.4,
    "start": "roundMile"
+  },
+  "1m2f": {
+   "label": "1m2f",
+   "course": "round",
+   "distance": 2011.7,
+   "start": "mileTwo"
+  },
+  "1m4f": {
+   "label": "1m4f",
+   "course": "round",
+   "distance": 2414.0,
+   "start": "mileFour"
+  },
+  "1m6f": {
+   "label": "1m6f",
+   "course": "round",
+   "distance": 2816.4,
+   "start": "mileSix"
+  },
+  "long": {
+   "label": "2 miles",
+   "course": "round",
+   "distance": 3218.7,
+   "start": "twoMiles"
+  },
+  "2m4f": {
+   "label": "2m4f",
+   "course": "round",
+   "distance": 4023.4,
+   "start": "twoMilesFour"
   }
  },
  "raceCameras": {

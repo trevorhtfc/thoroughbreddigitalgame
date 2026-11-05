@@ -114,6 +114,14 @@ button {
   background: transparent; border: 1px solid rgba(31, 90, 56, 0.35); border-radius: 3px; padding: 5px 9px;
 }
 button[aria-pressed="true"] { background: var(--green); color: var(--cream); border-color: var(--green); }
+/* the race card: which race, the going, how many runners and the race's seed (each reloads the page) */
+select, .seed {
+  font: 500 0.82rem var(--body); color: var(--green-ink); background: transparent;
+  border: 1px solid rgba(31, 90, 56, 0.35); border-radius: 3px; padding: 4px 4px; height: 28px; box-sizing: border-box;
+}
+.seed { width: 4.6em; padding: 4px 6px; font-variant-numeric: tabular-nums; }
+#races { flex-wrap: wrap; justify-content: center; }
+select:focus-visible, .seed:focus-visible { outline: 2px solid var(--cream-edge); outline-offset: 2px; }
 button:focus-visible { outline: 2px solid var(--cream-edge); outline-offset: 2px; }
 .fps { font-variant-numeric: tabular-nums; font-size: 0.75rem; opacity: 0.8; min-width: 6.5em; }
 .diag {
@@ -135,6 +143,8 @@ button:focus-visible { outline: 2px solid var(--cream-edge); outline-offset: 2px
   .bar { gap: 4px 10px; padding: 5px 6px; }
   .group > span { display: none; }
   button { padding: 5px 7px; font-size: 0.78rem; }
+  select, .seed { font-size: 0.78rem; height: 27px; }
+  .seed { width: 4em; }
 }
 </style>
 
@@ -151,7 +161,7 @@ button:focus-visible { outline: 2px solid var(--cream-edge); outline-offset: 2px
 </div>
 
 <div class="bar">
-  <div class="group" id="races"><span>Race</span></div>
+  <div class="group" id="races"><span>Race</span><select id="raceSel" aria-label="Race"></select><select id="goingSel" aria-label="Going"></select><select id="runnersSel" aria-label="Runners"></select><span>Seed</span><input id="seedIn" class="seed" type="number" min="1" step="1" inputmode="numeric" aria-label="Race seed" title="Race seed: the same seed runs the same race"><button id="newRace" type="button" title="A new race with a new seed">New race</button></div>
   <div class="group" id="horses"><span>Horse</span></div>
   <div class="group" id="cams"><span>Camera</span></div>
   <div class="group" id="finish"><span>Finish</span></div>
@@ -212,6 +222,9 @@ import { RoomEnvironment } from "three/addons/environments/RoomEnvironment.js";
 import { mergeGeometries, mergeVertices } from "three/addons/utils/BufferGeometryUtils.js";
 import { SimplifyModifier } from "three/addons/modifiers/SimplifyModifier.js";
 import * as HorseV2 from "./horse-v2.js";
+// The race engine (race-engine/ in the repo; a copy lives in assets/engine/): it decides the race, the view plays it back.
+import { runRace } from "./assets/engine/engine.js";
+import { randomField } from "./assets/engine/field.js";
 
 window.__started = true;
 const params = new URLSearchParams(location.search);
@@ -1114,91 +1127,23 @@ function makeTintable(mat, u) {
   mat.customProgramCacheKey = () => "horse-tint";
 }
 
-// ---------- Placeholder race ----------
-// The real race sim will hand the viewer a timeline (each horse's distance, lateral position and effort
-// over time); this stand-in makes one so the look test has a field to film. The steering below is the
-// kind of thing the real sim's timeline should include: horses drift into groups, tuck in behind
-// another horse, pull out to pass when they're stuck, keep a body's width apart and wander a little.
-// Each frame: [x, z, speed, effort 0..3, heading] (effort 0 quiet, 1 pushing, 2 driving, 3 the whip). x is metres run from the gate line (each horse's middle: at the
-// off they stand STAND metres behind it, noses at the gates), z is across the track as the draw puts them
-// (courses/ascot-stalls.json: stall n's 'across'). Time 0 is the off: the gates opening.
-const STAND = STALLS.horseStandsBehind;
-function placeholderTimeline(n, seed) {
-  const rnd = seeded(seed);
-  const dt = 0.1, out = [];
-  const limit = HALF_W - 1.2;
-  const nGroups = n > 9 ? 3 : 2;
-  const groupBase = Array.from({ length: nGroups }, (_, g) => -limit * 0.7 + (g + 0.5) * (limit * 1.4 / nGroups));
-  const horses = Array.from({ length: n }, (_, i) => {
-    const stall = START.stalls[i].across;             // horse i is drawn in stall i + 1
-    let g = 0, best = 1e9;
-    groupBase.forEach((c, k) => { const dd = Math.abs(c - stall); if (dd < best) { best = dd; g = k; } });
-    return {
-      base: 16.3 + rnd() * 0.22, kick: 0.4 + rnd() * 0.8, kickAt: 220 + rnd() * 240,   // close in pace: a bunched field, as on TV
-      x: -STAND, z: stall, v: 0, vz: 0, group: g,
-      // reaction to the gates: most break within a fifth of a second, now and then one is slowly away
-      react: rnd() < 0.12 ? 0.45 + rnd() * 0.35 : 0.05 + rnd() * 0.2,
-      wp: rnd() * 6.28, wf: 0.25 + rnd() * 0.35, surge: rnd() * 6.28,
-    };
-  });
-  const tMax = DIST / 14 + 25;
-  for (let t = 0; t <= tMax; t += dt) {
-    // Group centres drift slowly, so the bunches breathe across the course.
-    const centres = groupBase.map((c, k) => c + Math.sin(t * 0.07 + k * 2.1) * 2.5);
-    const frame = horses.map((h) => {
-      const toGo = DIST - h.x;
-      const past = toGo < 0;
-      let want = past ? 6 : h.base + (toGo < h.kickAt ? h.kick : 0) + Math.sin(t * 0.4 + h.surge) * 0.15;
-      // Who is just in front, and is there room either side?
-      let blocker = null, leftCrowd = 0, rightCrowd = 0;
-      for (const o of horses) {
-        if (o === h) continue;
-        const dx = o.x - h.x, dz = o.z - h.z;
-        if (dx > 0 && dx < 4.5 && Math.abs(dz) < 1.3 && (!blocker || dx < blocker.x - h.x)) blocker = o;
-        if (Math.abs(dx) < 6) { if (dz > 0 && dz < 3) rightCrowd++; if (dz < 0 && dz > -3) leftCrowd++; }
-      }
-      // Round the loop the field strings out along the inside rail, one to three wide; it only fans out
-      // across the track once into the home straight (and on the straight mile it races in groups).
-      const onLoop = ROUND && toGo > 700;
-      const target = onLoop ? -limit + 1.2 + h.group * 2.2 : centres[h.group];
-      let az = (target - h.z) * (onLoop ? 0.25 : 0.12);                 // drift towards its group or the rail
-      az += Math.sin(t * h.wf + h.wp) * (onLoop ? 0.08 : 0.25);         // a little wander
-      const kicking = toGo < h.kickAt;
-      if (blocker && want > blocker.v) {
-        if (kicking) az += (leftCrowd <= rightCrowd ? -1 : 1) * 1.6;    // stuck: pull out to pass
-        else want = Math.min(want, blocker.v + 0.05);                   // otherwise sit in behind
-      }
-      for (const o of horses) {                                         // keep a body's width apart
-        if (o === h) continue;
-        const dx = o.x - h.x, dz = h.z - o.z;
-        if (Math.abs(dx) < 3.4 && Math.abs(dz) < 1.7) az += Math.sign(dz || (rnd() - 0.5)) * (1.7 - Math.abs(dz)) * 2.2;
-      }
-      if (!kicking && !past) {                                          // tuck in behind the horse ahead
-        let lead = null;
-        for (const o of horses) { const dx = o.x - h.x; if (o !== h && dx > 3 && dx < 9 && Math.abs(o.z - h.z) < 2.5 && (!lead || dx < lead.x - h.x)) lead = o; }
-        if (lead) az += (lead.z - h.z) * 0.3;
-      }
-      if (h.z > limit - 0.5) az -= (h.z - limit + 0.5) * 4;            // stay off the rails
-      if (h.z < -limit + 0.5) az += (-limit + 0.5 - h.z) * 4;
-      // out of the stalls dead straight (they're between the partitions until clear of the gates), then the
-      // steering comes in gently over the first 40 m, as the field sorts itself out after the break
-      const free = THREE.MathUtils.smoothstep(h.x, 2, 40);
-      h.vz = THREE.MathUtils.clamp((h.vz + az * free * dt) * 0.9, -1.3 * free, 1.3 * free);
-      if (t < h.react) want = 0;
-      h.v += Math.sign(want - h.v) * Math.min(Math.abs(want - h.v), (h.v < 8 ? 6 : 1.4) * dt);
-      h.x += h.v * dt;
-      h.z += h.vz * dt;
-      // effort: 0 quiet, 1 pushing, 2 driving, 3 under the whip (about half the jockeys, close home)
-      const effort = past ? 0 : toGo < h.kickAt * 0.3 && h.kick > 0.8 ? 3 : toGo < h.kickAt * 0.55 ? 2 : kicking ? 1 : 0;
-      return [h.x, h.z, h.v, effort, Math.atan2(h.vz, Math.max(h.v, 1))];
-    });
-    out.push(frame);
-  }
-  return { dt, frames: out };
-}
-
+// ---------- The race ----------
+// The race engine (race-engine/engine.js, rules from tools/race-bench) runs the whole race before the view starts and
+// hands back a timeline: { dt: 0.1, frames }, each frame every runner in draw order as [distance run from the gate
+// line along the inside rail (m, the horse's middle; at the off they stand courses/ascot-stalls.json ->
+// horseStandsBehind metres behind it, noses at the gates), across the track from its middle (m, + towards the outer
+// rail; stall n's 'across' at the off), speed (m/s), effort 0..3 (0 quiet, 1 pushing, 2 driving, 3 the whip),
+// heading off the course direction (rad)]. Time 0 is the off: the gates opening. The view only plays it back.
+// Until the game hands over real race cards, the field is a random one like the test bench's (assets/engine/field.js),
+// drawn from the race's seed: the same race, going, field size and seed always run the same race.
+const ENGINE_SETTINGS = await fetch("assets/engine/settings.json").then((r) => r.json());
 const RUNNERS = THREE.MathUtils.clamp(Number(params.get("runners") || 12), 1, STALLS.maxRunners);
-const timeline = placeholderTimeline(RUNNERS, Number(params.get("seed") || 3));
+const SEED = /^\d+$/.test(params.get("seed") || "") ? params.get("seed") : "3";
+const CARD = randomField(RUNNERS, SEED, ENGINE_SETTINGS);
+const { timeline, result: RESULT } = runRace(
+  { course: RACE.course, distance: RACE.distance, start: RACE.start, going: GOING, seed: SEED }, CARD,
+  { course: COURSE, stalls: STALLS, standards: STANDARDS, settings: ENGINE_SETTINGS });
+window.__result = RESULT;                                            // checking aid: the result and the race's events
 // The whole race, then the finish again side-on in slow motion, then round again (see the director below).
 const DIR_ = VIEW.raceDirector;
 const leaderAt = (f) => Math.max(...f.map((h) => h[0]));
@@ -1451,12 +1396,25 @@ const camButtons = camChoices.map(([id, label]) => {
   const b = button(camsEl, label, () => { state.cam = id; snap = true; syncButtons(); }, "cam-" + id);
   b.dataset.cam = id; return b;
 });
-const racesEl = document.getElementById("races");
-for (const [id, r] of Object.entries(VIEW.races)) {
-  if (id.startsWith("_")) continue;
-  const b = button(racesEl, r.label, () => { const p = new URLSearchParams(location.search); p.set("race", id); p.delete("t"); p.delete("phase"); location.search = p.toString(); }, "race-" + id);
-  b.setAttribute("aria-pressed", id === RACE_ID);
-}
+// The race card: race, going, runners and seed. Each change runs a new race (the page reloads with it in the address).
+const reload = (set) => {
+  const p = new URLSearchParams(location.search);
+  for (const [k, v] of Object.entries(set)) p.set(k, v);
+  p.delete("t"); p.delete("phase"); p.delete("rt");
+  location.search = p.toString();
+};
+const fill = (sel, items, now) => { for (const [v, label] of items) { const o = document.createElement("option"); o.value = v; o.textContent = label; o.selected = String(v) === String(now); sel.append(o); } };
+const raceSel = document.getElementById("raceSel"), goingSel = document.getElementById("goingSel"), runnersSel = document.getElementById("runnersSel");
+fill(raceSel, Object.entries(VIEW.races).filter(([id]) => !id.startsWith("_")).map(([id, r]) => [id, r.label]), RACE_ID);
+fill(goingSel, Object.keys(STANDARDS.going).map((g) => [g, g]), GOING);
+fill(runnersSel, Array.from({ length: STALLS.maxRunners - 1 }, (_, k) => [k + 2, `${k + 2} runners`]), RUNNERS);
+raceSel.onchange = () => reload({ race: raceSel.value });
+goingSel.onchange = () => reload({ going: goingSel.value });
+runnersSel.onchange = () => reload({ runners: runnersSel.value });
+const seedIn = document.getElementById("seedIn");
+seedIn.value = SEED;
+seedIn.onchange = () => { if (/^\d+$/.test(seedIn.value) && seedIn.value !== SEED) reload({ seed: seedIn.value }); };
+document.getElementById("newRace").onclick = () => reload({ seed: String(1 + Math.floor(Math.random() * 99999)) });
 const horsesEl = document.getElementById("horses");
 for (const [id, label] of [["v1", "v1 (current)"], ["v2", "v2 (new)"]]) {
   const b = button(horsesEl, label, () => {

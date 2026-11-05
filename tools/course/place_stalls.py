@@ -71,18 +71,30 @@ while True:                                    # the most stalls that fit across
 
 sm, sp = C["straightMile"], C["roundMileSpur"]
 fx, fz = sp["from"]; tx, tz = sp["to"]; l = math.hypot(tx - fx, tz - fz)
-TWO_MILES = 3218.7
-starts = {
-    "straightMile": {"label": "Straight mile (8f)", "course": "straight", "distance": sm["length"],
-                     "rail": sm["stalls"], "run": (-1.0, 0.0), "where": "the straight mile's stalls at the top of the straight course"},
-    "roundMile": {"label": "Round mile (8.2f)", "course": "roundMile", "distance": sp["startDistance"],
-                  "rail": sp["from"], "run": ((tx - fx) / l, (tz - fz) / l), "where": "the start of the chute (round-mile spur) at the top of the right-hand straight"},
-    "twoMiles": {"label": "2 miles", "course": "round", "distance": TWO_MILES,
-                 "rail": None, "run": None, "where": "on the home straight, %.0f m before the post: the field passes the stand twice" % (TWO_MILES - C["roundCourse"]["length"])},
-}
-p, r = loop_at(TWO_MILES)
-starts["twoMiles"]["rail"], starts["twoMiles"]["run"] = [round(p[0], 2), round(p[1], 2)], r
-
+FUR = C["furlong"]
+LOOP = C["roundCourse"]["length"]
+# Every Ascot trip (the race engine's distances, courses/ascot-standards.json). Straight-course starts stand on the
+# straight course, `distance` metres up from the post (z 0 is its inside rail); round-course starts stand where the
+# distance falls on the loop (2m, 2m4f and 1m6f go past the post more than once; 2m4f starts part-way round the kink
+# by the chute); the round mile starts at the top of the chute.
+STRAIGHT = [("fiveFurlongs", "5f (straight)", 5 * FUR), ("sixFurlongs", "6f (straight)", 6 * FUR),
+            ("sevenFurlongs", "7f (straight)", 7 * FUR), ("straightMile", "Straight mile (8f)", sm["length"])]
+ROUND = [("mileTwo", "1m2f", 10 * FUR), ("mileFour", "1m4f", 12 * FUR), ("mileSix", "1m6f", 14 * FUR),
+         ("twoMiles", "2 miles", 3218.7), ("twoMilesFour", "2m4f", 20 * FUR)]
+starts = {}
+for key, label, d in STRAIGHT:
+    starts[key] = {"label": label, "course": "straight", "distance": d, "rail": [d, 0.0] if key != "straightMile" else sm["stalls"],
+                   "run": (-1.0, 0.0), "where": "on the straight course, %.0f m from the post" % d if key != "straightMile"
+                   else "the straight mile's stalls at the top of the straight course"}
+starts["roundMile"] = {"label": "Round mile (8.2f)", "course": "roundMile", "distance": sp["startDistance"],
+                       "rail": sp["from"], "run": ((tx - fx) / l, (tz - fz) / l), "where": "the start of the chute (round-mile spur) at the top of the right-hand straight"}
+for key, label, d in ROUND:
+    p, r = loop_at(d)
+    laps = d / LOOP
+    where = "on the loop, %.0f m before the post" % (d % LOOP) if laps > 1 else "on the loop, %.0f m to go" % d
+    if key == "twoMiles": where = "on the home straight, %.0f m before the post: the field passes the stand twice" % (d - LOOP)
+    elif laps > 1: where += ": the field passes the post and goes round again"
+    starts[key] = {"label": label, "course": "round", "distance": d, "rail": [round(p[0], 2), round(p[1], 2)], "run": r, "where": where}
 out = {
     "_about": "Where the starting stalls stand for each start at Ascot. Written by tools/course/place_stalls.py from "
               "courses/ascot.json and the stalls kit; don't edit by hand. World axes as courses/ascot.json (x east, "

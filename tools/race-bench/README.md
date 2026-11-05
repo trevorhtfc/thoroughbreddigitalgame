@@ -1,8 +1,8 @@
 # Race bench: the race rules, tested in bulk
 
-This is the test bench for the race engine. It runs thousands of races at once, with no graphics, so the rules can be checked and tuned: who wins, from where, by how much, and in what time. The design behind it is in the "Thoroughbred Ascot: race engine brainstorm" doc. The real engine (later) will follow the same rules and write a timeline for the race view.
+This is the test bench for the race engine. It runs thousands of races at once, with no graphics, so the rules can be checked and tuned: who wins, from where, by how much, and in what time. The design behind it is in the "Thoroughbred Ascot: race engine brainstorm" doc. The race engine (`race-engine/`) follows the same rules and writes the timelines the race view plays.
 
-It's a sketch for tuning, not the engine itself. It's written in Python with numpy so that thousands of races can run together.
+It's a sketch for tuning, not the engine itself. The engine is built (`race-engine/`, 5 Nov 2026) and follows these rules exactly: tune here, then copy the numbers into `race-engine/settings.json` → `bench`, and put any rule change into `race-engine/engine.js` too. It's written in Python with numpy so that thousands of races can run together.
 
 ## Files
 
@@ -12,6 +12,7 @@ It's a sketch for tuning, not the engine itself. It's written in Python with num
 | `settings.json` | Every number the rules use. Tune here, not in the code. |
 | `distcheck.py` | Runs every race distance and prints the winning time against a rough real Ascot time, how often the best horse wins, the margins, wins by style and draw, and traffic. |
 | `topdown.py` | Draws a race from above at a few moments (start, middle, finish), so you can see what happened. |
+| `benchstats.py` | Every distance's figures as JSON, for setting beside the race engine's (`race-engine/check/compare.mjs`, `check/table.mjs`). |
 
 ## Race distances
 
