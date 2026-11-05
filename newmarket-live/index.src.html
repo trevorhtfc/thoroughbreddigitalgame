@@ -2,39 +2,41 @@
 <title>Thoroughbred Newmarket</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700&family=Cormorant+Garamond:ital,wght@0,500;0,600;1,500;1,600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Jost:wght@400;500;600&family=Nunito:wght@400;600;700;800&family=Crimson+Pro:ital,wght@0,600;0,700;1,600&display=swap" rel="stylesheet">
 <style>
-/* One painted world, one look in every theme: a dark leather header, the board filling the rest,
-   brass medallions on the places, a claret card when you pick one. */
+/* The Ascot game's look (ascot-game/index.html): the green band, green buttons, gold for what's chosen, cream boxes
+   with square-ish corners, Jost for headings and Nunito for text. The board fills the rest. One look in every theme. */
 :root{
   color-scheme:light;
-  --leather:#1d1912; --leather-2:#2a241a; --brass:#c6a15a; --brass-hi:#ecd497; --parch:#f4e8c9; --parch-2:#e8d7ae;
-  --ink:#2c2418; --ink-soft:#5a4c36; --claret:#7b1e2b; --claret-hi:#a02c3b; --board:#d9cfa9;
-  --display:"Cinzel","Trajan Pro",Georgia,serif; --serif:"Cormorant Garamond","Iowan Old Style",Georgia,serif;
+  --tb-band:#446f66; --tb-band-dk:#365a52; --tb-green:#3d7153; --tb-green-hi:#346347; --tb-gold:#b79042; --tb-gold-hi:#cfa955;
+  --tb-bg:#f3efe7; --tb-panel:#fbf9f4; --tb-line:#d8d2c4; --tb-ink:#33332b; --tb-muted:#6b6a60; --tb-on-dark:#f2eee7;
+  --tb-radius:3px;
+  --tb-display:"Jost","Futura","Avenir Next",system-ui,sans-serif; --tb-body:"Nunito",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --tb-serif:"Crimson Pro",Georgia,serif;
   --bar-h:58px;
 }
-html,body{height:100%;margin:0;overflow:hidden;background:var(--leather);color:var(--ink);font-family:var(--serif);-webkit-font-smoothing:antialiased}
+html,body{height:100%;margin:0;overflow:hidden;background:var(--tb-band-dk);color:var(--tb-ink);font-family:var(--tb-body);-webkit-font-smoothing:antialiased}
 button{font:inherit;cursor:pointer;color:inherit}
-button:focus-visible{outline:2px solid var(--brass-hi);outline-offset:3px}
+button:focus-visible{outline:2px solid var(--tb-gold);outline-offset:3px}
 
-/* the header: game name and the stable's standing */
+/* the band: game name and the stable's standing */
 .bar{position:fixed;inset:0 0 auto;height:var(--bar-h);padding-top:env(safe-area-inset-top,0px);padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));
-  display:flex;align-items:center;gap:22px;background:linear-gradient(var(--leather-2),var(--leather));border-bottom:1px solid #4a3d26;box-shadow:0 2px 0 #0e0c08,0 6px 18px rgba(0,0,0,.45);z-index:20;color:var(--parch)}
+  display:flex;align-items:center;gap:22px;background:var(--tb-band);color:var(--tb-on-dark);z-index:20;box-shadow:0 2px 10px rgba(20,35,30,.3)}
 .brand{display:flex;align-items:center;gap:12px;min-width:0}
-.brand .mark{width:46px;height:30px;background:var(--brass);-webkit-mask:var(--horse) center/contain no-repeat;mask:var(--horse) center/contain no-repeat;flex:none}
-.brand b{display:block;font-family:var(--display);font-weight:700;font-size:23px;letter-spacing:.08em;line-height:1;color:var(--brass-hi)}
-.brand i{display:block;font-size:16px;line-height:1.1;color:var(--parch-2);text-align:center;letter-spacing:.04em}
-.stats{display:flex;gap:0;margin-left:auto;font-size:17px;white-space:nowrap}
-.stats > span{padding:0 18px;border-left:1px solid #4a3d26;display:flex;align-items:center;gap:8px}
-.stats svg{width:18px;height:18px;color:var(--brass);flex:none}
-.stats em{font-style:normal;color:var(--brass-hi);font-variant-numeric:tabular-nums}
+.brand .mark{width:44px;height:29px;background:var(--tb-on-dark);-webkit-mask:var(--horse) center/contain no-repeat;mask:var(--horse) center/contain no-repeat;flex:none}
+.brand b{display:block;font-family:var(--tb-display);font-weight:500;font-size:19px;letter-spacing:.22em;line-height:1}
+.brand i{display:block;font-style:normal;font-family:var(--tb-display);font-size:11.5px;letter-spacing:.3em;line-height:1;margin-top:5px;opacity:.8;text-transform:uppercase}
+.stats{display:flex;margin-left:auto;font-size:15px;white-space:nowrap}
+.stats > span{padding:0 16px;border-left:1px solid rgba(242,238,231,.28);display:flex;align-items:center;gap:8px;opacity:.92}
+.stats svg{width:17px;height:17px;color:var(--tb-on-dark);opacity:.8;flex:none}
+.stats em{font-style:normal;font-weight:700;font-variant-numeric:tabular-nums}
 
 /* the board */
-.view{position:fixed;inset:var(--bar-h) 0 0;overflow:hidden;background:var(--leather);display:flex}
+.view{position:fixed;inset:var(--bar-h) 0 0;overflow:hidden;background:var(--tb-band-dk);display:flex}
 .view.pan{overflow-x:auto;overflow-y:hidden;-webkit-overflow-scrolling:touch;scrollbar-width:none}
 .view.pan::-webkit-scrollbar{display:none}
 .holder{position:relative;flex:none;margin:auto}   /* auto margins centre it, and never push it out of scroll reach */
-.stage{position:absolute;left:0;top:0;width:1448px;height:1086px;transform-origin:0 0;box-shadow:0 0 0 1px #4a3d26,0 10px 40px rgba(0,0,0,.6)}
+.stage{position:absolute;left:0;top:0;width:1448px;height:1086px;transform-origin:0 0;box-shadow:0 10px 40px rgba(10,25,20,.45)}
 .stage > img{position:absolute;inset:0;width:1448px;height:1086px;display:block;max-width:none;user-select:none;-webkit-user-drag:none}
 #life,#clouds,#glow{position:absolute;inset:0;width:1448px;height:1086px;pointer-events:none}
 #wisps{position:absolute;left:0;top:0;width:1448px;height:300px;pointer-events:none}
@@ -62,18 +64,19 @@ button:focus-visible{outline:2px solid var(--brass-hi);outline-offset:3px}
 @keyframes breathe{0%,100%{opacity:.5}50%{opacity:.85}}
 @keyframes run{to{stroke-dashoffset:-548}}
 
-/* the places: a brass medallion over a parchment label, pulsing softly */
+/* the places: a green disc with its sign over a cream label; gold when lit or chosen */
 .loc{position:absolute;transform:translate(-50%,-50%);display:flex;flex-direction:column;align-items:center;border:0;background:none;padding:0;z-index:2}
-.loc .medal{width:46px;height:46px;border-radius:50%;display:grid;place-items:center;margin-bottom:-6px;position:relative;z-index:1;
-  background:radial-gradient(circle at 50% 35%,#4a3a26,#231b11 70%);border:2px solid var(--brass);box-shadow:0 0 0 2px #2a2016,0 3px 8px rgba(0,0,0,.45)}
-.loc .medal svg{width:27px;height:27px;color:var(--brass-hi)}
-.loc .medal .jc{font-family:var(--display);font-weight:700;font-size:17px;color:var(--brass-hi);letter-spacing:-.04em}
-.loc .medal .hz{width:32px;height:22px;background:var(--brass-hi);-webkit-mask:var(--horse) center/contain no-repeat;mask:var(--horse) center/contain no-repeat}
-.loc .pill{position:relative;z-index:1;font-family:var(--display);font-weight:700;font-size:14.5px;letter-spacing:.05em;line-height:1.15;text-align:center;color:var(--ink);
-  padding:8px 15px 7px;border-radius:7px;background:linear-gradient(var(--parch),var(--parch-2));border:1.5px solid var(--brass);box-shadow:0 0 0 1.5px #3a2e1c,0 4px 10px rgba(0,0,0,.4);white-space:nowrap}
-.loc .ring{position:absolute;left:50%;top:100%;width:90px;height:22px;margin:-8px 0 0 -45px;border-radius:50%;border:2px solid rgba(236,212,151,.75);opacity:0;pointer-events:none}
-.loc:hover .pill,.loc.lit .pill,.loc.on .pill{background:linear-gradient(var(--claret-hi),var(--claret));color:#fbefd3;border-color:var(--brass-hi)}
-.loc:hover .medal,.loc.lit .medal,.loc.on .medal{border-color:var(--brass-hi);box-shadow:0 0 0 2px #2a2016,0 0 16px rgba(236,212,151,.8)}
+.loc .medal{width:44px;height:44px;border-radius:50%;display:grid;place-items:center;margin-bottom:-6px;position:relative;z-index:1;
+  background:var(--tb-green);border:2px solid var(--tb-panel);box-shadow:0 2px 6px rgba(20,30,20,.4);transition:background .25s}
+.loc .medal svg{width:25px;height:25px;color:var(--tb-on-dark)}
+.loc .medal .jc{font-family:var(--tb-display);font-weight:600;font-size:15px;letter-spacing:.06em;color:var(--tb-on-dark)}
+.loc .medal .hz{width:30px;height:20px;background:var(--tb-on-dark);-webkit-mask:var(--horse) center/contain no-repeat;mask:var(--horse) center/contain no-repeat}
+.loc .pill{position:relative;z-index:1;font-family:var(--tb-display);font-weight:600;font-size:13.5px;letter-spacing:.12em;text-transform:uppercase;line-height:1.2;text-align:center;color:var(--tb-green);
+  padding:8px 13px 7px;border-radius:var(--tb-radius);background:var(--tb-panel);border:1px solid var(--tb-line);box-shadow:0 3px 8px rgba(20,30,20,.3);white-space:nowrap;transition:background .25s,color .25s,border-color .25s}
+.loc .ring{position:absolute;left:50%;top:100%;width:90px;height:22px;margin:-8px 0 0 -45px;border-radius:50%;border:2px solid rgba(255,231,166,.8);opacity:0;pointer-events:none}
+.loc:hover .pill,.loc.lit .pill{border-color:var(--tb-gold);color:var(--tb-ink)}
+.loc.on .pill{background:var(--tb-gold);border-color:var(--tb-gold);color:#fff}
+.loc:hover .medal,.loc.lit .medal,.loc.on .medal{background:var(--tb-gold)}
 @media (prefers-reduced-motion:no-preference){
   .loc .ring{animation:ripple 3.2s ease-out infinite}
   .loc:nth-of-type(2n) .ring{animation-delay:1.1s} .loc:nth-of-type(3n) .ring{animation-delay:2.1s}
@@ -81,48 +84,47 @@ button:focus-visible{outline:2px solid var(--brass-hi);outline-offset:3px}
 @keyframes ripple{0%{transform:scale(.55);opacity:.85}100%{transform:scale(1.5);opacity:0}}
 
 /* To the Races: the way out of town, always in the top right */
-.races{position:fixed;top:calc(var(--bar-h) + 14px);right:max(18px,env(safe-area-inset-right,0px));z-index:16;display:flex;align-items:center;border:0;background:none;padding:0}
-.races .medal{width:60px;height:60px;border-radius:50%;display:grid;place-items:center;position:relative;z-index:1;margin-right:-16px;
-  background:radial-gradient(circle at 50% 35%,#4a3a26,#231b11 70%);border:2.5px solid var(--brass-hi);box-shadow:0 0 0 2.5px #2a2016,0 4px 12px rgba(0,0,0,.5)}
-.races .medal .hz{width:40px;height:28px;background:var(--brass-hi);-webkit-mask:var(--horse) center/contain no-repeat;mask:var(--horse) center/contain no-repeat}
-.races .pill{font-family:var(--display);font-weight:700;font-size:17px;letter-spacing:.06em;color:#fbefd3;white-space:nowrap;padding:11px 20px 10px 26px;border-radius:10px;
-  background:linear-gradient(var(--claret-hi),var(--claret));border:2px solid var(--brass-hi);box-shadow:0 0 0 2px #3a1810,0 6px 16px rgba(60,10,15,.5)}
-.races:hover .pill,.races.on .pill{filter:brightness(1.12)}
-.races:hover .medal,.races.on .medal{box-shadow:0 0 0 2.5px #2a2016,0 0 18px rgba(236,212,151,.85)}
-@media (prefers-reduced-motion:no-preference){ .races .pill{animation:beckon 3.4s ease-in-out infinite} }
-@keyframes beckon{0%,100%{box-shadow:0 0 0 2px #3a1810,0 6px 16px rgba(60,10,15,.5)}50%{box-shadow:0 0 0 2px #3a1810,0 0 22px rgba(255,200,120,.65)}}
+.races{position:fixed;top:calc(var(--bar-h) + 14px);right:max(18px,env(safe-area-inset-right,0px));z-index:16;display:flex;align-items:center;gap:12px;
+  border:none;border-radius:var(--tb-radius);background:var(--tb-green);color:var(--tb-on-dark);padding:10px 20px 10px 14px;box-shadow:0 0 0 2px var(--tb-panel),0 6px 16px rgba(20,35,25,.4)}
+.races .hz{width:38px;height:25px;background:var(--tb-on-dark);-webkit-mask:var(--horse) center/contain no-repeat;mask:var(--horse) center/contain no-repeat}
+.races .pill{font-family:var(--tb-display);font-weight:600;font-size:16px;letter-spacing:.16em;text-transform:uppercase;white-space:nowrap}
+.races:hover{background:var(--tb-green-hi)}
+.races.on{background:var(--tb-gold)}
+@media (prefers-reduced-motion:no-preference){ .races{animation:beckon 3.4s ease-in-out infinite} }
+@keyframes beckon{0%,100%{box-shadow:0 0 0 2px var(--tb-panel),0 6px 16px rgba(20,35,25,.4)}50%{box-shadow:0 0 0 2px var(--tb-panel),0 0 22px rgba(255,214,140,.75)}}
 
 /* the card for the chosen place */
-.card{position:fixed;right:max(18px,env(safe-area-inset-right,0px));top:calc(var(--bar-h) + 92px);width:330px;z-index:15;padding:16px 16px 18px;border-radius:10px;
-  background:linear-gradient(#f8eed4,#efe0ba);border:2px solid var(--brass);box-shadow:0 0 0 3px #3a2e1c,0 14px 40px rgba(0,0,0,.55);transform-origin:80% 0;transition:opacity .25s,transform .25s}
-.card[hidden]{display:block!important;opacity:0;transform:scale(.92) translateY(-6px);pointer-events:none}
+.card{position:fixed;right:max(18px,env(safe-area-inset-right,0px));top:calc(var(--bar-h) + 84px);width:330px;z-index:15;padding:18px 18px 20px;border-radius:var(--tb-radius);
+  background:var(--tb-panel);border:1px solid var(--tb-line);box-shadow:0 14px 40px rgba(20,35,25,.4);transform-origin:80% 0;transition:opacity .25s,transform .25s}
+.card[hidden]{display:block!important;opacity:0;transform:scale(.94) translateY(-6px);pointer-events:none}
 .card header{display:flex;align-items:center;gap:10px}
-.card h2{margin:0;font-family:var(--serif);font-style:italic;font-weight:600;font-size:34px;line-height:1;color:var(--claret);text-wrap:balance;flex:1}
-.card .x{width:34px;height:34px;border-radius:50%;border:1.5px solid var(--brass);background:var(--parch);font-size:20px;line-height:1;color:var(--ink);display:grid;place-items:center;flex:none}
-.card .pic{margin-top:12px;height:170px;border-radius:6px;border:1.5px solid #8a7146;box-shadow:inset 0 0 30px rgba(40,25,10,.45);background:url(assets/newmarket-board.webp) no-repeat;background-color:var(--board)}
-.card p{margin:12px 2px 14px;font-style:italic;font-size:19px;line-height:1.3;color:var(--ink-soft);text-align:center}
-.card .go{width:100%;display:flex;align-items:center;justify-content:center;gap:12px;padding:12px 16px;border-radius:30px;border:2px solid var(--brass);
-  background:linear-gradient(var(--claret-hi),var(--claret));color:#fbefd3;font-family:var(--serif);font-weight:600;font-size:24px;box-shadow:0 0 0 2px #3a1810,0 6px 14px rgba(60,10,15,.45)}
-.card .go:hover{filter:brightness(1.1)}
-.card .go svg{width:14px;height:14px;fill:currentColor}
-.card .soon{margin:10px 0 0;font-size:15px;font-style:normal;color:var(--ink-soft)}
+.card h2{margin:0;font-family:var(--tb-display);font-weight:600;font-size:21px;letter-spacing:.18em;text-transform:uppercase;line-height:1.15;color:var(--tb-green);text-wrap:balance;flex:1}
+.card .x{width:34px;height:34px;border-radius:var(--tb-radius);border:1px solid var(--tb-line);background:var(--tb-panel);font-size:20px;line-height:1;color:var(--tb-muted);display:grid;place-items:center;flex:none}
+.card .x:hover{border-color:var(--tb-green);color:var(--tb-green)}
+.card .pic{margin-top:14px;height:170px;border-radius:var(--tb-radius);border:1px solid var(--tb-line);background:url(assets/newmarket-board.webp) no-repeat;background-color:var(--tb-bg)}
+.card p{margin:12px 2px 16px;font-size:16px;line-height:1.45;color:var(--tb-muted)}
+.card .go{width:100%;display:flex;align-items:center;justify-content:center;gap:10px;padding:13px 22px;border:none;border-radius:var(--tb-radius);
+  background:var(--tb-green);color:var(--tb-on-dark);font-family:var(--tb-body);font-weight:600;font-size:17px;letter-spacing:.03em}
+.card .go:hover{background:var(--tb-green-hi)}
+.card .go svg{width:12px;height:12px;fill:currentColor}
+.card .soon{margin:10px 0 0;font-size:14px;color:var(--tb-muted)}
 
-.hint{position:fixed;left:max(18px,env(safe-area-inset-left,0px));bottom:calc(18px + env(safe-area-inset-bottom,0px));z-index:10;display:flex;align-items:center;gap:12px;padding:10px 18px 10px 14px;border-radius:12px;
-  background:rgba(29,25,18,.9);border:1.5px solid var(--brass);color:var(--parch);box-shadow:0 6px 18px rgba(0,0,0,.45);pointer-events:none}
-.hint svg{width:22px;height:30px;fill:none;stroke:var(--brass-hi);stroke-width:1.6}
-.hint b{display:block;font-style:italic;font-weight:600;font-size:21px;line-height:1.1}
-.hint small{display:block;font-family:var(--display);font-size:10.5px;letter-spacing:.14em;color:var(--brass);margin-top:2px}
-.credit{position:fixed;right:max(10px,env(safe-area-inset-right,0px));bottom:calc(6px + env(safe-area-inset-bottom,0px));z-index:10;font-size:11px;color:rgba(244,232,201,.55);font-family:system-ui,sans-serif}
+.hint{position:fixed;left:max(18px,env(safe-area-inset-left,0px));bottom:calc(18px + env(safe-area-inset-bottom,0px));z-index:10;display:flex;align-items:center;gap:12px;padding:10px 16px 10px 12px;border-radius:var(--tb-radius);
+  background:var(--tb-panel);border:1px solid var(--tb-line);color:var(--tb-ink);box-shadow:0 6px 18px rgba(20,35,25,.35);pointer-events:none}
+.hint svg{width:20px;height:28px;fill:none;stroke:var(--tb-green);stroke-width:1.6}
+.hint b{display:block;font-family:var(--tb-display);font-weight:600;font-size:14px;letter-spacing:.14em;text-transform:uppercase;color:var(--tb-green)}
+.hint small{display:block;font-size:13px;color:var(--tb-muted);margin-top:2px}
+.credit{position:fixed;right:max(10px,env(safe-area-inset-right,0px));bottom:calc(6px + env(safe-area-inset-bottom,0px));z-index:10;font-size:11px;color:rgba(242,238,231,.6);font-family:var(--tb-body)}
 
 @media (max-width:980px){ .stats > span:not(.funds){display:none} }
 @media (max-width:640px){
   :root{--bar-h:52px}
-  .bar{gap:10px} .brand{gap:8px} .brand .mark{width:36px;height:24px} .brand b{font-size:16px} .brand i{font-size:13px}
-  .stats{font-size:15px} .stats > span{padding:0 0 0 10px} .stats .funds .lbl{display:none}
+  .bar{gap:10px} .brand{gap:8px} .brand .mark{width:34px;height:23px} .brand b{font-size:15px;letter-spacing:.16em} .brand i{font-size:10px}
+  .stats{font-size:14px} .stats > span{padding:0 0 0 10px} .stats .funds .lbl{display:none}
   .card{left:max(12px,env(safe-area-inset-left,0px));right:max(12px,env(safe-area-inset-right,0px));top:auto;bottom:calc(12px + env(safe-area-inset-bottom,0px));width:auto;transform-origin:50% 100%}
-  .card .pic{height:130px} .card h2{font-size:29px}
+  .card .pic{height:130px}
   .hint{display:none}
-  .races .medal{width:46px;height:46px;margin-right:-12px} .races .medal .hz{width:30px;height:21px} .races .pill{font-size:14px;padding:8px 13px 7px 18px}
+  .races{padding:8px 14px 8px 10px;gap:8px} .races .hz{width:28px;height:19px} .races .pill{font-size:13px}
 }
 </style>
 
@@ -154,7 +156,7 @@ button:focus-visible{outline:2px solid var(--brass-hi);outline-offset:3px}
   </div>
 </main>
 
-<button class="races" id="races" type="button"><span class="medal"><span class="hz"></span></span><span class="pill">To the Races</span></button>
+<button class="races" id="races" type="button"><span class="hz" aria-hidden="true"></span><span class="pill">To the Races</span></button>
 
 <aside class="card" id="card" hidden aria-live="polite">
   <header><h2 id="cardTitle">Tattersalls</h2><button class="x" id="cardClose" type="button" aria-label="Close">&times;</button></header>
@@ -166,7 +168,7 @@ button:focus-visible{outline:2px solid var(--brass-hi);outline-offset:3px}
 
 <div class="hint" aria-hidden="true">
   <svg viewBox="0 0 22 30"><rect x="2" y="2" width="18" height="26" rx="9"/><path d="M11 2v10M2 12h18"/></svg>
-  <div><b>Select a destination</b><small>— EXPLORE NEWMARKET —</small></div>
+  <div><b>Explore Newmarket</b><small>Pick a place on the map</small></div>
 </div>
 <div class="credit">Icons: game-icons.net, CC BY 3.0</div>
 

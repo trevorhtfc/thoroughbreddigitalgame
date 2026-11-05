@@ -1,7 +1,8 @@
 # Newmarket, the living map (home hub)
 
 The Newmarket board as the full game's home screen, following the owner's concept art and markups.
-The board stays the painting; light, clouds and small 3D horses, people and horseboxes move over it, drawn in
+It uses the Ascot game's look (green band, green buttons, gold for what's lit or chosen, cream boxes, Jost and
+Nunito). The board stays the painting; light, clouds and small 3D horses, people and horseboxes move over it, drawn in
 the board's own projection so they sit in the picture at its scale.
 
 Live: https://claude.ai/artifact/NnTToGjuhfCXvDK4fWkeMF
@@ -24,8 +25,9 @@ The whole site is clickable. Warren Hill's outline comes from the owner's second
 - **Pink, low-key**: loose horses wandering the paddocks and the Stud (walk, rest, walk back), one walking off
   the right edge; horses led out of one stable and into another in the stable yard; a horse round the lunge ring;
   led horses round the Tattersalls parade ring; lads walking about the yards.
-- **White, clouds**: engraved clouds (the owner's reference: puffs outlined in sepia, hatched on the shaded side, a
-  flat ruled base) drifting across the top, with their shadows on the ground.
+- **White, clouds**: pen-and-ink engraved clouds after the owner's reference (loose doubled outlines, crescents of
+  hatching on each billow's shaded side, a soft scalloped underside), drifting across the top with their shadows.
+  `tools/cloud.js` is the same drawing code on its own; `tools/clouds-check.html` lays a few out to compare.
 
 ## Behind buildings
 `tools/occlusion.py` finds the buildings and trees on the board and, for each of their pixels, where the thing
