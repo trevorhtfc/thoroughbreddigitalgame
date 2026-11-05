@@ -1,0 +1,124 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Crowd Line-up</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+/* A studio line-up of one crowd figure set (?figures=0..6, crowd-figures.js): twelve people, gents and ladies
+   in turn, the same outfits, places and light for every set, so the sets can be compared side by side.
+   ?view=front|three (three-quarter, the default) turns the 3D figures. ?still=1 sets window.__ready. */
+:root { --bg: #e8e2d4; --ink: #1f5a38; color-scheme: light; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --bg: #e8e2d4; } }
+html, body { margin: 0; height: 100%; background: var(--bg); overflow: hidden; }
+canvas { display: block; width: 100%; height: 100%; }
+#label { position: fixed; left: 16px; top: 10px; font: 600 18px/1.2 Georgia, serif; color: var(--ink); }
+body.still #label { display: none; }
+</style>
+<canvas id="c"></canvas>
+<div id="label"></div>
+<script type="importmap">
+{ "imports": {
+  "three": "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js",
+  "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/"
+} }
+</script>
+<script type="module">
+import * as THREE from "three";
+import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
+import { FIGURE_SETS, SLOTS, loadFigureSet, crowdMaterial, EXTRA_PALETTE } from "./crowd-figures.js";
+
+const params = new URLSearchParams(location.search);
+if (params.has("still")) document.body.classList.add("still");
+const FIG = FIGURE_SETS[params.get("figures")] ? +params.get("figures") : 1;
+const VIEW = params.get("view") || "three";
+document.getElementById("label").textContent = FIG + "  " + FIGURE_SETS[FIG].name;
+
+const renderer = new THREE.WebGLRenderer({ canvas: document.getElementById("c"), antialias: true, preserveDrawingBuffer: true });
+renderer.setPixelRatio(window.devicePixelRatio || 1);
+renderer.toneMapping = THREE.AgXToneMapping;                    // as the race view
+renderer.toneMappingExposure = Math.pow(2, 0.35);
+const scene = new THREE.Scene();
+scene.background = new THREE.Color("#e8e2d4");
+// the race view's light: blue sky, green ground bounce, a warm sun from the upper left
+scene.add(new THREE.HemisphereLight(new THREE.Color("#7fb2e2"), new THREE.Color("#5c7c38"), 2.4));
+const sun = new THREE.DirectionalLight(new THREE.Color().setRGB(1.0, 0.9, 0.76, THREE.LinearSRGBColorSpace), 5.0);
+sun.position.set(5, 7, -6);                                   // upper left as seen from the camera
+scene.add(sun);
+
+const loader = new GLTFLoader();
+async function loadModel(dir, name) {
+  const json = await fetch(`${dir}/${name}.json`).then((r) => r.text());
+  const b64 = (await fetch(`${dir}/${name}-geometry.txt`).then((r) => r.text())).trim();
+  const raw = atob(b64), bin = new Uint8Array(raw.length);
+  for (let i = 0; i < raw.length; i++) bin[i] = raw.charCodeAt(i);
+  const pad = (n) => (n + 3) & ~3, jb = new TextEncoder().encode(json), jLen = pad(jb.length), bLen = pad(bin.length);
+  const glb = new Uint8Array(28 + jLen + bLen), dv = new DataView(glb.buffer);
+  dv.setUint32(0, 0x46546c67, true); dv.setUint32(4, 2, true); dv.setUint32(8, glb.length, true);
+  dv.setUint32(12, jLen, true); dv.setUint32(16, 0x4e4f534a, true); glb.fill(0x20, 20, 20 + jLen); glb.set(jb, 20);
+  dv.setUint32(20 + jLen, bLen, true); dv.setUint32(24 + jLen, 0x004e4942, true); glb.set(bin, 28 + jLen);
+  return new Promise((res, rej) => loader.parse(glb.buffer, dir + "/", res, rej));
+}
+const texLoader = new THREE.TextureLoader();
+const set = await loadFigureSet(FIG, { loadModel, dir: "assets/architecture", texLoader });
+
+// Twelve people, the same outfits in the same places for every set (summer colours).
+const OUTFITS = [
+  { lady: false, main: "#2f3746", hat: "#1c1c20", trim: "#8d8f92" }, { lady: true, main: "#f0b9c4", hat: "#e2577a", trim: "#f7f3ea" },
+  { lady: false, main: "#5d6168", hat: "#1c1c20", trim: "#a6a39a" }, { lady: true, main: "#b8d5ea", hat: "#f7f3ea", trim: "#2a2a2e" },
+  { lady: false, main: "#cfc5ae", hat: "#d6c590", trim: "#7b7f86" }, { lady: true, main: "#f4e3a1", hat: "#6fb0dd", trim: "#ffffff" },
+  { lady: false, main: "#3a3f4a", hat: "#62656b", trim: "#6d6f73" }, { lady: true, main: "#c9606f", hat: "#2a2a2e", trim: "#f3cf55" },
+  { lady: false, main: "#a9b6c4", hat: "#d6c590", trim: "#cfc5ae" }, { lady: true, main: "#c5e0bd", hat: "#b48ad6", trim: "#e2577a" },
+  { lady: false, main: "#4a4f45", hat: "#1c1c20", trim: "#b9b2a0" }, { lady: true, main: "#dcc8ec", hat: "#ffffff", trim: "#7cc0a0" },
+];
+const SKIN = ["#efc6a4", "#e2b48e", "#c99572", "#9a6a4a", "#efc6a4", "#6e4a34"];
+const GAP = 0.95;
+// ?first=&count= shows only some of the twelve (close-ups for checking)
+const FIRST = +(params.get("first") || 0), COUNT = +(params.get("count") || OUTFITS.length), N = COUNT;
+const yaw = (k) => (VIEW === "front" ? 0 : [0.45, -0.35, 0.25, -0.5, 0.6, -0.2][k % 6]);
+const uniforms = { uTime: { value: 0 }, uLeader: { value: new THREE.Vector2(1e5, 1e5) } };
+const col = new THREE.Color();
+
+// which figure of the set stands in each place: gents and ladies in turn through the set's variants
+const gents = set.cutout ? set.info.figures.map((f, i) => [f, i]).filter(([f]) => !f.lady) : set.figures.filter((f) => !f.lady);
+const ladies = set.cutout ? set.info.figures.map((f, i) => [f, i]).filter(([f]) => f.lady) : set.figures.filter((f) => f.lady);
+const people = OUTFITS.map((o, k) => ({ o, k })).slice(FIRST, FIRST + COUNT).map(({ o, k }) => {
+  const list = o.lady ? ladies : gents, j = Math.floor(k / 2);
+  return { o, k, i: k - FIRST, fig: list[(j * (set.cutout ? 3 : 1)) % list.length] };
+});
+// one instanced mesh per figure used (as the race view draws them), one person each
+const shadowTex = (() => {
+  const c = document.createElement("canvas"); c.width = c.height = 64; const g = c.getContext("2d");
+  const gr = g.createRadialGradient(32, 32, 2, 32, 32, 31); gr.addColorStop(0, "rgba(0,0,0,0.55)"); gr.addColorStop(1, "rgba(0,0,0,0)");
+  g.fillStyle = gr; g.fillRect(0, 0, 64, 64); return new THREE.CanvasTexture(c);
+})();
+let tris = 0;
+for (const p of people) {
+  const x = -(p.i - (N - 1) / 2) * GAP;                         // left to right as seen from the camera
+  const fig = set.cutout ? set.figures[0] : p.fig;
+  const geo = fig.near.clone();
+  const cs = Array.from({ length: SLOTS }, (_, j) => { const a = new THREE.InstancedBufferAttribute(new Float32Array(3), 3); geo.setAttribute("aC" + j, a); return a; });
+  const colours = [p.o.main, SKIN[p.k % SKIN.length], p.o.hat, p.o.trim, EXTRA_PALETTE.hair[p.k % EXTRA_PALETTE.hair.length]];
+  colours.forEach((c, j) => col.set(c).toArray(cs[j].array, 0));
+  if (set.cutout) cs[5].array.set([p.fig[0].cell[0], p.fig[0].cell[1], 0]);
+  const inst = new THREE.InstancedMesh(geo, crowdMaterial({ uniforms, set }), 1);
+  inst.setMatrixAt(0, new THREE.Matrix4().compose(new THREE.Vector3(x, 0, 0), new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), set.cutout ? 0 : yaw(p.k)), new THREE.Vector3(1, 1, 1)));
+  inst.frustumCulled = false;
+  scene.add(inst);
+  tris += fig.tris;
+  const sh = new THREE.Mesh(new THREE.PlaneGeometry(0.9, 0.5), new THREE.MeshBasicMaterial({ map: shadowTex, transparent: true, depthWrite: false, toneMapped: false }));
+  sh.rotation.x = -Math.PI / 2; sh.position.set(x + 0.12, 0.002, -0.05); scene.add(sh);
+}
+const floor = new THREE.Mesh(new THREE.PlaneGeometry(600, 600), new THREE.MeshLambertMaterial({ color: "#cfc8b6" }));
+scene.fog = new THREE.Fog("#e8e2d4", 30, 60);              // the floor fades into the backdrop
+floor.rotation.x = -Math.PI / 2; scene.add(floor);
+// camera: in front of the figures (they face -z), a little above
+const camera = new THREE.PerspectiveCamera(14, 1, 0.1, 200);
+function resize() {
+  const w = innerWidth, h = innerHeight;
+  renderer.setSize(w, h, false); camera.aspect = w / h;
+  const span = N * GAP + 0.4, d = Math.max(span / 2 / (Math.tan(THREE.MathUtils.degToRad(camera.fov / 2)) * camera.aspect), 2.3 / 2 / Math.tan(THREE.MathUtils.degToRad(camera.fov / 2)));
+  camera.position.set(0, 1.55, -d); camera.lookAt(0, 1.0, 0); camera.updateProjectionMatrix();
+}
+addEventListener("resize", resize); resize();
+renderer.render(scene, camera);
+requestAnimationFrame(() => { renderer.render(scene, camera); window.__tris = tris; window.__ready = true; });
+</script>

@@ -1,0 +1,85 @@
+{
+ "_about": "Crowd figure options (tools/blender/build_crowd_figure_sets.py): triangles per figure.",
+ "sets": {
+  "1": {
+   "figures": {
+    "gent_00_top": 246,
+    "gent_01_top": 246,
+    "gent_02_boater": 246,
+    "gent_03_bowler": 262,
+    "gent_04_trilby": 246,
+    "lady_05_wide": 274,
+    "lady_06_picture": 274,
+    "lady_07_fascinator": 198,
+    "lady_08_cloche": 258,
+    "lady_09_boater": 258
+   },
+   "mean": 251,
+   "max": 274
+  },
+  "2": {
+   "figures": {
+    "gent_00_top": 433,
+    "gent_01_top": 433,
+    "gent_02_bowler": 453,
+    "gent_03_boater": 433,
+    "gent_04_top": 433,
+    "lady_05_picture": 454,
+    "lady_06_wide": 474,
+    "lady_07_picture": 454,
+    "lady_08_cloche": 434,
+    "lady_09_fascinator": 378
+   },
+   "mean": 438,
+   "max": 474
+  },
+  "4": {
+   "figures": {
+    "gent_00_top": 296,
+    "gent_01_top": 308,
+    "gent_02_boater": 296,
+    "gent_03_bowler": 310,
+    "gent_04_trilby": 308,
+    "lady_05_wide": 320,
+    "lady_06_picture": 296,
+    "lady_07_fascinator": 256,
+    "lady_08_cloche": 282,
+    "lady_09_boater": 306
+   },
+   "mean": 298,
+   "max": 320
+  },
+  "5": {
+   "figures": {
+    "gent_00_top": 272,
+    "gent_01_top": 272,
+    "gent_02_boater": 272,
+    "gent_03_bowler": 288,
+    "gent_04_trilby": 272,
+    "lady_05_wide": 297,
+    "lady_06_picture": 261,
+    "lady_07_wide": 277,
+    "lady_08_cloche": 265,
+    "lady_09_boater": 261
+   },
+   "mean": 274,
+   "max": 297
+  },
+  "6": {
+   "figures": {
+    "gent_00_bowler": 224,
+    "gent_01_top": 212,
+    "gent_02_cap": 188,
+    "gent_03_trilby": 212,
+    "gent_04_boater": 212,
+    "lady_05_wide": 234,
+    "lady_06_cloche": 210,
+    "lady_07_picture": 222,
+    "lady_08_pillbox": 174,
+    "lady_09_fascinator": 182
+   },
+   "mean": 207,
+   "max": 234
+  }
+ }
+}

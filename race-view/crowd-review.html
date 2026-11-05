@@ -6,7 +6,8 @@
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Jost:wght@400;500;600&family=Cormorant+SC:wght@600;700&display=swap">
 <style>
 /* Crowd review: a copy of final-furlong.html with the crowd laid out one of several ways (?crowd=A..F),
-   for the owner to compare. The race view itself is unchanged.
+   drawn with one of several figure sets (?figures=0..6, crowd-figures.js; 0 is today's), for the owner to compare.
+   ?palette=summer|heritage overrides the arrangement's colours. The race view itself is unchanged.
    The race view's last furlong at Ascot, on the full course (courses/ascot.json, courses/ascot-view.json):
    the 507 m main stand on the horses' left, the planting belts and boards round the far rails.
    Panels use the board's cream, bottle green and gold. */
@@ -108,6 +109,7 @@ button:focus-visible { outline: 2px solid var(--cream-edge); outline-offset: 2px
   <div class="group" id="finish"><span>Finish</span></div>
   <div class="group" id="quality"><span>Quality</span></div>
   <div class="group" id="crowdOpts"><span>Crowd</span></div>
+  <div class="group" id="figureOpts"><span>Figures</span></div>
   <div class="group"><button id="pause" type="button" aria-pressed="false">Pause</button><button id="restart" type="button">Restart</button><button id="hideBar" type="button" aria-label="Hide the controls">Hide</button></div>
 </div>
 
@@ -152,6 +154,7 @@ import { RoomEnvironment } from "three/addons/environments/RoomEnvironment.js";
 import { mergeGeometries, mergeVertices } from "three/addons/utils/BufferGeometryUtils.js";
 import { SimplifyModifier } from "three/addons/modifiers/SimplifyModifier.js";
 import * as HorseV2 from "./horse-v2.js";
+import { FIGURE_SETS, SLOTS, loadFigureSet, lookFor, crowdMaterial as figureMaterial } from "./crowd-figures.js";
 
 window.__started = true;
 const params = new URLSearchParams(location.search);
@@ -833,6 +836,9 @@ const CROWD_OPTIONS = {
 };
 const CROWD_ID = CROWD_OPTIONS[(params.get("crowd") || "A").toUpperCase()] ? (params.get("crowd") || "A").toUpperCase() : "A";
 const CO = CROWD_OPTIONS[CROWD_ID];
+// Which figures (crowd-figures.js): 0 today's four, 1-6 the figure options. And whose colours.
+const FIG_ID = FIGURE_SETS[params.get("figures")] ? +params.get("figures") : 0;
+const PALETTE = params.get("palette") === "summer" || params.get("palette") === "heritage" ? params.get("palette") : CO.palette;
 const SUMMER = {
   suits: ["#3a3f4a", "#5d6168", "#7b7f86", "#2f3746", "#8d8a80", "#cfc5ae", "#a9b6c4", "#4a4f45", "#62666d"],
   dresses: ["#f0b9c4", "#b8d5ea", "#f4e3a1", "#c5e0bd", "#dcc8ec", "#f6d2bb", "#f3eee2", "#ec9d8b", "#9cc7c0", "#e7a8c9", "#6f8fc0", "#c9606f", "#fff3d6"],
@@ -872,7 +878,7 @@ const PROPS = { blanket: [], hamper: [] };
 function buildCrowd(gltf, data, pieceAt, propsGltf) {
   const rnd = seeded(21);
   const pick = (a) => a[Math.floor(rnd() * a.length)];
-  const P = CO.palette === "summer" ? Object.assign({}, data.palette, SUMMER) : data.palette;
+  const P = PALETTE === "summer" ? Object.assign({}, data.palette, SUMMER) : data.palette;
   const spots = [];
   const add = (x, y, z, seated = false, extra) => { if (crowdKeep(x, rnd)) spots.push(Object.assign({ x, y, z, seated }, extra)); };
   const S0 = -102.5, S1 = 405;                                  // the stand's west and east ends
@@ -1064,19 +1070,24 @@ function buildCrowd(gltf, data, pieceAt, propsGltf) {
   // shuffle, so lowering the quality thins the crowd evenly instead of emptying whole areas
   for (let i = spots.length - 1; i > 0; i--) { const j = Math.floor(rnd() * (i + 1)); [spots[i], spots[j]] = [spots[j], spots[i]]; }
 
-  const figures = ["person_gent_tophat", "person_gent", "person_lady", "person_lady_b"].map((n) => gltf.scene.getObjectByName(n)).filter(Boolean);
+  // The figure set (crowd-figures.js). Today's figures keep today's exact choices (children as figures 1 and 3).
+  const FS = gltf, figures = FS.figures;
   const byFig = figures.map(() => []);
-  for (const s of spots) byFig[s.kid ? (rnd() < 0.5 ? 1 : 3) : Math.floor(rnd() * figures.length)].push(s);
+  for (const s of spots) byFig[FS.cutout ? 0 : FS.id === 0 && s.kid ? (rnd() < 0.5 ? 1 : 3) : Math.floor(rnd() * figures.length)].push(s);
   const m = new THREE.Matrix4(), q = new THREE.Quaternion(), sc = new THREE.Vector3(), pos = new THREE.Vector3(), up = new THREE.Vector3(0, 1, 0);
   const col = new THREE.Color();
   const parasols = [];
   const height = (s) => s.kid ? 0.6 + rnd() * 0.12 : CO.heights ? 0.99 + (rnd() + rnd() + rnd() - 1.5) * 0.11 : 0.94 + rnd() * 0.12;
   figures.forEach((fig, fi) => {
-    const lady = fig.name.includes("lady");
-    const people = byFig[fi].map((s) => ({ s, L: {
-      clothes: pick(lady ? P.dresses : P.suits), skin: pick(P.skin), hat: pick(lady ? P.hats_lady : P.hats_gent),
-      yaw: (rnd() - 0.5) * 1.2, s: height(s),            // facing the track, as on the stands side before
-    } }));
+    const people = byFig[fi].map((s) => {
+      let lady = fig.lady, cell = [0, 0, 0];
+      if (FS.cutout) {                                    // a painted figure each, from the atlas
+        const v = FS.info.figures[Math.floor(rnd() * FS.info.figures.length)];
+        lady = v.lady; cell = [v.cell[0], v.cell[1], 0];
+      }
+      const cols = FS.id === 0 ? [pick(lady ? P.dresses : P.suits), pick(P.skin), pick(lady ? P.hats_lady : P.hats_gent), "#000000", "#000000"] : lookFor(lady, P, pick);
+      return { s, lady, L: { cols, cell, yaw: (rnd() - 0.5) * 1.2, s: height(s) } };   // facing the track, as on the stands side before
+    });
     // Sort into 25 m cells (keeping the shuffled order inside each cell), so whole cells can be skipped when
     // out of shot and switched to the light figures when far off, each a single block copy.
     const CELL = 25, cells = new Map();
@@ -1086,17 +1097,19 @@ function buildCrowd(gltf, data, pieceAt, propsGltf) {
       cells.get(key).push(p);
     }
     const n = people.length;
-    const F = { n, mats: new Float32Array(16 * n), cols: [new Float32Array(3 * n), new Float32Array(3 * n), new Float32Array(3 * n)], cells: [] };
+    const F = { n, mats: new Float32Array(16 * n), cols: Array.from({ length: SLOTS }, () => new Float32Array(3 * n)), cells: [] };
     let i = 0;
     for (const list of cells.values()) {
       const box = new THREE.Box3();
       const start = i;
-      for (const { s, L } of list) {
+      for (const { s, L, lady } of list) {
         pos.set(s.x, s.sink ? s.y - 0.76 * L.s : s.y, s.z);
-        q.setFromAxisAngle(up, s.yaw !== undefined ? s.yaw : s.z < 0 ? L.yaw + Math.PI : L.yaw);
+        if (FS.cutout) q.identity();                       // cards turn to the camera in the shader
+        else q.setFromAxisAngle(up, s.yaw !== undefined ? s.yaw : s.z < 0 ? L.yaw + Math.PI : L.yaw);
         sc.set(L.s, L.s * (s.seated ? 0.7 : 1), L.s);
         m.compose(pos, q, sc).toArray(F.mats, 16 * i);
-        ["clothes", "skin", "hat"].forEach((k, j) => col.set(L[k]).toArray(F.cols[j], 3 * i));
+        L.cols.forEach((c, j) => col.set(c).toArray(F.cols[j], 3 * i));
+        F.cols[5].set(L.cell, 3 * i);
         box.expandByPoint(pos);
         // a parasol for some of the ladies out on the grass (fewer in the thick of the rail crowd)
         if (CO.parasols && lady && !s.kid && !s.seated && !s.sink && s.y === 0 && rnd() < CO.parasols * (s.zone === "rail" ? 0.3 : s.zone ? 1 : 0)) {
@@ -1108,27 +1121,12 @@ function buildCrowd(gltf, data, pieceAt, propsGltf) {
       sphere.radius += 2.5; sphere.center.y += 0.9;
       F.cells.push({ start, count: list.length, sphere });
     }
-    // One mesh per figure for each level of detail, its parts merged and told apart by aPart (0 clothes,
-    // 1 skin, 2 hat); the light one, for far off, has about a third of the triangles.
-    const parts = meshesOf(fig).map((p) => {
-      const g = new THREE.BufferGeometry();
-      g.setAttribute("position", p.geometry.attributes.position);
-      g.setAttribute("normal", p.geometry.attributes.normal);
-      g.setIndex(p.geometry.index);
-      return [g, ["clothes", "skin", "hat"].findIndex((k) => p.material.name.includes(k))];
-    });
-    const tag = (g, k) => { g.setAttribute("aPart", new THREE.Float32BufferAttribute(new Float32Array(g.attributes.position.count).fill(Math.max(0, k)), 1)); return g; };
-    const nearGeo = mergeGeometries(parts.map(([g, k]) => tag(g.clone(), k)));
-    const farGeo = mergeGeometries(parts.map(([g, k]) => {
-      const w0 = g.clone(); w0.deleteAttribute("normal");
-      const w = mergeVertices(w0);
-      const sg = new SimplifyModifier().modify(w, Math.floor(w.attributes.position.count * 0.65));
-      sg.computeVertexNormals();
-      return tag(sg.index ? sg.toNonIndexed() : sg, k);
-    }).map((g) => (g.index ? g.toNonIndexed() : g)));
+    // One mesh per figure for each level of detail, its parts merged and told apart by aPart; the light one,
+    // for far off, has about a third of the triangles.
+    const nearGeo = fig.near.clone(), farGeo = fig.far.clone();
     const make = (geo) => {
-      const cs = [0, 1, 2].map((j) => { const a = new THREE.InstancedBufferAttribute(new Float32Array(3 * n), 3); a.setUsage(THREE.DynamicDrawUsage); geo.setAttribute("aC" + j, a); return a; });
-      const inst = new THREE.InstancedMesh(geo, crowdMaterial(), n);
+      const cs = Array.from({ length: SLOTS }, (_, j) => { const a = new THREE.InstancedBufferAttribute(new Float32Array(3 * n), 3); a.setUsage(THREE.DynamicDrawUsage); geo.setAttribute("aC" + j, a); return a; });
+      const inst = new THREE.InstancedMesh(geo, crowdMaterial(FS), n);
       inst.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
       inst.count = 0; inst.frustumCulled = false;
       inst.castShadow = false; inst.receiveShadow = true;
@@ -1172,7 +1170,10 @@ function buildCrowd(gltf, data, pieceAt, propsGltf) {
   placeProp(["picnic_hamper"], PROPS.hamper.map((h) => Object.assign(h, { cols: [h.col, h.col, h.col] })), (h) => flat(h, 1, 1));
   const zones = {};
   for (const s of spots) zones[s.zone || "box"] = (zones[s.zone || "box"] || 0) + 1;
-  window.__crowdInfo = { option: CROWD_ID, label: CO.label, people: spots.length, seatedOnGrass: spots.filter((s) => s.sink).length, children: spots.filter((s) => s.kid).length, zones, props: propInfo };
+  const figTris = figures.map((f) => f.tris), farTris = figures.map((f) => f.farTris || f.tris);
+  const mean = (a) => Math.round(a.reduce((x, y) => x + y, 0) / a.length);
+  window.__crowdInfo = { option: CROWD_ID, label: CO.label, figures: FS.id, figureSet: FS.set.name, palette: PALETTE,
+    trianglesPerFigure: { near: mean(figTris), nearMax: Math.max(...figTris), far: mean(farTris), variants: FS.cutout ? FS.info.figures.length : figures.length }, people: spots.length, seatedOnGrass: spots.filter((s) => s.sink).length, children: spots.filter((s) => s.kid).length, zones, props: propInfo };
   console.log("crowd:", spots.length, "people", JSON.stringify(window.__crowdInfo));
   setCrowdShare(QUALITY[qLevel].crowd);
 }
@@ -1181,37 +1182,7 @@ function buildCrowd(gltf, data, pieceAt, propsGltf) {
 // in step with the neighbours; and as the leader comes by, those near the rail rock on their toes, lean in
 // towards the track, and some of the gents raise their hats. Who does what comes from where they stand.
 const CROWD = { figs: [], share: 1, sig: "", uniforms: { uTime: { value: 0 }, uLeader: { value: new THREE.Vector2(0, MID_Z) } }, near: 90 };
-function crowdMaterial() {
-  const mat = new THREE.MeshLambertMaterial({ color: "#ffffff" });
-  mat.onBeforeCompile = (sh) => {
-    Object.assign(sh.uniforms, CROWD.uniforms);
-    sh.vertexShader = sh.vertexShader
-      .replace("#include <common>", `#include <common>
-        attribute float aPart; attribute vec3 aC0; attribute vec3 aC1; attribute vec3 aC2;
-        uniform float uTime; uniform vec2 uLeader; varying vec3 vPartCol; varying float vWy;`)
-      .replace("#include <begin_vertex>", `#include <begin_vertex>
-        vPartCol = aPart < 0.5 ? aC0 : aPart < 1.5 ? aC1 : aC2;
-        {
-          vec3 ip = vec3(instanceMatrix[3][0], instanceMatrix[3][1], instanceMatrix[3][2]);
-          float seed = fract(sin(dot(ip.xz, vec2(12.9898, 78.233))) * 43758.5453);
-          float h = transformed.y;
-          float sway = 0.018 * sin(uTime * (0.6 + 0.5 * seed) + seed * 6.2832);
-          float ex = smoothstep(75.0, 15.0, abs(ip.x - uLeader.x)) * smoothstep(55.0, 18.0, abs(ip.z - uLeader.y)) * step(0.2, seed);
-          float bob = ex * 0.06 * max(0.0, sin(uTime * (6.0 + 3.0 * seed) + seed * 40.0));
-          transformed.x += (sway + ex * 0.025 * sin(uTime * 2.7 + seed * 9.0)) * h;
-          transformed.z -= ex * 0.05 * h;
-          transformed.y += bob;
-          if (aPart > 1.5 && seed > 0.62) transformed.y += ex * 0.2 * smoothstep(0.35, 0.9, 0.5 + 0.5 * sin(uTime * 2.1 + seed * 31.0));
-        }
-        vWy = (modelMatrix * instanceMatrix * vec4(transformed, 1.0)).y;`);
-    sh.fragmentShader = sh.fragmentShader
-      .replace("#include <common>", "#include <common>\nvarying vec3 vPartCol; varying float vWy;")
-      .replace("#include <clipping_planes_fragment>", `#include <clipping_planes_fragment>\nif (vWy < ${CROWD_CLIP.toFixed(3)}) discard;`)
-      .replace("#include <color_fragment>", "#include <color_fragment>\ndiffuseColor.rgb *= vPartCol;");
-  };
-  mat.customProgramCacheKey = () => "crowd-life";
-  return mat;
-}
+function crowdMaterial(set = null) { return figureMaterial({ uniforms: CROWD.uniforms, clip: CROWD_CLIP, set }); }
 function setCrowdShare(share) { CROWD.share = share; CROWD.sig = ""; }
 // Which cells are in shot and which are far: only when that changes are the visible people copied across.
 const _fr = new THREE.Frustum(), _pm = new THREE.Matrix4();
@@ -1663,7 +1634,14 @@ for (const [id, o] of Object.entries(CROWD_OPTIONS)) {
   b.title = id + ": " + o.label + " (" + o.note + ")";
   b.setAttribute("aria-pressed", id === CROWD_ID);
 }
-document.getElementById("courseName").textContent = "Crowd " + CROWD_ID + " · " + CO.label;
+document.getElementById("courseName").textContent = "Crowd " + CROWD_ID + " · " + CO.label + " · figures " + FIG_ID + " " + FIGURE_SETS[FIG_ID].name;
+// Figure sets: each button reloads with ?figures= set, keeping the arrangement and everything else.
+const figEl = document.getElementById("figureOpts");
+for (const [id, f] of Object.entries(FIGURE_SETS)) {
+  const b = button(figEl, id, () => { const p = new URLSearchParams(location.search); p.set("figures", id); location.search = p.toString(); }, "figures-" + id);
+  b.title = id + ": " + f.name + " (" + f.line + ")";
+  b.setAttribute("aria-pressed", +id === FIG_ID);
+}
 
 // Diagnostics (?debug=1, or tap the frame rate): what each frame costs, and switches to take
 // parts of the scene out one at a time to see which one is slow on this machine.
@@ -1785,7 +1763,7 @@ try {
     optional(loadModel("assets/baked", "static_world"), "Baked scenery"),
     optional(loadModel("assets/trees", "trees"), "Trees"),
     optional(loadModel("assets/course", "planting_belts"), "Planting belts"),
-    optional(loadModel(ARCH, "crowd_people"), "Crowd"),
+    optional(loadFigureSet(FIG_ID, { loadModel, dir: ARCH, texLoader }), "Crowd"),
     json("assets/baked/bake.json"),
     json(file(VIEW.dressing)),
     json(file(VIEW.planting)),
