@@ -40,9 +40,61 @@ body { background: #5f8a44; color: var(--green-ink); font-family: var(--body); o
 .plate .togo strong { display: block; font-family: var(--display); font-size: 1.35rem; color: var(--green); line-height: 1; font-variant-numeric: tabular-nums; }
 .plate .togo span { font-size: 0.7rem; letter-spacing: 0.12em; text-transform: uppercase; color: var(--ink-soft); }
 
+/* The race dock along the bottom: the running order, the course map and the pace (reads only the timeline). */
+:root { --dock-h: 0px; }
+.dock {
+  position: fixed; left: max(12px, env(safe-area-inset-left, 0px)); right: max(12px, env(safe-area-inset-right, 0px));
+  bottom: calc(env(safe-area-inset-bottom, 0px) + 10px);
+  display: grid; grid-template-columns: 176px minmax(0, 1fr) 196px; gap: 10px; align-items: stretch;
+  background: var(--cream); border: 1px solid var(--cream-edge); border-radius: 3px;
+  box-shadow: 0 0 0 3px var(--cream), 0 0 0 4px var(--cream-edge), 0 6px 18px rgba(40, 40, 20, 0.25);
+  padding: 8px 10px;
+}
+.dock h2 { margin: 0 0 4px; font: 600 0.62rem var(--body); letter-spacing: 0.14em; text-transform: uppercase; color: var(--ink-soft); }
+.dock-map svg { display: block; width: 100%; height: 86px; }
+.dock-order { min-width: 0; display: flex; flex-direction: column; }
+.order-strip { position: relative; height: 70px; overflow-x: auto; overflow-y: hidden; scrollbar-width: thin; }
+.chip {
+  position: absolute; top: 0; left: 0; width: 50px; height: 64px; box-sizing: border-box;
+  display: grid; justify-items: center; align-content: start; gap: 1px; padding-top: 2px;
+  border: 1px solid rgba(184, 149, 74, 0.55); border-radius: 3px; background: #fbf5e4;
+  transition: transform 0.45s ease; font-variant-numeric: tabular-nums;
+}
+.chip.lead { border-color: var(--cream-edge); box-shadow: inset 0 0 0 1px var(--cream-edge); background: #fff8e2; }
+.chip .pos { font: 600 0.62rem var(--body); color: var(--ink-soft); line-height: 1; }
+.chip img { width: 24px; height: 30px; object-fit: contain; display: block; }
+.chip .no { position: absolute; top: 15px; right: 2px; min-width: 14px; height: 14px; border-radius: 2px; background: var(--green); color: var(--cream); font: 600 0.6rem/14px var(--body); text-align: center; padding: 0 2px; }
+.chip .gap { font: 500 0.66rem var(--body); color: var(--green-ink); line-height: 1; white-space: nowrap; }
+.dock-pace { display: flex; flex-direction: column; gap: 3px; }
+.pace-verdict { display: flex; align-items: baseline; gap: 8px; }
+.pace-verdict strong { font-family: var(--display); font-size: 1.3rem; color: var(--green); line-height: 1; }
+.pace-verdict span { font-size: 0.68rem; color: var(--ink-soft); }
+.sections { display: flex; gap: 2px; height: 16px; align-items: stretch; }
+.sections i { display: block; border-radius: 2px; background: rgba(31, 90, 56, 0.12); }
+.sections i[data-band="Fast"] { background: #b5523b; }
+.sections i[data-band="Strong"] { background: #d39a3d; }
+.sections i[data-band="Even"] { background: #4f8a5c; }
+.sections i[data-band="Slow"] { background: #6f88a6; }
+.pace-key { display: flex; flex-wrap: wrap; gap: 2px 8px; font-size: 0.6rem; color: var(--ink-soft); }
+.pace-key b { display: inline-block; width: 8px; height: 8px; border-radius: 2px; margin-right: 3px; vertical-align: -1px; }
+.going { font-size: 0.7rem; color: var(--green-ink); }
+@media (max-width: 700px) {
+  .dock { grid-template-columns: 96px minmax(0, 1fr); grid-template-areas: "map pace" "order order"; gap: 4px 10px; padding: 6px 8px; left: 8px; right: 8px; bottom: calc(env(safe-area-inset-bottom, 0px) + 8px); }
+  .dock-map { grid-area: map; } .dock-pace { grid-area: pace; gap: 2px; } .dock-order { grid-area: order; }
+  .dock h2 { display: none; }
+  .dock-map svg { height: 52px; }
+  .order-strip { height: 58px; }
+  .chip { width: 42px; height: 56px; }
+  .chip img { width: 20px; height: 24px; }
+  .chip .no { top: 12px; }
+  .pace-verdict strong { font-size: 1.05rem; }
+  .pace-verdict span, .going { font-size: 0.64rem; }
+  .sections { height: 10px; }
+  .pace-key { display: none; }
+}
 .bar {
   position: fixed; left: 50%; transform: translateX(-50%);
-  bottom: calc(env(safe-area-inset-bottom, 0px) + 14px);
+  bottom: calc(env(safe-area-inset-bottom, 0px) + 14px + var(--dock-h));
   max-width: calc(100% - 32px);
   background: var(--cream);
   border: 1px solid var(--cream-edge);
@@ -52,7 +104,7 @@ body { background: #5f8a44; color: var(--green-ink); font-family: var(--body); o
   display: flex; flex-wrap: wrap; gap: 6px 14px; align-items: center; justify-content: center;
 }
 .showbar {
-  position: fixed; right: max(12px, env(safe-area-inset-right, 0px)); bottom: calc(env(safe-area-inset-bottom, 0px) + 12px);
+  position: fixed; right: max(12px, env(safe-area-inset-right, 0px)); bottom: calc(env(safe-area-inset-bottom, 0px) + 12px + var(--dock-h));
   background: var(--cream); border: 1px solid var(--cream-edge); box-shadow: 0 4px 12px rgba(40, 40, 20, 0.25); opacity: 0.85;
 }
 .group { display: flex; gap: 4px; align-items: center; }
@@ -104,7 +156,19 @@ button:focus-visible { outline: 2px solid var(--cream-edge); outline-offset: 2px
   <div class="group" id="cams"><span>Camera</span></div>
   <div class="group" id="finish"><span>Finish</span></div>
   <div class="group" id="quality"><span>Quality</span></div>
-  <div class="group"><button id="pause" type="button" aria-pressed="false">Pause</button><button id="restart" type="button">Restart</button><button id="hideBar" type="button" aria-label="Hide the controls">Hide</button></div>
+  <div class="group"><button id="dockBtn" type="button" aria-pressed="true">Dock</button><button id="pause" type="button" aria-pressed="false">Pause</button><button id="restart" type="button">Restart</button><button id="hideBar" type="button" aria-label="Hide the controls">Hide</button></div>
+</div>
+
+<div class="dock" id="dock">
+  <div class="dock-map"><h2>Course</h2><svg id="dockMap" aria-label="Course map with the runners"></svg></div>
+  <div class="dock-order"><h2 id="orderTitle">Running order</h2><div class="order-strip" id="orderStrip"></div></div>
+  <div class="dock-pace">
+    <h2>Pace</h2>
+    <div class="pace-verdict"><strong id="paceWord">–</strong><span id="paceNote"></span></div>
+    <div class="sections" id="paceSections"></div>
+    <div class="going" id="goingLine">Going: Good</div>
+    <div class="pace-key"><span><b style="background:#6f88a6"></b>Slow</span><span><b style="background:#4f8a5c"></b>Even</span><span><b style="background:#d39a3d"></b>Strong</span><span><b style="background:#b5523b"></b>Fast</span></div>
+  </div>
 </div>
 
 <script>
@@ -157,6 +221,10 @@ const COURSE = await fetch("assets/course/ascot.json").then((r) => r.json());   
 const VIEW = await fetch("assets/course/ascot-view.json").then((r) => r.json());        // cameras, director, paths, trees
 const SILK_DATA = await fetch("assets/silks-catalogue.json").then((r) => r.json());
 const SILKS = SILK_DATA.silks;
+const silkFor = (i) => SILKS[(i * 5 + 2) % SILKS.length];          // runner i (stall i + 1) wears these colours
+// Par times and the going (courses/ascot-standards.json, shared with the race engine): the dock's pace reading.
+const STANDARDS = await fetch("assets/course/ascot-standards.json").then((r) => r.json());
+const GOING = STANDARDS.going[params.get("going")] ? params.get("going") : "Good";
 const COATS = [
   { name: "Bay",      body: "#7a4a2a", points: "#1d1714" },
   { name: "Brown",    body: "#4a2e1c", points: "#17110d" },
@@ -1564,7 +1632,7 @@ try {
   const v2Tex = (url, srgb) => { const t = texLoader.load(url); t.flipY = false; if (srgb) t.colorSpace = THREE.SRGBColorSpace; return t; };
   for (let i = 0; i < RUNNERS && HORSE_V === "v2"; i++) {
     const coat = COATS[(i * 3 + 1) % COATS.length];
-    const silk = SILKS[(i * 5 + 2) % SILKS.length];
+    const silk = silkFor(i);
     const h = HorseV2.makeRunner(horse, { coat, silk, seed: i + 1, texLoader: v2Tex });
     h.setTime((i * 0.137) % 0.48);
     scene.add(h.obj);
@@ -1576,7 +1644,7 @@ try {
     const obj = SkeletonUtils.clone(horse.scene);
     obj.scale.setScalar(HORSE_SCALE);
     const coat = COATS[(i * 3 + 1) % COATS.length];
-    const silk = SILKS[(i * 5 + 2) % SILKS.length];
+    const silk = silkFor(i);
     const u = {
       mask: { value: maskTex }, coatCol: { value: new THREE.Color(coat.body) },
       pointsCol: { value: new THREE.Color(coat.points) }, silkCol: { value: new THREE.Color(silk.colour) },
@@ -1703,6 +1771,128 @@ window.__camTrace = (t0, t1, step = 1 / 30) => {
   return out;
 };
 
+// ---------- The race dock: running order, course map, pace ----------
+// Reads only the timeline (and the course and standards files), so it works the same for any race the engine sends.
+const DOCK = (() => {
+  const dockEl = document.getElementById("dock"), strip = document.getElementById("orderStrip"), svg = document.getElementById("dockMap");
+  const NS = "http://www.w3.org/2000/svg", LEN = 2.4;                      // a length, in metres
+  const el = (tag, attrs, parent) => { const e = document.createElementNS(NS, tag); for (const k in attrs) e.setAttribute(k, attrs[k]); if (parent) parent.appendChild(e); return e; };
+  // the dock's height lifts the controls above it
+  const setH = () => document.documentElement.style.setProperty("--dock-h", dockEl.hidden ? "0px" : dockEl.offsetHeight + 10 + "px");
+  new ResizeObserver(setH).observe(dockEl);
+  const btn = document.getElementById("dockBtn");
+  const show = (on) => { dockEl.hidden = !on; btn.setAttribute("aria-pressed", on); setH(); try { localStorage.setItem("tb-dock", on ? "1" : "0"); } catch {} };
+  btn.onclick = () => show(dockEl.hidden);
+  try { if (localStorage.getItem("tb-dock") === "0" || params.get("dock") === "0") show(false); } catch {}
+
+  // --- course map: the whole layout in grey, the race's own route in green, a dot per runner in its colours
+  const lines = [LOOP.pts.concat([LOOP.pts[0]]), [[0, 0], [COURSE.straightMile.length || 1609.3, 0]], [COURSE.roundMileSpur.from, COURSE.roundMileSpur.to]];
+  const route = [];
+  for (let u = 0; u <= DIST; u += 12) route.push(toWorld(u, 0));
+  const all = lines.flat().concat(route);
+  const minX = Math.min(...all.map((p) => p[0])), maxX = Math.max(...all.map((p) => p[0])), minZ = Math.min(...all.map((p) => p[1])), maxZ = Math.max(...all.map((p) => p[1]));
+  const pad = (maxX - minX) * 0.05;
+  svg.setAttribute("viewBox", `${minX - pad} ${minZ - pad} ${maxX - minX + pad * 2} ${maxZ - minZ + pad * 2}`);
+  svg.setAttribute("preserveAspectRatio", "xMidYMid meet");
+  const unit = (maxX - minX) / 170;                                        // about one screen pixel at desktop size
+  const pathOf = (pts) => "M" + pts.map((p) => p[0].toFixed(1) + " " + p[1].toFixed(1)).join("L");
+  for (const l of lines) el("path", { d: pathOf(l), fill: "none", stroke: "#cbbd97", "stroke-width": unit * 4, "stroke-linejoin": "round", "stroke-linecap": "round" }, svg);
+  el("path", { d: pathOf(route), fill: "none", stroke: "#1f5a38", "stroke-width": unit * 2.4, "stroke-linejoin": "round", "stroke-linecap": "round", opacity: 0.85 }, svg);
+  const [sx, sz] = toWorld(0, 0);
+  el("circle", { cx: sx, cy: sz, r: unit * 3.2, fill: "#f4ead2", stroke: "#1f5a38", "stroke-width": unit * 1.2 }, svg);           // the start
+  el("rect", { x: -unit * 1.2, y: -unit * 6, width: unit * 2.4, height: unit * 12, fill: "#b5523b" }, svg);                     // the winning post
+  const dots = [];
+  for (let i = 0; i < RUNNERS; i++) dots.push(el("circle", { r: unit * 6.5, fill: silkFor(i).colour, stroke: "#fff", "stroke-width": unit * 1.6 }, svg));
+
+  // --- running order: a chip per runner (position, silks, number, lengths behind), sliding into place
+  const chips = [], spacer = document.createElement("div");      // gives the strip its scroll width (the chips are placed by transform)
+  spacer.style.height = "1px"; strip.appendChild(spacer);
+  for (let i = 0; i < RUNNERS; i++) {
+    const c = document.createElement("div"); c.className = "chip";
+    c.innerHTML = `<span class="pos"></span><img alt="" src="assets/silks-icons/${silkFor(i).id}.png"><span class="no">${i + 1}</span><span class="gap"></span>`;
+    c.title = `${i + 1}: ${silkFor(i).name}`;
+    strip.appendChild(c); chips.push(c);
+  }
+  const lengths = (m) => {
+    const l = m / LEN;
+    if (l < 0.12) return "nse"; if (l < 0.2) return "shd"; if (l < 0.3) return "hd"; if (l < 0.45) return "nk";
+    if (l >= 20) return "20+ L";
+    const q = Math.round(l * 4) / 4, w = Math.floor(q), f = ["", "¼", "½", "¾"][Math.round((q - w) * 4)];
+    return (w ? w : "") + f;
+  };
+
+  // --- pace: each section the leader runs, against par for its length on today's going
+  const want = RACE.course === "straight" ? "straight" : RACE.course === "roundMile" ? "roundMile" : "round";
+  const pars = STANDARDS.parTimes.filter((p) => p.course === want);
+  const par = pars.reduce((a, b) => (Math.abs(b.distance - DIST) < Math.abs(a.distance - DIST) ? b : a), pars[0]);
+  const parSpeed = par.distance / par.seconds * STANDARDS.going[GOING].speed;
+  const bandOf = (ratio) => STANDARDS.pace.bands.find((b) => ratio < b.below).label;
+  // section ends (u): the furlong poles counting back from the line, then the line itself
+  const ends = [];
+  for (let k = Math.floor(DIST / FURLONG); k >= 1; k--) { const u = DIST - k * FURLONG; if (u > 20) ends.push(u); }
+  ends.push(DIST);
+  const leaderTime = (u) => {                                    // when the leader reached u, between timeline frames
+    const F = timeline.frames;
+    for (let i = 1; i < F.length; i++) { const b = leaderAt(F[i]); if (b >= u) { const a = leaderAt(F[i - 1]); return (i - 1 + (u - a) / Math.max(1e-6, b - a)) * timeline.dt; } }
+    return Infinity;
+  };
+  const secs = ends.map((u, k) => {
+    const from = k ? ends[k - 1] : 0, t0 = k ? leaderTime(from) : 0, t1 = leaderTime(u);
+    const parT = (u - from) / parSpeed + (k ? 0 : STANDARDS.pace.firstSectionExtra);
+    return { from, to: u, t: t1 - t0, at: t1, par: parT, band: bandOf((t1 - t0) / parT) };
+  });
+  const secBox = document.getElementById("paceSections");
+  const blocks = secs.map((s) => { const b = document.createElement("i"); b.style.flex = String(s.to - s.from); b.title = ""; secBox.appendChild(b); return b; });
+  document.getElementById("goingLine").textContent = `Going: ${GOING} · par ${Math.floor(par.seconds * (1 / STANDARDS.going[GOING].speed) / 60)}m ${(par.seconds / STANDARDS.going[GOING].speed % 60).toFixed(1)}s`;
+  const word = document.getElementById("paceWord"), note = document.getElementById("paceNote"), title = document.getElementById("orderTitle");
+
+  // the result: when each runner crossed the line (between timeline frames) and its speed there
+  const finish = Array.from({ length: RUNNERS }, (_, i) => {
+    const F = timeline.frames;
+    for (let k = 1; k < F.length; k++) if (F[k][i][0] >= DIST) { const a = F[k - 1][i][0], b = F[k][i][0], f = (DIST - a) / Math.max(1e-6, b - a); return { t: (k - 1 + f) * timeline.dt, v: F[k][i][2] }; }
+    return { t: Infinity, v: 1 };
+  });
+  const winT = Math.min(...finish.map((f) => f.t));
+  let lastOrder = 0;
+  return {
+    update(now, t, phase) {
+      if (dockEl.hidden) return;
+      // dots on the map: every frame
+      now.forEach((h, i) => { const [x, z] = toWorld(Math.max(0, Math.min(h[0], DIST + 60)), h[1]); dots[i].setAttribute("cx", x.toFixed(1)); dots[i].setAttribute("cy", z.toFixed(1)); });
+      const order = now.map((h, i) => [h[0], i]).sort((a, b) => b[0] - a[0]);
+      if (dots.length) svg.appendChild(dots[order[0][1]]);                // the leader's dot on top
+      // the order strip and the pace: a few times a second
+      if (performance.now() - lastOrder < 200 && !params.has("still")) return;
+      lastOrder = performance.now();
+      let lead = order[0][0];
+      const step = chips[0] ? chips[0].offsetWidth + 4 : 54, over = lead >= DIST;
+      if (over) {                                   // past the post: the result, with the margins at the line
+        order.splice(0, order.length, ...finish.map((f, i) => [f.t, i]).sort((a, b) => a[0] - b[0]).map(([ft, i]) => [DIST - (ft - winT) * finish[i].v, i]));
+        lead = DIST;
+      }
+      order.forEach(([u, i], k) => {
+        const c = chips[i];
+        c.style.transform = `translateX(${k * step}px)`;
+        c.classList.toggle("lead", k === 0);
+        c.querySelector(".pos").textContent = k + 1 + (k === 0 ? "st" : k === 1 ? "nd" : k === 2 ? "rd" : "th");
+        c.querySelector(".gap").textContent = k === 0 ? (phase === "stalls" || phase === "prelude" ? "" : over ? "won" : "lead") : lengths(lead - u);
+      });
+      spacer.style.width = RUNNERS * step - 4 + "px";
+      title.textContent = phase === "prelude" || phase === "stalls" ? "Runners" : lead >= DIST ? "Result" : "Running order";
+      // pace: sections the leader has finished
+      const done = secs.filter((s) => s.at <= t);
+      blocks.forEach((b, k) => { const s = secs[k]; if (s.at <= t) { b.dataset.band = s.band; b.title = `${s.t.toFixed(1)}s (par ${s.par.toFixed(1)}s)`; } else delete b.dataset.band; });
+      if (!done.length) { word.textContent = phase === "race" ? "…" : "–"; note.textContent = ""; return; }
+      // the verdict leaves out the last two furlongs, where everyone quickens whatever the pace
+      const early = done.filter((s) => s.to <= DIST - 2 * FURLONG + 1);
+      const use = early.length ? early : done;
+      const T = use.reduce((a, s) => a + s.t, 0), Pr = use.reduce((a, s) => a + s.par, 0), d = T - Pr;
+      word.textContent = bandOf(T / Pr);
+      note.textContent = `${Math.abs(d).toFixed(1)}s ${d < 0 ? "quicker" : "slower"} than par` + (early.length ? "" : " so far");
+    },
+  };
+})();
+
 // ---------- Loop ----------
 const toRunEl = document.getElementById("toRun"), toRunLabel = document.querySelector(".togo span");
 const clock = new THREE.Clock();
@@ -1790,6 +1980,7 @@ function frame() {
   toRunEl.textContent = state.phase === "prelude" ? RACE.label : state.phase === "stalls" ? "All in" : state.phase === "replay" ? "Replay" : left <= 0 ? "Finished"
     : left < 1 ? Math.round(left * 220) + " yds" : left.toFixed(1).replace(/\.0$/, "") + "f";
   toRunLabel.hidden = left <= 0 || state.phase === "prelude" || state.phase === "stalls" || state.phase === "replay";
+  DOCK.update(now, state.t, state.phase);
 
   const every = QUALITY[qLevel].shadowEvery;
   sun.shadow.autoUpdate = every === 1;
