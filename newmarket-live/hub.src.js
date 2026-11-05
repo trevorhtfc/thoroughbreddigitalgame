@@ -62,14 +62,16 @@ function hover(id, on) {
   siteEl(id)?.classList.toggle("hot", on);
   stage.querySelector(`.loc[data-id="${id}"]`).classList.toggle("lit", on);
 }
+const RACES = { id: "races", title: "To the Races", cta: "Go racing", text: "Pick a meeting, declare your runners and watch them run.", pic: [724, 560, 1448] };
 function choose(id) {
   chosen = id;
+  document.getElementById("races").classList.toggle("on", id === "races");
   for (const p of PLACES) {
     siteEl(p.id)?.classList.toggle("hot", p.id === id);
     stage.querySelector(`.loc[data-id="${p.id}"]`).classList.toggle("on", p.id === id);
   }
   if (!id) { card.hidden = true; return; }
-  const p = PLACES.find((q) => q.id === id);
+  const p = id === "races" ? RACES : PLACES.find((q) => q.id === id);
   document.getElementById("cardTitle").textContent = p.title;
   document.getElementById("cardText").textContent = p.text;
   document.getElementById("cardCta").textContent = p.cta;
@@ -80,6 +82,7 @@ function choose(id) {
   pic.setAttribute("aria-label", p.title + " on the board");
   card.hidden = false;
 }
+document.getElementById("races").addEventListener("click", () => choose(chosen === "races" ? null : "races"));
 document.getElementById("cardClose").addEventListener("click", () => choose(null));
 document.getElementById("cardGo").addEventListener("click", () => { document.getElementById("cardSoon").hidden = false; });
 addEventListener("keydown", (e) => { if (e.key === "Escape") choose(null); });
@@ -95,7 +98,7 @@ function fit() {
   holder.style.width = MW * scale + "px"; holder.style.height = MH * scale + "px";
   stage.style.transform = `scale(${scale})`;
   if (portrait) view.scrollLeft = 900 * scale - W / 2;           // start on Tattersalls and the stables
-  if (renderer) { renderer.setPixelRatio(Math.min(scale * devicePixelRatio, 2.5)); renderer.setSize(MW, MH, false); }
+  if (renderer) { renderer.setPixelRatio(Math.min(scale * devicePixelRatio, 2.5)); renderer.setSize(MW, MH, false); renderer.getDrawingBufferSize(OCC.uRes.value); }
   if (chosen) choose(chosen);
 }
 addEventListener("resize", fit);
@@ -105,31 +108,72 @@ const clouds = document.getElementById("clouds"), cx2 = clouds.getContext("2d");
 const wisps = document.getElementById("wisps"), wx2 = wisps.getContext("2d");
 const Q = 4;                                                       // both are drawn at a quarter size and stretched
 const PUFFS = Array.from({ length: 5 }, (_, i) => ({ x: (i * 0.27 % 1) * 1800 - 180, y: 150 + (i * 0.61 % 1) * 850, r: 190 + (i * 0.37 % 1) * 200 }));
-// hand-drawn clouds drifting along the top (the owner's white lines): drawn once each as a little illustration
-// (a cream body, a shaded underside, an ink outline and a few curls), then slid across
+// clouds drifting along the top (the owner's white lines), engraved like the owner's reference: a cumulus built of a
+// domed row of puffs over a row of lower puffs that make its flat, scalloped underside. Cream, with a sepia outline
+// round the outside, the edges of the front puffs drawn finer inside, and light hatching on each puff's shaded side.
+// Drawn once each at twice the size, then slid across.
+const INK = "rgba(66,48,30,", CREAM = "#fbf6ea";
 function cloudSprite(seed, w, h) {
-  const rnd = (k) => { const x = Math.sin(seed * 91.7 + k * 12.9) * 43758.5; return x - Math.floor(x); };
-  const pad = 14, c = document.createElement("canvas"); c.width = w + pad * 2; c.height = h + pad * 2; const g = c.getContext("2d");
-  const n = 6 + Math.floor(rnd(1) * 3), lobes = [];
-  for (let i = 0; i < n; i++) {
-    const u = i / (n - 1), top = Math.sin(u * Math.PI);
-    lobes.push([pad + w * (0.1 + u * 0.8), pad + h * (0.78 - top * (0.38 + rnd(i + 3) * 0.18)), h * (0.24 + top * 0.2 + rnd(i + 9) * 0.08)]);
+  let s0 = seed * 7919 + 104729; const rnd = () => ((s0 = (s0 * 16807) % 2147483647) / 2147483647);
+  const k = 2, pad = 14, c = document.createElement("canvas"); c.width = (w + pad * 2) * k; c.height = (h + pad * 2) * k;
+  const g = c.getContext("2d"); g.scale(k, k); g.translate(pad, pad); g.lineCap = "round"; g.lineJoin = "round";
+  const base = h - 3, peak = 0.3 + rnd() * 0.4;
+  const dome = (u) => { const v = u < peak ? u / peak : (1 - u) / (1 - peak); return 0.25 + 0.75 * Math.pow(Math.sin(Math.PI / 2 * Math.max(0, Math.min(1, v))), 0.7); };
+  const P = [];
+  const n = 9 + Math.floor(rnd() * 4);
+  for (let i = 0; i < n; i++) {                                              // the filler that keeps the inside solid
+    const u = 0.08 + 0.84 * i / (n - 1), d = dome(u);
+    P.push({ x: u * w, y: base - h * 0.32 * d, r: h * 0.33 * d, kind: "fill" });
   }
-  lobes.push([pad + w * 0.5, pad + h * 0.75, h * 0.28], [pad + w * 0.28, pad + h * 0.8, h * 0.22], [pad + w * 0.72, pad + h * 0.8, h * 0.22]);
-  const blob = (grow) => { g.beginPath(); for (const [x, y, r] of lobes) { g.moveTo(x + r + grow, y); g.arc(x, y, r + grow, 0, 6.283); } };
-  g.fillStyle = "rgba(120,96,64,.55)"; blob(1.6); g.fill();                                   // the ink outline, as a rim behind
-  const body = g.createLinearGradient(0, pad, 0, pad + h); body.addColorStop(0, "#fffdf4"); body.addColorStop(.55, "#f6efdc"); body.addColorStop(1, "#d9cdb2");
-  g.fillStyle = body; blob(0); g.fill();
-  g.globalCompositeOperation = "source-atop";                                                // a flat, shaded underside
-  g.fillStyle = "rgba(170,150,115,.35)"; g.fillRect(0, pad + h * 0.8, c.width, h);
-  g.globalCompositeOperation = "source-over";
-  g.strokeStyle = "rgba(130,105,70,.45)"; g.lineWidth = 1.2; g.lineCap = "round";            // a few curls, as an engraver would
-  for (let i = 1; i < n - 1; i += 2) { const [x, y, r] = lobes[i]; g.beginPath(); g.arc(x, y + r * 0.15, r * 0.62, Math.PI * 1.05, Math.PI * 1.55); g.stroke(); }
+  for (let i = 0; i < n; i++) {                                              // the dome
+    const u = 0.06 + 0.88 * i / (n - 1) + (rnd() - 0.5) * 0.03, d = dome(u), r = h * (0.12 + 0.2 * d) * (0.85 + rnd() * 0.3);
+    P.push({ x: u * w, y: base - h * 0.95 * d + r, r, kind: "top" });
+  }
+  const m = 6 + Math.floor(rnd() * 3);
+  for (let i = 0; i < m; i++) {                                              // the underside
+    const u = 0.03 + 0.94 * (i + 0.5) / m + (rnd() - 0.5) * 0.03, r = h * (0.13 + 0.09 * Math.sin(Math.PI * u)) * (0.85 + rnd() * 0.3);
+    P.push({ x: u * w, y: base - r * 0.55, r, kind: "low" });
+  }
+  const covers = (q, x, y) => (x - q.x) ** 2 + (y - q.y) ** 2 < (q.r - 0.4) ** 2;
+  const inside = (x, y, p) => P.some((q) => q !== p && covers(q, x, y));
+  const front = (x, y) => P.some((q) => q.kind === "low" && covers(q, x, y));
+  const arcRun = (p, r, a0, a1, keep) => { g.beginPath(); let on = false;
+    for (let a = a0; a <= a1; a += 0.03) { const x = p.x + r * Math.cos(a), y = p.y + r * Math.sin(a);
+      if (y > base - 0.3 || !keep(x, y)) { on = false; continue; } on ? g.lineTo(x, y) : g.moveTo(x, y); on = true; }
+    g.stroke(); };
+  g.save(); g.beginPath(); g.rect(-pad, -pad, w + pad * 2, base + pad); g.clip();
+  g.fillStyle = CREAM; g.beginPath(); for (const p of P) { g.moveTo(p.x + p.r, p.y); g.arc(p.x, p.y, p.r, 0, 6.283); } g.fill();
+  // hatching on the shaded lower right of each puff, kept out from under the puffs in front
+  g.strokeStyle = INK + "0.34)"; g.lineWidth = 0.45;
+  for (const p of P) {
+    if (p.kind === "fill") continue;
+    const lines = Math.max(2, Math.round(p.r / 3.4));
+    for (let j = 0; j < lines; j++) {
+      const rr = p.r * (0.72 + 0.25 * (j + 1) / lines), a0 = -0.45 + rnd() * 0.3, a1 = 0.55 + rnd() * 0.45;
+      arcRun(p, rr, a0, a1, (x, y) => p.kind === "low" || !front(x, y));
+    }
+  }
+  // the front puffs' edges where they sit over the cloud behind: finer line, upper part only
+  g.strokeStyle = INK + "0.6)"; g.lineWidth = 0.6;
+  for (const p of P) if (p.kind === "low" || (p.kind === "top" && rnd() < 0.45)) arcRun(p, p.r, Math.PI * 1.02, Math.PI * 1.9, (x, y) => inside(x, y, p) && (p.kind === "low" || !front(x, y)));
+  // the outline: every puff's arc where nothing else covers it
+  g.strokeStyle = INK + "0.92)"; g.lineWidth = 1.05;
+  for (const p of P) arcRun(p, p.r, 0, 6.3, (x, y) => !inside(x, y, p));
+  g.restore();
+  // the flat underside: a ruled line, broken here and there, with a short stroke or two beneath
+  const span = P.filter((p) => p.kind === "low").map((p) => { const dx = Math.sqrt(Math.max(0, p.r * p.r - (base - p.y) ** 2)); return [p.x - dx, p.x + dx]; });
+  const x0 = Math.min(...span.map((v) => v[0])), x1 = Math.max(...span.map((v) => v[1]));
+  g.strokeStyle = INK + "0.85)"; g.lineWidth = 1;
+  let x = x0; while (x < x1) { const e = Math.min(x1, x + w * (0.2 + rnd() * 0.3)); g.beginPath(); g.moveTo(x, base); g.lineTo(e, base); g.stroke(); x = e + 2 + rnd() * 4; }
+  g.strokeStyle = INK + "0.38)"; g.lineWidth = 0.5;
+  for (let j = 0; j < 2; j++) { const y = base + 2.5 + j * 2.4, a = x0 + (x1 - x0) * (0.12 + rnd() * 0.4), b = a + (x1 - x0) * (0.1 + rnd() * 0.18);
+    g.beginPath(); g.moveTo(a, y); g.lineTo(b, y); g.stroke(); }
+  c.dw = w + pad * 2; c.dh = h + pad * 2;
   return c;
 }
 const BANKS = [
-  { x: 120, y: -26, sprite: cloudSprite(1, 230, 92), speed: 7 }, { x: 560, y: -14, sprite: cloudSprite(2, 150, 64), speed: 9 },
-  { x: 860, y: -30, sprite: cloudSprite(3, 270, 104), speed: 6 }, { x: 1300, y: 2, sprite: cloudSprite(4, 140, 58), speed: 8.5 },
+  { x: 90, y: -6, sprite: cloudSprite(3, 250, 92), speed: 7 }, { x: 520, y: 8, sprite: cloudSprite(7, 150, 58), speed: 9.5 },
+  { x: 820, y: -12, sprite: cloudSprite(11, 290, 104), speed: 6 }, { x: 1250, y: 16, sprite: cloudSprite(5, 170, 62), speed: 8.5 },
 ];
 function drawSky(dt) {
   cx2.clearRect(0, 0, clouds.width, clouds.height); wx2.clearRect(0, 0, wisps.width, wisps.height);
@@ -143,10 +187,10 @@ function drawSky(dt) {
     }
   }
   for (const b of BANKS) {
-    const w = b.sprite.width, h = b.sprite.height;
+    const w = b.sprite.dw, h = b.sprite.dh;
     if (!REDUCED) b.x += b.speed * dt;
     if (b.x > MW + 20) b.x = -w - 20;
-    wx2.globalAlpha = 0.9; wx2.drawImage(b.sprite, b.x, b.y); wx2.globalAlpha = 1;
+    wx2.drawImage(b.sprite, b.x * 2, b.y * 2, w * 2, h * 2);
     // its shadow on the ground, below and to the right
     const sx = (b.x + w * 0.5 + 70) / Q, sy = (b.y + h * 0.6 + 150) / Q, r = w * 0.42 / Q, sg = cx2.createRadialGradient(sx, sy, 0, sx, sy, r);
     sg.addColorStop(0, "rgba(60,70,50,.13)"); sg.addColorStop(1, "rgba(60,70,50,0)");
@@ -169,11 +213,30 @@ cam.projectionMatrixInverse.copy(cam.projectionMatrix).invert();
 scene.add(new THREE.HemisphereLight(0xfff4dc, 0x7d7458, 1.5));
 const sun = new THREE.DirectionalLight(0xfff0d0, 1.7); sun.position.set(-0.7, 1.1, -0.5); scene.add(sun);
 
+// assets/occlusion.png (tools/occlusion.py): for each board pixel showing a building or tree, the board y of its foot.
+// A fragment of a horse, person or horsebox is dropped where something standing further south is drawn over it.
+const OCC = { occ: { value: null }, uRes: { value: new THREE.Vector2(MW, MH) } };
+function occluded(mat, ground) {
+  const prev = mat.onBeforeCompile;
+  mat.onBeforeCompile = (sh, r) => {
+    if (prev) prev(sh, r);
+    Object.assign(sh.uniforms, OCC, { uGround: ground });
+    sh.fragmentShader = sh.fragmentShader.replace("#include <common>", "#include <common>\nuniform sampler2D occ; uniform vec2 uRes; uniform float uGround;")
+      .replace("#include <clipping_planes_fragment>", `#include <clipping_planes_fragment>
+        { vec2 uvb = vec2(gl_FragCoord.x / uRes.x, 1.0 - gl_FragCoord.y / uRes.y);
+          vec4 o = texture2D(occ, uvb); float foot = o.r * 65280.0 + o.g * 255.0 - 1.0;
+          if (foot > 0.0 && foot > uGround + 6.0) discard; }`);
+  };
+  const key = mat.customProgramCacheKey ? mat.customProgramCacheKey() : "";
+  mat.customProgramCacheKey = () => key + "-occ";
+}
 const shadowTex = (() => { const c = document.createElement("canvas"); c.width = c.height = 64; const g = c.getContext("2d");
   const r = g.createRadialGradient(32, 32, 0, 32, 32, 32); r.addColorStop(0, "rgba(30,26,12,.55)"); r.addColorStop(1, "rgba(30,26,12,0)");
   g.fillStyle = r; g.fillRect(0, 0, 64, 64); return new THREE.CanvasTexture(c); })();
 const shadowGeo = new THREE.PlaneGeometry(1, 1).rotateX(-Math.PI / 2);
-function addShadow(obj, len, wid) { const s = new THREE.Mesh(shadowGeo, new THREE.MeshBasicMaterial({ map: shadowTex, transparent: true, depthWrite: false })); s.scale.set(len, 1, wid); s.renderOrder = -1; scene.add(s); obj.userData.shadow = s; return s; }
+function addShadow(obj, len, wid) {
+  const mat = new THREE.MeshBasicMaterial({ map: shadowTex, transparent: true, depthWrite: false }); occluded(mat, obj.userData.ground);
+  const s = new THREE.Mesh(shadowGeo, mat); s.scale.set(len, 1, wid); s.renderOrder = -1; scene.add(s); obj.userData.shadow = s; return s; }
 
 // ---- routes: the owner's red (strings), blue (horseboxes) and pink (yards and paddocks) lines, kept to the roads
 const P = (pts, closed = false) => { const c = new THREE.CatmullRomCurve3(pts.map(([x, z]) => new THREE.Vector3(x, 0, z)), closed, "centripetal"); c.L = c.getLength(); return c; };
@@ -202,10 +265,7 @@ const STRINGS = [
   { route: join([[722, 721], [659, 722], [636, 726], [616, 734], [598, 736], [583, 733], [531, 743], [496, 758], [468, 787], [448, 800]], ROAD.shied.slice(1),
       [[304, 597], [241, 574], [191, 532], [130, 490], [101, 457], [54, 413], [25, 398], [-20, 392]]), n: 7, silk: "judmonte", start: 62 },
 ];
-const VANS = [
-  join(ROAD.fordham, ROAD.oldStn), join(rev(ROAD.nmkt), rev(ROAD.kingston), ROAD.bury), join(ROAD.fordham, ROAD.kingston, ROAD.nmkt),
-  join(rev(ROAD.nmkt), rev(ROAD.kingston), ROAD.oldStn), join(ROAD.fordham, ROAD.bury),
-];
+const VANS = [join(ROAD.fordham, ROAD.oldStn), join(rev(ROAD.nmkt), rev(ROAD.kingston), ROAD.bury), join(ROAD.fordham, ROAD.kingston, ROAD.nmkt)];
 const GALLOPS = [[-20, 190], [60, 178], [130, 165], [200, 150], [270, 135], [340, 118], [410, 104], [480, 92], [536, 84]];
 const WARREN = [[262, 448], [205, 428], [152, 407], [110, 390], [60, 377], [10, 366], [-20, 360]];
 const LONER = [[135, 786], [164, 783], [197, 760], [225, 743], [258, 726], [274, 734], [279, 769], [295, 803], [317, 850], [315, 877], [306, 889], [285, 903],
@@ -216,8 +276,8 @@ const PADDOCK = [
   { pts: [[1027, 423], [1140, 392], [1257, 361]], coat: 3 },
 ];
 const YARD_TRIPS = [                                               // led out of one stable and into another
-  [[957, 852], [922, 839], [895, 833], [846, 832], [820, 837], [792, 847], [747, 874]],
-  [[796, 900], [807, 924], [829, 943], [852, 951], [888, 951], [926, 943], [973, 926], [1023, 902], [1073, 873]],
+  [[962, 870], [925, 866], [890, 864], [850, 866], [815, 870], [785, 878], [756, 892]],
+  [[790, 905], [805, 925], [830, 938], [860, 943], [900, 940], [940, 932], [985, 922], [1030, 905], [1068, 886]],
 ];
 const PEOPLE_TRIPS = [
   [[830, 848], [870, 842], [905, 846]], [[1050, 892], [1020, 912], [995, 928]], [[1256, 833], [1280, 836], [1302, 840]],
@@ -235,10 +295,10 @@ function makeHorse({ silk: silkId, rider = true, coat: coatIx } = {}) {
   const k = nHorse++, obj = SkeletonUtils.clone(horseProto.scene); obj.scale.setScalar(horseScale);
   const coat = COATS[(coatIx ?? k) % COATS.length], silk = silkList.find((s) => s.id === silkId) || silkList[(k * 7 + 3) % silkList.length];
   const u = { mask: { value: maskTex }, coatCol: { value: new THREE.Color(coat[0]) }, pointsCol: { value: new THREE.Color(coat[1]) }, silkCol: { value: new THREE.Color(silk.colour) }, uRider: { value: rider ? 1 : 0 } };
-  const mats = [];
+  const mats = [], ground = { value: 0 }; obj.userData.ground = ground;
   obj.traverse((o) => {
     if (!o.isMesh) return; o.frustumCulled = false; o.material = o.material.clone(); o.material.transparent = true; mats.push(o.material);
-    if (o.material.name === "silks") { o.material.map = silkTexture(silk.id); if (!rider) o.visible = false; return; }
+    if (o.material.name === "silks") { o.material.map = silkTexture(silk.id); occluded(o.material, ground); if (!rider) o.visible = false; return; }
     o.material.onBeforeCompile = (sh) => {
       Object.assign(sh.uniforms, u);
       sh.vertexShader = sh.vertexShader.replace("#include <common>", "#include <common>\nvarying vec3 vBind;").replace("#include <begin_vertex>", "#include <begin_vertex>\nvBind = position;");
@@ -251,12 +311,13 @@ function makeHorse({ silk: silkId, rider = true, coat: coatIx } = {}) {
             diffuseColor.rgb = mix(diffuseColor.rgb, silkCol * clamp(mix(1.0, l / 0.72, 0.6), 0.4, 1.15), m.b); }`);
     };
     o.material.customProgramCacheKey = () => "horse-tint";
+    occluded(o.material, ground);
   });
   const mixer = new THREE.AnimationMixer(obj), act = {};
   for (const n of ["walk", "gallop", "ride_quiet", "ride_push"]) { act[n] = mixer.clipAction(clipsByName[n]); act[n].play(); act[n].setEffectiveWeight(0); }
   mixer.setTime(Math.random() * 2);
   scene.add(obj); addShadow(obj, 17, 7);
-  return { obj, mixer, act, mats, gait: null };
+  return { obj, mixer, act, mats, gait: null, horse: true };
 }
 function setGait(h, gait, speed) {
   if (h.gait !== gait) {
@@ -271,16 +332,17 @@ const CLOTHES = [0x2f3a4a, 0x5b3a2e, 0x3d4a3a, 0x6a5a48, 0x2b2b2b, 0x7a6a50, 0x4
 let nPerson = 0;
 function makePerson() {
   const k = nPerson++, f = peopleProto[k % 2].clone();          // stable lads: the two gents, no top hats
-  const mats = [];
+  const mats = [], ground = { value: 0 };
   f.traverse((o) => { if (!o.isMesh) return; const n = o.material.name;
-    o.material = new THREE.MeshLambertMaterial({ color: n === "crowd_skin" ? 0xd9b090 : n === "crowd_hat" ? 0x3a3128 : CLOTHES[(k * 3) % CLOTHES.length], transparent: true }); mats.push(o.material); });
+    o.material = new THREE.MeshLambertMaterial({ color: n === "crowd_skin" ? 0xd9b090 : n === "crowd_hat" ? 0x3a3128 : CLOTHES[(k * 3) % CLOTHES.length], transparent: true });
+    occluded(o.material, ground); mats.push(o.material); });
   f.position.set(0, 0, 0); f.scale.setScalar(personScale);
-  const g = new THREE.Group(); g.add(f); scene.add(g); addShadow(g, 7, 4);
+  const g = new THREE.Group(); g.userData.ground = ground; g.add(f); scene.add(g); addShadow(g, 7, 4);
   return { obj: g, mats, person: true };
 }
 const VAN_COLS = [0x3a4a3a, 0x36404e, 0x5a2a2c, 0x2e3a30, 0x463c30, 0x2a3442];
 function makeVan(k) {
-  const g = new THREE.Group(), col = VAN_COLS[k % VAN_COLS.length];
+  const g = new THREE.Group(), col = VAN_COLS[k % VAN_COLS.length], ground = { value: 0 }; g.userData.ground = ground;
   const body = new THREE.MeshLambertMaterial({ color: col, transparent: true }), roof = new THREE.MeshLambertMaterial({ color: new THREE.Color(col).lerp(new THREE.Color(0x8a8270), 0.45), transparent: true });
   const dark = new THREE.MeshLambertMaterial({ color: 0x1b1a18, transparent: true }), glass = new THREE.MeshLambertMaterial({ color: 0x9fb2b8, transparent: true });
   const box = new THREE.Mesh(new THREE.BoxGeometry(16, 7.4, 8.6), body); box.position.set(-3.5, 5.6, 0);
@@ -288,11 +350,12 @@ function makeVan(k) {
   const cab = new THREE.Mesh(new THREE.BoxGeometry(6, 6.6, 8.2), body); cab.position.set(8.2, 5, 0);
   const win = new THREE.Mesh(new THREE.BoxGeometry(0.6, 2.6, 7.2), glass); win.position.set(11.25, 6.4, 0);
   g.add(box, lid, cab, win);
+  for (const mt of [body, roof, dark, glass]) occluded(mt, ground);
   for (const [x, z] of [[-8, 4.4], [-8, -4.4], [8, 4.4], [8, -4.4], [-1, 4.4], [-1, -4.4]]) {
     const w = new THREE.Mesh(new THREE.CylinderGeometry(2.1, 2.1, 1.4, 12).rotateX(Math.PI / 2), dark); w.position.set(x, 2.1, z); g.add(w);
   }
   g.scale.setScalar(0.95); scene.add(g); addShadow(g, 28, 12);
-  return { obj: g, mats: [body, roof, dark, glass], keepLeft: 5 };
+  return { obj: g, mats: [body, roof, dark, glass], keepLeft: 6, van: true };
 }
 const tmpN = new THREE.Vector3();
 function place(m, p, dir, alpha, t = 0) {
@@ -302,6 +365,8 @@ function place(m, p, dir, alpha, t = 0) {
     if (m.keepLeft) { tmpN.set(dir.z, 0, -dir.x).normalize().multiplyScalar(m.keepLeft); m.obj.position.add(tmpN); }   // drive on the left
   }
   if (m.person && !REDUCED) m.obj.position.y = Math.abs(Math.sin(t * 7)) * 0.6;
+  if (m.obj.userData.ground) m.obj.userData.ground.value = m.obj.position.z;
+  if (dir) { m.dir = m.dir || new THREE.Vector3(); m.dir.copy(dir).setY(0).normalize(); }
   const s = m.obj.userData.shadow; s.position.set(m.obj.position.x + 2, 0.05, m.obj.position.z + 1.5); s.rotation.y = m.obj.rotation.y;
   m.obj.visible = s.visible = alpha > 0.01;
   for (const mt of m.mats) mt.opacity = alpha;
@@ -315,9 +380,11 @@ function place(m, p, dir, alpha, t = 0) {
 // a journey: legs along routes (or pauses); it repeats after a rest. Fades in and out where it starts and ends in the open.
 function journey(m, legs, { start = 0, rest = 8, fadeIn = true, fadeOut = true } = {}) {
   const ls = legs.map((l) => ({ ...l, dur: l.pause ?? l.curve.L / l.speed })), total = ls.reduce((a, l) => a + l.dur, 0);
-  let last = null, lastDir = null;
-  movers.push({ m, step(t) {
-    let tau = (t - start) % (total + rest); if (tau < 0) tau += total + rest;
+  let last = null, lastDir = null, clock = -start;
+  movers.push({ m, step(t, dt) {
+    if (!(m.van && blocked(m))) clock += dt;
+    if (clock < 0) { place(m, m.obj.position, null, 0, t); return; }
+    const tau = clock % (total + rest);
     if (tau > total) { place(m, m.obj.position, null, 0, t); return; }
     let acc = 0;
     for (const l of ls) {
@@ -331,6 +398,18 @@ function journey(m, legs, { start = 0, rest = 8, fadeIn = true, fadeOut = true }
       acc += l.dur;
     }
   } });
+}
+// a horsebox waits while anyone on foot or hoof is just ahead of it in its lane
+const tmpV = new THREE.Vector3();
+function blocked(van) {
+  if (!van.dir || !van.obj.visible) return false;
+  for (const mv of movers) {
+    const o = mv.m; if (o === van || o.van || !o.obj.visible) continue;
+    tmpV.subVectors(o.obj.position, van.obj.position).setY(0);
+    const along = tmpV.dot(van.dir), side = Math.abs(tmpV.x * van.dir.z - tmpV.z * van.dir.x);
+    if (along > 2 && along < 40 && side < 10) return true;
+  }
+  return false;
 }
 function circuit(m, curve, speed, phase, gait = "walk") {
   movers.push({ m, step(t) {
@@ -362,19 +441,22 @@ async function startLife() {
   horseProto = g; peopleProto = ppl.scene.children.slice(0, 2); silkList = cat.silks;
   for (const a of g.animations) clipsByName[a.name] = a;
   maskTex = texLoader.load("assets/tint-mask.png"); maskTex.flipY = false; maskTex.colorSpace = THREE.NoColorSpace;
+  const occ = await new Promise((res, rej) => texLoader.load("assets/occlusion.png", res, undefined, rej));
+  occ.flipY = false; occ.colorSpace = THREE.NoColorSpace; occ.minFilter = occ.magFilter = THREE.NearestFilter; occ.generateMipmaps = false; occ.needsUpdate = true;
+  OCC.occ.value = occ;
   const size = new THREE.Box3().setFromObject(g.scene).getSize(new THREE.Vector3());
   horseScale = 20 / Math.max(size.x, size.z);                      // a horse on the board is about 20 pixels nose to tail
   personScale = 12 / 1.8;                                          // and a person about 12 pixels tall
 
   // strings walking out to the heath, off the left edge, then round again
-  for (const s of STRINGS) { const c = P(s.route); for (let i = 0; i < s.n; i++) journey(makeHorse({ silk: s.silk }), [{ curve: c, speed: 15, gait: "walk" }], { start: s.start + i * 1.7, rest: 26 }); }
+  for (const s of STRINGS) { const c = P(s.route); for (let i = 0; i < s.n; i++) { const h = makeHorse({ silk: s.silk }); h.keepLeft = 4; journey(h, [{ curve: c, speed: 15, gait: "walk" }], { start: s.start + i * 1.7, rest: 26 }); } }
   // the Gallops and Warren Hill: lots working in a line
   const gal = P(GALLOPS), war = P(WARREN), lone = P(LONER);
   for (let i = 0; i < 5; i++) journey(makeHorse(), [{ curve: P(GALLOPS.map(([x, z]) => [x, z + (i % 2) * 8])), speed: 70 - i, gait: "gallop" }], { start: 4 + i * 1.1, rest: 24 });
   for (let i = 0; i < 4; i++) journey(makeHorse(), [{ curve: P(WARREN.map(([x, z]) => [x, z + (i % 2) * 7])), speed: 54, gait: "gallop" }], { start: 14 + i * 1.0, rest: 22 });
   journey(makeHorse(), [{ curve: lone, speed: 46, gait: "gallop" }], { start: 9, rest: 16 });
   // horseboxes in from the top and the bottom of the board, out along Bury Road and Old Station Road
-  VANS.forEach((r, i) => journey(makeVan(i), [{ curve: P(r), speed: 26 + (i % 3) * 4 }], { start: i * 11 - 30, rest: 6 + i * 3 }));
+  VANS.forEach((r, i) => journey(makeVan(i), [{ curve: P(r), speed: 26 + (i % 3) * 4 }], { start: i * 16 + 4, rest: 14 + i * 5 }));
   // the paddocks: loose horses wandering along, a rest, and back
   for (const pd of PADDOCK) { const c = P(pd.pts), b = P(rev(pd.pts));
     journey(makeHorse({ rider: false, coat: pd.coat }), [{ curve: c, speed: 6, gait: "walk" }, { pause: 7 }, { curve: b, speed: 6, gait: "walk" }, { pause: 9 }], { start: Math.random() * 20, rest: 0, fadeIn: false, fadeOut: false }); }
@@ -388,6 +470,8 @@ async function startLife() {
   PEOPLE_TRIPS.forEach((tr, i) => journey(makePerson(), [{ curve: P(tr), speed: 7, gait: "walk" }, { pause: 3 }, { curve: P(rev(tr)), speed: 7, gait: "walk" }], { start: i * 2.3, rest: 4 + i, fadeIn: false, fadeOut: false }));
 
   window.__ready = true;
+  // a check hook: stand a horse at a board point (it shows whether buildings in front of it hide it)
+  window.__probe = (x, y) => { const h = makeHorse(); setGait(h, "walk", 5); place(h, new THREE.Vector3(x, 0, y), new THREE.Vector3(1, 0, 0), 1, 0); h.mixer.update(0.1); };
 }
 
 if (location.hash === "#routes") {                                  // a check view: every route drawn over the board
@@ -406,7 +490,7 @@ function frame() {
   const dt = Math.min(clock.getDelta(), 0.1), t = clock.elapsedTime;
   skyT += dt; if (skyT > 1 / 15) { drawSky(skyT); skyT = 0; }
   if (renderer) {
-    for (const mv of movers) { mv.step(t); if (mv.m.mixer && mv.m.obj.visible) mv.m.mixer.update(dt); }
+    for (const mv of movers) { mv.step(t, dt); if (mv.m.mixer && mv.m.obj.visible) mv.m.mixer.update(dt); }
     renderer.render(scene, cam);
   }
   requestAnimationFrame(frame);

@@ -32,7 +32,16 @@ def simplify(path, eps=2.0):
 def width(mask):
     dt = cv2.distanceTransform(mask.astype(np.uint8), cv2.DIST_L2, 3); sk = skeletonize(mask)
     return float(np.median(dt[sk]) * 2)
+def register(src_file, name):
+    """Lines a markup up with the clean map (SIFT features + a homography) and saves it as name-registered.png."""
+    clean = cv2.imread('clean-map.jpg'); st = cv2.imread(src_file); sift = cv2.SIFT_create(6000)
+    k1, d1 = sift.detectAndCompute(cv2.cvtColor(st, cv2.COLOR_BGR2GRAY), None); k2, d2 = sift.detectAndCompute(cv2.cvtColor(clean, cv2.COLOR_BGR2GRAY), None)
+    good = [a for a, b in cv2.BFMatcher().knnMatch(d1, d2, k=2) if a.distance < 0.7 * b.distance]
+    H, _ = cv2.findHomography(np.float32([k1[a.queryIdx].pt for a in good]), np.float32([k2[a.trainIdx].pt for a in good]), cv2.RANSAC, 3.0)
+    cv2.imwrite(f'{name}-registered.png', cv2.warpPerspective(st, H, (clean.shape[1], clean.shape[0])))
+
 if __name__ == "__main__":
+    register('routes-markup.jpg', 'routes'); register('sites-markup.jpg', 'sites')
     out = {"size": [clean.shape[1], clean.shape[0]], "routes": [], "sites": []}
     ann, H, S, V = layers('routes')
     red = ann & (S > 90) & ((H <= 15) | (H >= 170)); blue = ann & (S > 90) & (H >= 100) & (H <= 115)
@@ -71,3 +80,37 @@ if __name__ == "__main__":
     json.dump(out, open('markup.json', 'w'))
     for r in out["routes"]: print(r["colour"], r["width"], r["bbox"], len(r["pts"]), r["pts"][0], r["pts"][-1])
     for s in out["sites"]: print(s["id"], s["bbox"], s["area"], len(s["poly"]))
+
+def warren_outline():
+    """The owner's second sites markup adds Warren Hill in a pale line; registered and closed the same way."""
+    clean = cv2.imread('clean-map.jpg'); st = cv2.imread('sites-markup-2.jpg')
+    sift = cv2.SIFT_create(6000)
+    k1, d1 = sift.detectAndCompute(cv2.cvtColor(st, cv2.COLOR_BGR2GRAY), None); k2, d2 = sift.detectAndCompute(cv2.cvtColor(clean, cv2.COLOR_BGR2GRAY), None)
+    good = [a for a, b in cv2.BFMatcher().knnMatch(d1, d2, k=2) if a.distance < 0.7 * b.distance]
+    H, _ = cv2.findHomography(np.float32([k1[a.queryIdx].pt for a in good]), np.float32([k2[a.trainIdx].pt for a in good]), cv2.RANSAC, 3.0)
+    w = cv2.warpPerspective(st, H, (clean.shape[1], clean.shape[0]))
+    d = cv2.absdiff(w, clean).astype(int).sum(axis=2); hsv = cv2.cvtColor(w, cv2.COLOR_BGR2HSV)
+    X = np.arange(w.shape[1])[None, :].repeat(w.shape[0], 0); Y = np.arange(w.shape[0])[:, None].repeat(w.shape[1], 1)
+    m = ((d > 60) & (X < 420) & (Y > 150) & (Y < 640) & (hsv[..., 2] > 190) & (hsv[..., 1] < 80)).astype(np.uint8) * 255
+    # the line is broken where it crosses the pale roads: go round the shape from its middle, taking the drawn line's
+    # distance in each direction and bridging the gaps
+    ys, xs = np.nonzero(m); cx, cy = xs.mean(), ys.mean()
+    ang = np.arctan2(ys - cy, xs - cx); rad = np.hypot(xs - cx, ys - cy)
+    N = 180; bins = ((ang + np.pi) / (2 * np.pi) * N).astype(int) % N
+    r = np.full(N, np.nan)
+    for k in range(N):
+        sel = rad[bins == k]
+        if sel.size: r[k] = np.median(sel)
+    good = ~np.isnan(r); idx = np.arange(N)
+    r = np.interp(idx, idx[good], r[good], period=N)
+    r = np.convolve(np.r_[r[-2:], r, r[:2]], np.ones(5) / 5, mode="valid")
+    th = (idx + 0.5) / N * 2 * np.pi - np.pi
+    pts = np.stack([cx + r * np.cos(th), cy + r * np.sin(th)], 1).astype(np.int32).reshape(-1, 1, 2)
+    big = pts; poly = cv2.approxPolyDP(pts, 1.5, True).reshape(-1, 2).tolist()
+    return {"id": "warren", "bbox": list(cv2.boundingRect(big)), "area": float(cv2.contourArea(big)), "poly": poly}
+
+if __name__ == "__main__":
+    out = json.load(open('markup.json'))
+    out["sites"] = [s for s in out["sites"] if s["id"] != "warren"] + [warren_outline()]
+    json.dump(out, open('markup.json', 'w'))
+    print("warren", out["sites"][-1]["bbox"], out["sites"][-1]["area"])
