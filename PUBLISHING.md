@@ -8,11 +8,11 @@ The game is plain files, so Cloudflare serves it for free. Every push to `main` 
 2. Go to **Workers & Pages** → **Create** → **Import a repository**, connect GitHub and pick `thoroughbreddigitalgame`
    (you can give Cloudflare access to this one private repo only).
 3. Settings:
-   - **Project name:** `thoroughbred-ascot`
+   - **Project name:** `thoroughbreddigitalgame`
    - **Build command:** `python3 game/tools/stage.py dist`
    - **Deploy command:** `npx wrangler deploy` (the default)
    - **Branch:** `main`
-4. Save and deploy. The game appears at `https://thoroughbred-ascot.<your-subdomain>.workers.dev`.
+4. Save and deploy. The game appears at `https://thoroughbreddigitalgame.<your-subdomain>.workers.dev`.
 
 ## How it works
 
