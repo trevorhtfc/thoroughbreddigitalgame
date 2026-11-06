@@ -63,6 +63,13 @@ body { background: #5f8a44; color: var(--green-ink); font-family: var(--body); o
 }
 .in-game #races { display: none; }
 .chip.mine { box-shadow: inset 0 0 0 2px #b79042; }
+/* in the game: a price under each runner, and its race-day colour card as a band along the foot of its chip */
+.priced .order-strip { height: 84px; }
+.priced .chip { height: 78px; border-bottom-width: 5px; }
+.chip .odds { font: 600 0.64rem var(--body); color: var(--ink); line-height: 1; margin-top: 1px; }
+.chip.k-black { border-bottom-color: #3b3b3b; } .chip.k-red { border-bottom-color: #cc4a32; } .chip.k-yellow { border-bottom-color: #e6ab4a; } .chip.k-blue { border-bottom-color: #6491a8; }
+.rc-price { margin-left: 6px; padding: 3px 8px; border-radius: 3px; font: 700 .86rem var(--body); color: #fff; background: #6b6a60; }
+.rc-price.k-black { background: #3b3b3b; } .rc-price.k-red { background: #cc4a32; } .rc-price.k-yellow { background: #e6ab4a; color: #2a210b; } .rc-price.k-blue { background: #6491a8; }
 .chip.lead { border-color: var(--cream-edge); box-shadow: inset 0 0 0 1px var(--cream-edge); background: #fff8e2; }
 .chip .pos { font: 600 0.62rem var(--body); color: var(--ink-soft); line-height: 1; }
 .chip img { width: 24px; height: 30px; object-fit: contain; display: block; }
@@ -90,6 +97,7 @@ body { background: #5f8a44; color: var(--green-ink); font-family: var(--body); o
   .chip { width: 42px; height: 56px; }
   .chip img { width: 20px; height: 24px; }
   .chip .no { top: 12px; }
+  .priced .order-strip { height: 70px; } .priced .chip { height: 66px; }
   .pace-verdict strong { font-size: 1.05rem; }
   .pace-verdict span, .going { font-size: 0.64rem; }
   .sections { height: 10px; }
@@ -174,7 +182,7 @@ button:focus-visible { outline: 2px solid var(--cream-edge); outline-offset: 2px
 .in-game button[aria-pressed="true"] { background: var(--green); border-color: var(--green); }
 .rc, .rr { position: fixed; z-index: 6; color: var(--green-ink); background: var(--cream); border-radius: 3px; font-family: var(--read, var(--body));
   box-shadow: inset 0 0 0 1px rgba(183,144,66,.6), 0 0 0 3px var(--cream), 0 0 0 4px rgba(183,144,66,.75), 0 14px 36px rgba(15,25,18,.45); }
-.rc { left: 50%; bottom: calc(env(safe-area-inset-bottom, 0px) + 26px + var(--dock-h)); transform: translateX(-50%); width: min(560px, calc(100% - 32px)); padding: 14px 22px 16px; text-align: center; transition: opacity .6s, transform .6s; }
+.rc { left: 50%; bottom: calc(env(safe-area-inset-bottom, 0px) + 26px + var(--dock-h) + var(--ctl-h, 0px)); transform: translateX(-50%); width: min(560px, calc(100% - 32px)); padding: 14px 22px 16px; text-align: center; transition: opacity .6s, transform .6s; }
 .rc.gone { opacity: 0; transform: translate(-50%, 12px); pointer-events: none; }
 .rc-k, .rr-k { font-family: var(--body); font-weight: 600; font-size: .7rem; letter-spacing: .22em; text-transform: uppercase; color: #8d6b2a; }
 .rc-t { font-family: var(--display); font-weight: 700; font-size: 2.1rem; line-height: 1.02; color: #2b3f33; margin: 4px 0 6px; }
@@ -420,8 +428,10 @@ const QUALITY = {
   high:   { label: "High",   scale: Math.min(DPR, 2),    samples: 4, shadow: 4096, soft: true,  kick: 1,    edges: true, shadowEvery: 1, crowd: 0.7 },
   medium: { label: "Medium", scale: Math.min(DPR, 1.25), samples: 2, shadow: 2048, soft: false, kick: 0.6,  edges: true, shadowEvery: 1, crowd: 0.5 },
   low:    { label: "Low",    scale: Math.min(DPR, 1),    samples: 0, shadow: 1024, soft: false, kick: 0.35, edges: false, shadowEvery: 2, crowd: 0.25 },
+  // only ever reached by Auto, for a machine that still can't keep up on Low (a laptop's built-in graphics on a big screen)
+  lightest: { label: "Lightest", scale: Math.min(DPR, 0.75), samples: 0, shadow: 1024, soft: false, kick: 0.15, edges: false, shadowEvery: 3, crowd: 0.15 },
 };
-const ORDER = ["high", "medium", "low"];
+const ORDER = ["high", "medium", "low", "lightest"];
 let qMode = params.get("quality") || (() => { try { return localStorage.getItem("tb-quality"); } catch { return null; } })() || "auto";
 if (qMode !== "auto" && !QUALITY[qMode]) qMode = "auto";
 let qLevel = qMode === "auto" ? (DPR > 1.5 ? "medium" : "high") : qMode;
@@ -1602,12 +1612,12 @@ function applyQuality(level) {
 
 // Frame-time watch: shows the frame rate, and in Auto drops a level when it stays under ~45 fps.
 const perf = {
-  n: 0, sum: 0, wait: 1.5,
-  reset() { this.n = 0; this.sum = 0; this.wait = 1.5; },
+  n: 0, sum: 0, wait: 1,
+  reset() { this.n = 0; this.sum = 0; this.wait = 1; },
   tick(dt) {
     if (this.wait > 0) { this.wait -= dt; return; }   // let a change settle before judging it
     this.n++; this.sum += dt;
-    if (this.sum < 2) return;                        // judge every two seconds
+    if (this.sum < 1.25) return;                     // judge every second and a quarter, so a slow machine settles quickly
     const fps = Math.round(this.n / this.sum);
     this.n = 0; this.sum = 0;
     if (qMode === "auto" && fps < 45) {
@@ -1625,8 +1635,11 @@ document.getElementById("pause").onclick = (e) => {
 };
 // Hide the controls (for a phone held sideways); a small button brings them back. Remembered per browser.
 const barEl = document.querySelector(".bar"), showEl = document.getElementById("showBar");
+// the racecard sits above the controls when they're showing, never behind or over them
+const barH = () => document.documentElement.style.setProperty("--ctl-h", barEl.hidden ? "0px" : barEl.offsetHeight + 12 + "px");
+new ResizeObserver(barH).observe(barEl);
 function setBar(on) {
-  barEl.hidden = !on; showEl.hidden = on;
+  barEl.hidden = !on; showEl.hidden = on; barH();
   try { localStorage.setItem("tb-bar", on ? "1" : "0"); } catch {}
 }
 document.getElementById("hideBar").onclick = () => setBar(false);
@@ -1857,8 +1870,12 @@ const DOCK = (() => {
   spacer.style.height = "1px"; strip.appendChild(spacer);
   for (let i = 0; i < RUNNERS; i++) {
     const c = document.createElement("div"); c.className = "chip";
-    c.innerHTML = `<span class="pos"></span><img alt="" src="assets/silks-icons/${silkFor(i).id}.png"><span class="no">${i + 1}</span><span class="gap"></span>`;
-    c.title = GP ? `${i + 1}: ${GP.runners[i].name}` : `${i + 1}: ${silkFor(i).name}`;
+    // in the game: the owner's graphic silks, the price and the race-day colour card (black, red, yellow, blue)
+    const R = GP && GP.runners[i];
+    c.innerHTML = `<span class="pos"></span><img alt="" src="${R && R.silk2d ? R.silk2d : `assets/silks-icons/${silkFor(i).id}.png`}"><span class="no">${i + 1}</span><span class="gap"></span>${R && R.odds ? `<span class="odds">${R.odds}</span>` : ""}`;
+    if (R && R.card) c.classList.add("k-" + R.card);
+    if (R && R.odds) dockEl.classList.add("priced");
+    c.title = GP ? `${i + 1}: ${GP.runners[i].name}${R && R.odds ? ` · ${R.odds}` : ""}${R && R.card ? ` · ${R.card} card` : ""}` : `${i + 1}: ${silkFor(i).name}`;
     if (GP && GP.runners[i].mine) c.classList.add("mine");
     strip.appendChild(c); chips.push(c);
   }
@@ -1959,7 +1976,7 @@ const GAMEUI = (() => {
     return (w ? w + fr : fr) + (q > 1 ? " lengths" : " length");
   };
   const STYLE = { front: "Front-runner", prominent: "Prominent", midfield: "Midfield", holdup: "Hold-up" };
-  const C = GP.card || {}, me = CARD.findIndex((h) => h.mine), icon = (i) => `assets/silks-icons/${silkFor(i).id}.png`;
+  const C = GP.card || {}, me = CARD.findIndex((h) => h.mine), icon = (i) => (GP.runners[i] && GP.runners[i].silk2d) || `assets/silks-icons/${silkFor(i).id}.png`;
   rc.hidden = false; rr.hidden = false;
   document.querySelector(".plate h1").textContent = C.meeting || COURSE.name;
   document.getElementById("courseName").textContent = GP.title || RACE.label;
@@ -1967,7 +1984,7 @@ const GAMEUI = (() => {
   $("rcT").textContent = GP.title || RACE.label;
   $("rcF").innerHTML = [C.dist || RACE.label, esc(C.conditions), `Going <b>${GOING}</b>`, `<b>${CARD.length}</b> runners`, C.prizes ? `1st <b>${pounds(C.prizes[0])}</b>` : ""].filter(Boolean).join(" · ");
   $("rcMeBox").innerHTML = me >= 0
-    ? `<div class="rc-me"><img alt="" src="${icon(me)}"><span><b>${esc(CARD[me].name)}</b><small>Your runner · stall ${me + 1}${CARD[me].style ? " · " + STYLE[CARD[me].style] : ""}</small></span></div>`
+    ? `<div class="rc-me"><img alt="" src="${icon(me)}"><span><b>${esc(CARD[me].name)}</b><small>Your runner · stall ${me + 1}${CARD[me].style ? " · " + STYLE[CARD[me].style] : ""}</small></span>${GP.runners[me].odds ? `<span class="rc-price ${GP.runners[me].card ? "k-" + GP.runners[me].card : ""}" title="Today's price, on a ${GP.runners[me].card || ""} card">${GP.runners[me].odds}</span>` : ""}</div>`
     : `<div class="rc-me"><span><small>You have no runner in this race</small></span></div>`;
   const placed = RESULT.placed, pos = me >= 0 ? placed.findIndex((q) => q.runner === me) + 1 : 0, nm = me >= 0 ? esc(CARD[me].name) : "";
   const row = (q, k) => `<li class="${q.runner === me ? "mine" : ""}"><span class="p">${ord(k + 1)}</span><img src="${icon(q.runner)}" alt=""><b>${esc(CARD[q.runner].name)}</b><i>${k === 0 ? (placed[1] ? "won by " + lengthsText(placed[1].margin) : "") : lengthsText(q.margin)}</i></li>`;

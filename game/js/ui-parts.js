@@ -637,12 +637,13 @@ function watch(i) {
     const m = document.createElement("div"); m.className = "msg";
     m.innerHTML = `<p style="margin:0 0 12px">The race view didn't load here. You can sim the race instead.</p><button class="tb-btn" id="simInstead">Sim the race</button>`;
     box.appendChild(m); } }, 15000);
-  const er = engineRace(i);
+  const er = engineRace(i), mkt = marketFor(i);
   watching.payload = { type: "race", course: MEETING.course, race: viewKey(race), going: er.going, seed: er.seed, title: race.name,
     kicker: `${DAYS[race.day]} · Race ${i + 1} of ${RACES.length} · ${race.grade}`,
     // for the view's own racecard and result panels (game mode): the race's conditions and prizes, your colours
     card: { grade: race.grade, dist: race.dist, day: DAYS[race.day], meeting: MEETING.name, prizes: race.prizes, conditions: race.ageLabel, next: i + 1 < RACES.length && !S.results[RACES[i + 1].id] ? RACES[i + 1].name : "", silkImg: mySilks().img },
-    runners: field.map(h => ({ ...engineRunner(h), silk: SILK3D[h.sk], coat: { body: h.coat[0], points: h.coat[1] }, mine: !!h.mine })) };
+    // and, for the dock and the racecard: the owner's own graphic silks, the price and the race-day colour card
+    runners: field.map((h, k) => ({ ...engineRunner(h), silk: SILK3D[h.sk], silk2d: SILKS[h.sk].img, odds: mkt[k].odds, card: mkt[k].card, coat: { body: h.coat[0], points: h.coat[1] }, mine: !!h.mine })) };
 }
 function closeWatch() { if (!watching) return; clearTimeout(watching.timer); watching.box.remove(); watching = null; document.body.style.overflow = ""; render(); }
 addEventListener("message", e => {

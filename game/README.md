@@ -21,8 +21,8 @@ card), and the bar's five steps (The Stud, The Sales, Training, Royal Ascot, The
 | draw | Winter | The Jockey Club | The ten races are dealt onto the Jockey Club's table |
 | breed | Spring | National Stud | The mares sale and the matings (`S.step` 1) |
 | sales | Autumn | Tattersalls | The live auction (`S.step` 2; once you leave the stud there's no going back) |
-| gallops | The next spring | Warren Hill | Develop horses to 3 or 4 (`S.step` 3) |
-| entries | May | The Jockey Club | Entries, then To the Races |
+| gallops | (later version) | Warren Hill | Training; not used for now |
+| entries | May | The Jockey Club | Entries (`S.step` 3), then To the Races |
 | week | June | Royal Ascot | Race week: watch each race in 3D or sim it (`S.step` 4) |
 | standings | June | Royal Ascot | The final standings (`S.step` 5) |
 | home | Summer | Palace House | Your title, every week you've played, the roll of honour; a new season |
@@ -40,7 +40,6 @@ colours walking out to Warren Hill, the horseboxes away up Fordham Road. Then th
 - `newmarket-arrive.mp4`: the owner's map clip played backwards, from the treetops down onto the board. Its last frame is
   the board itself, so it is laid exactly over the live board as it lands and fades into it (checked: within half a
   pixel). Played on the first arrival of a visit and on the way home from Ascot.
-- `newmarket-leave.mp4`: the same clip forwards, as the horseboxes leave.
 - `ascot-arrive.mp4`: the owner's race clip with "Royal Ascot" over it (with its own sound when Sound is on).
 - `cover.mp4`: the cover's loop (the Ascot game's cover video).
 - All four share one grade (`tools/grade_map_clip.py` matched the map clip to the board's colours channel by channel;
@@ -106,6 +105,29 @@ Blue-blooded mares £50,000 → **£95,000**; the rivals' heat for Book 1 1.45 �
 Strategy harness (30 seeded seasons each, `tools/harness.js`), average prize money, before → now: Breeder £239k → £210k;
 Buyer £25k → £50k; Balanced £148k → £141k; Cheap and wide £39k → £55k; All-in on quality £165k → £183k; Card-aware planner
 £259k → £294k. Breeding is still the cheaper way to a top horse, but buying is now a real option.
+
+## Owner's polish round (6 Nov, after a full play on phone and Mac)
+
+- **The map is calm.** It always fills the window (full bleed) and never pulls back past its edges. Picking a place
+  glides it a little towards it with the slightest zoom (`cameraFor()`, `ZOOM` in `src/board.src.js`); moving on eases
+  back to the whole board, glides towards the next place and gives it a gentle pulse. No tilt. Only the next place
+  moves (its glow and ring, slowly); the others sit still. The inked footsteps and the little horse are gone.
+- **One box at a time.** No separate chapter box (its words are on the guide and on the place's card); the guide
+  steps aside while a card is open; cards and sheets fade in rather than grow.
+- **No training step for now.** Warren Hill shows "Coming in a later version" (`CHAPTERS.gallops` and the gallops
+  sheet are kept for then). After Tattersalls you go straight to entries at the Jockey Club; 2-year-olds are developed
+  at the foal reveal or on the entries screen. The bar's step 3 is "Entries".
+- **The race film leads into race day.** "Go to Royal Ascot" plays the Ascot film at once (in the same tap, so it has
+  its sound), straight into race week. The film of the board leaving is gone.
+- **The race view's dock** (game mode): every runner in the owner's own graphic silks (`img/silks`), with its price
+  and its race-day colour card as a band along the foot of its chip (black, red, yellow, blue, as in the board game;
+  `marketFor()` in `js/rules.js`: the figure is rating, less 5 a step off its trip, plus or minus the going; a horse 5
+  better is about twice as likely; a bookmaker's margin; the usual ladder of odds). Your price and card on the
+  racecard too. The racecard sits above the controls when they're showing.
+- **Lighter on a Mac:** a fourth quality level, Lightest, that Auto can drop to, and Auto judges every 1.25 s.
+- **Phones ("lite", set in the page's head on touch screens):** no blurred glows; the board at 30 frames a second and
+  off under a sheet; the foal card without its SVG filters; the board's horses on 512-pixel textures.
+- Still to do: the crowd and the race graphics (owner wants another pass), the race view's smoothness on the owner's Mac.
 
 ## Checked by a second pair of eyes (6 Nov)
 

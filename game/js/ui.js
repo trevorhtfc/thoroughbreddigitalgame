@@ -26,14 +26,16 @@ const CHAPTERS = {
                line: "Your title from Royal Ascot hangs in Palace House." },
 };
 const STEPS = [
-  { n: 1, name: "The Stud", place: "stud" }, { n: 2, name: "The Sales", place: "tatts" }, { n: 3, name: "Training", place: "warren" },
+  { n: 1, name: "The Stud", place: "stud" }, { n: 2, name: "The Sales", place: "tatts" }, { n: 3, name: "Entries", place: "jockey" },
   { n: 4, name: "Royal Ascot", place: "races" }, { n: 5, name: "The Result", place: "palace" },
 ];
 function phase() {
   if (!S.dealt) return "draw";
   if (S.step === 1) return "breed";
   if (S.step === 2) return "sales";
-  if (S.step === 3) return S.galloped ? "entries" : "gallops";
+  // (training on Warren Hill, "gallops", is kept for a later version: owner, 6 Nov; horses are developed at the foal
+  // reveal and on the entries screen meanwhile)
+  if (S.step === 3) return "entries";
   if (S.step === 4) return "week";
   return S.home ? "home" : "standings";
 }
@@ -57,7 +59,7 @@ function placeStates() {
   st.stables = has ? "open" : "locked";
   st.stud = ph === "breed" ? "open" : after("breed") ? "done" : "locked";
   st.tatts = ph === "sales" || ph === "gallops" || ph === "entries" ? (S.sale.length || ph === "sales" ? "open" : "done") : after("entries") ? "done" : "locked";
-  st.warren = ph === "gallops" || ph === "entries" ? "open" : after("entries") ? "done" : "locked";
+  st.warren = "locked";                                             // training comes in a later version
   st.races = ph === "gallops" || ph === "entries" || ph === "week" || ph === "standings" ? "open" : ph === "home" ? "done" : "locked";
   st[nextPlace()] = "next";
   return st;
@@ -97,7 +99,7 @@ function cardFor(id) {
     case "warren": {
       const can = S.stable.filter(h => h.age < 4).length;
       c.kicker = "The gallops";
-      if (st === "locked") { c.status = "Opens when your string is in training"; c.text = "Bring your 2-year-olds on: develop them to 3 or 4 to change their rating and best trip."; c.cta = "Go to the gallops"; }
+      if (st === "locked") { c.status = "Coming in a later version"; c.text = "Training on the gallops is on its way. For now, develop your 2-year-olds when they arrive or on the Jockey Club's entries screen."; c.cta = ""; }
       else if (st === "done") { c.status = "Training is over for this season"; c.text = "Your string has gone to Ascot."; c.cta = ""; }
       else { c.text = `Develop a horse to 3 or 4 to change its rating and best trip; you only see how once it's done. <b>${can}</b> of your ${S.stable.length} could still develop.`; c.cta = "Go to the gallops"; }
       break; }
@@ -169,14 +171,9 @@ function paintGuide() {
   g.hidden = atAscot() || UI.cineOn;
 }
 let chapterTimer = 0;
-function showChapter(key, { hold = 7000 } = {}) {
-  const ch = CHAPTERS[key], el = $("#chapter"); if (!ch) return;
-  $("#chK").textContent = `${ch.season} · Step ${ch.step} of 5`;
-  $("#chT").textContent = ch.title;
-  $("#chX").textContent = ch.line;
-  el.hidden = false; el.classList.remove("out"); void el.offsetWidth; el.classList.add("in");
-  clearTimeout(chapterTimer); chapterTimer = setTimeout(hideChapter, hold);
-}
+// The chapter's words live on the guide and on the place's card (owner, 6 Nov: too many boxes), so there's no
+// separate chapter box any more; the guide is simply brought up to date.
+function showChapter() { paintGuide(); }
 function hideChapter() { const el = $("#chapter"); if (el.hidden) return; el.classList.remove("in"); el.classList.add("out"); setTimeout(() => { if (el.classList.contains("out")) el.hidden = true; }, 600); }
 
 /* ================= The story between the steps ================= */
@@ -289,7 +286,7 @@ const FOOTS = {
       : `<span class="f-info">${studCount()} mare${studCount() === 1 ? "" : "s"} · ${S.stable.length} horse${S.stable.length === 1 ? "" : "s"} · ${money(S.budget)} left</span>${goBtn("toSale", "Close the stud and go to the sales", { off: S.foal || S.offer })}`;  },
   tatts() {
     // never a dead end: with no horse bought or bred you can still leave (and race nothing, or start again)
-    if (S.step === 2) return `<span class="f-info">${S.stable.length} horse${S.stable.length === 1 ? "" : "s"} in your string · ${money(S.budget)} left</span>${goBtn("toEnter", S.stable.length ? "Leave the sales: into training" : "Leave the sales without a horse", { off: S.foal })}`;
+    if (S.step === 2) return `<span class="f-info">${S.stable.length} horse${S.stable.length === 1 ? "" : "s"} in your string · ${money(S.budget)} left</span>${goBtn("toEnter", S.stable.length ? "Leave the sales: on to entries" : "Leave the sales without a horse", { off: S.foal })}`;
     return "";
   },
   warren() {
@@ -425,7 +422,7 @@ function museumBody() {
 /* ================= Films between the places ================= */
 // newmarket-arrive.mp4 is the owner's map clip played backwards: from the treetops down onto the board. Its last frame is
 // the board itself (the board scaled by 0.706 and moved by (129.5, -23.6) in the 1280 x 720 frame), so the film is laid
-// exactly over the live board as it lands, and fades into it. newmarket-leave.mp4 is the same clip forwards.
+// exactly over the live board as it lands, and fades into it.
 const CLIP = { w: 1280, h: 720, k: 0.706, x: 129.5, y: -23.6 };
 function boardRect() { const r = $("#stage").getBoundingClientRect(); return r; }
 function clipRectOnBoard() {
@@ -486,22 +483,23 @@ async function arriveNewmarket(withFilm = true) {
   UI.arrived = true;
 }
 // leaving for Ascot: the horseboxes go, the board tilts up into the landscape, then the film of the races
+// leaving for Ascot (owner, 6 Nov): the race film leads straight into race week, started in the very tap that sends
+// you, so it plays with its sound
 async function goToAscot() {
   closeSheet({ quiet: true }); BOARD.choose(null);
   S.step = 4; S.open = null; save();
-  showChapter("week", { hold: 3200 });
   if (window.LIFE) { try { LIFE.procession("boxes"); } catch (e) {} }
-  BOARD.Sound.place("races");
-  await BOARD.trail("jockey", "races", { ms: 2200 });
-  await film("video/newmarket-leave.mp4", { from: "board", to: "cover", fadeOut: false });
-  hideChapter();
   await arriveAscot(true);
 }
 async function arriveAscot(withFilm) {
   S.at = "ascot"; save();
-  document.body.classList.remove("at-newmarket"); document.body.classList.add("at-ascot");
-  $("#ascot").hidden = false; paintBar(); paintGuide();
-  if (withFilm) await film("video/ascot-arrive.mp4", { caption: `<span>${MEETING.month} ${MEETING.year}</span><b>Royal Ascot</b><i>Five days · ten races</i>`, sound: true, fadeIn: false, poster: "img/ascot-still.jpg" });
+  const there = () => { document.body.classList.remove("at-newmarket"); document.body.classList.add("at-ascot"); $("#ascot").hidden = false; paintBar(); paintGuide(); };
+  if (withFilm) {
+    const f = film("video/ascot-arrive.mp4", { caption: `<span>${MEETING.month} ${MEETING.year}</span><b>Royal Ascot</b><i>Five days · ten races</i>`, sound: true, fadeIn: true, poster: "img/ascot-still.jpg" });
+    setTimeout(there, 550);                                          // once the film has faded up over the board
+    await f;
+  }
+  there();
   openSheet("races");
   BOARD.Sound.horn();
 }
@@ -613,11 +611,8 @@ document.addEventListener("click", e => {
       S.confirmSale = false; S.step = 2; S.book = 1; S.view = "job"; newCatalogue(); save();
       story("stud", "tatts", "sales", { procession: "yearlings" }); break;
     case "toEnter": if (S.step !== 2 || S.foal) break;
-      S.step = 3; S.view = "job"; save();
-      story("tatts", "stables", "gallops", { then: async () => {
-        await new Promise(r => setTimeout(r, 700));
-        if (window.LIFE) { try { LIFE.procession("gallops", { silk: SILK3D[mySilkN()] }); } catch (e) {} }
-        await BOARD.trail("stables", "warren", { ms: 2400 }); } }); break;
+      S.step = 3; S.galloped = true; S.view = "job"; save();
+      story("tatts", "jockey", "entries", { procession: "gallops" }); break;
     case "doneGallops": S.galloped = true; save(); story("warren", "jockey", "entries"); break;
     case "fill": fillEmpty(); render(); break;
     case "clear": S.entries = {}; save(); render(); break;

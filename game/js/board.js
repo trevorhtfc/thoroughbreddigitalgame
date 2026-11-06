@@ -139,9 +139,11 @@ const fitHooks = [];
 function fit() {
   const W = view.clientWidth, H = view.clientHeight;
   const portrait = W / H < 1.05;
-  scale = portrait ? H / MH : Math.min(W / MW, H / MH);
+  scale = portrait ? H / MH : Math.max(W / MW, H / MH);            // full bleed: the board always fills the window
   view.classList.toggle("pan", portrait);
   holder.style.width = MW * scale + "px"; holder.style.height = MH * scale + "px";
+  holder.style.position = portrait ? "" : "absolute"; holder.style.margin = portrait ? "" : "0";
+  holder.style.left = portrait ? "" : ((W - MW * scale) / 2).toFixed(1) + "px"; holder.style.top = portrait ? "" : ((H - MH * scale) / 2).toFixed(1) + "px";
   stage.style.transform = `scale(${scale})`;
   if (portrait && !API.panTo) view.scrollLeft = 990 * scale - W / 2;           // start on Tattersalls and the stables
   fitHooks.forEach((f) => f(scale));
@@ -211,37 +213,46 @@ function routeFor(from, to) {
   if (TRAILS[back]) return rev(TRAILS[back]);
   return [medalAt(from), medalAt(to)];
 }
-// Moving on to the next place: the board eases out to the whole of Newmarket, then glides in a little towards the
-// next place, which gives a gentle pulse. Resolves as the pulse goes. (The camera is a transform on #lean, always
-// written as the same list of steps, so one move hands over smoothly to the next and to the lean.)
+// The camera. The board always fills the window: it never pulls back past its edges. Picking a place glides the board
+// a little towards it with the slightest zoom; moving on to the next place eases back to the whole board, glides in
+// towards the next one and gives it a gentle pulse. (A transform on #lean, from its top left corner, clamped so the
+// board's edge never shows. On a phone held upright the board slides sideways instead, with no zoom.)
 let travelNow = null;
-const camera = (P, d, rot, s) => `translate(${(P[0] + d[0]).toFixed(1)}px, ${(P[1] + d[1]).toFixed(1)}px) rotateX(${rot}deg) scale(${s}) translate(${(-P[0]).toFixed(1)}px, ${(-P[1]).toFixed(1)}px)`;
-const CAM_REST = camera([0, 0], [0, 0], 0, 1);
+const ZOOM = 1.035;
+function cameraFor(id) {
+  const p = id && placeOf(id);
+  if (!p || view.classList.contains("pan")) return "translate(0px, 0px) scale(1)";
+  const W = view.clientWidth, H = view.clientHeight, bw = MW * scale, bh = MH * scale, hx = (W - bw) / 2, hy = (H - bh) / 2;
+  const cardOpen = innerWidth > 760, tx = cardOpen ? 380 + (W - 380) / 2 : W / 2, ty = H * 0.5;
+  const P = [p.at[0] * scale, p.at[1] * scale];
+  const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
+  // half way between a gentle zoom about the middle and putting the place on the target, never letting the edge in
+  const want = (tgt, h0, pp, size) => 0.5 * (tgt - h0 - ZOOM * pp) + 0.5 * (size / 2) * (1 - ZOOM);
+  let x = want(tx, hx, P[0], bw), y = want(ty, hy, P[1], bh);
+  x = clamp(x, W - hx - ZOOM * bw, -hx); y = clamp(y, H - hy - ZOOM * bh, -hy);
+  return `translate(${x.toFixed(1)}px, ${y.toFixed(1)}px) scale(${ZOOM})`;
+}
+const CAM_REST = "translate(0px, 0px) scale(1)";
 function clearTrail() { travelNow = null; }
 function pulseAt(id) {
   for (const el of [locEl(id), siteEl(id)]) { if (!el) continue; el.classList.remove("pulse"); void el.getBoundingClientRect(); el.classList.add("pulse"); setTimeout(() => el.classList.remove("pulse"), 2600); }
 }
-function trail(from, to, { ms = 2800 } = {}) {
+function trail(from, to, { ms = 1600 } = {}) {
   const p = placeOf(to), run = travelNow = {};
   const wait = (t) => new Promise((r) => setTimeout(r, t));
   if (!p) return Promise.resolve();
-  if (REDUCED) { panTo(to); pulseAt(to); return wait(700); }
+  if (REDUCED || view.classList.contains("pan")) { panTo(to); pulseAt(to); return wait(REDUCED ? 500 : 900); }
   return (async () => {
-    const out = Math.round(ms * 0.3), inn = Math.round(ms * 0.45), C = [MW * scale / 2, MH * scale / 2], P = [p.at[0] * scale, p.at[1] * scale];
+    const half = Math.round(ms / 2);
     lean.style.transformOrigin = "0 0";
-    lean.style.transition = `transform ${out}ms cubic-bezier(.45,0,.25,1)`;
-    lean.style.transform = camera(C, [0, 0], 0, 0.9);                        // out: the whole of Newmarket
-    await wait(out); if (travelNow !== run) return;
-    panTo(to);                                                               // a phone slides along on the way back in
-    const pan = view.classList.contains("pan");
-    let d = [0, 0];
-    if (!pan) { const vr = view.getBoundingClientRect(), hr = holder.getBoundingClientRect(); d = [(vr.left + vr.width / 2 - hr.left - P[0]) * 0.3, (vr.top + vr.height / 2 - hr.top - P[1]) * 0.3]; }
-    lean.style.transition = `transform ${inn}ms cubic-bezier(.22,.8,.24,1)`;
-    lean.style.transform = camera(P, d, 0, pan ? 1.04 : 1.1);               // in: a little towards the next place
-    await wait(Math.round(inn * 0.7)); if (travelNow !== run) return;
+    lean.style.transition = `transform ${half}ms cubic-bezier(.45,0,.4,1)`;
+    lean.style.transform = CAM_REST;                                         // back to the whole board
+    await wait(half * 0.8); if (travelNow !== run) return;
+    lean.style.transition = `transform ${half + 200}ms cubic-bezier(.3,0,.25,1)`;
+    lean.style.transform = cameraFor(to);                                    // and gently towards the next place
+    await wait(half * 0.6); if (travelNow !== run) return;
     pulseAt(to);
-    await wait(Math.max(400, ms - out - Math.round(inn * 0.7)));
-    lean.style.transition = "";                                              // the stylesheet's own, for the lean that follows
+    await wait(half * 0.6);
   })();
 }
 
@@ -525,14 +536,10 @@ fetch(BASE + "atmos.json").then((r) => r.json()).then((a) => {
 const lean = $id("lean");
 function leanTo(id) {
   const p = id && placeOf(id);
-  if (p && !API.covered) panTo(id);                                // a phone slides the board to the place, lean or no lean
+  if (p && !API.covered) panTo(id);                                // a phone slides the board to the place
   lean.style.transformOrigin = "0 0";
-  if (!p || REDUCED || LITE || API.covered) { lean.style.transform = CAM_REST; return; }
-  const vr = view.getBoundingClientRect(), hr = holder.getBoundingClientRect();
-  const px = hr.left - vr.left + p.at[0] * scale, py = hr.top - vr.top + p.at[1] * scale;
-  const phone = innerWidth <= 640, tx = phone ? vr.width / 2 : 370 + (vr.width - 370) / 2, ty = phone ? vr.height * 0.3 : vr.height * 0.52;
-  if (view.classList.contains("pan")) { lean.style.transform = CAM_REST; return; }
-  lean.style.transform = camera([p.at[0] * scale, p.at[1] * scale], [(tx - px) * 0.45, (ty - py) * 0.45], 8, 1.12);
+  if (API.covered) return;
+  lean.style.transform = p && !REDUCED ? cameraFor(id) : CAM_REST;
 }
 
 // ---------------------------------------------------------------- sounds: each place has its own, heard while the pointer is over it

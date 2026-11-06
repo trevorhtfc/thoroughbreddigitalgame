@@ -372,6 +372,27 @@ function fieldFor(i) {
   }
   return list.map((h, k) => ({ ...h, stall: k + 1 }));
 }
+// The betting and the race-day colours (for the race view's dock and racecard). Each runner's race-day figure is its
+// rating, less 5 a step away from its best trip, plus or minus the going (as check() counts them); its colour card is
+// the board game's: black at or above the race's top band, then red, yellow, blue. The market prices the figures
+// (a horse 5 better is about twice as likely to win), with a bookmaker's margin, on the usual ladder of odds.
+const CARD_KEYS = ["black", "red", "yellow", "blue"];
+const ODDS_LADDER = [[1, 3], [2, 5], [1, 2], [4, 7], [8, 13], [4, 6], [8, 11], [4, 5], [10, 11], [1, 1], [6, 5], [5, 4], [11, 8], [6, 4], [13, 8], [7, 4], [15, 8], [2, 1], [9, 4], [5, 2], [11, 4], [3, 1], [10, 3], [7, 2], [4, 1], [9, 2], [5, 1], [11, 2], [6, 1], [13, 2], [7, 1], [15, 2], [8, 1], [17, 2], [9, 1], [10, 1], [11, 1], [12, 1], [14, 1], [16, 1], [18, 1], [20, 1], [25, 1], [33, 1], [40, 1], [50, 1], [66, 1], [100, 1]];
+function dayFigure(h, race) {
+  const lo = DISTANCES.indexOf(h.trip[0]), hi = DISTANCES.indexOf(h.trip[1]);
+  const steps = race.step < lo ? lo - race.step : race.step > hi ? race.step - hi : 0;
+  return h.rating - steps * 5 + groundPts(h.goings, CARD.going[race.day]);
+}
+function marketFor(i) {
+  const race = RACES[i], field = fieldFor(i), figs = field.map(h => dayFigure(h, race));
+  const w = figs.map(f => Math.exp(f / 7)), tot = w.reduce((a, b) => a + b, 0);
+  return field.map((h, k) => {
+    const p = Math.min(0.85, (w[k] / tot) * 1.18), dec = 1 / p - 1;              // the price against, before the ladder
+    const [n, d] = ODDS_LADDER.reduce((a, b) => Math.abs(b[0] / b[1] - dec) < Math.abs(a[0] / a[1] - dec) ? b : a);
+    const key = CARD_KEYS[race.bands.findIndex(b => figs[k] >= b)] || "blue";
+    return { fig: figs[k], odds: n === d ? "Evens" : `${n}/${d}`, card: key };
+  });
+}
 const engineRunner = h => ({ id: h.id, name: h.name, rating: h.rating, trip: h.trip, goings: h.goings, style: h.style, flex: h.flex, temperament: h.temper });
 // The race as the engine and the 3D view know it: the same five values in both, so both run the same race
 function engineRace(i) {
