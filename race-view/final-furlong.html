@@ -234,6 +234,7 @@ button:focus-visible { outline: 2px solid var(--cream-edge); outline-offset: 2px
 <div class="bar">
   <div class="group" id="races"><span>Race</span><select id="raceSel" aria-label="Race"></select><select id="goingSel" aria-label="Going"></select><select id="runnersSel" aria-label="Runners"></select><span>Seed</span><input id="seedIn" class="seed" type="number" min="1" step="1" inputmode="numeric" aria-label="Race seed" title="Race seed: the same seed runs the same race"><button id="newRace" type="button" title="A new race with a new seed">New race</button></div>
   <div class="group" id="horses"><span>Horse</span></div>
+  <div class="group" id="looks"><span>Look</span></div>
   <div class="group" id="cams"><span>Camera</span></div>
   <div class="group" id="finish"><span>Finish</span></div>
   <div class="group" id="quality"><span>Quality</span></div>
@@ -298,6 +299,8 @@ import { RoomEnvironment } from "three/addons/environments/RoomEnvironment.js";
 import { mergeGeometries, mergeVertices } from "three/addons/utils/BufferGeometryUtils.js";
 import { SimplifyModifier } from "three/addons/modifiers/SimplifyModifier.js";
 import * as HorseV2 from "./horse-v2.js";
+// Graphic style options (?look=model|diorama|faceted); without ?look nothing changes. See looks.js.
+import * as LOOKS from "./looks.js";
 // The race engine (race-engine/ in the repo; a copy lives in assets/engine/): it decides the race, the view plays it back.
 import { runRace } from "./assets/engine/engine.js";
 import { randomField } from "./assets/engine/field.js";
@@ -472,6 +475,7 @@ THREE.ShaderChunk.fog_fragment = `#ifdef USE_FOG
   // Puffy clouds over the far side: merged soft balls with flattened undersides.
   const rc = (() => { let s = 77; return () => ((s = (s * 1664525 + 1013904223) >>> 0) / 4294967296); })();
   const cloudMat = new THREE.MeshLambertMaterial({ color: "#f4f2ec", emissive: new THREE.Color("#9fb8d8").multiplyScalar(0.25), fog: false });
+  scene.userData.cloudMat = cloudMat;
   for (let i = 0; i < 16; i++) {
     const W = 110 + rc() * 130, parts = [];
     for (let k = 0, n = 5 + Math.floor(rc() * 4); k < n; k++) {
@@ -507,6 +511,7 @@ Object.assign(sun.shadow.camera, { left: -45, right: 45, top: 45, bottom: -45, n
 sun.shadow.bias = -0.0005;
 sun.shadow.normalBias = 0.03;
 scene.add(sun, sun.target);
+LOOKS.setupScene({ scene, hemi: sky, sun, cloudMat: scene.userData.cloudMat });
 const SUN_OFFSET = new THREE.Vector3(-110, 84, -58.5);   // Blender's sun direction, in the course's axes
 
 // ---------- Textures ----------
@@ -620,7 +625,7 @@ function buildTurf(colour) {
   const shape = new THREE.Shape(SURF[0].map(([x, z]) => new THREE.Vector2(x, -z)));
   for (const h of SURF.slice(1)) shape.holes.push(new THREE.Path(h.map(([x, z]) => new THREE.Vector2(x, -z))));
   const g = new THREE.ShapeGeometry(shape).rotateX(-Math.PI / 2);
-  const m = new THREE.Mesh(g, lanesMaterial(new THREE.MeshBasicMaterial({ color: colour, depthWrite: false })));
+  const m = new THREE.Mesh(g, LOOKS.patchGround(lanesMaterial(new THREE.MeshBasicMaterial({ color: colour, depthWrite: false })), "turf"));
   m.position.y = -0.03;
   m.renderOrder = -2;
   scene.add(m);
@@ -804,6 +809,7 @@ function bakedMaterial(m, info, tex, key) {
     mat = new THREE.MeshBasicMaterial({ color: col, lightMap: tex, lightMapIntensity: Math.PI * info.scale });
   }
   mat.name = name;
+  LOOKS.patchBaked(mat, name, key);
   return mat;
 }
 function placeBaked(gltf, B, dressing) {
@@ -824,7 +830,7 @@ function placeBaked(gltf, B, dressing) {
   // Beyond the baked ground: plain grass, and the turf right round the course, in the same light
   // (both drawn first, writing no depth: see buildTurf).
   const o = B.ground.outside, tf = B.ground.turf || [0.12, 0.3, 0.06];
-  const far = new THREE.Mesh(new THREE.PlaneGeometry(9000, 9000), new THREE.MeshBasicMaterial({ color: new THREE.Color(o[0], o[1], o[2]), depthWrite: false }));
+  const far = new THREE.Mesh(new THREE.PlaneGeometry(9000, 9000), LOOKS.patchGround(new THREE.MeshBasicMaterial({ color: new THREE.Color(o[0], o[1], o[2]), depthWrite: false }), "far"));
   far.rotation.x = -Math.PI / 2; far.position.set(700, -0.06, -400);
   far.renderOrder = -3;
   scene.add(far);
@@ -886,7 +892,7 @@ function placeBelts(gltf, planting, treeLib) {
   const hedge = gltf.scene.getObjectByName("planting_hedge");
   if (hedge) {
     for (const m of meshesOf(hedge)) {
-      m.material = new THREE.MeshLambertMaterial({ vertexColors: true });
+      m.material = LOOKS.patchFoliage(new THREE.MeshLambertMaterial({ vertexColors: true }), "hedge");
       LAYERS.trees.push(m);
     }
     scene.add(hedge);
@@ -928,8 +934,9 @@ function instanceTrees(gltf, list) {
     const node = gltf.scene.getObjectByName(key) || gltf.scene.getObjectByName(key.replace("_far", ""));
     if (!node) continue;
     for (const mesh of meshesOf(node)) {
-      const inst = new THREE.InstancedMesh(mesh.geometry, treeMat, ts.length);
-      ts.forEach((t, i) => { q.setFromAxisAngle(up, (t.turn || 0) * Math.PI / 180); sc.set(t.s, t.s * (t.sy || 1), t.s); inst.setMatrixAt(i, m4.compose(p.set(t.x, 0, t.z), q, sc)); });
+      // a look may swap the tree's shape and material, and give each tree its own colour (looks.js)
+      const inst = new THREE.InstancedMesh(LOOKS.treeGeometry(key, mesh.geometry) || mesh.geometry, LOOKS.treeMaterial(treeMat, key), ts.length);
+      ts.forEach((t, i) => { q.setFromAxisAngle(up, (t.turn || 0) * Math.PI / 180); sc.set(t.s, t.s * (t.sy || 1), t.s); inst.setMatrixAt(i, m4.compose(p.set(t.x, 0, t.z), q, sc)); const c = LOOKS.treeColour(key, t, i); if (c) inst.setColorAt(i, c); });
       inst.computeBoundingSphere();
       scene.add(inst);
       LAYERS.trees.push(inst);
@@ -991,7 +998,7 @@ const crowdKeep = (x, rnd) => (x >= CROWD_FULL[0] && x <= CROWD_FULL[1]) || rnd(
 function buildCrowd(gltf, data, pieceAt) {
   const rnd = seeded(21);
   const pick = (a) => a[Math.floor(rnd() * a.length)];
-  const P = data.palette;
+  const P = LOOKS.crowdPalette(data.palette);
   const spots = [];
   const add = (x, y, z, seated = false) => { if (crowdKeep(x, rnd)) spots.push({ x, y, z, seated }); };
   const S0 = -102.5, S1 = 405;                                  // the stand's west and east ends
@@ -1150,7 +1157,8 @@ function crowdMaterial() {
       .replace("#include <common>", "#include <common>\nvarying vec3 vPartCol;")
       .replace("#include <color_fragment>", "#include <color_fragment>\ndiffuseColor.rgb *= vPartCol;");
   };
-  mat.customProgramCacheKey = () => "crowd-life";
+  const ob = mat.onBeforeCompile; mat.onBeforeCompile = (sh) => { ob(sh); LOOKS.patchCrowd(sh); };
+  mat.customProgramCacheKey = () => "crowd-life" + (LOOKS.lookId || "");
   return mat;
 }
 function setCrowdShare(share) { CROWD.share = share; CROWD.sig = ""; }
@@ -1520,6 +1528,12 @@ for (const [id, label] of [["v1", "v1 (current)"], ["v2", "v2 (new)"]]) {
   }, "horse-" + id);
   b.setAttribute("aria-pressed", id === HORSE_V);
 }
+// Graphic style options (looks.js): each reloads the page with ?look=
+const looksEl = document.getElementById("looks");
+for (const [id, label] of [["", "Current"], ["model", "Model maker"], ["diorama", "Sunlit diorama"], ["faceted", "Faceted parkland"]]) {
+  const b = button(looksEl, label, () => { const p = new URLSearchParams(location.search); if (id) p.set("look", id); else p.delete("look"); location.search = p.toString(); }, "look-" + (id || "current"));
+  b.setAttribute("aria-pressed", id === (LOOKS.lookId || ""));
+}
 const finEl = document.getElementById("finish");
 // The finish: storybook (the game's grade, the default in the game) or the plain 3D picture. Remembered per browser.
 let storybook = (() => { try { const v = localStorage.getItem("tb-finish"); if (v) return v === "story"; } catch {} return GAME || params.get("finish") === "story"; })();
@@ -1532,7 +1546,7 @@ const finButtons = [["story", "Storybook"], ["plain", "Plain 3D"]].map(([id, lab
 function syncButtons() {
   camButtons.forEach((b) => b.setAttribute("aria-pressed", b.dataset.cam === state.cam));
   finButtons.forEach((b) => b.setAttribute("aria-pressed", (b.dataset.fin === "story") === storybook));
-  document.documentElement.classList.toggle("story", storybook);
+  document.documentElement.classList.toggle("story", storybook && !LOOKS.lookId);
   post.uniforms.painted.value = state.painted ? 1 : 0;
 }
 syncButtons();
@@ -2104,7 +2118,7 @@ function frame() {
   if (every > 1 && framesDrawn % every === 0) sun.shadow.needsUpdate = true;
   const t1 = performance.now();
   renderer.info.reset();
-  renderer.render(scene, camera);
+  LOOKS.render(renderer, scene, camera, focus, state.phase === "prelude" || state.phase === "postlude");
   framesDrawn++;
   diag.js += t1 - t0; diag.draw += performance.now() - t1; diag.n++;
   // ?still=1 (used for checking screenshots): draw a few frames once loaded, then stop.
