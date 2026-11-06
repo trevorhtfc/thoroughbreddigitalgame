@@ -4,7 +4,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Jost:wght@400;500;600&family=Cormorant+SC:wght@600;700&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Jost:wght@400;500;600&family=Cormorant+SC:wght@600;700&family=Crimson+Pro:wght@600;700&family=Nunito:wght@400;600;700;800&display=swap">
 <style>
 /* The race view's last furlong at Ascot, on the full course (courses/ascot.json, courses/ascot-view.json):
    the 507 m main stand on the horses' left, the planting belts and boards round the far rails.
@@ -149,9 +149,68 @@ button:focus-visible { outline: 2px solid var(--cream-edge); outline-offset: 2px
   select, .seed { font-size: 0.78rem; height: 27px; }
   .seed { width: 4em; }
 }
+
+
+/* The storybook finish (in the game, or ?finish=story): the same grade as the game's films and cover
+   (game/tools/storybook_grade.py, fitted as a CSS filter: softer colour, greens towards the board's olive, a
+   parchment cast), and a soft vignette. Applied as the picture goes on screen, so the race itself is untouched. */
+.story #scene { filter: saturate(1.15) sepia(.25) hue-rotate(-12deg) brightness(.96) contrast(.935); }
+.veil { position: fixed; inset: 0; pointer-events: none; display: none; background: radial-gradient(ellipse 80% 75% at 50% 46%, rgba(30, 22, 8, 0) 58%, rgba(30, 22, 8, .26) 100%); }
+.story .veil { display: block; }
+/* ---------- In the game (Thoroughbred Ascot opens this page with ?game=1): the game's own dress ----------
+   Parchment panels with a gold hairline, an engraved serif for names (Crimson Pro), Jost in spaced capitals for labels,
+   Nunito for reading: the same as the Newmarket board and the game's sheets. The racecard before the off and the
+   result after the line are the game's; the race itself is unchanged. */
+.in-game { --cream: #f2ecdf; --cream-edge: #b79042; --green: #3d7153; --green-ink: #2c3a30; --ink-soft: #6b6a60; --display: "Crimson Pro", Georgia, serif; --body: "Jost", "Helvetica Neue", Arial, sans-serif; --read: "Nunito", system-ui, sans-serif; }
+.in-game #horses { display: none; }
+.in-game .plate { padding: 9px 16px 10px; gap: 16px; box-shadow: 0 0 0 3px var(--cream), 0 0 0 4px rgba(183,144,66,.75), 0 8px 22px rgba(20,30,20,.3); }
+.in-game .plate h1 { font-family: var(--display); font-size: 1.55rem; letter-spacing: 0; text-transform: none; font-weight: 700; }
+.in-game .plate p { font-family: var(--body); letter-spacing: .16em; text-transform: uppercase; font-size: .66rem; color: #8d6b2a; }
+.in-game .plate .togo strong { font-family: var(--display); font-weight: 700; }
+.in-game .dock, .in-game .bar { box-shadow: 0 0 0 3px var(--cream), 0 0 0 4px rgba(183,144,66,.75), 0 8px 22px rgba(20,30,20,.3); }
+.in-game .dock h2, .in-game .group > span { color: #8d6b2a; }
+.in-game .chip.mine { box-shadow: inset 0 0 0 2px #b79042, 0 0 10px rgba(183,144,66,.55); background: #fff6dc; }
+.in-game button { font-family: var(--body); }
+.in-game button[aria-pressed="true"] { background: var(--green); border-color: var(--green); }
+.rc, .rr { position: fixed; z-index: 6; color: var(--green-ink); background: var(--cream); border-radius: 3px; font-family: var(--read, var(--body));
+  box-shadow: inset 0 0 0 1px rgba(183,144,66,.6), 0 0 0 3px var(--cream), 0 0 0 4px rgba(183,144,66,.75), 0 14px 36px rgba(15,25,18,.45); }
+.rc { left: 50%; bottom: calc(env(safe-area-inset-bottom, 0px) + 26px + var(--dock-h)); transform: translateX(-50%); width: min(560px, calc(100% - 32px)); padding: 14px 22px 16px; text-align: center; transition: opacity .6s, transform .6s; }
+.rc.gone { opacity: 0; transform: translate(-50%, 12px); pointer-events: none; }
+.rc-k, .rr-k { font-family: var(--body); font-weight: 600; font-size: .7rem; letter-spacing: .22em; text-transform: uppercase; color: #8d6b2a; }
+.rc-t { font-family: var(--display); font-weight: 700; font-size: 2.1rem; line-height: 1.02; color: #2b3f33; margin: 4px 0 6px; }
+.rc-f { font-size: .9rem; color: var(--ink-soft); }
+.rc-f b { color: var(--green-ink); }
+.rc-me { display: inline-flex; align-items: center; gap: 10px; margin-top: 10px; padding: 6px 12px 6px 8px; border-radius: 3px; background: #fff8e4; box-shadow: inset 0 0 0 1px rgba(183,144,66,.55); font-size: .9rem; text-align: left; }
+.rc-me img { width: 26px; height: 32px; object-fit: contain; }
+.rc-me b { font-family: var(--body); font-weight: 600; letter-spacing: .06em; }
+.rc-me small { display: block; color: var(--ink-soft); font-size: .78rem; }
+.rr { right: max(18px, env(safe-area-inset-right, 0px)); top: calc(env(safe-area-inset-top, 0px) + 70px); width: min(360px, calc(100% - 36px)); padding: 16px 18px 16px; transition: opacity .5s, transform .5s; }
+.rr.gone { opacity: 0; transform: translateX(16px); pointer-events: none; }
+.rr-t { font-family: var(--display); font-weight: 700; font-size: 1.6rem; line-height: 1.05; color: #2b3f33; margin: 3px 0 10px; }
+.rr ol { list-style: none; margin: 0; padding: 0; display: grid; gap: 5px; }
+.rr li { display: grid; grid-template-columns: 34px 24px 1fr auto; align-items: center; gap: 8px; padding: 5px 8px; border-radius: 3px; background: #fbf7ec; box-shadow: inset 0 0 0 1px rgba(184,149,74,.35); font-size: .88rem; }
+.rr li.mine { background: #fff1c9; box-shadow: inset 0 0 0 2px #b79042; }
+.rr li .p { font-family: var(--display); font-weight: 700; font-size: 1.15rem; color: #8d6b2a; }
+.rr li:first-child .p { color: #3d7153; }
+.rr li img { width: 22px; height: 28px; object-fit: contain; }
+.rr li b { font-family: var(--body); font-weight: 600; letter-spacing: .05em; font-size: .82rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.rr li i { font-style: normal; color: var(--ink-soft); font-size: .8rem; white-space: nowrap; }
+.rr-me { margin: 10px 0 0; padding: 9px 11px; border-radius: 3px; background: #2c4d43; color: #f6f1e6; font-size: .92rem; line-height: 1.35; }
+.rr-me b { color: #f6dc8f; }
+.rr-me.won { background: linear-gradient(135deg, #8a6420, #c99a3c 60%, #9c7426); color: #fff; }
+.rr-me.won b { color: #fff; }
+.rr-btns { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 12px; }
+.rr-btns button { flex: 1 1 auto; padding: 9px 10px; font-size: .86rem; font-weight: 600; }
+.rr-btns button.go { background: var(--green); color: #f6f1e6; border-color: var(--green); }
+@media (max-width: 700px) {
+  .rc { padding: 10px 14px 12px; } .rc-t { font-size: 1.5rem; } .rc-f { font-size: .8rem; }
+  .rr { left: 12px; right: 12px; width: auto; top: calc(env(safe-area-inset-top, 0px) + 60px); padding: 12px 14px; }
+  .rr-t { font-size: 1.3rem; margin-bottom: 6px; }
+}
 </style>
 
 <canvas id="scene"></canvas>
+<div class="veil" aria-hidden="true"></div>
 <button id="showBar" class="showbar" type="button" hidden>Controls</button>
 <div class="loading" id="loading">Setting up the course…</div>
 
@@ -184,6 +243,11 @@ button:focus-visible { outline: 2px solid var(--cream-edge); outline-offset: 2px
   </div>
 </div>
 
+
+<!-- in the game: the racecard before the off, and the result after the line -->
+<div class="rc gone" id="rc" hidden><div class="rc-k" id="rcK"></div><div class="rc-t" id="rcT"></div><div class="rc-f" id="rcF"></div><div id="rcMeBox"></div></div>
+<div class="rr gone" id="rr" hidden><div class="rr-k" id="rrK"></div><div class="rr-t" id="rrT"></div><ol id="rrList"></ol><div class="rr-me" id="rrMe"></div>
+  <div class="rr-btns"><button type="button" id="rrReplay">Watch the replay</button><button type="button" id="rrBack">Back to the racecard</button><button type="button" class="go" id="rrNext" hidden>Next race</button></div></div>
 <script>
 // If the page can't start (an older browser, a blocked download), say so on screen instead of hanging, with
 // what to pass on. The module code below clears window.__started when it runs.
@@ -246,13 +310,16 @@ if (GP) {
 const toGame = (msg) => { if (GAME) parent.postMessage(msg, "*"); };
 
 // ---------- Data (all engine-neutral files) ----------
-const COURSE = await fetch("assets/course/ascot.json").then((r) => r.json());          // the layout (world axes)
-const VIEW = await fetch("assets/course/ascot-view.json").then((r) => r.json());        // cameras, director, paths, trees
+// The course is named (the game sends its meeting's course; ?course= on its own; Ascot by default): every course is the
+// same four files, assets/course/<course>.json, -view.json, -stalls.json and -standards.json.
+const COURSE_ID = (GP && GP.course) || (/^[a-z0-9-]+$/.test(params.get("course") || "") ? params.get("course") : "ascot");
+const COURSE = await fetch(`assets/course/${COURSE_ID}.json`).then((r) => r.json());          // the layout (world axes)
+const VIEW = await fetch(`assets/course/${COURSE_ID}-view.json`).then((r) => r.json());        // cameras, director, paths, trees
 const SILK_DATA = await fetch("assets/silks-catalogue.json").then((r) => r.json());
 const SILKS = SILK_DATA.silks;
 const silkFor = (i) => (GP && SILKS.find((s) => s.id === GP.runners[i].silk)) || SILKS[(i * 5 + 2) % SILKS.length];   // runner i (stall i + 1) wears these colours
 // Par times and the going (courses/ascot-standards.json, shared with the race engine): the dock's pace reading.
-const STANDARDS = await fetch("assets/course/ascot-standards.json").then((r) => r.json());
+const STANDARDS = await fetch(`assets/course/${COURSE_ID}-standards.json`).then((r) => r.json());
 const GOING = STANDARDS.going[params.get("going")] ? params.get("going") : "Good";
 const COATS = [
   { name: "Bay",      body: "#7a4a2a", points: "#1d1714" },
@@ -267,7 +334,7 @@ const RACE = VIEW.races[RACE_ID];
 const ROUND = RACE.course !== "straight";            // round course or round mile: the TV director's round-course rules
 // Where the stalls stand and each stall's draw (courses/ascot-stalls.json, tools/course/place_stalls.py); the race
 // engine reads the same file. The race starts as the gates open: race time 0, distance 0.
-const STALLS = await fetch("assets/course/ascot-stalls.json").then((r) => r.json());
+const STALLS = await fetch(`assets/course/${COURSE_ID}-stalls.json`).then((r) => r.json());
 const START = STALLS.starts[RACE.start];
 const PRE = VIEW.startSequence;
 document.getElementById("courseName").textContent = GP ? `${COURSE.name} · ${GP.title}` : COURSE.name + " · " + RACE.label.toLowerCase();
@@ -1443,14 +1510,18 @@ for (const [id, label] of [["v1", "v1 (current)"], ["v2", "v2 (new)"]]) {
   b.setAttribute("aria-pressed", id === HORSE_V);
 }
 const finEl = document.getElementById("finish");
-finEl.hidden = true;                          // no illustrated filter in this test
-const finButtons = [["painted", "Illustrated"], ["plain", "Plain 3D"]].map(([id, label]) => {
-  const b = button(finEl, label, () => { state.painted = id === "painted"; syncButtons(); }, "finish-" + id);
+// The finish: storybook (the game's grade, the default in the game) or the plain 3D picture. Remembered per browser.
+let storybook = (() => { try { const v = localStorage.getItem("tb-finish"); if (v) return v === "story"; } catch {} return GAME || params.get("finish") === "story"; })();
+if (params.get("finish") === "plain") storybook = false;
+finEl.hidden = !GAME && params.get("finish") !== "story";
+const finButtons = [["story", "Storybook"], ["plain", "Plain 3D"]].map(([id, label]) => {
+  const b = button(finEl, label, () => { storybook = id === "story"; try { localStorage.setItem("tb-finish", id); } catch {} syncButtons(); }, "finish-" + id);
   b.dataset.fin = id; return b;
 });
 function syncButtons() {
   camButtons.forEach((b) => b.setAttribute("aria-pressed", b.dataset.cam === state.cam));
-  finButtons.forEach((b) => b.setAttribute("aria-pressed", (b.dataset.fin === "painted") === state.painted));
+  finButtons.forEach((b) => b.setAttribute("aria-pressed", (b.dataset.fin === "story") === storybook));
+  document.documentElement.classList.toggle("story", storybook);
   post.uniforms.painted.value = state.painted ? 1 : 0;
 }
 syncButtons();
@@ -1559,7 +1630,7 @@ function setBar(on) {
 }
 document.getElementById("hideBar").onclick = () => setBar(false);
 showEl.onclick = () => setBar(true);
-try { if (localStorage.getItem("tb-bar") === "0" && !params.has("still")) setBar(false); } catch {}
+try { if ((localStorage.getItem("tb-bar") === "0" || (GAME && localStorage.getItem("tb-bar") !== "1")) && !params.has("still")) setBar(false); } catch {}
 document.getElementById("restart").onclick = () => { gatesAt = -1; state.phase = "prelude"; state.pt = 0; state.t = 0; snap = true; live.length = 0; };
 
 function resize() {
@@ -1870,6 +1941,56 @@ const DOCK = (() => {
   };
 })();
 
+
+// ---------- In the game: the racecard before the off, the result after the line ----------
+// (the game's own panels, in its dress; they only read the race card and the engine's result)
+const GAMEUI = (() => {
+  if (!GP) return { update() {} };
+  const $ = (id) => document.getElementById(id), rc = $("rc"), rr = $("rr");
+  const esc = (v) => String(v == null ? "" : v).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+  const ord = (n) => n + (n % 10 === 1 && n % 100 !== 11 ? "st" : n % 10 === 2 && n % 100 !== 12 ? "nd" : n % 10 === 3 && n % 100 !== 13 ? "rd" : "th");
+  const pounds = (v) => "£" + Math.round(v).toLocaleString("en-GB");
+  const lengthsText = (x) => {                                       // winning margins as racing reads them (as the game)
+    if (x == null) return "";
+    if (x < 0.05) return "a dead heat"; if (x < 0.15) return "a nose"; if (x < 0.25) return "a short head"; if (x < 0.4) return "a head"; if (x < 0.65) return "a neck";
+    if (x >= 30) return "a distance";
+    const q = Math.round(x * 4) / 4, w = Math.floor(q), f = q - w, fr = f === 0.25 ? "¼" : f === 0.5 ? "½" : f === 0.75 ? "¾" : "";
+    return (w ? w + fr : fr) + (q > 1 ? " lengths" : " length");
+  };
+  const STYLE = { front: "Front-runner", prominent: "Prominent", midfield: "Midfield", holdup: "Hold-up" };
+  const C = GP.card || {}, me = CARD.findIndex((h) => h.mine), icon = (i) => `assets/silks-icons/${silkFor(i).id}.png`;
+  rc.hidden = false; rr.hidden = false;
+  document.querySelector(".plate h1").textContent = C.meeting || COURSE.name;
+  document.getElementById("courseName").textContent = GP.title || RACE.label;
+  $("rcK").textContent = GP.kicker || "";
+  $("rcT").textContent = GP.title || RACE.label;
+  $("rcF").innerHTML = [C.dist || RACE.label, esc(C.conditions), `Going <b>${GOING}</b>`, `<b>${CARD.length}</b> runners`, C.prizes ? `1st <b>${pounds(C.prizes[0])}</b>` : ""].filter(Boolean).join(" · ");
+  $("rcMeBox").innerHTML = me >= 0
+    ? `<div class="rc-me"><img alt="" src="${icon(me)}"><span><b>${esc(CARD[me].name)}</b><small>Your runner · stall ${me + 1}${CARD[me].style ? " · " + STYLE[CARD[me].style] : ""}</small></span></div>`
+    : `<div class="rc-me"><span><small>You have no runner in this race</small></span></div>`;
+  const placed = RESULT.placed, pos = me >= 0 ? placed.findIndex((q) => q.runner === me) + 1 : 0, nm = me >= 0 ? esc(CARD[me].name) : "";
+  const row = (q, k) => `<li class="${q.runner === me ? "mine" : ""}"><span class="p">${ord(k + 1)}</span><img src="${icon(q.runner)}" alt=""><b>${esc(CARD[q.runner].name)}</b><i>${k === 0 ? (placed[1] ? "won by " + lengthsText(placed[1].margin) : "") : lengthsText(q.margin)}</i></li>`;
+  $("rrK").textContent = "The result · " + (C.meeting || COURSE.name);
+  $("rrT").textContent = GP.title || RACE.label;
+  $("rrList").innerHTML = placed.slice(0, 4).map(row).join("") + (pos > 4 ? row(placed[pos - 1], pos - 1).replace(/<i>.*<\/i>/, `<i>beaten ${lengthsText(placed[pos - 1].behind)}</i>`) : "");
+  const prize = pos >= 1 && pos <= 4 && C.prizes ? C.prizes[pos - 1] : 0;
+  $("rrMe").className = "rr-me" + (pos === 1 ? " won" : "");
+  $("rrMe").innerHTML = me < 0 ? "You had no runner in this race."
+    : pos === 1 ? `<b>You've won!</b> ${nm} takes the ${esc(GP.title)}${prize ? `: ${pounds(prize)}` : ""}.`
+    : pos <= 4 ? `${nm} finishes <b>${ord(pos)}</b>${prize ? `, worth <b>${pounds(prize)}</b>` : ""}.`
+    : `${nm} finishes ${ord(pos)} of ${CARD.length}, beaten ${lengthsText(placed[pos - 1].behind)}.`;
+  $("rrNext").hidden = !C.next; $("rrNext").textContent = C.next ? `Next: ${C.next}` : "";
+  let dismissed = false;
+  $("rrReplay").onclick = () => { dismissed = true; state.phase = "replay"; state.pt = 0; state.t = REPLAY[0]; snap = true; live.length = 0; };
+  $("rrBack").onclick = () => toGame({ type: "back" });
+  $("rrNext").onclick = () => toGame({ type: "next" });
+  return { update(phase, t) {
+    rc.classList.toggle("gone", !(phase === "prelude" || phase === "stalls"));
+    if (phase === "replay") dismissed = true;
+    rr.classList.toggle("gone", !((phase === "race" && t > T_FINISH + 1.6 && !dismissed) || phase === "postlude"));
+  } };
+})();
+
 // ---------- Loop ----------
 const toRunEl = document.getElementById("toRun"), toRunLabel = document.querySelector(".togo span");
 const clock = new THREE.Clock();
@@ -1889,7 +2010,7 @@ function frame() {
     else if (state.phase === "stalls") { if (state.pt > PRE.standSeconds) { state.phase = "race"; state.pt = 0; state.t = 0; } }   // the off: no cut
     else if (state.phase === "race") { state.t += dt; if (GAME && !sentFinish && state.t > T_FINISH) { sentFinish = true; toGame({ type: "finished", order: RESULT.placed.map((p) => CARD[p.runner].id) }); } if (state.t > T_END) { state.phase = "replay"; state.pt = 0; state.t = REPLAY[0]; snap = true; live.length = 0; } }
     else if (state.phase === "replay") { state.t += step; if (state.t > REPLAY[1]) { state.phase = "postlude"; state.pt = 0; state.t = T_END; snap = true; } }
-    else if (state.phase === "postlude" && state.pt > SET.postlude.seconds) { state.phase = "prelude"; state.pt = 0; state.t = 0; snap = true; live.length = 0; }
+    else if (state.phase === "postlude" && state.pt > SET.postlude.seconds) { if (GAME) state.pt = SET.postlude.seconds; else { state.phase = "prelude"; state.pt = 0; state.t = 0; snap = true; live.length = 0; } }
   }
   const now = sample(state.t);
   let leader = -1e9, leaderZ = MID_Z, sum = 0, leaderXw = 0;
@@ -1958,6 +2079,7 @@ function frame() {
     : left < 1 ? Math.round(left * 220) + " yds" : left.toFixed(1).replace(/\.0$/, "") + "f";
   toRunLabel.hidden = left <= 0 || state.phase === "prelude" || state.phase === "stalls" || state.phase === "replay";
   DOCK.update(now, state.t, state.phase);
+  GAMEUI.update(state.phase, state.t);
 
   const every = QUALITY[qLevel].shadowEvery;
   sun.shadow.autoUpdate = every === 1;
