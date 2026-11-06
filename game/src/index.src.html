@@ -6,7 +6,7 @@
 <link rel="stylesheet" href="css/game.css">
 <script async src="https://cdn.jsdelivr.net/npm/es-module-shims@1.10.0/dist/es-module-shims.js"></script>
 <script type="importmap">{ "imports": { "three": "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js", "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/" } }</script>
-<script>document.documentElement.lang = "en-GB"; document.documentElement.style.setProperty("--horse", "url(\"%%HORSE%%\")");</script>
+<script>document.documentElement.lang = "en-GB"; if (matchMedia("(pointer: coarse)").matches || Math.min(screen.width, screen.height) < 700) document.documentElement.classList.add("lite"); document.documentElement.style.setProperty("--horse", "url(\"%%HORSE%%\")");</script>
 <!-- Thoroughbred Ascot: one game. The Newmarket board is home; each step of the season is a place on it, and its
      screens open as sheets over the board. Race week is at Ascot, watched in the 3D race view. -->
 

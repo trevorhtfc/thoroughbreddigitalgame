@@ -8,6 +8,8 @@
 // =====================================================================================================================
 (() => {
 const REDUCED = matchMedia("(prefers-reduced-motion: reduce)").matches;
+// phones and tablets ("lite"): the board runs at 30 frames a second, stops altogether under a sheet, and doesn't lean
+const LITE = document.documentElement.classList.contains("lite");
 const MW = 1448, MH = 1086;
 const svgNS = "http://www.w3.org/2000/svg";
 const $id = (id) => document.getElementById(id);
@@ -527,8 +529,8 @@ fetch(BASE + "atmos.json").then((r) => r.json()).then((a) => {
 const lean = $id("lean");
 function leanTo(id) {
   const p = id && placeOf(id);
-  if (!p || REDUCED || API.covered) { lean.style.transform = ""; return; }
-  panTo(id);
+  if (p && !API.covered) panTo(id);                                // a phone slides the board to the place, lean or no lean
+  if (!p || REDUCED || LITE || API.covered) { lean.style.transform = ""; return; }
   const vr = view.getBoundingClientRect(), hr = holder.getBoundingClientRect();
   const px = hr.left - vr.left + p.at[0] * scale, py = hr.top - vr.top + p.at[1] * scale;
   const phone = innerWidth <= 640, tx = phone ? vr.width / 2 : 370 + (vr.width - 370) / 2, ty = phone ? vr.height * 0.3 : vr.height * 0.52;
@@ -843,7 +845,10 @@ stage.appendChild(racesBtn); racesBtn.style.left = RACES_AT[0] + "px"; racesBtn.
 const frameHooks = [];
 let last = performance.now(), clockT = 0, skyT = 0, slowT = 0;
 function frame(now) {
-  const raw = Math.min((now - last) / 1000, 0.1); last = now;
+  const raw = Math.min((now - last) / 1000, 0.1);
+  if (LITE && (API.covered || document.hidden)) { last = now; requestAnimationFrame(frame); return; }   // a phone's sheet fills the screen
+  if (LITE && now - last < 31) { requestAnimationFrame(frame); return; }
+  last = now;
   if (API.covered) { slowT += raw; if (slowT < 0.25) { requestAnimationFrame(frame); return; } }
   const dt = API.covered ? Math.min(slowT, 0.3) : raw; slowT = 0;
   clockT += dt; const t = clockT;

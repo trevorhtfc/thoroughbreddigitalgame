@@ -426,3 +426,11 @@ button{font:inherit;cursor:pointer;color:inherit}
   .menu-go{background:linear-gradient(180deg,rgba(9,20,16,0),rgba(9,20,16,.97) 18px)}
   .menu-go .tb-btn.ghost{background:#0f1c17}
 }
+
+/* phones and tablets ("lite", set in the page's head): no blurred, animated glows on the board (a phone redraws the blur
+   every frame), and nothing on the board is drawn while a sheet covers it */
+.lite #glow .halo,.lite #glow .rim,.lite #glow .spark,.lite .trail .t-glow{filter:none}
+.lite #glow .halo{stroke-width:7;opacity:.18} .lite #glow .site.st-next .halo{stroke-width:9;opacity:.4} .lite #glow .site.hot .halo{stroke-width:10;opacity:.5}
+.lite #glow .site .rim,.lite #glow .site.st-next .halo{animation:none}
+.lite body.sheet-open #view,.lite body.sheet-open #races{visibility:hidden}
+.lite body.sheet-open #glow *{animation-play-state:paused}

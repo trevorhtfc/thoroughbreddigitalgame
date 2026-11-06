@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+<script>if (matchMedia("(pointer: coarse)").matches || Math.min(screen.width, screen.height) < 700) document.documentElement.classList.add("lite");</script>
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -39,6 +40,9 @@ body{display:flex;align-items:center;justify-content:center;font-family:"Figtree
 @keyframes markPulse{0%,100%{opacity:.88}50%{opacity:1}}
 .idle #wordmark{animation:markPulse 2.6s ease-in-out infinite}
 @media (prefers-reduced-motion: reduce){.idle #ripple path,.idle #wordmark{animation:none}}
+/* phones and tablets: no SVG filters and no shadow on the flipping faces; a phone redraws them every frame */
+.lite .face{filter:none}
+.lite svg *{filter:none!important}
 </style>
 </head>
 <body>
@@ -512,9 +516,9 @@ async function flash(peak,F=$("flash")){ await tween(140,p=>F.setAttribute("opac
 async function shine(){ const S=$("shine"); set(S,{opacity:1}); await tween(1100,p=>S.setAttribute("x",-900+p*2700),ease.inOut); set(S,{opacity:0}); }
 
 const cv=$("sparks"), cx2=cv.getContext("2d"); let parts=[], sparkRAF=null;
-function sizeCanvas(){ const r=cv.getBoundingClientRect(), d=devicePixelRatio||1; cv.width=r.width*d; cv.height=r.height*d; }
+function sizeCanvas(){ const r=cv.getBoundingClientRect(), d=Math.min(devicePixelRatio||1, 2); cv.width=r.width*d; cv.height=r.height*d; }
 function burst(n,palette){
-  sizeCanvas(); const r=cv.getBoundingClientRect(), d=devicePixelRatio||1;
+  sizeCanvas(); const r=cv.getBoundingClientRect(), d=Math.min(devicePixelRatio||1, 2);
   const s=(r.width/1.24)/1500, ox=r.width*(0.12/1.24), oy=r.height*(0.12/1.24);
   for(let i=0;i<n;i++){
     const pt=$("streakHead").getPointAtLength(Math.random()*streakLen);
@@ -527,7 +531,7 @@ function star4(x,y,s,rot){ cx2.save(); cx2.translate(x,y); cx2.rotate(rot); cx2.
 function tick(){
   cx2.clearRect(0,0,cv.width,cv.height); cx2.globalCompositeOperation="lighter";
   parts=parts.filter(p=>p.life<p.max);
-  for(const p of parts){ p.life++; p.x+=p.vx; p.y+=p.vy; p.vy+=0.035*(devicePixelRatio||1); p.vx*=.985; p.rot+=.08;
+  for(const p of parts){ p.life++; p.x+=p.vx; p.y+=p.vy; p.vy+=0.035*Math.min(devicePixelRatio||1, 2); p.vx*=.985; p.rot+=.08;
     cx2.globalAlpha=Math.sin(Math.PI*p.life/p.max)*(0.6+0.4*Math.sin(p.life*.6)); cx2.fillStyle=p.c; star4(p.x,p.y,p.size,p.rot); }
   cx2.globalAlpha=1; sparkRAF=parts.length?requestAnimationFrame(tick):(cx2.clearRect(0,0,cv.width,cv.height),null);
 }
