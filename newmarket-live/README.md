@@ -10,7 +10,8 @@ Live: https://claude.ai/artifact/NnTToGjuhfCXvDK4fWkeMF
 ## The places
 Each place's lit outline is the owner's own line (`markup/sites-markup.jpg`, `markup/sites-markup-2.jpg`), refined
 by `tools/refine_sites.py`: the pen's wobble evened out, and the line settled onto a roof edge only where one lies
-within 6 pixels of it (never more). An earlier version that traced the buildings outright ignored the markup in
+within 6 pixels of it (never more), then straightened into clean runs between corners (never more than about
+5 pixels off the refined line). An earlier version that traced the buildings outright ignored the markup in
 places and was dropped at the owner's request; `tools/tight_sites.py` is kept only for reference.
 
 ## What moves (the owner's route markup, `markup/routes-markup.jpg`)

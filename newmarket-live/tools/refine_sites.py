@@ -8,6 +8,7 @@ import cv2, numpy as np, json, sys
 from pathlib import Path
 here = Path(__file__).resolve().parent.parent
 SNAP, STEP = 6.0, 3.0
+EPS = {"warren": 5.5}
 im = cv2.imread(str(here / "assets/newmarket-board.webp")); H, W = im.shape[:2]
 # buildings: the occlusion pass's things, without the greenery, big enough to be buildings
 o = cv2.imread(str(here / "assets/occlusion.png")); obj = ((o[..., 1].astype(int) + o[..., 2].astype(int) * 256) > 0)
@@ -44,8 +45,9 @@ for s in sites:
         off *= np.clip(wgt * 1.6, 0, 1)[:, None] / np.maximum(wgt, 1e-3)[:, None] * np.minimum(wgt, 1)[:, None]
         mag = np.hypot(off[:, 0], off[:, 1]); off *= np.minimum(1, SNAP / np.maximum(mag, 1e-6))[:, None]
     q = p + off
-    q = cv2.approxPolyDP(q.astype(np.float32).reshape(-1, 1, 2), 0.8, True).reshape(-1, 2)
-    out.append({"id": s["id"], "poly": [[round(float(a), 1), round(float(b), 1)] for a, b in q], "sharp": False})
+    # straighten: long straight runs between corners, never more than EPS from the refined line (the owner's call)
+    q = cv2.approxPolyDP(q.astype(np.float32).reshape(-1, 1, 2), EPS.get(s["id"], 4.5), True).reshape(-1, 2)
+    out.append({"id": s["id"], "poly": [[round(float(a), 1), round(float(b), 1)] for a, b in q], "sharp": True})
     print(s["id"], "points", len(q), "snapped share", round(float((wgt > 0.5).mean()), 2), "largest move", round(float(np.hypot(*off.T).max()), 1))
 json.dump(out, open(here / "markup/sites-tight.json", "w"))
 if len(sys.argv) > 1:
