@@ -4714,49 +4714,184 @@
     "back": 63.4
    },
    {
-    "module": "veranda_wing",
+    "module": "terrace_stand",
     "mirror": false,
-    "bays": 4,
+    "bays": 1,
     "xEast": 377.0,
+    "xWest": 373.5,
+    "front": 45.4,
+    "back": 63.4
+   },
+   {
+    "module": "terrace_stand",
+    "mirror": false,
+    "bays": 1,
+    "xEast": 373.5,
+    "xWest": 370.0,
+    "front": 45.4,
+    "back": 63.4
+   },
+   {
+    "module": "terrace_stand",
+    "mirror": false,
+    "bays": 1,
+    "xEast": 370.0,
+    "xWest": 366.5,
+    "front": 45.4,
+    "back": 63.4
+   },
+   {
+    "module": "terrace_stand",
+    "mirror": false,
+    "bays": 1,
+    "xEast": 366.5,
     "xWest": 363.0,
     "front": 45.4,
-    "back": 65.4
+    "back": 63.4
    },
    {
-    "module": "veranda_wing",
+    "module": "terrace_stand",
     "mirror": false,
-    "bays": 4,
+    "bays": 1,
     "xEast": 363.0,
+    "xWest": 359.5,
+    "front": 45.4,
+    "back": 63.4
+   },
+   {
+    "module": "terrace_stand",
+    "mirror": false,
+    "bays": 1,
+    "xEast": 359.5,
+    "xWest": 356.0,
+    "front": 45.4,
+    "back": 63.4
+   },
+   {
+    "module": "terrace_stand",
+    "mirror": false,
+    "bays": 1,
+    "xEast": 356.0,
+    "xWest": 352.5,
+    "front": 45.4,
+    "back": 63.4
+   },
+   {
+    "module": "terrace_stand",
+    "mirror": false,
+    "bays": 1,
+    "xEast": 352.5,
     "xWest": 349.0,
     "front": 45.4,
-    "back": 65.4
+    "back": 63.4
    },
    {
-    "module": "veranda_wing_raised",
+    "module": "terrace_stand",
     "mirror": false,
-    "bays": 4,
+    "bays": 1,
     "xEast": 349.0,
+    "xWest": 345.5,
+    "front": 45.4,
+    "back": 63.4
+   },
+   {
+    "module": "terrace_stand",
+    "mirror": false,
+    "bays": 1,
+    "xEast": 345.5,
+    "xWest": 342.0,
+    "front": 45.4,
+    "back": 63.4
+   },
+   {
+    "module": "terrace_stand",
+    "mirror": false,
+    "bays": 1,
+    "xEast": 342.0,
+    "xWest": 338.5,
+    "front": 45.4,
+    "back": 63.4
+   },
+   {
+    "module": "terrace_stand",
+    "mirror": false,
+    "bays": 1,
+    "xEast": 338.5,
     "xWest": 335.0,
     "front": 45.4,
-    "back": 65.4
+    "back": 63.4
    },
    {
-    "module": "veranda_wing_raised",
+    "module": "terrace_stand",
     "mirror": false,
-    "bays": 4,
+    "bays": 1,
     "xEast": 335.0,
+    "xWest": 331.5,
+    "front": 45.4,
+    "back": 63.4
+   },
+   {
+    "module": "terrace_stand",
+    "mirror": false,
+    "bays": 1,
+    "xEast": 331.5,
+    "xWest": 328.0,
+    "front": 45.4,
+    "back": 63.4
+   },
+   {
+    "module": "terrace_stand",
+    "mirror": false,
+    "bays": 1,
+    "xEast": 328.0,
+    "xWest": 324.5,
+    "front": 45.4,
+    "back": 63.4
+   },
+   {
+    "module": "terrace_stand",
+    "mirror": false,
+    "bays": 1,
+    "xEast": 324.5,
     "xWest": 321.0,
     "front": 45.4,
-    "back": 65.4
+    "back": 63.4
    },
    {
-    "module": "veranda_wing_raised",
+    "module": "terrace_stand",
     "mirror": false,
-    "bays": 4,
+    "bays": 1,
     "xEast": 321.0,
+    "xWest": 317.5,
+    "front": 45.4,
+    "back": 63.4
+   },
+   {
+    "module": "terrace_stand",
+    "mirror": false,
+    "bays": 1,
+    "xEast": 317.5,
+    "xWest": 314.0,
+    "front": 45.4,
+    "back": 63.4
+   },
+   {
+    "module": "terrace_stand",
+    "mirror": false,
+    "bays": 1,
+    "xEast": 314.0,
+    "xWest": 310.5,
+    "front": 45.4,
+    "back": 63.4
+   },
+   {
+    "module": "terrace_stand",
+    "mirror": false,
+    "bays": 1,
+    "xEast": 310.5,
     "xWest": 307.0,
     "front": 45.4,
-    "back": 65.4
+    "back": 63.4
    },
    {
     "module": "stair_bay",
@@ -4768,58 +4903,220 @@
     "back": 65.4
    },
    {
-    "module": "window_block",
+    "module": "terrace_stand",
     "mirror": false,
-    "bays": 6,
+    "bays": 1,
     "xEast": 303.5,
-    "xWest": 282.5,
+    "xWest": 300.0,
     "front": 45.4,
-    "back": 67.4
+    "back": 63.4
    },
    {
-    "module": "link",
+    "module": "terrace_stand",
     "mirror": false,
-    "bays": 2,
+    "bays": 1,
+    "xEast": 300.0,
+    "xWest": 296.5,
+    "front": 45.4,
+    "back": 63.4
+   },
+   {
+    "module": "terrace_stand",
+    "mirror": false,
+    "bays": 1,
+    "xEast": 296.5,
+    "xWest": 293.0,
+    "front": 45.4,
+    "back": 63.4
+   },
+   {
+    "module": "terrace_stand",
+    "mirror": false,
+    "bays": 1,
+    "xEast": 293.0,
+    "xWest": 289.5,
+    "front": 45.4,
+    "back": 63.4
+   },
+   {
+    "module": "terrace_stand",
+    "mirror": false,
+    "bays": 1,
+    "xEast": 289.5,
+    "xWest": 286.0,
+    "front": 45.4,
+    "back": 63.4
+   },
+   {
+    "module": "terrace_stand",
+    "mirror": false,
+    "bays": 1,
+    "xEast": 286.0,
+    "xWest": 282.5,
+    "front": 45.4,
+    "back": 63.4
+   },
+   {
+    "module": "terrace_stand",
+    "mirror": false,
+    "bays": 1,
     "xEast": 282.5,
+    "xWest": 279.0,
+    "front": 45.4,
+    "back": 63.4
+   },
+   {
+    "module": "terrace_stand",
+    "mirror": false,
+    "bays": 1,
+    "xEast": 279.0,
     "xWest": 275.5,
     "front": 45.4,
     "back": 63.4
    },
    {
-    "module": "veranda_wing",
+    "module": "terrace_stand",
     "mirror": false,
-    "bays": 4,
+    "bays": 1,
     "xEast": 275.5,
+    "xWest": 272.0,
+    "front": 45.4,
+    "back": 63.4
+   },
+   {
+    "module": "terrace_stand",
+    "mirror": false,
+    "bays": 1,
+    "xEast": 272.0,
+    "xWest": 268.5,
+    "front": 45.4,
+    "back": 63.4
+   },
+   {
+    "module": "terrace_stand",
+    "mirror": false,
+    "bays": 1,
+    "xEast": 268.5,
+    "xWest": 265.0,
+    "front": 45.4,
+    "back": 63.4
+   },
+   {
+    "module": "terrace_stand",
+    "mirror": false,
+    "bays": 1,
+    "xEast": 265.0,
     "xWest": 261.5,
     "front": 45.4,
-    "back": 65.4
+    "back": 63.4
    },
    {
-    "module": "veranda_wing",
+    "module": "terrace_stand",
     "mirror": false,
-    "bays": 4,
+    "bays": 1,
     "xEast": 261.5,
+    "xWest": 258.0,
+    "front": 45.4,
+    "back": 63.4
+   },
+   {
+    "module": "terrace_stand",
+    "mirror": false,
+    "bays": 1,
+    "xEast": 258.0,
+    "xWest": 254.5,
+    "front": 45.4,
+    "back": 63.4
+   },
+   {
+    "module": "terrace_stand",
+    "mirror": false,
+    "bays": 1,
+    "xEast": 254.5,
+    "xWest": 251.0,
+    "front": 45.4,
+    "back": 63.4
+   },
+   {
+    "module": "terrace_stand",
+    "mirror": false,
+    "bays": 1,
+    "xEast": 251.0,
     "xWest": 247.5,
     "front": 45.4,
-    "back": 65.4
+    "back": 63.4
    },
    {
-    "module": "veranda_wing",
+    "module": "terrace_stand",
     "mirror": false,
-    "bays": 4,
+    "bays": 1,
     "xEast": 247.5,
+    "xWest": 244.0,
+    "front": 45.4,
+    "back": 63.4
+   },
+   {
+    "module": "terrace_stand",
+    "mirror": false,
+    "bays": 1,
+    "xEast": 244.0,
+    "xWest": 240.5,
+    "front": 45.4,
+    "back": 63.4
+   },
+   {
+    "module": "terrace_stand",
+    "mirror": false,
+    "bays": 1,
+    "xEast": 240.5,
+    "xWest": 237.0,
+    "front": 45.4,
+    "back": 63.4
+   },
+   {
+    "module": "terrace_stand",
+    "mirror": false,
+    "bays": 1,
+    "xEast": 237.0,
     "xWest": 233.5,
     "front": 45.4,
-    "back": 65.4
+    "back": 63.4
    },
    {
-    "module": "veranda_wing",
+    "module": "terrace_stand",
     "mirror": false,
-    "bays": 4,
+    "bays": 1,
     "xEast": 233.5,
+    "xWest": 230.0,
+    "front": 45.4,
+    "back": 63.4
+   },
+   {
+    "module": "terrace_stand",
+    "mirror": false,
+    "bays": 1,
+    "xEast": 230.0,
+    "xWest": 226.5,
+    "front": 45.4,
+    "back": 63.4
+   },
+   {
+    "module": "terrace_stand",
+    "mirror": false,
+    "bays": 1,
+    "xEast": 226.5,
+    "xWest": 223.0,
+    "front": 45.4,
+    "back": 63.4
+   },
+   {
+    "module": "terrace_stand",
+    "mirror": false,
+    "bays": 1,
+    "xEast": 223.0,
     "xWest": 219.5,
     "front": 45.4,
-    "back": 65.4
+    "back": 63.4
    },
    {
     "module": "stair_bay",
@@ -4858,13 +5155,31 @@
     "back": 71.4
    },
    {
-    "module": "three_storey_block",
+    "module": "terrace_stand",
     "mirror": false,
-    "bays": 3,
+    "bays": 1,
     "xEast": 153.0,
+    "xWest": 149.5,
+    "front": 45.4,
+    "back": 63.4
+   },
+   {
+    "module": "terrace_stand",
+    "mirror": false,
+    "bays": 1,
+    "xEast": 149.5,
+    "xWest": 146.0,
+    "front": 45.4,
+    "back": 63.4
+   },
+   {
+    "module": "terrace_stand",
+    "mirror": false,
+    "bays": 1,
+    "xEast": 146.0,
     "xWest": 142.5,
     "front": 45.4,
-    "back": 65.4
+    "back": 63.4
    },
    {
     "module": "ironwork_bay",
@@ -4876,13 +5191,58 @@
     "back": 65.4
    },
    {
-    "module": "window_block",
+    "module": "terrace_stand",
     "mirror": false,
-    "bays": 6,
+    "bays": 1,
     "xEast": 128.5,
+    "xWest": 125.0,
+    "front": 45.4,
+    "back": 63.4
+   },
+   {
+    "module": "terrace_stand",
+    "mirror": false,
+    "bays": 1,
+    "xEast": 125.0,
+    "xWest": 121.5,
+    "front": 45.4,
+    "back": 63.4
+   },
+   {
+    "module": "terrace_stand",
+    "mirror": false,
+    "bays": 1,
+    "xEast": 121.5,
+    "xWest": 118.0,
+    "front": 45.4,
+    "back": 63.4
+   },
+   {
+    "module": "terrace_stand",
+    "mirror": false,
+    "bays": 1,
+    "xEast": 118.0,
+    "xWest": 114.5,
+    "front": 45.4,
+    "back": 63.4
+   },
+   {
+    "module": "terrace_stand",
+    "mirror": false,
+    "bays": 1,
+    "xEast": 114.5,
+    "xWest": 111.0,
+    "front": 45.4,
+    "back": 63.4
+   },
+   {
+    "module": "terrace_stand",
+    "mirror": false,
+    "bays": 1,
+    "xEast": 111.0,
     "xWest": 107.5,
     "front": 45.4,
-    "back": 67.4
+    "back": 63.4
    },
    {
     "module": "stair_bay",
@@ -4894,49 +5254,184 @@
     "back": 65.4
    },
    {
-    "module": "veranda_wing",
+    "module": "terrace_stand",
     "mirror": false,
-    "bays": 4,
+    "bays": 1,
     "xEast": 104.0,
+    "xWest": 100.5,
+    "front": 45.4,
+    "back": 63.4
+   },
+   {
+    "module": "terrace_stand",
+    "mirror": false,
+    "bays": 1,
+    "xEast": 100.5,
+    "xWest": 97.0,
+    "front": 45.4,
+    "back": 63.4
+   },
+   {
+    "module": "terrace_stand",
+    "mirror": false,
+    "bays": 1,
+    "xEast": 97.0,
+    "xWest": 93.5,
+    "front": 45.4,
+    "back": 63.4
+   },
+   {
+    "module": "terrace_stand",
+    "mirror": false,
+    "bays": 1,
+    "xEast": 93.5,
     "xWest": 90.0,
     "front": 45.4,
-    "back": 65.4
+    "back": 63.4
    },
    {
-    "module": "veranda_wing",
+    "module": "terrace_stand",
     "mirror": false,
-    "bays": 4,
+    "bays": 1,
     "xEast": 90.0,
+    "xWest": 86.5,
+    "front": 45.4,
+    "back": 63.4
+   },
+   {
+    "module": "terrace_stand",
+    "mirror": false,
+    "bays": 1,
+    "xEast": 86.5,
+    "xWest": 83.0,
+    "front": 45.4,
+    "back": 63.4
+   },
+   {
+    "module": "terrace_stand",
+    "mirror": false,
+    "bays": 1,
+    "xEast": 83.0,
+    "xWest": 79.5,
+    "front": 45.4,
+    "back": 63.4
+   },
+   {
+    "module": "terrace_stand",
+    "mirror": false,
+    "bays": 1,
+    "xEast": 79.5,
     "xWest": 76.0,
     "front": 45.4,
-    "back": 65.4
+    "back": 63.4
    },
    {
-    "module": "veranda_wing_raised",
+    "module": "terrace_stand",
     "mirror": false,
-    "bays": 4,
+    "bays": 1,
     "xEast": 76.0,
+    "xWest": 72.5,
+    "front": 45.4,
+    "back": 63.4
+   },
+   {
+    "module": "terrace_stand",
+    "mirror": false,
+    "bays": 1,
+    "xEast": 72.5,
+    "xWest": 69.0,
+    "front": 45.4,
+    "back": 63.4
+   },
+   {
+    "module": "terrace_stand",
+    "mirror": false,
+    "bays": 1,
+    "xEast": 69.0,
+    "xWest": 65.5,
+    "front": 45.4,
+    "back": 63.4
+   },
+   {
+    "module": "terrace_stand",
+    "mirror": false,
+    "bays": 1,
+    "xEast": 65.5,
     "xWest": 62.0,
     "front": 45.4,
-    "back": 65.4
+    "back": 63.4
    },
    {
-    "module": "veranda_wing_raised",
+    "module": "terrace_stand",
     "mirror": false,
-    "bays": 4,
+    "bays": 1,
     "xEast": 62.0,
+    "xWest": 58.5,
+    "front": 45.4,
+    "back": 63.4
+   },
+   {
+    "module": "terrace_stand",
+    "mirror": false,
+    "bays": 1,
+    "xEast": 58.5,
+    "xWest": 55.0,
+    "front": 45.4,
+    "back": 63.4
+   },
+   {
+    "module": "terrace_stand",
+    "mirror": false,
+    "bays": 1,
+    "xEast": 55.0,
+    "xWest": 51.5,
+    "front": 45.4,
+    "back": 63.4
+   },
+   {
+    "module": "terrace_stand",
+    "mirror": false,
+    "bays": 1,
+    "xEast": 51.5,
     "xWest": 48.0,
     "front": 45.4,
-    "back": 65.4
+    "back": 63.4
    },
    {
-    "module": "veranda_wing_raised",
+    "module": "terrace_stand",
     "mirror": false,
-    "bays": 4,
+    "bays": 1,
     "xEast": 48.0,
+    "xWest": 44.5,
+    "front": 45.4,
+    "back": 63.4
+   },
+   {
+    "module": "terrace_stand",
+    "mirror": false,
+    "bays": 1,
+    "xEast": 44.5,
+    "xWest": 41.0,
+    "front": 45.4,
+    "back": 63.4
+   },
+   {
+    "module": "terrace_stand",
+    "mirror": false,
+    "bays": 1,
+    "xEast": 41.0,
+    "xWest": 37.5,
+    "front": 45.4,
+    "back": 63.4
+   },
+   {
+    "module": "terrace_stand",
+    "mirror": false,
+    "bays": 1,
+    "xEast": 37.5,
     "xWest": 34.0,
     "front": 45.4,
-    "back": 65.4
+    "back": 63.4
    },
    {
     "module": "stair_bay",
@@ -4948,10 +5443,19 @@
     "back": 65.4
    },
    {
-    "module": "link",
+    "module": "terrace_stand",
     "mirror": false,
-    "bays": 2,
+    "bays": 1,
     "xEast": 30.5,
+    "xWest": 27.0,
+    "front": 45.4,
+    "back": 63.4
+   },
+   {
+    "module": "terrace_stand",
+    "mirror": false,
+    "bays": 1,
+    "xEast": 27.0,
     "xWest": 23.5,
     "front": 45.4,
     "back": 63.4
@@ -4966,13 +5470,31 @@
     "back": 67.4
    },
    {
-    "module": "three_storey_block",
+    "module": "terrace_stand",
     "mirror": false,
-    "bays": 3,
+    "bays": 1,
     "xEast": -11.5,
+    "xWest": -15.0,
+    "front": 45.4,
+    "back": 63.4
+   },
+   {
+    "module": "terrace_stand",
+    "mirror": false,
+    "bays": 1,
+    "xEast": -15.0,
+    "xWest": -18.5,
+    "front": 45.4,
+    "back": 63.4
+   },
+   {
+    "module": "terrace_stand",
+    "mirror": false,
+    "bays": 1,
+    "xEast": -18.5,
     "xWest": -22.0,
     "front": 45.4,
-    "back": 65.4
+    "back": 63.4
    },
    {
     "module": "stair_bay",

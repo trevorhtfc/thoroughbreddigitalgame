@@ -1,74 +1,186 @@
 {
-  "_about": "Catalogue of grandstand modules: a kit of traditional stand sections at one scale, snapping together along a shared front line. Read by the course layout tool (footprints) and, next, by tools/blender/build_stand_modules.py (geometry, using tools/blender/kit.py). Metres. Every module is a whole number of 3.5 m bays long, sits on the same 3.0 m podium with 3.5 m storeys, and has its front face on the shared front line (local z = 0, depth runs back). Left and right are as seen from the track. 'ends' says how each end meets its neighbour: 'party' = shared wall, hidden by the next module; 'finished' = a dressed end elevation (only end pavilions); 'stepped' = the tiers step down so a lower neighbour reads cleanly. Sources: S1 = reference/architecture/victorian-grandstand-sheet.png (the stand already built), S2 = reference/architecture/victorian-grandstand-sheet-300m.png.",
-  "bay": 3.5,
-  "storey": 3.5,
-  "podium": 3.0,
-  "modules": {
-    "end_pavilion": {
-      "bays": 4, "depth": 16, "tiers": 2, "height": 15.5, "roof": "hip with cupola",
-      "ends": {"outer": "finished", "inner": "party"}, "mirrorable": true,
-      "source": "S2 both ends: two-tier veranda pavilion, wraparound balcony, hipped roof, small square cupola"
-    },
-    "porch": {
-      "bays": 2, "depth": 9, "tiers": 1, "height": 7.5, "roof": "hip",
-      "ends": {"left": "stepped", "right": "stepped"},
-      "source": "S1 porch (x 0-7)"
-    },
-    "veranda_low": {
-      "bays": 2, "depth": 18, "tiers": 3, "height": 13.5, "roof": "flat",
-      "ends": {"left": "stepped", "right": "stepped"},
-      "source": "S1 veranda_wing_low; the step between a porch or end pavilion and a full wing"
-    },
-    "veranda_wing": {
-      "bays": 4, "depth": 20, "tiers": 4, "height": 17.0, "roof": "hip, continuous along a run", "repeatable": true,
-      "ends": {"left": "party", "right": "party"},
-      "source": "S1 veranda_wing / S2 long stepped veranda wing; tiers step back as they rise"
-    },
-    "veranda_wing_raised": {
-      "bays": 4, "depth": 20, "tiers": 4, "height": 20.5, "roof": "raised hip with clerestory", "repeatable": true,
-      "ends": {"left": "stepped", "right": "stepped"},
-      "source": "S1 veranda_wing raised_from / S2 taller middle of the left wing"
-    },
-    "link": {
-      "bays": 2, "depth": 18, "tiers": 3, "height": 14.0, "roof": "flat",
-      "ends": {"left": "party", "right": "party"},
-      "source": "S1 link"
-    },
-    "stair_bay": {
-      "bays": 1, "depth": 20, "tiers": 1, "height": 6.5, "roof": "none", "frontProjection": 6.0,
-      "ends": {"left": "party", "right": "party"},
-      "source": "S1/S2 external stairs between wings; the flight projects 6 m in front of the line onto the lawn"
-    },
-    "clock_centre": {
-      "bays": 10, "depth": 22, "tiers": 4, "height": 30.0, "roof": "flat with clock tower",
-      "towerFromLeft": 23.5, "towerWidth": 7.0,
-      "ends": {"left": "party", "right": "party"}, "centrepiece": true,
-      "source": "S1 central_block + clock_tower + ironwork_bay (x 56-91)"
-    },
-    "ironwork_bay": {
-      "bays": 4, "depth": 20, "tiers": 3, "height": 13.5, "roof": "flat", "repeatable": true,
-      "ends": {"left": "party", "right": "party"},
-      "source": "S1 ironwork_bay / S2 arcaded iron lace bays right of the clock"
-    },
-    "window_block": {
-      "bays": 6, "depth": 22, "tiers": 4, "height": 17.5, "roof": "flat with parapet", "repeatable": true,
-      "ends": {"left": "party", "right": "party"},
-      "source": "S2 rear elevation: plain window storeys; on the front, balconies over window rows"
-    },
-    "three_storey_block": {
-      "bays": 3, "depth": 20, "tiers": 3, "height": 14.0, "roof": "flat with roof room",
-      "ends": {"left": "party", "right": "party"},
-      "source": "S1 three_storey_block"
-    },
-    "pavilion": {
-      "bays": 6, "depth": 20, "tiers": 2, "height": 17.0, "roof": "pitched 24 deg",
-      "ends": {"left": "party", "right": "party"},
-      "source": "S1 pavilion (was 22.5 m; now a whole 6 bays, 21 m)"
-    },
-    "grand_pavilion": {
-      "bays": 8, "depth": 26, "tiers": 3, "height": 22.0, "roof": "large pitched with lantern",
-      "ends": {"left": "party", "right": "party"},
-      "source": "S2 larger pitched-roof pavilion right of the clock"
-    }
+ "_about": "Catalogue of grandstand modules: a kit of traditional stand sections at one scale, snapping together along a shared front line. Read by the course layout tool (footprints) and, next, by tools/blender/build_stand_modules.py (geometry, using tools/blender/kit.py). Metres. Every module is a whole number of 3.5 m bays long, sits on the same 3.0 m podium with 3.5 m storeys, and has its front face on the shared front line (local z = 0, depth runs back). Left and right are as seen from the track. 'ends' says how each end meets its neighbour: 'party' = shared wall, hidden by the next module; 'finished' = a dressed end elevation (only end pavilions); 'stepped' = the tiers step down so a lower neighbour reads cleanly. Sources: S1 = reference/architecture/victorian-grandstand-sheet.png (the stand already built), S2 = reference/architecture/victorian-grandstand-sheet-300m.png.",
+ "bay": 3.5,
+ "storey": 3.5,
+ "podium": 3.0,
+ "modules": {
+  "end_pavilion": {
+   "bays": 4,
+   "depth": 16,
+   "tiers": 2,
+   "height": 15.5,
+   "roof": "hip with cupola",
+   "ends": {
+    "outer": "finished",
+    "inner": "party"
+   },
+   "mirrorable": true,
+   "source": "S2 both ends: two-tier veranda pavilion, wraparound balcony, hipped roof, small square cupola"
+  },
+  "porch": {
+   "bays": 2,
+   "depth": 9,
+   "tiers": 1,
+   "height": 7.5,
+   "roof": "hip",
+   "ends": {
+    "left": "stepped",
+    "right": "stepped"
+   },
+   "source": "S1 porch (x 0-7)"
+  },
+  "veranda_low": {
+   "bays": 2,
+   "depth": 18,
+   "tiers": 3,
+   "height": 13.5,
+   "roof": "flat",
+   "ends": {
+    "left": "stepped",
+    "right": "stepped"
+   },
+   "source": "S1 veranda_wing_low; the step between a porch or end pavilion and a full wing"
+  },
+  "veranda_wing": {
+   "bays": 4,
+   "depth": 20,
+   "tiers": 4,
+   "height": 17.0,
+   "roof": "hip, continuous along a run",
+   "repeatable": true,
+   "ends": {
+    "left": "party",
+    "right": "party"
+   },
+   "source": "S1 veranda_wing / S2 long stepped veranda wing; tiers step back as they rise"
+  },
+  "veranda_wing_raised": {
+   "bays": 4,
+   "depth": 20,
+   "tiers": 4,
+   "height": 20.5,
+   "roof": "raised hip with clerestory",
+   "repeatable": true,
+   "ends": {
+    "left": "stepped",
+    "right": "stepped"
+   },
+   "source": "S1 veranda_wing raised_from / S2 taller middle of the left wing"
+  },
+  "link": {
+   "bays": 2,
+   "depth": 18,
+   "tiers": 3,
+   "height": 14.0,
+   "roof": "flat",
+   "ends": {
+    "left": "party",
+    "right": "party"
+   },
+   "source": "S1 link"
+  },
+  "stair_bay": {
+   "bays": 1,
+   "depth": 20,
+   "tiers": 1,
+   "height": 6.5,
+   "roof": "none",
+   "frontProjection": 6.0,
+   "ends": {
+    "left": "party",
+    "right": "party"
+   },
+   "source": "S1/S2 external stairs between wings; the flight projects 6 m in front of the line onto the lawn"
+  },
+  "clock_centre": {
+   "bays": 10,
+   "depth": 22,
+   "tiers": 4,
+   "height": 30.0,
+   "roof": "terrace with belfry clock tower",
+   "towerFromLeft": 23.5,
+   "towerWidth": 7.0,
+   "ends": {
+    "left": "party",
+    "right": "party"
+   },
+   "centrepiece": true,
+   "source": "S1 central_block + clock_tower + ironwork_bay (x 56-91); since 6 Nov 2026 the terrace stand with the ironwork bay and the old belfry clock tower rising out of the roof terrace"
+  },
+  "ironwork_bay": {
+   "bays": 4,
+   "depth": 20,
+   "tiers": 3,
+   "height": 13.5,
+   "roof": "flat",
+   "repeatable": true,
+   "ends": {
+    "left": "party",
+    "right": "party"
+   },
+   "source": "S1 ironwork_bay / S2 arcaded iron lace bays right of the clock"
+  },
+  "window_block": {
+   "bays": 6,
+   "depth": 22,
+   "tiers": 4,
+   "height": 17.5,
+   "roof": "flat with parapet",
+   "repeatable": true,
+   "ends": {
+    "left": "party",
+    "right": "party"
+   },
+   "source": "S2 rear elevation: plain window storeys; on the front, balconies over window rows"
+  },
+  "three_storey_block": {
+   "bays": 3,
+   "depth": 20,
+   "tiers": 3,
+   "height": 14.0,
+   "roof": "flat with roof room",
+   "ends": {
+    "left": "party",
+    "right": "party"
+   },
+   "source": "S1 three_storey_block"
+  },
+  "pavilion": {
+   "bays": 6,
+   "depth": 20,
+   "tiers": 2,
+   "height": 17.0,
+   "roof": "pitched 24 deg",
+   "ends": {
+    "left": "party",
+    "right": "party"
+   },
+   "source": "S1 pavilion (was 22.5 m; now a whole 6 bays, 21 m)"
+  },
+  "grand_pavilion": {
+   "bays": 8,
+   "depth": 26,
+   "tiers": 3,
+   "height": 22.0,
+   "roof": "large pitched with lantern",
+   "ends": {
+    "left": "party",
+    "right": "party"
+   },
+   "source": "S2 larger pitched-roof pavilion right of the clock"
+  },
+  "terrace_stand": {
+   "bays": 1,
+   "depth": 18,
+   "tiers": 3,
+   "height": 16.0,
+   "roof": "flat roof terrace, standing rows stepping up to the back",
+   "repeatable": true,
+   "ends": {
+    "left": "finished or party",
+    "right": "finished or party"
+   },
+   "source": "Owner's archive photos of the old Ascot stand (6 Nov 2026): glazed boxes, standing terrace behind a plain parapet, columned gallery under a deep plain frieze, packed roof terrace stepping up"
   }
+ }
 }

@@ -307,13 +307,19 @@ if ACCENT:
     # the clock tower: the highest point near x 0
     stand_pts = [(o.matrix_world @ v.co) for o in parts if o.type == "MESH" for v in o.data.vertices]
     top = max((p for p in stand_pts if abs(p.x) < 3.0), key=lambda p: p.z)
-    flag(Vector((top.x, top.y, top.z)), 7.5, ("butter", "sage"), w=4.6, fh=2.9)
-    # a pair either side of the clock tower, on the corners of the clock block's roof
-    blk = [p for p in stand_pts if -11.5 < p.x < 23.5 and p.z < top.z - 6]
-    roof_z = max(p.z for p in blk)
-    front_y = max(p.y for p in blk if p.z > roof_z - 1.5)
-    for i, x in enumerate((-10.0, 22.0)):
-        flag(Vector((x, front_y - 0.6, roof_z)), 5.0, ("blush", "powder")[i:i + 1] * 2, phase=0.7 + i)
+    # the clock tower keeps the photos' cross; flags fly along the back of the roof terraces instead
+    back = {}
+    for p in stand_pts:
+        kx = round(p.x / 4) * 4
+        if p.z > back.get(kx, Vector((0, 0, 0))).z: back[kx] = p
+    TFLAG = [("blush", "blush"), ("sage", "sage"), ("butter", "butter"), ("powder", "powder"), ("lilac", "lilac")]
+    for i, x in enumerate(range(-96, 404, 36)):
+        m = module_at(x)
+        if not m or m["module"] not in ("terrace_stand",): continue
+        pts = [p for p in stand_pts if abs(p.x - x) < 1.0 and p.z < 20]
+        if not pts: continue
+        b = max(pts, key=lambda p: p.z)
+        flag(Vector((x, b.y, b.z)), 4.2, TFLAG[i % len(TFLAG)], w=2.6, fh=1.6, phase=i * 0.9)
     # pavilion roofs: a flag at each ridge (highest roof point of the module)
     roofs = [(o.matrix_world @ v.co) for o in by_mat("gs_roof") for v in o.data.vertices]
     FLAG_COL = [("blush", "blush"), ("powder", "powder"), ("sage", "butter"), ("lilac", "lilac"), ("butter", "blush"), ("powder", "sage")]
@@ -345,7 +351,73 @@ if ACCENT:
     for lo, hi, col in doors_front:
         if any(abs(lo.x - p.x) < 0.3 and abs(hi.x - q.x) < 0.3 for p, q in placed): continue   # one awning per opening
         awning(lo, hi, col); placed.append((lo, hi)); na += 1
-    print("accents: %d flags, %d awnings" % (k + 1, na), flush=True)
+    print("accents: %d pavilion flags, %d awnings" % (k, na), flush=True)
+
+    # ---------------- the crowd: the stand's terraces, galleries and boxes, and the lawn, packed as in the photos
+    figs = import_glb(rp("assets/models/architecture/crowd_people.glb"))
+    crowd_coll = bpy.data.collections.new("crowd_figs")
+    for o in figs:
+        for c in o.users_collection: c.objects.unlink(o)
+        crowd_coll.objects.link(o); o.location = (0, 0, 0)
+    pal_clothes = ["#2c3140", "#3a3d44", "#4b4d52", "#2f3a33", "#59544c", "#c9a0a8", "#9fb6c8", "#ddd2b8", "#a8706a", "#88a383", "#d2b874", "#e8e2d6", "#9a88b4", "#cf9476"]
+    pal_hats = ["#222226", "#222226", "#2a2a2e", "#efe6d2", "#d8c08a", "#c9a0a8", "#9fb6c8"]
+    def palette_mat(name, cols, rough=0.9):
+        m = bpy.data.materials.new(name); m.use_nodes = True; nt = m.node_tree; b = nt.nodes["Principled BSDF"]
+        b.inputs["Roughness"].default_value = rough; b.inputs["Specular IOR Level"].default_value = 0.1
+        oi = nt.nodes.new("ShaderNodeObjectInfo"); cr = nt.nodes.new("ShaderNodeValToRGB"); cr.color_ramp.interpolation = "CONSTANT"
+        els = cr.color_ramp.elements
+        while len(els) < len(cols): els.new(0.5)
+        for i, c in enumerate(cols): els[i].position = i / len(cols); els[i].color = lin(c)
+        nt.links.new(oi.outputs["Random"], cr.inputs[0]); nt.links.new(cr.outputs[0], b.inputs["Base Color"])
+        return m
+    CM = {"crowd_clothes": palette_mat("c_clothes", pal_clothes), "crowd_hat": palette_mat("c_hat", pal_hats),
+          "crowd_skin": palette_mat("c_skin", ["#efc6a4", "#e2b48e", "#c99572", "#9a6a4a"])}
+    for o in crowd_coll.objects:
+        for i, sl in enumerate(o.material_slots):
+            base = (sl.material.name if sl.material else "").split(".")[0]
+            if base in CM: o.material_slots[i].material = CM[base]
+    import random
+    rnd = random.Random(21)
+    pts = []
+    A = json.load(open(rp("assets/models/architecture/ascot_main_stand_crowd_areas.json")))["areas"]
+    for a in A:
+        if a["kind"] in ("lawn_front_line", "steps"): continue
+        rows = 1 if a["z1"] - a["z0"] < 1.4 else 2
+        for r in range(rows):
+            lz = a["z0"] + 0.15 + r * 0.75
+            x = a["x0"]
+            while x < a["x1"]:
+                if rnd.random() < (0.85 if a["kind"] == "terrace" else 0.7 if r == 0 else 0.4):
+                    pts.append((x + (rnd.random() - 0.5) * 0.2, -(FRONT + lz), a["floor"]))
+                x += 0.62
+    near = W + COURSE["rails"]["gap"]
+    z = near + 1.6
+    while z < FRONT - 1.5:
+        d = z - near; dens = 0.8 if d < 4 else 0.35 if d < 8 else 0.08
+        x = -108.0
+        while x < 405:
+            if rnd.random() < dens: pts.append((x + (rnd.random() - 0.5) * 0.4, -(z + (rnd.random() - 0.5) * 0.4), 0.0))
+            x += 0.62
+        z += 0.7
+    me = bpy.data.meshes.new("crowd_pts"); me.from_pydata(pts, [], [])
+    cp = bpy.data.objects.new("crowd", me); scene.collection.objects.link(cp)
+    gn = cp.modifiers.new("crowd", "NODES")
+    ng = bpy.data.node_groups.new("crowd_inst", "GeometryNodeTree"); gn.node_group = ng
+    ng.interface.new_socket("Geometry", in_out="INPUT", socket_type="NodeSocketGeometry")
+    ng.interface.new_socket("Geometry", in_out="OUTPUT", socket_type="NodeSocketGeometry")
+    N = ng.nodes; L = ng.links
+    gi = N.new("NodeGroupInput"); go = N.new("NodeGroupOutput")
+    ci = N.new("GeometryNodeCollectionInfo"); ci.inputs["Collection"].default_value = crowd_coll
+    ci.inputs["Separate Children"].default_value = True; ci.inputs["Reset Children"].default_value = True
+    ip = N.new("GeometryNodeInstanceOnPoints"); ip.inputs["Pick Instance"].default_value = True
+    ri = N.new("FunctionNodeRandomValue"); ri.data_type = "INT"; ri.inputs["Min"].default_value = 0; ri.inputs["Max"].default_value = 3
+    rr = N.new("FunctionNodeRandomValue"); rr.data_type = "FLOAT_VECTOR"
+    rr.inputs["Min"].default_value = (0, 0, -0.5); rr.inputs["Max"].default_value = (0, 0, 0.5)
+    rs = N.new("FunctionNodeRandomValue"); rs.data_type = "FLOAT"; rs.inputs["Min"].default_value = 0.94; rs.inputs["Max"].default_value = 1.06
+    L.new(gi.outputs[0], ip.inputs["Points"]); L.new(ci.outputs[0], ip.inputs["Instance"])
+    L.new(ri.outputs[0], ip.inputs["Instance Index"]); L.new(rr.outputs[0], ip.inputs["Rotation"]); L.new(rs.outputs[0], ip.inputs["Scale"])
+    L.new(ip.outputs[0], go.inputs[0])
+    print("crowd:", len(pts), "people", flush=True)
 
 # ground, track, rails
 plane("ground", -900, 1400, -700, 500, grass, -0.02)

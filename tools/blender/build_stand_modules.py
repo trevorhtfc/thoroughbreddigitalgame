@@ -128,11 +128,14 @@ def build_module(name, x0, length, party=()):
         end_pavilion(x0, x1 - 1.6, m["depth"], m["tiers"])            # the end gallery fills the last 1.6 m
     elif name == "stair_bay":
         stair_bay(x0, x1, m["depth"], party)
+    elif name == "terrace_stand":
+        terrace({"x0": x0, "x1": x1, "depth": m["depth"], "party": party})
     elif name == "clock_centre":
-        block({"x0": x0, "x1": x0 + 21.0, "storeys": 4, "depth": 22.0, "balconies": True, "chimney": x0 + 10.0,
-               "party": ("right",) + tuple(p for p in party if p == "left")})
+        # since 6 Nov 2026 (owner's archive photos): the terrace stand, the ironwork bay, and the old belfry
+        # clock tower rising out of the packed roof terrace
+        terrace({"x0": x0, "x1": x0 + 21.0, "depth": 18.0, "party": ("right",) + tuple(p for p in party if p == "left")})
         ironwork({"x0": x0 + 21.0, "x1": x1, "levels": 3, "depth": 20.0})
-        tower({"x": x0 + m["towerFromLeft"], "y": 6.0, "width": m["towerWidth"], "base_z": 17.0, "top_z": 24.5})
+        tower_belfry({"x": x0 + m["towerFromLeft"], "y": 7.0, "width": m["towerWidth"], "base_z": 13.2, "top_z": 36.0})
     elif name == "ironwork_bay":
         ironwork({"x0": x0, "x1": x1, "levels": 3, "depth": m["depth"]})
     elif name == "window_block":
