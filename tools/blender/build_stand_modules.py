@@ -97,8 +97,8 @@ def end_pavilion(x0, x1, D, tiers):
 
 def stair_bay(x0, x1, D, party=()):
     """A narrow stair hall between wings, with a broad flight from the lawn in front."""
-    # four storeys and a hipped roof room (owner, 6 Nov 2026: taller, so the elevation isn't so flat)
-    block({"x0": x0, "x1": x1, "storeys": 4, "depth": D, "party": party, "roof_room": True})
+    # four storeys (owner, 6 Nov 2026: taller, so the elevation isn't so flat; the roof room on top was dropped)
+    block({"x0": x0, "x1": x1, "storeys": 4, "depth": D, "party": party})
     steps({"x": (x0 + x1) / 2, "width": min(x1 - x0 - 0.9, 6.1), "run": MODS["stair_bay"]["frontProjection"]})   # one flight, however wide the block
 
 
