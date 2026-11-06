@@ -82,15 +82,15 @@
   "stair_bay": {
    "bays": 1,
    "depth": 20,
-   "tiers": 1,
-   "height": 6.5,
+   "tiers": 4,
+   "height": 21.5,
    "roof": "none",
    "frontProjection": 6.0,
    "ends": {
     "left": "party",
     "right": "party"
    },
-   "source": "S1/S2 external stairs between wings; the flight projects 6 m in front of the line onto the lawn"
+   "source": "S1/S2 external stairs between wings; the flight projects 6 m in front of the line onto the lawn; since 6 Nov 2026 four storeys with a hipped roof room (owner)"
   },
   "clock_centre": {
    "bays": 8,
