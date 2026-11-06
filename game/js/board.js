@@ -184,21 +184,22 @@ function along(pts, step, from = 0) {
 // From the place just finished to the next, along the roads. The ink draws itself, a little horse trots along it, and it
 // stays faintly on the board while the next place waits.
 const STUD_GATE = [[1344, 470], [1318, 548], [1270, 600], [1234, 648], [1193, 632], [1148, 615]];
-const TATTS_GATE = [[1060, 568], [1070, 612], [1062, 668], [1022, 712], [960, 724]];
+// into Tattersalls by the lane off Old Station Road, past the yard on the rotunda's west side
+const TATTS_GATE = [[988, 525], [960, 568], [935, 605], [905, 640], [903, 690], [946, 722]];
 const STABLES_GATE = [[963, 880], [900, 858], [820, 838], [760, 790], [722, 721]];
 const JC_GATE = [[660, 652], [626, 606], [590, 588], [573, 556]];
 const PALACE_GATE = [[505, 675], [470, 662], [436, 650]];
 const WARREN_GATE = [[322, 607], [304, 597], [241, 574], [191, 532], [165, 462]];
 const TRAILS = {
   "jockey>stud": join(JC_GATE, rev(ROAD.kingston.slice(0, 8)), ROAD.oldStn.slice(1, 11), rev(STUD_GATE)),
-  "stud>tatts": join(STUD_GATE, [[1148, 615], [1060, 568]], TATTS_GATE),
+  "stud>tatts": join(STUD_GATE, [[1148, 615], [1060, 568], [988, 525]], TATTS_GATE),
   "tatts>stables": [[946, 724], [905, 752], [880, 790], [900, 830], [945, 860], [963, 880]],
   "stables>warren": join(STABLES_GATE, [[722, 721], [659, 722], [636, 726], [616, 734], [598, 736], [583, 733], [531, 743], [496, 758], [468, 787], [448, 800]], ROAD.shied.slice(1), WARREN_GATE.slice(1)),
   "warren>jockey": join(rev(WARREN_GATE), rev(ROAD.shied), [[448, 800], [468, 787], [496, 758], [531, 743], [583, 733], [598, 736], [616, 734], [636, 726], [659, 722], [660, 690]]),
   "jockey>races": join(JC_GATE, rev(ROAD.kingston.slice(0, 8)), ROAD.oldStn.slice(1, 6), [[820, 425], [850, 446]], ROAD.avenue.slice(1, 7), [[1270, 333], [1290, 262]]),
   "races>palace": join([[1290, 262], [1270, 333]], rev(ROAD.avenue.slice(1, 7)), [[850, 446], [820, 425]], rev(ROAD.oldStn.slice(1, 6)), ROAD.kingston.slice(1, 11), PALACE_GATE.slice(1)),
   "stables>jockey": join(STABLES_GATE, [[722, 721], [690, 712], [660, 690]]),
-  "tatts>warren": join(rev(TATTS_GATE), [[1060, 568], [988, 525], [930, 497], [878, 470], [820, 425], [775, 385], [740, 345], [699, 315], [662, 300]], ROAD.highSt, ROAD.station.slice(1), [[215, 348], [190, 400], [165, 462]]),
+  "tatts>warren": join(rev(TATTS_GATE), [[930, 497], [878, 470], [820, 425], [775, 385], [740, 345], [699, 315], [662, 300]], ROAD.highSt, ROAD.station.slice(1), [[215, 348], [190, 400], [165, 462]]),
   "palace>jockey": [[436, 650], [470, 662], [505, 675], [528, 630], [557, 590], [573, 556], [590, 588], [626, 606], [660, 652]],
 };
 const medalAt = (id) => { const p = placeOf(id); return id === "races" ? [p.at[0], p.at[1] + 30] : [p.at[0], p.at[1] - 30]; };

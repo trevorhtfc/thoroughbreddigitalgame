@@ -413,7 +413,11 @@ function newCard(seed) {
 }
 function save() { try { localStorage.setItem(SAVE_KEY, JSON.stringify(S)); } catch (e) {} }
 function load() {
-  try { const v = JSON.parse(localStorage.getItem(SAVE_KEY) || "null"); if (v && v.seed && Array.isArray(v.stable)) { S = v; S.open = null; CARD = makeCard(S.seed); migrate(); return true; } } catch (e) {}
+  try { const v = JSON.parse(localStorage.getItem(SAVE_KEY) || "null"); if (v && v.seed && Array.isArray(v.stable)) {
+    S = v; S.open = null; CARD = makeCard(S.seed); migrate();
+    // left in the middle of an auction: that lot has gone through the ring without you
+    if (S.ring) { S.sale = (S.sale || []).filter(x => x.id !== S.ring); S.ring = null; save(); }
+    return true; } } catch (e) {}
   return false;
 }
 // Saves from before the mares sale: only mares you bred from count as yours, and the ring is rebuilt into Books

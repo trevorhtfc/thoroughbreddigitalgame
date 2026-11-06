@@ -1,9 +1,4 @@
-<!doctype html>
-<html lang="en-GB">
-<head>
-<meta charset="utf-8">
 <title>Thoroughbred Ascot</title>
-<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Jost:wght@400;500;600&family=Nunito:wght@400;500;600;700;800&family=Crimson+Pro:ital,wght@0,600;0,700;1,600&display=swap" rel="stylesheet">
@@ -11,9 +6,7 @@
 <link rel="stylesheet" href="css/game.css">
 <script async src="https://cdn.jsdelivr.net/npm/es-module-shims@1.10.0/dist/es-module-shims.js"></script>
 <script type="importmap">{ "imports": { "three": "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js", "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/" } }</script>
-<script>document.documentElement.style.setProperty("--horse", "url(\"%%HORSE%%\")");</script>
-</head>
-<body class="at-newmarket">
+<script>document.documentElement.lang = "en-GB"; document.documentElement.style.setProperty("--horse", "url(\"%%HORSE%%\")");</script>
 <!-- Thoroughbred Ascot: one game. The Newmarket board is home; each step of the season is a place on it, and its
      screens open as sheets over the board. Race week is at Ascot, watched in the 3D race view. -->
 
@@ -137,5 +130,3 @@ Promise.all([`assets/course/${C}.json`, `assets/course/${C}-stalls.json`, `asset
   .finally(() => dispatchEvent(new Event("engine-ready")));
 </script>
 <script type="module" src="js/life.js"></script>
-</body>
-</html>

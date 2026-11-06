@@ -299,13 +299,11 @@ if (location.hash === "#routes") {
 }
 // ---------------------------------------------------------------- the game's processions: one journey each, then gone
 const PROC = {
-  // the yearlings out of the mares nobody bred, led from the National Stud to Tattersalls
+  // the yearlings out of the mares nobody bred, led from the National Stud along Old Station Road into Tattersalls
   yearlings: { route: () => B.routeFor("stud", "tatts"), n: 4, gap: 2.4, speed: 16, make: (i) => { const h = makeHorse({ rider: false, coat: i + 1 }); h.lead = makePerson(); return h; } },
-  // your new string, ridden from Tattersalls into your yard in your colours
-  string: { route: () => B.routeFor("tatts", "stables"), n: 5, gap: 1.8, speed: 14, make: (i, o) => makeHorse({ silk: o.silk }) },
-  // up to Warren Hill: your string out to the gallops
-  gallops: { route: () => B.routeFor("stables", "warren"), n: 5, gap: 1.7, speed: 30, make: (i, o) => makeHorse({ silk: o.silk }) },
-  // the horseboxes away to the races, off the top of Fordham Road
+  // your string, out of the yard in your colours: past the Jockey Club and up the Shied onto Warren Hill (the owner's route)
+  gallops: { route: () => STRINGS[2].route, n: 5, gap: 1.8, speed: 16, make: (i, o) => makeHorse({ silk: o.silk }) },
+  // the horseboxes away to the races: Kingston Road, then off the top of the board up Fordham Road
   boxes: { route: () => join([[722, 721], [659, 722], [636, 726], [616, 734], [598, 736], [583, 733], [531, 743], [496, 758], [468, 787], [448, 800]], rev(ROAD.kingston), rev(ROAD.fordham)), n: 3, gap: 2.6, speed: 70, make: (i) => makeVan(i) },
 };
 const shots = [];
@@ -329,7 +327,7 @@ function stepShots(t, dt) {
     if (s.m.mixer) s.m.mixer.update(dt);
   }
 }
-window.LIFE = { procession };
+window.LIFE = { procession, __advance: (secs) => { stepShots(0, secs); return shots.map((s) => [Math.round(s.m.obj.position.x), Math.round(s.m.obj.position.z), s.m.obj.visible]); } };   // __advance: a checking aid
 B.addFrame((t, dt) => {
   if (!renderer) return;
   // nothing to draw while the board is out of sight: at Ascot, or under a sheet on a phone (where the sheet fills the screen)

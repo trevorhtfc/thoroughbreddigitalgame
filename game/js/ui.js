@@ -133,12 +133,21 @@ function paintBar() {
     const cls = s.n < stepNow || (s.n === 5 && ph === "home") ? "done" : s.n === stepNow ? "current" : "";
     return `<button class="st ${cls}" type="button" data-step="${s.n}" ${cls === "current" ? 'aria-current="step"' : ""} title="${s.name}"><b>${s.n}</b><span>${s.name}</span></button>`;
   }).join("");
-  const n = S.stable.length, money2 = (v) => money(v).replace(",000,000", "m").replace(/,000$/, "k");
+  const n = S.stable.length;
   $("#tally").innerHTML = S.step <= 3
     ? `<span class="t-silk">${silkImg(mySilkN())}</span><span title="Horses in your stable"><svg viewBox="0 0 512 512">${ICON.stable}</svg><em>${n}</em><i>/${STABLE_CAP}</i></span><span class="t-money" title="Your budget"><svg viewBox="0 0 512 512">${ICON["two-coins"]}</svg><em>${money(S.budget)}</em></span>`
-    : `<span class="t-silk">${silkImg(mySilkN())}</span><span title="Wins, and races run"><svg viewBox="0 0 512 512">${ICON["laurels-trophy"]}</svg><em>${winsNow()}</em><i> win${winsNow() === 1 ? "" : "s"} · ${racesRun()} of ${RACES.length} run</i></span><span class="t-money prize" title="Prize money won (a separate pot from your budget)"><svg viewBox="0 0 512 512">${ICON["trophy-cup"]}</svg><em>${money(prizeWon())}</em></span>`;
-  void money2;
+    : `<span class="t-silk">${silkImg(mySilkN())}</span><span title="Wins: ${winsNow()} from ${racesRun()} of ${RACES.length} races run"><svg viewBox="0 0 512 512">${ICON["laurels-trophy"]}</svg><em>${winsNow()}</em><i> win${winsNow() === 1 ? "" : "s"}</i></span><span class="t-money prize" title="Prize money won (a separate pot from your budget)"><svg viewBox="0 0 512 512">${ICON["trophy-cup"]}</svg><em>${money(prizeWon())}</em></span>`;
+  fitBar();
 }
+// if the five steps' names don't fit beside the tally (a narrow window, or the fonts still loading), only the
+// current step keeps its name
+function fitBar() {
+  const st = $("#steps"); if (!st) return;
+  st.classList.remove("tight");
+  if (st.scrollWidth > st.clientWidth + 1) st.classList.add("tight");
+}
+addEventListener("resize", () => fitBar());
+if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => fitBar());
 
 /* ================= The board: the places' states, the card, the guide ================= */
 function paintBoard() {
@@ -198,8 +207,8 @@ function openSheet(id, { tab } = {}) {
   $("#sheetWrap").hidden = false; document.body.classList.add("sheet-open");
   const s = $("#sheet"); s.dataset.place = id; s.classList.remove("in"); void s.offsetWidth; s.classList.add("in");
   $("#shBody").scrollTop = 0;
-  paintSheet(true);
-  if (id === "jockey" && !S.dealt) startDeal();
+  paintBar(); paintSheet(true);
+  if (id === "jockey" && !S.dealt && !D) startDeal();   // a draw already under way is picked up again by paintSheet
 }
 function closeSheet({ quiet } = {}) {
   if (!UI.sheet) return;
@@ -215,8 +224,10 @@ function paintSheet(first) {
   const body = $("#shBody"), keep = first ? 0 : body.scrollTop, ph = phase(), ch = CHAPTERS[ph];
   const p = BOARD.placeOf(id);
   // the header: a window onto the place on the board (or the course, at Ascot), its medal and title
-  $("#shTitle").textContent = id === "races" ? (S.step >= 5 ? "Final standings" : "Royal Ascot") : SHEET_TITLE[id];
-  $("#shKicker").textContent = id === "races" ? `${MEETING.month} ${MEETING.year} · ${S.step >= 5 ? "the week is run" : "race week"}` : (placeStates()[id] === "next" ? `${ch.season} · Step ${ch.step} of 5 · ${ch.title}` : cardFor(id).kicker);
+  $("#shTitle").textContent = id === "races" ? (S.step >= 5 ? "Final standings" : "Royal Ascot") : atAscot() && id === "jockey" ? "Declarations" : SHEET_TITLE[id];
+  $("#shKicker").textContent = id === "races" ? `${MEETING.month} ${MEETING.year} · ${S.step >= 5 ? "the week is run" : "race week"}`
+    : atAscot() && id === "jockey" ? `${MEETING.name} · change your runners before the first race`
+    : (placeStates()[id] === "next" ? `${ch.season} · Step ${ch.step} of 5 · ${ch.title}` : cardFor(id).kicker);
   const ic = PLACE_ICON[id];
   $("#shMedal").innerHTML = ic === "JC" ? `<span class="jc">JC</span>` : ic === "horse" ? `<span class="hz"></span>` : `<svg viewBox="0 0 512 512">${ICON[ic]}</svg>`;
   const pic = $("#shPic");
@@ -274,11 +285,11 @@ const FOOTS = {
   stud() {
     if (S.step !== 1) return "";
     return S.confirmSale
-      ? `<span class="f-info"><b>Close the stud?</b> Once you go to Tattersalls you can't come back to breed.${S.hand.length ? ` Your ${S.hand.length} unused mare${S.hand.length === 1 ? "" : "s"} may turn up in the sale.` : ""}</span>${goBtn("saleNo", "Stay at the stud", { ghost: true })}${goBtn("saleYes", "Go to Tattersalls")}`
-      : `<span class="f-info">${studCount()} mare${studCount() === 1 ? "" : "s"} · ${S.stable.length} horse${S.stable.length === 1 ? "" : "s"} · ${money(S.budget)} left</span>${goBtn("toSale", "Close the stud and go to the sales", { off: S.foal || S.offer })}`;
-  },
+      ? `<span class="f-info"><b>Close the stud?</b> Once you go to Tattersalls you can't come back to breed.${S.hand.length ? ` Your ${S.hand.length} unused mare${S.hand.length === 1 ? "" : "s"} may turn up in the sale.` : ""}</span>${goBtn("saleNo", "Stay at the stud", { ghost: true })}${goBtn("saleYes", "Go to Tattersalls", { off: S.foal || S.offer })}`
+      : `<span class="f-info">${studCount()} mare${studCount() === 1 ? "" : "s"} · ${S.stable.length} horse${S.stable.length === 1 ? "" : "s"} · ${money(S.budget)} left</span>${goBtn("toSale", "Close the stud and go to the sales", { off: S.foal || S.offer })}`;  },
   tatts() {
-    if (S.step === 2) return `<span class="f-info">${S.stable.length} horse${S.stable.length === 1 ? "" : "s"} in your string · ${money(S.budget)} left</span>${goBtn("toEnter", "Leave the sales: into training", { off: !S.stable.length || S.foal })}`;
+    // never a dead end: with no horse bought or bred you can still leave (and race nothing, or start again)
+    if (S.step === 2) return `<span class="f-info">${S.stable.length} horse${S.stable.length === 1 ? "" : "s"} in your string · ${money(S.budget)} left</span>${goBtn("toEnter", S.stable.length ? "Leave the sales: into training" : "Leave the sales without a horse", { off: S.foal })}`;
     return "";
   },
   warren() {
@@ -290,7 +301,8 @@ const FOOTS = {
   races() {
     if (S.step === 4) { const done = racesRun();
       return `<span class="f-info ${done === RACES.length ? "ready" : ""}">${done === RACES.length ? `All ${RACES.length} races run.` : `${done} of ${RACES.length} races run · ${money(prizeWon())} won`}</span>${goBtn("simAll", "Sim the rest", { ghost: true, off: done === RACES.length || simBusy })}${goBtn("toResult", "See the final standings", { off: done < RACES.length })}`; }
-    return `<span class="f-info">Your title goes home with you, to Palace House.</span>${goBtn("goHome", "Home to Newmarket")}`;
+    if (S.step >= 5) return `<span class="f-info">Your title goes home with you, to Palace House.</span>${goBtn("goHome", "Home to Newmarket")}`;
+    return "";
   },
 };
 
@@ -324,7 +336,7 @@ function drawBody() {
 function startDeal() { UI.dealing = true; D = { phase: 0, timers: [] }; dealRaces(); }
 function reattachDeal() { if (D && D.phase >= 2) { dealRaces(true); racesDone(true); } else dealRaces(); }
 function dealTimers(fn, ms) { D.timers.push(setTimeout(fn, ms)); }
-function clearDeal() { if (D) D.timers.forEach(clearTimeout); }
+function clearDeal() { if (D) { D.timers.forEach(clearTimeout); D.timers = []; } }
 function flyIn(cards, gap) {
   const deck = $("#dealDeck").getBoundingClientRect(), cx = deck.left + deck.width / 2, cy = deck.top + deck.height / 2;
   cards.forEach((c, i) => {
@@ -464,12 +476,14 @@ function film(src, { from = "cover", to = "cover", caption = "", sound = false, 
   });
 }
 // coming home to the board: the film lands on it, then the board comes alive
-async function arriveNewmarket() {
+async function arriveNewmarket(withFilm = true) {
   S.at = "newmarket"; save();
   document.body.classList.remove("at-ascot"); document.body.classList.add("at-newmarket"); $("#ascot").hidden = true;
   BOARD.setHour(CHAPTERS[phase()].hour); BOARD.holdDay = false;
   paintBar(); paintBoard();
-  await film("video/newmarket-arrive.mp4", { from: "cover", to: "board", fadeIn: true });
+  // the film the first time in a visit, and on the way home from Ascot; otherwise the board simply comes back
+  if (withFilm) await film("video/newmarket-arrive.mp4", { from: "cover", to: "board", fadeIn: true });
+  UI.arrived = true;
 }
 // leaving for Ascot: the horseboxes go, the board tilts up into the landscape, then the film of the races
 async function goToAscot() {
@@ -494,7 +508,7 @@ async function arriveAscot(withFilm) {
 async function goHomeFromAscot() {
   closeSheet({ quiet: true });
   S.home = true; save();
-  await arriveNewmarket();
+  await arriveNewmarket(true);
   story("races", "palace", "home");
 }
 
@@ -520,10 +534,17 @@ function paintMenu(keepScroll) {
     ? `<button class="tb-btn" id="menuContinue">Continue season ${S.seed}<small>Step ${ch.step} of 5 · ${ch.title}</small></button><button class="tb-btn ghost" id="menuNew">${newArmed ? "Tap again to confirm" : "Start a fresh season"}<small>${newArmed ? "This season will be lost" : "New races and mares"}</small></button>`
     : `<button class="tb-btn" id="menuContinue">Start season ${S.seed}<small>Newmarket and ${money(START_BUDGET)} are waiting</small></button><button class="tb-btn ghost" id="menuNew">Draw a different season<small>New races and mares</small></button>`;
 }
+// a new season from the cover or Palace House: whatever was open goes, and the season starts at Newmarket
+function freshSeason() {
+  if (A) { clearInterval(A.timer); cancelAnimationFrame(A.raf); A.box.remove(); A = null; document.body.style.overflow = ""; }
+  closeSheet({ quiet: true }); clearDeal(); D = null; UI.dealing = false; UI.tab = {}; UI.story = null;
+  newCard(); S.at = "newmarket"; save();
+}
 async function leaveMenu() {
   closeMenu();
-  if (atAscot() && S.step >= 4 && !S.home) { await arriveAscot(false); return; }
-  await arriveNewmarket();
+  // still at Ascot: back to race week (Declarations reopen as race week; the going is declared again)
+  if (atAscot() && !S.home) { if (S.step === 3) S.step = 4; save(); await arriveAscot(false); return; }
+  await arriveNewmarket(!UI.arrived);
   const ph = phase();
   showChapter(ph);
   BOARD.choose(nextPlace());
@@ -567,13 +588,14 @@ document.addEventListener("click", e => {
     while (h.age < +d.keepdev) develop(id);
     render(); showDevelop(h, 2); return;
   }
-  if (d.develop) { const h = horse(d.develop), from = h.age; develop(d.develop); render(); showDevelop(h, from); BOARD.Sound.hooves(2); return; }
+  if (d.develop) { const h = horse(d.develop); if (!h || S.step > 3 || atAscot()) return;   // training is over once you're at Ascot
+    const from = h.age; develop(d.develop); render(); showDevelop(h, from); BOARD.Sound.hooves(2); return; }
   if (d.silks != null) { S.silks = +d.silks; save(); render(); if (menuOpen) paintMenu(true); return; }
   if (d.open) { S.open = S.open === d.open ? null : d.open; render(); return; }
   if (d.pick) { setEntry(d.race, d.pick); S.open = null; render(); const h = horse(d.pick); if (h) toast(`${h.name} entered in the ${RACES.find(r => r.id === d.race).name}`); return; }
   if (d.unpick) { setEntry(d.unpick, null); render(); return; }
-  if (d.sim) { const i = +d.sim; simBusy = true; render(); simAndRecord(i).then(() => raceDone(i)).catch(err => toast(String(err.message || err))).finally(() => { simBusy = false; render(); }); return; }
-  if (d.watch) { watch(+d.watch); return; }
+  if (d.sim) { if (S.step !== 4 || !atAscot()) return; const i = +d.sim; simBusy = true; render(); simAndRecord(i).then(() => raceDone(i)).catch(err => toast(String(err.message || err))).finally(() => { simBusy = false; render(); }); return; }
+  if (d.watch) { if (S.step !== 4 || !atAscot()) return; watch(+d.watch); return; }
   switch (t.id) {
     case "toMenu": openMenu(); break;
     case "snd": { const on = !BOARD.Sound.on; BOARD.Sound.set(on); t.setAttribute("aria-pressed", String(on)); $("#sndIcon").innerHTML = on ? ICON.speaker : ICON["speaker-off"]; break; }
@@ -590,9 +612,12 @@ document.addEventListener("click", e => {
     case "saleYes": if (S.step !== 1 || S.foal || S.offer) break;
       S.confirmSale = false; S.step = 2; S.book = 1; S.view = "job"; newCatalogue(); save();
       story("stud", "tatts", "sales", { procession: "yearlings" }); break;
-    case "toEnter": if (!S.stable.length || S.foal) break;
+    case "toEnter": if (S.step !== 2 || S.foal) break;
       S.step = 3; S.view = "job"; save();
-      story("tatts", "stables", "gallops", { procession: "string", then: async () => { await new Promise(r => setTimeout(r, 700)); await BOARD.trail("stables", "warren", { ms: 2400 }); } }); break;
+      story("tatts", "stables", "gallops", { then: async () => {
+        await new Promise(r => setTimeout(r, 700));
+        if (window.LIFE) { try { LIFE.procession("gallops", { silk: SILK3D[mySilkN()] }); } catch (e) {} }
+        await BOARD.trail("stables", "warren", { ms: 2400 }); } }); break;
     case "doneGallops": S.galloped = true; save(); story("warren", "jockey", "entries"); break;
     case "fill": fillEmpty(); render(); break;
     case "clear": S.entries = {}; save(); render(); break;
@@ -607,7 +632,7 @@ document.addEventListener("click", e => {
       break; }
     case "toResult": S.step = 5; save(); noteHonours(); render(); sheetTop(); BOARD.Sound.cheer(5); break;
     case "goHome": goHomeFromAscot(); break;
-    case "again": newCard(); S.at = "newmarket"; save(); story("palace", "jockey", "draw"); break;
+    case "again": freshSeason(); story("palace", "jockey", "draw"); break;
     case "replayTally": playTally(); break;
     case "copy": {
       const txt = $("#shareText").textContent;
@@ -617,7 +642,7 @@ document.addEventListener("click", e => {
     case "closeWatch": closeWatch(); break;
     case "menuContinue": leaveMenu(); break;
     case "menuNew": if (hasProgress() && !newArmed) { newArmed = true; paintMenu(true); break; }
-      newCard(); S.at = "newmarket"; save(); newArmed = false; render(); paintMenu(true); if (!hasProgress()) toast("A new season is drawn"); break;
+      freshSeason(); newArmed = false; render(); paintMenu(true); if (!hasProgress()) toast("A new season is drawn"); break;
     case "aucBid": aucPlace("me"); break;
     case "aucLeave": aucLeave(); break;
     case "autoMinus": if (A) { A.auto = Math.max(openBid(A.l), A.auto - incFor(A.auto - 1)); aucPaint(); } break;
@@ -633,6 +658,12 @@ function raceDone(i, quiet) {
   else if (res.pos && res.pos <= 4) toast(`${ord(res.pos)} in the ${r.name}: ${money(res.prize)}`);
 }
 function selectShare() { const r = document.createRange(); r.selectNodeContents($("#shareText")); const s = getSelection(); s.removeAllRanges(); s.addRange(r); }
+
+addEventListener("keydown", (e) => {
+  if (e.key !== "Escape") return;
+  if (document.querySelector(".foal-wrap, .auc, .watch") || menuOpen || UI.cineOn) return;
+  if (UI.sheet && !atAscot()) closeSheet();
+});
 
 /* ================= Starting up ================= */
 document.body.insertAdjacentHTML("afterbegin", `<svg width="0" height="0" style="position:absolute" aria-hidden="true"><symbol id="pip" viewBox="0 0 40 40"><g fill="currentColor"><path d="M20 5 L35 20 L20 35 L5 20Z"/><circle cx="20" cy="3.6" r="3.2"/><circle cx="20" cy="36.4" r="3.2"/><circle cx="3.6" cy="20" r="3.2"/><circle cx="36.4" cy="20" r="3.2"/></g><circle cx="20" cy="20" r="4" fill="#fffdf7"/></symbol></svg>`);

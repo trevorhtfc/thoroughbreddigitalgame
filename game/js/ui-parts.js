@@ -343,7 +343,7 @@ function hcard(h, race, canAct, opts) {
     if (canAct) acts += here ? `<button class="tb-btn ghost" data-unpick="${race.id}">Take out</button>`
       : !cant ? `<button class="tb-btn" data-pick="${h.id}" data-race="${race.id}">${inRace ? "Move here" : "Enter"}</button>` : "";
   }
-  if (canAct && h.age < 4) acts += `<button class="tb-btn ghost" data-develop="${h.id}">Develop to ${h.age + 1}YO</button>`;
+  if (canAct && h.age < 4 && !atAscot()) acts += `<button class="tb-btn ghost" data-develop="${h.id}">Develop to ${h.age + 1}YO</button>`;
   acts += `<button class="tb-btn ghost" data-card="${h.id}">Card</button>`;
   const today = race && goingKnown() ? CARD.going[race.day] : null;
   return `<article class="hk ${here ? "here" : ""} ${race && cant ? "cant" : ""}">
@@ -393,7 +393,7 @@ function hcardC(h, race, canAct, opts) {
     if (canAct) acts += here ? `<button class="tb-btn ghost" data-unpick="${race.id}">Take out</button>`
       : !cant ? `<button class="tb-btn" data-pick="${h.id}" data-race="${race.id}">${inRace ? "Move here" : "Enter"}</button>` : "";
   }
-  if (canAct && h.age < 4) acts += `<button class="tb-btn ghost" data-develop="${h.id}">Develop to ${h.age + 1}YO</button>`;
+  if (canAct && h.age < 4 && !atAscot()) acts += `<button class="tb-btn ghost" data-develop="${h.id}">Develop to ${h.age + 1}YO</button>`;
   const today = race && goingKnown() ? CARD.going[race.day] : null, planned = race && (S.targets || {})[race.id] === h.id;
   return `<article class="hc2 ${here ? "here" : ""} ${race && cant ? "cant" : ""}" ${opts && opts.plan ? `data-plandrop="${h.id}"` : ""}>
     <div class="hc2-pic"><img src="img/p${String(h.portrait || 1).padStart(2, "0")}.webp" alt=""></div>
@@ -531,7 +531,7 @@ function weekCard(r) {
       : res.pos === 1 ? `Won by ${lengthsText(res.by)}` : res.pos ? `Beaten ${lengthsText(res.beaten)} by ${esc2(res.winner)}` : `Won by ${esc2(res.winner)}`;
     right = `<div class="res"><div class="prize">${res.pos ? (res.prize ? money(res.prize) : "No prize") : "No runner"}<br>${how}</div>
       <div class="pos ${cls}">${res.pos ? ord(res.pos) : "–"}</div><button class="tb-btn ghost sm" data-watch="${r.i}">Replay</button></div>`;
-  } else right = `<div class="res"><button class="tb-btn ghost sm" data-watch="${r.i}" ${next === r && !simBusy ? "" : "disabled"}>Watch</button><button class="tb-btn sm" data-sim="${r.i}" ${next === r && !simBusy ? "" : "disabled"}>Sim</button></div>`;
+  } else right = `<div class="res"><button class="tb-btn sm" data-watch="${r.i}" ${next === r && !simBusy ? "" : "disabled"} title="Watch it run at Ascot in 3D">Watch in 3D</button><button class="tb-btn ghost sm" data-sim="${r.i}" ${next === r && !simBusy ? "" : "disabled"} title="The result straight away: the very same race">Sim</button></div>`;
   const pf = paceFor(r.i), note = pf && paceNote(pf.pace, h);
   const forecast = pf ? `<div class="pacef pf-${pf.pace}"><b>Pace forecast: ${PACE_WORD[pf.pace]}</b><span>${pf.front} front-runner${pf.front === 1 ? "" : "s"} in ${pf.n}${note ? ` · ${note}` : ""}</span></div>` : "";
   const report = res && res.report ? `<details class="rep"><summary>Race report · ${res.time.toFixed(2)}s · ${PACE_WORD[res.pace] || ""} pace</summary><ul>${res.report.map(t => `<li>${esc2(t)}</li>`).join("")}</ul></details>` : "";
@@ -627,7 +627,7 @@ function watch(i) {
   if (!window.ENGINE) { toast("The race engine is still loading. Try again in a moment."); return; }
   const field = fieldFor(i);
   box.className = "watch";
-  box.innerHTML = `<iframe src="final-furlong.html?game=1${window.__watchQuery || ""}" title="${esc2(race.name)}" allow="fullscreen"></iframe><button class="tb-btn ghost x" id="closeWatch">Back to the racecard</button>`;
+  box.innerHTML = `<iframe src="final-furlong.html?game=1${window.__watchQuery || ""}" title="${esc2(race.name)}" allow="fullscreen"></iframe><button class="tb-btn ghost x" id="closeWatch"><span class="lg">Back to the racecard</span><span class="sh">Racecard</span></button>`;
   document.body.appendChild(box); document.body.style.overflow = "hidden";
   const frame = box.querySelector("iframe");
   watching = { i, box, frame, sent: false };
@@ -646,7 +646,11 @@ function closeWatch() { if (!watching) return; clearTimeout(watching.timer); wat
 addEventListener("message", e => {
   if (!watching || e.source !== watching.frame.contentWindow) return;
   const d = e.data || {};
-  if (d.type === "ready" && !watching.sent) { watching.sent = true; watching.frame.contentWindow.postMessage(watching.payload, "*"); }
+  if (d.type === "ready" && !watching.sent) {
+    watching.sent = true; clearTimeout(watching.timer);
+    const m = watching.box.querySelector(".msg"); if (m) m.remove();     // it loaded late: the race goes on after all
+    watching.frame.contentWindow.postMessage(watching.payload, "*");
+  }
   if (d.type === "finished") { const i = watching.i; simAndRecord(i).then(() => { if (typeof raceDone === "function") raceDone(i, true); }).catch(err => toast(String(err.message || err))); }
   if (d.type === "back") closeWatch();
   if (d.type === "next") { const i = watching.i; closeWatch(); const nx = RACES[i + 1]; if (nx && !S.results[nx.id]) watch(i + 1); }
@@ -661,6 +665,7 @@ function openAuction(id) {
   const rivals = RIVALS.map(r => ({ ...r, ceil: Math.random() < r.keen(l) ? l.reserve * ap * r.want(l) * (.7 + Math.random() * .9) : 0, wait: null }));
   A = { l, price: null, leader: null, start: performance.now(), last: performance.now(), rivals, log: [], call: -1, done: false, auto: 0, autoOn: false, ang: Math.random() * 6.28 };
   A.auto = Math.min(S.budget, round5k(guide(l)[0]));
+  S.ring = l.id; save();   // the lot is in the ring: leave the page now and it has gone when you come back (no going back)
   const box = document.createElement("div"); box.className = "auc"; box.id = "auc"; box.setAttribute("role", "dialog"); box.setAttribute("aria-label", `Tattersalls, lot ${l.n}`);
   box.innerHTML = aucHTML(); document.body.appendChild(box); document.body.style.overflow = "hidden";
   A.box = box; aucPaint(); A.timer = setInterval(aucTick, 100); A.raf = requestAnimationFrame(aucWalk);
@@ -763,12 +768,16 @@ function aucHammer() {
     msg = "Unsold"; S.sale = S.sale.filter(x => x !== l);
     A.outcome = { kind: "passed", text: `No one bid the reserve on lot ${l.n}. It leaves the ring unsold.` };
   } else if (A.leader === "me") {
+    // yours the moment the hammer falls (and saved), not when the ring is left
     msg = "SOLD!"; A.outcome = { kind: "won" };
+    S.budget -= A.price; S.sale = S.sale.filter(x => x !== l);
+    breed(l.sire, l.dam, "bought", A.price, l.id);
   } else {
     const r = A.rivals.find(x => x.id === A.leader);
     msg = "Sold"; S.sale = S.sale.filter(x => x !== l);
     A.outcome = { kind: "lost", text: `Lot ${l.n} sold to ${r.name} for ${money(A.price)}.` };
   }
+  S.ring = null;
   c.className = "auc-call sold"; c.textContent = msg; void c.offsetWidth; c.classList.add("pop");
   if (window.BOARD) BOARD.Sound.gavel();
   A.log.unshift(A.outcome.kind === "won" ? `Knocked down to you at ${money(A.price)}` : A.outcome.text); aucPaint(); save();
@@ -789,13 +798,11 @@ function aucLeave() {
 function aucClose() {
   if (!A) return;
   clearInterval(A.timer); cancelAnimationFrame(A.raf);
-  const { l, outcome, price } = A;
+  const { outcome } = A;
   A.box.remove(); A = null; document.body.style.overflow = "";
   if (window.BOARD) BOARD.setInPlace("tatts");
-  if (outcome && outcome.kind === "won") {
-    S.budget -= price; S.sale = S.sale.filter(x => x !== l);
-    breed(l.sire, l.dam, "bought", price, l.id);
-  } else if (outcome) toast(outcome.text);
+  if (outcome && outcome.kind !== "won") toast(outcome.text);
+  if (!outcome) { S.ring = null; }
   save(); render();
 }
 
