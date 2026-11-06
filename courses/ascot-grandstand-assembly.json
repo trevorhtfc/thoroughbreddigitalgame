@@ -1,5 +1,5 @@
 {
- "_about": "Ascot's main stand, assembled from the modules in assets/models/architecture/stand_modules.json. Order runs LEFT to RIGHT as seen from the track, which at Ascot is EAST (upstream) to WEST (past the post). 'repeat' places the same module that many times in a row. The stand is anchored so the clock tower faces the winning post; its front line is 'setback' metres behind the near (outer) rail of the home straight. Change the list and re-run tools/course/build_ascot_layout.py; the Blender build reads the same list. Since 6 Nov 2026 the long runs are the terrace stand from the owner's archive photos (the earlier order is kept as _previousOrder); an item's own 'bays' overrides the catalogue width (owner: no slivers; stair halls 2 bays, short terrace stretches at least 5, pavilions slimmed to pay for it).",
+ "_about": "Ascot's main stand, assembled from the modules in assets/models/architecture/stand_modules.json. Order runs LEFT to RIGHT as seen from the track, which at Ascot is EAST (upstream) to WEST (past the post). 'repeat' places the same module that many times in a row. The stand is anchored so the clock tower faces the winning post; its front line is 'setback' metres behind the near (outer) rail of the home straight. Change the list and re-run tools/course/build_ascot_layout.py; the Blender build reads the same list. Since 6 Nov 2026 the long runs are the terrace stand from the owner's archive photos (the earlier order is kept as _previousOrder); an item's own 'bays' overrides the catalogue width (owner: no slivers; stair halls 2 bays, short terrace stretches at least 5, pavilions slimmed to pay for it). Owner's elevation markup (6 Nov 2026): the centrepiece is a 6-bay gallery block, the 8-bay iron lace bay with the tower in its centre, and a 6-bay gallery block; the west grand roof runs on over the iron bay and the last terrace.",
  "catalogue": "assets/models/architecture/stand_modules.json",
  "anchor": {
   "module": "clock_centre",
@@ -65,33 +65,31 @@
   },
   {
    "module": "terrace_stand",
-   "repeat": 20
+   "repeat": 19
   },
   {
    "module": "stair_bay",
-   "bays": 2
+   "bays": 6
   },
   {
    "module": "clock_centre"
   },
   {
-   "module": "terrace_stand",
-   "repeat": 5
-  },
-  {
    "module": "stair_bay",
-   "bays": 2
+   "bays": 6
   },
   {
    "module": "grand_pavilion",
    "bays": 6
   },
   {
-   "module": "ironwork_bay"
+   "module": "ironwork_bay",
+   "roof": true
   },
   {
-   "module": "pavilion",
-   "bays": 5
+   "module": "terrace_stand",
+   "repeat": 5,
+   "roof": true
   },
   {
    "module": "end_pavilion"

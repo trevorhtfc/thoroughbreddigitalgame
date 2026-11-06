@@ -93,19 +93,19 @@
    "source": "S1/S2 external stairs between wings; the flight projects 6 m in front of the line onto the lawn"
   },
   "clock_centre": {
-   "bays": 10,
-   "depth": 22,
-   "tiers": 4,
+   "bays": 8,
+   "depth": 20,
+   "tiers": 3,
    "height": 30.0,
    "roof": "terrace with belfry clock tower",
-   "towerFromLeft": 23.5,
+   "towerFromLeft": 14.0,
    "towerWidth": 7.0,
    "ends": {
     "left": "party",
     "right": "party"
    },
    "centrepiece": true,
-   "source": "S1 central_block + clock_tower + ironwork_bay (x 56-91); since 6 Nov 2026 the terrace stand with the ironwork bay and the old belfry clock tower rising out of the roof terrace"
+   "source": "S1 central_block + clock_tower + ironwork_bay (x 56-91); since 6 Nov 2026 the terrace stand with the ironwork bay and the old belfry clock tower rising out of the roof terrace; since 6 Nov 2026 (owner's elevation markup B) the iron lace bay alone, doubled to 8 bays with the belfry tower in its centre"
   },
   "ironwork_bay": {
    "bays": 4,

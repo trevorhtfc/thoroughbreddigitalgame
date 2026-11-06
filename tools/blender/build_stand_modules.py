@@ -98,7 +98,7 @@ def end_pavilion(x0, x1, D, tiers):
 def stair_bay(x0, x1, D, party=()):
     """A narrow stair hall between wings, with a broad flight from the lawn in front."""
     block({"x0": x0, "x1": x1, "storeys": 3, "depth": D, "party": party})
-    steps({"x": (x0 + x1) / 2, "width": x1 - x0 - 0.9, "run": MODS["stair_bay"]["frontProjection"]})
+    steps({"x": (x0 + x1) / 2, "width": min(x1 - x0 - 0.9, 6.1), "run": MODS["stair_bay"]["frontProjection"]})   # one flight, however wide the block
 
 
 def grand_pavilion(x0, x1, D, party=()):
@@ -135,10 +135,9 @@ def build_module(name, x0, length, party=(), roof=False, join=()):
         if roof:
             canopy_roof(x0, x1, t["top"], t["depth"], t["deck"], t["top"] + 1.25, grand=True, join=join, lantern=False)
     elif name == "clock_centre":
-        # since 6 Nov 2026 (owner's archive photos): the terrace stand, the ironwork bay, and the old belfry
-        # clock tower rising out of the packed roof terrace
-        terrace({"x0": x0, "x1": x0 + 21.0, "depth": 18.0, "party": ("right",) + tuple(p for p in party if p == "left")})
-        ironwork({"x0": x0 + 21.0, "x1": x1, "levels": 3, "depth": 20.0})
+        # since 6 Nov 2026 (owner's elevation markup): the iron lace bay, doubled, with the old belfry clock tower
+        # rising from its centre; the gallery-balcony blocks either side are separate stair_bay items
+        ironwork({"x0": x0, "x1": x1, "levels": 3, "depth": 20.0})
         tower_belfry({"x": x0 + m["towerFromLeft"], "y": 7.0, "width": m["towerWidth"], "base_z": 13.2, "top_z": 36.0})
     elif name == "ironwork_bay":
         ironwork({"x0": x0, "x1": x1, "levels": 3, "depth": m["depth"]})
