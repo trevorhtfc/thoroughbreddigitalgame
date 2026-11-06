@@ -143,9 +143,10 @@ def build_module(name, x0, length, party=()):
     elif name == "three_storey_block":
         block({"x0": x0, "x1": x1, "storeys": 3, "depth": m["depth"], "roof_room": True, "party": party})
     elif name == "pavilion":
-        pavilion({"x0": x0, "x1": x1, "storeys": 2, "storey": 4.6, "depth": m["depth"], "pitch_deg": 24, "party": party})
+        # since 6 Nov 2026 (owner): a light pitched roof over the open terrace, the terrace running through
+        canopy_terrace({"x0": x0, "x1": x1, "depth": 18.0, "party": party})
     elif name == "grand_pavilion":
-        grand_pavilion(x0, x1, m["depth"], party)
+        canopy_terrace({"x0": x0, "x1": x1, "depth": 18.0, "party": party}, grand=True)
     else:
         raise KeyError(name)
 

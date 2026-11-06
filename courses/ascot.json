@@ -5116,7 +5116,7 @@
     "xEast": 216.0,
     "xWest": 198.5,
     "front": 45.4,
-    "back": 65.4
+    "back": 63.4
    },
    {
     "module": "ironwork_bay",
@@ -5134,7 +5134,7 @@
     "xEast": 184.5,
     "xWest": 163.5,
     "front": 45.4,
-    "back": 71.4
+    "back": 63.4
    },
    {
     "module": "terrace_stand",
@@ -5521,7 +5521,7 @@
     "xEast": -36.0,
     "xWest": -57.0,
     "front": 45.4,
-    "back": 71.4
+    "back": 63.4
    },
    {
     "module": "ironwork_bay",
@@ -5539,7 +5539,7 @@
     "xEast": -71.0,
     "xWest": -88.5,
     "front": 45.4,
-    "back": 65.4
+    "back": 63.4
    },
    {
     "module": "end_pavilion",

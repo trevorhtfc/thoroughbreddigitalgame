@@ -147,27 +147,27 @@
   },
   "pavilion": {
    "bays": 6,
-   "depth": 20,
+   "depth": 18,
    "tiers": 2,
    "height": 17.0,
-   "roof": "pitched 24 deg",
+   "roof": "light pitched canopy on slender columns over the open terrace",
    "ends": {
     "left": "party",
     "right": "party"
    },
-   "source": "S1 pavilion (was 22.5 m; now a whole 6 bays, 21 m)"
+   "source": "S1 pavilion (was 22.5 m; now a whole 6 bays, 21 m); since 6 Nov 2026 a light roof over the terrace stand running through (owner)"
   },
   "grand_pavilion": {
    "bays": 8,
-   "depth": 26,
+   "depth": 18,
    "tiers": 3,
    "height": 22.0,
-   "roof": "large pitched with lantern",
+   "roof": "light pitched canopy on slender columns over the open terrace, glazed ridge lantern",
    "ends": {
     "left": "party",
     "right": "party"
    },
-   "source": "S2 larger pitched-roof pavilion right of the clock"
+   "source": "S2 larger pitched-roof pavilion right of the clock; since 6 Nov 2026 a light roof over the terrace stand running through (owner)"
   },
   "terrace_stand": {
    "bays": 1,

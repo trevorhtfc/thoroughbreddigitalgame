@@ -360,8 +360,11 @@ def terrace(seg):
         if ("left" if x == x0 else "right") in party:
             continue
         t = -0.3 if x == x0 else 0.3
+        if seg.get("open_ends"):
+            continue                                                                 # a canopy's ends stay open
         K.prism_x("wall", min(x, x + t), max(x, x + t), [(3.15, zr + 0.6), (3.15, zr + 1.95), (D - 0.4, ztop + 1.25), (D, ztop + 1.25), (D, zr + 0.6)])
         K.box("wall", min(x, x + t), max(x, x + t), -0.5, 8.0, z2, z2 + 1.0)
+    return {"deck": zt0, "top": ztop, "depth": D}
 
 
 # ------------------------------------------------------------------ belfry clock tower (owner's archive photo)
@@ -405,3 +408,49 @@ def tower_belfry(seg):
     K.cyl("gilt", cx, cy, zt + 1.1, zt + 4.0, 0.06, 0.05, 6)                           # the cross
     K.box("gilt", cx - 0.6, cx + 0.6, cy - 0.05, cy + 0.05, zt + 3.1, zt + 3.22)
     K.sphere("gilt", cx, cy, zt + 4.05, 0.12, 1)
+
+
+# ------------------------------------------------------------------ canopy over the terrace (owner, 6 Nov 2026)
+def canopy_terrace(seg, grand=False):
+    """The pitched-roof pavilions as light roofs over open terraces (owner's archive photo of the long canopy):
+    the terrace stand's boxes, standing terrace, gallery and stepped roof terrace run straight on through, and a
+    thin shallow-pitched roof floats over the top rows on slender columns, open to the front and at the gables.
+    grand: a steeper, taller canopy with a glazed lantern along the ridge, so the pavilions still read as landmarks."""
+    x0, x1 = seg["x0"], seg["x1"]
+    t = terrace(dict(seg, open_ends=True))
+    D, deck, top = t["depth"], t["deck"], t["top"]
+    nb = max(1, round((x1 - x0) / BAY))
+    ze = top + (3.4 if grand else 2.7)                    # eave height
+    pitch = math.radians(21 if grand else 14)
+    yf, yb = 1.4, D + 0.7                                 # eaves: well out over the front rows, and over the back wall
+    ym = (yf + yb) / 2
+    zr = ze + (ym - yf) * math.tan(pitch)
+    ov, th = 0.6, 0.2
+    K.prism_x("roof", x0 - ov, x1 + ov, [(yf, ze), (yf, ze + th), (ym, zr + th), (yb, ze + th), (yb, ze), (ym, zr)])
+    K.box("trim", x0 - ov, x1 + ov, yf - 0.12, yf + 0.05, ze - 0.45, ze + th)                 # light fascia (a valance)
+    K.box("trim", x0 - ov, x1 + ov, yb - 0.05, yb + 0.12, ze - 0.3, ze + th)
+    K.box("trim", x0 - ov, x1 + ov, ym - 0.12, ym + 0.12, zr + th - 0.02, zr + th + 0.12)      # ridge capping
+    for x in (x0 - ov, x1 + ov):                                                                # bargeboards on the open gables
+        for (ya, za), (yb2, zb2) in (((yf, ze + th), (ym, zr + th)), ((ym, zr + th), (yb, ze + th))):
+            L = math.hypot(yb2 - ya, zb2 - za); ang = math.atan2(zb2 - za, yb2 - ya)
+            K.boxm("trim", Matrix.Translation((x, (ya + yb2) / 2, (za + zb2) / 2 + 0.05)) @ Matrix.Rotation(ang, 4, "X"), 0.12, L, 0.35)
+    # slender columns: a front row standing on the roof deck, a back row on the back wall, and light ties across
+    yc = 3.3
+    for i in range(nb + 1):
+        x = x0 + (x1 - x0) * i / nb
+        K.cyl("trim", x, yc, deck, ze - 0.05 + (yc - yf) * math.tan(pitch), 0.11, 0.09, 8)
+        K.cyl("trim", x, D - 0.2, top + 1.25, ze - 0.05 + (yb - (D - 0.2)) * math.tan(pitch), 0.11, 0.09, 8)
+        K.box("trim", x - 0.06, x + 0.06, yc, D - 0.2, ze + (yc - yf) * math.tan(pitch) - 0.25, ze + (yc - yf) * math.tan(pitch) - 0.1)
+        if not K.far:                                                                            # little curved brackets
+            for sgn in (-1, 1):
+                if x0 <= x + sgn * 0.5 <= x1:
+                    K.arc_band("trim", x + sgn * 0.62, ze + (yc - yf) * math.tan(pitch) - 0.75, 0.5, 0.6,
+                               math.pi / 2 if sgn < 0 else 0, math.pi if sgn < 0 else math.pi / 2, yc - 0.05, yc + 0.05, 5)
+    if grand:                                                                                   # glazed lantern on the ridge
+        lx0, lx1 = x0 + 2.0, x1 - 2.0
+        K.box("glass", lx0, lx1, ym - 1.2, ym + 1.2, zr + th, zr + th + 0.9)
+        K.prism_x("roof", lx0 - 0.4, lx1 + 0.4, [(ym - 1.6, zr + th + 0.9), (ym - 1.6, zr + th + 1.05), (ym, zr + th + 1.5), (ym + 1.6, zr + th + 1.05), (ym + 1.6, zr + th + 0.9), (ym, zr + th + 1.35)])
+        if not K.far:
+            for i in range(round((lx1 - lx0) / 1.2) + 1):
+                lx = lx0 + (lx1 - lx0) * i / max(1, round((lx1 - lx0) / 1.2))
+                K.box("trim", lx - 0.05, lx + 0.05, ym - 1.25, ym + 1.25, zr + th, zr + th + 0.9)
