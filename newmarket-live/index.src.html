@@ -46,6 +46,7 @@ button:focus-visible{outline:2px solid var(--tb-gold);outline-offset:3px}
 #wisps{position:absolute;left:0;top:0;width:1448px;height:300px;pointer-events:none}
 #life{filter:saturate(.85) sepia(.1)}
 /* the day: the board multiplied by the hour's light, warmed in the afternoon, lamps at dusk, mist at dawn, smoke */
+#banners{position:absolute;pointer-events:none}
 #mist,#shade,#warm,#lamps,#smoke{position:absolute;inset:0;width:1448px;height:1086px;pointer-events:none}
 #shade{mix-blend-mode:multiply;background:#fff}
 #warm{mix-blend-mode:soft-light;opacity:0;background:radial-gradient(ellipse at 90% -10%,#ffb25a 0%,#ff9440 55%,#b95a2a 100%)}
@@ -100,7 +101,11 @@ button:focus-visible{outline:2px solid var(--tb-gold);outline-offset:3px}
   border:none;border-radius:var(--tb-radius);background:var(--tb-green);color:var(--tb-on-dark);padding:10px 20px 10px 14px;box-shadow:0 0 0 2px var(--tb-panel),0 6px 16px rgba(20,35,25,.4)}
 .races .hz{width:38px;height:25px;background:var(--tb-on-dark);-webkit-mask:var(--horse) center/contain no-repeat;mask:var(--horse) center/contain no-repeat}
 .races .pill{font-family:var(--tb-display);font-weight:600;font-size:16px;letter-spacing:.16em;text-transform:uppercase;white-space:nowrap}
-.races:hover{background:var(--tb-green-hi)}
+.races:hover,.races.lit{background:var(--tb-green-hi)}
+.races .arr{width:12px;height:12px;fill:currentColor;margin-left:2px}
+.races.onroad{right:auto;padding:9px 14px 9px 11px;gap:9px}
+.races.onroad .pill{font-size:14px;letter-spacing:.12em}
+.races.onroad .hz{width:32px;height:21px}
 .races.on{background:var(--tb-gold)}
 @media (prefers-reduced-motion:no-preference){ .races{animation:beckon 3.4s ease-in-out infinite} }
 @keyframes beckon{0%,100%{box-shadow:0 0 0 2px var(--tb-panel),0 6px 16px rgba(20,35,25,.4)}50%{box-shadow:0 0 0 2px var(--tb-panel),0 0 22px rgba(255,214,140,.75)}}
@@ -160,6 +165,7 @@ button:focus-visible{outline:2px solid var(--tb-gold);outline-offset:3px}
       <canvas id="clouds" width="362" height="272" aria-hidden="true"></canvas>
       <canvas id="mist" width="362" height="272" aria-hidden="true"></canvas>
       <canvas id="life" aria-hidden="true"></canvas>
+      <canvas id="banners" aria-hidden="true"></canvas>
       <div id="shade" hidden></div>
       <div id="warm"></div>
       <svg id="glow" viewBox="0 0 1448 1086">
@@ -176,7 +182,7 @@ button:focus-visible{outline:2px solid var(--tb-gold);outline-offset:3px}
   </div>
 </main>
 
-<button class="races" id="races" type="button"><span class="hz" aria-hidden="true"></span><span class="pill">To the Races</span></button>
+<button class="races" id="races" type="button"><span class="hz" aria-hidden="true"></span><span class="pill">To the Races</span><svg class="arr" viewBox="0 0 10 16" aria-hidden="true"><path d="M1.6 0 0 1.6 6.4 8 0 14.4 1.6 16l8-8z"/></svg></button>
 
 <aside class="card" id="card" hidden aria-live="polite">
   <header><h2 id="cardTitle">Tattersalls</h2><button class="x" id="cardClose" type="button" aria-label="Close">&times;</button></header>

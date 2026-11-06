@@ -325,3 +325,112 @@ let hovered = null;
 const placeSound = () => Sound.place(hovered || chosen);
 window.__fx = () => ({ chimneys: CHIMNEYS.length, puffs: PUFFS2.length, lamps: LAMPS.length });
 window.__setHour = (h) => { const t = h >= 5.5 && h < 21.5 ? (h - 5.5) / 16 * 0.86 : 0.86 + (((h - 21.5 + 24) % 24) / 8) * 0.14; dayT = t % 1; };
+
+// ---------------------------------------------------------------- the banner avenue: silks flown along the road to the races
+// assets/banners.json (tools/banners.py): banners on the north verge of the road above the National Stud, which runs
+// off the board towards To the Races. Each flag is the silks' body colours and pattern laid flat, drawn like the
+// owner's reference (ink outline, a ragged fly, three tabs on the pole, a white pole with a spear tip).
+const BAN = { x: 870, y: 236, w: 500, h: 200, k: 2 };                 // the canvas covers this part of the board
+const banC = document.getElementById("banners"), bx = banC.getContext("2d");
+banC.width = BAN.w * BAN.k; banC.height = BAN.h * BAN.k;
+Object.assign(banC.style, { left: BAN.x + "px", top: BAN.y + "px", width: BAN.w + "px", height: BAN.h + "px" });
+const AVENUE = ["aga-khan", "cheveley-park", "qatar", "alcohol-free", "liberty-lane", "circus-maximus", "ballydoyle-orange", "judmonte", "black-white", "shadwell", "desert-crown", "night-of-thunder"];
+let BANNERS = [], banPole = 36, banW = 22;
+const INKB = "#2a2520";
+function silkFlag(def, palette, W, H, seed) {
+  let s0 = seed * 9973 + 7; const r = () => ((s0 = (s0 * 16807) % 2147483647) / 2147483647);
+  const K = 4, m = 3, c = document.createElement("canvas"); c.width = (W + m * 2) * K; c.height = (H + m * 2) * K;
+  const g = c.getContext("2d"); g.scale(K, K); g.translate(m, m); g.lineJoin = "round"; g.lineCap = "round";
+  const soft = (name) => { const h = palette[name] || "#888888", n = parseInt(h.slice(1), 16), base = [232, 220, 186];
+    const v = [n >> 16, (n >> 8) & 255, n & 255].map((x, i) => Math.round(x * 0.86 + base[i] * 0.1)); return `rgb(${v.join(",")})`; };
+  const c1 = soft(def.body.colour), c2 = soft(def.body.colour2 || def.body.colour);
+  // the cloth: wavering top and bottom edges, a ragged fly
+  const pts = [];
+  for (let i = 0; i <= 6; i++) pts.push([W * i / 6, (r() - 0.5) * 0.5]);
+  for (let i = 1; i <= 7; i++) pts.push([W - (i % 2 ? 0.2 + r() * 0.5 : r() * 0.2), H * i / 8]);
+  pts.push([W, H]);
+  for (let i = 6; i >= 0; i--) pts.push([W * i / 6, H + (r() - 0.5) * 0.5]);
+  const cloth = new Path2D(); pts.forEach(([x, y], i) => (i ? cloth.lineTo(x, y) : cloth.moveTo(x, y))); cloth.closePath();
+  g.save(); g.clip(cloth);
+  g.fillStyle = c1; g.fillRect(-1, -1, W + 2, H + 2);
+  g.fillStyle = c2; g.strokeStyle = c2;
+  switch (def.body.pattern) {
+    case "hooped band": g.fillRect(-1, H * 0.36, W + 2, H * 0.28); break;
+    case "hoops": for (let i = 1; i < 5; i += 2) g.fillRect(-1, i * H / 5, W + 2, H / 5); break;
+    case "epaulets": g.fillRect(-1, -1, W + 2, H * 0.27); break;
+    case "chevron": g.lineWidth = H * 0.22; g.beginPath(); g.moveTo(-1, H * 0.05); g.lineTo(W / 2, H * 0.72); g.lineTo(W + 1, H * 0.05); g.stroke(); break;
+    case "sash": g.lineWidth = H * 0.26; g.beginPath(); g.moveTo(-1, -1); g.lineTo(W + 1, H + 1); g.stroke(); break;
+    case "crossbelts": g.lineWidth = H * 0.2; g.beginPath(); g.moveTo(-1, -1); g.lineTo(W + 1, H + 1); g.moveTo(-1, H + 1); g.lineTo(W + 1, -1); g.stroke(); break;
+    case "three spots": for (const [x, y] of [[0.28, 0.3], [0.72, 0.3], [0.5, 0.72]]) { g.beginPath(); g.arc(W * x, H * y, H * 0.16, 0, 6.283); g.fill(); } break;
+    case "disc": g.beginPath(); g.arc(W / 2, H / 2, H * 0.3, 0, 6.283); g.fill(); break;
+    case "diamond": g.beginPath(); g.moveTo(W / 2, H * 0.12); g.lineTo(W * 0.78, H / 2); g.lineTo(W / 2, H * 0.88); g.lineTo(W * 0.22, H / 2); g.closePath(); g.fill(); break;
+    case "seams": g.lineWidth = 0.9; g.beginPath(); g.moveTo(W / 3, -1); g.lineTo(W / 3, H + 1); g.moveTo(W * 2 / 3, -1); g.lineTo(W * 2 / 3, H + 1); g.stroke(); break;
+  }
+  g.restore();
+  g.strokeStyle = INKB; g.lineWidth = 0.6; g.stroke(cloth);
+  // three tabs round the pole
+  for (const y of [H * 0.1, H * 0.43, H * 0.76]) { g.fillStyle = "#f4f1ea"; g.fillRect(-1.3, y, 1.9, H * 0.14); g.lineWidth = 0.4; g.strokeRect(-1.3, y, 1.9, H * 0.14); }
+  c.m = m; c.K = K; c.W = W; c.H = H;
+  return c;
+}
+let racesHot = 0;
+function drawBanners(t, dt) {
+  if (!BANNERS.length) return;
+  const want = hovered === "races" || chosen === "races" ? 1 : 0; racesHot += (want - racesHot) * Math.min(1, dt * 3);
+  const k = BAN.k; bx.setTransform(1, 0, 0, 1, 0, 0); bx.clearRect(0, 0, banC.width, banC.height);
+  bx.setTransform(k, 0, 0, k, -BAN.x * k, -BAN.y * k); bx.lineJoin = "round";
+  const amp = 1.1 + racesHot * 1.3, speed = 4.2 + racesHot * 3.5;
+  for (const b of BANNERS) {
+    const top = b.y - banPole;
+    // shadow at the foot, the pole, the spear tip
+    bx.fillStyle = "rgba(40,34,20,.28)"; bx.beginPath(); bx.ellipse(b.x + 2.5, b.y + 0.6, 3.2, 1.1, 0, 0, 6.283); bx.fill();
+    bx.fillStyle = "#f4f1ea"; bx.strokeStyle = INKB; bx.lineWidth = 0.45;
+    bx.fillRect(b.x - 0.6, top, 1.2, banPole); bx.strokeRect(b.x - 0.6, top, 1.2, banPole);
+    bx.beginPath(); bx.moveTo(b.x, top - 4.6); bx.lineTo(b.x + 0.9, top - 1.6); bx.lineTo(b.x, top + 0.4); bx.lineTo(b.x - 0.9, top - 1.6); bx.closePath(); bx.fill(); bx.stroke();
+    // the flag, in slices that ripple more towards the fly
+    const f = b.flag, K = f.K, m = f.m, N = 12, sw = (f.W + m) * K / N, fx = b.x - m + 0.2, fy = top + 1.6 - m;
+    for (let i = 0; i < N; i++) {
+      const sx = m * K * 0 + i * sw, u = Math.max(0, (i * sw / K - m) / f.W), ph = t * speed - u * 3.2 + b.ph;
+      const dy = Math.sin(ph) * amp * u, shade = Math.cos(ph) * u;
+      bx.drawImage(f, sx, 0, sw + 1, f.height, fx + sx / K, fy + dy, (sw + 1) / K, f.height / K);
+      if (shade > 0.05) { bx.globalCompositeOperation = "source-atop"; bx.fillStyle = `rgba(30,20,10,${(0.22 * shade).toFixed(3)})`; bx.fillRect(fx + sx / K, fy + dy, sw / K + 0.05, f.height / K); bx.globalCompositeOperation = "source-over"; }
+    }
+  }
+}
+Promise.all([fetch("assets/banners.json").then((r) => r.json()), fetch("assets/silks.json").then((r) => r.json())]).then(([ban, silks]) => {
+  banPole = ban.pole; banW = ban.flag;
+  const byId = Object.fromEntries(silks.silks.map((s) => [s.id, s]));
+  BANNERS = ban.banners.map(([x, y], i) => ({ x, y, ph: i * 0.9, flag: silkFlag(byId[AVENUE[i % AVENUE.length]], silks.palette, banW, Math.round(banW * 0.72), i + 1) }));
+  // the avenue lights up like the places, and picks To the Races
+  const tops = BANNERS.map((b) => [b.x - 6, b.y - banPole - 9]), feet = BANNERS.map((b) => [b.x - 6, b.y + 9]).reverse();
+  const end = BANNERS[BANNERS.length - 1], first = BANNERS[0];
+  const poly = [[first.x - 14, first.y - 10], ...tops, [end.x + banW + 14, end.y - banPole - 9], [end.x + banW + 14, end.y + 4], ...feet, [first.x - 14, first.y + 9]];
+  const d = smoothPath(poly);
+  const gEl = document.createElementNS(svgNS, "g"); gEl.setAttribute("class", "site"); gEl.id = "site-races";
+  gEl.innerHTML = `<path class="wash" d="${d}"/><path class="halo" d="${d}"/><path class="rim" d="${d}"/><path class="line" d="${d}"/><path class="spark" d="${d}" pathLength="548"/><path class="hit" d="${d}"/>`;
+  gEl.addEventListener("pointerenter", () => hover("races", true)); gEl.addEventListener("pointerleave", () => hover("races", false));
+  gEl.addEventListener("click", () => choose(chosen === "races" ? null : "races"));
+  glow.appendChild(gEl);
+  if (chosen === "races") gEl.classList.add("hot");
+}).catch((e) => console.warn("banners", e));
+const racesBtn = document.getElementById("races");
+racesBtn.addEventListener("mouseenter", () => hover("races", true)); racesBtn.addEventListener("mouseleave", () => hover("races", false));
+racesBtn.addEventListener("focus", () => hover("races", true)); racesBtn.addEventListener("blur", () => hover("races", false));
+// on wider screens, To the Races stands at the end of the banner avenue, where the road leaves the board
+function alignRaces() {
+  const wide = innerWidth > 980 && !view.classList.contains("pan");
+  racesBtn.classList.toggle("onroad", wide);
+  if (!wide) { racesBtn.style.left = racesBtn.style.top = ""; return; }
+  const hr = holder.getBoundingClientRect(), x = hr.left + 1352 * scale, y = hr.top + 310 * scale;
+  racesBtn.style.left = Math.round(Math.min(x, innerWidth - 16 - racesBtn.offsetWidth)) + "px";
+  racesBtn.style.top = Math.round(y - racesBtn.offsetHeight / 2) + "px";
+}
+function placeCard() {
+  if (!racesBtn.classList.contains("onroad") || card.hidden) { card.style.top = ""; return; }
+  const r = racesBtn.getBoundingClientRect(), barH = document.querySelector(".bar").offsetHeight;
+  let top = r.bottom + 12;
+  if (top + card.offsetHeight > innerHeight - 12) top = Math.max(barH + 12, r.top - 12 - card.offsetHeight);
+  card.style.top = top + "px";
+}
+addEventListener("resize", () => { alignRaces(); placeCard(); });
+alignRaces(); if (document.fonts) document.fonts.ready.then(() => { alignRaces(); placeCard(); });

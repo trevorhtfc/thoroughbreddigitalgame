@@ -61,18 +61,20 @@ function hover(id, on) {
   hovered = on ? id : (hovered === id ? null : hovered); placeSound();
   if (id === chosen) return;
   siteEl(id)?.classList.toggle("hot", on);
-  stage.querySelector(`.loc[data-id="${id}"]`).classList.toggle("lit", on);
+  stage.querySelector(`.loc[data-id="${id}"]`)?.classList.toggle("lit", on);
+  if (id === "races") document.getElementById("races").classList.toggle("lit", on);
 }
 const RACES = { id: "races", title: "To the Races", cta: "Go racing", text: "Pick a meeting, declare your runners and watch them run.", pic: [724, 560, 1448] };
 function choose(id) {
   chosen = id;
   document.getElementById("races").classList.toggle("on", id === "races");
+  siteEl("races")?.classList.toggle("hot", id === "races");
   for (const p of PLACES) {
     siteEl(p.id)?.classList.toggle("hot", p.id === id);
     stage.querySelector(`.loc[data-id="${p.id}"]`).classList.toggle("on", p.id === id);
   }
   leanTo(id); placeSound();
-  if (!id) { card.hidden = true; return; }
+  if (!id) { card.hidden = true; placeCard(); return; }
   const p = id === "races" ? RACES : PLACES.find((q) => q.id === id);
   document.getElementById("cardTitle").textContent = p.title;
   document.getElementById("cardText").textContent = p.text;
@@ -83,6 +85,7 @@ function choose(id) {
   pic.style.backgroundPosition = `${-(p.pic[0] * k - w / 2)}px ${-(p.pic[1] * k - h / 2)}px`;
   pic.setAttribute("aria-label", p.title + " on the board");
   card.hidden = false;
+  placeCard();
 }
 document.getElementById("races").addEventListener("click", () => choose(chosen === "races" ? null : "races"));
 document.getElementById("cardClose").addEventListener("click", () => choose(null));
@@ -102,6 +105,7 @@ function fit() {
   if (portrait) view.scrollLeft = 900 * scale - W / 2;           // start on Tattersalls and the stables
   if (renderer) { renderer.setPixelRatio(Math.min(scale * devicePixelRatio, 2.5)); renderer.setSize(MW, MH, false); renderer.getDrawingBufferSize(OCC.uRes.value); }
   if (chosen) choose(chosen);
+  if (typeof alignRaces === "function") { try { alignRaces(); } catch (e) {} }
 }
 addEventListener("resize", fit);
 
@@ -534,7 +538,7 @@ const clock = new THREE.Clock();
 let skyT = 0;
 function frame() {
   const dt = Math.min(clock.getDelta(), 0.1), t = clock.elapsedTime;
-  stepDay(dt); stepSmoke(dt); drawFx(t, dt);
+  stepDay(dt); stepSmoke(dt); drawFx(t, dt); drawBanners(t, dt);
   skyT += dt; if (skyT > 1 / 15) { drawSky(skyT); drawMist(skyT); drawLamps(t); skyT = 0; }
   if (renderer) {
     for (const mv of movers) { mv.step(t, dt); if (mv.m.mixer && mv.m.obj.visible) mv.m.mixer.update(dt); }

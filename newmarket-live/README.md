@@ -44,6 +44,12 @@ places and was dropped at the owner's request; `tools/tight_sites.py` is kept on
   (foals and mares calling, birds), Palace House (a chime and a ticking clock), the Jockey Club (a quiet room, glasses),
   To the Races (a crowd building, a horn, a field going by). All made in the browser; real recordings could replace
   any of them later.
+- **The banner avenue to the races**: nine banners in racing silks (the body colours and pattern laid flat, drawn
+  like the owner's flag reference) stand along the road north of the National Stud and ripple in the wind; the road
+  leads off the board to **To the Races**, which on wider screens stands at the road's end as its sign (on phones it
+  stays top right). The avenue lights up like the places, and hovering it or the sign livens the flags and plays the
+  races' sounds. `tools/banners.py` places the banners (clear of trees in front) → `assets/banners.json`; the silks
+  come from `assets/silks.json` (a copy of `silks/silks.json`), chosen in `AVENUE` in `atmos.src.js`.
 - In the console, `__setHour(19)` jumps to a time of day.
 
 ## Behind buildings
