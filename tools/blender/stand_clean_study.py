@@ -507,8 +507,8 @@ def turf_mat(name, base, stripe=0.0, stripe_w=10.0, lane_k=0.0, flecks=True, lig
     blades = noise(18.0 if not light else 26.0, 8, 0.75)
     col = mul(col, ramp(blades.outputs["Fac"], [(0.3, g(0.78)), (0.7, g(1.15))] if not light else [(0.3, g(0.88)), (0.7, g(1.08))]))
     if stripe:
-        # mowing stripes across the track: soft-edged alternating bands every stripe_w metres along x
-        sx = N.new("ShaderNodeMath"); sx.operation = "MULTIPLY"; Lk.new(sep.outputs["X"], sx.inputs[0]); sx.inputs[1].default_value = math.pi / stripe_w
+        # mown lanes along the track (owner: the stripes make lanes): soft-edged bands stripe_w metres wide across y
+        sx = N.new("ShaderNodeMath"); sx.operation = "MULTIPLY"; Lk.new(sep.outputs["Y"], sx.inputs[0]); sx.inputs[1].default_value = math.pi / stripe_w
         sn = N.new("ShaderNodeMath"); sn.operation = "SINE"; Lk.new(sx.outputs[0], sn.inputs[0])
         st = N.new("ShaderNodeMapRange"); Lk.new(sn.outputs[0], st.inputs["Value"]); st.inputs["From Min"].default_value = -0.3; st.inputs["From Max"].default_value = 0.3
         col = mul(col, ramp(st.outputs["Result"], [(0.0, (1 - stripe, 1 - stripe * 0.8, 1 - stripe * 1.2, 1)), (1.0, (1 + stripe * 0.8, 1 + stripe * 0.8, 1 + stripe * 0.3, 1))]))
@@ -526,7 +526,7 @@ def turf_mat(name, base, stripe=0.0, stripe_w=10.0, lane_k=0.0, flecks=True, lig
     return no_green_bounce(m, "#a29680" if not light else "#a89c86")
 
 if SOFT:
-    turf = turf_mat("turf_track", "#7fa952", stripe=0.2, stripe_w=11.0)        # the racing surface: richer, striped
+    turf = turf_mat("turf_track", "#7fa952", stripe=0.16, stripe_w=3.75)       # the racing surface: richer, eight mown lanes
     grass = turf_mat("turf_lawn", "#bcc98c", light=True)                        # the lawns off the track: lighter, even
 plane("ground", -900, 1400, -700, 500, grass, -0.02)
 plane("track", -300, 1300, -W, 0, turf, 0.0)
@@ -563,6 +563,119 @@ def ascot_rail(y, track_side, x0=-300.0, x1=1300.0):
 
 
 import bmesh
+
+
+def grass_blades(name, x0, x1, y0, y1, density, height, base_hex, lanes=False, seed=1):
+    """Real blades of grass standing up from the turf where the cameras look (owner: the turf should feel 3D,
+    the horses running in it, not over a flat floor): a small curved blade scattered by geometry nodes, tilted and
+    sized at random, coloured to match the turf beneath (and its lanes)."""
+    bm = bmesh.new()
+    w, h = 0.014, height
+    vs = [bm.verts.new(v) for v in ((-w, 0, 0), (w, 0, 0), (w * 0.6, 0.012, h * 0.55), (-w * 0.6, 0.012, h * 0.55), (0.0, 0.03, h))]
+    bm.faces.new((vs[0], vs[1], vs[2], vs[3])); bm.faces.new((vs[3], vs[2], vs[4]))
+    bme = bpy.data.meshes.new(name + "_blade"); bm.to_mesh(bme); bm.free()
+    m = bpy.data.materials.new(name + "_mat"); m.use_nodes = True; nt = m.node_tree; Nn, Lk = nt.nodes, nt.links
+    b = Nn["Principled BSDF"]; b.inputs["Roughness"].default_value = 0.9; b.inputs["Specular IOR Level"].default_value = 0.2
+    b.inputs["Subsurface Weight"].default_value = 0.15; b.inputs["Subsurface Radius"].default_value = (0.02, 0.05, 0.01)
+    geo = Nn.new("ShaderNodeNewGeometry"); sep = Nn.new("ShaderNodeSeparateXYZ"); Lk.new(geo.outputs["Position"], sep.inputs[0])
+    oi = Nn.new("ShaderNodeObjectInfo")
+    rr = Nn.new("ShaderNodeMapRange"); Lk.new(oi.outputs["Random"], rr.inputs["Value"]); rr.inputs["To Min"].default_value = 0.72; rr.inputs["To Max"].default_value = 1.18
+    fac = rr.outputs["Result"]
+    if lanes:
+        sx = Nn.new("ShaderNodeMath"); sx.operation = "MULTIPLY"; Lk.new(sep.outputs["Y"], sx.inputs[0]); sx.inputs[1].default_value = math.pi / 3.75
+        sn = Nn.new("ShaderNodeMath"); sn.operation = "SINE"; Lk.new(sx.outputs[0], sn.inputs[0])
+        sm = Nn.new("ShaderNodeMapRange"); Lk.new(sn.outputs[0], sm.inputs["Value"]); sm.inputs["From Min"].default_value = -0.3; sm.inputs["From Max"].default_value = 0.3
+        sm.inputs["To Min"].default_value = 0.86; sm.inputs["To Max"].default_value = 1.13
+        mm = Nn.new("ShaderNodeMath"); mm.operation = "MULTIPLY"; Lk.new(fac, mm.inputs[0]); Lk.new(sm.outputs["Result"], mm.inputs[1]); fac = mm.outputs[0]
+    # lighter towards the tip, darker at the root
+    tip = Nn.new("ShaderNodeMapRange"); Lk.new(sep.outputs["Z"], tip.inputs["Value"]); tip.inputs["From Max"].default_value = height
+    tip.inputs["To Min"].default_value = 0.7; tip.inputs["To Max"].default_value = 1.12
+    mm2 = Nn.new("ShaderNodeMath"); mm2.operation = "MULTIPLY"; Lk.new(fac, mm2.inputs[0]); Lk.new(tip.outputs["Result"], mm2.inputs[1])
+    mix = Nn.new("ShaderNodeMix"); mix.data_type = "RGBA"; mix.blend_type = "MULTIPLY"; mix.inputs["Factor"].default_value = 1.0
+    mix.inputs[6].default_value = lin(base_hex)
+    comb = Nn.new("ShaderNodeCombineColor")
+    for k in ("Red", "Green", "Blue"): Lk.new(mm2.outputs[0], comb.inputs[k])
+    Lk.new(comb.outputs["Color"], mix.inputs[7]); Lk.new(mix.outputs[2], b.inputs["Base Color"])
+    bme.materials.append(m)
+    blade = bpy.data.objects.new(name + "_blade", bme)
+    pm = bpy.data.meshes.new(name); pm.from_pydata([(x0, y0, 0.0), (x1, y0, 0.0), (x1, y1, 0.0), (x0, y1, 0.0)], [], [(0, 1, 2, 3)])
+    ob = bpy.data.objects.new(name, pm); scene.collection.objects.link(ob)
+    gn = ob.modifiers.new("grass", "NODES"); ng = bpy.data.node_groups.new(name + "_gn", "GeometryNodeTree"); gn.node_group = ng
+    ng.interface.new_socket("Geometry", in_out="INPUT", socket_type="NodeSocketGeometry")
+    ng.interface.new_socket("Geometry", in_out="OUTPUT", socket_type="NodeSocketGeometry")
+    G, GL = ng.nodes, ng.links
+    gi = G.new("NodeGroupInput"); go = G.new("NodeGroupOutput")
+    dist = G.new("GeometryNodeDistributePointsOnFaces"); dist.inputs["Density"].default_value = density; dist.inputs["Seed"].default_value = seed
+    oinfo = G.new("GeometryNodeObjectInfo"); oinfo.inputs["Object"].default_value = blade
+    inst = G.new("GeometryNodeInstanceOnPoints")
+    rr = G.new("FunctionNodeRandomValue"); rr.data_type = "FLOAT_VECTOR"; rr.inputs["Min"].default_value = (-0.45, -0.45, 0.0); rr.inputs["Max"].default_value = (0.45, 0.45, 6.283)
+    rs = G.new("FunctionNodeRandomValue"); rs.data_type = "FLOAT"; rs.inputs["Min"].default_value = 0.55; rs.inputs["Max"].default_value = 1.45
+    GL.new(gi.outputs[0], dist.inputs["Mesh"]); GL.new(dist.outputs["Points"], inst.inputs["Points"])
+    GL.new(oinfo.outputs["Geometry"], inst.inputs["Instance"]); GL.new(rr.outputs[0], inst.inputs["Rotation"]); GL.new(rs.outputs[0], inst.inputs["Scale"])
+    GL.new(inst.outputs[0], go.inputs[0])
+    print("grass:", name, int((x1 - x0) * (y1 - y0) * density), "blades", flush=True)
+
+
+GRASS = float(os.environ.get("GRASS", "1"))
+if SOFT and GRASS:
+    gx0, gx1 = float(os.environ.get("GRASS_X0", "-40")), float(os.environ.get("GRASS_X1", "140"))
+    grass_blades("turf_blades", gx0, gx1, -W + 0.1, -0.1, 320 * GRASS, 0.085, "#7fa952", lanes=True, seed=3)
+    grass_blades("lawn_blades", gx0, gx1, -FRONT + 0.5, -W - 0.5, 160 * GRASS, 0.05, "#bcc98c", seed=5)
+
+
+def horses():
+    """A few galloping horses on the track for judging the turf (owner): the v2 racehorse, its gallop at different
+    moments, coats from its own colour zones, plain silks, all matte."""
+    import random
+    rnd = random.Random(4)
+    COATS = [("#7a4a2a", "#1d1714"), ("#4a2e1c", "#17110d"), ("#a3552c", "#6a3317"), ("#2b2523", "#141110"), ("#a8a6a0", "#6d6b66")]
+    SILKS = ["#2f5a9a", "#e8c54a", "#c0392b", "#6a3fa0", "#2e7d4f", "#e8e2d4", "#d9822b"]
+    spots = [(48, -9.5), (51.5, -12.5), (46, -15.0), (55, -17.0), (49.5, -20.5), (58, -11.0), (62.5, -16.0)]
+    for i, (x, y) in enumerate(spots):
+        before = set(bpy.data.objects)
+        bpy.ops.import_scene.gltf(filepath=rp("assets/models/racehorse_v2.glb"))
+        new = [o for o in bpy.data.objects if o not in before]
+        arm = next(o for o in new if o.type == "ARMATURE")
+        root = next(o for o in new if o.parent is None)
+        root.location = (x, y, 0); root.rotation_euler = (0, 0, math.pi); root.scale = (3, 3, 3)
+        coat, points = COATS[i % len(COATS)]
+        for o in new:
+            if o.type != "MESH": continue
+            if not o.data.name.startswith("racehorse_v2") or o.data.name.endswith(("_close", "_far")) and o.data.name != "racehorse_v2":
+                pass
+            if "close" in o.name or "far" in o.name:
+                o.hide_render = True; continue
+            for k, sl in enumerate(o.material_slots):
+                nm = sl.material.name if sl.material else ""
+                m = bpy.data.materials.new("h%d_%s" % (i, nm)); m.use_nodes = True; nt = m.node_tree; b = nt.nodes["Principled BSDF"]
+                b.inputs["Roughness"].default_value = 0.75; b.inputs["Specular IOR Level"].default_value = 0.25
+                if "silks" in nm:
+                    b.inputs["Base Color"].default_value = lin(SILKS[(i * 3) % len(SILKS)])
+                else:
+                    # colour zones carried in the vertex colours: R coat, G points, B skin; the rest tack
+                    ca = nt.nodes.new("ShaderNodeVertexColor"); sp = nt.nodes.new("ShaderNodeSeparateColor"); nt.links.new(ca.outputs["Color"], sp.inputs[0])
+                    def z(ch, hexc, prev):
+                        mx = nt.nodes.new("ShaderNodeMix"); mx.data_type = "RGBA"; nt.links.new(sp.outputs[ch], mx.inputs["Factor"])
+                        if isinstance(prev, tuple): mx.inputs[6].default_value = prev
+                        else: nt.links.new(prev, mx.inputs[6])
+                        mx.inputs[7].default_value = lin(hexc); return mx.outputs[2]
+                    c = z("Red", coat, lin("#3a3633")); c = z("Green", points, c); c = z("Blue", "#d9b08c", c)
+                    nt.links.new(c, b.inputs["Base Color"])
+                o.material_slots[k].link = "OBJECT"; o.material_slots[k].material = m
+        act = bpy.data.actions.get("gallop_v2")
+        if act and arm:
+            arm.animation_data_create()
+            tr = arm.animation_data.nla_tracks.new(); st = tr.strips.new("g", 1, act)
+            st.frame_start = 1 - (i * 7) % 40; st.repeat = 4
+            arm.animation_data.action = None
+    scene.frame_set(1)
+    print("horses:", len(spots), flush=True)
+
+
+if os.environ.get("HORSES"):
+    horses()
+
+
 ascot_rail(0.0, -1)       # the far (inside) rail: the track is to its south (Blender -y)
 ascot_rail(-W, +1)        # the near (outer) rail by the lawn and the stand: the track is to its north
 
@@ -604,6 +717,8 @@ SHOTS = {
     "wing": ((230, 30, -45), (120, 9, 52), 40, (150, 9, 46), 5.6),
     # across the track from the inside, low, at the rail and the lawn crowd (owner's turf reference)
     "track": ((70, 3.2, -4), (40, 1.2, 34), 38, (48, 1.0, 28), 4.0),
+    # low and close with the horses in the grass
+    "horses": ((72, 1.1, 7), (50, 1.4, 14), 34, (53, 1.0, 13), 2.8),
     # checking aid: the turf close up, and the track and lawn from above
     "turfclose": ((50, 4, 12), (46, 0, 18), 45, (46, 0, 18), None),
     "turfhigh": ((80, 60, 10), (40, 0, 30), 40, (40, 0, 30), None),
