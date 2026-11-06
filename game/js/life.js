@@ -11,7 +11,7 @@ import * as SkeletonUtils from "three/addons/utils/SkeletonUtils.js";
 
 const B = window.BOARD;
 const { MW, MH, REDUCED, ROAD, inHours, join, rev } = B;
-let renderer = null;
+let renderer = null, lost = false;
 const RB = [632, 294];                                             // the roundabout at the top of the High Street
 // ---------------------------------------------------------------- the moving things, drawn in the board's own projection
 // world: x = board x, z = board y (both pixels), y = height in pixels. The board is drawn as if from the south with
@@ -226,9 +226,12 @@ function circuit(m, curve, speed, phase, gait = "walk", hours = null) {
 const oval = (cx, cz, rx, rz, turn = 0, n = 24) => { const c = Math.cos(turn), s = Math.sin(turn);
   return Array.from({ length: n }, (_, i) => { const a = i / n * 6.283, x = rx * Math.cos(a), z = rz * Math.sin(a); return [cx + x * c - z * s, cz + x * s + z * c]; }); };
 
-async function loadModel(dir, name) {
+async function loadModel(dir, name, images) {
   const text = (f) => fetch(`${dir}/${f}`).then((r) => { if (!r.ok) throw new Error(f + " " + r.status); return r.text(); });
-  const json = await text(`${name}.json`), b64 = (await text(`${name}-geometry.txt`)).trim();
+  let json = await text(`${name}.json`);
+  // the board's horses are 20 pixels long: they take small copies of the race view's 2048-pixel textures
+  if (images) { const j = JSON.parse(json); (j.images || []).forEach((im) => { if (images[im.uri]) im.uri = images[im.uri]; }); json = JSON.stringify(j); }
+  const b64 = (await text(`${name}-geometry.txt`)).trim();
   const raw = atob(b64), bin = new Uint8Array(raw.length); for (let i = 0; i < raw.length; i++) bin[i] = raw.charCodeAt(i);
   const pad = (n) => (n + 3) & ~3, jb = new TextEncoder().encode(json), jl = pad(jb.length), bl = pad(bin.length);
   const glb = new Uint8Array(28 + jl + bl), dv = new DataView(glb.buffer);
@@ -239,10 +242,15 @@ async function loadModel(dir, name) {
 }
 
 async function startLife() {
-  renderer = new THREE.WebGLRenderer({ canvas, alpha: true, antialias: true, premultipliedAlpha: true });
+  // phones and tablets: a smaller picture and no antialiasing, so the board stays well inside a phone's memory
+  // (a full-size, antialiased picture at a phone's pixel density runs to hundreds of megabytes)
+  const phone = matchMedia("(pointer: coarse)").matches || Math.min(screen.width, screen.height) < 700;
+  renderer = new THREE.WebGLRenderer({ canvas, alpha: true, antialias: !phone, premultipliedAlpha: true, powerPreference: phone ? "low-power" : "default" });
   renderer.outputColorSpace = THREE.SRGBColorSpace; renderer.setClearColor(0x000000, 0);
-  B.onFit((scale) => { renderer.setPixelRatio(Math.min(scale * devicePixelRatio, 2.5)); renderer.setSize(MW, MH, false); renderer.getDrawingBufferSize(OCC.uRes.value); });
-  const [g, ppl, cat] = await Promise.all([loadModel("assets/model", "racehorse"), loadModel("assets/architecture", "crowd_people"), fetch("assets/silks-catalogue.json").then((r) => r.json())]);
+  canvas.addEventListener("webglcontextlost", (e) => { e.preventDefault(); lost = true; canvas.style.display = "none"; });
+  B.onFit((scale) => { renderer.setPixelRatio(Math.min(scale * devicePixelRatio, phone ? 1.25 : 2)); renderer.setSize(MW, MH, false); renderer.getDrawingBufferSize(OCC.uRes.value); });
+  const SMALL = { "racehorse-3d-model-clone1-basecolor.jpg": "../board-model/racehorse-basecolor-512.jpg", "racehorse-3d-model-clone1-normal.jpg": "../board-model/racehorse-normal-512.jpg", "racehorse-3d-model-clone1-rm.jpg": "../board-model/racehorse-rm-512.jpg" };
+  const [g, ppl, cat] = await Promise.all([loadModel("assets/model", "racehorse", SMALL), loadModel("assets/architecture", "crowd_people"), fetch("assets/silks-catalogue.json").then((r) => r.json())]);
   horseProto = g; peopleProto = ppl.scene.children.slice(0, 2); silkList = cat.silks;
   for (const a of g.animations) clipsByName[a.name] = a;
   maskTex = texLoader.load("assets/tint-mask.png"); maskTex.flipY = false; maskTex.colorSpace = THREE.NoColorSpace;
@@ -329,7 +337,7 @@ function stepShots(t, dt) {
 }
 window.LIFE = { procession, __advance: (secs) => { stepShots(0, secs); return shots.map((s) => [Math.round(s.m.obj.position.x), Math.round(s.m.obj.position.z), s.m.obj.visible]); } };   // __advance: a checking aid
 B.addFrame((t, dt) => {
-  if (!renderer) return;
+  if (!renderer || lost) return;
   // nothing to draw while the board is out of sight: at Ascot, or under a sheet on a phone (where the sheet fills the screen)
   if (document.body.classList.contains("at-ascot") || (B.covered && innerWidth <= 760)) return;
   for (const mv of movers) { mv.step(t, dt); if (mv.m.mixer && mv.m.obj.visible) mv.m.mixer.update(dt); }

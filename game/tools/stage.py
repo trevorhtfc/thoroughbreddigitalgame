@@ -23,6 +23,7 @@ for p in sorted((game / "img").rglob("*")):
     if p.is_file(): add(p, p.relative_to(game))
 for p in sorted((game / "video").glob("*.mp4")): add(p, p.relative_to(game))
 for p in sorted((game / "assets" / "newmarket").glob("*")): add(p, p.relative_to(game))
+for p in sorted((game / "assets" / "board-model").glob("*")): add(p, p.relative_to(game))   # small textures for the board's horses
 # the 3D race view and what it loads in the game
 add(view / "final-furlong.html", "final-furlong.html")
 add(view / "horse-v2.js", "horse-v2.js")
