@@ -12,7 +12,7 @@ The game is plain files, so Cloudflare serves it for free. Every push to `main` 
    - **Build command:** `python3 game/tools/stage.py dist`
    - **Deploy command:** `npx wrangler deploy` (the default)
    - **Branch:** `main`
-4. Save and deploy. The game appears at `https://thoroughbreddigitalgame.<your-subdomain>.workers.dev`.
+4. Save and deploy. The game is live at https://thoroughbreddigitalgame.trevorastevenson.workers.dev
 
 ## How it works
 
