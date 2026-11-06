@@ -46,9 +46,9 @@ places and was dropped at the owner's request; `tools/tight_sites.py` is kept on
   any of them later.
 - **The banner avenue to the races**: nine banners in racing silks (the body colours and pattern laid flat, painted
   in the board's manner: muted colours, soft folds and grain, no ink outline, a painted pole with a gilt finial and a
-  shadow across the grass) stand along the road north of the National Stud and ripple in the wind; the road
-  leads off the board to **To the Races**, which on wider screens stands at the road's end as its sign (on phones it
-  stays top right). The avenue has no drawn outline (the owner's call); hovering it or the sign livens the flags and plays the
+  shadow across the grass) stand along the road north of the National Stud and ripple in the wind; **To the Races**
+  stands on the board just above the banners, upright like the places' signs (place cards now open top left, so they
+  never cover it). The avenue has no drawn outline (the owner's call); hovering it or the sign livens the flags and plays the
   races' sounds. `tools/banners.py` places the banners (clear of trees in front) → `assets/banners.json`; the silks
   come from `assets/silks.json` (a copy of `silks/silks.json`), chosen in `AVENUE` in `atmos.src.js`.
 - In the console, `__setHour(19)` jumps to a time of day.

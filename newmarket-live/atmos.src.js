@@ -151,11 +151,11 @@ fetch("assets/atmos.json").then((r) => r.json()).then((a) => {
 // ---------------------------------------------------------------- leaning in towards the place you pick
 const lean = document.getElementById("lean");
 function leanTo(id) {
-  const p = PLACES.find((q) => q.id === id);
+  const p = id === "races" ? { at: RACES_AT } : PLACES.find((q) => q.id === id);
   if (!p || REDUCED) { lean.style.transform = ""; return; }
   const vr = view.getBoundingClientRect(), hr = holder.getBoundingClientRect();
   const px = hr.left - vr.left + p.at[0] * scale, py = hr.top - vr.top + p.at[1] * scale;
-  const phone = innerWidth <= 640, tx = phone ? vr.width / 2 : (vr.width - 370) / 2, ty = phone ? vr.height * 0.3 : vr.height * 0.52;
+  const phone = innerWidth <= 640, tx = phone ? vr.width / 2 : 370 + (vr.width - 370) / 2, ty = phone ? vr.height * 0.3 : vr.height * 0.52;
   lean.style.transformOrigin = `${p.at[0] * scale}px ${p.at[1] * scale}px`;
   lean.style.transform = `translate(${((tx - px) * 0.45).toFixed(1)}px, ${((ty - py) * 0.45).toFixed(1)}px) rotateX(8deg) scale(1.12)`;
 }
@@ -343,7 +343,7 @@ function silkFlag(def, palette, W, H, seed) {
   const g = c.getContext("2d"); g.scale(K, K); g.translate(m, m); g.lineJoin = "round"; g.lineCap = "round";
   const soft = (name) => { const h = palette[name] || "#888888", n = parseInt(h.slice(1), 16), base = [232, 220, 186];
     let v = [n >> 16, (n >> 8) & 255, n & 255]; const grey = (v[0] + v[1] + v[2]) / 3;
-    v = v.map((x, i) => Math.round((x * 0.72 + grey * 0.28) * 0.74 + base[i] * 0.2));      // less saturated, warmed towards the board's paper
+    v = v.map((x, i) => Math.round((x * 0.86 + grey * 0.14) * 0.86 + base[i] * 0.12));     // a touch less saturated, warmed towards the board's paper
     return `rgb(${v.join(",")})`; };
   const c1 = soft(def.body.colour), c2 = soft(def.body.colour2 || def.body.colour);
   // the cloth: wavering top and bottom edges, a ragged fly
@@ -441,21 +441,8 @@ Promise.all([fetch("assets/banners.json").then((r) => r.json()), fetch("assets/s
 const racesBtn = document.getElementById("races");
 racesBtn.addEventListener("mouseenter", () => hover("races", true)); racesBtn.addEventListener("mouseleave", () => hover("races", false));
 racesBtn.addEventListener("focus", () => hover("races", true)); racesBtn.addEventListener("blur", () => hover("races", false));
-// on wider screens, To the Races stands at the end of the banner avenue, where the road leaves the board
-function alignRaces() {
-  const wide = innerWidth > 980 && !view.classList.contains("pan");
-  racesBtn.classList.toggle("onroad", wide);
-  if (!wide) { racesBtn.style.left = racesBtn.style.top = ""; return; }
-  const hr = holder.getBoundingClientRect(), x = hr.left + 1352 * scale, y = hr.top + 310 * scale;
-  racesBtn.style.left = Math.round(Math.min(x, innerWidth - 16 - racesBtn.offsetWidth)) + "px";
-  racesBtn.style.top = Math.round(y - racesBtn.offsetHeight / 2) + "px";
-}
-function placeCard() {
-  if (!racesBtn.classList.contains("onroad") || card.hidden) { card.style.top = ""; return; }
-  const r = racesBtn.getBoundingClientRect(), barH = document.querySelector(".bar").offsetHeight;
-  let top = r.bottom + 12;
-  if (top + card.offsetHeight > innerHeight - 12) top = Math.max(barH + 12, r.top - 12 - card.offsetHeight);
-  card.style.top = top + "px";
-}
-addEventListener("resize", () => { alignRaces(); placeCard(); });
-alignRaces(); if (document.fonts) document.fonts.ready.then(() => { alignRaces(); placeCard(); });
+// To the Races stands on the board, just above the banner avenue, upright like the places' signs
+const RACES_AT = [1290, 232];
+stage.appendChild(racesBtn); racesBtn.style.left = RACES_AT[0] + "px"; racesBtn.style.top = RACES_AT[1] + "px";
+function alignRaces() {}
+function placeCard() {}

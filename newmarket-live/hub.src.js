@@ -102,7 +102,7 @@ function fit() {
   view.classList.toggle("pan", portrait);
   holder.style.width = MW * scale + "px"; holder.style.height = MH * scale + "px";
   stage.style.transform = `scale(${scale})`;
-  if (portrait) view.scrollLeft = 900 * scale - W / 2;           // start on Tattersalls and the stables
+  if (portrait) view.scrollLeft = 990 * scale - W / 2;           // start on Tattersalls and the stables
   if (renderer) { renderer.setPixelRatio(Math.min(scale * devicePixelRatio, 2.5)); renderer.setSize(MW, MH, false); renderer.getDrawingBufferSize(OCC.uRes.value); }
   if (chosen) choose(chosen);
   if (typeof alignRaces === "function") { try { alignRaces(); } catch (e) {} }

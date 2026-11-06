@@ -97,22 +97,20 @@ button:focus-visible{outline:2px solid var(--tb-gold);outline-offset:3px}
 @keyframes ripple{0%{transform:scale(.55);opacity:.85}100%{transform:scale(1.5);opacity:0}}
 
 /* To the Races: the way out of town, always in the top right */
-.races{position:fixed;top:calc(var(--bar-h) + 14px);right:max(18px,env(safe-area-inset-right,0px));z-index:16;display:flex;align-items:center;gap:12px;
-  border:none;border-radius:var(--tb-radius);background:var(--tb-green);color:var(--tb-on-dark);padding:10px 20px 10px 14px;box-shadow:0 0 0 2px var(--tb-panel),0 6px 16px rgba(20,35,25,.4)}
+.races{position:absolute;transform:translate(-50%,-50%);z-index:3;display:flex;align-items:center;gap:12px;
+  border:none;border-radius:var(--tb-radius);background:var(--tb-green);color:var(--tb-on-dark);padding:8px 15px 8px 12px;box-shadow:0 0 0 2px var(--tb-panel),0 6px 16px rgba(20,35,25,.4)}
 .races .hz{width:38px;height:25px;background:var(--tb-on-dark);-webkit-mask:var(--horse) center/contain no-repeat;mask:var(--horse) center/contain no-repeat}
-.races .pill{font-family:var(--tb-display);font-weight:600;font-size:16px;letter-spacing:.16em;text-transform:uppercase;white-space:nowrap}
+.races .pill{font-family:var(--tb-display);font-weight:600;font-size:15px;letter-spacing:.12em;text-transform:uppercase;white-space:nowrap}
 .races:hover,.races.lit{background:var(--tb-green-hi)}
 .races .arr{width:12px;height:12px;fill:currentColor;margin-left:2px}
-.races.onroad{right:auto;padding:9px 14px 9px 11px;gap:9px}
-.races.onroad .pill{font-size:14px;letter-spacing:.12em}
-.races.onroad .hz{width:32px;height:21px}
+
 .races.on{background:var(--tb-gold)}
 @media (prefers-reduced-motion:no-preference){ .races{animation:beckon 3.4s ease-in-out infinite} }
 @keyframes beckon{0%,100%{box-shadow:0 0 0 2px var(--tb-panel),0 6px 16px rgba(20,35,25,.4)}50%{box-shadow:0 0 0 2px var(--tb-panel),0 0 22px rgba(255,214,140,.75)}}
 
 /* the card for the chosen place */
-.card{position:fixed;right:max(18px,env(safe-area-inset-right,0px));top:calc(var(--bar-h) + 84px);width:330px;z-index:15;padding:18px 18px 20px;border-radius:var(--tb-radius);
-  background:var(--tb-panel);border:1px solid var(--tb-line);box-shadow:0 14px 40px rgba(20,35,25,.4);transform-origin:80% 0;transition:opacity .25s,transform .25s}
+.card{position:fixed;left:max(18px,env(safe-area-inset-left,0px));top:calc(var(--bar-h) + 18px);width:330px;z-index:15;padding:18px 18px 20px;border-radius:var(--tb-radius);
+  background:var(--tb-panel);border:1px solid var(--tb-line);box-shadow:0 14px 40px rgba(20,35,25,.4);transform-origin:20% 0;transition:opacity .25s,transform .25s}
 .card[hidden]{display:block!important;opacity:0;transform:scale(.94) translateY(-6px);pointer-events:none}
 .card header{display:flex;align-items:center;gap:10px}
 .card h2{margin:0;font-family:var(--tb-display);font-weight:600;font-size:21px;letter-spacing:.18em;text-transform:uppercase;line-height:1.15;color:var(--tb-green);text-wrap:balance;flex:1}
@@ -305,7 +303,7 @@ function fit() {
   view.classList.toggle("pan", portrait);
   holder.style.width = MW * scale + "px"; holder.style.height = MH * scale + "px";
   stage.style.transform = `scale(${scale})`;
-  if (portrait) view.scrollLeft = 900 * scale - W / 2;           // start on Tattersalls and the stables
+  if (portrait) view.scrollLeft = 990 * scale - W / 2;           // start on Tattersalls and the stables
   if (renderer) { renderer.setPixelRatio(Math.min(scale * devicePixelRatio, 2.5)); renderer.setSize(MW, MH, false); renderer.getDrawingBufferSize(OCC.uRes.value); }
   if (chosen) choose(chosen);
   if (typeof alignRaces === "function") { try { alignRaces(); } catch (e) {} }
@@ -889,11 +887,11 @@ fetch("assets/atmos.json").then((r) => r.json()).then((a) => {
 // ---------------------------------------------------------------- leaning in towards the place you pick
 const lean = document.getElementById("lean");
 function leanTo(id) {
-  const p = PLACES.find((q) => q.id === id);
+  const p = id === "races" ? { at: RACES_AT } : PLACES.find((q) => q.id === id);
   if (!p || REDUCED) { lean.style.transform = ""; return; }
   const vr = view.getBoundingClientRect(), hr = holder.getBoundingClientRect();
   const px = hr.left - vr.left + p.at[0] * scale, py = hr.top - vr.top + p.at[1] * scale;
-  const phone = innerWidth <= 640, tx = phone ? vr.width / 2 : (vr.width - 370) / 2, ty = phone ? vr.height * 0.3 : vr.height * 0.52;
+  const phone = innerWidth <= 640, tx = phone ? vr.width / 2 : 370 + (vr.width - 370) / 2, ty = phone ? vr.height * 0.3 : vr.height * 0.52;
   lean.style.transformOrigin = `${p.at[0] * scale}px ${p.at[1] * scale}px`;
   lean.style.transform = `translate(${((tx - px) * 0.45).toFixed(1)}px, ${((ty - py) * 0.45).toFixed(1)}px) rotateX(8deg) scale(1.12)`;
 }
@@ -1081,7 +1079,7 @@ function silkFlag(def, palette, W, H, seed) {
   const g = c.getContext("2d"); g.scale(K, K); g.translate(m, m); g.lineJoin = "round"; g.lineCap = "round";
   const soft = (name) => { const h = palette[name] || "#888888", n = parseInt(h.slice(1), 16), base = [232, 220, 186];
     let v = [n >> 16, (n >> 8) & 255, n & 255]; const grey = (v[0] + v[1] + v[2]) / 3;
-    v = v.map((x, i) => Math.round((x * 0.72 + grey * 0.28) * 0.74 + base[i] * 0.2));      // less saturated, warmed towards the board's paper
+    v = v.map((x, i) => Math.round((x * 0.86 + grey * 0.14) * 0.86 + base[i] * 0.12));     // a touch less saturated, warmed towards the board's paper
     return `rgb(${v.join(",")})`; };
   const c1 = soft(def.body.colour), c2 = soft(def.body.colour2 || def.body.colour);
   // the cloth: wavering top and bottom edges, a ragged fly
@@ -1179,24 +1177,11 @@ Promise.all([fetch("assets/banners.json").then((r) => r.json()), fetch("assets/s
 const racesBtn = document.getElementById("races");
 racesBtn.addEventListener("mouseenter", () => hover("races", true)); racesBtn.addEventListener("mouseleave", () => hover("races", false));
 racesBtn.addEventListener("focus", () => hover("races", true)); racesBtn.addEventListener("blur", () => hover("races", false));
-// on wider screens, To the Races stands at the end of the banner avenue, where the road leaves the board
-function alignRaces() {
-  const wide = innerWidth > 980 && !view.classList.contains("pan");
-  racesBtn.classList.toggle("onroad", wide);
-  if (!wide) { racesBtn.style.left = racesBtn.style.top = ""; return; }
-  const hr = holder.getBoundingClientRect(), x = hr.left + 1352 * scale, y = hr.top + 310 * scale;
-  racesBtn.style.left = Math.round(Math.min(x, innerWidth - 16 - racesBtn.offsetWidth)) + "px";
-  racesBtn.style.top = Math.round(y - racesBtn.offsetHeight / 2) + "px";
-}
-function placeCard() {
-  if (!racesBtn.classList.contains("onroad") || card.hidden) { card.style.top = ""; return; }
-  const r = racesBtn.getBoundingClientRect(), barH = document.querySelector(".bar").offsetHeight;
-  let top = r.bottom + 12;
-  if (top + card.offsetHeight > innerHeight - 12) top = Math.max(barH + 12, r.top - 12 - card.offsetHeight);
-  card.style.top = top + "px";
-}
-addEventListener("resize", () => { alignRaces(); placeCard(); });
-alignRaces(); if (document.fonts) document.fonts.ready.then(() => { alignRaces(); placeCard(); });
+// To the Races stands on the board, just above the banner avenue, upright like the places' signs
+const RACES_AT = [1290, 232];
+stage.appendChild(racesBtn); racesBtn.style.left = RACES_AT[0] + "px"; racesBtn.style.top = RACES_AT[1] + "px";
+function alignRaces() {}
+function placeCard() {}
 
 const clock = new THREE.Clock();
 let skyT = 0;
