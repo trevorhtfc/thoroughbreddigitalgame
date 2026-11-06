@@ -19,8 +19,9 @@ REPO = os.path.abspath(".")
 def rp(*p): return os.path.join(REPO, *p)
 ARGS = [a for a in sys.argv[1:] if not a.startswith("-")]
 SAMPLES = int(ARGS[0]) if ARGS and ARGS[0].isdigit() else 64
-VARIANT = next((a for a in ARGS if a in ("clean", "today", "soft")), "clean")
-SOFT = VARIANT == "soft"
+VARIANT = next((a for a in ARGS if a in ("clean", "today", "soft", "accent")), "clean")
+SOFT = VARIANT in ("soft", "accent")
+ACCENT = VARIANT == "accent"
 CAMS = [a for a in ARGS if a.startswith("cam=")]
 OUT = rp("reference/architecture/clean-study"); os.makedirs(OUT, exist_ok=True)
 COURSE = json.load(open(rp("courses/ascot.json")))
@@ -146,7 +147,7 @@ for o in parts:
     if o.parent is None: o.parent = root
 root.location = (0, -FRONT, 0)
 
-if VARIANT in ("clean", "soft"):
+if VARIANT in ("clean", "soft", "accent"):
     # Ascot's own palette, cleaned up: warm cream stone, white paintwork, slate, and the ironwork, doors and
     # glass dark so they read as crisp drawn detail against the pale stone (the street's dark railings and windows)
     MAT = {
@@ -190,6 +191,144 @@ if VARIANT in ("clean", "soft"):
         bv.use_clamp_overlap = True; bv.harden_normals = True; bv.profile = 0.6
         o.modifiers.new("weights", "WEIGHTED_NORMAL").keep_sharp = True
 
+# ---------------- accents: a few touches of pastel to bring the stand to life, not overdone
+# (variant "accent"): flags on the clock tower and the pavilion roofs, pastel doors along the central stretch,
+# coloured balusters picking out the clock block and the pavilions, striped awnings over the central doors.
+if ACCENT:
+    import bmesh
+    bpy.context.view_layer.update()
+    PAL = {"sage": "#8db58c", "powder": "#8eb0d6", "blush": "#e6998b", "butter": "#eccd7c", "lilac": "#b49fd2"}
+    AM = {k: clay("a_" + k, v, 0.9, sss=0.1, tooth=0.08) for k, v in PAL.items()}
+    canvas = clay("a_canvas", "#f7efe0", 0.92, sss=0.15, tooth=0.05)
+    pole_mat = clay("a_pole", "#f4eee2", 0.85, sss=0.0, tooth=0.0, mottle=0.0)
+    gilt_mat = clay("a_finial", "#c8a466", 0.7, sss=0.0, tooth=0.0, mottle=0.0)
+
+    def by_mat(name):
+        return [o for o in parts if o.type == "MESH" and any(sl.material and sl.material.name.startswith(MAT[name].name) for sl in o.material_slots)]
+
+    def islands(o):
+        """Each separate piece of a mesh (a baluster, a door), with its world bounding box."""
+        bm = bmesh.new(); bm.from_mesh(o.data); bm.faces.ensure_lookup_table()
+        seen, out, M = set(), [], o.matrix_world
+        for f in bm.faces:
+            if f.index in seen: continue
+            stack, comp = [f], []; seen.add(f.index)
+            while stack:
+                g = stack.pop(); comp.append(g.index)
+                for v in g.verts:
+                    for h in v.link_faces:
+                        if h.index not in seen: seen.add(h.index); stack.append(h)
+            ps = [M @ v.co for i in comp for v in bm.faces[i].verts]
+            lo = Vector((min(p.x for p in ps), min(p.y for p in ps), min(p.z for p in ps)))
+            hi = Vector((max(p.x for p in ps), max(p.y for p in ps), max(p.z for p in ps)))
+            out.append((comp, lo, hi))
+        bm.free()
+        return out
+
+    def recolour(o, faces, mat):
+        if mat.name not in [sl.material.name for sl in o.material_slots if sl.material]:
+            o.data.materials.append(mat)
+        k = [sl.material.name for sl in o.material_slots].index(mat.name)
+        for i in faces: o.data.polygons[i].material_index = k
+
+    MODS = COURSE["grandstand"]["modules"]
+    def module_at(x):
+        for m in MODS:
+            if m["xWest"] <= x <= m["xEast"]: return m
+        return None
+
+    # doors: the central stretch's doors in pastels, one colour per building; the rest stay dark green
+    DOOR_COL = {"clock_centre": "sage", "three_storey_block": "butter", "grand_pavilion": "powder", "ironwork_bay": "blush",
+                "pavilion": "lilac", "window_block": "butter", "link": "blush", "end_pavilion": "sage"}
+    doors_front = []
+    for o in by_mat("gs_door"):
+        for comp, lo, hi in islands(o):
+            x = (lo.x + hi.x) / 2; m = module_at(x)
+            if m and -110 < x < 220 and m["module"] in DOOR_COL:
+                recolour(o, comp, AM[DOOR_COL[m["module"]]])
+                if hi.y > -FRONT - 0.6 and hi.z < 4.0: doors_front.append((lo, hi, DOOR_COL[m["module"]]))
+    # balusters: the clock block's balustrades in sage, the grand pavilions' in powder blue, the small pavilions' in blush
+    BAL = [((-11.5, 23.5), "sage"), ((-53.5, -25.5), "powder"), ((153, 181), "powder"), ((-88.5, -67.5), "blush"), ((195, 216), "blush")]
+    nb = 0
+    for o in by_mat("gs_trim"):
+        for comp, lo, hi in islands(o):
+            sx, sy, sz = hi.x - lo.x, hi.y - lo.y, hi.z - lo.z
+            if max(sx, sy) < 0.13 and 0.55 < sz < 1.1:
+                x = (lo.x + hi.x) / 2
+                for (a, b), c in BAL:
+                    if a <= x <= b: recolour(o, comp, AM[c]); nb += 1; break
+    print("accents: %d balusters, %d front doors" % (nb, len(doors_front)), flush=True)
+
+    def add_mesh(name, verts, faces, mats, fmat=None):
+        me = bpy.data.meshes.new(name); me.from_pydata(verts, [], faces)
+        for m in mats: me.materials.append(m)
+        if fmat:
+            for p, k in zip(me.polygons, fmat): p.material_index = k
+        for p in me.polygons: p.use_smooth = True
+        ob = bpy.data.objects.new(name, me); scene.collection.objects.link(ob)
+        return ob
+
+    def flag(base, h, cols, w=3.4, fh=2.1, phase=0.0):
+        """A white pole with a gilt ball, and a cloth flag rippling out to the east (two colours: top/bottom)."""
+        bpy.ops.mesh.primitive_cylinder_add(radius=0.07, depth=h, location=(base.x, base.y, base.z + h / 2), vertices=10)
+        p = bpy.context.object; p.data.materials.append(pole_mat)
+        bpy.ops.mesh.primitive_uv_sphere_add(radius=0.16, location=(base.x, base.y, base.z + h + 0.1), segments=12, ring_count=8)
+        bpy.context.object.data.materials.append(gilt_mat)
+        nx, nz = 16, 8
+        vs, fs, fm = [], [], []
+        for j in range(nz + 1):
+            for i in range(nx + 1):
+                u, v = i / nx, j / nz
+                x = u * w; z = base.z + h - 0.15 - v * fh
+                y = 0.32 * math.sin(u * 5.5 + phase) * u + 0.08 * math.sin(v * 3 + u * 4)
+                vs.append((base.x + x, base.y + y, z - 0.12 * u * u))
+        for j in range(nz):
+            for i in range(nx):
+                a = j * (nx + 1) + i
+                fs.append((a, a + 1, a + nx + 2, a + nx + 1)); fm.append(0 if j < nz / 2 else 1)
+        ob = add_mesh("flag", vs, fs, [AM[cols[0]], AM[cols[1]]], fm)
+        ob.modifiers.new("thick", "SOLIDIFY").thickness = 0.02
+
+    # the clock tower: the highest point near x 0
+    stand_pts = [(o.matrix_world @ v.co) for o in parts if o.type == "MESH" for v in o.data.vertices]
+    top = max((p for p in stand_pts if abs(p.x) < 3.0), key=lambda p: p.z)
+    flag(Vector((top.x, top.y, top.z)), 7.5, ("butter", "sage"), w=4.6, fh=2.9)
+    # a pair either side of the clock tower, on the corners of the clock block's roof
+    blk = [p for p in stand_pts if -11.5 < p.x < 23.5 and p.z < top.z - 6]
+    roof_z = max(p.z for p in blk)
+    front_y = max(p.y for p in blk if p.z > roof_z - 1.5)
+    for i, x in enumerate((-10.0, 22.0)):
+        flag(Vector((x, front_y - 0.6, roof_z)), 5.0, ("blush", "powder")[i:i + 1] * 2, phase=0.7 + i)
+    # pavilion roofs: a flag at each ridge (highest roof point of the module)
+    roofs = [(o.matrix_world @ v.co) for o in by_mat("gs_roof") for v in o.data.vertices]
+    FLAG_COL = [("blush", "blush"), ("powder", "powder"), ("sage", "butter"), ("lilac", "lilac"), ("butter", "blush"), ("powder", "sage")]
+    k = 0
+    for m in MODS:
+        if m["module"] in ("grand_pavilion", "pavilion", "end_pavilion"):
+            pts = [p for p in roofs if m["xWest"] + 1 < p.x < m["xEast"] - 1]
+            if not pts: continue
+            r = max(pts, key=lambda p: p.z)
+            flag(Vector(((m["xWest"] + m["xEast"]) / 2, r.y, r.z)), 4.5, FLAG_COL[k % len(FLAG_COL)], phase=k * 1.3)
+            k += 1
+
+    # striped awnings over the front doors of the clock block and the grand pavilions next to it
+    def awning(lo, hi, col):
+        x0, x1 = lo.x - 0.5, hi.x + 0.5; yw = hi.y + 0.02; zt = hi.z + 0.55
+        out, drop, n = 1.9, 0.85, max(4, round((x1 - x0) / 0.36))
+        vs, fs, fm = [], [], []
+        for i in range(n + 1):
+            x = x0 + (x1 - x0) * i / n
+            vs += [(x, yw, zt), (x, yw + out, zt - drop), (x, yw + out, zt - drop - 0.28)]
+        for i in range(n):
+            a, b = 3 * i, 3 * (i + 1)
+            fs += [(a, b, b + 1, a + 1), (a + 1, b + 1, b + 2, a + 2)]; fm += [i % 2, i % 2]
+        ob = add_mesh("awning", vs, fs, [canvas, AM[col]], fm)
+        ob.modifiers.new("thick", "SOLIDIFY").thickness = 0.03
+    na = 0
+    for lo, hi, col in doors_front:
+        if -54 < (lo.x + hi.x) / 2 < 24: awning(lo, hi, col); na += 1
+    print("accents: %d flags, %d awnings" % (k + 1, na), flush=True)
+
 # ground, track, rails
 plane("ground", -900, 1400, -700, 500, grass, -0.02)
 plane("track", -300, 1300, -W, 0, turf, 0.0)
@@ -218,7 +357,7 @@ def camera(name, eye, at, fov, focus=None, fstop=None):
     e, a = course(eye), course(at)
     cam.location = e; cam.rotation_euler = (a - e).to_track_quat("-Z", "Y").to_euler()
     # a shallow model-like focus on the subject (the street's miniature look), kept gentle
-    cam.data.dof.use_dof = fstop is not None and VARIANT in ("clean", "soft")
+    cam.data.dof.use_dof = fstop is not None and VARIANT in ("clean", "soft", "accent")
     if cam.data.dof.use_dof:
         cam.data.dof.focus_distance = (course(focus or at) - e).length; cam.data.dof.aperture_fstop = fstop
     scene.camera = cam
