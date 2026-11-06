@@ -28,6 +28,9 @@ COURSE = json.load(open(rp("courses/ascot.json")))
 FRONT = COURSE["grandstand"]["frontLine"]
 W = COURSE["trackWidth"]
 RES = (1600, 900) if not os.environ.get("QUICK") else (800, 450)
+if os.environ.get("RES"): RES = tuple(int(v) for v in os.environ["RES"].split("x"))
+CROWD_GLB = os.environ.get("CROWD", "assets/models/architecture/crowd_people.glb")   # the crowd figures (crowd concepts)
+OUT_TAG = os.environ.get("TAG", "")
 
 bpy.ops.wm.read_factory_settings(use_empty=True)
 scene = bpy.context.scene
@@ -377,11 +380,11 @@ if ACCENT:
     print("accents: %d pavilion flags, %d roof flags, %d awnings" % (k, nr, na), flush=True)
 
     # ---------------- the crowd: the stand's terraces, galleries and boxes, and the lawn, packed as in the photos
-    figs = import_glb(rp("assets/models/architecture/crowd_people.glb"))
+    figs = [o for o in import_glb(CROWD_GLB if os.path.isabs(CROWD_GLB) else rp(CROWD_GLB)) if o.type == "MESH"]
     crowd_coll = bpy.data.collections.new("crowd_figs")
     for o in figs:
         for c in o.users_collection: c.objects.unlink(o)
-        crowd_coll.objects.link(o); o.location = (0, 0, 0)
+        crowd_coll.objects.link(o); o.parent = None; o.location = (0, 0, 0); o.rotation_euler = (0, 0, 0); o.scale = (1, 1, 1)
     pal_clothes = ["#2c3140", "#3a3d44", "#4b4d52", "#2f3a33", "#59544c", "#c9a0a8", "#9fb6c8", "#ddd2b8", "#a8706a", "#88a383", "#d2b874", "#e8e2d6", "#9a88b4", "#cf9476"]
     pal_hats = ["#222226", "#222226", "#2a2a2e", "#efe6d2", "#d8c08a", "#c9a0a8", "#9fb6c8"]
     def palette_mat(name, cols, rough=0.9):
@@ -394,7 +397,11 @@ if ACCENT:
         nt.links.new(oi.outputs["Random"], cr.inputs[0]); nt.links.new(cr.outputs[0], b.inputs["Base Color"])
         return m
     CM = {"crowd_clothes": palette_mat("c_clothes", pal_clothes), "crowd_hat": palette_mat("c_hat", pal_hats),
-          "crowd_skin": palette_mat("c_skin", ["#efc6a4", "#e2b48e", "#c99572", "#9a6a4a"])}
+          "crowd_skin": palette_mat("c_skin", ["#efc6a4", "#e2b48e", "#c99572", "#9a6a4a"]),
+          "crowd_accent": palette_mat("c_accent", ["#e6998b", "#8db58c", "#eccd7c", "#8eb0d6", "#b49fd2", "#f2ece0", "#c0453a"]),
+          "crowd_dark": palette_mat("c_dark", ["#24262b", "#2f3036", "#3b352f"])}
+    for k, v in {"fig_main": "crowd_clothes", "fig_skin": "crowd_skin", "fig_hat": "crowd_hat", "fig_trim": "crowd_accent", "fig_hair": "crowd_dark"}.items():
+        CM[k] = CM[v]
     for o in crowd_coll.objects:
         for i, sl in enumerate(o.material_slots):
             base = (sl.material.name if sl.material else "").split(".")[0]
@@ -433,7 +440,7 @@ if ACCENT:
     ci = N.new("GeometryNodeCollectionInfo"); ci.inputs["Collection"].default_value = crowd_coll
     ci.inputs["Separate Children"].default_value = True; ci.inputs["Reset Children"].default_value = True
     ip = N.new("GeometryNodeInstanceOnPoints"); ip.inputs["Pick Instance"].default_value = True
-    ri = N.new("FunctionNodeRandomValue"); ri.data_type = "INT"; ri.inputs["Min"].default_value = 0; ri.inputs["Max"].default_value = 3
+    ri = N.new("FunctionNodeRandomValue"); ri.data_type = "INT"; ri.inputs["Min"].default_value = 0; ri.inputs["Max"].default_value = len(crowd_coll.objects) - 1
     rr = N.new("FunctionNodeRandomValue"); rr.data_type = "FLOAT_VECTOR"
     rr.inputs["Min"].default_value = (0, 0, -0.5); rr.inputs["Max"].default_value = (0, 0, 0.5)
     rs = N.new("FunctionNodeRandomValue"); rs.data_type = "FLOAT"; rs.inputs["Min"].default_value = 0.94; rs.inputs["Max"].default_value = 1.06
@@ -474,7 +481,7 @@ def camera(name, eye, at, fov, focus=None, fstop=None):
     if cam.data.dof.use_dof:
         cam.data.dof.focus_distance = (course(focus or at) - e).length; cam.data.dof.aperture_fstop = fstop
     scene.camera = cam
-    scene.render.filepath = os.path.join(OUT, f"{VARIANT}_{name}.png")
+    scene.render.filepath = os.path.join(OUT, f"{OUT_TAG or VARIANT}_{name}.png")
     bpy.ops.render.render(write_still=True); print("rendered", scene.render.filepath, flush=True)
 
 
