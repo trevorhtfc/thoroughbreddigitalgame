@@ -314,7 +314,7 @@ if ACCENT:
     TFLAG = [("blush", "blush"), ("sage", "sage"), ("butter", "butter"), ("powder", "powder"), ("lilac", "lilac")]
     for i, x in enumerate(range(-96, 404, 36)):
         m = module_at(x)
-        if not m or m["module"] not in ("terrace_stand",): continue
+        if not m or m["module"] not in ("terrace_stand",) or m.get("roof"): continue
         pts = [p for p in stand_pts if abs(p.x - x) < 1.0 and p.z < 20]
         if not pts: continue
         b = max(pts, key=lambda p: p.z)
@@ -350,7 +350,22 @@ if ACCENT:
     for lo, hi, col in doors_front:
         if any(abs(lo.x - p.x) < 0.3 and abs(hi.x - q.x) < 0.3 for p, q in placed): continue   # one awning per opening
         awning(lo, hi, col); placed.append((lo, hi)); na += 1
-    print("accents: %d pavilion flags, %d awnings" % (k, na), flush=True)
+    # flags along the ridge of the long roofs (owner's sketch): one every three bays
+    nr = 0
+    spans = []                                      # the roofed modules joined into continuous stretches
+    for m in sorted(MODS, key=lambda m: -m["xEast"]):
+        if not m.get("roof"): continue
+        if spans and abs(spans[-1][1] - m["xEast"]) < 0.01: spans[-1][1] = m["xWest"]
+        else: spans.append([m["xEast"], m["xWest"]])
+    for xe, xw in spans:
+        pts = [p for p in roofs if xw - 0.5 < p.x < xe + 0.5 and p.z < 21.5]     # the ridge is level along the run
+        if not pts: continue
+        r = max(pts, key=lambda p: p.z)
+        x = xe - 3.5
+        while x > xw + 1.0:
+            flag(Vector((x, r.y, r.z)), 3.2, TFLAG[nr % len(TFLAG)], w=2.0, fh=1.25, phase=nr * 1.1); nr += 1
+            x -= 10.5
+    print("accents: %d pavilion flags, %d roof flags, %d awnings" % (k, nr, na), flush=True)
 
     # ---------------- the crowd: the stand's terraces, galleries and boxes, and the lawn, packed as in the photos
     figs = import_glb(rp("assets/models/architecture/crowd_people.glb"))

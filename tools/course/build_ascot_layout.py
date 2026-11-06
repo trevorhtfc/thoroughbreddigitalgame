@@ -209,22 +209,22 @@ mods = CAT["modules"]; bay = CAT["bay"]
 seq = []
 for item in ASM["order"]:
     for _ in range(item.get("repeat", 1)):
-        seq.append((item["module"], item.get("mirror", False), item.get("bays", mods[item["module"]]["bays"])))
+        seq.append((item["module"], item.get("mirror", False), item.get("bays", mods[item["module"]]["bays"]), bool(item.get("roof"))))
 cum = 0; spans = []
-for name, mir, nb in seq:      # an assembly item's own "bays" overrides the catalogue width
+for name, mir, nb, roof in seq:      # an assembly item's own "bays" overrides the catalogue width
     Lm = nb * bay
-    spans.append((name, mir, cum, cum + Lm)); cum += Lm
+    spans.append((name, mir, cum, cum + Lm, roof)); cum += Lm
 stand_len = cum
 anc = ASM["anchor"]
-tower_c = next(c0 + mods[n]["towerFromLeft"] for n, m, c0, c1 in spans if n == anc["module"])
+tower_c = next(c0 + mods[n]["towerFromLeft"] for n, m, c0, c1, _ in spans if n == anc["module"])
 front_z = W + ASM["setback"]
 placed = []
-for name, mir, c0, c1 in spans:
+for name, mir, c0, c1, roof in spans:
     m = mods[name]
     xe, xw = tower_c - c0, tower_c - c1  # left in elevation = east = +x
     placed.append({"module": name, "mirror": mir, "bays": round((c1 - c0) / bay),
                    "xEast": round(xe, 2), "xWest": round(xw, 2),
-                   "front": round(front_z, 2), "back": round(front_z + m["depth"], 2)})
+                   "front": round(front_z, 2), "back": round(front_z + m["depth"], 2), **({"roof": True} if roof else {})})
 
 # ---------- furlong markers ----------
 def at_loop_togo(togo):

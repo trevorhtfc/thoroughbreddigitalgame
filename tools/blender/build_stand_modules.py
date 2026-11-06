@@ -116,7 +116,10 @@ VER = {"porch": dict(tiers=1, depth=9.0, setback=0.0, roof="hip"),
        "link": dict(tiers=3, depth=18.0, setback=1.2, roof="flat")}
 
 
-def build_module(name, x0, length, party=()):
+ROOF_EAVE = 18.0        # the long roofs' eave height (just under the grand canopy's), shared so a run reads as one roof
+
+
+def build_module(name, x0, length, party=(), roof=False):
     """Build one module (or a run of one repeatable module) with its front-left corner at x0.
     party: which ends ('left', 'right') butt against a neighbour, so their end windows are left off."""
     m = MODS[name]; x1 = x0 + length
@@ -129,7 +132,9 @@ def build_module(name, x0, length, party=()):
     elif name == "stair_bay":
         stair_bay(x0, x1, m["depth"], party)
     elif name == "terrace_stand":
-        terrace({"x0": x0, "x1": x1, "depth": m["depth"], "party": party})
+        t = terrace({"x0": x0, "x1": x1, "depth": m["depth"], "party": party, "open_ends": roof})
+        if roof:
+            long_roof(x0, x1, t["deck"], t["top"] + 1.25, t["depth"], eave_over=ROOF_EAVE - t["top"] - 1.25)
     elif name == "clock_centre":
         # since 6 Nov 2026 (owner's archive photos): the terrace stand, the ironwork bay, and the old belfry
         # clock tower rising out of the packed roof terrace
@@ -138,6 +143,9 @@ def build_module(name, x0, length, party=()):
         tower_belfry({"x": x0 + m["towerFromLeft"], "y": 7.0, "width": m["towerWidth"], "base_z": 13.2, "top_z": 36.0})
     elif name == "ironwork_bay":
         ironwork({"x0": x0, "x1": x1, "levels": 3, "depth": m["depth"]})
+        if roof:
+            H = P + 3 * S
+            long_roof(x0, x1, H + 0.35, H, 18.0, eave_over=ROOF_EAVE - H)
     elif name == "window_block":
         block({"x0": x0, "x1": x1, "storeys": 4, "depth": m["depth"], "party": party})
     elif name == "three_storey_block":
@@ -151,14 +159,14 @@ def build_module(name, x0, length, party=()):
         raise KeyError(name)
 
 
-def build_placed(name, x0, length, mirror, party=()):
+def build_placed(name, x0, length, mirror, party=(), roof=False):
     if mirror:                                  # mirrored: the module's own left end is on the right
         swap = {"left": "right", "right": "left"}
         K.push(Matrix.Translation((x0 + length, 0, 0)) @ Matrix.Diagonal((-1, 1, 1, 1)))
-        build_module(name, 0.0, length, tuple(swap[p] for p in party))
+        build_module(name, 0.0, length, tuple(swap[p] for p in party), roof)
         K.pop()
     else:
-        build_module(name, x0, length, party)
+        build_module(name, x0, length, party, roof)
 
 
 # ------------------------------------------------------------------ 1) the kit: one node per module
@@ -180,21 +188,22 @@ print("kit:", ", ".join(f"{n} {b}b {t}t" for n, b, t in kit_report), flush=True)
 runs = []                                   # merge back-to-back repeats of a repeatable module into one run
 for item in ASM["order"]:                   # runs hold widths in bays; an item's own "bays" overrides the catalogue
     name = item["module"]; n = item.get("repeat", 1) * item.get("bays", MODS[name]["bays"]); mir = item.get("mirror", False)
-    if runs and runs[-1][0] == name and MODS[name].get("repeatable") and not mir and not runs[-1][2]:
+    roof = bool(item.get("roof"))           # a long roof over this run (owner's sketch)
+    if runs and runs[-1][0] == name and MODS[name].get("repeatable") and not mir and not runs[-1][2] and runs[-1][3] == roof:
         runs[-1][1] += n
     else:
-        runs.append([name, n, mir])
+        runs.append([name, n, mir, roof])
 def assemble(far, coll_name, mesh_prefix):
     """Assemble Ascot's stand from the runs, in world axes, one mesh per material."""
     global CROWD
     K.far = far
     cum, tower_c = 0.0, None
-    for i, (name, n, mir) in enumerate(runs):
+    for i, (name, n, mir, roof) in enumerate(runs):
         Lm = BAY * n
         if name == ASM["anchor"]["module"]:
             tower_c = cum + MODS[name]["towerFromLeft"]
         party = tuple(p for p, on in (("left", i > 0), ("right", i < len(runs) - 1)) if on)
-        build_placed(name, cum, Lm, mir, party)
+        build_placed(name, cum, Lm, mir, party, roof)
         cum += Lm
     assert abs(cum - COURSE["grandstand"]["length"]) < 0.01, (cum, COURSE["grandstand"]["length"])
     stand_area(0.3, cum - 0.3, 0.0, 0.0, 0, "lawn_front_line")

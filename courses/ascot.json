@@ -5143,7 +5143,8 @@
     "xEast": 163.5,
     "xWest": 160.0,
     "front": 45.4,
-    "back": 63.4
+    "back": 63.4,
+    "roof": true
    },
    {
     "module": "terrace_stand",
@@ -5152,7 +5153,8 @@
     "xEast": 160.0,
     "xWest": 156.5,
     "front": 45.4,
-    "back": 63.4
+    "back": 63.4,
+    "roof": true
    },
    {
     "module": "terrace_stand",
@@ -5161,7 +5163,8 @@
     "xEast": 156.5,
     "xWest": 153.0,
     "front": 45.4,
-    "back": 63.4
+    "back": 63.4,
+    "roof": true
    },
    {
     "module": "terrace_stand",
@@ -5170,7 +5173,8 @@
     "xEast": 153.0,
     "xWest": 149.5,
     "front": 45.4,
-    "back": 63.4
+    "back": 63.4,
+    "roof": true
    },
    {
     "module": "terrace_stand",
@@ -5179,7 +5183,8 @@
     "xEast": 149.5,
     "xWest": 146.0,
     "front": 45.4,
-    "back": 63.4
+    "back": 63.4,
+    "roof": true
    },
    {
     "module": "terrace_stand",
@@ -5188,7 +5193,8 @@
     "xEast": 146.0,
     "xWest": 142.5,
     "front": 45.4,
-    "back": 63.4
+    "back": 63.4,
+    "roof": true
    },
    {
     "module": "ironwork_bay",
@@ -5197,7 +5203,8 @@
     "xEast": 142.5,
     "xWest": 128.5,
     "front": 45.4,
-    "back": 65.4
+    "back": 65.4,
+    "roof": true
    },
    {
     "module": "terrace_stand",
@@ -5206,7 +5213,8 @@
     "xEast": 128.5,
     "xWest": 125.0,
     "front": 45.4,
-    "back": 63.4
+    "back": 63.4,
+    "roof": true
    },
    {
     "module": "terrace_stand",
@@ -5215,7 +5223,8 @@
     "xEast": 125.0,
     "xWest": 121.5,
     "front": 45.4,
-    "back": 63.4
+    "back": 63.4,
+    "roof": true
    },
    {
     "module": "terrace_stand",
@@ -5224,7 +5233,8 @@
     "xEast": 121.5,
     "xWest": 118.0,
     "front": 45.4,
-    "back": 63.4
+    "back": 63.4,
+    "roof": true
    },
    {
     "module": "terrace_stand",
@@ -5233,7 +5243,8 @@
     "xEast": 118.0,
     "xWest": 114.5,
     "front": 45.4,
-    "back": 63.4
+    "back": 63.4,
+    "roof": true
    },
    {
     "module": "terrace_stand",
@@ -5242,7 +5253,8 @@
     "xEast": 114.5,
     "xWest": 111.0,
     "front": 45.4,
-    "back": 63.4
+    "back": 63.4,
+    "roof": true
    },
    {
     "module": "terrace_stand",
@@ -5251,7 +5263,8 @@
     "xEast": 111.0,
     "xWest": 107.5,
     "front": 45.4,
-    "back": 63.4
+    "back": 63.4,
+    "roof": true
    },
    {
     "module": "stair_bay",

@@ -464,3 +464,35 @@ def canopy_terrace(seg, grand=False):
             for i in range(round((lx1 - lx0) / 1.2) + 1):
                 lx = lx0 + (lx1 - lx0) * i / max(1, round((lx1 - lx0) / 1.2))
                 K.box("trim", lx - 0.05, lx + 0.05, ym - 1.25, ym + 1.25, zr + th, zr + th + 0.9)
+
+
+# ------------------------------------------------------------------ long roof over a terrace run (owner's sketch, 6 Nov 2026)
+def long_roof(x0, x1, deck, back_top, D=18.0, eave_over=2.4, pitch_deg=10, flags_every=None):
+    """A long, low pitched roof carried west from the grand canopy over the terrace (and an iron bay): slender
+    columns standing on the roof deck at the front, the back filled in up to the roof, open to the front.
+    deck: height the front columns stand on; back_top: top of the back wall beneath."""
+    nb = max(1, round((x1 - x0) / BAY))
+    pitch = math.radians(pitch_deg)
+    ze = back_top + eave_over
+    yf, yb = 0.9, D + 0.7
+    ym = (yf + yb) / 2
+    zr = ze + (ym - yf) * math.tan(pitch)
+    th = 0.24
+    K.prism_x("roof", x0, x1, [(yf, ze), (yf, ze + th), (ym, zr + th), (yb, ze + th), (yb, ze), (ym, zr)])
+    K.box("trim", x0, x1, yf - 0.12, yf + 0.05, ze - 0.4, ze + th)                     # valance
+    K.box("trim", x0, x1, yb - 0.05, yb + 0.12, ze - 0.3, ze + th)
+    K.box("trim", x0, x1, ym - 0.1, ym + 0.1, zr + th - 0.02, zr + th + 0.1)           # ridge
+    zback = ze + (yb - D) * math.tan(pitch)
+    K.box("wall", x0, x1, D - 0.4, D, back_top, zback + 0.05)                          # back infilled up to the roof
+    yc = 3.3
+    zc = ze + (yc - yf) * math.tan(pitch)
+    for i in range(nb + 1):
+        x = x0 + (x1 - x0) * i / nb
+        K.cyl("trim", x, yc, deck, zc - 0.05, 0.1, 0.085, 8)
+        K.box("trim", x - 0.05, x + 0.05, yc, D - 0.4, zc - 0.22, zc - 0.1)             # tie across
+        if not K.far:
+            for sgn in (-1, 1):
+                if x0 <= x + sgn * 0.5 <= x1:
+                    K.arc_band("trim", x + sgn * 0.55, zc - 0.65, 0.42, 0.52,
+                               math.pi / 2 if sgn < 0 else 0, math.pi if sgn < 0 else math.pi / 2, yc - 0.05, yc + 0.05, 5)
+    return {"ridge": zr + th + 0.1, "ym": ym}

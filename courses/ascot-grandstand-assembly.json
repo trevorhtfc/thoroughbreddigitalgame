@@ -47,14 +47,17 @@
   },
   {
    "module": "terrace_stand",
-   "repeat": 6
+   "repeat": 6,
+   "roof": true
   },
   {
-   "module": "ironwork_bay"
+   "module": "ironwork_bay",
+   "roof": true
   },
   {
    "module": "terrace_stand",
-   "repeat": 6
+   "repeat": 6,
+   "roof": true
   },
   {
    "module": "stair_bay",
