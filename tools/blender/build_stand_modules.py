@@ -177,8 +177,8 @@ print("kit:", ", ".join(f"{n} {b}b {t}t" for n, b, t in kit_report), flush=True)
 
 # ------------------------------------------------------------------ 2) Ascot's stand, assembled
 runs = []                                   # merge back-to-back repeats of a repeatable module into one run
-for item in ASM["order"]:
-    name = item["module"]; n = item.get("repeat", 1); mir = item.get("mirror", False)
+for item in ASM["order"]:                   # runs hold widths in bays; an item's own "bays" overrides the catalogue
+    name = item["module"]; n = item.get("repeat", 1) * item.get("bays", MODS[name]["bays"]); mir = item.get("mirror", False)
     if runs and runs[-1][0] == name and MODS[name].get("repeatable") and not mir and not runs[-1][2]:
         runs[-1][1] += n
     else:
@@ -189,7 +189,7 @@ def assemble(far, coll_name, mesh_prefix):
     K.far = far
     cum, tower_c = 0.0, None
     for i, (name, n, mir) in enumerate(runs):
-        Lm = MODS[name]["bays"] * BAY * n
+        Lm = BAY * n
         if name == ASM["anchor"]["module"]:
             tower_c = cum + MODS[name]["towerFromLeft"]
         party = tuple(p for p, on in (("left", i > 0), ("right", i < len(runs) - 1)) if on)

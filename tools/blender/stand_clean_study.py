@@ -263,15 +263,14 @@ if ACCENT:
             if hi.y > -FRONT - 0.6 and hi.z < 3.4 and lo.z > 0.2 and hi.x - lo.x > 0.8 and module_at(x):
                 doors_front.append((lo, hi, stripe_at(x)))
     # balusters: the clock block's balustrades in sage, the grand pavilions' in powder blue, the small pavilions' in blush
-    BAL = [((-11.5, 23.5), "sage"), ((-53.5, -25.5), "powder"), ((153, 181), "powder"), ((-88.5, -67.5), "blush"), ((195, 216), "blush")]
+    BAL = {"clock_centre": "sage", "grand_pavilion": "powder", "pavilion": "blush"}     # by building, wherever it stands
     nb = 0
     for o in by_mat("gs_trim"):
         for comp, lo, hi in islands(o):
             sx, sy, sz = hi.x - lo.x, hi.y - lo.y, hi.z - lo.z
             if max(sx, sy) < 0.13 and 0.55 < sz < 1.1:
-                x = (lo.x + hi.x) / 2
-                for (a, b), c in BAL:
-                    if a <= x <= b: recolour(o, comp, AM[c]); nb += 1; break
+                m = module_at((lo.x + hi.x) / 2)
+                if m and m["module"] in BAL: recolour(o, comp, AM[BAL[m["module"]]]); nb += 1
     print("accents: %d balusters, %d front doors" % (nb, len(doors_front)), flush=True)
 
     def add_mesh(name, verts, faces, mats, fmat=None):
