@@ -20,15 +20,15 @@ export const standId = ID;
 const OPTIONS = {
   pastel: [
     { label: "Pastel row · clay · no line work",
-      row: ["#e3968b", "#eeae78", "#ecc95f", "#f0dcbc", "#8fbea4", "#dd826b", "#9fc8d6"], trim: "#fbf6ec", trimMix: 0.5, podiumDark: 0.8, exposure: 0.8,
+      row: ["#e3968b", "#eeae78", "#ecc95f", "#f0dcbc", "#8fbea4", "#dd826b", "#9fc8d6"], trim: "#fbf6ec", trimMix: 0.5, podiumDark: 0.8, exposure: 0.72,
       roof: "#d79c80", iron: "#5b4636", glass: "#4b4862", door: "#4f8a86", gilt: "#d9b26a", steps: "#e9dcc6",
       surface: "clay", lines: null, sun: [1.08, 1.0, 0.9], shade: [0.86, 0.8, 0.98], contrast: 0.25 },
     { label: "Pastel row · clay · soft coloured line work",
-      row: ["#e3968b", "#eeae78", "#ecc95f", "#f0dcbc", "#8fbea4", "#dd826b", "#9fc8d6"], trim: "#fbf6ec", trimMix: 0.5, podiumDark: 0.8, exposure: 0.8,
+      row: ["#e3968b", "#eeae78", "#ecc95f", "#f0dcbc", "#8fbea4", "#dd826b", "#9fc8d6"], trim: "#fbf6ec", trimMix: 0.5, podiumDark: 0.8, exposure: 0.72,
       roof: "#d79c80", iron: "#5b4636", glass: "#4b4862", door: "#4f8a86", gilt: "#d9b26a", steps: "#e9dcc6",
       surface: "clay", lines: { mode: "tone", k: 0.45, width: 0.1 }, sun: [1.08, 1.0, 0.9], shade: [0.86, 0.8, 0.98], contrast: 0.25 },
     { label: "Sorbet · bolder colour · white line work",
-      row: ["#ec6a5e", "#f39a45", "#f2c84a", "#45ab9c", "#9c7fcc", "#ec7c98", "#5fa8d3"], trim: "#ffffff", trimMix: 0.38, podiumDark: 0.75, exposure: 0.78,
+      row: ["#ec6a5e", "#f39a45", "#f2c84a", "#45ab9c", "#9c7fcc", "#ec7c98", "#5fa8d3"], trim: "#ffffff", trimMix: 0.38, podiumDark: 0.75, exposure: 0.7,
       roof: "#e7d2bd", iron: "#2e4b52", glass: "#3e3a5c", door: "#2f6f8a", gilt: "#e3b45a", steps: "#f0e2cc",
       surface: "clay", lines: { mode: "colour", colour: "#fffaf0", width: 0.08 }, sun: [1.1, 1.0, 0.86], shade: [0.84, 0.82, 1.02], contrast: 0.35 },
   ],
@@ -36,15 +36,15 @@ const OPTIONS = {
     { label: "Red brick · stone base · ink line work",
       brick: "#b8573f", mortar: "#e2d6c4", stone: "#b9b4aa", trim: "#efe6d2", roof: "#c9683e", roofKind: "tile",
       iron: "#24262a", glass: "#34404c", door: "#2f4a3a", gilt: "#c8a052", steps: "#bdb6aa",
-      surface: "brick", exposure: 0.9, lines: { mode: "colour", colour: "#2a211c", width: 0.07 }, sun: [1.14, 1.0, 0.84], shade: [0.8, 0.88, 1.06], contrast: 0.5 },
+      surface: "brick", exposure: 0.74, lines: { mode: "colour", colour: "#2a211c", width: 0.07 }, sun: [1.14, 1.0, 0.84], shade: [0.8, 0.88, 1.06], contrast: 0.5 },
     { label: "Red brick · stone base · no line work",
       brick: "#b8573f", mortar: "#e2d6c4", stone: "#b9b4aa", trim: "#efe6d2", roof: "#c9683e", roofKind: "tile",
       iron: "#24262a", glass: "#34404c", door: "#2f4a3a", gilt: "#c8a052", steps: "#bdb6aa",
-      surface: "brick", exposure: 0.9, lines: null, sun: [1.14, 1.0, 0.84], shade: [0.8, 0.88, 1.06], contrast: 0.5 },
+      surface: "brick", exposure: 0.74, lines: null, sun: [1.14, 1.0, 0.84], shade: [0.8, 0.88, 1.06], contrast: 0.5 },
     { label: "Mixed terrace · red and white brick · racing-green trim · ink line work",
       row: ["#b8573f", "#cfccc2", "#a9503a", "#d9d4c6", "#c0664a"], brick: "#b8573f", mortar: "#ece3d2", stone: "#9d988e", trim: "#2f5a45", roof: "#c9683e", roofKind: "tile",
       iron: "#e9e2d2", glass: "#2c3640", door: "#e9e2d2", gilt: "#c8a052", steps: "#bdb6aa",
-      surface: "brick", exposure: 0.9, lines: { mode: "colour", colour: "#231c18", width: 0.07 }, sun: [1.14, 1.0, 0.84], shade: [0.8, 0.88, 1.06], contrast: 0.5 },
+      surface: "brick", exposure: 0.74, lines: { mode: "colour", colour: "#231c18", width: 0.07 }, sun: [1.14, 1.0, 0.84], shade: [0.8, 0.88, 1.06], contrast: 0.5 },
   ],
 };
 const O = ID && ID !== "debug" ? OPTIONS[ID][VN - 1] : null;
@@ -171,6 +171,9 @@ export function patchStand(mat, name) {
   mat.customProgramCacheKey = () => "stand-" + ID + VN + "-" + role;
   if (O.lines) { mat.polygonOffset = true; mat.polygonOffsetFactor = 1; mat.polygonOffsetUnits = 1; }
   mat.color.set("#ffffff");
+  // the stand shows its colours as painted: no film-style tone mapping squeezing pastels to white (the exposure
+  // above keeps the sunlit walls just under full brightness instead)
+  mat.toneMapped = false;
   return mat;
 }
 
