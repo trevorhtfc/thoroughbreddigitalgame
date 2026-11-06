@@ -13,7 +13,7 @@ Writes reference/architecture/clean-study/<variant>_<camera>.png, from the race 
 """
 import os, sys, math, json
 import bpy
-from mathutils import Vector
+from mathutils import Vector, Matrix
 
 REPO = os.path.abspath(".")
 def rp(*p): return os.path.join(REPO, *p)
@@ -467,10 +467,104 @@ if ACCENT:
     print("crowd:", len(pts), "people", flush=True)
 
 # ground, track, rails
+def turf_mat(name, base, stripe=0.0, stripe_w=10.0, lane_k=0.0, flecks=True, light=False):
+    """Racecourse turf (owner, 6 Nov 2026, from his toy-town reference): a fine blade texture, slight colour
+    variation over metres, broad soft mowing stripes across the track, and the odd divot and daisy.
+    light: the lawns off the track, lighter, even, a finer texture and no stripes."""
+    m = bpy.data.materials.new(name); m.use_nodes = True
+    nt = m.node_tree; N, Lk = nt.nodes, nt.links; b = N["Principled BSDF"]
+    b.inputs["Roughness"].default_value = 0.97; b.inputs["Specular IOR Level"].default_value = 0.15
+    tc = N.new("ShaderNodeTexCoord")
+    def noise(scale, detail=4, rough=0.6, vec=None):
+        n = N.new("ShaderNodeTexNoise"); n.inputs["Scale"].default_value = scale; n.inputs["Detail"].default_value = detail
+        n.inputs["Roughness"].default_value = rough; Lk.new(vec or tc.outputs["Object"], n.inputs["Vector"]); return n
+    def mix(a, bb, fac, blend="MIX"):
+        x = N.new("ShaderNodeMix"); x.data_type = "RGBA"; x.blend_type = blend
+        if isinstance(fac, float): x.inputs["Factor"].default_value = fac
+        else: Lk.new(fac, x.inputs["Factor"])
+        for slot, v in ((6, a), (7, bb)):
+            if isinstance(v, tuple): x.inputs[slot].default_value = v
+            else: Lk.new(v, x.inputs[slot])
+        return x.outputs[2]
+    def ramp(inp, stops):
+        r = N.new("ShaderNodeValToRGB"); Lk.new(inp, r.inputs[0])
+        els = r.color_ramp.elements
+        while len(els) < len(stops): els.new(0.5)
+        for e, (p, c) in zip(els, stops): e.position = p; e.color = c
+        return r.outputs[0]
+    sep = N.new("ShaderNodeSeparateXYZ"); Lk.new(tc.outputs["Object"], sep.inputs[0])
+    c0 = lin(base)
+    def mul(colin, factor_socket):
+        x = N.new("ShaderNodeMix"); x.data_type = "RGBA"; x.blend_type = "MULTIPLY"; x.inputs["Factor"].default_value = 1.0
+        if isinstance(colin, tuple): x.inputs[6].default_value = colin
+        else: Lk.new(colin, x.inputs[6])
+        Lk.new(factor_socket, x.inputs[7]); return x.outputs[2]
+    g = lambda v: (v, v, v, 1)
+    # each layer darkens or lightens the one below (multiplies), so none washes out the others
+    col = mul(c0, ramp(noise(0.08 if not light else 0.12, 3).outputs["Fac"], [(0.3, g(0.86)), (0.7, g(1.1))]))     # patches over metres
+    tufts = noise(2.2 if not light else 3.0, 6, 0.7)
+    col = mul(col, ramp(tufts.outputs["Fac"], [(0.35, g(0.8)), (0.65, g(1.13))] if not light else [(0.35, g(0.88)), (0.65, g(1.08))]))
+    blades = noise(18.0 if not light else 26.0, 8, 0.75)
+    col = mul(col, ramp(blades.outputs["Fac"], [(0.3, g(0.78)), (0.7, g(1.15))] if not light else [(0.3, g(0.88)), (0.7, g(1.08))]))
+    if stripe:
+        # mowing stripes across the track: soft-edged alternating bands every stripe_w metres along x
+        sx = N.new("ShaderNodeMath"); sx.operation = "MULTIPLY"; Lk.new(sep.outputs["X"], sx.inputs[0]); sx.inputs[1].default_value = math.pi / stripe_w
+        sn = N.new("ShaderNodeMath"); sn.operation = "SINE"; Lk.new(sx.outputs[0], sn.inputs[0])
+        st = N.new("ShaderNodeMapRange"); Lk.new(sn.outputs[0], st.inputs["Value"]); st.inputs["From Min"].default_value = -0.3; st.inputs["From Max"].default_value = 0.3
+        col = mul(col, ramp(st.outputs["Result"], [(0.0, (1 - stripe, 1 - stripe * 0.8, 1 - stripe * 1.2, 1)), (1.0, (1 + stripe * 0.8, 1 + stripe * 0.8, 1 + stripe * 0.3, 1))]))
+    if flecks:
+        # the odd divot (brown) on the track, the odd daisy (white) on the lawns
+        vor = N.new("ShaderNodeTexVoronoi"); vor.inputs["Scale"].default_value = 1.6 if not light else 2.4; Lk.new(tc.outputs["Object"], vor.inputs["Vector"])
+        dots = ramp(vor.outputs["Distance"], [(0.0, (1, 1, 1, 1)), (0.035 if not light else 0.03, (0, 0, 0, 1))])
+        keep = N.new("ShaderNodeMath"); keep.operation = "GREATER_THAN"; Lk.new(vor.outputs["Color"], keep.inputs[0]); keep.inputs[1].default_value = 0.72
+        fl = N.new("ShaderNodeMath"); fl.operation = "MULTIPLY"; Lk.new(dots, fl.inputs[0]); Lk.new(keep.outputs[0], fl.inputs[1])
+        col = mix(col, lin("#efe9d2") if light else lin("#6d5236"), fl.outputs[0])
+    Lk.new(col, b.inputs["Base Color"])
+    hsum = N.new("ShaderNodeMath"); hsum.operation = "ADD"; Lk.new(blades.outputs["Fac"], hsum.inputs[0]); Lk.new(tufts.outputs["Fac"], hsum.inputs[1])
+    bp = N.new("ShaderNodeBump"); bp.inputs["Strength"].default_value = 0.6 if not light else 0.4; bp.inputs["Distance"].default_value = 0.04
+    Lk.new(hsum.outputs[0], bp.inputs["Height"]); Lk.new(bp.outputs["Normal"], b.inputs["Normal"])
+    return no_green_bounce(m, "#a29680" if not light else "#a89c86")
+
+if SOFT:
+    turf = turf_mat("turf_track", "#7fa952", stripe=0.2, stripe_w=11.0)        # the racing surface: richer, striped
+    grass = turf_mat("turf_lawn", "#bcc98c", light=True)                        # the lawns off the track: lighter, even
 plane("ground", -900, 1400, -700, 500, grass, -0.02)
 plane("track", -300, 1300, -W, 0, turf, 0.0)
-for y in (0.0, -W):
-    plane("rail_%d" % int(-y), -300, 1300, y - 0.12, y + 0.12, rail, 1.0)
+
+
+def ascot_rail(y, track_side, x0=-300.0, x1=1300.0):
+    """The Ascot running rail (owner's photo): a broad white top rail, a deep flat board facing the track with a
+    rounded capping on top, on square white posts every 2.4 m set back behind the board; nothing below."""
+    h, board, depth = 1.12, 0.26, 0.09
+    t = track_side                                                            # +1: the track is towards +y
+    ys = y + t * 0.02                                                         # the board's track face
+    prof = [(ys, h - board), (ys, h), (ys - t * 0.04, h + 0.05), (ys - t * 0.12, h + 0.06), (ys - t * 0.2, h + 0.03),
+            (ys - t * 0.2, h - 0.02), (ys - t * depth, h - 0.02), (ys - t * depth, h - board)]
+    if t < 0: prof = prof[::-1]
+    me = bpy.data.meshes.new("rail_top"); verts, faces = [], []
+    n = len(prof)
+    for xx in (x0, x1):
+        verts += [(xx, py, pz) for py, pz in prof]
+    faces.append(list(range(n))[::-1]); faces.append(list(range(n, 2 * n)))
+    for i in range(n):
+        faces.append((i, (i + 1) % n, n + (i + 1) % n, n + i))
+    me.from_pydata(verts, [], faces); me.materials.append(rail)
+    for p in me.polygons: p.use_smooth = False
+    ob = bpy.data.objects.new("rail_top", me); scene.collection.objects.link(ob)
+    bv = ob.modifiers.new("bevel", "BEVEL"); bv.width = 0.015; bv.segments = 2; bv.limit_method = "ANGLE"
+    # posts: one square post, arrayed along the rail
+    pm = bpy.data.meshes.new("rail_post"); bmp = bmesh.new()
+    bmesh.ops.create_cube(bmp, size=1.0, matrix=Matrix.Translation((0, ys - t * 0.16, (h - 0.02) / 2)) @ Matrix.Diagonal((0.1, 0.1, h - 0.02, 1)))
+    bmp.to_mesh(pm); bmp.free(); pm.materials.append(rail)
+    po = bpy.data.objects.new("rail_posts", pm); scene.collection.objects.link(po); po.location.x = x0
+    ar = po.modifiers.new("array", "ARRAY"); ar.count = int((x1 - x0) / 2.4); ar.use_relative_offset = False
+    ar.use_constant_offset = True; ar.constant_offset_displace = (2.4, 0, 0)
+    pb = po.modifiers.new("bevel", "BEVEL"); pb.width = 0.012; pb.segments = 2
+
+
+import bmesh
+ascot_rail(0.0, -1)       # the far (inside) rail: the track is to its south (Blender -y)
+ascot_rail(-W, +1)        # the near (outer) rail by the lawn and the stand: the track is to its north
 
 scene.render.engine = "CYCLES"
 scene.cycles.samples = SAMPLES; scene.cycles.use_denoising = True; scene.cycles.max_bounces = 6
@@ -508,6 +602,13 @@ SHOTS = {
     "across": ((40, 14, -30), (-20, 10, 50), 42, (0, 10, 46), 4.0),
     "lawn": ((60, 3, 26), (0, 12, 48), 50, (40, 8, 46), 2.8),
     "wing": ((230, 30, -45), (120, 9, 52), 40, (150, 9, 46), 5.6),
+    # across the track from the inside, low, at the rail and the lawn crowd (owner's turf reference)
+    "track": ((70, 3.2, -4), (40, 1.2, 34), 38, (48, 1.0, 28), 4.0),
+    # checking aid: the turf close up, and the track and lawn from above
+    "turfclose": ((50, 4, 12), (46, 0, 18), 45, (46, 0, 18), None),
+    "turfhigh": ((80, 60, 10), (40, 0, 30), 40, (40, 0, 30), None),
+    # close along the near rail
+    "rail": ((95, 1.7, 27.3), (55, 1.0, 31), 40, (85, 1.1, 30), 2.2),
 }
 for name, (eye, at, fov, focus, fstop) in SHOTS.items():
     if CAMS and f"cam={name}" not in CAMS: continue
