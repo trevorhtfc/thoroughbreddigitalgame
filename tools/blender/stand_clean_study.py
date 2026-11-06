@@ -19,7 +19,8 @@ REPO = os.path.abspath(".")
 def rp(*p): return os.path.join(REPO, *p)
 ARGS = [a for a in sys.argv[1:] if not a.startswith("-")]
 SAMPLES = int(ARGS[0]) if ARGS and ARGS[0].isdigit() else 64
-VARIANT = next((a for a in ARGS if a in ("clean", "today")), "clean")
+VARIANT = next((a for a in ARGS if a in ("clean", "today", "soft")), "clean")
+SOFT = VARIANT == "soft"
 CAMS = [a for a in ARGS if a.startswith("cam=")]
 OUT = rp("reference/architecture/clean-study"); os.makedirs(OUT, exist_ok=True)
 COURSE = json.load(open(rp("courses/ascot.json")))
@@ -55,6 +56,47 @@ def principled(name, hexc, rough=0.8, metal=0.0, coat=0.0, sss=0.0, bump=0.0, bu
     return m
 
 
+def clay(name, hexc, rough=0.92, sss=0.12, tooth=0.12, mottle=0.035):
+    """Matte painted clay: no shine (low specular, no coat), a fine tooth in the surface and the faintest
+    unevenness in the colour, measured in metres on the object (not stretched over the whole stand)."""
+    m = bpy.data.materials.new(name); m.use_nodes = True
+    nt = m.node_tree; b = nt.nodes["Principled BSDF"]
+    b.inputs["Roughness"].default_value = rough
+    b.inputs["Specular IOR Level"].default_value = 0.12
+    if sss:
+        b.inputs["Subsurface Weight"].default_value = sss
+        b.inputs["Subsurface Radius"].default_value = (0.09, 0.06, 0.04)
+        b.inputs["Subsurface Scale"].default_value = 0.05
+    tc = nt.nodes.new("ShaderNodeTexCoord")
+    fine = nt.nodes.new("ShaderNodeTexNoise"); fine.inputs["Scale"].default_value = 9.0; fine.inputs["Detail"].default_value = 6; fine.inputs["Roughness"].default_value = 0.65
+    broad = nt.nodes.new("ShaderNodeTexNoise"); broad.inputs["Scale"].default_value = 0.35; broad.inputs["Detail"].default_value = 3
+    nt.links.new(tc.outputs["Object"], fine.inputs["Vector"]); nt.links.new(tc.outputs["Object"], broad.inputs["Vector"])
+    bp = nt.nodes.new("ShaderNodeBump"); bp.inputs["Strength"].default_value = tooth; bp.inputs["Distance"].default_value = 0.01
+    nt.links.new(fine.outputs["Fac"], bp.inputs["Height"]); nt.links.new(bp.outputs["Normal"], b.inputs["Normal"])
+    c = lin(hexc)
+    mix = nt.nodes.new("ShaderNodeMix"); mix.data_type = "RGBA"; mix.blend_type = "MULTIPLY"
+    mix.inputs["Factor"].default_value = 1.0
+    mix.inputs[6].default_value = c
+    rmp = nt.nodes.new("ShaderNodeMapRange"); rmp.inputs["To Min"].default_value = 1 - mottle; rmp.inputs["To Max"].default_value = 1 + mottle
+    nt.links.new(broad.outputs["Fac"], rmp.inputs["Value"])
+    comb = nt.nodes.new("ShaderNodeCombineColor")
+    for k in ("Red", "Green", "Blue"): nt.links.new(rmp.outputs["Result"], comb.inputs[k])
+    nt.links.new(comb.outputs["Color"], mix.inputs[7])
+    nt.links.new(mix.outputs[2], b.inputs["Base Color"])
+    return m
+
+
+def no_green_bounce(m, bounce_hex):
+    """The grass looks green to the camera but bounces a warm neutral light onto the stand, so the stone
+    doesn't pick up a green cast (the precedent's ground is warm)."""
+    nt = m.node_tree; b = nt.nodes["Principled BSDF"]; out = nt.nodes["Material Output"]
+    lp = nt.nodes.new("ShaderNodeLightPath"); d = nt.nodes.new("ShaderNodeBsdfDiffuse"); d.inputs["Color"].default_value = lin(bounce_hex)
+    mx = nt.nodes.new("ShaderNodeMixShader")
+    nt.links.new(lp.outputs["Is Camera Ray"], mx.inputs["Fac"]); nt.links.new(d.outputs[0], mx.inputs[1]); nt.links.new(b.outputs[0], mx.inputs[2])
+    nt.links.new(mx.outputs[0], out.inputs["Surface"])
+    return m
+
+
 def plane(name, x0, x1, y0, y1, mat, z=0.0):
     me = bpy.data.meshes.new(name)
     me.from_pydata([(x0, y0, z), (x1, y0, z), (x1, y1, z), (x0, y1, z)], [], [(0, 1, 2, 3)])
@@ -77,15 +119,25 @@ wl.new(tc.outputs["Generated"], sep.inputs[0]); wl.new(sep.outputs["Z"], ramp.in
 ramp.color_ramp.elements[0].position = 0.0; ramp.color_ramp.elements[0].color = (0.78, 0.8, 0.82, 1)
 ramp.color_ramp.elements[1].position = 0.55; ramp.color_ramp.elements[1].color = (0.18, 0.4, 0.86, 1)
 wl.new(ramp.outputs[0], wn["Background"].inputs[0]); wn["Background"].inputs[1].default_value = 0.55
+if SOFT:
+    # softer and warmer: a pastel sky (peach at the horizon, dusty blue above) instead of an intense blue one
+    ramp.color_ramp.elements[0].color = (1.0, 0.86, 0.74, 1); ramp.color_ramp.elements[1].color = (0.56, 0.7, 0.9, 1)
+    ramp.color_ramp.elements[1].position = 0.62
+    mid = ramp.color_ramp.elements.new(0.16); mid.color = (0.93, 0.87, 0.85, 1)
+    wn["Background"].inputs[1].default_value = 0.8
 bpy.ops.object.light_add(type="SUN")
 sun = bpy.context.object; sun.data.energy = 6.0; sun.data.angle = math.radians(3); sun.data.color = (1.0, 0.86, 0.68)
+if SOFT:   # a big soft sun: shadows with feathered edges, warm peach light
+    sun.data.energy = 4.6; sun.data.angle = math.radians(14); sun.data.color = (1.0, 0.8, 0.62)
 # a raking afternoon sun from the west, a little in front of the stand, so every veranda, cornice and
 # balcony throws a long soft shadow along the front (course axes (-1, 0.62, -0.42) -> Blender)
 d = Vector((-1.0, 0.32, 0.45)).normalized()
 sun.rotation_euler = (-d).to_track_quat("-Z", "Y").to_euler()
 
 grass = principled("grass", "#7d9f52", 0.95); turf = principled("turf", "#8fb75f", 0.95)
-rail = principled("rail", "#f4f2ea", 0.5)
+if SOFT:
+    grass = no_green_bounce(principled("grass", "#86a45c", 0.97), "#9c8f78"); turf = no_green_bounce(principled("turf", "#93b466", 0.97), "#a29680")
+rail = principled("rail", "#f4f2ea", 0.5 if not SOFT else 0.92)
 
 # ---------------- the stand: full detail, in world axes, origin at the clock tower on the front line
 parts = import_glb(rp("assets/models/architecture/ascot_main_stand.glb"))
@@ -94,7 +146,7 @@ for o in parts:
     if o.parent is None: o.parent = root
 root.location = (0, -FRONT, 0)
 
-if VARIANT == "clean":
+if VARIANT in ("clean", "soft"):
     # Ascot's own palette, cleaned up: warm cream stone, white paintwork, slate, and the ironwork, doors and
     # glass dark so they read as crisp drawn detail against the pale stone (the street's dark railings and windows)
     MAT = {
@@ -110,6 +162,21 @@ if VARIANT == "clean":
         "gs_clock_face": principled("c_clock", "#fbf8ef", 0.5, sss=0.2),
         "gs_clock_dark": principled("c_clockd", "#1d2024", 0.4),
     }
+    if SOFT:
+        # the same Ascot colours, warmed a touch, every surface matte clay: nothing shines, nothing reflects
+        MAT = {
+            "gs_wall": clay("s_wall", "#ecdcc0", 0.93, sss=0.15, tooth=0.14),
+            "gs_podium": clay("s_podium", "#dccaa8", 0.95, sss=0.1, tooth=0.18),
+            "gs_trim": clay("s_trim", "#f6eee0", 0.9, sss=0.18, tooth=0.1),
+            "gs_roof": clay("s_roof", "#7c7e86", 0.95, sss=0.0, tooth=0.15),
+            "gs_iron": clay("s_iron", "#2f4236", 0.85, sss=0.0, tooth=0.05, mottle=0.0),
+            "gs_glass": clay("s_glass", "#34323f", 0.8, sss=0.0, tooth=0.02, mottle=0.0),
+            "gs_door": clay("s_door", "#3a5545", 0.88, sss=0.0, tooth=0.06),
+            "gs_gilt": clay("s_gilt", "#c8a466", 0.75, sss=0.0, tooth=0.05),
+            "gs_steps": clay("s_steps", "#dccfb3", 0.95, tooth=0.16),
+            "gs_clock_face": clay("s_clock", "#fbf5ea", 0.9, sss=0.15, tooth=0.05),
+            "gs_clock_dark": clay("s_clockd", "#25262a", 0.85, sss=0.0, tooth=0.0, mottle=0.0),
+        }
     for o in parts:
         if o.type != "MESH": continue
         for i, slot in enumerate(o.material_slots):
@@ -133,11 +200,11 @@ scene.render.engine = "CYCLES"
 scene.cycles.samples = SAMPLES; scene.cycles.use_denoising = True; scene.cycles.max_bounces = 6
 scene.cycles.device = "CPU"
 scene.view_settings.view_transform = "AgX"
-try: scene.view_settings.look = "AgX - Medium High Contrast"
+try: scene.view_settings.look = "AgX - Base Contrast" if SOFT else "AgX - Medium High Contrast"
 except Exception: pass
 scene.render.resolution_x, scene.render.resolution_y = RES
 scene.render.film_transparent = False
-scene.view_settings.exposure = -0.25
+scene.view_settings.exposure = -0.25 if not SOFT else 0.12
 
 
 def course(p):                                       # course axes (x east, z south, y up) -> Blender
@@ -151,7 +218,7 @@ def camera(name, eye, at, fov, focus=None, fstop=None):
     e, a = course(eye), course(at)
     cam.location = e; cam.rotation_euler = (a - e).to_track_quat("-Z", "Y").to_euler()
     # a shallow model-like focus on the subject (the street's miniature look), kept gentle
-    cam.data.dof.use_dof = fstop is not None and VARIANT == "clean"
+    cam.data.dof.use_dof = fstop is not None and VARIANT in ("clean", "soft")
     if cam.data.dof.use_dof:
         cam.data.dof.focus_distance = (course(focus or at) - e).length; cam.data.dof.aperture_fstop = fstop
     scene.camera = cam
