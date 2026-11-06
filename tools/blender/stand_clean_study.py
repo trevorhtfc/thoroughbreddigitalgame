@@ -576,20 +576,20 @@ def grass_blades(name, x0, x1, y0, y1, density, height, base_hex, lanes=False, s
     bme = bpy.data.meshes.new(name + "_blade"); bm.to_mesh(bme); bm.free()
     m = bpy.data.materials.new(name + "_mat"); m.use_nodes = True; nt = m.node_tree; Nn, Lk = nt.nodes, nt.links
     b = Nn["Principled BSDF"]; b.inputs["Roughness"].default_value = 0.9; b.inputs["Specular IOR Level"].default_value = 0.2
-    b.inputs["Subsurface Weight"].default_value = 0.15; b.inputs["Subsurface Radius"].default_value = (0.02, 0.05, 0.01)
+    b.inputs["Subsurface Weight"].default_value = 0.35; b.inputs["Subsurface Radius"].default_value = (0.03, 0.06, 0.015)
     geo = Nn.new("ShaderNodeNewGeometry"); sep = Nn.new("ShaderNodeSeparateXYZ"); Lk.new(geo.outputs["Position"], sep.inputs[0])
     oi = Nn.new("ShaderNodeObjectInfo")
-    rr = Nn.new("ShaderNodeMapRange"); Lk.new(oi.outputs["Random"], rr.inputs["Value"]); rr.inputs["To Min"].default_value = 0.72; rr.inputs["To Max"].default_value = 1.18
+    rr = Nn.new("ShaderNodeMapRange"); Lk.new(oi.outputs["Random"], rr.inputs["Value"]); rr.inputs["To Min"].default_value = 0.9; rr.inputs["To Max"].default_value = 1.08
     fac = rr.outputs["Result"]
     if lanes:
         sx = Nn.new("ShaderNodeMath"); sx.operation = "MULTIPLY"; Lk.new(sep.outputs["Y"], sx.inputs[0]); sx.inputs[1].default_value = math.pi / 3.75
         sn = Nn.new("ShaderNodeMath"); sn.operation = "SINE"; Lk.new(sx.outputs[0], sn.inputs[0])
         sm = Nn.new("ShaderNodeMapRange"); Lk.new(sn.outputs[0], sm.inputs["Value"]); sm.inputs["From Min"].default_value = -0.3; sm.inputs["From Max"].default_value = 0.3
-        sm.inputs["To Min"].default_value = 0.86; sm.inputs["To Max"].default_value = 1.13
+        sm.inputs["To Min"].default_value = 0.9; sm.inputs["To Max"].default_value = 1.1
         mm = Nn.new("ShaderNodeMath"); mm.operation = "MULTIPLY"; Lk.new(fac, mm.inputs[0]); Lk.new(sm.outputs["Result"], mm.inputs[1]); fac = mm.outputs[0]
     # lighter towards the tip, darker at the root
     tip = Nn.new("ShaderNodeMapRange"); Lk.new(sep.outputs["Z"], tip.inputs["Value"]); tip.inputs["From Max"].default_value = height
-    tip.inputs["To Min"].default_value = 0.7; tip.inputs["To Max"].default_value = 1.12
+    tip.inputs["To Min"].default_value = 0.88; tip.inputs["To Max"].default_value = 1.06
     mm2 = Nn.new("ShaderNodeMath"); mm2.operation = "MULTIPLY"; Lk.new(fac, mm2.inputs[0]); Lk.new(tip.outputs["Result"], mm2.inputs[1])
     mix = Nn.new("ShaderNodeMix"); mix.data_type = "RGBA"; mix.blend_type = "MULTIPLY"; mix.inputs["Factor"].default_value = 1.0
     mix.inputs[6].default_value = lin(base_hex)
@@ -608,8 +608,8 @@ def grass_blades(name, x0, x1, y0, y1, density, height, base_hex, lanes=False, s
     dist = G.new("GeometryNodeDistributePointsOnFaces"); dist.inputs["Density"].default_value = density; dist.inputs["Seed"].default_value = seed
     oinfo = G.new("GeometryNodeObjectInfo"); oinfo.inputs["Object"].default_value = blade
     inst = G.new("GeometryNodeInstanceOnPoints")
-    rr = G.new("FunctionNodeRandomValue"); rr.data_type = "FLOAT_VECTOR"; rr.inputs["Min"].default_value = (-0.45, -0.45, 0.0); rr.inputs["Max"].default_value = (0.45, 0.45, 6.283)
-    rs = G.new("FunctionNodeRandomValue"); rs.data_type = "FLOAT"; rs.inputs["Min"].default_value = 0.55; rs.inputs["Max"].default_value = 1.45
+    rr = G.new("FunctionNodeRandomValue"); rr.data_type = "FLOAT_VECTOR"; rr.inputs["Min"].default_value = (-0.3, -0.3, 0.0); rr.inputs["Max"].default_value = (0.3, 0.3, 6.283)
+    rs = G.new("FunctionNodeRandomValue"); rs.data_type = "FLOAT"; rs.inputs["Min"].default_value = 0.7; rs.inputs["Max"].default_value = 1.25
     GL.new(gi.outputs[0], dist.inputs["Mesh"]); GL.new(dist.outputs["Points"], inst.inputs["Points"])
     GL.new(oinfo.outputs["Geometry"], inst.inputs["Instance"]); GL.new(rr.outputs[0], inst.inputs["Rotation"]); GL.new(rs.outputs[0], inst.inputs["Scale"])
     GL.new(inst.outputs[0], go.inputs[0])
@@ -619,8 +619,9 @@ def grass_blades(name, x0, x1, y0, y1, density, height, base_hex, lanes=False, s
 GRASS = float(os.environ.get("GRASS", "1"))
 if SOFT and GRASS:
     gx0, gx1 = float(os.environ.get("GRASS_X0", "-40")), float(os.environ.get("GRASS_X1", "140"))
-    grass_blades("turf_blades", gx0, gx1, -W + 0.1, -0.1, 320 * GRASS, 0.085, "#7fa952", lanes=True, seed=3)
-    grass_blades("lawn_blades", gx0, gx1, -FRONT + 0.5, -W - 0.5, 160 * GRASS, 0.05, "#bcc98c", seed=5)
+    # a happy medium (owner: the first blades were too much, too dark and contrasty): shorter, sparser, lighter
+    grass_blades("turf_blades", gx0, gx1, -W + 0.1, -0.1, 95 * GRASS, 0.045, "#9cc46a", lanes=True, seed=3)
+    grass_blades("lawn_blades", gx0, gx1, -FRONT + 0.5, -W - 0.5, 60 * GRASS, 0.03, "#c8d39c", seed=5)
 
 
 def horses():
