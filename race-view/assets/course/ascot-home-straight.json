@@ -1,50 +1,288 @@
 {
   "id": "ascot-home-straight",
-  "name": "Ascot · home straight (look test)",
-  "notes": "Look test: 5 furlongs of straight finishing at the winning post. The full Ascot round course will be traced from the A0 board (New_Plan_Print.pdf) into this same format.",
+  "name": "Ascot \u00b7 home straight (look test)",
+  "notes": "Look test: 5 furlongs of straight finishing at the winning post. The full Ascot round course will be traced from the A0 board (New_Plan_Print.pdf) into this same format. Trees: clumps of painted cut-outs near the course, and 'woodland' strips (painted tree lines, one zig-zag ribbon each) behind.",
   "units": "metres",
   "axes": "x = direction of running, y = up, z = across the course (+ towards the stands side)",
-
   "track": {
-    "centreLine": [[-160, 0, 0], [1200, 0, 0]],
+    "centreLine": [
+      [
+        -160,
+        0,
+        0
+      ],
+      [
+        1200,
+        0,
+        0
+      ]
+    ],
     "width": 30,
     "lanes": 8,
     "turfTexture": "turf",
     "turfTileLength": 30
   },
-
   "raceDistance": 1006,
   "start": 0,
-  "winningPost": { "at": 1006, "side": "near", "model": "winning_post" },
-  "furlongPoles": { "side": "far", "furlongs": [1, 2, 3, 4], "modelPrefix": "furlong_" },
-
-  "rails": { "model": "rail_module", "spacing": 3, "sides": ["near", "far"], "gap": 0.4 },
-
-  "ground": { "texture": "grass", "tileSize": 24, "size": 4000 },
-
+  "winningPost": {
+    "at": 1006,
+    "side": "far",
+    "model": "finish_line",
+    "file": "assets/models/architecture/finish_line.glb",
+    "railFrom": -15.2,
+    "railTo": 14.8,
+    "note": "The finish-line assembly stands on the far side, opposite the grandstand, with the post on the rail line and its red loop on the winning line. It brings its own 30 m of running rail (railFrom..railTo, metres either side of the post), so the course rail stops there."
+  },
+  "furlongPoles": {
+    "side": "far",
+    "furlongs": [
+      1,
+      2,
+      3,
+      4
+    ],
+    "modelPrefix": "furlong_"
+  },
+  "rails": {
+    "model": "rail_module",
+    "spacing": 3,
+    "sides": [
+      "near",
+      "far"
+    ],
+    "gap": 0.4
+  },
+  "ground": {
+    "texture": "grass",
+    "tileSize": 24,
+    "size": 4000
+  },
   "paths": [
-    { "from": [-300, -46], "to": [1500, -46], "width": 5, "texture": "path" },
-    { "from": [-300, 44], "to": [1500, 44], "width": 7, "texture": "path" }
+    {
+      "from": [
+        -300,
+        -46
+      ],
+      "to": [
+        1500,
+        -46
+      ],
+      "width": 5,
+      "texture": "path"
+    },
+    {
+      "from": [
+        -300,
+        44
+      ],
+      "to": [
+        1500,
+        44
+      ],
+      "width": 7,
+      "texture": "path"
+    }
   ],
-
   "trees": [
-    { "from": [-300, -70], "to": [1500, -70], "spacing": 26, "jitter": [9, 6], "height": [10, 15], "rows": 1 },
-    { "from": [-300, -170], "to": [1500, -170], "spacing": 8, "jitter": [5, 40], "height": [12, 20], "rows": 3, "rowGap": 35 },
-    { "from": [-300, 62], "to": [1500, 62], "spacing": 22, "jitter": [8, 4], "height": [10, 14], "rows": 1 },
-    { "from": [-300, 130], "to": [1500, 130], "spacing": 11, "jitter": [5, 30], "height": [13, 18], "rows": 2, "rowGap": 30 }
+    {
+      "from": [
+        -300,
+        -72
+      ],
+      "to": [
+        1500,
+        -72
+      ],
+      "spacing": 48,
+      "clump": [
+        1,
+        4
+      ],
+      "skip": 0.3,
+      "jitter": [
+        12,
+        7
+      ],
+      "height": [
+        11,
+        17
+      ]
+    },
+    {
+      "from": [
+        -300,
+        64
+      ],
+      "to": [
+        1500,
+        64
+      ],
+      "spacing": 52,
+      "clump": [
+        1,
+        3
+      ],
+      "skip": 0.35,
+      "jitter": [
+        12,
+        5
+      ],
+      "height": [
+        10,
+        15
+      ]
+    }
   ],
-
   "cameras": [
-    { "id": "aerial", "label": "Aerial", "follow": "leader", "offset": [-22, 22, 32], "look": [2, 0, -2], "fov": 32 },
-    { "id": "tv", "label": "TV", "follow": "leader", "offset": [-6, 5, 52], "look": [-3, 1.2, 0], "fov": 15 },
-    { "id": "head", "label": "Head-on", "follow": "leader", "offset": [60, 6, 2], "look": [0, 0.8, 0], "fov": 16 },
-    { "id": "post", "label": "At the post", "fixed": [1006, 5, 30], "look": [1006, 1.2, -6], "fov": 34, "followX": 0.35 }
+    {
+      "id": "aerial",
+      "label": "Aerial",
+      "follow": "leader",
+      "offset": [
+        -22,
+        22,
+        32
+      ],
+      "look": [
+        2,
+        0,
+        -2
+      ],
+      "fov": 32
+    },
+    {
+      "id": "tv",
+      "label": "TV",
+      "follow": "leader",
+      "offset": [
+        -6,
+        12,
+        46
+      ],
+      "look": [
+        -3,
+        1.2,
+        0
+      ],
+      "fov": 15
+    },
+    {
+      "id": "stands",
+      "label": "Grandstand",
+      "follow": "leader",
+      "offset": [
+        -30,
+        13,
+        -40
+      ],
+      "look": [
+        16,
+        7,
+        40
+      ],
+      "fov": 38
+    },
+    {
+      "id": "head",
+      "label": "Head-on",
+      "follow": "leader",
+      "offset": [
+        60,
+        6,
+        2
+      ],
+      "look": [
+        0,
+        0.8,
+        0
+      ],
+      "fov": 16
+    },
+    {
+      "id": "post",
+      "label": "At the post",
+      "fixed": [
+        1006,
+        7.5,
+        30
+      ],
+      "look": [
+        1006,
+        1.2,
+        -6
+      ],
+      "fov": 34,
+      "followX": 0.35
+    }
   ],
-
   "director": [
-    { "until": 700, "camera": "aerial" },
-    { "until": 900, "camera": "head" },
-    { "until": 1006, "camera": "tv" },
-    { "until": 99999, "camera": "post" }
+    {
+      "until": 640,
+      "camera": "aerial"
+    },
+    {
+      "until": 840,
+      "camera": "head"
+    },
+    {
+      "until": 955,
+      "camera": "stands"
+    },
+    {
+      "until": 1006,
+      "camera": "tv"
+    },
+    {
+      "until": 99999,
+      "camera": "post"
+    }
+  ],
+  "woodland": [
+    {
+      "z": -140,
+      "from": -600,
+      "to": 1800,
+      "height": 22,
+      "texture": "treeline",
+      "wander": 16
+    },
+    {
+      "z": -235,
+      "from": -700,
+      "to": 1900,
+      "height": 34,
+      "texture": "treeline_far",
+      "offset": 0.37,
+      "wander": 22
+    },
+    {
+      "z": 125,
+      "from": -600,
+      "to": 1800,
+      "height": 21,
+      "texture": "treeline",
+      "offset": 0.61,
+      "wander": 16
+    },
+    {
+      "z": 215,
+      "from": -700,
+      "to": 1900,
+      "height": 32,
+      "texture": "treeline_far",
+      "offset": 0.13,
+      "wander": 22
+    }
+  ],
+  "structures": [
+    {
+      "model": "victorian_grandstand",
+      "file": "assets/models/architecture/victorian_grandstand.glb",
+      "x": 1023.5,
+      "z": 52,
+      "faces": "course",
+      "dressing": "courses/ascot-site-dressing-straight.json",
+      "note": "Middle of the stand's front at ground level. Placed so the clock tower (17.5 m from the middle) stands directly opposite the winning post."
+    }
   ]
 }

@@ -13,6 +13,8 @@ Everything is plain PNG, so any engine (web, Godot, Unreal) can use it.
 - path.png      sandy gravel, tiles both ways.
 - trees.png     an atlas of painted trees (4 across), RGBA, for upright cut-outs.
                 Light comes from the upper left, matching the scene's sun.
+- treeline.png  a continuous strip of woodland (tiles left to right), RGBA, for the
+                tree lines behind the course; treeline_far.png is the same in haze.
 """
 import sys, os, math
 import numpy as np
@@ -114,114 +116,83 @@ def path(size=512):
 
 
 # ---------- Trees ----------
+# Painted like the board's woodland: big masses of deep green, each a dark base with a
+# mid-tone and a light side towards the sun (upper left), a little leafy texture and a
+# broken edge. Few, large shapes rather than thousands of dots.
 def _blur(a, sigma):
     return gaussian_filter(a, sigma, mode="nearest")
 
 
-def tree(size=512, seed=0, kind="oak"):
-    """A painted tree, lit from the upper left like the scene's sun.
+GREENS = {
+    "shadow": (30, 52, 34), "dark": (42, 72, 40), "mid": (62, 98, 48),
+    "light": (98, 132, 62), "high": (148, 168, 88), "bark": (58, 46, 36), "bark_lit": (96, 80, 60),
+}
 
-    The canopy is a few overlapping leaf masses in 3D. Thousands of small leaf
-    dabs are scattered over their surfaces, each shaded by how much it faces the
-    sun and how deep it sits in the crown, then painted back to front. Branches
-    show through the gaps. Drawn at twice the size and scaled down so the dabs
-    read as foliage rather than blobs."""
-    r = np.random.default_rng(seed)
-    S2 = size * 2
-    img = Image.new("RGBA", (S2, S2), (0, 0, 0, 0))
-    d = ImageDraw.Draw(img)
-    U = S2 / 2                      # 1 unit = half the image
-    cx = S2 / 2
-    def px(x, y):                   # canopy space (x right, y up) -> pixels
-        return cx + x * U, S2 * 0.96 - y * U
-    # Shape of the crown per kind: list of lobes (x, y, z, rx, ry, rz)
-    if kind == "poplar":
-        base = [(0, 1.0, 0, 0.24, 0.62, 0.24)]
-        n_lobes, spread, lobe_r = 9, (0.16, 0.55, 0.12), (0.12, 0.22)
-        trunk_top, trunk_w = 0.55, 0.045
-    elif kind == "wide":
-        base = [(0, 0.88, 0, 0.62, 0.34, 0.50)]
-        n_lobes, spread, lobe_r = 14, (0.70, 0.30, 0.40), (0.16, 0.30)
-        trunk_top, trunk_w = 0.60, 0.075
-    else:
-        base = [(0, 0.90, 0, 0.48, 0.40, 0.44)]
-        n_lobes, spread, lobe_r = 13, (0.55, 0.40, 0.35), (0.15, 0.30)
-        trunk_top, trunk_w = 0.60, 0.065
-    lobes = list(base)
-    bx, by, bz = base[0][:3]
-    for _ in range(n_lobes):
-        rr = r.uniform(*lobe_r)
-        lobes.append((bx + r.uniform(-1, 1) * spread[0], by + r.uniform(-0.8, 1) * spread[1], bz + r.uniform(-1, 1) * spread[2],
-                      rr * r.uniform(0.9, 1.2), rr * r.uniform(0.8, 1.0), rr))
-    top = max(l[1] + l[4] for l in lobes)
-    if top > 1.9:                    # keep inside the frame
-        k = 1.9 / top
-        lobes = [(x, (y - 0.5) * k + 0.5, z, a * k, b * k, c * k) for (x, y, z, a, b, c) in lobes]
-    # --- Trunk and branches ---
-    bark_dark, bark_light = np.array([70, 54, 40]), np.array([122, 98, 72])
-    def limb(x0, y0, x1, y1, w0, w1):
-        n = 12
-        for i in range(n):
-            t0, t1 = i / n, (i + 1) / n
-            xa, ya = x0 + (x1 - x0) * t0, y0 + (y1 - y0) * t0
-            xb, yb = x0 + (x1 - x0) * t1, y0 + (y1 - y0) * t1
-            wa, wb = w0 + (w1 - w0) * t0, w0 + (w1 - w0) * t1
-            pa, pb = px(xa, ya), px(xb, yb)
-            poly = [(pa[0] - wa * U, pa[1]), (pa[0] + wa * U, pa[1]), (pb[0] + wb * U, pb[1]), (pb[0] - wb * U, pb[1])]
-            d.polygon(poly, fill=tuple(int(v) for v in bark_dark) + (255,))
-            lit = [(pa[0] - wa * U, pa[1]), (pa[0] - wa * U * 0.1, pa[1]), (pb[0] - wb * U * 0.1, pb[1]), (pb[0] - wb * U, pb[1])]
-            d.polygon(lit, fill=tuple(int(v) for v in bark_light) + (255,))
-    limb(0, 0, 0.0, 0.08, trunk_w * 1.35, trunk_w)          # root flare
-    limb(0, 0.08, 0.02, trunk_top, trunk_w, trunk_w * 0.7)
-    for _ in range(5 if kind != "poplar" else 3):
-        ang = r.uniform(-0.9, 0.9)
-        L = r.uniform(0.25, 0.45)
-        y0 = trunk_top * r.uniform(0.7, 1.0)
-        limb(0.02, y0, 0.02 + math.sin(ang) * L, y0 + math.cos(ang) * L, trunk_w * 0.45, trunk_w * 0.12)
-    # --- Leaf dabs ---
-    Lsun = np.array([-0.55, 0.62, 0.56]); Lsun /= np.linalg.norm(Lsun)
-    pts = []
-    n_dabs = 9000 if kind != "poplar" else 5000
-    vols = np.array([l[3] * l[4] * l[5] for l in lobes]); vols /= vols.sum()
-    for _ in range(n_dabs):
-        li = r.choice(len(lobes), p=vols)
-        x, y, z, a, b, c = lobes[li]
-        v = r.normal(size=3); v /= np.linalg.norm(v)
-        depth = r.uniform(0.80, 1.08) ** 0.5
-        P = np.array([x + v[0] * a * depth, y + v[1] * b * depth, z + v[2] * c * depth])
-        # Hide dabs buried inside another lobe
-        buried = False
-        for (x2, y2, z2, a2, b2, c2) in lobes:
-            q = ((P[0] - x2) / a2) ** 2 + ((P[1] - y2) / b2) ** 2 + ((P[2] - z2) / c2) ** 2
-            if q < 0.6:
-                buried = True; break
-        if buried:
-            continue
-        N = np.array([v[0] / a, v[1] / b, v[2] / c]); N /= np.linalg.norm(N)
-        pts.append((P, N, depth))
-    pts.sort(key=lambda t: t[0][2])
-    stops = [(0.0, (26, 44, 34)), (0.3, (44, 72, 40)), (0.55, (76, 106, 50)), (0.78, (122, 146, 66)), (1.0, (182, 186, 102))]
-    def ramp(t):
-        for (a0, c0), (a1, c1) in zip(stops, stops[1:]):
-            if t <= a1:
-                k = (t - a0) / (a1 - a0)
-                return np.array(c0) * (1 - k) + np.array(c1) * k
-        return np.array(stops[-1][1])
-    hue = r.normal(0, 6, 3) * np.array([1.0, 0.7, 0.4])
-    ylo = min(l[1] - l[4] for l in lobes); yhi = max(l[1] + l[4] for l in lobes)
-    for P, N, depth in pts:
-        lam = max(0.0, float(N @ Lsun))
-        under = np.clip((P[1] - ylo) / (yhi - ylo), 0, 1)          # 0 at the bottom of the crown
-        shade = 0.05 + 0.78 * lam ** 1.2 + 0.20 * under + r.normal(0, 0.06)
-        col = np.clip(ramp(np.clip(shade, 0, 1)) + hue + r.normal(0, 5, 3), 0, 255)
-        X, Y = px(P[0], P[1])
-        rad = U * r.uniform(0.016, 0.030)
-        ang = r.uniform(0, math.pi)
-        e = [(X + math.cos(t) * rad * (1.0 if i % 2 == 0 else 0.62) * math.cos(ang) - math.sin(t) * rad * 0.62 * math.sin(ang),
-              Y + math.cos(t) * rad * math.sin(ang) + math.sin(t) * rad * 0.62 * math.cos(ang)) for i, t in enumerate(np.linspace(0, 2 * math.pi, 10, endpoint=False))]
-        d.polygon(e, fill=tuple(int(v) for v in col) + (255,))
-    # Scale down for smooth edges, then bleed colour under transparent pixels (no dark halos when mip-mapped).
-    out = img.resize((size, size), Image.LANCZOS)
+
+def _blob(d, x, y, rx, ry, col, r, wobble=0.14, pts=30, wrap=0):
+    """A slightly irregular painted blob; drawn again at +-wrap so strips tile."""
+    k = r.uniform(0, 6.28)
+    poly = []
+    for i in range(pts):
+        t = 2 * math.pi * i / pts
+        f = 1 + wobble * (math.sin(3 * t + k) * 0.6 + math.sin(7 * t + 2 * k) * 0.25 + r.uniform(-0.15, 0.15))
+        poly.append((x + math.cos(t) * rx * f, y + math.sin(t) * ry * f))
+    for ox in ((-wrap, 0, wrap) if wrap else (0,)):
+        d.polygon([(px + ox, py) for px, py in poly], fill=col)
+
+
+def _tint(c, r, haze=0.0, jitter=6, hue=(0, 0, 0)):
+    c = np.array(c, float) + np.array(hue) + r.normal(0, jitter, 3)
+    c = c * (1 - haze) + np.array([196, 200, 176]) * haze      # distance haze towards the sky
+    return tuple(int(v) for v in np.clip(c, 0, 255)) + (255,)
+
+
+def _crown(d, r, cx, base_y, R, haze=0.0, wrap=0, lobes=9, flat=1.0, poplar=False):
+    """One tree crown: centre cx, bottom of crown at base_y, radius R (pixels, y down)."""
+    hue = r.normal(0, 5, 3) * np.array([1.0, 0.8, 0.5])
+    L = []
+    for i in range(lobes):
+        if poplar:
+            t = i / max(1, lobes - 1)
+            L.append((cx + r.uniform(-0.15, 0.15) * R, base_y - R * flat * (0.35 + 1.0 * t), R * r.uniform(0.7, 0.85) * (1.1 - 0.45 * t)))
+        else:
+            a = r.uniform(-math.pi, 0)                 # upper half spread
+            L.append((cx + math.cos(a) * R * 0.55 * r.uniform(0.3, 1.0),
+                      base_y - R * flat + math.sin(a) * R * 0.5 * flat * r.uniform(0.2, 1.0), R * r.uniform(0.4, 0.62)))
+    if not poplar:
+        L.append((cx, base_y - R * 0.55 * flat, R * 0.66))
+    L.sort(key=lambda l: -l[1])                    # lower lobes first
+    for x, y, rr in L:                             # dark mass with a softly broken edge
+        _blob(d, x, y, rr, rr * 0.92, _tint(GREENS["dark"], r, haze, 3, hue), r, wrap=wrap)
+        for _ in range(9):
+            a = r.uniform(-math.pi * 1.1, 0.1)
+            _blob(d, x + math.cos(a) * rr * 0.92, y + math.sin(a) * rr * 0.88, rr * 0.16, rr * 0.14,
+                  _tint(GREENS["dark"], r, haze, 3, hue), r, 0.25, 16, wrap)
+    for x, y, rr in L:                             # shadowed underside
+        _blob(d, x + rr * 0.1, y + rr * 0.4, rr * 0.8, rr * 0.42, _tint(GREENS["shadow"], r, haze, 2, hue), r, wrap=wrap)
+    for x, y, rr in sorted(L, key=lambda l: l[1], reverse=True):
+        mx, my = x - rr * 0.14, y - rr * 0.18
+        _blob(d, mx, my, rr * 0.74, rr * 0.62, _tint(GREENS["mid"], r, haze, 4, hue), r, wrap=wrap)
+        for _ in range(22):                        # quiet leafy texture, close in tone
+            a, q = r.uniform(0, 6.28), r.uniform(0, 0.75)
+            base = GREENS["mid"] if r.random() < 0.7 else GREENS["dark"]
+            c = np.array(base) * 0.5 + np.array(GREENS["mid"]) * 0.5
+            _blob(d, mx + math.cos(a) * rr * q, my + math.sin(a) * rr * q * 0.8,
+                  rr * 0.09, rr * 0.075, _tint(c, r, haze, 4, hue), r, 0.25, 14, wrap)
+        _blob(d, x - rr * 0.32, y - rr * 0.36, rr * 0.42, rr * 0.32, _tint(GREENS["light"], r, haze, 4, hue), r, wrap=wrap)
+        for _ in range(10):                        # sunlit leaf clusters on the upper left
+            a = r.uniform(-math.pi * 0.95, -math.pi * 0.35)
+            q = r.uniform(0.35, 0.65)
+            c = GREENS["light"] if r.random() < 0.75 else GREENS["high"]
+            _blob(d, x - rr * 0.2 + math.cos(a) * rr * q, y - rr * 0.12 + math.sin(a) * rr * q,
+                  rr * 0.09, rr * 0.075, _tint(c, r, haze, 5, hue), r, 0.25, 14, wrap)
+
+
+def _finish(img, size):
+    """Scale down for soft edges, then bleed colour under transparent pixels (no dark halos when mip-mapped)."""
+    rgb = img.convert("RGB").filter(ImageFilter.GaussianBlur(1.6))     # soft gouache edges between tones
+    soft = Image.merge("RGBA", (*rgb.split(), img.split()[3].filter(ImageFilter.GaussianBlur(0.8))))
+    out = soft.resize(size, Image.LANCZOS)
     arr = np.array(out).astype(float)
     A = arr[..., 3] / 255
     fill = np.dstack([_blur(arr[..., i] * A, 8) / np.maximum(_blur(A, 8), 1e-3) for i in range(3)])
@@ -230,13 +201,68 @@ def tree(size=512, seed=0, kind="oak"):
     return Image.fromarray(np.clip(arr, 0, 255).astype(np.uint8), "RGBA")
 
 
+def tree(size=512, seed=0, kind="oak"):
+    """One painted tree for the clumps near the course, standing on the bottom edge."""
+    r = np.random.default_rng(seed)
+    S = size * 2
+    img = Image.new("RGBA", (S, S), (0, 0, 0, 0))
+    d = ImageDraw.Draw(img)
+    ground = S * 0.985
+    R = S * {"oak": 0.36, "wide": 0.40, "poplar": 0.22, "round": 0.33}[kind]
+    flat = {"oak": 1.0, "wide": 0.8, "poplar": 2.1, "round": 1.05}[kind]
+    crown_base = ground - S * {"oak": 0.30, "wide": 0.30, "poplar": 0.16, "round": 0.26}[kind]
+    tw = S * 0.028
+    # Trunk and a couple of limbs into the crown, lit on the left.
+    cx = S / 2
+    d.polygon([(cx - tw * 1.5, ground), (cx + tw * 1.4, ground), (cx + tw * 0.8, crown_base - R * 0.4), (cx - tw * 0.8, crown_base - R * 0.4)], fill=GREENS["bark"] + (255,))
+    d.polygon([(cx - tw * 1.5, ground), (cx - tw * 0.2, ground), (cx - tw * 0.1, crown_base - R * 0.4), (cx - tw * 0.8, crown_base - R * 0.4)], fill=GREENS["bark_lit"] + (255,))
+    for sx in (-1, 1):
+        d.line([(cx, crown_base + R * 0.05), (cx + sx * R * 0.45, crown_base - R * 0.45)], fill=GREENS["bark"] + (255,), width=int(tw * 0.8))
+    _crown(d, r, cx, crown_base + R * 0.15 * flat, R, lobes=10 if kind != "poplar" else 8, flat=flat, poplar=kind == "poplar")
+    return _finish(img, (size, size))
+
+
+def treeline(width=4096, height=640, seed=0, haze=0.0):
+    """A continuous strip of woodland, tiling left to right: back crowns, front crowns,
+    then a shadowy under-storey with a few trunks where it meets the ground."""
+    r = np.random.default_rng(seed)
+    W, H = width * 2, height * 2
+    img = Image.new("RGBA", (W, H), (0, 0, 0, 0))
+    d = ImageDraw.Draw(img)
+    ground = H * 0.99
+    # Under-storey: a dark band the crowns sit on.
+    x = 0
+    while x < W:
+        w = r.uniform(0.04, 0.08) * H
+        _blob(d, x, ground - H * 0.14, w * 1.6, H * 0.16, _tint(GREENS["shadow"], r, haze, 4), r, 0.25, 14, W)
+        x += w
+    d.rectangle([0, ground - H * 0.12, W, H], fill=_tint(GREENS["shadow"], r, haze, 0))
+    for row, (hmin, hmax, rmin, rmax, step) in enumerate([(0.70, 0.92, 0.22, 0.30, 0.20), (0.55, 0.78, 0.20, 0.27, 0.17), (0.38, 0.55, 0.16, 0.22, 0.15)]):
+        x = r.uniform(0, H * 0.1)
+        while x < W:
+            R = H * r.uniform(rmin, rmax)
+            top = H * r.uniform(hmin, hmax)                       # height of this tree's top
+            base = ground - top + R * 1.9
+            _crown(d, r, x, base, R, haze + 0.05 * (2 - row), W, lobes=9)
+            x += H * step * r.uniform(0.7, 1.3)
+    # A few trunks showing under the front crowns.
+    for _ in range(int(W / H * 2.2)):
+        tx, tw = r.uniform(0, W), H * r.uniform(0.008, 0.014)
+        for ox in (-W, 0, W):
+            d.polygon([(tx + ox - tw, ground), (tx + ox + tw, ground), (tx + ox + tw * 0.7, ground - H * r.uniform(0.12, 0.2)), (tx + ox - tw * 0.7, ground - H * 0.2)],
+                      fill=_tint(GREENS["bark"], r, haze + 0.1, 4))
+    return _finish(img, (width, height))
+
+
 if __name__ == "__main__":
     turf().save(os.path.join(OUT, "turf.png"), optimize=True)
     grass().save(os.path.join(OUT, "grass.png"), optimize=True)
     path().save(os.path.join(OUT, "path.png"), optimize=True)
-    kinds = ["oak", "wide", "oak", "poplar"]
+    kinds = ["oak", "wide", "round", "poplar"]
     atlas = Image.new("RGBA", (512 * 4, 512), (0, 0, 0, 0))
     for i, k in enumerate(kinds):
         atlas.paste(tree(512, seed=31 + i, kind=k), (512 * i, 0))
     atlas.save(os.path.join(OUT, "trees.png"), optimize=True)
+    treeline(seed=41).save(os.path.join(OUT, "treeline.png"), optimize=True)
+    treeline(seed=42, haze=0.28).save(os.path.join(OUT, "treeline_far.png"), optimize=True)
     print("wrote", sorted(os.listdir(OUT)))

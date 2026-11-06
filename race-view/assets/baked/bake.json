@@ -1,0 +1,83 @@
+{
+ "_about": "Baked light for the static world (tools/blender/bake_static_world.py), world axes as courses/ascot.json. Each image stores value / scale, sRGB-encoded. Viewer: colour = material colour x light x scale (light maps), or image x scale (ground; its area is in world x, z, image top = north). 'outside' and 'turf' are the plain grass and turf colours (linear) to carry on beyond the baked ground.",
+ "glb": "static_world.glb",
+ "finish": {
+  "mesh": "finish",
+  "lightMap": "finish_light.jpg",
+  "scale": 1.8013
+ },
+ "site": {
+  "mesh": null,
+  "lightMap": "site_light.jpg",
+  "scale": 1.8675,
+  "kit": {
+   "banner_flag_q0": "kit_banner_flag_q0",
+   "banner_flag_q2": "kit_banner_flag_q2",
+   "barrier_rail_q0": "kit_barrier_rail_q0",
+   "big_top_q0": "kit_big_top_q0",
+   "big_top_q2": "kit_big_top_q2",
+   "booth_hut_q0": "kit_booth_hut_q0",
+   "booth_hut_q2": "kit_booth_hut_q2",
+   "booth_hut_q3": "kit_booth_hut_q3",
+   "fence_cross_q2": "kit_fence_cross_q2",
+   "fence_picket_q0": "kit_fence_picket_q0",
+   "flagpole_q0": "kit_flagpole_q0",
+   "flagpole_q2": "kit_flagpole_q2",
+   "kiosk_awning_q0": "kit_kiosk_awning_q0",
+   "kiosk_awning_q2": "kit_kiosk_awning_q2",
+   "kiosk_awning_q3": "kit_kiosk_awning_q3",
+   "kiosk_row_arched_q0": "kit_kiosk_row_arched_q0",
+   "kiosk_row_arched_q2": "kit_kiosk_row_arched_q2",
+   "marquee_clearspan_q0": "kit_marquee_clearspan_q0",
+   "marquee_peaks_q0": "kit_marquee_peaks_q0",
+   "marquee_peaks_q2": "kit_marquee_peaks_q2",
+   "pagoda_counter_q0": "kit_pagoda_counter_q0",
+   "pagoda_counter_q2": "kit_pagoda_counter_q2",
+   "pagoda_kiosk_q0": "kit_pagoda_kiosk_q0",
+   "pagoda_kiosk_q2": "kit_pagoda_kiosk_q2",
+   "pergola_picnic_q0": "kit_pergola_picnic_q0",
+   "pergola_picnic_q2": "kit_pergola_picnic_q2",
+   "picnic_table_q0": "kit_picnic_table_q0",
+   "planter_long_q0": "kit_planter_long_q0",
+   "planter_short_q0": "kit_planter_short_q0",
+   "planter_short_q2": "kit_planter_short_q2",
+   "signboard_q2": "kit_signboard_q2",
+   "signpost_q0": "kit_signpost_q0",
+   "stand_covered_q0": "kit_stand_covered_q0",
+   "stand_covered_q2": "kit_stand_covered_q2",
+   "stand_open_q0": "kit_stand_open_q0",
+   "stand_open_q2": "kit_stand_open_q2",
+   "terrace_deck_q0": "kit_terrace_deck_q0",
+   "terrace_deck_q2": "kit_terrace_deck_q2",
+   "viewing_tower_q0": "kit_viewing_tower_q0",
+   "viewing_tower_q2": "kit_viewing_tower_q2"
+  },
+  "note": "Instanced: one mesh per piece and quarter turn, in the piece's own axes. Place each copy in courses/ascot-site-dressing.json with kit_<piece>_q<round(turn/90) mod 4> at (x, 0, z), turned 180 + turn degrees about y, as site_props.glb."
+ },
+ "stand": {
+  "mesh": "stand",
+  "lightMap": "stand_light.jpg",
+  "scale": 1.6458
+ },
+ "ground": {
+  "mesh": "ground",
+  "map": "ground.jpg",
+  "scale": 0.7116,
+  "area": {
+   "x0": -260.0,
+   "x1": 700.0,
+   "z0": -150.0,
+   "z1": 140.0
+  },
+  "outside": [
+   0.1306,
+   0.3424,
+   0.0615
+  ],
+  "turf": [
+   0.0737,
+   0.3411,
+   0.0537
+  ]
+ }
+}

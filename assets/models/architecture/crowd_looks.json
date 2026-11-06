@@ -1,0 +1,375 @@
+{
+ "_about": "How racegoers from the crowd kit (crowd_kit.glb, built by tools/blender/build_crowd.py) are dressed and what they do, after reference/crowd/crowd-asset-pack.png. Any engine picks a body, a hat, a look (one colour per slot: skin, hair, main, second, shirt, accent, dark, hat, band, prop) and an action from here. Weights are relative. Colours are as seen (sRGB hex).",
+ "bodies": {
+  "gent": {
+   "gent_morning": 45,
+   "gent_lounge": 47,
+   "gent_binoculars": 8
+  },
+  "lady": {
+   "lady_aline": 45,
+   "lady_fitted": 45,
+   "lady_programme": 10
+  }
+ },
+ "ladyShare": 0.5,
+ "hats": {
+  "gent_morning": {
+   "top": 78,
+   "homburg": 10,
+   "none": 12
+  },
+  "gent_lounge": {
+   "boater": 55,
+   "homburg": 25,
+   "top": 8,
+   "none": 12
+  },
+  "gent_binoculars": {
+   "boater": 50,
+   "homburg": 30,
+   "top": 20
+  },
+  "lady_aline": {
+   "wide": 30,
+   "flower": 30,
+   "cloche": 15,
+   "fascinator": 25
+  },
+  "lady_fitted": {
+   "wide": 30,
+   "flower": 20,
+   "cloche": 15,
+   "fascinator": 35
+  },
+  "lady_programme": {
+   "wide": 35,
+   "flower": 35,
+   "fascinator": 30
+  }
+ },
+ "colours": {
+  "skin": [
+   "#f0cba8",
+   "#e8bf9c",
+   "#dcae88",
+   "#c99572",
+   "#a8744f",
+   "#7a5236",
+   "#5a3a26"
+  ],
+  "hair": [
+   "#2a2420",
+   "#3a2a20",
+   "#4a3426",
+   "#5a3a26",
+   "#7a4a2a",
+   "#a8743a",
+   "#c9a46a",
+   "#d8d4cc",
+   "#9a948c"
+  ],
+  "shirt": [
+   "#f4f0e6",
+   "#f4f0e6",
+   "#efe8d8",
+   "#e8eef4"
+  ],
+  "dark": [
+   "#1f1a17"
+  ],
+  "prop": [
+   "#efe3c4",
+   "#e6dcc4",
+   "#d9cdb0"
+  ],
+  "gent_morning": {
+   "main": [
+    "#26272b",
+    "#2a2b30",
+    "#2e3038",
+    "#3a3d44",
+    "#55575c",
+    "#6e6c68"
+   ],
+   "second": [
+    "#8a8478",
+    "#77736c",
+    "#5e5c58",
+    "#9a948a"
+   ],
+   "accent": [
+    "#cbbd98",
+    "#b9b2a4",
+    "#d8d0bc",
+    "#8a8f99",
+    "#a8323a",
+    "#cdb46e"
+   ]
+  },
+  "gent_lounge": {
+   "main": [
+    "#2b3550",
+    "#2f3d5c",
+    "#3a3d44",
+    "#5f6b3a",
+    "#4f6b3a",
+    "#6a5440",
+    "#7a6a52",
+    "#d9cdb0",
+    "#c9b48a",
+    "#3d4038"
+   ],
+   "second": [
+    "#cfc6b0",
+    "#d9cdb0",
+    "#8a8478",
+    "#4a4c52",
+    "#2b3550",
+    "#5a5348"
+   ],
+   "accent": [
+    "#a8323a",
+    "#2b3550",
+    "#c8693f",
+    "#4f6b3a",
+    "#cdb46e",
+    "#7a2a2a"
+   ]
+  },
+  "lady": {
+   "main": [
+    "#efe3c4",
+    "#f1ece0",
+    "#d98c8c",
+    "#e6a8a8",
+    "#c8693f",
+    "#a8323a",
+    "#2b3550",
+    "#4f6f92",
+    "#9bb4c6",
+    "#8ea06a",
+    "#7f9a78",
+    "#cdb46e",
+    "#a99ac0",
+    "#c99aa6",
+    "#e8d8a8"
+   ],
+   "second": [
+    "#efe3c4",
+    "#f4f0e6",
+    "#2b3550",
+    "#1f1a17"
+   ],
+   "accent": [
+    "#efe3c4",
+    "#2b3550",
+    "#a8323a",
+    "#1f1a17",
+    "#cdb46e",
+    "#f4f0e6"
+   ]
+  },
+  "hat": {
+   "top": [
+    [
+     "#1d1d21",
+     "#1d1d21"
+    ],
+    [
+     "#1d1d21",
+     "#1d1d21"
+    ],
+    [
+     "#1d1d21",
+     "#1d1d21"
+    ],
+    [
+     "#77736c",
+     "#3a3d44"
+    ],
+    [
+     "#8a8478",
+     "#2a2b30"
+    ]
+   ],
+   "boater": [
+    [
+     "#e3c48e",
+     "#2b3550"
+    ],
+    [
+     "#e3c48e",
+     "#a8323a"
+    ],
+    [
+     "#e6cf9a",
+     "#4f6b3a"
+    ],
+    [
+     "#e3c48e",
+     "#7a2a2a"
+    ],
+    [
+     "#d9bd86",
+     "#1d1d21"
+    ],
+    [
+     "#e6cf9a",
+     "#c8693f"
+    ]
+   ],
+   "homburg": [
+    [
+     "#4a4c52",
+     "#1d1d21"
+    ],
+    [
+     "#5e5c58",
+     "#1d1d21"
+    ],
+    [
+     "#6a5440",
+     "#3a2a20"
+    ],
+    [
+     "#2b3550",
+     "#1d1d21"
+    ],
+    [
+     "#3a3d44",
+     "#1d1d21"
+    ]
+   ],
+   "wide": [
+    [
+     "#efe3c4",
+     "@main"
+    ],
+    [
+     "#e6cf9a",
+     "@main"
+    ],
+    [
+     "@main",
+     "#efe3c4"
+    ],
+    [
+     "#1f1a17",
+     "#efe3c4"
+    ],
+    [
+     "#2b3550",
+     "#efe3c4"
+    ],
+    [
+     "#d98c8c",
+     "#efe3c4"
+    ],
+    [
+     "#a8323a",
+     "#efe3c4"
+    ]
+   ],
+   "flower": [
+    [
+     "#e6cf9a",
+     "#c0394a"
+    ],
+    [
+     "#efe3c4",
+     "#d98c8c"
+    ],
+    [
+     "#efe3c4",
+     "#c8693f"
+    ],
+    [
+     "@main",
+     "#f4f0e6"
+    ],
+    [
+     "#2b3550",
+     "#f4f0e6"
+    ],
+    [
+     "#e6cf9a",
+     "#9bb4c6"
+    ],
+    [
+     "#d98c8c",
+     "#f4f0e6"
+    ]
+   ],
+   "cloche": [
+    [
+     "@main",
+     "@accent"
+    ],
+    [
+     "#2b3550",
+     "#efe3c4"
+    ],
+    [
+     "#c99aa6",
+     "#efe3c4"
+    ],
+    [
+     "#e6cf9a",
+     "#2b3550"
+    ]
+   ],
+   "fascinator": [
+    [
+     "@main",
+     "#efe3c4"
+    ],
+    [
+     "#1f1a17",
+     "#a8323a"
+    ],
+    [
+     "#2b3550",
+     "#efe3c4"
+    ],
+    [
+     "#a8323a",
+     "#1f1a17"
+    ],
+    [
+     "@main",
+     "@accent"
+    ]
+   ]
+  }
+ },
+ "actions": {
+  "_about": "base = what a person does while the race is away; excited = what they switch to as the leader passes within about 60 m. fixed: bodies that always do one thing (binoculars), or always wave when excited (the programme). hat_tip only for gents wearing a hat.",
+  "base": {
+   "idle": 80,
+   "clap": 6,
+   "hat_tip": 3,
+   "wave": 3,
+   "cheer_one": 1
+  },
+  "excited": {
+   "cheer_one": 38,
+   "cheer_both": 22,
+   "clap": 32,
+   "wave": 8
+  },
+  "fixed": {
+   "gent_binoculars": {
+    "base": "binoculars",
+    "excited": "binoculars"
+   },
+   "lady_programme": {
+    "base": "idle",
+    "excited": "wave"
+   }
+  },
+  "gentOnly": [
+   "hat_tip"
+  ]
+ }
+}

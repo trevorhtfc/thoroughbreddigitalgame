@@ -1,0 +1,7 @@
+<!doctype html><meta charset="utf-8"><body style="margin:0;background:#fff"><canvas id="c" width="1600" height="560"></canvas><br><!-- compare against the owner's cloud reference by putting it beside this -->
+<script src="cloud.js"></script><script>
+const c = document.getElementById("c").getContext("2d");
+const specs = [[3, 300, 76, 10, 20], [7, 190, 52, 660, 30], [11, 330, 84, 880, 180], [5, 220, 58, 60, 300], [9, 260, 68, 560, 400]];
+for (const [s, w, h, x, y] of specs) { const sp = cloudSprite(s, w, h); c.drawImage(sp, x, y, sp.dw * 2, sp.dh * 2); }
+window.done = true;
+</script>

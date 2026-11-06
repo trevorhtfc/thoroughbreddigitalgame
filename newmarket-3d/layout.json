@@ -1,0 +1,352 @@
+{
+ "_about": "The Tattersalls corner of the Newmarket board, traced from assets/maps/newmarket-map.webp. Points are in 'image' pixels: the map crop x 540-1200, y 420-870 at 2x (so map x = 540 + X/2, map y = 420 + Y/2). World metres: x east = 0.2 X - 112, y north = 48 - 0.2 Y (0.4 m per map pixel; the rotunda's centre near the origin). Ranges: the foot of the long wall the viewer sees (the lowest painted edge) as a line; the building stands to the LEFT of the line's direction as drawn on screen, depth metres deep. The board is painted as if seen from the south, so every building's footprint lies above (north of) its lowest painted edge.",
+ "crop": [
+  540,
+  420,
+  1200,
+  870
+ ],
+ "scale": 2,
+ "ranges": [
+  {
+   "id": "quad-west",
+   "pts": [
+    [
+     112,
+     100
+    ],
+    [
+     250,
+     210
+    ]
+   ],
+   "depth": 6
+  },
+  {
+   "id": "quad-north",
+   "pts": [
+    [
+     172,
+     88
+    ],
+    [
+     288,
+     72
+    ]
+   ],
+   "depth": 6
+  },
+  {
+   "id": "quad-east",
+   "pts": [
+    [
+     290,
+     72
+    ],
+    [
+     410,
+     126
+    ]
+   ],
+   "depth": 6
+  },
+  {
+   "id": "quad-south",
+   "pts": [
+    [
+     252,
+     206
+    ],
+    [
+     420,
+     152
+    ]
+   ],
+   "depth": 6
+  },
+  {
+   "id": "ring-west",
+   "pts": [
+    [
+     265,
+     247
+    ],
+    [
+     420,
+     288
+    ]
+   ],
+   "depth": 6
+  },
+  {
+   "id": "paddock-west",
+   "pts": [
+    [
+     232,
+     228
+    ],
+    [
+     160,
+     368
+    ]
+   ],
+   "depth": 6
+  },
+  {
+   "id": "paddock-south",
+   "pts": [
+    [
+     150,
+     402
+    ],
+    [
+     420,
+     470
+    ]
+   ],
+   "depth": 6,
+   "pavilions": [
+    0.55
+   ]
+  },
+  {
+   "id": "yard-north",
+   "pts": [
+    [
+     120,
+     600
+    ],
+    [
+     418,
+     522
+    ],
+    [
+     790,
+     595
+    ]
+   ],
+   "depth": 6.5,
+   "pavilions": [
+    0.44,
+    0.62
+   ]
+  },
+  {
+   "id": "yard-west",
+   "pts": [
+    [
+     120,
+     690
+    ],
+    [
+     120,
+     565
+    ]
+   ],
+   "depth": 9
+  },
+  {
+   "id": "yard-south",
+   "pts": [
+    [
+     150,
+     830
+    ],
+    [
+     790,
+     728
+    ]
+   ],
+   "depth": 6.5,
+   "pavilions": [
+    0.5
+   ]
+  },
+  {
+   "id": "road-range",
+   "pts": [
+    [
+     725,
+     300
+    ],
+    [
+     1090,
+     465
+    ]
+   ],
+   "depth": 6
+  },
+  {
+   "id": "east-north",
+   "pts": [
+    [
+     915,
+     557
+    ],
+    [
+     1160,
+     505
+    ]
+   ],
+   "depth": 6
+  },
+  {
+   "id": "east-east",
+   "pts": [
+    [
+     1200,
+     550
+    ],
+    [
+     1282,
+     652
+    ]
+   ],
+   "depth": 6
+  },
+  {
+   "id": "east-west",
+   "pts": [
+    [
+     960,
+     700
+    ],
+    [
+     895,
+     540
+    ]
+   ],
+   "depth": 9
+  }
+ ],
+ "rotunda": {
+  "at": [
+   557,
+   222
+  ],
+  "apothem": 18
+ },
+ "houses": [
+  {
+   "at": [
+    665,
+    350
+   ],
+   "w": 10,
+   "d": 8,
+   "turn": -15
+  },
+  {
+   "at": [
+    692,
+    398
+   ],
+   "w": 8,
+   "d": 7,
+   "turn": -15
+  },
+  {
+   "at": [
+    650,
+    452
+   ],
+   "w": 10,
+   "d": 8,
+   "turn": -10
+  },
+  {
+   "at": [
+    750,
+    436
+   ],
+   "w": 7,
+   "d": 6,
+   "turn": -10
+  }
+ ],
+ "ovals": [
+  {
+   "id": "paddock",
+   "at": [
+    435,
+    362
+   ],
+   "rx": 175,
+   "ry": 82,
+   "turn": 8,
+   "posts": 3.0
+  },
+  {
+   "id": "parade",
+   "at": [
+    850,
+    412
+   ],
+   "rx": 88,
+   "ry": 46,
+   "turn": 12,
+   "posts": 2.5
+  },
+  {
+   "id": "lunge",
+   "at": [
+    1077,
+    615
+   ],
+   "rx": 82,
+   "ry": 38,
+   "turn": -4,
+   "posts": 2.5
+  }
+ ],
+ "lorries": [
+  {
+   "at": [
+    425,
+    178
+   ],
+   "turn": 25,
+   "colour": "#2e4a37"
+  },
+  {
+   "at": [
+    712,
+    228
+   ],
+   "turn": -28,
+   "colour": "#3b3d3f"
+  },
+  {
+   "at": [
+    722,
+    512
+   ],
+   "turn": 15,
+   "colour": "#23452f"
+  },
+  {
+   "at": [
+    902,
+    492
+   ],
+   "turn": 0,
+   "colour": "#2b3540"
+  },
+  {
+   "at": [
+    95,
+    478
+   ],
+   "turn": 0,
+   "colour": "#2b3540"
+  },
+  {
+   "at": [
+    226,
+    700
+   ],
+   "turn": 30,
+   "colour": "#232a33"
+  }
+ ]
+}

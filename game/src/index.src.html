@@ -1,0 +1,132 @@
+<title>Thoroughbred Ascot</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Jost:wght@400;500;600&family=Nunito:wght@400;500;600;700;800&family=Crimson+Pro:ital,wght@0,600;0,700;1,600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/components.css">
+<link rel="stylesheet" href="css/game.css">
+<script async src="https://cdn.jsdelivr.net/npm/es-module-shims@1.10.0/dist/es-module-shims.js"></script>
+<script type="importmap">{ "imports": { "three": "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js", "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/" } }</script>
+<script>document.documentElement.lang = "en-GB"; if (matchMedia("(pointer: coarse)").matches || Math.min(screen.width, screen.height) < 700) document.documentElement.classList.add("lite"); document.documentElement.style.setProperty("--horse", "url(\"%%HORSE%%\")");</script>
+<!-- Thoroughbred Ascot: one game. The Newmarket board is home; each step of the season is a place on it, and its
+     screens open as sheets over the board. Race week is at Ascot, watched in the 3D race view. -->
+
+<header class="bar" id="bar">
+  <button class="brand" id="toMenu" type="button" aria-label="Menu, your colours and a new game">
+    <span class="mark" aria-hidden="true"></span><span class="brand-t"><b>THOROUGHBRED</b><i id="brandWhere">Newmarket</i></span>
+  </button>
+  <nav class="steps" id="steps" aria-label="Your season"></nav>
+  <div class="stats" id="tally" aria-live="polite"></div>
+  <span class="clock" title="The time in Newmarket"><svg id="clockIcon" viewBox="0 0 512 512" aria-hidden="true">%%ICON:sunrise%%</svg><em id="clockTime">06:20</em></span>
+  <button class="snd" id="snd" type="button" aria-pressed="false"><svg id="sndIcon" viewBox="0 0 512 512" aria-hidden="true">%%ICON:speaker-off%%</svg><span>Sound</span></button>
+</header>
+
+<main class="view" id="view" aria-label="The Newmarket board">
+  <div class="holder" id="holder">
+    <div class="lean" id="lean"><div class="stage" id="stage">
+      <img src="assets/newmarket/newmarket-board.webp" alt="The Newmarket board: the town, the gallops, Tattersalls, the stables and the National Stud" width="1448" height="1086">
+      <canvas id="clouds" width="362" height="272" aria-hidden="true"></canvas>
+      <canvas id="mist" width="362" height="272" aria-hidden="true"></canvas>
+      <canvas id="life" aria-hidden="true"></canvas>
+      <canvas id="banners" aria-hidden="true"></canvas>
+      <div id="shade" hidden></div>
+      <div id="warm"></div>
+      <svg id="glow" viewBox="0 0 1448 1086">
+        <defs>
+          <filter id="halo" x="-30%" y="-30%" width="160%" height="160%"><feGaussianBlur stdDeviation="6"/></filter>
+          <filter id="rim" x="-20%" y="-20%" width="140%" height="140%"><feGaussianBlur stdDeviation="0.9"/></filter>
+          <filter id="inkglow" x="-10%" y="-10%" width="120%" height="120%"><feGaussianBlur stdDeviation="3.2"/></filter>
+          <radialGradient id="washGrad" cx="50%" cy="50%" r="65%"><stop offset="0" stop-color="#ffe2a0" stop-opacity=".55"/><stop offset=".7" stop-color="#ffc870" stop-opacity=".3"/><stop offset="1" stop-color="#ffb050" stop-opacity=".55"/></radialGradient>
+        </defs>
+      </svg>
+      <canvas id="lamps" width="724" height="543" aria-hidden="true"></canvas>
+      <canvas id="smoke" width="1086" height="815" aria-hidden="true"></canvas>
+      <canvas id="wisps" width="2896" height="600" aria-hidden="true"></canvas>
+    </div></div>
+  </div>
+</main>
+
+<button class="to-races" id="races" type="button"><span class="hz" aria-hidden="true"></span><span class="pill">To the Races</span><svg class="arr" viewBox="0 0 10 16" aria-hidden="true"><path d="M1.6 0 0 1.6 6.4 8 0 14.4 1.6 16l8-8z"/></svg><span class="nexttag" aria-hidden="true">Next</span></button>
+
+<!-- the card for the place you pick on the board -->
+<aside class="card" id="card" hidden aria-live="polite">
+  <header><div class="card-t"><span class="kicker" id="cardKicker"></span><h2 id="cardTitle">Tattersalls</h2></div><button class="x" id="cardClose" type="button" aria-label="Close">&times;</button></header>
+  <div class="pic" id="cardPic" role="img" aria-label=""></div>
+  <p class="status" id="cardStatus" hidden></p>
+  <p class="text" id="cardText"></p>
+  <button class="go" id="cardGo" type="button"><span id="cardCta">Enter</span><svg viewBox="0 0 10 16" aria-hidden="true"><path d="M1.6 0 0 1.6 6.4 8 0 14.4 1.6 16l8-8z"/></svg></button>
+  <p class="note" id="cardNote" hidden></p>
+</aside>
+
+<!-- what to do next: always in the corner of the board -->
+<aside class="guide" id="guide" aria-live="polite"></aside>
+
+<!-- a chapter of the season, shown as the story moves on -->
+<div class="chapter" id="chapter" aria-live="polite" hidden><div class="ch-in"><span class="ch-k" id="chK"></span><b class="ch-t" id="chT"></b><span class="ch-x" id="chX"></span></div></div>
+
+<!-- a place's screens: a sheet over the board -->
+<div class="sheet-wrap" id="sheetWrap" hidden>
+  <section class="sheet" id="sheet" role="dialog" aria-modal="true" aria-labelledby="shTitle">
+    <header class="sh-head" id="shHead">
+      <div class="sh-pic" id="shPic" aria-hidden="true"></div>
+      <div class="sh-medal" id="shMedal" aria-hidden="true"></div>
+      <div class="sh-t"><div class="sh-k" id="shKicker"></div><h1 id="shTitle"></h1></div>
+      <button class="sh-x" id="shClose" type="button"><svg viewBox="0 0 10 16" aria-hidden="true"><path d="M8.4 0 10 1.6 3.6 8 10 14.4 8.4 16l-8-8z"/></svg><span id="shCloseT">Back to the map</span></button>
+    </header>
+    <div class="sh-body" id="shBody"><div class="wrap" id="main"></div></div>
+    <footer class="sh-foot" id="go"></footer>
+  </section>
+</div>
+
+<!-- race week is at Ascot: this is behind its sheets -->
+<div class="ascot" id="ascot" hidden aria-hidden="true"></div>
+
+<!-- the film between places: the board coming to life, leaving Newmarket, arriving at Ascot -->
+<div class="cine" id="cine" hidden aria-hidden="true">
+  <video id="cineVid" playsinline muted preload="auto"></video>
+  <div class="cine-cap" id="cineCap"></div>
+  <button class="cine-skip" id="cineSkip" type="button">Skip</button>
+</div>
+
+<div class="tb-toast" id="toast" role="status"></div>
+
+<!-- the cover -->
+<div class="menu" id="menu" hidden role="dialog" aria-modal="true" aria-labelledby="menuTitle">
+  <video class="menu-vid" id="menuVid" autoplay muted loop playsinline preload="auto" poster="img/cover.jpg" aria-hidden="true"><source src="video/cover.mp4" type="video/mp4"></video>
+  <div class="menu-shade"></div>
+  <div class="menu-in">
+    <div class="menu-head">
+      <div class="menu-k">Newmarket · Royal Ascot · one season</div>
+      <h1 class="menu-t" id="menuTitle"><span>Thoroughbred</span><b>Ascot</b></h1>
+      <p class="menu-lede">Build a stable in Newmarket, breed and buy your string, then take them to Royal Ascot and win as much prize money as you can. Win enough and you're crowned <b>Royal Ascot Champion</b>.</p>
+    </div>
+    <ol class="menu-how">
+      <li><b>The National Stud</b><span>Start with £1,750,000. Buy mares, one of three each time, and send them to the stallions.</span></li>
+      <li><b>Tattersalls</b><span>Bid against rival buyers for yearlings out of the mares nobody bred. No going back.</span></li>
+      <li><b>The Jockey Club</b><span>Enter one horse per race, bringing on any 2-year-olds who need it.</span></li>
+      <li><b>Royal Ascot</b><span>Ten races over five days, watched in 3D. Prize money is its own pot, apart from your budget.</span></li>
+    </ol>
+    <section class="menu-ladder" aria-label="Titles by prize money"><div class="mc-h">The titles</div>
+      <ol id="menuTitles"></ol><p class="ml-best" id="menuBest"></p></section>
+    <section class="menu-col" id="menuCol"></section>
+    <div class="menu-go" id="menuGo"></div>
+  </div>
+</div>
+
+<script src="js/meetings/royal-ascot.js"></script>
+<script src="js/rules.js"></script>
+<script>window.ICON = { %%ICONSET%% };</script>
+<script src="js/board.js"></script>
+<script src="js/ui-parts.js"></script>
+<script src="js/ui.js"></script>
+<script type="module">
+// The race engine (race-engine/engine.js in the repo) and the course data it reads. The 3D race view
+// (final-furlong.html) loads the very same files, so a race simmed here and the race watched there are the same race.
+// The course is the meeting's (js/meetings/*.js -> course): assets/course/<course>.json and its view, stalls and par times.
+import { runRace, expectedPace } from "./assets/engine/engine.js";
+const C = window.MEETING.course, get = (p) => fetch(p).then((r) => { if (!r.ok) throw new Error(p + " " + r.status); return r.json(); });
+Promise.all([`assets/course/${C}.json`, `assets/course/${C}-stalls.json`, `assets/course/${C}-standards.json`, "assets/engine/settings.json", `assets/course/${C}-view.json`].map(get))
+  .then(([course, stalls, standards, settings, view]) => { window.ENGINE = { runRace, expectedPace, data: { course, stalls, standards, settings }, view }; })
+  .catch((e) => { window.ENGINE_FAILED = String(e); })
+  .finally(() => dispatchEvent(new Event("engine-ready")));
+</script>
+<script type="module" src="js/life.js"></script>

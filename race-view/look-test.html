@@ -58,6 +58,14 @@ button {
 }
 button[aria-pressed="true"] { background: var(--green); color: var(--cream); border-color: var(--green); }
 button:focus-visible { outline: 2px solid var(--cream-edge); outline-offset: 2px; }
+.fps { font-variant-numeric: tabular-nums; font-size: 0.75rem; opacity: 0.8; min-width: 6.5em; }
+.diag {
+  position: fixed; top: 10px; right: 10px; z-index: 5; max-width: 360px; padding: 8px 10px;
+  background: rgba(20, 30, 22, 0.86); color: #f3ead2; border-radius: 3px; font: 12px/1.45 ui-monospace, Menlo, monospace;
+}
+.diag #diagText { white-space: pre-wrap; }
+.diag-sw { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 6px; }
+.diag-sw button { font-size: 0.72rem; padding: 3px 6px; }
 .loading {
   position: fixed; inset: 0; display: grid; place-items: center; pointer-events: none;
   font-family: var(--display); font-size: 1.4rem; letter-spacing: 0.1em; color: var(--cream);
@@ -87,6 +95,7 @@ button:focus-visible { outline: 2px solid var(--cream-edge); outline-offset: 2px
 <div class="bar">
   <div class="group" id="cams"><span>Camera</span></div>
   <div class="group" id="finish"><span>Finish</span></div>
+  <div class="group" id="quality"><span>Quality</span></div>
   <div class="group"><button id="pause" type="button" aria-pressed="false">Pause</button><button id="restart" type="button">Restart</button></div>
 </div>
 
@@ -101,6 +110,7 @@ import * as THREE from "three";
 import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 import * as SkeletonUtils from "three/addons/utils/SkeletonUtils.js";
 import { RoomEnvironment } from "three/addons/environments/RoomEnvironment.js";
+import { mergeGeometries } from "three/addons/utils/BufferGeometryUtils.js";
 
 const params = new URLSearchParams(location.search);
 
@@ -127,10 +137,27 @@ const POST = COURSE.winningPost.at;
 
 // ---------- Renderer ----------
 const canvas = document.getElementById("scene");
-const renderer = new THREE.WebGLRenderer({ canvas, antialias: false, preserveDrawingBuffer: params.has("still") });
-renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+const renderer = new THREE.WebGLRenderer({ canvas, antialias: false, powerPreference: "high-performance", preserveDrawingBuffer: params.has("still") });
+renderer.info.autoReset = false;
+const LAYERS = { horses: [], trees: [], rails: [], kick: [], buildings: [], crowd: [] };   // for the diagnostics panel
 renderer.shadowMap.enabled = true;
-renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+
+// Quality presets. Most of the cost is filling pixels: a Retina Mac at full resolution draws four
+// times the pixels of a normal screen, each multisampled and shadowed. "Auto" starts at Medium on
+// high-resolution screens (High elsewhere) and steps down by itself if the frame rate drops.
+const DPR = window.devicePixelRatio || 1;
+const QUALITY = {
+  high:   { label: "High",   scale: Math.min(DPR, 2),    samples: 4, shadow: 4096, soft: true,  kick: 1,    edges: true, shadowEvery: 1, crowd: 1 },
+  medium: { label: "Medium", scale: Math.min(DPR, 1.25), samples: 2, shadow: 2048, soft: false, kick: 0.6,  edges: true, shadowEvery: 1, crowd: 0.5 },
+  low:    { label: "Low",    scale: Math.min(DPR, 1),    samples: 0, shadow: 1024, soft: false, kick: 0.35, edges: false, shadowEvery: 2, crowd: 0.25 },
+};
+const ORDER = ["high", "medium", "low"];
+let qMode = params.get("quality") || (() => { try { return localStorage.getItem("tb-quality"); } catch { return null; } })() || "auto";
+if (qMode !== "auto" && !QUALITY[qMode]) qMode = "auto";
+let qLevel = qMode === "auto" ? (DPR > 1.5 ? "medium" : "high") : qMode;
+renderer.shadowMap.type = QUALITY[qLevel].soft ? THREE.PCFSoftShadowMap : THREE.PCFShadowMap;
+renderer.setPixelRatio(QUALITY[qLevel].scale);
+const KICK = { perSecond: 26, maxClods: 1600, share: QUALITY[qLevel].kick };   // turf kick-back
 
 const scene = new THREE.Scene();
 const HAZE = new THREE.Color("#d8d7b8");
@@ -154,7 +181,7 @@ scene.fog = new THREE.Fog(HAZE, 260, 1500);
 scene.add(new THREE.HemisphereLight("#fff0cf", "#566f36", 0.9));
 const sun = new THREE.DirectionalLight("#ffd9a0", 3.2);
 sun.castShadow = true;
-sun.shadow.mapSize.set(4096, 4096);
+sun.shadow.mapSize.set(QUALITY[qLevel].shadow, QUALITY[qLevel].shadow);
 sun.shadow.radius = 3;
 Object.assign(sun.shadow.camera, { left: -45, right: 45, top: 45, bottom: -45, near: 1, far: 300 });
 const fill = new THREE.DirectionalLight("#c9dcff", 0.55);
@@ -234,16 +261,24 @@ function seeded(seed) { let s = seed >>> 0; return () => ((s = (s * 1664525 + 10
   for (const row of COURSE.trees) {
     const [ax, az] = row.from, [bx, bz] = row.to;
     const L = Math.hypot(bx - ax, bz - az);
+    // Clumps of one to a few trees, with gaps, so the line never looks planted in rows.
+    const [cMin, cMax] = row.clump || [1, 1];
     for (let r = 0; r < (row.rows || 1); r++) {
-      for (let d = 0; d < L; d += row.spacing) {
+      for (let d = 0; d < L; d += row.spacing * (0.7 + rnd() * 0.6)) {
+        if (rnd() < (row.skip || 0)) continue;
         const t = d / L;
         const away = Math.sign(az) * r * (row.rowGap || 0);
-        spots.push({
-          x: ax + (bx - ax) * t + (rnd() - 0.5) * 2 * row.jitter[0],
-          z: az + (bz - az) * t + away + (rnd() - 0.5) * 2 * row.jitter[1],
-          h: row.height[0] + rnd() * (row.height[1] - row.height[0]),
-          kind: Math.floor(rnd() * 4),
-        });
+        const cx = ax + (bx - ax) * t + (rnd() - 0.5) * 2 * row.jitter[0];
+        const cz = az + (bz - az) * t + away + (rnd() - 0.5) * 2 * row.jitter[1];
+        const n = cMin + Math.floor(rnd() * (cMax - cMin + 1));
+        for (let k = 0; k < n; k++) {
+          spots.push({
+            x: cx + (k ? (rnd() - 0.5) * 16 : 0),
+            z: cz + (k ? (rnd() - 0.5) * 8 * Math.sign(az) - Math.sign(az) * 3 : 0),
+            h: row.height[0] + rnd() * (row.height[1] - row.height[0]),
+            kind: Math.floor(rnd() * 4),
+          });
+        }
       }
     }
   }
@@ -257,7 +292,7 @@ function seeded(seed) { let s = seed >>> 0; return () => ((s = (s * 1664525 + 10
   geo.setAttribute("aKind", new THREE.InstancedBufferAttribute(kind, 1));
   geo.setAttribute("aSize", new THREE.InstancedBufferAttribute(size, 2));
   const mat = new THREE.ShaderMaterial({
-    uniforms: { atlas: { value: atlas }, fogColor: { value: HAZE }, fogNear: { value: scene.fog.near }, fogFar: { value: scene.fog.far }, bright: { value: 1.55 } },
+    uniforms: { atlas: { value: atlas }, fogColor: { value: HAZE }, fogNear: { value: scene.fog.near }, fogFar: { value: scene.fog.far }, bright: { value: 1.3 } },
     vertexShader: `
       attribute float aKind; attribute vec2 aSize;
       varying vec2 vUv; varying float vDepth;
@@ -299,6 +334,36 @@ function seeded(seed) { let s = seed >>> 0; return () => ((s = (s * 1664525 + 10
   });
   trees.frustumCulled = false;
   scene.add(shadows, trees);
+  LAYERS.trees.push(shadows, trees);
+
+  // Woodland: long painted strips of trees behind the course, one quad each (cheap to draw).
+  for (const w of COURSE.woodland || []) {
+    const t = texLoader.load(`assets/course/${w.texture}.png`);
+    t.colorSpace = THREE.SRGBColorSpace;
+    t.wrapS = THREE.RepeatWrapping;
+    t.anisotropy = 8;
+    // A zig-zag ribbon rather than a flat wall: the line wanders in and out every 40 m or so,
+    // so it has depth from the side and never lies flat to a camera looking down the course.
+    const tile = w.height * (w.aspect || 6.4);           // keep the painting's proportions
+    const wr = seeded(Math.round(w.z * 7 + 3));
+    const pos = [], uv = [], idx = [];
+    let u = w.offset || 0, prev = null;
+    for (let x = w.from, i = 0; x <= w.to; x += 34 + wr() * 18, i++) {
+      const z = w.z + (wr() - 0.5) * 2 * (w.wander ?? 14);
+      if (prev) u += Math.hypot(x - prev[0], z - prev[1]) / tile;
+      pos.push(x, 0, z, x, w.height, z); uv.push(u, 0, u, 1);
+      if (i) { const k = i * 2; idx.push(k - 2, k, k - 1, k - 1, k, k + 1); }
+      prev = [x, z];
+    }
+    const geo = new THREE.BufferGeometry();
+    geo.setAttribute("position", new THREE.Float32BufferAttribute(pos, 3));
+    geo.setAttribute("uv", new THREE.Float32BufferAttribute(uv, 2));
+    geo.setIndex(idx);
+    const strip = new THREE.Mesh(geo,
+      new THREE.MeshBasicMaterial({ map: t, alphaTest: 0.5, side: THREE.DoubleSide, color: new THREE.Color(1.1, 1.1, 1.06) }));
+    scene.add(strip);
+    LAYERS.trees.push(strip);
+  }
 }
 
 // ---------- Models (glTF, repackaged for the web host) ----------
@@ -335,30 +400,199 @@ function placeProps(gltf) {
   byName(R.model).traverse((o) => { if (o.isMesh) parts.push(o); });
   const count = Math.ceil((X1 - X0) / R.spacing);
   const m = new THREE.Matrix4(), rot = new THREE.Matrix4().makeRotationY(Math.PI);
+  // The finish-line assembly brings its own length of rail: leave a gap for it on its side.
+  const WP = COURSE.winningPost;
+  const gapFrom = WP.railFrom != null ? POST + WP.railFrom - R.spacing : Infinity, gapTo = WP.railTo != null ? POST + WP.railTo : -Infinity;
   for (const side of R.sides) {
     const z = (HALF_W + R.gap) * (side === "near" ? 1 : -1);
+    // In 60 m lengths, so the rail out of shot (and outside the shadow area) isn't drawn at all.
+    const CHUNK = 20;
     for (const part of parts) {
-      const rails = new THREE.InstancedMesh(part.geometry, part.material, count);
-      for (let i = 0; i < count; i++) {
-        const x = X0 + i * R.spacing;
-        if (side === "near") m.makeTranslation(x, 0, z);
-        else m.makeTranslation(x + R.spacing, 0, z).multiply(rot);
-        rails.setMatrixAt(i, m);
+      for (let c0 = 0; c0 < count; c0 += CHUNK) {
+        const n = Math.min(CHUNK, count - c0);
+        const rails = new THREE.InstancedMesh(part.geometry, part.material, n);
+        let k = 0;
+        for (let i = 0; i < n; i++) {
+          const x = X0 + (c0 + i) * R.spacing;
+          if (side === WP.side && x > gapFrom && x < gapTo) continue;
+          if (side === "near") m.makeTranslation(x, 0, z);
+          else m.makeTranslation(x + R.spacing, 0, z).multiply(rot);
+          rails.setMatrixAt(k++, m);
+        }
+        rails.count = k;
+        rails.computeBoundingSphere();
+        rails.castShadow = rails.receiveShadow = true;
+        scene.add(rails);
+        LAYERS.rails.push(rails);
       }
-      rails.castShadow = rails.receiveShadow = true;
-      scene.add(rails);
     }
   }
   const sideZ = (side) => (HALF_W + R.gap + 0.7) * (side === "near" ? 1 : -1);
-  const wp = byName(COURSE.winningPost.model).clone();
-  wp.position.set(POST, 0, sideZ(COURSE.winningPost.side));
-  scene.add(wp);
+  const oldPost = byName(COURSE.winningPost.model);          // the finish-line assembly is placed with the architecture
+  if (oldPost) {
+    const wp = oldPost.clone();
+    wp.position.set(POST, 0, sideZ(COURSE.winningPost.side));
+    scene.add(wp);
+  }
   for (const f of COURSE.furlongPoles.furlongs) {
     const pole = byName(COURSE.furlongPoles.modelPrefix + f).clone();
     pole.position.set(POST - f * FURLONG, 0, sideZ(COURSE.furlongPoles.side));
     scene.add(pole);
   }
 }
+
+// ---------- Architecture: grandstand, site components, finish line, crowd (all from Blender, placed from data) ----------
+const ARCH = "assets/architecture";
+const GSTAND = (COURSE.structures || []).find((s) => s.model === "victorian_grandstand");
+const crowdMeshes = [];
+
+function archMaterial(m) {
+  m.roughness = Math.max(m.roughness ?? 0.85, 0.7);
+  m.metalness = Math.min(m.metalness || 0, 0.25);
+  m.envMapIntensity = 0.7;
+  return m;
+}
+function meshesOf(obj) { const out = []; obj.updateMatrixWorld(true); obj.traverse((o) => { if (o.isMesh) out.push(o); }); return out; }
+
+// Bake many placed copies into one mesh per material: static scenery costs a handful of draw calls.
+function mergeByMaterial(items, name, shadows = true) {
+  const groups = new Map();
+  for (const [mesh, matrix] of items) {
+    const g = mesh.geometry.clone().applyMatrix4(matrix);
+    for (const k of Object.keys(g.attributes)) if (k !== "position" && k !== "normal") g.deleteAttribute(k);
+    const key = mesh.material.name;
+    if (!groups.has(key)) groups.set(key, { mat: mesh.material, geos: [] });
+    groups.get(key).geos.push(g);
+  }
+  for (const { mat, geos } of groups.values()) {
+    const m = new THREE.Mesh(mergeGeometries(geos, false), archMaterial(mat));
+    m.castShadow = shadows; m.receiveShadow = true; m.name = name + ":" + mat.name;
+    scene.add(m);
+    LAYERS.buildings.push(m);
+  }
+}
+
+function placeArchitecture({ stand, site, finish, crowd }, data) {
+  const _m = new THREE.Matrix4(), _r = new THREE.Matrix4();
+  const GX = GSTAND ? GSTAND.x : POST, GZ = GSTAND ? GSTAND.z : HALF_W + 37;
+  // The stand: front (+z in the model) turned to face the course.
+  if (stand) {
+    const root = _m.clone().makeTranslation(GX, 0, GZ).multiply(_r.makeRotationY(Math.PI));
+    mergeByMaterial(meshesOf(stand.scene).map((o) => [o, root.clone().multiply(o.matrixWorld)]), "grandstand");
+  }
+  // Site components round the stand, from the dressing file.
+  const pieceAt = (p) => _m.clone().makeTranslation(GX + p.dx, 0, GZ + p.dz).multiply(new THREE.Matrix4().makeRotationY(Math.PI + (p.turn || 0) * Math.PI / 180));
+  if (site && data.dressing) {
+    const items = [];
+    for (const p of data.dressing.pieces) {
+      const node = site.scene.getObjectByName(p.piece);
+      if (!node) { console.warn("No site piece", p.piece); continue; }
+      const at = pieceAt(p);
+      for (const o of meshesOf(node)) items.push([o, at.clone().multiply(o.matrixWorld)]);
+    }
+    mergeByMaterial(items, "site");
+  }
+  // Finish line: on the far rail, post on the winning line; its front already faces the stands.
+  if (finish) {
+    const WP = COURSE.winningPost;
+    const z = (HALF_W + COURSE.rails.gap) * (WP.side === "near" ? 1 : -1);
+    const at = _m.clone().makeTranslation(POST, 0, z);
+    if (WP.side === "near") at.multiply(_r.makeRotationY(Math.PI));
+    mergeByMaterial(meshesOf(finish.scene).map((o) => [o, at.clone().multiply(o.matrixWorld)]), "finish");
+    scene.traverse((o) => { if (o.name && o.name.startsWith("finish:fl_digit")) { o.material.emissiveIntensity = 1.4; o.castShadow = false; } });
+  }
+  if (crowd && data.palette) buildCrowd(crowd, data, GX, GZ, pieceAt);
+}
+
+// Crowd: four simple figures, instanced (one draw call per figure part), tinted per person.
+// Places people like the Blender look test: packed along the near rail, thinning back to the stand,
+// knots on the lawns, the stand's balconies, seats and floors on the site pieces, and the dressing's crowd areas.
+function buildCrowd(gltf, data, GX, GZ, pieceAt) {
+  const rnd = seeded(21);
+  const pick = (a) => a[Math.floor(rnd() * a.length)];
+  const P = data.palette;
+  const spots = [];
+  const add = (x, y, z, seated = false) => spots.push({ x, y, z, seated });
+  // the lawn between the rail and the stand
+  const nearRail = HALF_W + COURSE.rails.gap;
+  for (let z = nearRail + 1.6; z < GZ - 2; z += 0.7) {
+    const d = z - nearRail;
+    const density = d < 4 ? 0.95 : d < 8.6 ? 0.45 : 0.12;
+    for (let x = GX - 64; x < GX + 64; x += 0.62) if (rnd() < density) add(x + (rnd() - 0.5) * 0.4, 0, z + (rnd() - 0.5) * 0.4);
+  }
+  for (let g = 0; g < 26; g++) {
+    const gx = GX - 60 + rnd() * 120, gz = GZ - 26 + rnd() * 22;
+    const n = 3 + Math.floor(rnd() * 6);
+    for (let k = 0; k < n; k++) add(gx + (rnd() - 0.5) * 2.4, 0, gz + (rnd() - 0.5) * 1.8);
+  }
+  // the stand's balconies, galleries and steps (stand turned 180 degrees: x -> GX - x, y -> GZ + y)
+  for (const a of data.areas || []) {
+    if (a.kind === "lawn_front_line") continue;
+    const rows = a.y1 - a.y0 < 1.4 ? 1 : 2;
+    for (let r = 0; r < rows; r++) {
+      const ly = a.y0 + 0.15 + r * 0.75;
+      for (let x = a.x0; x < a.x1; x += 0.62) {
+        if (rnd() >= (a.kind === "steps" ? 0.35 : r === 0 ? 0.78 : 0.4)) continue;
+        let y = a.z;
+        if (a.kind === "steps") { const run = -a.y0 + 0.3; y = 3.0 * (ly + run) / run; }
+        add(GX - (x + (rnd() - 0.5) * 0.2), y, GZ + ly);
+      }
+    }
+  }
+  // seats and floors on the site pieces
+  const v = new THREE.Vector3();
+  for (const p of data.dressing?.pieces || []) {
+    const sp = data.spots?.[p.piece];
+    if (!sp) continue;
+    const at = pieceAt(p);
+    for (const [kind, fill] of [["seats", 0.62], ["stand", 0.7]]) {
+      for (const [lx, ly, lz] of sp[kind] || []) {
+        if (rnd() >= fill) continue;
+        v.set(lx, lz, -ly).applyMatrix4(at);                 // Blender (x, y, z) -> glTF (x, z, -y)
+        add(v.x, v.y, v.z, kind === "seats");
+      }
+    }
+  }
+  for (const c of data.dressing?.crowds || []) {
+    const n = Math.floor((c.dx[1] - c.dx[0]) * (c.dz[1] - c.dz[0]) * c.density);
+    for (let i = 0; i < n; i++) add(GX + c.dx[0] + rnd() * (c.dx[1] - c.dx[0]), 0, GZ + c.dz[0] + rnd() * (c.dz[1] - c.dz[0]));
+  }
+  // shuffle, so lowering the quality thins the crowd evenly instead of emptying whole areas
+  for (let i = spots.length - 1; i > 0; i--) { const j = Math.floor(rnd() * (i + 1)); [spots[i], spots[j]] = [spots[j], spots[i]]; }
+
+  const figures = ["person_gent_tophat", "person_gent", "person_lady", "person_lady_b"].map((n) => gltf.scene.getObjectByName(n)).filter(Boolean);
+  const byFig = figures.map(() => []);
+  for (const s of spots) byFig[Math.floor(rnd() * figures.length)].push(s);
+  const m = new THREE.Matrix4(), q = new THREE.Quaternion(), sc = new THREE.Vector3(), pos = new THREE.Vector3(), up = new THREE.Vector3(0, 1, 0);
+  const col = new THREE.Color();
+  figures.forEach((fig, fi) => {
+    const list = byFig[fi];
+    const lady = fig.name.includes("lady");
+    const looks = list.map(() => ({
+      clothes: pick(lady ? P.dresses : P.suits), skin: pick(P.skin), hat: pick(lady ? P.hats_lady : P.hats_gent),
+      yaw: (rnd() - 0.5) * 1.2, s: 0.94 + rnd() * 0.12,
+    }));
+    for (const part of meshesOf(fig)) {
+      const key = ["clothes", "skin", "hat"].find((k) => part.material.name.includes(k)) || "clothes";
+      const mat = new THREE.MeshLambertMaterial({ color: "#ffffff" });
+      const inst = new THREE.InstancedMesh(part.geometry, mat, list.length);
+      list.forEach((s, i) => {
+        const L = looks[i];
+        pos.set(s.x, s.y, s.z); q.setFromAxisAngle(up, L.yaw); sc.set(L.s, L.s * (s.seated ? 0.7 : 1), L.s);
+        inst.setMatrixAt(i, m.compose(pos, q, sc));
+        inst.setColorAt(i, col.set(L[key]));
+      });
+      inst.computeBoundingSphere();
+      inst.castShadow = false; inst.receiveShadow = true;
+      inst.userData.total = list.length;
+      scene.add(inst);
+      crowdMeshes.push(inst);
+      LAYERS.crowd.push(inst);
+    }
+  });
+  setCrowdShare(QUALITY[qLevel].crowd);
+}
+function setCrowdShare(share) { for (const c of crowdMeshes) c.count = Math.round(c.userData.total * share); }
 
 // ---------- Horses ----------
 const silkTextures = new Map();
@@ -468,7 +702,7 @@ const timeline = placeholderTimeline(RUNNERS, Number(params.get("seed") || 3));
 const runners = [];
 
 // ---------- Post-processing: the illustrated finish ----------
-const rt = new THREE.WebGLRenderTarget(1, 1, { type: THREE.HalfFloatType, samples: 4, depthTexture: new THREE.DepthTexture(1, 1) });
+const rt = new THREE.WebGLRenderTarget(1, 1, { type: THREE.HalfFloatType, samples: QUALITY[qLevel].samples, depthTexture: new THREE.DepthTexture(1, 1) });
 const paper = (() => {
   const c = document.createElement("canvas"); c.width = c.height = 512;
   const g = c.getContext("2d");
@@ -498,6 +732,7 @@ const post = new THREE.ShaderMaterial({
     void main() {
       vec3 c = toDisplay(texture2D(tColor, vUv).rgb);
       if (painted < 0.5) { gl_FragColor = vec4(c, 1.0); return; }
+      #ifdef EDGES
       // Faint ink line where depth jumps (silhouettes of horses, posts, rails, trees): an illustrator's edge, not a cartoon outline.
       vec2 px = pxScale / res;
       float d = vz(vUv);
@@ -508,6 +743,7 @@ const post = new THREE.ShaderMaterial({
       e += abs(vz(vUv - vec2(0.0, px.y)) - d);
       float edge = smoothstep(0.05, 0.2, e / max(d, 1.0)) * (1.0 - smoothstep(120.0, 400.0, d));
       c = mix(c, c * vec3(0.42, 0.40, 0.30), edge * 0.45);
+      #endif
       // Heritage grade: warm highlights, gently cooled shadows, slightly softened saturation and lifted blacks.
       float l = dot(c, vec3(0.299, 0.587, 0.114));
       c = mix(vec3(l), c, 0.93);
@@ -522,6 +758,7 @@ const post = new THREE.ShaderMaterial({
       gl_FragColor = vec4(c, 1.0);
     }`,
   depthTest: false, depthWrite: false,
+  defines: QUALITY[qLevel].edges ? { EDGES: 1 } : {},
 });
 const postScene = new THREE.Scene();
 const postCam = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1);
@@ -578,6 +815,98 @@ function syncButtons() {
   post.uniforms.painted.value = state.painted ? 1 : 0;
 }
 syncButtons();
+
+const qEl = document.getElementById("quality");
+const qButtons = [["auto", "Auto"], ...ORDER.map((k) => [k, QUALITY[k].label])].map(([id, label]) => {
+  const b = button(qEl, label, () => {
+    qMode = id;
+    try { localStorage.setItem("tb-quality", id); } catch {}
+    applyQuality(id === "auto" ? (DPR > 1.5 ? "medium" : "high") : id);
+  }, "q-" + id);
+  b.dataset.q = id; return b;
+});
+const fpsEl = document.createElement("span"); fpsEl.className = "fps"; qEl.append(fpsEl);
+
+// Diagnostics (?debug=1, or tap the frame rate): what each frame costs, and switches to take
+// parts of the scene out one at a time to see which one is slow on this machine.
+const diag = { on: params.has("debug"), shadows: true, js: 0, draw: 0, n: 0 };
+const diagEl = document.createElement("div"); diagEl.className = "diag"; diagEl.hidden = !diag.on;
+document.body.append(diagEl);
+const gpuName = (() => {
+  const gl = renderer.getContext();
+  const ext = gl.getExtension("WEBGL_debug_renderer_info");
+  return ext ? gl.getParameter(ext.UNMASKED_RENDERER_WEBGL) : gl.getParameter(gl.RENDERER);
+})();
+diagEl.innerHTML = `<div id="diagText"></div><div class="diag-sw"></div>`;
+const swEl = diagEl.querySelector(".diag-sw");
+for (const [key, label] of [["horses", "Horses"], ["trees", "Trees"], ["rails", "Rails"], ["buildings", "Buildings"], ["crowd", "Crowd"], ["kick", "Turf kick"], ["shadows", "Shadows"]]) {
+  const b = button(swEl, label, () => {
+    const on = b.getAttribute("aria-pressed") !== "true";
+    b.setAttribute("aria-pressed", on);
+    if (key === "shadows") { diag.shadows = on; sun.castShadow = on; scene.traverse((o) => { if (o.material) [].concat(o.material).forEach((m) => (m.needsUpdate = true)); }); }
+    else LAYERS[key].forEach((o) => (o.visible = on));
+    perf.reset();
+  });
+  b.setAttribute("aria-pressed", "true");
+}
+fpsEl.style.cursor = "pointer";
+fpsEl.onclick = () => { diag.on = !diag.on; diagEl.hidden = !diag.on; };
+function showDiag(fps) {
+  if (!diag.on) return;
+  const i = renderer.info;
+  const n = Math.max(1, diag.n);
+  document.getElementById("diagText").textContent =
+    `${fps} fps · ${QUALITY[qLevel].label} · ${renderer.domElement.width}×${renderer.domElement.height}\n` +
+    `Graphics: ${gpuName}\n` +
+    `Per frame: scripts ${(diag.js / n).toFixed(1)} ms, drawing ${(diag.draw / n).toFixed(1)} ms\n` +
+    `${i.render.calls} draw calls, ${(i.render.triangles / 1000).toFixed(0)}k triangles`;
+  diag.js = diag.draw = diag.n = 0;
+}
+function syncQuality() { qButtons.forEach((b) => b.setAttribute("aria-pressed", b.dataset.q === qMode)); }
+syncQuality();
+
+function applyQuality(level) {
+  qLevel = level;
+  const Q = QUALITY[level];
+  renderer.setPixelRatio(Q.scale);
+  if (rt.samples !== Q.samples) { rt.samples = Q.samples; rt.dispose(); }
+  if (sun.shadow.mapSize.x !== Q.shadow) {
+    sun.shadow.mapSize.set(Q.shadow, Q.shadow);
+    if (sun.shadow.map) { sun.shadow.map.dispose(); sun.shadow.map = null; }
+  }
+  const type = Q.soft ? THREE.PCFSoftShadowMap : THREE.PCFShadowMap;
+  if (renderer.shadowMap.type !== type) {
+    renderer.shadowMap.type = type;
+    scene.traverse((o) => { if (o.material) [].concat(o.material).forEach((m) => (m.needsUpdate = true)); });
+  }
+  post.defines = Q.edges ? { EDGES: 1 } : {};
+  post.needsUpdate = true;
+  KICK.share = Q.kick;
+  setCrowdShare(Q.crowd);
+  sun.shadow.autoUpdate = true;
+  resize();
+  perf.reset();
+  syncQuality();
+}
+
+// Frame-time watch: shows the frame rate, and in Auto drops a level when it stays under ~45 fps.
+const perf = {
+  n: 0, sum: 0, wait: 1.5,
+  reset() { this.n = 0; this.sum = 0; this.wait = 1.5; },
+  tick(dt) {
+    if (this.wait > 0) { this.wait -= dt; return; }   // let a change settle before judging it
+    this.n++; this.sum += dt;
+    if (this.sum < 2) return;                        // judge every two seconds
+    const fps = Math.round(this.n / this.sum);
+    this.n = 0; this.sum = 0;
+    if (qMode === "auto" && fps < 45) {
+      const next = ORDER[ORDER.indexOf(qLevel) + 1];
+      if (next) applyQuality(next);
+    }
+    fpsEl.textContent = `${fps} fps · ${QUALITY[qLevel].label}`;
+    showDiag(fps);
+  },
+};
 document.getElementById("pause").onclick = (e) => {
   state.paused = !state.paused;
   e.currentTarget.setAttribute("aria-pressed", state.paused);
@@ -599,11 +928,23 @@ resize();
 
 // ---------- Load everything ----------
 try {
-  const [props, horse] = await Promise.all([
-    loadModel("assets/course", "course-props").catch((e) => { console.warn("Course furniture missing:", e.message); return null; }),
+  const optional = (p, what) => p.catch((e) => { console.warn(what + " missing:", e.message); return null; });
+  const json = (url) => optional(fetch(url).then((r) => { if (!r.ok) throw new Error(url + " " + r.status); return r.json(); }), url);
+  const [props, horse, stand, site, finish, crowd, dressing, areas, spots, palette] = await Promise.all([
+    optional(loadModel("assets/course", "course-props"), "Course furniture"),
     loadModel("assets/model", "racehorse"),
+    optional(loadModel(ARCH, "victorian_grandstand"), "Grandstand"),
+    optional(loadModel(ARCH, "site_props"), "Site components"),
+    optional(loadModel(ARCH, "finish_line"), "Finish line"),
+    optional(loadModel(ARCH, "crowd_people"), "Crowd"),
+    GSTAND && GSTAND.dressing ? json("assets/course/" + GSTAND.dressing.split("/").pop()) : null,
+    json(ARCH + "/victorian_grandstand_crowd_areas.json"),
+    json(ARCH + "/site_props_spots.json"),
+    json(ARCH + "/crowd_palette.json"),
   ]);
   if (props) placeProps(props);
+  placeArchitecture({ stand, site, finish, crowd },
+    { dressing, areas: areas && areas.areas, spots: spots && spots.pieces, palette });
   const clips = horse.animations.filter((c) => c.name !== "walk");
   for (let i = 0; i < RUNNERS; i++) {
     const obj = SkeletonUtils.clone(horse.scene);
@@ -626,6 +967,7 @@ try {
     for (const c of clips) { actions[c.name] = mixer.clipAction(c); actions[c.name].play(); }
     mixer.setTime((i * 0.137) % 0.48);
     scene.add(obj);
+    LAYERS.horses.push(obj);
     runners.push({ obj, mixer, actions, effort: 0 });
   }
   document.getElementById("loading").hidden = true;
@@ -640,10 +982,10 @@ contact.frustumCulled = false; contact.count = 0; contact.renderOrder = 1;
 scene.add(contact);
 
 // ---------- Turf kick-back: clods of earth and grass thrown up behind the hooves ----------
-const KICK = { perSecond: 26, maxClods: 1600 };
 const clods = new THREE.InstancedMesh(new THREE.IcosahedronGeometry(1, 0), new THREE.MeshLambertMaterial({ color: "#ffffff" }), KICK.maxClods);
 clods.frustumCulled = false; clods.count = 0; clods.castShadow = false;
 scene.add(clods);
+LAYERS.kick.push(clods);
 const CLOD_COLOURS = ["#5a4430", "#6d5238", "#567e36", "#44702e", "#5f8a3c", "#7a9a48"].map((c) => new THREE.Color(c));
 const live = [];
 const kickRnd = seeded(99);
@@ -652,7 +994,7 @@ function stepKick(dt, field) {
   // Emit: from the hind and fore hooves, thrown up and back; they leave the horse behind as it gallops on.
   for (const [x, z, v, , yaw] of field) {
     if (v < 6) continue;
-    let n = KICK.perSecond * (v / 16) * dt;
+    let n = KICK.perSecond * KICK.share * (v / 16) * dt;
     while (n > 0 && live.length < KICK.maxClods) {
       if (n < 1 && kickRnd() > n) break;
       n -= 1;
@@ -703,7 +1045,10 @@ const toRunEl = document.getElementById("toRun"), toRunLabel = document.querySel
 const clock = new THREE.Clock();
 let framesDrawn = 0, stillFrames = 0, kickWarm = false;
 function frame() {
-  const dt = Math.min(clock.getDelta(), 0.05);
+  const t0 = performance.now();
+  const rawDt = clock.getDelta();
+  const dt = Math.min(rawDt, 0.05);
+  if (runners.length && !params.has("still")) perf.tick(rawDt);
   if (!state.paused) { state.t += dt; if (state.t > 75) { state.t = 0; snap = true; } }
   const now = sample(state.t);
   let leader = -1e9, sum = 0;
@@ -750,11 +1095,17 @@ function frame() {
   toRunEl.textContent = left <= 0 ? "Finished" : left < 1 ? Math.round(left * 220) + " yds" : left.toFixed(1).replace(/\.0$/, "") + "f";
   toRunLabel.hidden = left <= 0;
 
+  const every = QUALITY[qLevel].shadowEvery;
+  sun.shadow.autoUpdate = every === 1;
+  if (every > 1 && framesDrawn % every === 0) sun.shadow.needsUpdate = true;
+  const t1 = performance.now();
+  renderer.info.reset();
   renderer.setRenderTarget(rt);
   renderer.render(scene, camera);
   renderer.setRenderTarget(null);
   renderer.render(postScene, postCam);
   framesDrawn++;
+  diag.js += t1 - t0; diag.draw += performance.now() - t1; diag.n++;
   // ?still=1 (used for checking screenshots): draw a few frames once loaded, then stop.
   if (params.has("still") && runners.length && texturesPending === 0 && ++stillFrames >= 3) { window.__ready = true; return; }
   requestAnimationFrame(frame);

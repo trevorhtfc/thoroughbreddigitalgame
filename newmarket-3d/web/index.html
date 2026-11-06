@@ -1,0 +1,352 @@
+<meta charset="utf-8">
+<title>Newmarket in 3D</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Jost:wght@500;600&family=Nunito:wght@400;600;700&family=Crimson+Pro:wght@700&display=swap" rel="stylesheet">
+<style>
+/* Full-window scene; a plate top-left, the places along the bottom. One look in every theme (a painted world). */
+:root{
+  color-scheme:light dark;
+  --green:#3d7153; --green-hi:#346347; --gold:#b79042; --panel:#fbf9f4; --line:#d8d2c4; --ink:#33332b; --muted:#6b6a60; --sky:#cfdde3;
+  --display:"Jost","Futura","Avenir Next",system-ui,sans-serif; --body:"Nunito",system-ui,-apple-system,"Segoe UI",sans-serif; --serif:"Crimson Pro",Georgia,serif;
+}
+@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){ --panel:#23261f; --line:#454a3c; --ink:#ece8dc; --muted:#b4b0a2; --green:#8fc0a0; } }
+:root[data-theme="dark"]{ --panel:#23261f; --line:#454a3c; --ink:#ece8dc; --muted:#b4b0a2; --green:#8fc0a0; }
+html,body{height:100%;margin:0;overflow:hidden;background:var(--sky);color:var(--ink);font-family:var(--body);-webkit-font-smoothing:antialiased}
+#scene{position:fixed;inset:0;width:100%;height:100%;display:block;touch-action:none;cursor:grab}
+#scene.drag{cursor:grabbing}
+button{font:inherit;cursor:pointer}
+button:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
+.plate{position:fixed;top:calc(14px + env(safe-area-inset-top,0px));left:max(16px,env(safe-area-inset-left,0px));background:var(--panel);border:1px solid var(--line);border-radius:3px;padding:10px 16px 11px;box-shadow:0 6px 18px rgba(30,30,20,.25);max-width:calc(100vw - 32px)}
+.plate h1{margin:0;font-family:var(--serif);font-size:24px;line-height:1;color:var(--green)}
+.plate p{margin:4px 0 0;font-size:13.5px;color:var(--muted)}
+.bar{position:fixed;left:50%;bottom:calc(16px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);display:flex;gap:6px;flex-wrap:wrap;justify-content:center;background:var(--panel);border:1px solid var(--line);border-radius:4px;padding:6px;box-shadow:0 6px 18px rgba(30,30,20,.25);max-width:calc(100vw - 32px)}
+.bar button{border:none;border-radius:3px;background:transparent;color:var(--green);font-weight:700;font-size:14.5px;padding:8px 12px;box-shadow:inset 0 0 0 1px var(--green)}
+.bar button:hover{background:color-mix(in srgb,var(--green) 12%,transparent)}
+.bar button.on{background:var(--green);color:var(--panel)}
+.bar button.board{border:1.5px solid var(--gold);box-shadow:none;color:var(--ink)}
+.bar button.board.on{background:var(--gold);color:#2a210b}
+.tip{position:fixed;left:50%;top:calc(16px + env(safe-area-inset-top,0px));transform:translateX(-50%);background:var(--panel);border:1px solid var(--line);border-radius:20px;padding:6px 14px;font-size:13px;color:var(--muted);transition:opacity .5s;pointer-events:none;white-space:nowrap}
+.tip.off{opacity:0}
+.loading{position:fixed;inset:0;display:grid;place-items:center;background:#e9e4d6;color:var(--green);font-family:var(--display);letter-spacing:.2em;font-size:14px;transition:opacity .6s}
+.loading.off{opacity:0;pointer-events:none}
+@media (max-width:700px){ .plate h1{font-size:19px} .plate p{font-size:12px} .bar button{font-size:13px;padding:7px 9px} .tip{top:auto;bottom:calc(120px + env(safe-area-inset-bottom,0px));white-space:normal;text-align:center;max-width:calc(100vw - 32px)} }
+</style>
+
+<canvas id="scene" aria-label="The Tattersalls corner of Newmarket"></canvas>
+<div class="plate"><h1>Newmarket</h1><p>The Tattersalls corner, in 3D on the board</p></div>
+<div class="tip" id="tip">This is your board. Pick a place below to fly down into it.</div>
+<nav class="bar" id="bar" aria-label="Places">
+  <button class="board on" data-go="board" type="button">The board</button>
+  <button data-go="ring" type="button">The sale ring</button>
+  <button data-go="parade" type="button">Parade ring</button>
+  <button data-go="yard" type="button">Stables yard</button>
+  <button data-go="east" type="button">East yard</button>
+</nav>
+<div class="loading" id="loading">UNFOLDING NEWMARKET…</div>
+
+<script async src="https://cdn.jsdelivr.net/npm/es-module-shims@1.10.0/dist/es-module-shims.js"></script>
+<script type="importmap">{ "imports": { "three": "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js", "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/" } }</script>
+<script type="module">
+import * as THREE from "three";
+import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
+import * as SkeletonUtils from "three/addons/utils/SkeletonUtils.js";
+
+// ------------------------------------------------------------------ the board and the world
+// Blender (newmarket-3d/tools/build_tatts_corner.py): metres, x east, y north, z up; here y up and z south.
+// A point sits on the painting at X = (x + 112) * 5, Y = (48 - north - height) * 5 (pixels of the 1320 x 900 crop).
+const CW = 1320, CH = 900;
+const W = (X, Y, h = 0) => new THREE.Vector3(0.2 * X - 112, h, -(48 - 0.2 * Y));   // board pixels -> this world
+const REDUCED = matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+const canvas = document.getElementById("scene");
+const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+renderer.outputColorSpace = THREE.SRGBColorSpace;
+renderer.toneMapping = THREE.NoToneMapping;
+renderer.shadowMap.enabled = true; renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+const scene = new THREE.Scene();
+const HAZE = new THREE.Color(0xe8e2cc);                        // the sky's warm horizon, so the far fields melt into it
+scene.fog = new THREE.Fog(HAZE, 140, 520);
+// sky: a soft gradient dome, warm at the horizon
+const skyMat = new THREE.ShaderMaterial({ side: THREE.BackSide, depthWrite: false, fog: false, uniforms: {},
+  vertexShader: "varying vec3 vP; void main(){ vP = normalize(position); gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }",
+  fragmentShader: "varying vec3 vP; void main(){ float h = clamp(vP.y, 0.0, 1.0); vec3 lo = vec3(0.91,0.886,0.80), mid = vec3(0.85,0.89,0.88), hi = vec3(0.53,0.68,0.83); vec3 c = h < 0.12 ? mix(lo, mid, h / 0.12) : mix(mid, hi, clamp((h - 0.12) / 0.5, 0.0, 1.0)); gl_FragColor = vec4(c, 1.0); }" });
+const sky = new THREE.Mesh(new THREE.SphereGeometry(1500, 32, 16), skyMat); sky.renderOrder = -1; scene.add(sky);
+scene.add(new THREE.HemisphereLight(0xfff6e6, 0x8f8366, 1.15));
+const sun = new THREE.DirectionalLight(0xfff0d8, 1.55);
+sun.position.set(-110, 150, 120); sun.target.position.set(0, 0, -20); scene.add(sun.target);
+sun.castShadow = true; sun.shadow.mapSize.set(4096, 4096);
+Object.assign(sun.shadow.camera, { left: -170, right: 170, top: 150, bottom: -150, near: 10, far: 500 });
+sun.shadow.bias = -0.0005; sun.shadow.normalBias = 0.04;
+scene.add(sun);
+
+// ------------------------------------------------------------------ materials: the model's own colours, with the painting over them
+const uPaint = { value: 1 };                                    // 1 = the board, 0 = the model
+const uBoard = { value: 1 };                                    // 1 while the camera is the board's own: then everything shows the painting
+const tl = new THREE.TextureLoader();
+const tex = (u) => new Promise((res, rej) => tl.load(u, (t) => { t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = renderer.capabilities.getMaxAnisotropy(); res(t); }, undefined, rej));
+const OWN = { brick: 0xa06446, brick_dark: 0x8b5539, slate: 0x6b6964, stone: 0xe2d4b4, door_green: 0x35503f, glass_dark: 0x2a3034,
+  lead_roof: 0xa9b0ad, glazing: 0x7f949d, white_rail: 0xefe9da, black: 0x222020, chimney: 0x8a4e36, trunk: 0x4a3a2a,
+  body_2e4a37: 0x2e4a37, body_3b3d3f: 0x3b3d3f, body_23452f: 0x23452f, body_2b3540: 0x2b3540, body_232a33: 0x232a33, grass_beyond: 0x8f9a5c };
+function paintable(own, paintMap, opts = {}) {
+  const m = new THREE.MeshLambertMaterial({ color: own });
+  m.onBeforeCompile = (sh) => {
+    sh.uniforms.uPaint = uPaint; sh.uniforms.uBoard = uBoard; sh.uniforms.paintMap = { value: paintMap };
+    sh.vertexShader = sh.vertexShader
+      .replace("#include <common>", `#include <common>\nattribute vec4 pv;\n${opts.leaf ? "attribute vec4 leaf;\nvarying vec3 vLeaf;" : ""}\nvarying vec2 vProj; varying float vPv; varying vec3 vW;`)
+      .replace("#include <begin_vertex>", `#include <begin_vertex>\nvProj = uv; vPv = ${opts.always ? "1.0" : "pv.r"}; vW = (modelMatrix * vec4(position, 1.0)).xyz;${opts.leaf ? "\nvLeaf = leaf.rgb;" : ""}`);
+    sh.fragmentShader = sh.fragmentShader
+      .replace("#include <common>", `#include <common>\nuniform float uPaint; uniform float uBoard; uniform sampler2D paintMap; varying vec2 vProj; varying float vPv; varying vec3 vW;${opts.leaf ? "\nvarying vec3 vLeaf;" : ""}
+        float h2(vec2 p){ return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
+        float vn(vec2 p){ vec2 i = floor(p), f = fract(p); f = f * f * (3.0 - 2.0 * f); return mix(mix(h2(i), h2(i + vec2(1,0)), f.x), mix(h2(i + vec2(0,1)), h2(i + vec2(1,1)), f.x), f.y); }`)
+      .replace("#include <color_fragment>", `#include <color_fragment>
+        ${opts.leaf ? "diffuseColor.rgb = vLeaf * vec3(0.62, 0.66, 0.42);" : ""}
+        ${opts.flat ? "{ float n = vn(vW.xz * 1.7) * 0.5 + vn(vW.xz * 6.3) * 0.5; diffuseColor.rgb *= 0.93 + 0.14 * n; }"
+                    : "{ float n = vn(vW.xz * 0.9 + vW.y * 0.7) * 0.6 + vn(vW.xz * 3.1 - vW.y * 2.3) * 0.4; diffuseColor.rgb *= 0.88 + 0.24 * n; }"}
+        ${opts.detail === "brick" ? `{ vec2 b = vec2((vW.x + vW.z) * 2.6, vW.y * 6.5); float row = floor(b.y); b.x += 0.5 * mod(row, 2.0);
+            float fade = 1.0 - smoothstep(0.2, 0.6, fwidth(b.y));
+            float mortar = max(1.0 - smoothstep(0.0, 0.12, fract(b.y)), 1.0 - smoothstep(0.0, 0.05, fract(b.x)));
+            diffuseColor.rgb *= 1.0 + fade * (h2(vec2(floor(b.x), row)) - 0.5) * 0.22;
+            diffuseColor.rgb = mix(diffuseColor.rgb, vec3(0.78, 0.71, 0.6), fade * mortar * 0.45); }` : ""}
+        ${opts.detail === "slate" ? `{ vec2 b = vec2((vW.x + vW.z) * 3.2, vW.y * 7.0); float row = floor(b.y); b.x += 0.5 * mod(row, 2.0);
+            float fade = 1.0 - smoothstep(0.2, 0.6, fwidth(b.y));
+            float line = max(1.0 - smoothstep(0.0, 0.1, fract(b.y)), 0.6 * (1.0 - smoothstep(0.0, 0.04, fract(b.x))));
+            diffuseColor.rgb *= 1.0 + fade * ((h2(vec2(floor(b.x), row)) - 0.5) * 0.16 - line * 0.28); }` : ""}`)
+      .replace("#include <opaque_fragment>", `{ vec3 pc = texture2D(paintMap, vProj).rgb; outgoingLight = mix(outgoingLight, pc, uPaint * max(vPv, uBoard)); }\n#include <opaque_fragment>`);
+  };
+  m.customProgramCacheKey = () => "paint" + (opts.leaf ? "L" : "") + (opts.always ? "A" : "") + (opts.flat ? "F" : "") + (opts.detail || "");
+  return m;
+}
+
+// ------------------------------------------------------------------ the model (glTF, packed by tools/web/glb_to_web.py)
+const loader = new GLTFLoader();
+async function loadModel(dir, name) {
+  const text = (f) => fetch(`${dir}/${f}`).then((r) => { if (!r.ok) throw new Error(f + " " + r.status); return r.text(); });
+  const json = await text(`${name}.json`);
+  const parts = (JSON.parse(json).extras || {}).geometryParts;
+  const b64 = parts ? (await Promise.all(Array.from({ length: parts }, (_, k) => text(`${name}-geometry-${k}.txt`)))).map((s) => s.trim()).join("") : await text(`${name}-geometry.txt`);
+  const raw = atob(b64.trim()); const bin = new Uint8Array(raw.length); for (let i = 0; i < raw.length; i++) bin[i] = raw.charCodeAt(i);
+  const pad = (n) => (n + 3) & ~3, jb = new TextEncoder().encode(json), jl = pad(jb.length), bl = pad(bin.length);
+  const glb = new Uint8Array(28 + jl + bl), dv = new DataView(glb.buffer);
+  dv.setUint32(0, 0x46546c67, true); dv.setUint32(4, 2, true); dv.setUint32(8, glb.length, true);
+  dv.setUint32(12, jl, true); dv.setUint32(16, 0x4e4f534a, true); glb.fill(0x20, 20, 20 + jl); glb.set(jb, 20);
+  dv.setUint32(20 + jl, bl, true); dv.setUint32(24 + jl, 0x004e4942, true); glb.set(bin, 28 + jl);
+  return new Promise((res, rej) => loader.parse(glb.buffer, dir + "/", res, rej));
+}
+
+// ------------------------------------------------------------------ the camera: the board's own projection, morphing into a real camera
+// The board is an oblique view: screen x = east, screen y = north + height. boardClip() is that as a clip matrix, filling the window.
+function boardClip() {
+  const a = innerWidth / innerHeight, pa = CW / CH;
+  let sx = 1, sy = 1;                                            // cover the window with the painting
+  if (a > pa) sy = a / pa; else sx = pa / a;
+  const kx = 10 / CW * sx, ky = 10 / CH * sy;
+  // u = kx * (x + 112) - sx ; v = ky * (y + 48 * -1 ...): Y = (48 + z - y) * 5  ->  v = sy - ky * (48 + z - y)
+  // pan: the window is centred on the corner's middle
+  const m = new THREE.Matrix4();
+  const cx = kx * 112 - sx * 1, cy = sy * 1 - ky * 48;
+  // depth: farther = north and lower: t = -(y + z)... ; keep it in [-1, 1] across the scene
+  m.set(kx, 0, 0, cx,
+        0, ky, -ky, cy,
+        0, -1 / 220, -1 / 220, 50 / 220,     // nearer the viewer (south, and higher) = smaller depth
+        0, 0, 0, 1);
+  // put the corner's middle at the window's middle
+  const mid = W(CW / 2, CH / 2), p = mid.clone().applyMatrix4(m);
+  const t = new THREE.Matrix4().makeTranslation(-p.x, -p.y, 0);
+  return t.multiply(m);
+}
+const cam = new THREE.PerspectiveCamera(32, 1, 1, 4000);         // the real camera, posed by the places and the orbit
+const view = new THREE.PerspectiveCamera(32, 1, 1, 4000);        // what renders: its projection morphs from the board to cam
+view.matrixAutoUpdate = false;
+let morph = 0;                                                    // 0 = the board, 1 = the camera
+function updateView() {
+  cam.aspect = innerWidth / innerHeight; cam.updateProjectionMatrix(); cam.updateMatrixWorld(); cam.matrixWorldInverse.copy(cam.matrixWorld).invert();
+  const camClip = new THREE.Matrix4().multiplyMatrices(cam.projectionMatrix, cam.matrixWorldInverse);
+  const B = boardClip(), e = morph, M = new THREE.Matrix4();
+  for (let i = 0; i < 16; i++) M.elements[i] = B.elements[i] * (1 - e) + camClip.elements[i] * e;
+  // render through the real camera's view (lighting and haze stay right), with the morphed projection on top
+  view.matrixWorld.copy(cam.matrixWorld); view.matrixWorldInverse.copy(cam.matrixWorldInverse);
+  view.projectionMatrix.multiplyMatrices(M, cam.matrixWorld); view.projectionMatrixInverse.copy(view.projectionMatrix).invert();
+  sky.position.copy(cam.position);
+  uBoard.value = 1 - THREE.MathUtils.smoothstep(morph, 0.0, 0.3);
+  scene.fog.near = 140 + (1 - morph) * 4000; scene.fog.far = 520 + (1 - morph) * 6000;
+}
+
+// The places: where the camera looks from, and at
+const PLACES = {
+  board: { pos: W(660, 1450, 300), at: W(660, 430, 0) },         // the real camera's pose that best matches the board
+  ring: { pos: W(330, 520, 24), at: W(560, 205, 7) },
+  parade: { pos: W(720, 520, 14), at: W(870, 405, 2) },
+  yard: { pos: W(210, 650, 9), at: W(600, 560, 2) },
+  east: { pos: W(930, 760, 16), at: W(1090, 590, 2) },
+};
+const orbit = { target: new THREE.Vector3(), az: 0, el: 0.4, dist: 60 };
+function setOrbitFrom(pos, at) {
+  orbit.target.copy(at); const d = pos.clone().sub(at);
+  orbit.dist = d.length(); orbit.el = Math.asin(d.y / orbit.dist); orbit.az = Math.atan2(d.x, d.z);
+}
+function camFromOrbit() {
+  const c = Math.cos(orbit.el);
+  cam.position.set(orbit.target.x + orbit.dist * c * Math.sin(orbit.az), orbit.target.y + orbit.dist * Math.sin(orbit.el), orbit.target.z + orbit.dist * c * Math.cos(orbit.az));
+  cam.lookAt(orbit.target);
+}
+let fly = null, at = "board";
+const ease = (t) => t < .5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+function go(name) {
+  if (fly || name === at) return;
+  const from = { pos: cam.position.clone(), tgt: orbit.target.clone(), m: morph };
+  if (at === "board") { setOrbitFrom(PLACES.board.pos, PLACES.board.at); camFromOrbit(); from.pos.copy(cam.position); from.tgt.copy(orbit.target); }
+  const to = PLACES[name];
+  fly = { from, to, name, t: 0, dur: REDUCED ? 0.01 : (at === "board" || name === "board" ? 4.2 : 3.0) };
+  document.querySelectorAll("#bar button").forEach((b) => b.classList.toggle("on", b.dataset.go === name));
+  document.getElementById("tip").classList.add("off");
+}
+function stepFly(dt) {
+  if (!fly) return;
+  fly.t = Math.min(1, fly.t + dt / fly.dur);
+  const e = ease(fly.t), toBoard = fly.name === "board", fromBoard = at === "board";
+  const P = toBoard ? PLACES.board : fly.to;
+  // the path: lift a little between places, so the town passes beneath
+  const lift = (!toBoard && !fromBoard) ? Math.sin(Math.PI * e) * 22 : 0;
+  cam.position.lerpVectors(fly.from.pos, P.pos, e); cam.position.y += lift;
+  orbit.target.lerpVectors(fly.from.tgt, P.at, e);
+  cam.lookAt(orbit.target);
+  // the board turns into the model: the projection first, the paint a moment later
+  if (fromBoard) { morph = THREE.MathUtils.smoothstep(e, 0.0, 0.55); uPaint.value = 1 - THREE.MathUtils.smoothstep(e, 0.25, 0.85); }
+  if (toBoard) { morph = 1 - THREE.MathUtils.smoothstep(e, 0.45, 1.0); uPaint.value = THREE.MathUtils.smoothstep(e, 0.15, 0.75); }
+  if (fly.t >= 1) {
+    at = fly.name; fly = null;
+    if (at !== "board") setOrbitFrom(cam.position, orbit.target);
+  }
+}
+
+// Looking round a place: drag to turn, wheel or pinch to come closer
+const drag = { pts: new Map(), pinch: 0 };
+canvas.addEventListener("pointerdown", (e) => { if (at === "board" || fly) return; drag.pts.set(e.pointerId, [e.clientX, e.clientY]); canvas.setPointerCapture(e.pointerId); canvas.classList.add("drag"); });
+canvas.addEventListener("pointermove", (e) => {
+  const p = drag.pts.get(e.pointerId); if (!p || at === "board" || fly) return;
+  drag.pts.set(e.pointerId, [e.clientX, e.clientY]);
+  if (drag.pts.size === 2) { const [a, b] = [...drag.pts.values()], d = Math.hypot(a[0] - b[0], a[1] - b[1]); if (drag.pinch) orbit.dist = THREE.MathUtils.clamp(orbit.dist * drag.pinch / d, 8, 220); drag.pinch = d; return; }
+  orbit.az -= (e.clientX - p[0]) * 0.005; orbit.el = THREE.MathUtils.clamp(orbit.el + (e.clientY - p[1]) * 0.004, 0.05, 1.35);
+});
+const up = (e) => { drag.pts.delete(e.pointerId); if (drag.pts.size < 2) drag.pinch = 0; if (!drag.pts.size) canvas.classList.remove("drag"); };
+canvas.addEventListener("pointerup", up); canvas.addEventListener("pointercancel", up);
+canvas.addEventListener("wheel", (e) => { if (at === "board" || fly) return; e.preventDefault(); orbit.dist = THREE.MathUtils.clamp(orbit.dist * Math.exp(e.deltaY * 0.0012), 8, 220); }, { passive: false });
+document.getElementById("bar").addEventListener("click", (e) => { const b = e.target.closest("button"); if (b) go(b.dataset.go); });
+
+// ------------------------------------------------------------------ life: horses walking round the rings, people about the yards
+const movers = [];
+function ovalPath(cX, cY, rx, ry, turnDeg) {                     // in board pixels, as the layout's rings
+  const c = W(cX, cY), t = -turnDeg * Math.PI / 180;
+  return (u) => { const a = u * Math.PI * 2, x = rx * 0.2 * Math.cos(a), y = ry * 0.2 * Math.sin(a);
+    return new THREE.Vector3(c.x + x * Math.cos(t) - y * Math.sin(t), 0, c.z - (x * Math.sin(t) + y * Math.cos(t))); };
+}
+async function addHorses() {
+  const g = await loadModel("assets/model", "racehorse");
+  const silks = (await fetch("assets/silks-catalogue.json").then((r) => r.json())).silks;
+  const mask = await new Promise((res) => tl.load("assets/tint-mask.png", (t) => { t.flipY = false; t.colorSpace = THREE.NoColorSpace; res(t); }));
+  const COATS = [["#7a4a2a", "#1d1714"], ["#4a2e1c", "#17110d"], ["#a3552c", "#6a3317"], ["#2b2523", "#141110"], ["#a8a6a0", "#6d6b66"]];
+  const silkTex = new Map(), stex = (id) => { if (!silkTex.has(id)) { const t = tl.load(`assets/silks-3d/${id}.png`); t.flipY = false; t.colorSpace = THREE.SRGBColorSpace; silkTex.set(id, t); } return silkTex.get(id); };
+  const clips = ["walk", "ride_quiet"].map((n) => g.animations.find((a) => a.name === n)).filter(Boolean);
+  const rings = [
+    { path: ovalPath(850, 412, 76, 36, 12), n: 6, speed: 0.012 },        // the parade ring: horses walked round before the sale
+    { path: ovalPath(435, 362, 150, 66, 8), n: 4, speed: 0.0045 },       // round the paddock
+    { path: ovalPath(1077, 615, 66, 28, -4), n: 2, speed: 0.016 },       // the east yard's lunge ring
+  ];
+  let k = 0;
+  for (const ring of rings) for (let i = 0; i < ring.n; i++, k++) {
+    const obj = SkeletonUtils.clone(g.scene); obj.scale.setScalar(2.6);
+    const coat = COATS[k % COATS.length], silk = silks[(k * 7 + 3) % silks.length];
+    obj.traverse((o) => {
+      if (!o.isMesh) return; o.castShadow = true; o.frustumCulled = false; o.material = o.material.clone();
+      if (o.material.name === "silks") { o.material.map = stex(silk.id); return; }
+      const u = { mask: { value: mask }, coatCol: { value: new THREE.Color(coat[0]) }, pointsCol: { value: new THREE.Color(coat[1]) }, silkCol: { value: new THREE.Color(silk.colour) } };
+      o.material.onBeforeCompile = (sh) => {
+        Object.assign(sh.uniforms, u);
+        sh.fragmentShader = sh.fragmentShader.replace("#include <common>", "#include <common>\nuniform sampler2D mask; uniform vec3 coatCol; uniform vec3 pointsCol; uniform vec3 silkCol;")
+          .replace("#include <map_fragment>", `#include <map_fragment>
+            { vec3 m = texture2D(mask, vMapUv).rgb; float l = dot(diffuseColor.rgb, vec3(0.2126, 0.7152, 0.0722)); diffuseColor.rgb = vec3(l);
+              diffuseColor.rgb = mix(diffuseColor.rgb, coatCol * clamp(mix(1.0, l / 0.56, 0.65), 0.3, 1.25), m.r);
+              diffuseColor.rgb = mix(diffuseColor.rgb, pointsCol * mix(0.75, 1.2, smoothstep(0.0, 0.035, l)), m.g);
+              diffuseColor.rgb = mix(diffuseColor.rgb, silkCol * clamp(mix(1.0, l / 0.72, 0.6), 0.4, 1.15), m.b); }`);
+      };
+      o.material.customProgramCacheKey = () => "horse-tint";
+    });
+    const mixer = new THREE.AnimationMixer(obj); const ts = 0.9 + Math.random() * 0.2;
+    for (const c of clips) { const a = mixer.clipAction(c); a.play(); a.timeScale = ts; }
+    mixer.setTime(Math.random());
+    scene.add(obj);
+    movers.push({ obj, mixer, path: ring.path, u: i / ring.n + Math.random() * 0.02, speed: ring.speed, horse: true });
+  }
+}
+async function addPeople() {
+  const g = await loadModel("assets/architecture", "crowd_people");
+  const figs = g.scene.children.slice();                          // a gent, a gent in a top hat, two ladies
+  const cols = [0x2f3a4a, 0x5b3a2e, 0x3d4a3a, 0x6a5a48, 0x2b2b2b, 0x7a6a50, 0x8a3b32, 0x405a6e];
+  const spots = [[470, 300], [500, 312], [520, 296], [600, 280], [612, 292], [300, 600], [330, 590], [560, 580], [575, 572], [640, 600],
+    [1010, 600], [990, 640], [1120, 580], [700, 470], [690, 480], [430, 440], [520, 455], [820, 470], [250, 640], [420, 620], [760, 395], [940, 420], [905, 390],
+    [935, 445], [770, 440], [800, 360], [880, 350], [455, 455], [1050, 560]];
+  spots.forEach(([X, Y], i) => {
+    const f = figs[i % figs.length].clone();
+    const col = new THREE.Color(cols[(i * 5) % cols.length]);
+    f.traverse((o) => { if (!o.isMesh) return; o.castShadow = true;
+      const n = o.material.name; o.material = new THREE.MeshLambertMaterial({ color: n === "crowd_skin" ? 0xd9b090 : n === "crowd_hat" ? 0x2a2622 : col }); });
+    f.position.copy(W(X + (Math.random() - .5) * 6, Y + (Math.random() - .5) * 6)); f.rotation.y = Math.random() * 6.28;
+    scene.add(f);
+    movers.push({ obj: f, sway: Math.random() * 6.28 });
+  });
+}
+function stepLife(dt, time) {
+  for (const m of movers) {
+    if (m.horse) {
+      m.u = (m.u + m.speed * dt) % 1;
+      const p = m.path(m.u), q = m.path((m.u + 0.002) % 1);
+      m.obj.position.copy(p); m.obj.rotation.y = Math.atan2(q.x - p.x, q.z - p.z);
+      m.mixer.update(dt);
+    } else if (m.sway != null && !REDUCED) m.obj.rotation.z = Math.sin(time * 0.9 + m.sway) * 0.03;
+  }
+  for (const m of movers) m.obj.visible = morph > 0.35;            // on the board itself, its own painted figures are enough
+}
+
+// ------------------------------------------------------------------ start
+function resize() { renderer.setSize(innerWidth, innerHeight, false); }
+addEventListener("resize", resize); resize();
+const clock = new THREE.Clock();
+function frame() {
+  const raw = clock.getDelta(), dt = Math.min(raw, 0.05), time = clock.elapsedTime;
+  stepFly(Math.min(raw, 0.2));                                   // a stutter shouldn't stall the flight
+  if (!fly && at !== "board") { camFromOrbit(); if (!REDUCED) orbit.az += dt * 0.012; }
+  if (!fly && at === "board") { cam.position.copy(PLACES.board.pos); cam.lookAt(PLACES.board.at); }
+  stepLife(dt, time); updateView();
+  renderer.render(scene, view);
+  requestAnimationFrame(frame);
+}
+try {
+  const [g, paintMap, groundMap] = await Promise.all([loadModel("assets/scene", "tatts_corner"), tex("assets/scene/paint.jpg"), tex("assets/scene/ground.jpg")]);
+  paintMap.flipY = false; groundMap.flipY = false;
+  g.scene.traverse((o) => {
+    if (!o.isMesh) return;
+    const name = o.material.name, geo = o.geometry;
+    o.receiveShadow = true; o.castShadow = !/ground/.test(o.name);
+    // the ground: on the board it is the painting itself; the model's ground (painted buildings taken out) shows once you fly down
+    if (name === "board_ground") { o.material = paintable(0xffffff, paintMap, { always: true, flat: true }); o.material.map = groundMap; return; }
+    if (name === "grass_beyond") { o.material = paintable(OWN.grass_beyond, paintMap, { flat: true }); return; }
+    const isTree = o.parent && /tree/.test(o.parent.name + o.name);
+    // the painting mask: color_1 on the buildings; on the trees the leaf colours are color_1 and the mask color_2
+    const pv = isTree ? geo.getAttribute("color_2") : geo.getAttribute("color_1");
+    if (pv) geo.setAttribute("pv", pv);
+    if (isTree && name === "crowns") geo.setAttribute("leaf", geo.getAttribute("color_1"));
+    const detail = /^brick|chimney/.test(name) ? "brick" : (name === "slate" ? "slate" : undefined);
+    o.material = paintable(OWN[name] ?? 0x999999, paintMap, { leaf: isTree && name === "crowns", detail });
+  });
+  scene.add(g.scene);
+  cam.position.copy(PLACES.board.pos); cam.lookAt(PLACES.board.at);
+  document.getElementById("loading").classList.add("off");
+  window.__ready = true; window.__go = go; window.__flyTo = (t) => { if (fly) fly.t = t; }; window.__state = () => ({ at, fly: !!fly, morph, paint: uPaint.value });
+  frame();
+  addHorses().catch((e) => console.warn("horses", e)); addPeople().catch((e) => console.warn("people", e));
+} catch (e) {
+  document.getElementById("loading").textContent = "Newmarket didn't load: " + (e && e.message ? e.message : "a file is missing") + ". Reload to try again.";
+}
+</script>

@@ -1,0 +1,6 @@
+{
+  "name": "thoroughbred-race-engine",
+  "private": true,
+  "type": "module",
+  "description": "The Thoroughbred Ascot race engine: plain JavaScript, no build step, no dependencies."
+}

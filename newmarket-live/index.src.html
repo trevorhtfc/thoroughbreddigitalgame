@@ -1,0 +1,202 @@
+<meta charset="utf-8">
+<title>Thoroughbred Newmarket</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Jost:wght@400;500;600&family=Nunito:wght@400;600;700;800&family=Crimson+Pro:ital,wght@0,600;0,700;1,600&display=swap" rel="stylesheet">
+<style>
+/* The Ascot game's look (ascot-game/index.html): the green band, green buttons, gold for what's chosen, cream boxes
+   with square-ish corners, Jost for headings and Nunito for text. The board fills the rest. One look in every theme. */
+:root{
+  color-scheme:light;
+  --tb-band:#446f66; --tb-band-dk:#365a52; --tb-green:#3d7153; --tb-green-hi:#346347; --tb-gold:#b79042; --tb-gold-hi:#cfa955;
+  --tb-bg:#f3efe7; --tb-panel:#fbf9f4; --tb-line:#d8d2c4; --tb-ink:#33332b; --tb-muted:#6b6a60; --tb-on-dark:#f2eee7;
+  --tb-radius:3px;
+  --tb-display:"Jost","Futura","Avenir Next",system-ui,sans-serif; --tb-body:"Nunito",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --tb-serif:"Crimson Pro",Georgia,serif;
+  --bar-h:58px;
+}
+html,body{height:100%;margin:0;overflow:hidden;background:var(--tb-band-dk);color:var(--tb-ink);font-family:var(--tb-body);-webkit-font-smoothing:antialiased}
+button{font:inherit;cursor:pointer;color:inherit}
+button:focus-visible{outline:2px solid var(--tb-gold);outline-offset:3px}
+
+/* the band: game name and the stable's standing */
+.bar{position:fixed;inset:0 0 auto;height:var(--bar-h);padding-top:env(safe-area-inset-top,0px);padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));
+  display:flex;align-items:center;gap:22px;background:var(--tb-band);color:var(--tb-on-dark);z-index:20;box-shadow:0 2px 10px rgba(20,35,30,.3)}
+.brand{display:flex;align-items:center;gap:12px;min-width:0}
+.brand .mark{width:44px;height:29px;background:var(--tb-on-dark);-webkit-mask:var(--horse) center/contain no-repeat;mask:var(--horse) center/contain no-repeat;flex:none}
+.brand b{display:block;font-family:var(--tb-display);font-weight:500;font-size:19px;letter-spacing:.22em;line-height:1}
+.brand i{display:block;font-style:normal;font-family:var(--tb-display);font-size:11.5px;letter-spacing:.3em;line-height:1;margin-top:5px;opacity:.8;text-transform:uppercase}
+.stats{display:flex;margin-left:auto;font-size:15px;white-space:nowrap}
+.snd{display:flex;align-items:center;gap:8px;margin-left:14px;flex:none;border:1px solid rgba(242,238,231,.45);background:transparent;color:var(--tb-on-dark);border-radius:var(--tb-radius);padding:7px 12px;font-size:14px;white-space:nowrap}
+.snd svg{width:18px;height:18px}
+.snd:hover{background:rgba(242,238,231,.14)}
+.snd[aria-pressed="true"]{background:rgba(242,238,231,.22);border-color:var(--tb-on-dark)}
+.stats > span{padding:0 16px;border-left:1px solid rgba(242,238,231,.28);display:flex;align-items:center;gap:8px;opacity:.92}
+.stats svg{width:17px;height:17px;color:var(--tb-on-dark);opacity:.8;flex:none}
+.stats em{font-style:normal;font-weight:700;font-variant-numeric:tabular-nums}
+
+/* the board */
+.view{position:fixed;inset:var(--bar-h) 0 0;overflow:hidden;background:var(--tb-band-dk);display:flex}
+.view.pan{overflow-x:auto;overflow-y:hidden;-webkit-overflow-scrolling:touch;scrollbar-width:none}
+.view.pan::-webkit-scrollbar{display:none}
+.holder{position:relative;flex:none;margin:auto}   /* auto margins centre it, and never push it out of scroll reach */
+.stage{position:absolute;left:0;top:0;width:1448px;height:1086px;transform-origin:0 0;box-shadow:0 10px 40px rgba(10,25,20,.45)}
+.stage > img{position:absolute;inset:0;width:1448px;height:1086px;display:block;max-width:none;user-select:none;-webkit-user-drag:none}
+#life,#clouds,#glow{position:absolute;inset:0;width:1448px;height:1086px;pointer-events:none}
+#wisps{position:absolute;left:0;top:0;width:1448px;height:300px;pointer-events:none}
+#life{filter:saturate(.85) sepia(.1)}
+/* the day: the board multiplied by the hour's light, warmed in the afternoon, lamps at dusk, mist at dawn, smoke */
+#banners{position:absolute;pointer-events:none;filter:saturate(.85) sepia(.12) blur(.25px)}
+#mist,#shade,#warm,#lamps,#smoke{position:absolute;inset:0;width:1448px;height:1086px;pointer-events:none}
+#shade{mix-blend-mode:multiply;background:#fff}
+#warm{mix-blend-mode:soft-light;opacity:0;background:radial-gradient(ellipse at 90% -10%,#ffb25a 0%,#ff9440 55%,#b95a2a 100%)}
+#lamps{mix-blend-mode:screen}
+/* the lean towards a chosen place */
+.holder{perspective:1700px}
+.lean{position:absolute;inset:0;transition:transform 1.3s cubic-bezier(.22,.8,.24,1);will-change:transform}
+#clouds{mix-blend-mode:multiply;opacity:.9}
+/* the places' light: a soft rim always, warming up when the pointer is over a place or it is chosen */
+#glow .site{cursor:pointer;pointer-events:fill}
+#glow .site .hit{fill:transparent}
+#glow .halo{fill:none;stroke:#ffaa3c;stroke-width:12;stroke-linejoin:round;opacity:.28;filter:url(#halo);transition:opacity .45s,stroke-width .45s}
+#glow .rim{fill:none;stroke:#ffc964;stroke-width:3;stroke-linejoin:round;opacity:.55;filter:url(#rim);transition:opacity .45s,stroke-width .45s}
+#glow .line{fill:none;stroke:#fff8e2;stroke-width:1.3;stroke-linejoin:round;opacity:.6;transition:opacity .45s}
+#glow .wash{fill:url(#washGrad);opacity:0;mix-blend-mode:screen;transition:opacity .45s}
+#glow .spark{fill:none;stroke:#fffaf0;stroke-width:2.6;stroke-linecap:round;stroke-dasharray:14 260;opacity:0;filter:url(#rim);transition:opacity .45s}
+#glow .site.hot .halo{opacity:.9;stroke-width:22}
+#glow .site.hot .rim{opacity:1;stroke-width:4}
+#glow .site.hot .line{opacity:1;stroke-width:1.6}
+#glow .site.hot .wash{opacity:.5}
+#glow .site.hot .spark{opacity:.9}
+@media (prefers-reduced-motion:no-preference){
+  #glow .site .rim{animation:breathe 4.5s ease-in-out infinite}
+  #glow .site:nth-child(2n) .rim{animation-delay:-1.6s} #glow .site:nth-child(3n) .rim{animation-delay:-3s}
+  #glow .site.hot .rim{animation:none}
+  #glow .spark{animation:run 5s linear infinite}
+}
+@keyframes breathe{0%,100%{opacity:.5}50%{opacity:.85}}
+@keyframes run{to{stroke-dashoffset:-548}}
+
+/* the places: a green disc with its sign over a cream label; gold when lit or chosen */
+.loc{position:absolute;transform:translate(-50%,-50%);display:flex;flex-direction:column;align-items:center;border:0;background:none;padding:0;z-index:2}
+.loc .medal{width:44px;height:44px;border-radius:50%;display:grid;place-items:center;margin-bottom:-6px;position:relative;z-index:1;
+  background:var(--tb-green);border:2px solid var(--tb-panel);box-shadow:0 2px 6px rgba(20,30,20,.4);transition:background .25s}
+.loc .medal svg{width:25px;height:25px;color:var(--tb-on-dark)}
+.loc .medal .jc{font-family:var(--tb-display);font-weight:600;font-size:15px;letter-spacing:.06em;color:var(--tb-on-dark)}
+.loc .medal .hz{width:30px;height:20px;background:var(--tb-on-dark);-webkit-mask:var(--horse) center/contain no-repeat;mask:var(--horse) center/contain no-repeat}
+.loc .pill{position:relative;z-index:1;font-family:var(--tb-display);font-weight:600;font-size:13.5px;letter-spacing:.12em;text-transform:uppercase;line-height:1.2;text-align:center;color:var(--tb-green);
+  padding:8px 13px 7px;border-radius:var(--tb-radius);background:var(--tb-panel);border:1px solid var(--tb-line);box-shadow:0 3px 8px rgba(20,30,20,.3);white-space:nowrap;transition:background .25s,color .25s,border-color .25s}
+.loc .ring{position:absolute;left:50%;top:100%;width:90px;height:22px;margin:-8px 0 0 -45px;border-radius:50%;border:2px solid rgba(255,231,166,.8);opacity:0;pointer-events:none}
+.loc:hover .pill,.loc.lit .pill{border-color:var(--tb-gold);color:var(--tb-ink)}
+.loc.on .pill{background:var(--tb-gold);border-color:var(--tb-gold);color:#fff}
+.loc:hover .medal,.loc.lit .medal,.loc.on .medal{background:var(--tb-gold)}
+@media (prefers-reduced-motion:no-preference){
+  .loc .ring{animation:ripple 3.2s ease-out infinite}
+  .loc:nth-of-type(2n) .ring{animation-delay:1.1s} .loc:nth-of-type(3n) .ring{animation-delay:2.1s}
+}
+@keyframes ripple{0%{transform:scale(.55);opacity:.85}100%{transform:scale(1.5);opacity:0}}
+
+/* To the Races: the way out of town, always in the top right */
+.races{position:absolute;transform:translate(-50%,-50%);z-index:3;display:flex;align-items:center;gap:12px;
+  border:none;border-radius:var(--tb-radius);background:var(--tb-green);color:var(--tb-on-dark);padding:8px 15px 8px 12px;box-shadow:0 0 0 2px var(--tb-panel),0 6px 16px rgba(20,35,25,.4)}
+.races .hz{width:38px;height:25px;background:var(--tb-on-dark);-webkit-mask:var(--horse) center/contain no-repeat;mask:var(--horse) center/contain no-repeat}
+.races .pill{font-family:var(--tb-display);font-weight:600;font-size:15px;letter-spacing:.12em;text-transform:uppercase;white-space:nowrap}
+.races:hover,.races.lit{background:var(--tb-green-hi)}
+.races .arr{width:12px;height:12px;fill:currentColor;margin-left:2px}
+
+.races.on{background:var(--tb-gold)}
+@media (prefers-reduced-motion:no-preference){ .races{animation:beckon 3.4s ease-in-out infinite} }
+@keyframes beckon{0%,100%{box-shadow:0 0 0 2px var(--tb-panel),0 6px 16px rgba(20,35,25,.4)}50%{box-shadow:0 0 0 2px var(--tb-panel),0 0 22px rgba(255,214,140,.75)}}
+
+/* the card for the chosen place */
+.card{position:fixed;left:max(18px,env(safe-area-inset-left,0px));top:calc(var(--bar-h) + 18px);width:330px;z-index:15;padding:18px 18px 20px;border-radius:var(--tb-radius);
+  background:var(--tb-panel);border:1px solid var(--tb-line);box-shadow:0 14px 40px rgba(20,35,25,.4);transform-origin:20% 0;transition:opacity .25s,transform .25s}
+.card[hidden]{display:block!important;opacity:0;transform:scale(.94) translateY(-6px);pointer-events:none}
+.card header{display:flex;align-items:center;gap:10px}
+.card h2{margin:0;font-family:var(--tb-display);font-weight:600;font-size:21px;letter-spacing:.18em;text-transform:uppercase;line-height:1.15;color:var(--tb-green);text-wrap:balance;flex:1}
+.card .x{width:34px;height:34px;border-radius:var(--tb-radius);border:1px solid var(--tb-line);background:var(--tb-panel);font-size:20px;line-height:1;color:var(--tb-muted);display:grid;place-items:center;flex:none}
+.card .x:hover{border-color:var(--tb-green);color:var(--tb-green)}
+.card .pic{margin-top:14px;height:170px;border-radius:var(--tb-radius);border:1px solid var(--tb-line);background:url(assets/newmarket-board.webp) no-repeat;background-color:var(--tb-bg)}
+.card p{margin:12px 2px 16px;font-size:16px;line-height:1.45;color:var(--tb-muted)}
+.card .go{width:100%;display:flex;align-items:center;justify-content:center;gap:10px;padding:13px 22px;border:none;border-radius:var(--tb-radius);
+  background:var(--tb-green);color:var(--tb-on-dark);font-family:var(--tb-body);font-weight:600;font-size:17px;letter-spacing:.03em}
+.card .go:hover{background:var(--tb-green-hi)}
+.card .go svg{width:12px;height:12px;fill:currentColor}
+.card .soon{margin:10px 0 0;font-size:14px;color:var(--tb-muted)}
+
+.hint{position:fixed;left:max(18px,env(safe-area-inset-left,0px));bottom:calc(18px + env(safe-area-inset-bottom,0px));z-index:10;display:flex;align-items:center;gap:12px;padding:10px 16px 10px 12px;border-radius:var(--tb-radius);
+  background:var(--tb-panel);border:1px solid var(--tb-line);color:var(--tb-ink);box-shadow:0 6px 18px rgba(20,35,25,.35);pointer-events:none}
+.hint svg{width:20px;height:28px;fill:none;stroke:var(--tb-green);stroke-width:1.6}
+.hint b{display:block;font-family:var(--tb-display);font-weight:600;font-size:14px;letter-spacing:.14em;text-transform:uppercase;color:var(--tb-green)}
+.hint small{display:block;font-size:13px;color:var(--tb-muted);margin-top:2px}
+.credit{position:fixed;right:max(10px,env(safe-area-inset-right,0px));bottom:calc(6px + env(safe-area-inset-bottom,0px));z-index:10;font-size:11px;color:rgba(242,238,231,.6);font-family:var(--tb-body)}
+
+@media (max-width:980px){ .stats > span:not(.funds):not(.clock){display:none} }
+@media (max-width:640px){
+  :root{--bar-h:52px}
+  .bar{gap:10px} .brand{gap:8px} .brand .mark{width:34px;height:23px} .brand b{font-size:14px;letter-spacing:.1em} .brand i{font-size:10px}
+  .stats{font-size:14px} .stats > span{padding:0 0 0 10px} .stats .funds .lbl{display:none} .stats .clock{display:none}
+  .snd span{display:none} .snd{padding:7px 9px;margin-left:10px}
+  .card{left:max(12px,env(safe-area-inset-left,0px));right:max(12px,env(safe-area-inset-right,0px));top:auto;bottom:calc(12px + env(safe-area-inset-bottom,0px));width:auto;transform-origin:50% 100%}
+  .card .pic{height:130px}
+  .hint{display:none}
+  .races{padding:8px 14px 8px 10px;gap:8px} .races .hz{width:28px;height:19px} .races .pill{font-size:13px}
+}
+</style>
+
+<header class="bar">
+  <div class="brand"><span class="mark" aria-hidden="true"></span><div><b>THOROUGHBRED</b><i>Newmarket</i></div></div>
+  <div class="stats" aria-label="Your stable (example figures)">
+    <span class="clock" aria-label="Time of day"><svg id="clockIcon" viewBox="0 0 512 512" aria-hidden="true">%%ICON:sunrise%%</svg><em id="clockTime">06:20</em></span>
+    <span><svg viewBox="0 0 512 512" aria-hidden="true">%%ICON:wheat%%</svg>Season: <em>Spring</em></span>
+    <span><svg viewBox="0 0 512 512" aria-hidden="true">%%ICON:calendar%%</svg>Year: <em>2026</em></span>
+    <span><svg viewBox="0 0 512 512" aria-hidden="true">%%ICON:barn%%</svg>Stable: <em>Riverside Stables</em></span>
+    <span class="funds"><svg viewBox="0 0 512 512" aria-hidden="true">%%ICON:two-coins%%</svg><span class="lbl">Funds:</span> <em>£2,750,000</em></span>
+  </div>
+  <button class="snd" id="snd" type="button" aria-pressed="false"><svg id="sndIcon" viewBox="0 0 512 512" aria-hidden="true">%%ICON:speaker-off%%</svg><span>Sound off</span></button>
+</header>
+
+<main class="view" id="view">
+  <div class="holder" id="holder">
+    <div class="lean" id="lean"><div class="stage" id="stage">
+      <img src="assets/newmarket-board.webp" alt="The Newmarket board: the town, the gallops, Tattersalls, the stables and the National Stud" width="1448" height="1086">
+      <canvas id="clouds" width="362" height="272" aria-hidden="true"></canvas>
+      <canvas id="mist" width="362" height="272" aria-hidden="true"></canvas>
+      <canvas id="life" aria-hidden="true"></canvas>
+      <canvas id="banners" aria-hidden="true"></canvas>
+      <div id="shade" hidden></div>
+      <div id="warm"></div>
+      <svg id="glow" viewBox="0 0 1448 1086">
+        <defs>
+          <filter id="halo" x="-30%" y="-30%" width="160%" height="160%"><feGaussianBlur stdDeviation="6"/></filter>
+          <filter id="rim" x="-20%" y="-20%" width="140%" height="140%"><feGaussianBlur stdDeviation="0.9"/></filter>
+          <radialGradient id="washGrad" cx="50%" cy="50%" r="65%"><stop offset="0" stop-color="#ffe2a0" stop-opacity=".55"/><stop offset=".7" stop-color="#ffc870" stop-opacity=".3"/><stop offset="1" stop-color="#ffb050" stop-opacity=".55"/></radialGradient>
+        </defs>
+      </svg>
+      <canvas id="lamps" width="724" height="543" aria-hidden="true"></canvas>
+      <canvas id="smoke" width="1086" height="815" aria-hidden="true"></canvas>
+      <canvas id="wisps" width="2896" height="600" aria-hidden="true"></canvas>
+    </div></div>
+  </div>
+</main>
+
+<button class="races" id="races" type="button"><span class="hz" aria-hidden="true"></span><span class="pill">To the Races</span><svg class="arr" viewBox="0 0 10 16" aria-hidden="true"><path d="M1.6 0 0 1.6 6.4 8 0 14.4 1.6 16l8-8z"/></svg></button>
+
+<aside class="card" id="card" hidden aria-live="polite">
+  <header><h2 id="cardTitle">Tattersalls</h2><button class="x" id="cardClose" type="button" aria-label="Close">&times;</button></header>
+  <div class="pic" id="cardPic" role="img" aria-label=""></div>
+  <p id="cardText"></p>
+  <button class="go" id="cardGo" type="button"><span id="cardCta">Enter</span><svg viewBox="0 0 10 16" aria-hidden="true"><path d="M1.6 0 0 1.6 6.4 8 0 14.4 1.6 16l8-8z"/></svg></button>
+  <p class="soon" id="cardSoon" hidden>This opens in the full game.</p>
+</aside>
+
+<div class="hint" aria-hidden="true">
+  <svg viewBox="0 0 22 30"><rect x="2" y="2" width="18" height="26" rx="9"/><path d="M11 2v10M2 12h18"/></svg>
+  <div><b>Explore Newmarket</b><small>Pick a place on the map. Sound is in the top bar.</small></div>
+</div>
+<div class="credit">Icons: game-icons.net, CC BY 3.0</div>
+
+<script async src="https://cdn.jsdelivr.net/npm/es-module-shims@1.10.0/dist/es-module-shims.js"></script>
+<script type="importmap">{ "imports": { "three": "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js", "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/" } }</script>
+<script>document.documentElement.style.setProperty("--horse", "url(\"%%HORSE%%\")");</script>
+%%MODULE%%

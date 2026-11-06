@@ -1,0 +1,497 @@
+{
+ "_about": "What the race view needs at Ascot beyond the layout itself: TV cameras, the director's rules, paths, where loose trees grow and how much detail trees get. World axes as courses/ascot.json: origin = winning post on the inside rail, x east, z south, y up; on the home straight the horses run towards -x, z 0 = inside (far) rail, z 30 = outer (near) rail, the main stand's front is on z 45.4. Follow cameras sit at the leader's x plus offset[0], at height offset[1] and at z offset[2] (absolute); they look at the leader's x plus look[0], height look[1], z look[2]. Fixed cameras sit at fixed[] and drift with the leader by followX. The director picks the camera by the leader's distance to the post (metres to go; negative once past it).",
+ "course": "courses/ascot.json",
+ "dressing": "courses/ascot-site-dressing.json",
+ "planting": "courses/ascot-planting.json",
+ "homeStraight": {
+  "runTowards": [
+   -1,
+   0
+  ],
+  "centreZ": 15,
+  "note": "Along the home straight: running direction (x, z) and the middle of the track."
+ },
+ "paths": [
+  {
+   "from": [
+    -70,
+    -24
+   ],
+   "to": [
+    700,
+    -24
+   ],
+   "width": 5,
+   "note": "inside the home straight, behind the far-side enclosure"
+  },
+  {
+   "from": [
+    400,
+    72
+   ],
+   "to": [
+    640,
+    72
+   ],
+   "width": 6,
+   "note": "behind the enclosures east of the stand"
+  }
+ ],
+ "trees": [
+  {
+   "note": "behind the stand",
+   "area": [
+    -140,
+    80,
+    430,
+    150
+   ],
+   "spacing": 20,
+   "skip": 0.3,
+   "scale": [
+    1.0,
+    1.45
+   ]
+  },
+  {
+   "note": "round the enclosures east of the stand",
+   "area": [
+    400,
+    84,
+    660,
+    160
+   ],
+   "spacing": 18,
+   "skip": 0.3,
+   "scale": [
+    0.9,
+    1.3
+   ]
+  },
+  {
+   "note": "right behind the carnival's back row (owner: trees just behind the final row) (cut back to x 520 so the grandstand camera sees the final bend)",
+   "area": [
+    -60,
+    -50,
+    520,
+    -60
+   ],
+   "spacing": 9,
+   "skip": 0.08,
+   "scale": [
+    1.1,
+    1.55
+   ]
+  },
+  {
+   "note": "behind those, thinning into the infield (cut back to x 520 so the grandstand camera sees the final bend)",
+   "area": [
+    -60,
+    -60,
+    520,
+    -90
+   ],
+   "spacing": 13,
+   "skip": 0.25,
+   "scale": [
+    1.05,
+    1.5
+   ]
+  },
+  {
+   "note": "clumps in the infield, beyond the carnival (stopped at x 470: the grandstand camera looks across here to the final bend)",
+   "area": [
+    -40,
+    -60,
+    470,
+    -320
+   ],
+   "spacing": 34,
+   "skip": 0.55,
+   "scale": [
+    1.0,
+    1.4
+   ],
+   "clump": [
+    1,
+    4
+   ]
+  },
+  {
+   "note": "behind the enclosure past the post (owner: no bare grass anywhere round the course)",
+   "area": [
+    -260,
+    108,
+    -110,
+    175
+   ],
+   "spacing": 18,
+   "skip": 0.25,
+   "scale": [
+    1.0,
+    1.45
+   ]
+  },
+  {
+   "note": "open ground beyond the bend, outside the planting belt",
+   "area": [
+    -520,
+    -300,
+    -205,
+    260
+   ],
+   "spacing": 30,
+   "skip": 0.45,
+   "scale": [
+    1.0,
+    1.5
+   ],
+   "clump": [
+    1,
+    3
+   ]
+  },
+  {
+   "note": "infield inside the bend, kept back from the rails",
+   "area": [
+    -175,
+    -60,
+    -40,
+    -330
+   ],
+   "spacing": 34,
+   "skip": 0.6,
+   "scale": [
+    1.0,
+    1.4
+   ],
+   "clump": [
+    1,
+    3
+   ]
+  }
+ ],
+ "clearOf": {
+  "track": 30,
+  "stand": [
+   -112,
+   34,
+   412,
+   72
+  ],
+  "pieces": 9,
+  "note": "Loose trees stay this far (metres) from every rail, the stand box and each site piece. Track clearance 30 m (was 9) so no tree stands between the tracking car (12 m inside the rail) and the field."
+ },
+ "treeDetail": {
+  "centre": [
+   60,
+   15
+  ],
+  "nearRadius": 450,
+  "note": "Trees within nearRadius metres of centre use the full leafy crowns; further off, the light _crown_far versions (belt trees there also drop their trunks, which the hedge hides)."
+ },
+ "glass": {
+  "reflect": "#7f93a6",
+  "amount": 0.3,
+  "note": "Window glass on the baked buildings picks up this much of the sky's reflection, so big glazed screens read as glass rather than dark holes."
+ },
+ "lanes": {
+  "_about": "Soft mown lanes along the running line (tools/course/build_lane_field.py). map: grey = metres from the turf's edge / maxDist (row 0 = z0, north). Stripes: 0.5 + 0.5 cos(pi * lanes * d / width), brightening the turf by +-strength. The ground bake draws the same stripes.",
+  "map": "lanes.png",
+  "area": [
+   -195.0,
+   -979.0,
+   1630.0,
+   38.0
+  ],
+  "maxDist": 20.0,
+  "lanes": 8,
+  "width": 30,
+  "strength": 0.14
+ },
+ "races": {
+  "_about": "The races the view can show, one for every Ascot trip; the race engine (race-engine/engine.js) runs each one and hands the view its timeline. course: 'round' runs along roundCourse.insideRail (a closed loop, so races over 1m6f and more pass the post more than once); 'roundMile' up the chute (roundMileSpur) and on round the loop; 'straight' along the straight course. distance in metres. start: which start in courses/ascot-stalls.json (where the stalls stand and each stall's draw). The keys 'long', 'mile' and 'roundmile' are kept so older links still work.",
+  "5f": {
+   "label": "5f",
+   "course": "straight",
+   "distance": 1005.8,
+   "start": "fiveFurlongs"
+  },
+  "6f": {
+   "label": "6f",
+   "course": "straight",
+   "distance": 1207.0,
+   "start": "sixFurlongs"
+  },
+  "7f": {
+   "label": "7f",
+   "course": "straight",
+   "distance": 1408.2,
+   "start": "sevenFurlongs"
+  },
+  "mile": {
+   "label": "Straight mile",
+   "course": "straight",
+   "distance": 1609.3,
+   "start": "straightMile"
+  },
+  "roundmile": {
+   "label": "Round mile",
+   "course": "roundMile",
+   "distance": 1649.4,
+   "start": "roundMile"
+  },
+  "1m2f": {
+   "label": "1m2f",
+   "course": "round",
+   "distance": 2011.7,
+   "start": "mileTwo"
+  },
+  "1m4f": {
+   "label": "1m4f",
+   "course": "round",
+   "distance": 2414.0,
+   "start": "mileFour"
+  },
+  "1m6f": {
+   "label": "1m6f",
+   "course": "round",
+   "distance": 2816.4,
+   "start": "mileSix"
+  },
+  "long": {
+   "label": "2 miles",
+   "course": "round",
+   "distance": 3218.7,
+   "start": "twoMiles"
+  },
+  "2m4f": {
+   "label": "2m4f",
+   "course": "round",
+   "distance": 4023.4,
+   "start": "twoMilesFour"
+  },
+  "2m6f": {
+   "label": "2m6f",
+   "course": "round",
+   "distance": 4425.7,
+   "start": "twoMilesSix"
+  }
+ },
+ "raceCameras": {
+  "_about": "Camera plan agreed with the owner, 3 Nov 2026 (reference/cameras/00-owner-camera-markup.jpg, the TV grabs beside it, and two whole Royal Ascot races he recorded: reference/cameras/tv-straight-*.jpg, tv-round-*.jpg). World axes; heights in metres. Owner, 4 Nov: three things matter: the tracking camera ahead of the leaders; the grandstand camera swinging round the bend and following them down the straight, as tight as possible; a smooth pan to the finish where they cross the line square on to the camera, so the winner is easy to judge. 'track': a car beside the rail ('side' metres off it; railSide 'outer' = the grandstand side), 'ahead' metres in front of the leader, filming back across the field. 'fixed': stands at 'at' and pans. closeIn [from, to, window]: eases from the field to the horses within 'window' m of the leader between 'from' and 'to' metres out. 'ahead' lists the distances to try, nearest first; the first that fits the framed horses (zoom under 80% of the widest) is used, eased in. frame: 'field' = every horse except one or two tailed off; 'leaders' = the horses within 'window' metres of the leader. leadRoom: metres of space kept ahead of them. fov: zoom range, degrees.",
+  "track_loop": {
+   "label": "Tracking",
+   "kind": "track",
+   "course": "round",
+   "side": 12,
+   "height": 3.2,
+   "fov": [
+    6,
+    45
+   ],
+   "grab": "grab-01.png",
+   "ahead": [
+    6,
+    12,
+    20,
+    30,
+    45,
+    65,
+    90
+   ],
+   "frame": "field",
+   "leadRoom": 2
+  },
+  "track_straight": {
+   "label": "Tracking",
+   "kind": "track",
+   "course": "straight",
+   "side": 5,
+   "height": 3.0,
+   "fov": [
+    8,
+    50
+   ],
+   "grab": "grab-02.png",
+   "note": "on the grandstand side of the straight mile (owner, 3 Nov), 5 m outside the outer rail (the planting belt is just behind it east of the stand); up to 9 m over the crowds and enclosures from x 720 westwards ('raise': x from, x to, height)",
+   "ahead": [
+    6,
+    12,
+    20,
+    30,
+    45,
+    65,
+    90
+   ],
+   "railSide": "outer",
+   "raise": [
+    [
+     -150,
+     720,
+     9
+    ]
+   ],
+   "frame": "field",
+   "leadRoom": 2
+  },
+  "grandstand": {
+   "label": "Grandstand",
+   "kind": "fixed",
+   "fov": [
+    1.5,
+    22
+   ],
+   "note": "the TV grandstand camera: high in the stand ON the winning line, one camera with no cuts (owner, 4 Nov: the finish must be the grandstand camera). Long lens up the course: picks the field up as they swing round the final bend, follows them down the straight framing the field, closes in on the leading group over the last 'closeIn' metres ([from, to, window]), and pans round until they cross the line square on to it. Lower in the stand (12 m up on the front of the stand, 28 m from the middle of the track) so the finish is close to side-on.",
+   "grab": "grab-03.png .. grab-08.png",
+   "frame": "field",
+   "leadRoom": 3,
+   "at": [
+    0,
+    12,
+    43
+   ],
+   "closeIn": [
+    260,
+    60,
+    10
+   ]
+  },
+  "lookback": {
+   "label": "Looking back",
+   "kind": "fixed",
+   "at": [
+    -125,
+    12,
+    -45
+   ],
+   "fov": [
+    8,
+    50
+   ],
+   "note": "inside the bend after the post, high enough to see over the terrace decks and parasols by the far rail: the field comes up the straight towards it with the stand behind; used only while it is still ahead of the leader (long races)",
+   "grab": "grab-09.png"
+  },
+  "sideon": {
+   "label": "Side-on replay",
+   "kind": "fixed",
+   "at": [
+    0,
+    4.5,
+    41
+   ],
+   "look": [
+    0,
+    1.4,
+    12
+   ],
+   "fov": [
+    26,
+    26
+   ],
+   "note": "square on to the winning line, from the stand side; the finish again in slow motion; pans a little with the leader either side of the line"
+  },
+  "start": {
+   "label": "Start",
+   "kind": "start",
+   "note": "The start (proposed to the owner, 4 Nov, from his clip of the Royal Hunt Cup): low on the outer side of the track, 'ahead' metres in front of the stalls (the first of the list from which the whole row fits the screen; on a phone held upright it stands at the last and the row's ends are cropped, since standing further off only shrinks the stalls) and 'side' metres outside the outer rail, looking back across their faces at an angle. It frames the whole row of stalls while they're loaded, holds as the gates spring open and the field breaks towards it, panning with them, then the TV director cuts to the race cameras (startSequence.holdAfterOff).",
+   "ahead": [
+    24,
+    32,
+    42
+   ],
+   "side": 1.3,
+   "height": 2.3,
+   "fov": [
+    12,
+    46
+   ],
+   "leadRoom": 2
+  }
+ },
+ "raceDirector": {
+  "_about": "When the TV director cuts (distance to go of the leader, metres). Straight mile: tracking until straight.grandstand out, then the grandstand camera to the line and beyond (no cut at the finish). Round course: the grandstand camera from round.grandstand metres before each pass of the post; the look-back camera for round.lookback metres after a pass that isn't the finish (only while still ahead of the leader); tracking otherwise. After the finish: the side-on replay, slowed to replaySpeed, from replayFrom metres before the line to replayTo after it.",
+  "round": {
+   "grandstand": 800,
+   "lookback": 380
+  },
+  "straight": {
+   "grandstand": 600
+  },
+  "afterFinish": 4,
+  "replayFrom": 30,
+  "replayTo": 14,
+  "replaySpeed": 0.3
+ },
+ "setPieces": {
+  "_about": "Grandstand set pieces (owner, 3 Nov: 'to portray the excellent grandstand'): camera moves before the off and after the replay. eye and at go from the first to the second over 'seconds'.",
+  "prelude": {
+   "label": "Before the off",
+   "seconds": 9,
+   "eye": [
+    [
+     -40,
+     7,
+     -3
+    ],
+    [
+     180,
+     9,
+     -3
+    ]
+   ],
+   "at": [
+    [
+     -40,
+     9,
+     70
+    ],
+    [
+     180,
+     11,
+     70
+    ]
+   ],
+   "fov": 50,
+   "grab": "grab-11.png"
+  },
+  "postlude": {
+   "label": "After the race",
+   "seconds": 8,
+   "eye": [
+    [
+     20,
+     3,
+     22
+    ],
+    [
+     60,
+     45,
+     -60
+    ]
+   ],
+   "at": [
+    [
+     0,
+     8,
+     60
+    ],
+    [
+     -10,
+     6,
+     65
+    ]
+   ],
+   "fov": 42,
+   "grab": "grab-10.png"
+  }
+ },
+ "stalls": "courses/ascot-stalls.json",
+ "startSequence": {
+  "_about": "The race view's own pre-roll before the off (owner, 4 Nov): after the grandstand set piece, a cut to the start camera with every horse standing in its stall (standSeconds: 'they're all in'), then the gates spring open (the off: race time 0, distance 0) and the field breaks out. The start camera holds for holdAfterOff seconds of race time (or until the leader is within passAt metres of the camera) before the TV director takes over. The gates swing as courses/ascot-stalls.json -> gates says. hideAfter: on races that come back past their own start (2 miles), the stalls are towed away once the leader is this many metres down the course.",
+  "standSeconds": 3.0,
+  "holdAfterOff": 4.0,
+  "passAt": 8,
+  "hideAfter": 350
+ }
+}
