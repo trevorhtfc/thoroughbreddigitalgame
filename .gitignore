@@ -1,2 +1,5 @@
 __pycache__/
 *.blend1
+
+# the staged game for publishing (built by game/tools/stage.py)
+dist/

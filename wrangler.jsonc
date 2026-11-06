@@ -1,0 +1,10 @@
+// Cloudflare settings for publishing Thoroughbred Ascot.
+// Cloudflare runs the build command `python3 game/tools/stage.py dist`, which gathers the game into dist/,
+// then serves that folder as plain files (no server code).
+{
+  "name": "thoroughbred-ascot",
+  "compatibility_date": "2026-11-01",
+  "assets": {
+    "directory": "./dist"
+  }
+}
