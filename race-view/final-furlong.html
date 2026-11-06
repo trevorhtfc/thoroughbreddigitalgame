@@ -235,6 +235,7 @@ button:focus-visible { outline: 2px solid var(--cream-edge); outline-offset: 2px
   <div class="group" id="races"><span>Race</span><select id="raceSel" aria-label="Race"></select><select id="goingSel" aria-label="Going"></select><select id="runnersSel" aria-label="Runners"></select><span>Seed</span><input id="seedIn" class="seed" type="number" min="1" step="1" inputmode="numeric" aria-label="Race seed" title="Race seed: the same seed runs the same race"><button id="newRace" type="button" title="A new race with a new seed">New race</button></div>
   <div class="group" id="horses"><span>Horse</span></div>
   <div class="group" id="looks"><span>Look</span></div>
+  <div class="group" id="standsG"><span>Stand</span><select id="standSel" aria-label="Grandstand style"></select></div>
   <div class="group" id="cams"><span>Camera</span></div>
   <div class="group" id="finish"><span>Finish</span></div>
   <div class="group" id="quality"><span>Quality</span></div>
@@ -301,6 +302,8 @@ import { SimplifyModifier } from "three/addons/modifiers/SimplifyModifier.js";
 import * as HorseV2 from "./horse-v2.js";
 // Graphic style options (?look=model|diorama|faceted); without ?look nothing changes. See looks.js.
 import * as LOOKS from "./looks.js";
+// Grandstand style tests (?stand=pastel|brick&v=1..3); without ?stand nothing changes. See stand-styles.js.
+import * as STANDS from "./stand-styles.js";
 // The race engine (race-engine/ in the repo; a copy lives in assets/engine/): it decides the race, the view plays it back.
 import { runRace } from "./assets/engine/engine.js";
 import { randomField } from "./assets/engine/field.js";
@@ -809,7 +812,7 @@ function bakedMaterial(m, info, tex, key) {
     mat = new THREE.MeshBasicMaterial({ color: col, lightMap: tex, lightMapIntensity: Math.PI * info.scale });
   }
   mat.name = name;
-  LOOKS.patchBaked(mat, name, key);
+  if (key === "stand" && STANDS.standId) STANDS.patchStand(mat, name); else LOOKS.patchBaked(mat, name, key);
   return mat;
 }
 function placeBaked(gltf, B, dressing) {
@@ -819,12 +822,14 @@ function placeBaked(gltf, B, dressing) {
     const node = gltf.scene.getObjectByName(info.mesh);
     if (!node) { console.warn("Baked mesh missing:", key); continue; }
     const tex = bakedTex(info.lightMap || info.map);
+    if (key === "stand") STANDS.setModules(COURSE.grandstand.modules);
     for (const m of meshesOf(node)) {
       m.material = bakedMaterial(m, info, tex, key);
       m.castShadow = false; m.receiveShadow = false;
       if (key !== "ground") LAYERS.buildings.push(m);
     }
     scene.add(node);
+    if (key === "stand") STANDS.addStandLines(scene, meshesOf(node));
   }
   if (B.site && B.site.kit && dressing) placeSiteKit(gltf, B.site, dressing.pieces);
   // Beyond the baked ground: plain grass, and the turf right round the course, in the same light
@@ -1534,6 +1539,12 @@ for (const [id, label] of [["", "Current"], ["model", "Model maker"], ["diorama"
   const b = button(looksEl, label, () => { const p = new URLSearchParams(location.search); if (id) p.set("look", id); else p.delete("look"); location.search = p.toString(); }, "look-" + (id || "current"));
   b.setAttribute("aria-pressed", id === (LOOKS.lookId || ""));
 }
+// Grandstand style tests (stand-styles.js): each reloads the page with ?stand= and &v=
+{
+  const sel = document.getElementById("standSel"), now = STANDS.standId ? STANDS.standId + (STANDS.standId === "debug" ? "" : (params.get("v") || "1")) : "";
+  fill(sel, [["", "Current"], ["pastel1", "Pastel row"], ["pastel2", "Pastel row, line work"], ["pastel3", "Sorbet"], ["brick1", "Red brick, ink"], ["brick2", "Red brick, no line"], ["brick3", "Stock brick and slate"], ["debug", "Materials"]], now);
+  sel.onchange = () => { const p = new URLSearchParams(location.search); const v = sel.value; if (!v) { p.delete("stand"); p.delete("v"); } else { p.set("stand", v.replace(/\d$/, "")); if (/\d$/.test(v)) p.set("v", v.slice(-1)); else p.delete("v"); } location.search = p.toString(); };
+}
 const finEl = document.getElementById("finish");
 // The finish: storybook (the game's grade, the default in the game) or the plain 3D picture. Remembered per browser.
 let storybook = (() => { try { const v = localStorage.getItem("tb-finish"); if (v) return v === "story"; } catch {} return GAME || params.get("finish") === "story"; })();
@@ -1546,7 +1557,7 @@ const finButtons = [["story", "Storybook"], ["plain", "Plain 3D"]].map(([id, lab
 function syncButtons() {
   camButtons.forEach((b) => b.setAttribute("aria-pressed", b.dataset.cam === state.cam));
   finButtons.forEach((b) => b.setAttribute("aria-pressed", (b.dataset.fin === "story") === storybook));
-  document.documentElement.classList.toggle("story", storybook && !LOOKS.lookId);
+  document.documentElement.classList.toggle("story", storybook && !LOOKS.lookId && !STANDS.standId);
   post.uniforms.painted.value = state.painted ? 1 : 0;
 }
 syncButtons();
