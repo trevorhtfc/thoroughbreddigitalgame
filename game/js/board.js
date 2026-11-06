@@ -205,48 +205,44 @@ const TRAILS = {
   "palace>jockey": [[436, 650], [470, 662], [505, 675], [528, 630], [557, 590], [573, 556], [590, 588], [626, 606], [660, 652]],
 };
 const medalAt = (id) => { const p = placeOf(id); return id === "races" ? [p.at[0], p.at[1] + 30] : [p.at[0], p.at[1] - 30]; };
-let trailNow = null;
 function routeFor(from, to) {
   const key = from + ">" + to, back = to + ">" + from;
   if (TRAILS[key]) return TRAILS[key];
   if (TRAILS[back]) return rev(TRAILS[back]);
   return [medalAt(from), medalAt(to)];
 }
-function clearTrail() {
-  if (!trailNow) return;
-  const t = trailNow; trailNow = null;
-  t.g.classList.add("gone"); t.rider.classList.add("gone");
-  setTimeout(() => { t.g.remove(); t.rider.remove(); }, 900);
+// Moving on to the next place: the board eases out to the whole of Newmarket, then glides in a little towards the
+// next place, which gives a gentle pulse. Resolves as the pulse goes. (The camera is a transform on #lean, always
+// written as the same list of steps, so one move hands over smoothly to the next and to the lean.)
+let travelNow = null;
+const camera = (P, d, rot, s) => `translate(${(P[0] + d[0]).toFixed(1)}px, ${(P[1] + d[1]).toFixed(1)}px) rotateX(${rot}deg) scale(${s}) translate(${(-P[0]).toFixed(1)}px, ${(-P[1]).toFixed(1)}px)`;
+const CAM_REST = camera([0, 0], [0, 0], 0, 1);
+function clearTrail() { travelNow = null; }
+function pulseAt(id) {
+  for (const el of [locEl(id), siteEl(id)]) { if (!el) continue; el.classList.remove("pulse"); void el.getBoundingClientRect(); el.classList.add("pulse"); setTimeout(() => el.classList.remove("pulse"), 2600); }
 }
-// draw the journey from one place to another; resolves when the little horse arrives
 function trail(from, to, { ms = 2800 } = {}) {
-  clearTrail();
-  const pts = routeFor(from, to), d = openPath(pts);
-  const g = document.createElementNS(svgNS, "g"); g.setAttribute("class", "trail");
-  const mid = "tm" + Date.now();
-  g.innerHTML = `<defs><mask id="${mid}" maskUnits="userSpaceOnUse" x="-50" y="-50" width="1548" height="1186"><path class="reveal" d="${d}"/></mask></defs>
-    <path class="t-glow" d="${d}" mask="url(#${mid})"/><path class="t-shadow" d="${d}" mask="url(#${mid})"/><path class="t-ink" d="${d}" mask="url(#${mid})"/>
-    <circle class="t-start" cx="${pts[0][0]}" cy="${pts[0][1]}" r="5"/><g class="t-end" transform="translate(${pts[pts.length - 1][0]},${pts[pts.length - 1][1]})"><circle r="9"/><circle r="17" class="t-ring"/></g>`;
-  glow.appendChild(g);
-  const path = g.querySelector(".t-ink"), reveal = g.querySelector(".reveal"), len = path.getTotalLength();
-  reveal.style.strokeDasharray = `${len} ${len + 10}`; reveal.style.strokeDashoffset = len;
-  const rider = document.createElement("div"); rider.className = "trail-rider"; stage.appendChild(rider);
-  const t = { g, rider, path, len }; trailNow = t;
-  return new Promise((res) => {
-    if (REDUCED) { reveal.style.strokeDashoffset = 0; g.classList.add("arrived"); rider.remove(); res(); return; }
-    const t0 = performance.now(); let lastX = null;
-    const step = (now) => {
-      if (trailNow !== t) { res(); return; }
-      const e = Math.min(1, (now - t0) / ms), u = e < 0.5 ? 2 * e * e : 1 - Math.pow(-2 * e + 2, 2) / 2;   // ease in and out
-      reveal.style.strokeDashoffset = (len * (1 - u)).toFixed(1);
-      const q = path.getPointAtLength(len * u);
-      const dir = lastX == null ? 0 : q.x - lastX; lastX = q.x;
-      rider.style.transform = `translate(${q.x}px, ${q.y}px) translate(-50%, -88%)${dir < -0.05 ? " scaleX(-1)" : ""}`;
-      if (e < 1) requestAnimationFrame(step);
-      else { g.classList.add("arrived"); rider.classList.add("gone"); setTimeout(() => rider.remove(), 700); res(); }
-    };
-    requestAnimationFrame(step);
-  });
+  const p = placeOf(to), run = travelNow = {};
+  const wait = (t) => new Promise((r) => setTimeout(r, t));
+  if (!p) return Promise.resolve();
+  if (REDUCED) { panTo(to); pulseAt(to); return wait(700); }
+  return (async () => {
+    const out = Math.round(ms * 0.3), inn = Math.round(ms * 0.45), C = [MW * scale / 2, MH * scale / 2], P = [p.at[0] * scale, p.at[1] * scale];
+    lean.style.transformOrigin = "0 0";
+    lean.style.transition = `transform ${out}ms cubic-bezier(.45,0,.25,1)`;
+    lean.style.transform = camera(C, [0, 0], 0, 0.9);                        // out: the whole of Newmarket
+    await wait(out); if (travelNow !== run) return;
+    panTo(to);                                                               // a phone slides along on the way back in
+    const pan = view.classList.contains("pan");
+    let d = [0, 0];
+    if (!pan) { const vr = view.getBoundingClientRect(), hr = holder.getBoundingClientRect(); d = [(vr.left + vr.width / 2 - hr.left - P[0]) * 0.3, (vr.top + vr.height / 2 - hr.top - P[1]) * 0.3]; }
+    lean.style.transition = `transform ${inn}ms cubic-bezier(.22,.8,.24,1)`;
+    lean.style.transform = camera(P, d, 0, pan ? 1.04 : 1.1);               // in: a little towards the next place
+    await wait(Math.round(inn * 0.7)); if (travelNow !== run) return;
+    pulseAt(to);
+    await wait(Math.max(400, ms - out - Math.round(inn * 0.7)));
+    lean.style.transition = "";                                              // the stylesheet's own, for the lean that follows
+  })();
 }
 
 // ---------------------------------------------------------------- the sky: cloud shadows over the board, wisps drifting along the top
@@ -530,13 +526,13 @@ const lean = $id("lean");
 function leanTo(id) {
   const p = id && placeOf(id);
   if (p && !API.covered) panTo(id);                                // a phone slides the board to the place, lean or no lean
-  if (!p || REDUCED || LITE || API.covered) { lean.style.transform = ""; return; }
+  lean.style.transformOrigin = "0 0";
+  if (!p || REDUCED || LITE || API.covered) { lean.style.transform = CAM_REST; return; }
   const vr = view.getBoundingClientRect(), hr = holder.getBoundingClientRect();
   const px = hr.left - vr.left + p.at[0] * scale, py = hr.top - vr.top + p.at[1] * scale;
   const phone = innerWidth <= 640, tx = phone ? vr.width / 2 : 370 + (vr.width - 370) / 2, ty = phone ? vr.height * 0.3 : vr.height * 0.52;
-  if (view.classList.contains("pan")) { lean.style.transform = ""; return; }
-  lean.style.transformOrigin = `${p.at[0] * scale}px ${p.at[1] * scale}px`;
-  lean.style.transform = `translate(${((tx - px) * 0.45).toFixed(1)}px, ${((ty - py) * 0.45).toFixed(1)}px) rotateX(8deg) scale(1.12)`;
+  if (view.classList.contains("pan")) { lean.style.transform = CAM_REST; return; }
+  lean.style.transform = camera([p.at[0] * scale, p.at[1] * scale], [(tx - px) * 0.45, (ty - py) * 0.45], 8, 1.12);
 }
 
 // ---------------------------------------------------------------- sounds: each place has its own, heard while the pointer is over it

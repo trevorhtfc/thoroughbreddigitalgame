@@ -434,3 +434,15 @@ button{font:inherit;cursor:pointer;color:inherit}
 .lite #glow .site .rim,.lite #glow .site.st-next .halo{animation:none}
 .lite body.sheet-open #view,.lite body.sheet-open #races{visibility:hidden}
 .lite body.sheet-open #glow *{animation-play-state:paused}
+
+/* the planner's race chips: the four rating bands in the board game's colours, and clearer sex marks */
+.pq{min-height:0}
+.pq-b{gap:3px;flex-wrap:wrap}
+.pq-b i{min-width:30px;text-align:center;font-variant-numeric:tabular-nums;font-size:12px;line-height:19px;padding:0 4px}
+.pq-t .sx-i{font-size:12.5px;line-height:17px;font-family:system-ui,-apple-system,sans-serif}
+/* arriving at the next place: a gentle pulse on its medal, its ring and its outline */
+.loc.pulse .medal{animation:locPulse 1.25s ease-out 2}
+.loc.pulse .ripple{animation:ripple 1.25s ease-out 2!important;opacity:1}
+#glow .site.pulse .line{animation:linePulse 1.25s ease-out 2}
+@keyframes locPulse{0%{transform:scale(1);box-shadow:0 0 0 0 rgba(255,214,140,.9)}35%{transform:scale(1.16);box-shadow:0 0 0 9px rgba(255,214,140,.35)}100%{transform:scale(1);box-shadow:0 0 0 18px rgba(255,214,140,0)}}
+@keyframes linePulse{0%,100%{stroke-width:1.3;opacity:.6}35%{stroke-width:4;opacity:1}}

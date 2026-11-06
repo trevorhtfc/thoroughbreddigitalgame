@@ -37,12 +37,14 @@ function refCard(r) {
 function refView(job) { return S.view === "plan" ? plannerView() : job(); }
 const onJob = () => S.view !== "plan";
 /* ===== Race planner: race chips at the top, your horses below; drop a race on a horse to target it ===== */
+// the board game's four race-day colours, best to worst: a race's rating bands are shown in them
+const KEY_NAMES = ["black", "red", "yellow", "blue"];
 function raceChip(r) {
   const g = GRADE[r.grade], tg = (S.targets || {})[r.id], th = tg && horse(tg), sel = S.planSel === r.id;
   return `<button class="pq ${sel ? "sel" : ""} ${th ? "has" : ""}" data-plansel="${r.id}" draggable="true" aria-pressed="${sel}" title="${r.name}${th ? " · target: " + th.name : ""}">
     <span class="pq-t"><b class="g ${g.cls}">${g.short}</b><span>${r.dist}</span><span>${ageOnly(r)}</span><span class="sx-i ${r.sex || "O"}">${r.sex === "C" ? "♂" : r.sex === "F" ? "♀" : "⚥"}</span></span>
     <span class="pq-n">${r.name.replace(/ Stakes$/, "")}</span>
-    <span class="pq-b"><i>Needs ${needFor(r)}+</i>${r.grade === "Handicap" ? `<em title="Handicap: horses rated ${HCAP_MAX} or less">≤${HCAP_MAX}</em>` : ""}</span>
+    <span class="pq-b" title="Race-day rating bands, as in the board game: ${r.bands.map((b, k) => `${KEY_NAMES[k]} ${b}+`).join(", ")}">${r.bands.map((b, k) => `<i class="k-${KEY_NAMES[k]}">${b}</i>`).join("")}${r.grade === "Handicap" ? `<em title="Handicap: horses rated ${HCAP_MAX} or less">≤${HCAP_MAX}</em>` : ""}</span>
     ${th ? `<span class="pq-who">★ ${esc2(th.name)}</span>` : ""}</button>`;
 }
 function fitFor(h, r) {
