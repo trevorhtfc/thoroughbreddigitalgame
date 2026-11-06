@@ -46,7 +46,7 @@ button:focus-visible{outline:2px solid var(--tb-gold);outline-offset:3px}
 #wisps{position:absolute;left:0;top:0;width:1448px;height:300px;pointer-events:none}
 #life{filter:saturate(.85) sepia(.1)}
 /* the day: the board multiplied by the hour's light, warmed in the afternoon, lamps at dusk, mist at dawn, smoke */
-#banners{position:absolute;pointer-events:none}
+#banners{position:absolute;pointer-events:none;filter:saturate(.85) sepia(.12) blur(.25px)}
 #mist,#shade,#warm,#lamps,#smoke{position:absolute;inset:0;width:1448px;height:1086px;pointer-events:none}
 #shade{mix-blend-mode:multiply;background:#fff}
 #warm{mix-blend-mode:soft-light;opacity:0;background:radial-gradient(ellipse at 90% -10%,#ffb25a 0%,#ff9440 55%,#b95a2a 100%)}
@@ -1080,7 +1080,9 @@ function silkFlag(def, palette, W, H, seed) {
   const K = 4, m = 3, c = document.createElement("canvas"); c.width = (W + m * 2) * K; c.height = (H + m * 2) * K;
   const g = c.getContext("2d"); g.scale(K, K); g.translate(m, m); g.lineJoin = "round"; g.lineCap = "round";
   const soft = (name) => { const h = palette[name] || "#888888", n = parseInt(h.slice(1), 16), base = [232, 220, 186];
-    const v = [n >> 16, (n >> 8) & 255, n & 255].map((x, i) => Math.round(x * 0.86 + base[i] * 0.1)); return `rgb(${v.join(",")})`; };
+    let v = [n >> 16, (n >> 8) & 255, n & 255]; const grey = (v[0] + v[1] + v[2]) / 3;
+    v = v.map((x, i) => Math.round((x * 0.72 + grey * 0.28) * 0.74 + base[i] * 0.2));      // less saturated, warmed towards the board's paper
+    return `rgb(${v.join(",")})`; };
   const c1 = soft(def.body.colour), c2 = soft(def.body.colour2 || def.body.colour);
   // the cloth: wavering top and bottom edges, a ragged fly
   const pts = [];
@@ -1104,10 +1106,27 @@ function silkFlag(def, palette, W, H, seed) {
     case "diamond": g.beginPath(); g.moveTo(W / 2, H * 0.12); g.lineTo(W * 0.78, H / 2); g.lineTo(W / 2, H * 0.88); g.lineTo(W * 0.22, H / 2); g.closePath(); g.fill(); break;
     case "seams": g.lineWidth = 0.9; g.beginPath(); g.moveTo(W / 3, -1); g.lineTo(W / 3, H + 1); g.moveTo(W * 2 / 3, -1); g.lineTo(W * 2 / 3, H + 1); g.stroke(); break;
   }
+  // painted cloth: a few soft vertical folds, light from the upper left, darker edges and the board's grain
+  for (let i = 0; i < 4; i++) {
+    const x = W * (0.15 + i * 0.24 + (r() - 0.5) * 0.08), w = W * (0.08 + r() * 0.08), gr = g.createLinearGradient(x - w, 0, x + w, 0);
+    gr.addColorStop(0, "rgba(40,28,14,0)"); gr.addColorStop(0.5, `rgba(40,28,14,${(0.1 + r() * 0.08).toFixed(2)})`); gr.addColorStop(1, "rgba(40,28,14,0)");
+    g.fillStyle = gr; g.fillRect(x - w, -1, w * 2, H + 2);
+    const hl = g.createLinearGradient(x - w * 2, 0, x - w * 0.6, 0);
+    hl.addColorStop(0, "rgba(255,248,226,0)"); hl.addColorStop(0.6, "rgba(255,248,226,.14)"); hl.addColorStop(1, "rgba(255,248,226,0)");
+    g.fillStyle = hl; g.fillRect(x - w * 2, -1, w * 1.4, H + 2);
+  }
+  const lit = g.createLinearGradient(0, 0, W * 0.4, H); lit.addColorStop(0, "rgba(255,246,220,.16)"); lit.addColorStop(1, "rgba(255,246,220,0)");
+  g.fillStyle = lit; g.fillRect(-1, -1, W + 2, H + 2);
+  const dk = g.createLinearGradient(0, H * 0.55, 0, H); dk.addColorStop(0, "rgba(40,26,12,0)"); dk.addColorStop(1, "rgba(40,26,12,.18)");
+  g.fillStyle = dk; g.fillRect(-1, -1, W + 2, H + 2);
+  for (let i = 0; i < W * H * 1.4; i++) {
+    g.fillStyle = r() < 0.5 ? `rgba(30,20,10,${(r() * 0.12).toFixed(3)})` : `rgba(255,248,230,${(r() * 0.1).toFixed(3)})`;
+    g.fillRect(r() * W, r() * H, 0.35 + r() * 0.5, 0.25 + r() * 0.3);
+  }
   g.restore();
-  g.strokeStyle = INKB; g.lineWidth = 0.6; g.stroke(cloth);
-  // three tabs round the pole
-  for (const y of [H * 0.1, H * 0.43, H * 0.76]) { g.fillStyle = "#f4f1ea"; g.fillRect(-1.3, y, 1.9, H * 0.14); g.lineWidth = 0.4; g.strokeRect(-1.3, y, 1.9, H * 0.14); }
+  g.save(); g.clip(cloth); g.strokeStyle = "rgba(40,26,12,.28)"; g.lineWidth = 0.9; g.stroke(cloth); g.restore();
+  // the sleeve the cloth is sewn into, round the pole
+  g.fillStyle = c1; g.fillRect(-0.9, -0.2, 1.6, H + 0.2); g.fillStyle = "rgba(40,26,12,.25)"; g.fillRect(-0.9, -0.2, 1.6, H + 0.2);
   c.m = m; c.K = K; c.W = W; c.H = H;
   return c;
 }
@@ -1120,18 +1139,24 @@ function drawBanners(t, dt) {
   const amp = 1.1 + racesHot * 1.3, speed = 4.2 + racesHot * 3.5;
   for (const b of BANNERS) {
     const top = b.y - banPole;
-    // shadow at the foot, the pole, the spear tip
-    bx.fillStyle = "rgba(40,34,20,.28)"; bx.beginPath(); bx.ellipse(b.x + 2.5, b.y + 0.6, 3.2, 1.1, 0, 0, 6.283); bx.fill();
-    bx.fillStyle = "#f4f1ea"; bx.strokeStyle = INKB; bx.lineWidth = 0.45;
-    bx.fillRect(b.x - 0.6, top, 1.2, banPole); bx.strokeRect(b.x - 0.6, top, 1.2, banPole);
-    bx.beginPath(); bx.moveTo(b.x, top - 4.6); bx.lineTo(b.x + 0.9, top - 1.6); bx.lineTo(b.x, top + 0.4); bx.lineTo(b.x - 0.9, top - 1.6); bx.closePath(); bx.fill(); bx.stroke();
+    // the shadow of pole and flag, thrown down and to the right across the grass as the board's own shadows fall
+    bx.save(); bx.globalAlpha = 0.22; bx.fillStyle = "#2c2414";
+    bx.beginPath(); bx.moveTo(b.x - 0.6, b.y); bx.lineTo(b.x + 13, b.y + 7.5); bx.lineTo(b.x + 14, b.y + 6.2); bx.lineTo(b.x + 0.6, b.y - 0.6); bx.fill();
+    bx.beginPath(); bx.moveTo(b.x + 9, b.y + 5.2); bx.lineTo(b.x + 9 + banW * 0.95, b.y + 6.8); bx.lineTo(b.x + 13 + banW * 0.95, b.y + 9.8); bx.lineTo(b.x + 13, b.y + 8.3); bx.closePath(); bx.fill();
+    bx.restore();
+    const pg = bx.createLinearGradient(b.x - 0.7, 0, b.x + 0.7, 0); pg.addColorStop(0, "#eee6d2"); pg.addColorStop(0.5, "#d6cbb2"); pg.addColorStop(1, "#8d8068");
+    bx.fillStyle = pg; bx.fillRect(b.x - 0.65, top, 1.3, banPole);
+    const fg = bx.createRadialGradient(b.x - 0.4, top - 1.6, 0.1, b.x, top - 1.2, 1.4); fg.addColorStop(0, "#f3dc94"); fg.addColorStop(1, "#8a6a2c");
+    bx.fillStyle = fg; bx.beginPath(); bx.arc(b.x, top - 1.1, 1.15, 0, 6.283); bx.fill();
     // the flag, in slices that ripple more towards the fly
     const f = b.flag, K = f.K, m = f.m, N = 12, sw = (f.W + m) * K / N, fx = b.x - m + 0.2, fy = top + 1.6 - m;
     for (let i = 0; i < N; i++) {
       const sx = m * K * 0 + i * sw, u = Math.max(0, (i * sw / K - m) / f.W), ph = t * speed - u * 3.2 + b.ph;
       const dy = Math.sin(ph) * amp * u, shade = Math.cos(ph) * u;
       bx.drawImage(f, sx, 0, sw + 1, f.height, fx + sx / K, fy + dy, (sw + 1) / K, f.height / K);
-      if (shade > 0.05) { bx.globalCompositeOperation = "source-atop"; bx.fillStyle = `rgba(30,20,10,${(0.22 * shade).toFixed(3)})`; bx.fillRect(fx + sx / K, fy + dy, sw / K + 0.05, f.height / K); bx.globalCompositeOperation = "source-over"; }
+      if (Math.abs(shade) > 0.04) { bx.globalCompositeOperation = "source-atop";
+        bx.fillStyle = shade > 0 ? `rgba(36,24,10,${(0.24 * shade).toFixed(3)})` : `rgba(255,246,222,${(-0.14 * shade).toFixed(3)})`;
+        bx.fillRect(fx + sx / K, fy + dy, sw / K + 0.05, f.height / K); bx.globalCompositeOperation = "source-over"; }
     }
   }
 }
@@ -1145,7 +1170,7 @@ Promise.all([fetch("assets/banners.json").then((r) => r.json()), fetch("assets/s
   const poly = [[first.x - 14, first.y - 10], ...tops, [end.x + banW + 14, end.y - banPole - 9], [end.x + banW + 14, end.y + 4], ...feet, [first.x - 14, first.y + 9]];
   const d = smoothPath(poly);
   const gEl = document.createElementNS(svgNS, "g"); gEl.setAttribute("class", "site"); gEl.id = "site-races";
-  gEl.innerHTML = `<path class="wash" d="${d}"/><path class="halo" d="${d}"/><path class="rim" d="${d}"/><path class="line" d="${d}"/><path class="spark" d="${d}" pathLength="548"/><path class="hit" d="${d}"/>`;
+  gEl.innerHTML = `<path class="hit" d="${d}"/>`;
   gEl.addEventListener("pointerenter", () => hover("races", true)); gEl.addEventListener("pointerleave", () => hover("races", false));
   gEl.addEventListener("click", () => choose(chosen === "races" ? null : "races"));
   glow.appendChild(gEl);
