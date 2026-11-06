@@ -240,13 +240,28 @@ if ACCENT:
     # doors: the central stretch's doors in pastels, one colour per building; the rest stay dark green
     DOOR_COL = {"clock_centre": "sage", "three_storey_block": "butter", "grand_pavilion": "powder", "ironwork_bay": "blush",
                 "pavilion": "lilac", "window_block": "butter", "link": "blush", "end_pavilion": "sage"}
+    # each building's stripe colour for its awnings, in turn along the stand (a building = a run of one module)
+    STRIPES = ["blush", "sage", "butter", "powder", "lilac"]
+    bcol, last, k = {}, None, -1
+    for m in sorted(MODS, key=lambda m: -m["xEast"]):
+        if m["module"] != last: k += 1; last = m["module"]
+        bcol[m["xEast"]] = STRIPES[k % len(STRIPES)]
+    def stripe_at(x):
+        m = module_at(x)
+        return bcol[m["xEast"]] if m else "blush"
     doors_front = []
     for o in by_mat("gs_door"):
         for comp, lo, hi in islands(o):
             x = (lo.x + hi.x) / 2; m = module_at(x)
             if m and -110 < x < 220 and m["module"] in DOOR_COL:
                 recolour(o, comp, AM[DOOR_COL[m["module"]]])
-                if hi.y > -FRONT - 0.6 and hi.z < 4.0: doors_front.append((lo, hi, DOOR_COL[m["module"]]))
+            if m and hi.y > -FRONT - 0.6 and hi.z < 4.0 and hi.x - lo.x > 0.6: doors_front.append((lo, hi, stripe_at(x)))
+    # the arched openings and windows in the stone base get awnings too
+    for o in by_mat("gs_glass"):
+        for comp, lo, hi in islands(o):
+            x = (lo.x + hi.x) / 2
+            if hi.y > -FRONT - 0.6 and hi.z < 3.4 and lo.z > 0.2 and hi.x - lo.x > 0.8 and module_at(x):
+                doors_front.append((lo, hi, stripe_at(x)))
     # balusters: the clock block's balustrades in sage, the grand pavilions' in powder blue, the small pavilions' in blush
     BAL = [((-11.5, 23.5), "sage"), ((-53.5, -25.5), "powder"), ((153, 181), "powder"), ((-88.5, -67.5), "blush"), ((195, 216), "blush")]
     nb = 0
@@ -325,8 +340,11 @@ if ACCENT:
         ob = add_mesh("awning", vs, fs, [canvas, AM[col]], fm)
         ob.modifiers.new("thick", "SOLIDIFY").thickness = 0.03
     na = 0
+    doors_front.sort(key=lambda d: d[0].x)
+    placed = []
     for lo, hi, col in doors_front:
-        if -54 < (lo.x + hi.x) / 2 < 24: awning(lo, hi, col); na += 1
+        if any(abs(lo.x - p.x) < 0.3 and abs(hi.x - q.x) < 0.3 for p, q in placed): continue   # one awning per opening
+        awning(lo, hi, col); placed.append((lo, hi)); na += 1
     print("accents: %d flags, %d awnings" % (k + 1, na), flush=True)
 
 # ground, track, rails
