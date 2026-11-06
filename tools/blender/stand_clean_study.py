@@ -406,6 +406,19 @@ if ACCENT:
         for i, sl in enumerate(o.material_slots):
             base = (sl.material.name if sl.material else "").split(".")[0]
             if base in CM: o.material_slots[i].material = CM[base]
+    # more black top hats (owner, 6 Nov 2026): every top hat near-black (the odd grey one), and the top-hat gents
+    # picked twice as often, so about two people in five wear one
+    tops = [o for o in list(crowd_coll.objects) if "_top" in o.name]
+    if tops:
+        top_mat = palette_mat("c_tophat", ["#1a1a1e", "#1f1f23", "#222226", "#1c1c20", "#26262a", "#1d1d21", "#55555c"], rough=0.8)
+        for o in tops:
+            for i, sl in enumerate(o.material_slots):
+                if sl.material is CM.get("fig_hat") or sl.material is CM.get("crowd_hat"):
+                    o.material_slots[i].link = "OBJECT"; o.material_slots[i].material = top_mat
+        for k in range(int(os.environ.get("TOP_EXTRA", "2"))):
+            for o in tops:
+                d = o.copy(); crowd_coll.objects.link(d)
+        print("crowd: %d figures, %d with top hats" % (len(crowd_coll.objects), sum("_top" in o.name for o in crowd_coll.objects)), flush=True)
     import random
     rnd = random.Random(21)
     pts = []
