@@ -356,13 +356,24 @@ def terrace(seg):
     ztop = zt0 + (k - 1) * 0.34
     K.box("wall", x0, x1, D - 0.4, D, 0, ztop + 1.1)                                 # back wall
     K.box("trim", x0, x1, D - 0.5, D + 0.1, ztop + 1.1, ztop + 1.25)
+    if not seg.get("open_ends"):
+        # the open roof terrace closed at the back by a screen wall (owner's markup, 6 Nov 2026): a plain wall a
+        # storey above the top row with a pier at each bay and a cornice, flags along its top (added by the views)
+        zw = ztop + 3.4
+        K.box("wall", x0, x1, D - 0.45, D, ztop + 1.25, zw)
+        for i in range(nb + 1):
+            px = x0 + (x1 - x0) * i / nb
+            K.box("trim", px - 0.22, px + 0.22, D - 0.62, D - 0.4, ztop + 1.25, zw)
+        K.box("trim", x0, x1, D - 0.62, D + 0.12, zw, zw + 0.22)
+        K.box("trim", x0, x1, D - 0.75, D + 0.2, zw + 0.22, zw + 0.36)
+        K.box("trim", x0, x1, D - 0.6, D - 0.4, ztop + 1.25, ztop + 1.4)
     for x in (x0, x1):                                                               # finished ends: cheek walls
         if ("left" if x == x0 else "right") in party:
             continue
         t = -0.3 if x == x0 else 0.3
         if seg.get("open_ends"):
             continue                                                                 # a canopy's ends stay open
-        K.prism_x("wall", min(x, x + t), max(x, x + t), [(3.15, zr + 0.6), (3.15, zr + 1.95), (D - 0.4, ztop + 1.25), (D, ztop + 1.25), (D, zr + 0.6)])
+        K.prism_x("wall", min(x, x + t), max(x, x + t), [(3.15, zr + 0.6), (3.15, zr + 1.95), (D - 3.0, ztop + 3.62), (D, ztop + 3.62), (D, zr + 0.6)])
         K.box("wall", min(x, x + t), max(x, x + t), -0.5, 8.0, z2, z2 + 1.0)
     return {"deck": zt0, "top": ztop, "depth": D}
 
@@ -411,14 +422,20 @@ def tower_belfry(seg):
 
 
 # ------------------------------------------------------------------ canopy over the terrace (owner, 6 Nov 2026)
-def canopy_terrace(seg, grand=False):
-    """The pitched-roof pavilions as light roofs over open terraces (owner's archive photo of the long canopy):
-    the terrace stand's boxes, standing terrace, gallery and stepped roof terrace run straight on through, and a
-    thin shallow-pitched roof floats over the top rows on slender columns, open to the front and at the gables.
-    grand: a steeper, taller canopy with a glazed lantern along the ridge, so the pavilions still read as landmarks."""
-    x0, x1 = seg["x0"], seg["x1"]
-    t = terrace(dict(seg, open_ends=True))
-    D, deck, top = t["depth"], t["deck"], t["top"]
+def terrace_top(D=18.0):
+    """Height of the top standing row of a terrace stand of depth D (as terrace() builds it)."""
+    zt0 = P + 2.9 + 0.35 + 4.3 + 1.0
+    y, k = 3.6, 0
+    while y + 1.1 <= D - 0.4:
+        y += 1.1; k += 1
+    return zt0 + (k - 1) * 0.34
+
+
+def canopy_roof(x0, x1, top, D, deck, back_top, grand=False, join=(), lantern=True):
+    """The pitched canopy roof over [x0, x1] (owner, 6 Nov 2026): a thin roof on slender columns standing on the
+    deck at the front, the back filled in up to the roof. top: the terrace's top row, which sets the roof's
+    height, so every stretch of one roof shares its eaves and ridge. join: sides ('left', 'right') where the same
+    roof carries straight on into the next stretch: no overhang, bargeboard or gable infill there."""
     nb = max(1, round((x1 - x0) / BAY))
     ze = top + (4.2 if grand else 3.3)                    # eave height (owner: give the stand a bit more roof)
     pitch = math.radians(25 if grand else 19)
@@ -426,37 +443,39 @@ def canopy_terrace(seg, grand=False):
     ym = (yf + yb) / 2
     zr = ze + (ym - yf) * math.tan(pitch)
     ov, th = 0.8, 0.28
-    K.prism_x("roof", x0 - ov, x1 + ov, [(yf, ze), (yf, ze + th), (ym, zr + th), (yb, ze + th), (yb, ze), (ym, zr)])
-    K.box("trim", x0 - ov, x1 + ov, yf - 0.12, yf + 0.05, ze - 0.45, ze + th)                 # light fascia (a valance)
-    K.box("trim", x0 - ov, x1 + ov, yb - 0.05, yb + 0.12, ze - 0.3, ze + th)
-    K.box("trim", x0 - ov, x1 + ov, ym - 0.12, ym + 0.12, zr + th - 0.02, zr + th + 0.12)      # ridge capping
-    for x in (x0 - ov, x1 + ov):                                                                # bargeboards on the open gables
+    ol, orr = (0.0 if "left" in join else ov), (0.0 if "right" in join else ov)
+    K.prism_x("roof", x0 - ol, x1 + orr, [(yf, ze), (yf, ze + th), (ym, zr + th), (yb, ze + th), (yb, ze), (ym, zr)])
+    K.box("trim", x0 - ol, x1 + orr, yf - 0.12, yf + 0.05, ze - 0.45, ze + th)                 # light fascia (a valance)
+    K.box("trim", x0 - ol, x1 + orr, yb - 0.05, yb + 0.12, ze - 0.3, ze + th)
+    K.box("trim", x0 - ol, x1 + orr, ym - 0.12, ym + 0.12, zr + th - 0.02, zr + th + 0.12)      # ridge capping
+    for x, side in ((x0 - ol, "left"), (x1 + orr, "right")):                                     # bargeboards on the open gables
+        if side in join: continue
         for (ya, za), (yb2, zb2) in (((yf, ze + th), (ym, zr + th)), ((ym, zr + th), (yb, ze + th))):
             L = math.hypot(yb2 - ya, zb2 - za); ang = math.atan2(zb2 - za, yb2 - ya)
             K.boxm("trim", Matrix.Translation((x, (ya + yb2) / 2, (za + zb2) / 2 + 0.05)) @ Matrix.Rotation(ang, 4, "X"), 0.12, L, 0.35)
-    # the back infilled right up to the roof (owner): a wall over the terrace's back wall, and the rear halves
+    # the back infilled right up to the roof (owner): a wall over the back wall beneath, and the rear halves
     # of the gables closed; the front and the front halves of the gables stay open
     zback = ze + (yb - D) * math.tan(pitch)
-    K.box("wall", x0, x1, D - 0.4, D, top + 1.25, zback + 0.05)
-    nwin = max(1, round((x1 - x0) / BAY))
-    for i in range(nwin):
-        cx = x0 + (x1 - x0) * (i + 0.5) / nwin
-        K.window(cx, D, top + 1.9, 1.3, 1.1, d=1)
-    for x, t in ((x0, -0.25), (x1, 0.25)):
+    K.box("wall", x0, x1, D - 0.4, D, back_top, zback + 0.05)
+    for i in range(nb):
+        cx = x0 + (x1 - x0) * (i + 0.5) / nb
+        K.window(cx, D, max(back_top, top + 1.25) + 0.65, 1.3, 1.1, d=1)
+    for x, t, side in ((x0, -0.25, "left"), (x1, 0.25, "right")):
+        if side in join: continue
         K.prism_x("wall", min(x, x + t), max(x, x + t), [(ym, top + 1.25), (ym, zr), (D, zback), (D, top + 1.25)])
-    # slender columns: a front row standing on the roof deck, a back row on the back wall, and light ties across
+    # slender columns: a front row standing on the deck, a back row on the back wall, and light ties across
     yc = 3.3
     for i in range(nb + 1):
         x = x0 + (x1 - x0) * i / nb
         K.cyl("trim", x, yc, deck, ze - 0.05 + (yc - yf) * math.tan(pitch), 0.11, 0.09, 8)
-        K.cyl("trim", x, D - 0.2, top + 1.25, ze - 0.05 + (yb - (D - 0.2)) * math.tan(pitch), 0.11, 0.09, 8)
+        K.cyl("trim", x, D - 0.2, back_top, ze - 0.05 + (yb - (D - 0.2)) * math.tan(pitch), 0.11, 0.09, 8)
         K.box("trim", x - 0.06, x + 0.06, yc, D - 0.2, ze + (yc - yf) * math.tan(pitch) - 0.25, ze + (yc - yf) * math.tan(pitch) - 0.1)
         if not K.far:                                                                            # little curved brackets
             for sgn in (-1, 1):
                 if x0 <= x + sgn * 0.5 <= x1:
                     K.arc_band("trim", x + sgn * 0.62, ze + (yc - yf) * math.tan(pitch) - 0.75, 0.5, 0.6,
                                math.pi / 2 if sgn < 0 else 0, math.pi if sgn < 0 else math.pi / 2, yc - 0.05, yc + 0.05, 5)
-    if grand:                                                                                   # glazed lantern on the ridge
+    if grand and lantern:                                                                       # glazed lantern on the ridge
         lx0, lx1 = x0 + 2.0, x1 - 2.0
         K.box("glass", lx0, lx1, ym - 1.2, ym + 1.2, zr + th, zr + th + 0.9)
         K.prism_x("roof", lx0 - 0.4, lx1 + 0.4, [(ym - 1.6, zr + th + 0.9), (ym - 1.6, zr + th + 1.05), (ym, zr + th + 1.5), (ym + 1.6, zr + th + 1.05), (ym + 1.6, zr + th + 0.9), (ym, zr + th + 1.35)])
@@ -466,33 +485,9 @@ def canopy_terrace(seg, grand=False):
                 K.box("trim", lx - 0.05, lx + 0.05, ym - 1.25, ym + 1.25, zr + th, zr + th + 0.9)
 
 
-# ------------------------------------------------------------------ long roof over a terrace run (owner's sketch, 6 Nov 2026)
-def long_roof(x0, x1, deck, back_top, D=18.0, eave_over=2.4, pitch_deg=10, flags_every=None):
-    """A long, low pitched roof carried west from the grand canopy over the terrace (and an iron bay): slender
-    columns standing on the roof deck at the front, the back filled in up to the roof, open to the front.
-    deck: height the front columns stand on; back_top: top of the back wall beneath."""
-    nb = max(1, round((x1 - x0) / BAY))
-    pitch = math.radians(pitch_deg)
-    ze = back_top + eave_over
-    yf, yb = 0.9, D + 0.7
-    ym = (yf + yb) / 2
-    zr = ze + (ym - yf) * math.tan(pitch)
-    th = 0.24
-    K.prism_x("roof", x0, x1, [(yf, ze), (yf, ze + th), (ym, zr + th), (yb, ze + th), (yb, ze), (ym, zr)])
-    K.box("trim", x0, x1, yf - 0.12, yf + 0.05, ze - 0.4, ze + th)                     # valance
-    K.box("trim", x0, x1, yb - 0.05, yb + 0.12, ze - 0.3, ze + th)
-    K.box("trim", x0, x1, ym - 0.1, ym + 0.1, zr + th - 0.02, zr + th + 0.1)           # ridge
-    zback = ze + (yb - D) * math.tan(pitch)
-    K.box("wall", x0, x1, D - 0.4, D, back_top, zback + 0.05)                          # back infilled up to the roof
-    yc = 3.3
-    zc = ze + (yc - yf) * math.tan(pitch)
-    for i in range(nb + 1):
-        x = x0 + (x1 - x0) * i / nb
-        K.cyl("trim", x, yc, deck, zc - 0.05, 0.1, 0.085, 8)
-        K.box("trim", x - 0.05, x + 0.05, yc, D - 0.4, zc - 0.22, zc - 0.1)             # tie across
-        if not K.far:
-            for sgn in (-1, 1):
-                if x0 <= x + sgn * 0.5 <= x1:
-                    K.arc_band("trim", x + sgn * 0.55, zc - 0.65, 0.42, 0.52,
-                               math.pi / 2 if sgn < 0 else 0, math.pi if sgn < 0 else math.pi / 2, yc - 0.05, yc + 0.05, 5)
-    return {"ridge": zr + th + 0.1, "ym": ym}
+def canopy_terrace(seg, grand=False):
+    """The pitched-roof pavilions as light roofs over open terraces (owner's archive photo of the long canopy):
+    the terrace stand's boxes, standing terrace, gallery and stepped roof terrace run straight on through under
+    the canopy roof. grand: a steeper, taller canopy with a glazed lantern along the ridge (the landmarks)."""
+    t = terrace(dict(seg, open_ends=True))
+    canopy_roof(seg["x0"], seg["x1"], t["top"], t["depth"], t["deck"], t["top"] + 1.25, grand, seg.get("join", ()))

@@ -312,13 +312,22 @@ if ACCENT:
         kx = round(p.x / 4) * 4
         if p.z > back.get(kx, Vector((0, 0, 0))).z: back[kx] = p
     TFLAG = [("blush", "blush"), ("sage", "sage"), ("butter", "butter"), ("powder", "powder"), ("lilac", "lilac")]
-    for i, x in enumerate(range(-96, 404, 36)):
+    # flags along the top of the terraces' back walls (owner's markup): one every five bays on the open terraces
+    wall_pts = [p for p in stand_pts if p.z < 20.5]
+    i = 0
+    for x in [x0 + 0.0 for x0 in range(-96, 404)][::1]:
+        pass
+    xs, x = [], 403.25
+    while x > -100:
         m = module_at(x)
-        if not m or m["module"] not in ("terrace_stand",) or m.get("roof"): continue
-        pts = [p for p in stand_pts if abs(p.x - x) < 1.0 and p.z < 20]
+        if m and m["module"] == "terrace_stand" and not m.get("roof"):
+            xs.append(x)
+        x -= 17.5
+    for x in xs:
+        pts = [p for p in wall_pts if abs(p.x - x) < 2.0]
         if not pts: continue
         b = max(pts, key=lambda p: p.z)
-        flag(Vector((x, b.y, b.z)), 4.2, TFLAG[i % len(TFLAG)], w=2.6, fh=1.6, phase=i * 0.9)
+        flag(Vector((x, b.y + 0.4, b.z)), 4.0, TFLAG[i % len(TFLAG)], w=2.4, fh=1.5, phase=i * 0.9); i += 1
     # pavilion roofs: a flag at each ridge (highest roof point of the module)
     roofs = [(o.matrix_world @ v.co) for o in by_mat("gs_roof") for v in o.data.vertices]
     FLAG_COL = [("blush", "blush"), ("powder", "powder"), ("sage", "butter"), ("lilac", "lilac"), ("butter", "blush"), ("powder", "sage")]
@@ -358,7 +367,7 @@ if ACCENT:
         if spans and abs(spans[-1][1] - m["xEast"]) < 0.01: spans[-1][1] = m["xWest"]
         else: spans.append([m["xEast"], m["xWest"]])
     for xe, xw in spans:
-        pts = [p for p in roofs if xw - 0.5 < p.x < xe + 0.5 and p.z < 21.5]     # the ridge is level along the run
+        pts = [p for p in roofs if xw - 0.5 < p.x < xe + 0.5 and p.z < 26.0]     # the ridge is level along the run
         if not pts: continue
         r = max(pts, key=lambda p: p.z)
         x = xe - 3.5
