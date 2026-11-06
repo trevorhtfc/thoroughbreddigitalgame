@@ -1,0 +1,38 @@
+{
+ "overview": {
+  "xEast": 412,
+  "xWest": -110,
+  "zLo": -4.0,
+  "zHi": 46.0,
+  "pxPerMetre": 12,
+  "w": 6264,
+  "h": 600
+ },
+ "east": {
+  "xEast": 412,
+  "xWest": 232,
+  "zLo": -4.0,
+  "zHi": 46.0,
+  "pxPerMetre": 32,
+  "w": 5760,
+  "h": 1600
+ },
+ "centre": {
+  "xEast": 246,
+  "xWest": 66,
+  "zLo": -4.0,
+  "zHi": 46.0,
+  "pxPerMetre": 32,
+  "w": 5760,
+  "h": 1600
+ },
+ "west": {
+  "xEast": 80,
+  "xWest": -110,
+  "zLo": -4.0,
+  "zHi": 46.0,
+  "pxPerMetre": 32,
+  "w": 6080,
+  "h": 1600
+ }
+}

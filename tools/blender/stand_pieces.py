@@ -420,12 +420,12 @@ def canopy_terrace(seg, grand=False):
     t = terrace(dict(seg, open_ends=True))
     D, deck, top = t["depth"], t["deck"], t["top"]
     nb = max(1, round((x1 - x0) / BAY))
-    ze = top + (3.4 if grand else 2.7)                    # eave height
-    pitch = math.radians(21 if grand else 14)
-    yf, yb = 1.4, D + 0.7                                 # eaves: well out over the front rows, and over the back wall
+    ze = top + (4.2 if grand else 3.3)                    # eave height (owner: give the stand a bit more roof)
+    pitch = math.radians(25 if grand else 19)
+    yf, yb = 0.6, D + 0.8                                 # eaves: well out over the front rows, and over the back wall
     ym = (yf + yb) / 2
     zr = ze + (ym - yf) * math.tan(pitch)
-    ov, th = 0.6, 0.2
+    ov, th = 0.8, 0.28
     K.prism_x("roof", x0 - ov, x1 + ov, [(yf, ze), (yf, ze + th), (ym, zr + th), (yb, ze + th), (yb, ze), (ym, zr)])
     K.box("trim", x0 - ov, x1 + ov, yf - 0.12, yf + 0.05, ze - 0.45, ze + th)                 # light fascia (a valance)
     K.box("trim", x0 - ov, x1 + ov, yb - 0.05, yb + 0.12, ze - 0.3, ze + th)
@@ -434,6 +434,16 @@ def canopy_terrace(seg, grand=False):
         for (ya, za), (yb2, zb2) in (((yf, ze + th), (ym, zr + th)), ((ym, zr + th), (yb, ze + th))):
             L = math.hypot(yb2 - ya, zb2 - za); ang = math.atan2(zb2 - za, yb2 - ya)
             K.boxm("trim", Matrix.Translation((x, (ya + yb2) / 2, (za + zb2) / 2 + 0.05)) @ Matrix.Rotation(ang, 4, "X"), 0.12, L, 0.35)
+    # the back infilled right up to the roof (owner): a wall over the terrace's back wall, and the rear halves
+    # of the gables closed; the front and the front halves of the gables stay open
+    zback = ze + (yb - D) * math.tan(pitch)
+    K.box("wall", x0, x1, D - 0.4, D, top + 1.25, zback + 0.05)
+    nwin = max(1, round((x1 - x0) / BAY))
+    for i in range(nwin):
+        cx = x0 + (x1 - x0) * (i + 0.5) / nwin
+        K.window(cx, D, top + 1.9, 1.3, 1.1, d=1)
+    for x, t in ((x0, -0.25), (x1, 0.25)):
+        K.prism_x("wall", min(x, x + t), max(x, x + t), [(ym, top + 1.25), (ym, zr), (D, zback), (D, top + 1.25)])
     # slender columns: a front row standing on the roof deck, a back row on the back wall, and light ties across
     yc = 3.3
     for i in range(nb + 1):

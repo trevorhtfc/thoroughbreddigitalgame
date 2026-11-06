@@ -62,15 +62,11 @@
   },
   {
    "module": "terrace_stand",
-   "repeat": 18
+   "repeat": 20
   },
   {
    "module": "stair_bay",
    "bays": 2
-  },
-  {
-   "module": "terrace_stand",
-   "repeat": 2
   },
   {
    "module": "clock_centre"

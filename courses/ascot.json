@@ -5425,31 +5425,31 @@
     "back": 63.4
    },
    {
+    "module": "terrace_stand",
+    "mirror": false,
+    "bays": 1,
+    "xEast": 37.5,
+    "xWest": 34.0,
+    "front": 45.4,
+    "back": 63.4
+   },
+   {
+    "module": "terrace_stand",
+    "mirror": false,
+    "bays": 1,
+    "xEast": 34.0,
+    "xWest": 30.5,
+    "front": 45.4,
+    "back": 63.4
+   },
+   {
     "module": "stair_bay",
     "mirror": false,
     "bays": 2,
-    "xEast": 37.5,
-    "xWest": 30.5,
-    "front": 45.4,
-    "back": 65.4
-   },
-   {
-    "module": "terrace_stand",
-    "mirror": false,
-    "bays": 1,
     "xEast": 30.5,
-    "xWest": 27.0,
-    "front": 45.4,
-    "back": 63.4
-   },
-   {
-    "module": "terrace_stand",
-    "mirror": false,
-    "bays": 1,
-    "xEast": 27.0,
     "xWest": 23.5,
     "front": 45.4,
-    "back": 63.4
+    "back": 65.4
    },
    {
     "module": "clock_centre",
