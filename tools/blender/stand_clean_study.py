@@ -74,13 +74,14 @@ world = bpy.data.worlds.new("sky"); scene.world = world; world.use_nodes = True
 wn, wl = world.node_tree.nodes, world.node_tree.links
 tc = wn.new("ShaderNodeTexCoord"); sep = wn.new("ShaderNodeSeparateXYZ"); ramp = wn.new("ShaderNodeValToRGB")
 wl.new(tc.outputs["Generated"], sep.inputs[0]); wl.new(sep.outputs["Z"], ramp.inputs[0])
-ramp.color_ramp.elements[0].position = 0.0; ramp.color_ramp.elements[0].color = (0.86, 0.85, 0.8, 1)
-ramp.color_ramp.elements[1].position = 0.6; ramp.color_ramp.elements[1].color = (0.32, 0.52, 0.88, 1)
-wl.new(ramp.outputs[0], wn["Background"].inputs[0]); wn["Background"].inputs[1].default_value = 1.15
+ramp.color_ramp.elements[0].position = 0.0; ramp.color_ramp.elements[0].color = (0.78, 0.8, 0.82, 1)
+ramp.color_ramp.elements[1].position = 0.55; ramp.color_ramp.elements[1].color = (0.18, 0.4, 0.86, 1)
+wl.new(ramp.outputs[0], wn["Background"].inputs[0]); wn["Background"].inputs[1].default_value = 0.55
 bpy.ops.object.light_add(type="SUN")
-sun = bpy.context.object; sun.data.energy = 4.2; sun.data.angle = math.radians(7); sun.data.color = (1.0, 0.88, 0.72)
-# the race view's sun (final-furlong.html SUN_OFFSET -110, 84, -58.5 in course axes): from the far side, to the left
-d = Vector((-110, 58.5, 84)).normalized()
+sun = bpy.context.object; sun.data.energy = 6.0; sun.data.angle = math.radians(3); sun.data.color = (1.0, 0.86, 0.68)
+# a raking afternoon sun from the west, a little in front of the stand, so every veranda, cornice and
+# balcony throws a long soft shadow along the front (course axes (-1, 0.62, -0.42) -> Blender)
+d = Vector((-1.0, 0.32, 0.45)).normalized()
 sun.rotation_euler = (-d).to_track_quat("-Z", "Y").to_euler()
 
 grass = principled("grass", "#7d9f52", 0.95); turf = principled("turf", "#8fb75f", 0.95)
@@ -118,7 +119,7 @@ if VARIANT == "clean":
         bpy.context.view_layer.objects.active = o
         for p in o.data.polygons: p.use_smooth = True
         bv = o.modifiers.new("bevel", "BEVEL")
-        bv.width = 0.045; bv.segments = 3; bv.limit_method = "ANGLE"; bv.angle_limit = math.radians(40)
+        bv.width = 0.06; bv.segments = 3; bv.limit_method = "ANGLE"; bv.angle_limit = math.radians(40)
         bv.use_clamp_overlap = True; bv.harden_normals = True; bv.profile = 0.6
         o.modifiers.new("weights", "WEIGHTED_NORMAL").keep_sharp = True
 
@@ -136,6 +137,7 @@ try: scene.view_settings.look = "AgX - Medium High Contrast"
 except Exception: pass
 scene.render.resolution_x, scene.render.resolution_y = RES
 scene.render.film_transparent = False
+scene.view_settings.exposure = -0.25
 
 
 def course(p):                                       # course axes (x east, z south, y up) -> Blender
