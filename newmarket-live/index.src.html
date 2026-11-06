@@ -27,6 +27,10 @@ button:focus-visible{outline:2px solid var(--tb-gold);outline-offset:3px}
 .brand b{display:block;font-family:var(--tb-display);font-weight:500;font-size:19px;letter-spacing:.22em;line-height:1}
 .brand i{display:block;font-style:normal;font-family:var(--tb-display);font-size:11.5px;letter-spacing:.3em;line-height:1;margin-top:5px;opacity:.8;text-transform:uppercase}
 .stats{display:flex;margin-left:auto;font-size:15px;white-space:nowrap}
+.snd{display:flex;align-items:center;gap:8px;margin-left:14px;flex:none;border:1px solid rgba(242,238,231,.45);background:transparent;color:var(--tb-on-dark);border-radius:var(--tb-radius);padding:7px 12px;font-size:14px;white-space:nowrap}
+.snd svg{width:18px;height:18px}
+.snd:hover{background:rgba(242,238,231,.14)}
+.snd[aria-pressed="true"]{background:rgba(242,238,231,.22);border-color:var(--tb-on-dark)}
 .stats > span{padding:0 16px;border-left:1px solid rgba(242,238,231,.28);display:flex;align-items:center;gap:8px;opacity:.92}
 .stats svg{width:17px;height:17px;color:var(--tb-on-dark);opacity:.8;flex:none}
 .stats em{font-style:normal;font-weight:700;font-variant-numeric:tabular-nums}
@@ -41,6 +45,14 @@ button:focus-visible{outline:2px solid var(--tb-gold);outline-offset:3px}
 #life,#clouds,#glow{position:absolute;inset:0;width:1448px;height:1086px;pointer-events:none}
 #wisps{position:absolute;left:0;top:0;width:1448px;height:300px;pointer-events:none}
 #life{filter:saturate(.85) sepia(.1)}
+/* the day: the board multiplied by the hour's light, warmed in the afternoon, lamps at dusk, mist at dawn, smoke */
+#mist,#shade,#warm,#lamps,#smoke{position:absolute;inset:0;width:1448px;height:1086px;pointer-events:none}
+#shade{mix-blend-mode:multiply;background:#fff}
+#warm{mix-blend-mode:soft-light;opacity:0;background:radial-gradient(ellipse at 90% -10%,#ffb25a 0%,#ff9440 55%,#b95a2a 100%)}
+#lamps{mix-blend-mode:screen}
+/* the lean towards a chosen place */
+.holder{perspective:1700px}
+.lean{position:absolute;inset:0;transition:transform 1.3s cubic-bezier(.22,.8,.24,1);will-change:transform}
 #clouds{mix-blend-mode:multiply;opacity:.9}
 /* the places' light: a soft rim always, warming up when the pointer is over a place or it is chosen */
 #glow .site{cursor:pointer;pointer-events:fill}
@@ -116,11 +128,12 @@ button:focus-visible{outline:2px solid var(--tb-gold);outline-offset:3px}
 .hint small{display:block;font-size:13px;color:var(--tb-muted);margin-top:2px}
 .credit{position:fixed;right:max(10px,env(safe-area-inset-right,0px));bottom:calc(6px + env(safe-area-inset-bottom,0px));z-index:10;font-size:11px;color:rgba(242,238,231,.6);font-family:var(--tb-body)}
 
-@media (max-width:980px){ .stats > span:not(.funds){display:none} }
+@media (max-width:980px){ .stats > span:not(.funds):not(.clock){display:none} }
 @media (max-width:640px){
   :root{--bar-h:52px}
-  .bar{gap:10px} .brand{gap:8px} .brand .mark{width:34px;height:23px} .brand b{font-size:15px;letter-spacing:.16em} .brand i{font-size:10px}
-  .stats{font-size:14px} .stats > span{padding:0 0 0 10px} .stats .funds .lbl{display:none}
+  .bar{gap:10px} .brand{gap:8px} .brand .mark{width:34px;height:23px} .brand b{font-size:14px;letter-spacing:.1em} .brand i{font-size:10px}
+  .stats{font-size:14px} .stats > span{padding:0 0 0 10px} .stats .funds .lbl{display:none} .stats .clock{display:none}
+  .snd span{display:none} .snd{padding:7px 9px;margin-left:10px}
   .card{left:max(12px,env(safe-area-inset-left,0px));right:max(12px,env(safe-area-inset-right,0px));top:auto;bottom:calc(12px + env(safe-area-inset-bottom,0px));width:auto;transform-origin:50% 100%}
   .card .pic{height:130px}
   .hint{display:none}
@@ -131,18 +144,24 @@ button:focus-visible{outline:2px solid var(--tb-gold);outline-offset:3px}
 <header class="bar">
   <div class="brand"><span class="mark" aria-hidden="true"></span><div><b>THOROUGHBRED</b><i>Newmarket</i></div></div>
   <div class="stats" aria-label="Your stable (example figures)">
+    <span class="clock" aria-label="Time of day"><svg id="clockIcon" viewBox="0 0 512 512" aria-hidden="true">%%ICON:sunrise%%</svg><em id="clockTime">06:20</em></span>
     <span><svg viewBox="0 0 512 512" aria-hidden="true">%%ICON:wheat%%</svg>Season: <em>Spring</em></span>
     <span><svg viewBox="0 0 512 512" aria-hidden="true">%%ICON:calendar%%</svg>Year: <em>2026</em></span>
     <span><svg viewBox="0 0 512 512" aria-hidden="true">%%ICON:barn%%</svg>Stable: <em>Riverside Stables</em></span>
     <span class="funds"><svg viewBox="0 0 512 512" aria-hidden="true">%%ICON:two-coins%%</svg><span class="lbl">Funds:</span> <em>£2,750,000</em></span>
   </div>
+  <button class="snd" id="snd" type="button" aria-pressed="false"><svg id="sndIcon" viewBox="0 0 512 512" aria-hidden="true">%%ICON:speaker-off%%</svg><span>Sound off</span></button>
 </header>
 
 <main class="view" id="view">
   <div class="holder" id="holder">
-    <div class="stage" id="stage">
+    <div class="lean" id="lean"><div class="stage" id="stage">
       <img src="assets/newmarket-board.webp" alt="The Newmarket board: the town, the gallops, Tattersalls, the stables and the National Stud" width="1448" height="1086">
       <canvas id="clouds" width="362" height="272" aria-hidden="true"></canvas>
+      <canvas id="mist" width="362" height="272" aria-hidden="true"></canvas>
+      <canvas id="life" aria-hidden="true"></canvas>
+      <div id="shade" hidden></div>
+      <div id="warm"></div>
       <svg id="glow" viewBox="0 0 1448 1086">
         <defs>
           <filter id="halo" x="-30%" y="-30%" width="160%" height="160%"><feGaussianBlur stdDeviation="6"/></filter>
@@ -150,9 +169,10 @@ button:focus-visible{outline:2px solid var(--tb-gold);outline-offset:3px}
           <radialGradient id="washGrad" cx="50%" cy="50%" r="65%"><stop offset="0" stop-color="#ffe2a0" stop-opacity=".55"/><stop offset=".7" stop-color="#ffc870" stop-opacity=".3"/><stop offset="1" stop-color="#ffb050" stop-opacity=".55"/></radialGradient>
         </defs>
       </svg>
-      <canvas id="life" aria-hidden="true"></canvas>
+      <canvas id="lamps" width="724" height="543" aria-hidden="true"></canvas>
+      <canvas id="smoke" width="1086" height="815" aria-hidden="true"></canvas>
       <canvas id="wisps" width="2896" height="600" aria-hidden="true"></canvas>
-    </div>
+    </div></div>
   </div>
 </main>
 
@@ -168,7 +188,7 @@ button:focus-visible{outline:2px solid var(--tb-gold);outline-offset:3px}
 
 <div class="hint" aria-hidden="true">
   <svg viewBox="0 0 22 30"><rect x="2" y="2" width="18" height="26" rx="9"/><path d="M11 2v10M2 12h18"/></svg>
-  <div><b>Explore Newmarket</b><small>Pick a place on the map</small></div>
+  <div><b>Explore Newmarket</b><small>Pick a place on the map. Sound is in the top bar.</small></div>
 </div>
 <div class="credit">Icons: game-icons.net, CC BY 3.0</div>
 

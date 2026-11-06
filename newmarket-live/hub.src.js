@@ -58,6 +58,7 @@ for (const p of PLACES) {
 let chosen = null;
 const siteEl = (id) => document.getElementById("site-" + id);
 function hover(id, on) {
+  hovered = on ? id : (hovered === id ? null : hovered); placeSound();
   if (id === chosen) return;
   siteEl(id)?.classList.toggle("hot", on);
   stage.querySelector(`.loc[data-id="${id}"]`).classList.toggle("lit", on);
@@ -70,6 +71,7 @@ function choose(id) {
     siteEl(p.id)?.classList.toggle("hot", p.id === id);
     stage.querySelector(`.loc[data-id="${p.id}"]`).classList.toggle("on", p.id === id);
   }
+  leanTo(id); placeSound();
   if (!id) { card.hidden = true; return; }
   const p = id === "races" ? RACES : PLACES.find((q) => q.id === id);
   document.getElementById("cardTitle").textContent = p.title;
@@ -410,10 +412,13 @@ function place(m, p, dir, alpha, t = 0) {
   }
 }
 // a journey: legs along routes (or pauses); it repeats after a rest. Fades in and out where it starts and ends in the open.
-function journey(m, legs, { start = 0, rest = 8, fadeIn = true, fadeOut = true } = {}) {
+function journey(m, legs, { start = 0, rest = 8, fadeIn = true, fadeOut = true, hours = null } = {}) {
   const ls = legs.map((l) => ({ ...l, dur: l.pause ?? l.curve.L / l.speed })), total = ls.reduce((a, l) => a + l.dur, 0);
   let last = null, lastDir = null, clock = -start;
   movers.push({ m, step(t, dt) {
+    // between runs, wait for the right time of day (the strings go out in the morning; nobody works at night)
+    const idle = clock < 0 || clock % (total + rest) > total;
+    if (idle && hours && !inHours(hours)) { place(m, m.obj.position, null, 0, t); return; }
     if (!(m.van && blocked(m))) clock += dt;
     if (clock < 0) { place(m, m.obj.position, null, 0, t); return; }
     const tau = clock % (total + rest);
@@ -443,8 +448,9 @@ function blocked(van) {
   }
   return false;
 }
-function circuit(m, curve, speed, phase, gait = "walk") {
+function circuit(m, curve, speed, phase, gait = "walk", hours = null) {
   movers.push({ m, step(t) {
+    if (hours && !inHours(hours)) { place(m, m.obj.position, null, 0, t); return; }
     const u = ((phase + t * speed / curve.L) % 1 + 1) % 1;
     if (m.act) setGait(m, gait, speed);
     place(m, curve.getPointAt(u), curve.getTangentAt(u), 1, t);
@@ -481,25 +487,32 @@ async function startLife() {
   personScale = 12 / 1.8;                                          // and a person about 12 pixels tall
 
   // strings walking out to the heath, off the left edge, then round again
-  for (const s of STRINGS) { const c = P(s.route); for (let i = 0; i < s.n; i++) { const h = makeHorse({ silk: s.silk }); h.keepLeft = 4; journey(h, [{ curve: c, speed: 15, gait: "walk" }], { start: s.start + i * 1.7, rest: 26 }); } }
+  for (const s of STRINGS) { const c = P(s.route); for (let i = 0; i < s.n; i++) { const h = makeHorse({ silk: s.silk }); h.keepLeft = 4; journey(h, [{ curve: c, speed: 15, gait: "walk" }], { start: s.start + i * 1.7, rest: 26, hours: [5.8, 11.5] }); } }
   // the Gallops and Warren Hill: lots working in a line
   const gal = P(GALLOPS), war = P(WARREN), lone = P(LONER);
-  for (let i = 0; i < 5; i++) journey(makeHorse(), [{ curve: P(GALLOPS.map(([x, z]) => [x, z + (i % 2) * 8])), speed: 70 - i, gait: "gallop" }], { start: 4 + i * 1.1, rest: 24 });
-  for (let i = 0; i < 4; i++) journey(makeHorse(), [{ curve: P(WARREN.map(([x, z]) => [x, z + (i % 2) * 7])), speed: 54, gait: "gallop" }], { start: 14 + i * 1.0, rest: 22 });
-  journey(makeHorse(), [{ curve: lone, speed: 46, gait: "gallop" }], { start: 9, rest: 16 });
+  // morning is the busy time on the gallops: two more lots on each, and the afternoon lots are smaller
+  for (let lot = 0; lot < 3; lot++) {
+    const n = lot === 2 ? 3 : 5, hours = lot === 2 ? [6, 17] : [6, 11.5];
+    for (let i = 0; i < n; i++) journey(makeHorse(), [{ curve: P(GALLOPS.map(([x, z]) => [x, z + (i % 2) * 8 + lot * 3])), speed: 70 - i, gait: "gallop" }], { start: 4 + lot * 9 + i * 1.1, rest: 24, hours });
+  }
+  for (let lot = 0; lot < 3; lot++) {
+    const n = lot === 2 ? 3 : 4, hours = lot === 2 ? [6, 17] : [6, 11.5];
+    for (let i = 0; i < n; i++) journey(makeHorse(), [{ curve: P(WARREN.map(([x, z]) => [x, z + (i % 2) * 7 + lot * 3])), speed: 54, gait: "gallop" }], { start: 14 + lot * 8 + i * 1.0, rest: 22, hours });
+  }
+  journey(makeHorse(), [{ curve: lone, speed: 46, gait: "gallop" }], { start: 9, rest: 16, hours: [6, 19] });
   // horseboxes in from the top and the bottom of the board, out along Bury Road and Old Station Road
-  VANS.forEach((r, i) => journey(makeVan(i), [{ curve: P(r), speed: 26 + (i % 3) * 4 }], { start: i * 16 + 4, rest: 14 + i * 5 }));
+  VANS.forEach((r, i) => journey(makeVan(i), [{ curve: P(r), speed: 26 + (i % 3) * 4 }], { start: i * 16 + 4, rest: 14 + i * 5, hours: [6.5, 21] }));
   // the paddocks: loose horses wandering along, a rest, and back
   for (const pd of PADDOCK) { const c = P(pd.pts), b = P(rev(pd.pts));
     journey(makeHorse({ rider: false, coat: pd.coat }), [{ curve: c, speed: 6, gait: "walk" }, { pause: 7 }, { curve: b, speed: 6, gait: "walk" }, { pause: 9 }], { start: Math.random() * 20, rest: 0, fadeIn: false, fadeOut: false }); }
   journey(makeHorse({ rider: false, coat: 4 }), [{ curve: P([[1333, 431], [1390, 452], [1466, 482]]), speed: 7, gait: "walk" }], { start: 5, rest: 12 });
   // the yards: horses led from one stable to another, a horse ridden round the lunge ring, people about
   YARD_TRIPS.forEach((tr, i) => { const h = makeHorse({ rider: false }); h.lead = makePerson();
-    journey(h, [{ curve: P(tr), speed: 9, gait: "walk" }], { start: 3 + i * 14, rest: 10 + i * 4 }); });
-  circuit(makeHorse(), P([[1281, 847], [1241, 870], [1242, 883], [1260, 908], [1346, 896], [1370, 887], [1345, 852], [1305, 843]], true), 13, 0);
+    journey(h, [{ curve: P(tr), speed: 9, gait: "walk" }], { start: 3 + i * 14, rest: 10 + i * 4, hours: [6, 20] }); });
+  circuit(makeHorse(), P([[1281, 847], [1241, 870], [1242, 883], [1260, 908], [1346, 896], [1370, 887], [1345, 852], [1305, 843]], true), 13, 0, "walk", [7, 19]);
   const parade = P(oval(1168, 752, 53, 26, 0.26), true);
-  for (let i = 0; i < 3; i++) { const h = makeHorse({ rider: false }); h.lead = makePerson(); circuit(h, parade, 9, i / 3); }
-  PEOPLE_TRIPS.forEach((tr, i) => journey(makePerson(), [{ curve: P(tr), speed: 7, gait: "walk" }, { pause: 3 }, { curve: P(rev(tr)), speed: 7, gait: "walk" }], { start: i * 2.3, rest: 4 + i, fadeIn: false, fadeOut: false }));
+  for (let i = 0; i < 3; i++) { const h = makeHorse({ rider: false }); h.lead = makePerson(); circuit(h, parade, 9, i / 3, "walk", [8, 18]); }
+  PEOPLE_TRIPS.forEach((tr, i) => journey(makePerson(), [{ curve: P(tr), speed: 7, gait: "walk" }, { pause: 3 }, { curve: P(rev(tr)), speed: 7, gait: "walk" }], { start: i * 2.3, rest: 4 + i, fadeIn: false, fadeOut: false, hours: [5.5, 21] }));
 
   window.__ready = true;
   // a check hook: stand a horse at a board point (it shows whether buildings in front of it hide it)
@@ -516,11 +529,13 @@ if (location.hash === "#routes") {                                  // a check v
   setTimeout(() => document.querySelectorAll("#glow .site").forEach((z) => z.classList.add("hot")), 50);
 }
 
+%%ATMOS%%
 const clock = new THREE.Clock();
 let skyT = 0;
 function frame() {
   const dt = Math.min(clock.getDelta(), 0.1), t = clock.elapsedTime;
-  skyT += dt; if (skyT > 1 / 15) { drawSky(skyT); skyT = 0; }
+  stepDay(dt); stepSmoke(dt); drawFx(t, dt);
+  skyT += dt; if (skyT > 1 / 15) { drawSky(skyT); drawMist(skyT); drawLamps(t); skyT = 0; }
   if (renderer) {
     for (const mv of movers) { mv.step(t, dt); if (mv.m.mixer && mv.m.obj.visible) mv.m.mixer.update(dt); }
     renderer.render(scene, cam);

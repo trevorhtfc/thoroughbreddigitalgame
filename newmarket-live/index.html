@@ -27,6 +27,10 @@ button:focus-visible{outline:2px solid var(--tb-gold);outline-offset:3px}
 .brand b{display:block;font-family:var(--tb-display);font-weight:500;font-size:19px;letter-spacing:.22em;line-height:1}
 .brand i{display:block;font-style:normal;font-family:var(--tb-display);font-size:11.5px;letter-spacing:.3em;line-height:1;margin-top:5px;opacity:.8;text-transform:uppercase}
 .stats{display:flex;margin-left:auto;font-size:15px;white-space:nowrap}
+.snd{display:flex;align-items:center;gap:8px;margin-left:14px;flex:none;border:1px solid rgba(242,238,231,.45);background:transparent;color:var(--tb-on-dark);border-radius:var(--tb-radius);padding:7px 12px;font-size:14px;white-space:nowrap}
+.snd svg{width:18px;height:18px}
+.snd:hover{background:rgba(242,238,231,.14)}
+.snd[aria-pressed="true"]{background:rgba(242,238,231,.22);border-color:var(--tb-on-dark)}
 .stats > span{padding:0 16px;border-left:1px solid rgba(242,238,231,.28);display:flex;align-items:center;gap:8px;opacity:.92}
 .stats svg{width:17px;height:17px;color:var(--tb-on-dark);opacity:.8;flex:none}
 .stats em{font-style:normal;font-weight:700;font-variant-numeric:tabular-nums}
@@ -41,6 +45,14 @@ button:focus-visible{outline:2px solid var(--tb-gold);outline-offset:3px}
 #life,#clouds,#glow{position:absolute;inset:0;width:1448px;height:1086px;pointer-events:none}
 #wisps{position:absolute;left:0;top:0;width:1448px;height:300px;pointer-events:none}
 #life{filter:saturate(.85) sepia(.1)}
+/* the day: the board multiplied by the hour's light, warmed in the afternoon, lamps at dusk, mist at dawn, smoke */
+#mist,#shade,#warm,#lamps,#smoke{position:absolute;inset:0;width:1448px;height:1086px;pointer-events:none}
+#shade{mix-blend-mode:multiply;background:#fff}
+#warm{mix-blend-mode:soft-light;opacity:0;background:radial-gradient(ellipse at 90% -10%,#ffb25a 0%,#ff9440 55%,#b95a2a 100%)}
+#lamps{mix-blend-mode:screen}
+/* the lean towards a chosen place */
+.holder{perspective:1700px}
+.lean{position:absolute;inset:0;transition:transform 1.3s cubic-bezier(.22,.8,.24,1);will-change:transform}
 #clouds{mix-blend-mode:multiply;opacity:.9}
 /* the places' light: a soft rim always, warming up when the pointer is over a place or it is chosen */
 #glow .site{cursor:pointer;pointer-events:fill}
@@ -116,11 +128,12 @@ button:focus-visible{outline:2px solid var(--tb-gold);outline-offset:3px}
 .hint small{display:block;font-size:13px;color:var(--tb-muted);margin-top:2px}
 .credit{position:fixed;right:max(10px,env(safe-area-inset-right,0px));bottom:calc(6px + env(safe-area-inset-bottom,0px));z-index:10;font-size:11px;color:rgba(242,238,231,.6);font-family:var(--tb-body)}
 
-@media (max-width:980px){ .stats > span:not(.funds){display:none} }
+@media (max-width:980px){ .stats > span:not(.funds):not(.clock){display:none} }
 @media (max-width:640px){
   :root{--bar-h:52px}
-  .bar{gap:10px} .brand{gap:8px} .brand .mark{width:34px;height:23px} .brand b{font-size:15px;letter-spacing:.16em} .brand i{font-size:10px}
-  .stats{font-size:14px} .stats > span{padding:0 0 0 10px} .stats .funds .lbl{display:none}
+  .bar{gap:10px} .brand{gap:8px} .brand .mark{width:34px;height:23px} .brand b{font-size:14px;letter-spacing:.1em} .brand i{font-size:10px}
+  .stats{font-size:14px} .stats > span{padding:0 0 0 10px} .stats .funds .lbl{display:none} .stats .clock{display:none}
+  .snd span{display:none} .snd{padding:7px 9px;margin-left:10px}
   .card{left:max(12px,env(safe-area-inset-left,0px));right:max(12px,env(safe-area-inset-right,0px));top:auto;bottom:calc(12px + env(safe-area-inset-bottom,0px));width:auto;transform-origin:50% 100%}
   .card .pic{height:130px}
   .hint{display:none}
@@ -131,18 +144,24 @@ button:focus-visible{outline:2px solid var(--tb-gold);outline-offset:3px}
 <header class="bar">
   <div class="brand"><span class="mark" aria-hidden="true"></span><div><b>THOROUGHBRED</b><i>Newmarket</i></div></div>
   <div class="stats" aria-label="Your stable (example figures)">
+    <span class="clock" aria-label="Time of day"><svg id="clockIcon" viewBox="0 0 512 512" aria-hidden="true"><path fill="currentColor" d="M259.375 16.25c-132.32 0-239.78 107.46-239.78 239.78s107.46 239.783 239.78 239.783s239.78-107.462 239.78-239.782s-107.46-239.78-239.78-239.78zm33.5 20.406c26.563 4.015 51.57 12.708 74.156 25.25L308.907 209.03c-14.573-7.215-30.96-11.344-48.312-11.53zm-67.72.094l23.97 161.22c-17.2 1.56-33.28 6.986-47.313 15.436l-51-151a220.4 220.4 0 0 1 74.344-25.656zm193.25 64.5c17.683 18.164 32.28 39.32 42.94 62.688l-107.658 85.468a111.7 111.7 0 0 0-34.968-34.875l99.686-113.28zm-319.092 1.063L192.5 219.686a111.7 111.7 0 0 0-32.063 37.75L56.5 166c10.527-23.725 25.082-45.226 42.813-63.688zm378.75 115.906a224 224 0 0 1 3.218 37.81c0 11.49-.882 22.768-2.56 33.783l-107.876 16.062a111.2 111.2 0 0 0-12-47.375l119.22-40.28zM40.25 221.093l115.844 45.75a111.3 111.3 0 0 0-8.188 39l-107.844-16.03A224 224 0 0 1 37.5 256.03c0-11.89.954-23.554 2.75-34.936zm130.563 89.53h177.125L467 334.532c-31.674 83.843-112.62 143.376-207.625 143.376c-95.018 0-175.968-59.548-207.625-143.406l119.063-23.875z"/></svg><em id="clockTime">06:20</em></span>
     <span><svg viewBox="0 0 512 512" aria-hidden="true"><path fill="currentColor" d="M98.344 16.688C79.692 43.785 68.498 69.01 65.5 89.56l23.938 39.157l28.624-33.47c.868-21.213-5.49-48.677-19.718-78.563zM472.5 19.625C444.04 36.055 423.112 54 411.562 71.25l4.75 45.688L456.563 99c9.89-18.777 15.938-46.29 15.938-79.375zm-91.75 27.28c-10.153 21.036-16.8 40.84-20.156 58.314l18.375 57.686l19.78-34.25l-6.5-62.22h.03a277 277 0 0 0-11.53-19.53zM27.25 80.782c-.125 23.364 2.393 44.102 6.875 61.314L75.5 186.25l3.125-39.406L46 93.47l.03-.032a280 280 0 0 0-18.78-12.657zm132.844 10.532c-8.415 3.504-16.29 7.213-23.594 11.094l-39.25 45.97l-3.094 39.374l50.438-39.094c6.712-15.904 12.09-35.263 15.5-57.344m177.22 21.626c-24.024 58.09-16.16 97.86 7.873 108.5l21.157-36.625l-19.594-61.438a274 274 0 0 0-9.438-10.438zm146.03.218c-4.55-.028-8.97.084-13.28.28L414.935 138l-19.78 34.28l62.343-13.655c12.897-11.47 26.09-26.626 38.656-45.094c-4.358-.216-8.64-.348-12.812-.374zm-226.094 8.72c-23.24 23.238-38.832 46.003-45.53 65.655l16.436 42.907l34.22-27.75c4.695-20.704 3.436-48.856-5.126-80.812M16.406 159.06c3.28 62.77 27.482 95.31 53.75 94.594l3.344-42.22l-44.063-47a279 279 0 0 0-13.03-5.374zm143.22 11.375a272 272 0 0 0-18.5 4.563l-48.97 37.938l-3.312 41.75c26.492 7.51 57.16-20.567 70.78-84.25zm16.06 1.563c-4.36 22.935-5.65 43.762-4.374 61.5l32.688 51l10.22-38.188l-22.407-58.437h.03a277 277 0 0 0-16.155-15.875zm267.408 8.938l-60.563 13.218l-20.936 36.25c20.682 18.195 60.438 6.035 100.125-45.625a275 275 0 0 0-18.626-3.843m-138.688 25.53c-8.912 1.92-17.304 4.16-25.187 6.657l-46.97 38.03l-10.22 38.19l56.69-29.283c9.493-14.424 18.323-32.49 25.686-53.593zm155.125 25.063c-25.85 20.324-44.046 41.06-53.03 59.782l11.22 44.532l37.28-23.47c7.126-19.99 9.236-48.088 4.53-80.843zm-123.342 8.595c-34.435 77.573-59.394 159.06-62.97 253.03h18.72c3.558-90.792 27.573-169.428 61.312-245.436l-17.063-7.595zm-185.375 6.906c-8.173 62.347 9.714 98.713 35.687 102.75l10.97-40.874l-34.814-54.25a279 279 0 0 0-11.844-7.625zm221.75 24.532c-7.053 22.243-10.817 42.77-11.657 60.532l26.406 54.594L402 349.967l-15.28-60.687h.06c-4.3-5.848-9.033-11.76-14.217-17.717zm-302.47 1.532c-8.664 74.584-8.13 147.835 12.188 220.062h19.44c-20.877-70.772-21.764-143.02-13.064-217.906l-18.562-2.156zm219.47 11.094c-6.613.16-12.953.54-19.032 1.125L215.5 313.78l-10.844 40.408c24.69 12.23 59.938-9.82 84.906-70zm206.718 36.937c-9.072.844-17.664 2.052-25.78 3.594l-51.156 32.217l-14.688 36.657l59.75-22.313c11.14-13.193 22.055-30.075 31.875-50.155zm-157.31 22c-15.528 60.938-2.096 99.19 23.217 106.28l15.72-39.28l-28.094-58.03c-3.43-3-7.053-5.985-10.844-8.97zM183.25 368.72c-12.674 41.233-22.26 82.547-26.844 124.436h18.813c4.507-39.722 13.69-79.23 25.905-118.97l-17.875-5.467zm270 26.655l-58 21.688l-15.563 38.875c23.056 15.098 60.673-2.606 92.625-59.407a273 273 0 0 0-19.062-1.155zM356.5 469.03c-1.874 7.713-3.185 15.757-3.656 24.126h18.687c.45-6.686 1.55-13.206 3.126-19.687l-18.156-4.44z"/></svg>Season: <em>Spring</em></span>
     <span><svg viewBox="0 0 512 512" aria-hidden="true"><path fill="currentColor" d="M119 31v66h18V31zm256 0v66h18V31zM73 89v30h366V89h-28v26h-54V89H155v26h-54V89zm0 48v302h366V137zm110 14h18v32h46v-32h18v32h46v-32h18v32h46v-32h18v32h32v18h-32v46h32v18h-32v46h32v18h-32v46h32v18H265v32h-18v-32h-46v32h-18v-32h-46v32h-18v-32H87v-18h32v-46H87v-18h32v-46H87v-18h32v-46H87v-18h96zm-46 50v46h46v-46zm64 0v46h46v-46zm64 0v46h46v-46zm64 0v46h46v-46zm-192 64v46h46v-46zm64 0v46h46v-46zm64 0v13.27A25.38 25.38 0 0 1 278.27 265zm32.73 0A25.38 25.38 0 0 1 311 278.27V265zm31.27 0v46h46v-46zm-41 16c-3.973 0-7 3.027-7 7s3.027 7 7 7s7-3.027 7-7s-3.027-7-7-7m-23 16.73V311h13.27A25.38 25.38 0 0 1 265 297.73m46 0A25.38 25.38 0 0 1 297.73 311H311zM137 329v46h46v-46zm64 0v46h46v-46zm64 0v46h46v-46zm64 0v46h46v-46z"/></svg>Year: <em>2026</em></span>
     <span><svg viewBox="0 0 512 512" aria-hidden="true"><path fill="currentColor" d="M256 23.38L89.844 89.845l-64.9 162.254l14.85 5.943q30.467-76.15 60.93-152.304l1.432-3.58L256 40.616l153.844 61.54l1.43 3.58l60.93 152.305l14.853-5.942l-64.9-162.254zm0 36.624l-139.996 55.998L72.8 224h.2v263h78V329h-39v-18h297v176h30V224h.2l-43.204-107.998zM151 135h210v114H151zm23.563 18L199 201.873V153zM313 153v48.873L337.438 153zm-144 29.127V231h24.438zm174 0L318.562 231H343zm-98.73 18.69c-1.207-.02-2.31.02-3.288.128c-2.823.31-10.76 3.708-16.86 7.3a147 147 0 0 0-7.122 4.484V231h78v-16.97a282 282 0 0 0-17.578-6.368c-11.206-3.63-24.71-6.71-33.152-6.846zM160 263h192v18H160zm15.16 66L208 389.205L240.84 329zm144 0L352 389.205L384.84 329zM169 355.295v105.41L197.748 408zm78 0L218.252 408L247 460.705zm66 0v105.41L341.748 408zm78 0L362.252 408L391 460.705zm-183 71.5L175.16 487h65.68zm144 0L319.16 487h65.68z"/></svg>Stable: <em>Riverside Stables</em></span>
     <span class="funds"><svg viewBox="0 0 512 512" aria-hidden="true"><path fill="currentColor" d="M264.4 95.01c-35.6-.06-80.2 11.19-124.2 34.09C96.27 152 61.45 182 41.01 211.3c-20.45 29.2-25.98 56.4-15.92 75.8c10.07 19.3 35.53 30.4 71.22 30.4c35.69.1 80.29-11.2 124.19-34c44-22.9 78.8-53 99.2-82.2c20.5-29.2 25.9-56.4 15.9-75.8c-10.1-19.3-35.5-30.49-71.2-30.49m91.9 70.29c-3.5 15.3-11.1 31-21.8 46.3c-22.6 32.3-59.5 63.8-105.7 87.8c-46.2 24.1-93.1 36.2-132.5 36.2c-18.6 0-35.84-2.8-50.37-8.7l10.59 20.4c10.08 19.4 35.47 30.5 71.18 30.5c35.7 0 80.3-11.2 124.2-34.1c44-22.8 78.8-52.9 99.2-82.2c20.4-29.2 26-56.4 15.9-75.7zm28.8 16.8c11.2 26.7 2.2 59.2-19.2 89.7c-18.9 27.1-47.8 53.4-83.6 75.4c11.1 1.2 22.7 1.8 34.5 1.8c49.5 0 94.3-10.6 125.9-27.1c31.7-16.5 49.1-38.1 49.1-59.9s-17.4-43.4-49.1-59.9c-16.1-8.4-35.7-15.3-57.6-20m106.7 124.8c-10.2 11.9-24.2 22.4-40.7 31c-35 18.2-82.2 29.1-134.3 29.1c-21.2 0-41.6-1.8-60.7-5.2c-23.2 11.7-46.5 20.4-68.9 26.1c1.2.7 2.4 1.3 3.7 2c31.6 16.5 76.4 27.1 125.9 27.1s94.3-10.6 125.9-27.1c31.7-16.5 49.1-38.1 49.1-59.9z"/></svg><span class="lbl">Funds:</span> <em>£2,750,000</em></span>
   </div>
+  <button class="snd" id="snd" type="button" aria-pressed="false"><svg id="sndIcon" viewBox="0 0 512 512" aria-hidden="true"><path fill="currentColor" d="m275.5 96l-96 96h-96v128h96l96 96zm50.863 89.637l-12.726 12.726L371.273 256l-57.636 57.637l12.726 12.726L384 268.727l57.637 57.636l12.726-12.726L396.727 256l57.636-57.637l-12.726-12.726L384 243.273z"/></svg><span>Sound off</span></button>
 </header>
 
 <main class="view" id="view">
   <div class="holder" id="holder">
-    <div class="stage" id="stage">
+    <div class="lean" id="lean"><div class="stage" id="stage">
       <img src="assets/newmarket-board.webp" alt="The Newmarket board: the town, the gallops, Tattersalls, the stables and the National Stud" width="1448" height="1086">
       <canvas id="clouds" width="362" height="272" aria-hidden="true"></canvas>
+      <canvas id="mist" width="362" height="272" aria-hidden="true"></canvas>
+      <canvas id="life" aria-hidden="true"></canvas>
+      <div id="shade" hidden></div>
+      <div id="warm"></div>
       <svg id="glow" viewBox="0 0 1448 1086">
         <defs>
           <filter id="halo" x="-30%" y="-30%" width="160%" height="160%"><feGaussianBlur stdDeviation="6"/></filter>
@@ -150,9 +169,10 @@ button:focus-visible{outline:2px solid var(--tb-gold);outline-offset:3px}
           <radialGradient id="washGrad" cx="50%" cy="50%" r="65%"><stop offset="0" stop-color="#ffe2a0" stop-opacity=".55"/><stop offset=".7" stop-color="#ffc870" stop-opacity=".3"/><stop offset="1" stop-color="#ffb050" stop-opacity=".55"/></radialGradient>
         </defs>
       </svg>
-      <canvas id="life" aria-hidden="true"></canvas>
+      <canvas id="lamps" width="724" height="543" aria-hidden="true"></canvas>
+      <canvas id="smoke" width="1086" height="815" aria-hidden="true"></canvas>
       <canvas id="wisps" width="2896" height="600" aria-hidden="true"></canvas>
-    </div>
+    </div></div>
   </div>
 </main>
 
@@ -168,7 +188,7 @@ button:focus-visible{outline:2px solid var(--tb-gold);outline-offset:3px}
 
 <div class="hint" aria-hidden="true">
   <svg viewBox="0 0 22 30"><rect x="2" y="2" width="18" height="26" rx="9"/><path d="M11 2v10M2 12h18"/></svg>
-  <div><b>Explore Newmarket</b><small>Pick a place on the map</small></div>
+  <div><b>Explore Newmarket</b><small>Pick a place on the map. Sound is in the top bar.</small></div>
 </div>
 <div class="credit">Icons: game-icons.net, CC BY 3.0</div>
 
@@ -235,6 +255,7 @@ for (const p of PLACES) {
 let chosen = null;
 const siteEl = (id) => document.getElementById("site-" + id);
 function hover(id, on) {
+  hovered = on ? id : (hovered === id ? null : hovered); placeSound();
   if (id === chosen) return;
   siteEl(id)?.classList.toggle("hot", on);
   stage.querySelector(`.loc[data-id="${id}"]`).classList.toggle("lit", on);
@@ -247,6 +268,7 @@ function choose(id) {
     siteEl(p.id)?.classList.toggle("hot", p.id === id);
     stage.querySelector(`.loc[data-id="${p.id}"]`).classList.toggle("on", p.id === id);
   }
+  leanTo(id); placeSound();
   if (!id) { card.hidden = true; return; }
   const p = id === "races" ? RACES : PLACES.find((q) => q.id === id);
   document.getElementById("cardTitle").textContent = p.title;
@@ -587,10 +609,13 @@ function place(m, p, dir, alpha, t = 0) {
   }
 }
 // a journey: legs along routes (or pauses); it repeats after a rest. Fades in and out where it starts and ends in the open.
-function journey(m, legs, { start = 0, rest = 8, fadeIn = true, fadeOut = true } = {}) {
+function journey(m, legs, { start = 0, rest = 8, fadeIn = true, fadeOut = true, hours = null } = {}) {
   const ls = legs.map((l) => ({ ...l, dur: l.pause ?? l.curve.L / l.speed })), total = ls.reduce((a, l) => a + l.dur, 0);
   let last = null, lastDir = null, clock = -start;
   movers.push({ m, step(t, dt) {
+    // between runs, wait for the right time of day (the strings go out in the morning; nobody works at night)
+    const idle = clock < 0 || clock % (total + rest) > total;
+    if (idle && hours && !inHours(hours)) { place(m, m.obj.position, null, 0, t); return; }
     if (!(m.van && blocked(m))) clock += dt;
     if (clock < 0) { place(m, m.obj.position, null, 0, t); return; }
     const tau = clock % (total + rest);
@@ -620,8 +645,9 @@ function blocked(van) {
   }
   return false;
 }
-function circuit(m, curve, speed, phase, gait = "walk") {
+function circuit(m, curve, speed, phase, gait = "walk", hours = null) {
   movers.push({ m, step(t) {
+    if (hours && !inHours(hours)) { place(m, m.obj.position, null, 0, t); return; }
     const u = ((phase + t * speed / curve.L) % 1 + 1) % 1;
     if (m.act) setGait(m, gait, speed);
     place(m, curve.getPointAt(u), curve.getTangentAt(u), 1, t);
@@ -658,25 +684,32 @@ async function startLife() {
   personScale = 12 / 1.8;                                          // and a person about 12 pixels tall
 
   // strings walking out to the heath, off the left edge, then round again
-  for (const s of STRINGS) { const c = P(s.route); for (let i = 0; i < s.n; i++) { const h = makeHorse({ silk: s.silk }); h.keepLeft = 4; journey(h, [{ curve: c, speed: 15, gait: "walk" }], { start: s.start + i * 1.7, rest: 26 }); } }
+  for (const s of STRINGS) { const c = P(s.route); for (let i = 0; i < s.n; i++) { const h = makeHorse({ silk: s.silk }); h.keepLeft = 4; journey(h, [{ curve: c, speed: 15, gait: "walk" }], { start: s.start + i * 1.7, rest: 26, hours: [5.8, 11.5] }); } }
   // the Gallops and Warren Hill: lots working in a line
   const gal = P(GALLOPS), war = P(WARREN), lone = P(LONER);
-  for (let i = 0; i < 5; i++) journey(makeHorse(), [{ curve: P(GALLOPS.map(([x, z]) => [x, z + (i % 2) * 8])), speed: 70 - i, gait: "gallop" }], { start: 4 + i * 1.1, rest: 24 });
-  for (let i = 0; i < 4; i++) journey(makeHorse(), [{ curve: P(WARREN.map(([x, z]) => [x, z + (i % 2) * 7])), speed: 54, gait: "gallop" }], { start: 14 + i * 1.0, rest: 22 });
-  journey(makeHorse(), [{ curve: lone, speed: 46, gait: "gallop" }], { start: 9, rest: 16 });
+  // morning is the busy time on the gallops: two more lots on each, and the afternoon lots are smaller
+  for (let lot = 0; lot < 3; lot++) {
+    const n = lot === 2 ? 3 : 5, hours = lot === 2 ? [6, 17] : [6, 11.5];
+    for (let i = 0; i < n; i++) journey(makeHorse(), [{ curve: P(GALLOPS.map(([x, z]) => [x, z + (i % 2) * 8 + lot * 3])), speed: 70 - i, gait: "gallop" }], { start: 4 + lot * 9 + i * 1.1, rest: 24, hours });
+  }
+  for (let lot = 0; lot < 3; lot++) {
+    const n = lot === 2 ? 3 : 4, hours = lot === 2 ? [6, 17] : [6, 11.5];
+    for (let i = 0; i < n; i++) journey(makeHorse(), [{ curve: P(WARREN.map(([x, z]) => [x, z + (i % 2) * 7 + lot * 3])), speed: 54, gait: "gallop" }], { start: 14 + lot * 8 + i * 1.0, rest: 22, hours });
+  }
+  journey(makeHorse(), [{ curve: lone, speed: 46, gait: "gallop" }], { start: 9, rest: 16, hours: [6, 19] });
   // horseboxes in from the top and the bottom of the board, out along Bury Road and Old Station Road
-  VANS.forEach((r, i) => journey(makeVan(i), [{ curve: P(r), speed: 26 + (i % 3) * 4 }], { start: i * 16 + 4, rest: 14 + i * 5 }));
+  VANS.forEach((r, i) => journey(makeVan(i), [{ curve: P(r), speed: 26 + (i % 3) * 4 }], { start: i * 16 + 4, rest: 14 + i * 5, hours: [6.5, 21] }));
   // the paddocks: loose horses wandering along, a rest, and back
   for (const pd of PADDOCK) { const c = P(pd.pts), b = P(rev(pd.pts));
     journey(makeHorse({ rider: false, coat: pd.coat }), [{ curve: c, speed: 6, gait: "walk" }, { pause: 7 }, { curve: b, speed: 6, gait: "walk" }, { pause: 9 }], { start: Math.random() * 20, rest: 0, fadeIn: false, fadeOut: false }); }
   journey(makeHorse({ rider: false, coat: 4 }), [{ curve: P([[1333, 431], [1390, 452], [1466, 482]]), speed: 7, gait: "walk" }], { start: 5, rest: 12 });
   // the yards: horses led from one stable to another, a horse ridden round the lunge ring, people about
   YARD_TRIPS.forEach((tr, i) => { const h = makeHorse({ rider: false }); h.lead = makePerson();
-    journey(h, [{ curve: P(tr), speed: 9, gait: "walk" }], { start: 3 + i * 14, rest: 10 + i * 4 }); });
-  circuit(makeHorse(), P([[1281, 847], [1241, 870], [1242, 883], [1260, 908], [1346, 896], [1370, 887], [1345, 852], [1305, 843]], true), 13, 0);
+    journey(h, [{ curve: P(tr), speed: 9, gait: "walk" }], { start: 3 + i * 14, rest: 10 + i * 4, hours: [6, 20] }); });
+  circuit(makeHorse(), P([[1281, 847], [1241, 870], [1242, 883], [1260, 908], [1346, 896], [1370, 887], [1345, 852], [1305, 843]], true), 13, 0, "walk", [7, 19]);
   const parade = P(oval(1168, 752, 53, 26, 0.26), true);
-  for (let i = 0; i < 3; i++) { const h = makeHorse({ rider: false }); h.lead = makePerson(); circuit(h, parade, 9, i / 3); }
-  PEOPLE_TRIPS.forEach((tr, i) => journey(makePerson(), [{ curve: P(tr), speed: 7, gait: "walk" }, { pause: 3 }, { curve: P(rev(tr)), speed: 7, gait: "walk" }], { start: i * 2.3, rest: 4 + i, fadeIn: false, fadeOut: false }));
+  for (let i = 0; i < 3; i++) { const h = makeHorse({ rider: false }); h.lead = makePerson(); circuit(h, parade, 9, i / 3, "walk", [8, 18]); }
+  PEOPLE_TRIPS.forEach((tr, i) => journey(makePerson(), [{ curve: P(tr), speed: 7, gait: "walk" }, { pause: 3 }, { curve: P(rev(tr)), speed: 7, gait: "walk" }], { start: i * 2.3, rest: 4 + i, fadeIn: false, fadeOut: false, hours: [5.5, 21] }));
 
   window.__ready = true;
   // a check hook: stand a horse at a board point (it shows whether buildings in front of it hide it)
@@ -693,11 +726,340 @@ if (location.hash === "#routes") {                                  // a check v
   setTimeout(() => document.querySelectorAll("#glow .site").forEach((z) => z.classList.add("hot")), 50);
 }
 
+// ================================================================ the day, the weather and the sounds of the place
+// ---------------------------------------------------------------- the day: one passes every five minutes
+// Most of the cycle is daylight (5:30 to 21:30); the night goes by quickly. The board opens in the early morning,
+// when the mist is lying on the heath and the strings are going out.
+const DAY = 300;
+let dayT = 0.04;
+const hourAt = (t) => (t < 0.86 ? 5.5 + (t / 0.86) * 16 : 21.5 + ((t - 0.86) / 0.14) * 8) % 24;
+const hourNow = () => hourAt(dayT);
+const inHours = ([a, b]) => { const h = hourNow(); return h >= a && h < b; };
+// the light through the day: [hour, the colour the board is multiplied by, warm light, lamps, mist, smoke]
+const LIGHT = [
+  [0, [70, 78, 128], 0, 1, 0.15, 0.5], [4.8, [70, 78, 128], 0, 1, 0.3, 0.5], [5.6, [168, 160, 196], 0.12, 0.7, 1, 0.9],
+  [6.6, [236, 222, 210], 0.14, 0.1, 1, 1], [8, [255, 255, 255], 0.05, 0, 0.45, 0.8], [9.5, [255, 255, 255], 0, 0, 0, 0.55],
+  [15, [255, 255, 255], 0.1, 0, 0, 0.5], [17.8, [255, 228, 196], 0.24, 0, 0, 0.7], [19.4, [214, 168, 162], 0.18, 0.45, 0.1, 0.9],
+  [20.6, [110, 110, 160], 0.06, 0.95, 0.15, 0.8], [21.5, [70, 78, 128], 0, 1, 0.15, 0.6], [24, [70, 78, 128], 0, 1, 0.15, 0.5],
+];
+function lightAt(h) {
+  let i = 0; while (i < LIGHT.length - 2 && LIGHT[i + 1][0] <= h) i++;
+  const a = LIGHT[i], b = LIGHT[i + 1], u = (h - a[0]) / (b[0] - a[0] || 1), mix = (x, y) => x + (y - x) * u;
+  return { rgb: a[1].map((v, k) => Math.round(mix(v, b[1][k]))), warm: mix(a[2], b[2]), lamps: mix(a[3], b[3]), mist: mix(a[4], b[4]), smoke: mix(a[5], b[5]) };
+}
+const shade = document.getElementById("shade"), warm = document.getElementById("warm");
+const clockTime = document.getElementById("clockTime"), clockIcon = document.getElementById("clockIcon");
+const DAYICON = { sunrise: `<path fill="currentColor" d="M259.375 16.25c-132.32 0-239.78 107.46-239.78 239.78s107.46 239.783 239.78 239.783s239.78-107.462 239.78-239.782s-107.46-239.78-239.78-239.78zm33.5 20.406c26.563 4.015 51.57 12.708 74.156 25.25L308.907 209.03c-14.573-7.215-30.96-11.344-48.312-11.53zm-67.72.094l23.97 161.22c-17.2 1.56-33.28 6.986-47.313 15.436l-51-151a220.4 220.4 0 0 1 74.344-25.656zm193.25 64.5c17.683 18.164 32.28 39.32 42.94 62.688l-107.658 85.468a111.7 111.7 0 0 0-34.968-34.875l99.686-113.28zm-319.092 1.063L192.5 219.686a111.7 111.7 0 0 0-32.063 37.75L56.5 166c10.527-23.725 25.082-45.226 42.813-63.688zm378.75 115.906a224 224 0 0 1 3.218 37.81c0 11.49-.882 22.768-2.56 33.783l-107.876 16.062a111.2 111.2 0 0 0-12-47.375l119.22-40.28zM40.25 221.093l115.844 45.75a111.3 111.3 0 0 0-8.188 39l-107.844-16.03A224 224 0 0 1 37.5 256.03c0-11.89.954-23.554 2.75-34.936zm130.563 89.53h177.125L467 334.532c-31.674 83.843-112.62 143.376-207.625 143.376c-95.018 0-175.968-59.548-207.625-143.406l119.063-23.875z"/>`, sun: `<path fill="currentColor" d="M320.063 19.72c-72.258 14.575-19.248 71.693-74.344 108.81c4.846-.49 9.746-.702 14.655-.624c16.288.26 32.785 3.72 48.594 10.72a126 126 0 0 1 14.25 7.405c12.107-47.476-37.103-96.38-3.158-126.31zM136.75 44.47c-40.76 61.357 36.984 64.33 24.406 129.405c17.407-21.255 41.17-35.9 67.156-42.313c-25.006-42.138-94.4-41.924-91.562-87.093zm297.313 75.405c-32.547.872-45.475 46.314-96.594 36.22c21.35 17.42 36.034 41.25 42.467 67.31c42.306-24.92 42.053-94.466 87.282-91.624c-13.43-8.92-24.06-12.15-33.158-11.905zm-177.97 26.656c-23.656.46-46.53 8.82-64.906 23.626l18.657 36.156L170 193.156a107.6 107.6 0 0 0-9.406 16.938c-8.726 19.708-11.002 40.59-7.78 60.344l44.78 2.125l-34 30.312c10.798 20.622 28.414 37.852 51.406 48.03a108 108 0 0 0 9.313 3.626l24.53-38.25l9.095 43.814c27.3.075 53.737-10.387 73.593-29.188l-19.186-37.125l38.406 12.658a109 109 0 0 0 5.03-9.938c9.746-22.01 11.457-45.498 6.44-67.22l-37.626-1.75l27.687-24.718c-10.83-20.194-28.236-37.07-50.874-47.093a107 107 0 0 0-4.125-1.72l-25.874 40.313l-9.906-47.75c-.5-.016-1-.023-1.5-.032c-1.3-.02-2.61-.024-3.906 0zM133.407 186.5c-41.652.725-82.483 34.847-108.72 5.094c14.573 72.234 71.664 19.3 108.783 74.312c-2.154-20.972.934-42.758 10.06-63.375a126 126 0 0 1 7.345-14.093c-5.822-1.47-11.642-2.038-17.47-1.937zm249.5 53.97a124.65 124.65 0 0 1-10.03 63.624l-.188.375a126 126 0 0 1-7.22 13.78c47.524 12.244 96.507-37.137 126.47-3.156c-14.603-72.388-71.92-19.04-109.032-74.625zM136.53 283.405c-42.123 25.014-41.928 94.37-87.093 91.53c61.422 40.803 64.322-37.123 129.594-24.342c-21.344-17.385-36.03-41.167-42.5-67.188zm219.064 48.906c-17.406 21.46-41.236 36.24-67.344 42.72c24.944 42.263 94.497 42.004 91.656 87.218c40.867-61.52-37.402-64.358-24.312-129.938M193.406 360.72c-12.047 47.456 37.087 96.33 3.156 126.25c72.305-14.587 19.195-71.79 74.47-108.908c-21.04 2.204-42.898-.9-63.594-10.062a126 126 0 0 1-14.032-7.28"/>`, sunset: `<path fill="currentColor" d="M247 27v80h18V27zm-63.992 53.602l-16.631 6.886l15.309 36.955l16.628-6.886zm145.984 0l-15.306 36.955l16.628 6.886l15.309-36.955l-16.63-6.886zM77.795 92.068l-12.727 12.727l56.569 56.568l12.726-12.726zm356.41 0l-56.568 56.569l12.726 12.726l56.569-56.568zM256 145.994a118.9 118.9 0 0 0-59.5 15.95c-34.215 19.754-56.177 55.048-59.129 94.056H374.63c-2.952-39.008-24.914-74.302-59.129-94.057a118.9 118.9 0 0 0-59.5-15.949zM66.488 195.377l-6.886 16.63l36.955 15.307l6.886-16.628l-36.955-15.31zm379.024 0l-36.955 15.309l6.886 16.628l36.955-15.306zM24 274v18h464v-18zm200 62v64h-32l64 80l64-80h-32v-64z"/>`, moon: `<path fill="currentColor" d="M253.125 18.563c-131.53 0-238.375 106.813-238.375 238.343S121.596 495.25 253.125 495.25c131.53 0 238.344-106.815 238.344-238.344c0-131.528-106.816-238.344-238.345-238.344zm-23.938 52.093c40.517 0 77.988 12.904 108.532 34.813a154 154 0 0 0-17.064-.97c-84.157 0-152.375 68.25-152.375 152.406S236.5 409.28 320.656 409.28c5.762 0 11.467-.313 17.063-.936c-30.545 21.91-68.016 34.812-108.533 34.812c-102.98 0-186.28-83.272-186.28-186.25s83.3-186.25 186.28-186.25z"/>` };
+let L = lightAt(hourNow()), lastIcon = "";
+function stepDay(dt) {
+  if (!REDUCED) dayT = (dayT + dt / DAY) % 1;
+  const h = hourNow(); L = lightAt(h);
+  const night = L.rgb[0] < 250;
+  shade.hidden = !night; if (night) shade.style.background = `rgb(${L.rgb.join(",")})`;
+  warm.style.opacity = L.warm.toFixed(3);
+  wisps.style.filter = `brightness(${(0.45 + 0.55 * L.rgb[0] / 255).toFixed(3)})`;
+  const hh = Math.floor(h), mm = Math.floor((h - hh) * 60 / 5) * 5;
+  clockTime.textContent = `${String(hh).padStart(2, "0")}:${String(mm).padStart(2, "0")}`;
+  const icon = h >= 5 && h < 7.5 ? "sunrise" : h >= 7.5 && h < 18 ? "sun" : h >= 18 && h < 21 ? "sunset" : "moon";
+  if (icon !== lastIcon) { clockIcon.innerHTML = DAYICON[icon]; lastIcon = icon; }
+}
+
+// ---------------------------------------------------------------- mist lying on the heath and the paddocks at dawn
+const mistC = document.getElementById("mist"), mx = mistC.getContext("2d");
+const MIST = [];
+const rngA = (() => { let s = 4242; return () => ((s = (s * 16807) % 2147483647) / 2147483647); })();
+for (const [x0, y0, x1, y1, n] of [[0, 230, 400, 650, 26], [0, 80, 560, 250, 22], [660, 60, 1448, 560, 30], [560, 980, 1448, 1086, 12], [0, 650, 300, 1086, 12]])
+  for (let i = 0; i < n; i++) MIST.push({ x: x0 + rngA() * (x1 - x0), y: y0 + rngA() * (y1 - y0), r: 50 + rngA() * 70, v: 2 + rngA() * 3, x0, x1 });
+let mistShown = -1;
+function drawMist(dt) {
+  const k = L.mist;
+  if (k < 0.02) { if (mistShown !== 0) { mx.clearRect(0, 0, mistC.width, mistC.height); mistShown = 0; } return; }
+  mistShown = k; mx.clearRect(0, 0, mistC.width, mistC.height);
+  for (const m of MIST) {
+    if (!REDUCED) { m.x += m.v * dt; if (m.x - m.r > m.x1) m.x = m.x0 - m.r; }
+    const x = m.x / Q, y = m.y / Q, r = m.r / Q, g = mx.createRadialGradient(x, y, 0, x, y, r);
+    g.addColorStop(0, `rgba(246,244,236,${(0.32 * k).toFixed(3)})`); g.addColorStop(1, "rgba(246,244,236,0)");
+    mx.fillStyle = g; mx.beginPath(); mx.ellipse(x, y, r * 1.6, r * 0.55, 0, 0, 6.283); mx.fill();
+  }
+}
+
+// ---------------------------------------------------------------- lamps: windows and the street lamps, lit at dusk
+// (assets/atmos.json: tools/atmos.py found the windows on the board)
+const lampC = document.getElementById("lamps"), lx = lampC.getContext("2d");
+let LAMPS = [];
+function setLamps(atmos) {
+  const street = [];
+  for (const r of [ROAD.highSt, ROAD.kingston, ROAD.oldStn.slice(0, 9), ROAD.bury.slice(0, 6), ROAD.exeter, ROAD.fordham.slice(2)]) {
+    const c = P(r); for (let s = 30; s < c.L; s += 64) { const p = c.getPointAt(s / c.L); street.push({ x: p.x + 7, y: p.z - 5, r: 13, street: true }); }
+  }
+  LAMPS = [...atmos.windows.filter(() => rngA() < 0.75).map(([x, y]) => ({ x, y, r: 9 })), ...street]
+    .map((l) => ({ ...l, on: 0.05 + rngA() * 0.4, ph: rngA() * 6.28 }));
+}
+let lampsShown = -1;
+function drawLamps(t) {
+  const k = L.lamps;
+  if (k < 0.02) { if (lampsShown !== 0) { lx.clearRect(0, 0, lampC.width, lampC.height); lampsShown = 0; } return; }
+  lampsShown = k; lx.clearRect(0, 0, lampC.width, lampC.height);
+  const s = lampC.width / MW;
+  for (const l of LAMPS) {
+    const lit = Math.min(1, Math.max(0, (k - l.on) * 3));          // each lamp comes on at its own moment
+    if (lit <= 0) continue;
+    const fl = 0.88 + 0.12 * Math.sin(t * 7 + l.ph) * Math.sin(t * 3.1 + l.ph * 2), a = lit * fl;
+    const x = l.x * s, y = l.y * s, r = l.r * s, g = lx.createRadialGradient(x, y, 0, x, y, r);
+    g.addColorStop(0, `rgba(255,214,140,${(0.95 * a).toFixed(3)})`); g.addColorStop(0.25, `rgba(255,170,80,${(0.5 * a).toFixed(3)})`); g.addColorStop(1, "rgba(255,140,50,0)");
+    lx.fillStyle = g; lx.beginPath(); lx.arc(x, y, r, 0, 6.283); lx.fill();
+  }
+}
+
+// ---------------------------------------------------------------- chimney smoke, rooks and flags (one canvas over the board)
+const fxC = document.getElementById("smoke"), fx = fxC.getContext("2d");
+const puff = (() => { const c = document.createElement("canvas"); c.width = c.height = 64; const g = c.getContext("2d");
+  const r = g.createRadialGradient(32, 32, 0, 32, 32, 32); r.addColorStop(0, "rgba(150,152,160,1)"); r.addColorStop(0.45, "rgba(172,174,182,.7)"); r.addColorStop(1, "rgba(195,196,202,0)");
+  g.fillStyle = r; g.fillRect(0, 0, 64, 64); return c; })();
+let CHIMNEYS = [], FLAGS = [];
+const PUFFS2 = [];
+const WIND = 3.2;                                                    // the same way the clouds drift
+function stepSmoke(dt) {
+  for (const c of CHIMNEYS) {
+    c.next -= dt * (0.4 + 0.6 * L.smoke);
+    if (c.next <= 0) { c.next = 0.32 + rngA() * 0.3; PUFFS2.push({ x: c.x + (rngA() - 0.5), y: c.y, age: 0, life: 6.5 + rngA() * 3, vx: WIND * (0.5 + rngA() * 0.6), vy: -(11 + rngA() * 4), a: c.a }); }
+  }
+  for (let i = PUFFS2.length - 1; i >= 0; i--) {
+    const p = PUFFS2[i]; p.age += dt; if (p.age > p.life) { PUFFS2.splice(i, 1); continue; }
+    p.x += p.vx * dt; p.y += p.vy * dt; p.vy *= 1 - 0.22 * dt; p.vx += 1.1 * dt;
+  }
+}
+// rooks: now and then a flock rises off Warren Hill, wheels and heads away over the town
+const ROOKS = Array.from({ length: 11 }, (_, i) => ({ ox: (rngA() - 0.5) * 70, oy: (rngA() - 0.5) * 34, ph: rngA() * 6.28, sp: 0.6 + rngA() * 0.8 }));
+let flock = { t: -12, dur: 30 };
+function flockAt(s) { return { x: 120 + s * 1000 + Math.sin(s * 9) * 60, y: 420 - s * 470 + Math.cos(s * 7) * 50 }; }
+function drawFx(t, dt) {
+  const s = fxC.width / MW;
+  fx.clearRect(0, 0, fxC.width, fxC.height);
+  // smoke
+  for (const p of PUFFS2) {
+    const u = p.age / p.life, a = Math.min(1, 1.0 * p.a * Math.min(1, p.age / 0.4) * Math.pow(1 - u, 1.4)), r = (2.6 + u * 17) * s;
+    fx.globalAlpha = a; fx.drawImage(puff, p.x * s - r, p.y * s - r, r * 2, r * 2);
+  }
+  fx.globalAlpha = 1;
+  // flags on the rotunda and the Jockey Club
+  for (const f of FLAGS) {
+    const x = f.x * s, y = f.y * s, L2 = f.len * s;
+    fx.strokeStyle = "#3a3026"; fx.lineWidth = 1.5 * s; fx.beginPath(); fx.moveTo(x, y); fx.lineTo(x, y - L2); fx.stroke();
+    fx.fillStyle = f.col; fx.beginPath();
+    const N = 10, fl = 15 * s, fh = 7 * s;
+    for (let i = 0; i <= N; i++) { const u = i / N; fx.lineTo(x + u * fl, y - L2 + Math.sin(u * 3.2 - t * 6 + f.ph) * 2 * s * u + u * fh * 0.15); }
+    for (let i = N; i >= 0; i--) { const u = i / N; fx.lineTo(x + u * fl, y - L2 + fh * (1 - u * 0.75) + Math.sin(u * 3.2 - t * 6 + f.ph) * 2 * s * u); }
+    fx.closePath(); fx.fill();
+  }
+  // rooks, by day
+  if (!REDUCED) flock.t += dt;
+  const day = inHours([6, 19.5]);
+  if (flock.t > flock.dur) flock = { t: -(25 + rngA() * 30), dur: 26 + rngA() * 8 };
+  if (flock.t > 0 && day) {
+    const c = flockAt(flock.t / flock.dur);
+    fx.strokeStyle = "#26221d"; fx.lineWidth = 1.3 * s; fx.lineCap = "round";
+    for (const b of ROOKS) {
+      const sw = Math.sin(t * 0.7 * b.sp + b.ph), x = (c.x + b.ox + sw * 14) * s, y = (c.y + b.oy + Math.cos(t * 0.9 * b.sp + b.ph) * 8) * s;
+      const w = 4.2 * s, flap = Math.sin(t * 11 * b.sp + b.ph) * 2.6 * s;
+      fx.beginPath(); fx.moveTo(x - w, y - flap); fx.quadraticCurveTo(x - w * 0.4, y - flap * 0.2 - 0.6 * s, x, y); fx.quadraticCurveTo(x + w * 0.4, y - flap * 0.2 - 0.6 * s, x + w, y - flap); fx.stroke();
+    }
+    if (Sound.on && flock.t < dt * 1.5) Sound.caws();
+  }
+  // all of it takes the light of the hour
+  if (L.rgb[0] < 250) { fx.globalCompositeOperation = "source-atop"; fx.fillStyle = `rgba(${L.rgb.join(",")},0.75)`; fx.fillRect(0, 0, fxC.width, fxC.height); fx.globalCompositeOperation = "source-over"; }
+}
+fetch("assets/atmos.json").then((r) => r.json()).then((a) => {
+  CHIMNEYS = a.chimneys.map(([x, y]) => ({ x, y, next: rngA() * 3, a: 0.6 + rngA() * 0.4 }));
+  FLAGS = a.flags.map(([x, y, len], i) => ({ x, y, len, col: i ? "#3d7153" : "#9c3d33", ph: i * 1.7 }));
+  setLamps(a);
+  for (let i = 0; i < 40; i++) stepSmoke(0.25);                   // the fires were lit before the page opened
+}).catch(() => {});
+
+// ---------------------------------------------------------------- leaning in towards the place you pick
+const lean = document.getElementById("lean");
+function leanTo(id) {
+  const p = PLACES.find((q) => q.id === id);
+  if (!p || REDUCED) { lean.style.transform = ""; return; }
+  const vr = view.getBoundingClientRect(), hr = holder.getBoundingClientRect();
+  const px = hr.left - vr.left + p.at[0] * scale, py = hr.top - vr.top + p.at[1] * scale;
+  const phone = innerWidth <= 640, tx = phone ? vr.width / 2 : (vr.width - 370) / 2, ty = phone ? vr.height * 0.3 : vr.height * 0.52;
+  lean.style.transformOrigin = `${p.at[0] * scale}px ${p.at[1] * scale}px`;
+  lean.style.transform = `translate(${((tx - px) * 0.45).toFixed(1)}px, ${((ty - py) * 0.45).toFixed(1)}px) rotateX(8deg) scale(1.12)`;
+}
+
+// ---------------------------------------------------------------- sounds: each place has its own, heard while the pointer is over it
+// Everything is made in the browser (no recordings); the auctioneer is the browser's own speaking voice.
+const Sound = (() => {
+  let ac = null, out = null, noiseBuf = null, bed = null, scene = null, sceneId = null;
+  const S = { on: false };
+  const now = () => ac.currentTime;
+  function init() {
+    ac = new (window.AudioContext || window.webkitAudioContext)();
+    const comp = ac.createDynamicsCompressor(); comp.threshold.value = -18; comp.ratio.value = 3; comp.connect(ac.destination);
+    out = ac.createGain(); out.gain.value = 0.8; out.connect(comp);
+    noiseBuf = ac.createBuffer(1, ac.sampleRate * 2, ac.sampleRate); const d = noiseBuf.getChannelData(0);
+    let b = 0; for (let i = 0; i < d.length; i++) { const w = Math.random() * 2 - 1; b = 0.97 * b + 0.03 * w; d[i] = w * 0.6 + b * 2.2; }
+  }
+  const gainAt = (dest, v = 1) => { const g = ac.createGain(); g.gain.value = v; g.connect(dest); return g; };
+  const panAt = (dest, p = 0) => { if (!ac.createStereoPanner) return dest; const n = ac.createStereoPanner(); n.pan.value = p; n.connect(dest); return n; };
+  const noise = (dest, t, dur) => { const s = ac.createBufferSource(); s.buffer = noiseBuf; s.loop = true; s.connect(dest); s.start(t, Math.random() * 1.5); if (dur) s.stop(t + dur); return s; };
+  const filt = (dest, type, f, q = 1) => { const n = ac.createBiquadFilter(); n.type = type; n.frequency.value = f; n.Q.value = q; n.connect(dest); return n; };
+  const env = (g, t, a, peak, d, hold = 0) => { peak = Math.max(peak, 0.0002); g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(peak, t + a); g.gain.setValueAtTime(peak, t + a + hold); g.gain.exponentialRampToValueAtTime(0.0001, t + a + hold + d); };
+  const tone = (dest, t, type, f, a, peak, d, f2) => { const o = ac.createOscillator(); o.type = type; o.frequency.setValueAtTime(f, t); if (f2) o.frequency.exponentialRampToValueAtTime(f2, t + a + d); const g = gainAt(dest, 0); env(g, t, a, peak, d); o.connect(g); o.start(t); o.stop(t + a + d + 0.05); return o; };
+  // the sounds
+  const thud = (dest, t, v = 0.5, p = 0) => { const d = panAt(dest, p); tone(d, t, "sine", 95 + Math.random() * 20, 0.004, v, 0.09, 55); const g = gainAt(d, 0); env(g, t, 0.002, v * 0.5, 0.06); noise(filt(g, "lowpass", 600), t, 0.1); };
+  const clip = (dest, t, v = 0.3, p = 0) => { const g = gainAt(panAt(dest, p), 0); env(g, t, 0.001, v, 0.05); noise(filt(g, "bandpass", 1800 + Math.random() * 900, 4), t, 0.08); };
+  const gallop = (dest, t, dur, horses = 3, dir = 1) => {
+    for (let hI = 0; hI < horses; hI++) {
+      const off = hI * 0.17 + Math.random() * 0.05, stride = 0.42 + Math.random() * 0.03;
+      for (let s = 0; s < dur / stride; s++) {
+        const u = s * stride / dur, vol = Math.sin(Math.PI * u) ** 1.5 * 0.45, pan = dir * (u * 1.6 - 0.8);
+        for (const b of [0, 0.065, 0.13, 0.2]) thud(dest, t + off + s * stride + b, vol * (0.7 + Math.random() * 0.3), pan);
+      }
+    }
+  };
+  const whinny = (dest, t, base = 640, dur = 1.25, v = 0.16) => {
+    const o = ac.createOscillator(); o.type = "sawtooth";
+    o.frequency.setValueAtTime(base * 1.2, t); o.frequency.linearRampToValueAtTime(base * 1.55, t + dur * 0.18); o.frequency.exponentialRampToValueAtTime(base * 0.62, t + dur);
+    const vib = ac.createOscillator(); vib.frequency.value = 17; const vg = ac.createGain(); vg.gain.value = base * 0.09; vib.connect(vg); vg.connect(o.frequency);
+    const trem = ac.createOscillator(); trem.frequency.value = 21; const tg = ac.createGain(); tg.gain.value = 0.35;
+    const g = gainAt(filt(filt(dest, "bandpass", base * 2.2, 0.9), "lowpass", 3200), 0); env(g, t, 0.06, v, dur * 0.85, 0.05);
+    const am = gainAt(g, 0.65); trem.connect(tg); tg.connect(am.gain); o.connect(am);
+    [o, vib, trem].forEach((n) => { n.start(t); n.stop(t + dur + 0.2); });
+    const br = gainAt(dest, 0); env(br, t + dur * 0.7, 0.05, v * 0.4, 0.35); noise(filt(br, "bandpass", 900, 0.8), t + dur * 0.7, 0.45);
+  };
+  const snort = (dest, t) => { const g = gainAt(dest, 0); env(g, t, 0.01, 0.25, 0.25); noise(filt(g, "lowpass", 900), t, 0.3); };
+  const scrape = (dest, t) => {
+    const g = gainAt(dest, 0); env(g, t, 0.05, 0.22, 0.32); const f = filt(g, "bandpass", 1600, 2.5); f.frequency.setValueAtTime(1500, t); f.frequency.linearRampToValueAtTime(3200, t + 0.35); noise(f, t, 0.45);
+    const g2 = gainAt(dest, 0); env(g2, t + 0.55, 0.01, 0.3, 0.18); noise(filt(g2, "lowpass", 700), t + 0.55, 0.25);
+  };
+  const clank = (dest, t, v = 0.12) => { for (const [f, d] of [[523, 0.9], [1290, 0.6], [2010, 0.45], [2950, 0.3]]) tone(dest, t, "sine", f * (0.98 + Math.random() * 0.04), 0.002, v, d); clip(dest, t, 0.25); };
+  const bell = (dest, t, f, v = 0.2) => { for (const [k, d, a] of [[0.5, 4, 0.6], [1, 3.2, 1], [1.2, 2.2, 0.5], [1.5, 2, 0.45], [2, 1.6, 0.35], [2.76, 1.1, 0.25], [3.05, 0.9, 0.2]]) tone(dest, t, "sine", f * k, 0.004, v * a, d); };
+  const ping = (dest, t) => { tone(dest, t, "sine", 2400 + Math.random() * 600, 0.002, 0.06, 0.5); tone(dest, t, "sine", 3700 + Math.random() * 500, 0.002, 0.03, 0.3); };
+  const tick = (dest, t) => clip(dest, t, 0.07, 0);
+  const gavel = (dest, t) => { tone(dest, t, "sine", 150, 0.002, 0.6, 0.18, 90); const g = gainAt(dest, 0); env(g, t, 0.001, 0.5, 0.05); noise(filt(g, "bandpass", 1200, 1.5), t, 0.08); };
+  const chirp = (dest, t, p = 0) => { const d = panAt(dest, p); const n = 2 + Math.floor(Math.random() * 4), f = 2800 + Math.random() * 1600;
+    for (let i = 0; i < n; i++) tone(d, t + i * (0.09 + Math.random() * 0.05), "sine", f * (0.9 + Math.random() * 0.3), 0.01, 0.035, 0.07, f * (1.1 + Math.random() * 0.4)); };
+  const caw = (dest, t, p = 0) => { const d = filt(panAt(dest, p), "bandpass", 1000, 1.4); tone(d, t, "sawtooth", 420 + Math.random() * 60, 0.02, 0.05, 0.22, 330); };
+  const owl = (dest, t) => { tone(dest, t, "sine", 400, 0.06, 0.05, 0.45, 370); tone(dest, t + 0.75, "sine", 410, 0.05, 0.04, 0.25, 395); tone(dest, t + 1.1, "sine", 400, 0.06, 0.05, 0.7, 360); };
+  const horn = (dest, t) => { const f = filt(dest, "lowpass", 1800, 0.7); [[392, 0.18], [523, 0.18], [659, 0.18], [784, 0.4], [659, 0.16], [784, 0.7]].reduce((tt, [n, d]) => { tone(f, tt, "sawtooth", n, 0.02, 0.07, d); return tt + d + 0.03; }, t); };
+  // a continuous murmur (a crowd, a room) or breeze; returns a stopper
+  function murmur(dest, level, bands = [350, 700, 1150]) {
+    const nodes = [];
+    for (const b of bands) {
+      const g = gainAt(dest, level * 0.5), lfo = ac.createOscillator(), lg = ac.createGain();
+      lfo.frequency.value = 0.25 + Math.random() * 0.6; lg.gain.value = level * 0.4; lfo.connect(lg); lg.connect(g.gain); lfo.start();
+      nodes.push(lfo, noise(filt(g, "bandpass", b, 1.6), now()));
+    }
+    return () => nodes.forEach((n) => { try { n.stop(); } catch (e) {} });
+  }
+  function breeze(dest, level) {
+    const g = gainAt(dest, level), lfo = ac.createOscillator(), lg = ac.createGain(); lfo.frequency.value = 0.07; lg.gain.value = level * 0.6; lfo.connect(lg); lg.connect(g.gain); lfo.start();
+    const n = noise(filt(g, "lowpass", 420, 0.5), now()); return () => { lfo.stop(); n.stop(); };
+  }
+  // the auctioneer, in the browser's own voice
+  let voice = null;
+  function speak(text, rate = 1.3) {
+    if (!("speechSynthesis" in window)) return;
+    try {
+      if (!voice) { const vs = speechSynthesis.getVoices(); voice = vs.find((v) => /en-GB/i.test(v.lang) && /male|daniel|arthur|george/i.test(v.name)) || vs.find((v) => /en-GB/i.test(v.lang)) || vs.find((v) => /^en/i.test(v.lang)) || null; }
+      const u = new SpeechSynthesisUtterance(text); if (voice) u.voice = voice; u.rate = rate; u.pitch = 0.85; u.volume = 0.5; speechSynthesis.speak(u);
+    } catch (e) {}
+  }
+  const LOTS = ["Lot forty-two. A bay colt, out of a winning mare.", "Lot fifty-seven. A strong chestnut filly.", "Lot sixty-three. A good-looking grey colt.", "Lot seventy-one. A dark bay filly, a full sister to a winner."];
+  // a soundscape: a fading-in bus, a few continuous layers and events scheduled a little ahead; stop() fades it all out
+  function runScene(id) {
+    const bus = gainAt(out, 0); bus.gain.setValueAtTime(0.0001, now()); bus.gain.exponentialRampToValueAtTime(1, now() + 0.8);
+    const stops = [], timers = [];
+    const every = (min, max, fn, first = 0) => { const go = () => { if (!S.on) return; fn(now() + 0.05); timers.push(setTimeout(go, (min + Math.random() * (max - min)) * 1000)); }; timers.push(setTimeout(go, first * 1000)); };
+    if (id === "tatts") {
+      stops.push(murmur(bus, 0.18));
+      let lot = 0;
+      every(17, 20, (t) => {
+        const name = LOTS[lot++ % LOTS.length], price = [40, 55, 70, 85][lot % 4];
+        speak(`${name} Who'll start me? ${price} thousand. ${price + 5}. ${price + 10} thousand I'm bid. At the back, ${price + 15}. All done? ${price + 15} thousand guineas.`);
+        timers.push(setTimeout(() => S.on && gavel(bus, now() + 0.02), 12500));
+      }, 0.4);
+      every(2.5, 5, (t) => { const p = Math.random() - 0.5; for (let i = 0; i < 4; i++) clip(bus, t + i * 0.32, 0.16, p); });
+      every(9, 15, (t) => whinny(bus, t, 600, 1.1, 0.08), 6);
+    } else if (id === "warren") {
+      stops.push(breeze(bus, 0.12));
+      let dir = 1; every(6.5, 8.5, (t) => { gallop(bus, t, 5.5, 3, dir); dir = -dir; });
+      every(4, 9, (t) => snort(bus, t), 3); every(3, 7, (t) => chirp(bus, t, Math.random() * 1.6 - 0.8), 1);
+    } else if (id === "stables") {
+      stops.push(murmur(bus, 0.04, [600]));
+      every(1.6, 2.6, (t) => scrape(bus, t), 0.2);
+      every(5, 9, (t) => clank(bus, t), 2.5);
+      every(2.5, 5, (t) => { const p = Math.random() - 0.5; clip(bus, t, 0.2, p); clip(bus, t + 0.25, 0.18, p); }, 1);
+      every(7, 12, (t) => whinny(bus, t, 620, 1.2, 0.1), 4); every(5, 9, (t) => snort(bus, t), 3);
+    } else if (id === "stud") {
+      stops.push(breeze(bus, 0.12));
+      every(4, 7, (t) => whinny(bus, t, 980, 0.85, 0.09), 0.6);
+      every(8, 13, (t) => whinny(bus, t, 420, 0.7, 0.07), 3);
+      every(1.5, 4, (t) => chirp(bus, t, Math.random() * 1.6 - 0.8));
+      every(6, 10, (t) => { for (let i = 0; i < 8; i++) thud(bus, t + i * 0.26 + (i % 2) * 0.05, 0.12, 0.3); }, 5);
+    } else if (id === "palace") {
+      stops.push(murmur(bus, 0.035, [500]));
+      every(16, 16, (t) => { [659, 523, 587, 392].forEach((f, i) => bell(bus, t + i * 0.9, f, 0.12)); }, 0.3);
+      every(1, 1, (t) => tick(bus, t), 0.5);
+    } else if (id === "jockey") {
+      stops.push(murmur(bus, 0.09, [300, 550, 900]));
+      every(2, 5, (t) => ping(bus, t), 1); every(1, 1, (t) => tick(bus, t), 0.2);
+    } else if (id === "races") {
+      const g = gainAt(bus, 0); g.gain.setValueAtTime(0.0001, now()); g.gain.exponentialRampToValueAtTime(1, now() + 3);
+      stops.push(murmur(g, 0.3, [400, 800, 1300, 2000]));
+      every(12, 12, (t) => horn(bus, t), 0.5);
+      every(9, 12, (t) => gallop(bus, t, 4, 6, 1), 4);
+    }
+    return { stop() {
+      timers.forEach(clearTimeout); try { speechSynthesis.cancel(); } catch (e) {}
+      bus.gain.cancelScheduledValues(now()); bus.gain.setValueAtTime(bus.gain.value, now()); bus.gain.exponentialRampToValueAtTime(0.0001, now() + 0.7);
+      setTimeout(() => { stops.forEach((f) => f()); bus.disconnect(); }, 900);
+    } };
+  }
+  // always there while sound is on: the breeze, birds by day, an owl at night
+  function runBed() {
+    const bus = gainAt(out, 0.7), stop = breeze(bus, 0.06), timers = [];
+    const loop = () => { if (!S.on) return; const h = hourNow(), t = now() + 0.05;
+      if (h > 4.8 && h < 20) chirp(bus, t, Math.random() * 1.8 - 0.9); else if (Math.random() < 0.35) owl(bus, t);
+      timers.push(setTimeout(loop, (3 + Math.random() * 6) * 1000)); };
+    loop();
+    return { stop() { timers.forEach(clearTimeout); stop(); bus.disconnect(); } };
+  }
+  S.set = (on) => {
+    S.on = on;
+    if (on) { if (!ac) init(); ac.resume(); bed = runBed(); const id = sceneId; sceneId = null; S.place(id); }
+    else { if (scene) scene.stop(); if (bed) bed.stop(); scene = bed = null; try { speechSynthesis.cancel(); } catch (e) {} setTimeout(() => ac && !S.on && ac.suspend(), 1000); }
+  };
+  S.place = (id) => {
+    if (id === sceneId && scene) return;
+    sceneId = id;
+    if (!S.on) return;
+    if (scene) { scene.stop(); scene = null; }
+    if (id) scene = runScene(id);
+  };
+  S.caws = () => { if (!ac || !S.on) return; for (let i = 0; i < 4; i++) caw(out, now() + 0.3 + i * (0.35 + Math.random() * 0.5), Math.random() * 1.4 - 0.7); };
+  return S;
+})();
+const sndBtn = document.getElementById("snd"), sndIcon = document.getElementById("sndIcon");
+const SNDICON = { on: `<path fill="currentColor" d="m275.5 96l-96 96h-96v128h96l96 96zm51.46 27.668l-4.66 17.387c52.066 13.95 88.2 61.04 88.2 114.945s-36.134 100.994-88.2 114.945l4.66 17.387C386.81 372.295 428.5 317.962 428.5 256c0-61.963-41.69-116.295-101.54-132.332m-12.425 46.365l-4.658 17.387C340.96 195.748 362.5 223.822 362.5 256s-21.54 60.252-52.623 68.58l4.658 17.387C353.402 331.552 380.5 296.237 380.5 256s-27.098-75.552-65.965-85.967m-12.424 46.363l-4.657 17.387C307.55 236.49 314.5 245.547 314.5 256s-6.95 19.51-17.047 22.217l4.658 17.387c17.884-4.792 30.39-21.09 30.39-39.604s-12.506-34.812-30.39-39.604"/>`, off: `<path fill="currentColor" d="m275.5 96l-96 96h-96v128h96l96 96zm50.863 89.637l-12.726 12.726L371.273 256l-57.636 57.637l12.726 12.726L384 268.727l57.637 57.636l12.726-12.726L396.727 256l57.636-57.637l-12.726-12.726L384 243.273z"/>` };
+sndBtn.addEventListener("click", () => {
+  const on = !Sound.on; Sound.set(on);
+  sndBtn.setAttribute("aria-pressed", String(on)); sndIcon.innerHTML = on ? SNDICON.on : SNDICON.off;
+  sndBtn.querySelector("span").textContent = on ? "Sound on" : "Sound off";
+});
+let hovered = null;
+const placeSound = () => Sound.place(hovered || chosen);
+window.__fx = () => ({ chimneys: CHIMNEYS.length, puffs: PUFFS2.length, lamps: LAMPS.length });
+window.__setHour = (h) => { const t = h >= 5.5 && h < 21.5 ? (h - 5.5) / 16 * 0.86 : 0.86 + (((h - 21.5 + 24) % 24) / 8) * 0.14; dayT = t % 1; };
+
 const clock = new THREE.Clock();
 let skyT = 0;
 function frame() {
   const dt = Math.min(clock.getDelta(), 0.1), t = clock.elapsedTime;
-  skyT += dt; if (skyT > 1 / 15) { drawSky(skyT); skyT = 0; }
+  stepDay(dt); stepSmoke(dt); drawFx(t, dt);
+  skyT += dt; if (skyT > 1 / 15) { drawSky(skyT); drawMist(skyT); drawLamps(t); skyT = 0; }
   if (renderer) {
     for (const mv of movers) { mv.step(t, dt); if (mv.m.mixer && mv.m.obj.visible) mv.m.mixer.update(dt); }
     renderer.render(scene, cam);

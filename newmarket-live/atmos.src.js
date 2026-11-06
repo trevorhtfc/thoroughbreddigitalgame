@@ -1,0 +1,327 @@
+// ================================================================ the day, the weather and the sounds of the place
+// ---------------------------------------------------------------- the day: one passes every five minutes
+// Most of the cycle is daylight (5:30 to 21:30); the night goes by quickly. The board opens in the early morning,
+// when the mist is lying on the heath and the strings are going out.
+const DAY = 300;
+let dayT = 0.04;
+const hourAt = (t) => (t < 0.86 ? 5.5 + (t / 0.86) * 16 : 21.5 + ((t - 0.86) / 0.14) * 8) % 24;
+const hourNow = () => hourAt(dayT);
+const inHours = ([a, b]) => { const h = hourNow(); return h >= a && h < b; };
+// the light through the day: [hour, the colour the board is multiplied by, warm light, lamps, mist, smoke]
+const LIGHT = [
+  [0, [70, 78, 128], 0, 1, 0.15, 0.5], [4.8, [70, 78, 128], 0, 1, 0.3, 0.5], [5.6, [168, 160, 196], 0.12, 0.7, 1, 0.9],
+  [6.6, [236, 222, 210], 0.14, 0.1, 1, 1], [8, [255, 255, 255], 0.05, 0, 0.45, 0.8], [9.5, [255, 255, 255], 0, 0, 0, 0.55],
+  [15, [255, 255, 255], 0.1, 0, 0, 0.5], [17.8, [255, 228, 196], 0.24, 0, 0, 0.7], [19.4, [214, 168, 162], 0.18, 0.45, 0.1, 0.9],
+  [20.6, [110, 110, 160], 0.06, 0.95, 0.15, 0.8], [21.5, [70, 78, 128], 0, 1, 0.15, 0.6], [24, [70, 78, 128], 0, 1, 0.15, 0.5],
+];
+function lightAt(h) {
+  let i = 0; while (i < LIGHT.length - 2 && LIGHT[i + 1][0] <= h) i++;
+  const a = LIGHT[i], b = LIGHT[i + 1], u = (h - a[0]) / (b[0] - a[0] || 1), mix = (x, y) => x + (y - x) * u;
+  return { rgb: a[1].map((v, k) => Math.round(mix(v, b[1][k]))), warm: mix(a[2], b[2]), lamps: mix(a[3], b[3]), mist: mix(a[4], b[4]), smoke: mix(a[5], b[5]) };
+}
+const shade = document.getElementById("shade"), warm = document.getElementById("warm");
+const clockTime = document.getElementById("clockTime"), clockIcon = document.getElementById("clockIcon");
+const DAYICON = { sunrise: `%%ICON:sunrise%%`, sun: `%%ICON:sun%%`, sunset: `%%ICON:sunset%%`, moon: `%%ICON:moon%%` };
+let L = lightAt(hourNow()), lastIcon = "";
+function stepDay(dt) {
+  if (!REDUCED) dayT = (dayT + dt / DAY) % 1;
+  const h = hourNow(); L = lightAt(h);
+  const night = L.rgb[0] < 250;
+  shade.hidden = !night; if (night) shade.style.background = `rgb(${L.rgb.join(",")})`;
+  warm.style.opacity = L.warm.toFixed(3);
+  wisps.style.filter = `brightness(${(0.45 + 0.55 * L.rgb[0] / 255).toFixed(3)})`;
+  const hh = Math.floor(h), mm = Math.floor((h - hh) * 60 / 5) * 5;
+  clockTime.textContent = `${String(hh).padStart(2, "0")}:${String(mm).padStart(2, "0")}`;
+  const icon = h >= 5 && h < 7.5 ? "sunrise" : h >= 7.5 && h < 18 ? "sun" : h >= 18 && h < 21 ? "sunset" : "moon";
+  if (icon !== lastIcon) { clockIcon.innerHTML = DAYICON[icon]; lastIcon = icon; }
+}
+
+// ---------------------------------------------------------------- mist lying on the heath and the paddocks at dawn
+const mistC = document.getElementById("mist"), mx = mistC.getContext("2d");
+const MIST = [];
+const rngA = (() => { let s = 4242; return () => ((s = (s * 16807) % 2147483647) / 2147483647); })();
+for (const [x0, y0, x1, y1, n] of [[0, 230, 400, 650, 26], [0, 80, 560, 250, 22], [660, 60, 1448, 560, 30], [560, 980, 1448, 1086, 12], [0, 650, 300, 1086, 12]])
+  for (let i = 0; i < n; i++) MIST.push({ x: x0 + rngA() * (x1 - x0), y: y0 + rngA() * (y1 - y0), r: 50 + rngA() * 70, v: 2 + rngA() * 3, x0, x1 });
+let mistShown = -1;
+function drawMist(dt) {
+  const k = L.mist;
+  if (k < 0.02) { if (mistShown !== 0) { mx.clearRect(0, 0, mistC.width, mistC.height); mistShown = 0; } return; }
+  mistShown = k; mx.clearRect(0, 0, mistC.width, mistC.height);
+  for (const m of MIST) {
+    if (!REDUCED) { m.x += m.v * dt; if (m.x - m.r > m.x1) m.x = m.x0 - m.r; }
+    const x = m.x / Q, y = m.y / Q, r = m.r / Q, g = mx.createRadialGradient(x, y, 0, x, y, r);
+    g.addColorStop(0, `rgba(246,244,236,${(0.32 * k).toFixed(3)})`); g.addColorStop(1, "rgba(246,244,236,0)");
+    mx.fillStyle = g; mx.beginPath(); mx.ellipse(x, y, r * 1.6, r * 0.55, 0, 0, 6.283); mx.fill();
+  }
+}
+
+// ---------------------------------------------------------------- lamps: windows and the street lamps, lit at dusk
+// (assets/atmos.json: tools/atmos.py found the windows on the board)
+const lampC = document.getElementById("lamps"), lx = lampC.getContext("2d");
+let LAMPS = [];
+function setLamps(atmos) {
+  const street = [];
+  for (const r of [ROAD.highSt, ROAD.kingston, ROAD.oldStn.slice(0, 9), ROAD.bury.slice(0, 6), ROAD.exeter, ROAD.fordham.slice(2)]) {
+    const c = P(r); for (let s = 30; s < c.L; s += 64) { const p = c.getPointAt(s / c.L); street.push({ x: p.x + 7, y: p.z - 5, r: 13, street: true }); }
+  }
+  LAMPS = [...atmos.windows.filter(() => rngA() < 0.75).map(([x, y]) => ({ x, y, r: 9 })), ...street]
+    .map((l) => ({ ...l, on: 0.05 + rngA() * 0.4, ph: rngA() * 6.28 }));
+}
+let lampsShown = -1;
+function drawLamps(t) {
+  const k = L.lamps;
+  if (k < 0.02) { if (lampsShown !== 0) { lx.clearRect(0, 0, lampC.width, lampC.height); lampsShown = 0; } return; }
+  lampsShown = k; lx.clearRect(0, 0, lampC.width, lampC.height);
+  const s = lampC.width / MW;
+  for (const l of LAMPS) {
+    const lit = Math.min(1, Math.max(0, (k - l.on) * 3));          // each lamp comes on at its own moment
+    if (lit <= 0) continue;
+    const fl = 0.88 + 0.12 * Math.sin(t * 7 + l.ph) * Math.sin(t * 3.1 + l.ph * 2), a = lit * fl;
+    const x = l.x * s, y = l.y * s, r = l.r * s, g = lx.createRadialGradient(x, y, 0, x, y, r);
+    g.addColorStop(0, `rgba(255,214,140,${(0.95 * a).toFixed(3)})`); g.addColorStop(0.25, `rgba(255,170,80,${(0.5 * a).toFixed(3)})`); g.addColorStop(1, "rgba(255,140,50,0)");
+    lx.fillStyle = g; lx.beginPath(); lx.arc(x, y, r, 0, 6.283); lx.fill();
+  }
+}
+
+// ---------------------------------------------------------------- chimney smoke, rooks and flags (one canvas over the board)
+const fxC = document.getElementById("smoke"), fx = fxC.getContext("2d");
+const puff = (() => { const c = document.createElement("canvas"); c.width = c.height = 64; const g = c.getContext("2d");
+  const r = g.createRadialGradient(32, 32, 0, 32, 32, 32); r.addColorStop(0, "rgba(150,152,160,1)"); r.addColorStop(0.45, "rgba(172,174,182,.7)"); r.addColorStop(1, "rgba(195,196,202,0)");
+  g.fillStyle = r; g.fillRect(0, 0, 64, 64); return c; })();
+let CHIMNEYS = [], FLAGS = [];
+const PUFFS2 = [];
+const WIND = 3.2;                                                    // the same way the clouds drift
+function stepSmoke(dt) {
+  for (const c of CHIMNEYS) {
+    c.next -= dt * (0.4 + 0.6 * L.smoke);
+    if (c.next <= 0) { c.next = 0.32 + rngA() * 0.3; PUFFS2.push({ x: c.x + (rngA() - 0.5), y: c.y, age: 0, life: 6.5 + rngA() * 3, vx: WIND * (0.5 + rngA() * 0.6), vy: -(11 + rngA() * 4), a: c.a }); }
+  }
+  for (let i = PUFFS2.length - 1; i >= 0; i--) {
+    const p = PUFFS2[i]; p.age += dt; if (p.age > p.life) { PUFFS2.splice(i, 1); continue; }
+    p.x += p.vx * dt; p.y += p.vy * dt; p.vy *= 1 - 0.22 * dt; p.vx += 1.1 * dt;
+  }
+}
+// rooks: now and then a flock rises off Warren Hill, wheels and heads away over the town
+const ROOKS = Array.from({ length: 11 }, (_, i) => ({ ox: (rngA() - 0.5) * 70, oy: (rngA() - 0.5) * 34, ph: rngA() * 6.28, sp: 0.6 + rngA() * 0.8 }));
+let flock = { t: -12, dur: 30 };
+function flockAt(s) { return { x: 120 + s * 1000 + Math.sin(s * 9) * 60, y: 420 - s * 470 + Math.cos(s * 7) * 50 }; }
+function drawFx(t, dt) {
+  const s = fxC.width / MW;
+  fx.clearRect(0, 0, fxC.width, fxC.height);
+  // smoke
+  for (const p of PUFFS2) {
+    const u = p.age / p.life, a = Math.min(1, 1.0 * p.a * Math.min(1, p.age / 0.4) * Math.pow(1 - u, 1.4)), r = (2.6 + u * 17) * s;
+    fx.globalAlpha = a; fx.drawImage(puff, p.x * s - r, p.y * s - r, r * 2, r * 2);
+  }
+  fx.globalAlpha = 1;
+  // flags on the rotunda and the Jockey Club
+  for (const f of FLAGS) {
+    const x = f.x * s, y = f.y * s, L2 = f.len * s;
+    fx.strokeStyle = "#3a3026"; fx.lineWidth = 1.5 * s; fx.beginPath(); fx.moveTo(x, y); fx.lineTo(x, y - L2); fx.stroke();
+    fx.fillStyle = f.col; fx.beginPath();
+    const N = 10, fl = 15 * s, fh = 7 * s;
+    for (let i = 0; i <= N; i++) { const u = i / N; fx.lineTo(x + u * fl, y - L2 + Math.sin(u * 3.2 - t * 6 + f.ph) * 2 * s * u + u * fh * 0.15); }
+    for (let i = N; i >= 0; i--) { const u = i / N; fx.lineTo(x + u * fl, y - L2 + fh * (1 - u * 0.75) + Math.sin(u * 3.2 - t * 6 + f.ph) * 2 * s * u); }
+    fx.closePath(); fx.fill();
+  }
+  // rooks, by day
+  if (!REDUCED) flock.t += dt;
+  const day = inHours([6, 19.5]);
+  if (flock.t > flock.dur) flock = { t: -(25 + rngA() * 30), dur: 26 + rngA() * 8 };
+  if (flock.t > 0 && day) {
+    const c = flockAt(flock.t / flock.dur);
+    fx.strokeStyle = "#26221d"; fx.lineWidth = 1.3 * s; fx.lineCap = "round";
+    for (const b of ROOKS) {
+      const sw = Math.sin(t * 0.7 * b.sp + b.ph), x = (c.x + b.ox + sw * 14) * s, y = (c.y + b.oy + Math.cos(t * 0.9 * b.sp + b.ph) * 8) * s;
+      const w = 4.2 * s, flap = Math.sin(t * 11 * b.sp + b.ph) * 2.6 * s;
+      fx.beginPath(); fx.moveTo(x - w, y - flap); fx.quadraticCurveTo(x - w * 0.4, y - flap * 0.2 - 0.6 * s, x, y); fx.quadraticCurveTo(x + w * 0.4, y - flap * 0.2 - 0.6 * s, x + w, y - flap); fx.stroke();
+    }
+    if (Sound.on && flock.t < dt * 1.5) Sound.caws();
+  }
+  // all of it takes the light of the hour
+  if (L.rgb[0] < 250) { fx.globalCompositeOperation = "source-atop"; fx.fillStyle = `rgba(${L.rgb.join(",")},0.75)`; fx.fillRect(0, 0, fxC.width, fxC.height); fx.globalCompositeOperation = "source-over"; }
+}
+fetch("assets/atmos.json").then((r) => r.json()).then((a) => {
+  CHIMNEYS = a.chimneys.map(([x, y]) => ({ x, y, next: rngA() * 3, a: 0.6 + rngA() * 0.4 }));
+  FLAGS = a.flags.map(([x, y, len], i) => ({ x, y, len, col: i ? "#3d7153" : "#9c3d33", ph: i * 1.7 }));
+  setLamps(a);
+  for (let i = 0; i < 40; i++) stepSmoke(0.25);                   // the fires were lit before the page opened
+}).catch(() => {});
+
+// ---------------------------------------------------------------- leaning in towards the place you pick
+const lean = document.getElementById("lean");
+function leanTo(id) {
+  const p = PLACES.find((q) => q.id === id);
+  if (!p || REDUCED) { lean.style.transform = ""; return; }
+  const vr = view.getBoundingClientRect(), hr = holder.getBoundingClientRect();
+  const px = hr.left - vr.left + p.at[0] * scale, py = hr.top - vr.top + p.at[1] * scale;
+  const phone = innerWidth <= 640, tx = phone ? vr.width / 2 : (vr.width - 370) / 2, ty = phone ? vr.height * 0.3 : vr.height * 0.52;
+  lean.style.transformOrigin = `${p.at[0] * scale}px ${p.at[1] * scale}px`;
+  lean.style.transform = `translate(${((tx - px) * 0.45).toFixed(1)}px, ${((ty - py) * 0.45).toFixed(1)}px) rotateX(8deg) scale(1.12)`;
+}
+
+// ---------------------------------------------------------------- sounds: each place has its own, heard while the pointer is over it
+// Everything is made in the browser (no recordings); the auctioneer is the browser's own speaking voice.
+const Sound = (() => {
+  let ac = null, out = null, noiseBuf = null, bed = null, scene = null, sceneId = null;
+  const S = { on: false };
+  const now = () => ac.currentTime;
+  function init() {
+    ac = new (window.AudioContext || window.webkitAudioContext)();
+    const comp = ac.createDynamicsCompressor(); comp.threshold.value = -18; comp.ratio.value = 3; comp.connect(ac.destination);
+    out = ac.createGain(); out.gain.value = 0.8; out.connect(comp);
+    noiseBuf = ac.createBuffer(1, ac.sampleRate * 2, ac.sampleRate); const d = noiseBuf.getChannelData(0);
+    let b = 0; for (let i = 0; i < d.length; i++) { const w = Math.random() * 2 - 1; b = 0.97 * b + 0.03 * w; d[i] = w * 0.6 + b * 2.2; }
+  }
+  const gainAt = (dest, v = 1) => { const g = ac.createGain(); g.gain.value = v; g.connect(dest); return g; };
+  const panAt = (dest, p = 0) => { if (!ac.createStereoPanner) return dest; const n = ac.createStereoPanner(); n.pan.value = p; n.connect(dest); return n; };
+  const noise = (dest, t, dur) => { const s = ac.createBufferSource(); s.buffer = noiseBuf; s.loop = true; s.connect(dest); s.start(t, Math.random() * 1.5); if (dur) s.stop(t + dur); return s; };
+  const filt = (dest, type, f, q = 1) => { const n = ac.createBiquadFilter(); n.type = type; n.frequency.value = f; n.Q.value = q; n.connect(dest); return n; };
+  const env = (g, t, a, peak, d, hold = 0) => { peak = Math.max(peak, 0.0002); g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(peak, t + a); g.gain.setValueAtTime(peak, t + a + hold); g.gain.exponentialRampToValueAtTime(0.0001, t + a + hold + d); };
+  const tone = (dest, t, type, f, a, peak, d, f2) => { const o = ac.createOscillator(); o.type = type; o.frequency.setValueAtTime(f, t); if (f2) o.frequency.exponentialRampToValueAtTime(f2, t + a + d); const g = gainAt(dest, 0); env(g, t, a, peak, d); o.connect(g); o.start(t); o.stop(t + a + d + 0.05); return o; };
+  // the sounds
+  const thud = (dest, t, v = 0.5, p = 0) => { const d = panAt(dest, p); tone(d, t, "sine", 95 + Math.random() * 20, 0.004, v, 0.09, 55); const g = gainAt(d, 0); env(g, t, 0.002, v * 0.5, 0.06); noise(filt(g, "lowpass", 600), t, 0.1); };
+  const clip = (dest, t, v = 0.3, p = 0) => { const g = gainAt(panAt(dest, p), 0); env(g, t, 0.001, v, 0.05); noise(filt(g, "bandpass", 1800 + Math.random() * 900, 4), t, 0.08); };
+  const gallop = (dest, t, dur, horses = 3, dir = 1) => {
+    for (let hI = 0; hI < horses; hI++) {
+      const off = hI * 0.17 + Math.random() * 0.05, stride = 0.42 + Math.random() * 0.03;
+      for (let s = 0; s < dur / stride; s++) {
+        const u = s * stride / dur, vol = Math.sin(Math.PI * u) ** 1.5 * 0.45, pan = dir * (u * 1.6 - 0.8);
+        for (const b of [0, 0.065, 0.13, 0.2]) thud(dest, t + off + s * stride + b, vol * (0.7 + Math.random() * 0.3), pan);
+      }
+    }
+  };
+  const whinny = (dest, t, base = 640, dur = 1.25, v = 0.16) => {
+    const o = ac.createOscillator(); o.type = "sawtooth";
+    o.frequency.setValueAtTime(base * 1.2, t); o.frequency.linearRampToValueAtTime(base * 1.55, t + dur * 0.18); o.frequency.exponentialRampToValueAtTime(base * 0.62, t + dur);
+    const vib = ac.createOscillator(); vib.frequency.value = 17; const vg = ac.createGain(); vg.gain.value = base * 0.09; vib.connect(vg); vg.connect(o.frequency);
+    const trem = ac.createOscillator(); trem.frequency.value = 21; const tg = ac.createGain(); tg.gain.value = 0.35;
+    const g = gainAt(filt(filt(dest, "bandpass", base * 2.2, 0.9), "lowpass", 3200), 0); env(g, t, 0.06, v, dur * 0.85, 0.05);
+    const am = gainAt(g, 0.65); trem.connect(tg); tg.connect(am.gain); o.connect(am);
+    [o, vib, trem].forEach((n) => { n.start(t); n.stop(t + dur + 0.2); });
+    const br = gainAt(dest, 0); env(br, t + dur * 0.7, 0.05, v * 0.4, 0.35); noise(filt(br, "bandpass", 900, 0.8), t + dur * 0.7, 0.45);
+  };
+  const snort = (dest, t) => { const g = gainAt(dest, 0); env(g, t, 0.01, 0.25, 0.25); noise(filt(g, "lowpass", 900), t, 0.3); };
+  const scrape = (dest, t) => {
+    const g = gainAt(dest, 0); env(g, t, 0.05, 0.22, 0.32); const f = filt(g, "bandpass", 1600, 2.5); f.frequency.setValueAtTime(1500, t); f.frequency.linearRampToValueAtTime(3200, t + 0.35); noise(f, t, 0.45);
+    const g2 = gainAt(dest, 0); env(g2, t + 0.55, 0.01, 0.3, 0.18); noise(filt(g2, "lowpass", 700), t + 0.55, 0.25);
+  };
+  const clank = (dest, t, v = 0.12) => { for (const [f, d] of [[523, 0.9], [1290, 0.6], [2010, 0.45], [2950, 0.3]]) tone(dest, t, "sine", f * (0.98 + Math.random() * 0.04), 0.002, v, d); clip(dest, t, 0.25); };
+  const bell = (dest, t, f, v = 0.2) => { for (const [k, d, a] of [[0.5, 4, 0.6], [1, 3.2, 1], [1.2, 2.2, 0.5], [1.5, 2, 0.45], [2, 1.6, 0.35], [2.76, 1.1, 0.25], [3.05, 0.9, 0.2]]) tone(dest, t, "sine", f * k, 0.004, v * a, d); };
+  const ping = (dest, t) => { tone(dest, t, "sine", 2400 + Math.random() * 600, 0.002, 0.06, 0.5); tone(dest, t, "sine", 3700 + Math.random() * 500, 0.002, 0.03, 0.3); };
+  const tick = (dest, t) => clip(dest, t, 0.07, 0);
+  const gavel = (dest, t) => { tone(dest, t, "sine", 150, 0.002, 0.6, 0.18, 90); const g = gainAt(dest, 0); env(g, t, 0.001, 0.5, 0.05); noise(filt(g, "bandpass", 1200, 1.5), t, 0.08); };
+  const chirp = (dest, t, p = 0) => { const d = panAt(dest, p); const n = 2 + Math.floor(Math.random() * 4), f = 2800 + Math.random() * 1600;
+    for (let i = 0; i < n; i++) tone(d, t + i * (0.09 + Math.random() * 0.05), "sine", f * (0.9 + Math.random() * 0.3), 0.01, 0.035, 0.07, f * (1.1 + Math.random() * 0.4)); };
+  const caw = (dest, t, p = 0) => { const d = filt(panAt(dest, p), "bandpass", 1000, 1.4); tone(d, t, "sawtooth", 420 + Math.random() * 60, 0.02, 0.05, 0.22, 330); };
+  const owl = (dest, t) => { tone(dest, t, "sine", 400, 0.06, 0.05, 0.45, 370); tone(dest, t + 0.75, "sine", 410, 0.05, 0.04, 0.25, 395); tone(dest, t + 1.1, "sine", 400, 0.06, 0.05, 0.7, 360); };
+  const horn = (dest, t) => { const f = filt(dest, "lowpass", 1800, 0.7); [[392, 0.18], [523, 0.18], [659, 0.18], [784, 0.4], [659, 0.16], [784, 0.7]].reduce((tt, [n, d]) => { tone(f, tt, "sawtooth", n, 0.02, 0.07, d); return tt + d + 0.03; }, t); };
+  // a continuous murmur (a crowd, a room) or breeze; returns a stopper
+  function murmur(dest, level, bands = [350, 700, 1150]) {
+    const nodes = [];
+    for (const b of bands) {
+      const g = gainAt(dest, level * 0.5), lfo = ac.createOscillator(), lg = ac.createGain();
+      lfo.frequency.value = 0.25 + Math.random() * 0.6; lg.gain.value = level * 0.4; lfo.connect(lg); lg.connect(g.gain); lfo.start();
+      nodes.push(lfo, noise(filt(g, "bandpass", b, 1.6), now()));
+    }
+    return () => nodes.forEach((n) => { try { n.stop(); } catch (e) {} });
+  }
+  function breeze(dest, level) {
+    const g = gainAt(dest, level), lfo = ac.createOscillator(), lg = ac.createGain(); lfo.frequency.value = 0.07; lg.gain.value = level * 0.6; lfo.connect(lg); lg.connect(g.gain); lfo.start();
+    const n = noise(filt(g, "lowpass", 420, 0.5), now()); return () => { lfo.stop(); n.stop(); };
+  }
+  // the auctioneer, in the browser's own voice
+  let voice = null;
+  function speak(text, rate = 1.3) {
+    if (!("speechSynthesis" in window)) return;
+    try {
+      if (!voice) { const vs = speechSynthesis.getVoices(); voice = vs.find((v) => /en-GB/i.test(v.lang) && /male|daniel|arthur|george/i.test(v.name)) || vs.find((v) => /en-GB/i.test(v.lang)) || vs.find((v) => /^en/i.test(v.lang)) || null; }
+      const u = new SpeechSynthesisUtterance(text); if (voice) u.voice = voice; u.rate = rate; u.pitch = 0.85; u.volume = 0.5; speechSynthesis.speak(u);
+    } catch (e) {}
+  }
+  const LOTS = ["Lot forty-two. A bay colt, out of a winning mare.", "Lot fifty-seven. A strong chestnut filly.", "Lot sixty-three. A good-looking grey colt.", "Lot seventy-one. A dark bay filly, a full sister to a winner."];
+  // a soundscape: a fading-in bus, a few continuous layers and events scheduled a little ahead; stop() fades it all out
+  function runScene(id) {
+    const bus = gainAt(out, 0); bus.gain.setValueAtTime(0.0001, now()); bus.gain.exponentialRampToValueAtTime(1, now() + 0.8);
+    const stops = [], timers = [];
+    const every = (min, max, fn, first = 0) => { const go = () => { if (!S.on) return; fn(now() + 0.05); timers.push(setTimeout(go, (min + Math.random() * (max - min)) * 1000)); }; timers.push(setTimeout(go, first * 1000)); };
+    if (id === "tatts") {
+      stops.push(murmur(bus, 0.18));
+      let lot = 0;
+      every(17, 20, (t) => {
+        const name = LOTS[lot++ % LOTS.length], price = [40, 55, 70, 85][lot % 4];
+        speak(`${name} Who'll start me? ${price} thousand. ${price + 5}. ${price + 10} thousand I'm bid. At the back, ${price + 15}. All done? ${price + 15} thousand guineas.`);
+        timers.push(setTimeout(() => S.on && gavel(bus, now() + 0.02), 12500));
+      }, 0.4);
+      every(2.5, 5, (t) => { const p = Math.random() - 0.5; for (let i = 0; i < 4; i++) clip(bus, t + i * 0.32, 0.16, p); });
+      every(9, 15, (t) => whinny(bus, t, 600, 1.1, 0.08), 6);
+    } else if (id === "warren") {
+      stops.push(breeze(bus, 0.12));
+      let dir = 1; every(6.5, 8.5, (t) => { gallop(bus, t, 5.5, 3, dir); dir = -dir; });
+      every(4, 9, (t) => snort(bus, t), 3); every(3, 7, (t) => chirp(bus, t, Math.random() * 1.6 - 0.8), 1);
+    } else if (id === "stables") {
+      stops.push(murmur(bus, 0.04, [600]));
+      every(1.6, 2.6, (t) => scrape(bus, t), 0.2);
+      every(5, 9, (t) => clank(bus, t), 2.5);
+      every(2.5, 5, (t) => { const p = Math.random() - 0.5; clip(bus, t, 0.2, p); clip(bus, t + 0.25, 0.18, p); }, 1);
+      every(7, 12, (t) => whinny(bus, t, 620, 1.2, 0.1), 4); every(5, 9, (t) => snort(bus, t), 3);
+    } else if (id === "stud") {
+      stops.push(breeze(bus, 0.12));
+      every(4, 7, (t) => whinny(bus, t, 980, 0.85, 0.09), 0.6);
+      every(8, 13, (t) => whinny(bus, t, 420, 0.7, 0.07), 3);
+      every(1.5, 4, (t) => chirp(bus, t, Math.random() * 1.6 - 0.8));
+      every(6, 10, (t) => { for (let i = 0; i < 8; i++) thud(bus, t + i * 0.26 + (i % 2) * 0.05, 0.12, 0.3); }, 5);
+    } else if (id === "palace") {
+      stops.push(murmur(bus, 0.035, [500]));
+      every(16, 16, (t) => { [659, 523, 587, 392].forEach((f, i) => bell(bus, t + i * 0.9, f, 0.12)); }, 0.3);
+      every(1, 1, (t) => tick(bus, t), 0.5);
+    } else if (id === "jockey") {
+      stops.push(murmur(bus, 0.09, [300, 550, 900]));
+      every(2, 5, (t) => ping(bus, t), 1); every(1, 1, (t) => tick(bus, t), 0.2);
+    } else if (id === "races") {
+      const g = gainAt(bus, 0); g.gain.setValueAtTime(0.0001, now()); g.gain.exponentialRampToValueAtTime(1, now() + 3);
+      stops.push(murmur(g, 0.3, [400, 800, 1300, 2000]));
+      every(12, 12, (t) => horn(bus, t), 0.5);
+      every(9, 12, (t) => gallop(bus, t, 4, 6, 1), 4);
+    }
+    return { stop() {
+      timers.forEach(clearTimeout); try { speechSynthesis.cancel(); } catch (e) {}
+      bus.gain.cancelScheduledValues(now()); bus.gain.setValueAtTime(bus.gain.value, now()); bus.gain.exponentialRampToValueAtTime(0.0001, now() + 0.7);
+      setTimeout(() => { stops.forEach((f) => f()); bus.disconnect(); }, 900);
+    } };
+  }
+  // always there while sound is on: the breeze, birds by day, an owl at night
+  function runBed() {
+    const bus = gainAt(out, 0.7), stop = breeze(bus, 0.06), timers = [];
+    const loop = () => { if (!S.on) return; const h = hourNow(), t = now() + 0.05;
+      if (h > 4.8 && h < 20) chirp(bus, t, Math.random() * 1.8 - 0.9); else if (Math.random() < 0.35) owl(bus, t);
+      timers.push(setTimeout(loop, (3 + Math.random() * 6) * 1000)); };
+    loop();
+    return { stop() { timers.forEach(clearTimeout); stop(); bus.disconnect(); } };
+  }
+  S.set = (on) => {
+    S.on = on;
+    if (on) { if (!ac) init(); ac.resume(); bed = runBed(); const id = sceneId; sceneId = null; S.place(id); }
+    else { if (scene) scene.stop(); if (bed) bed.stop(); scene = bed = null; try { speechSynthesis.cancel(); } catch (e) {} setTimeout(() => ac && !S.on && ac.suspend(), 1000); }
+  };
+  S.place = (id) => {
+    if (id === sceneId && scene) return;
+    sceneId = id;
+    if (!S.on) return;
+    if (scene) { scene.stop(); scene = null; }
+    if (id) scene = runScene(id);
+  };
+  S.caws = () => { if (!ac || !S.on) return; for (let i = 0; i < 4; i++) caw(out, now() + 0.3 + i * (0.35 + Math.random() * 0.5), Math.random() * 1.4 - 0.7); };
+  return S;
+})();
+const sndBtn = document.getElementById("snd"), sndIcon = document.getElementById("sndIcon");
+const SNDICON = { on: `%%ICON:speaker%%`, off: `%%ICON:speaker-off%%` };
+sndBtn.addEventListener("click", () => {
+  const on = !Sound.on; Sound.set(on);
+  sndBtn.setAttribute("aria-pressed", String(on)); sndIcon.innerHTML = on ? SNDICON.on : SNDICON.off;
+  sndBtn.querySelector("span").textContent = on ? "Sound on" : "Sound off";
+});
+let hovered = null;
+const placeSound = () => Sound.place(hovered || chosen);
+window.__fx = () => ({ chimneys: CHIMNEYS.length, puffs: PUFFS2.length, lamps: LAMPS.length });
+window.__setHour = (h) => { const t = h >= 5.5 && h < 21.5 ? (h - 5.5) / 16 * 0.86 : 0.86 + (((h - 21.5 + 24) % 24) / 8) * 0.14; dayT = t % 1; };
