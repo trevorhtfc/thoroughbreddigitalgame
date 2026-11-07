@@ -61,7 +61,7 @@ dialog p { color: #f6f1e6; text-align: center; margin: 8px 0 0; font: 600 .8rem 
 <header><div class="wrap">
   <p class="k">Thoroughbred Ascot · style review</p>
   <h1>Race view styles</h1>
-  <p class="lede">Every look, grandstand and tree style the 3D race can wear, side by side. Each picture is the same race at the same moment: on the left the drone along the stand before the off, on the right the field coming up the straight. Tap a picture to see it bigger, or open the real race in that style. Choose one of each, and the game will ship only those.</p>
+  <p class="lede">Every look, grandstand and tree style the 3D race can wear, side by side. Each picture is the same race at the same moment: on the left the drone along the stand before the off (for the trees, the back straight), on the right the field coming up the straight. Tap a picture to see it bigger, or open the real race in that style. Choose one of each, and the game will ship only those.</p>
 </div></header>
 
 <section><div class="wrap">
@@ -123,7 +123,9 @@ const race = (q, r = "mile") => `final-furlong.html?race=${r}&finish=story${q ? 
 function cards(el, list) {
   document.getElementById(el).innerHTML = list.map((o) => `
     <article class="card${o.now ? " now" : ""}">
-      <div class="shots"><img loading="lazy" src="assets/styles/${o.id === "current" && el !== "looks" ? "current" : o.id}-stand.jpg" alt="${o.name}: the stand before the off" data-cap="${o.name} · before the off"><img loading="lazy" src="assets/styles/${o.id === "current" && el !== "looks" ? "current" : o.id}-race.jpg" alt="${o.name}: the field up the straight" data-cap="${o.name} · up the straight"></div>
+      <div class="shots">${el === "trees"
+        ? `<img loading="lazy" src="assets/styles/${o.id}-trees.jpg" alt="${o.name}: the trees beyond the back straight" data-cap="${o.name} · the back straight"><img loading="lazy" src="assets/styles/${o.id}-race.jpg" alt="${o.name}: the field up the straight" data-cap="${o.name} · up the straight">`
+        : `<img loading="lazy" src="assets/styles/${o.id}-stand.jpg" alt="${o.name}: the stand before the off" data-cap="${o.name} · before the off"><img loading="lazy" src="assets/styles/${o.id}-race.jpg" alt="${o.name}: the field up the straight" data-cap="${o.name} · up the straight">`}</div>
       <div class="body"><h3>${o.name}${o.now ? '<span class="tag">In the game now</span>' : ""}</h3><p>${o.about}</p>
         <div class="btns"><a class="btn go" href="${race(o.q)}">Watch the mile ›</a><a class="btn" href="${race(o.q, "1m4f")}">Round course</a></div></div>
     </article>`).join("");
