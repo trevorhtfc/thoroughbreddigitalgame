@@ -195,8 +195,13 @@ def soft_ground(gm, gn, gl, tco, uvn, msep):
     # the racing turf: base, broad patches, tufts, and the lanes (the mask's blue: 0.5 + 0.5 cos(pi * 8 * d / 30))
     turf = mul(srgb("#7fa952"), cramp(noise(0.08, 3), [(0.3, g(0.86)), (0.7, g(1.1))]))
     turf = mul(turf, cramp(noise(2.2, 4, 0.6), [(0.35, g(0.88)), (0.65, g(1.08))]))
+    # crisp mown bands like the study's (its sine mapped -0.3..0.3 -> 0..1), not a soft wave
     st = 0.16
-    turf = mul(turf, cramp(msep.outputs[2], [(0.0, (1 - st, 1 - st * 0.8, 1 - st * 1.2, 1)), (1.0, (1 + st * 0.8, 1 + st * 0.8, 1 + st * 0.3, 1))]))
+    cv = gn.new("ShaderNodeMath"); cv.operation = "MULTIPLY_ADD"; cv.inputs[1].default_value = 2.0; cv.inputs[2].default_value = -1.0
+    gl.new(msep.outputs[2], cv.inputs[0])
+    band = gn.new("ShaderNodeMapRange"); band.clamp = True; gl.new(cv.outputs[0], band.inputs["Value"])
+    band.inputs["From Min"].default_value = -0.3; band.inputs["From Max"].default_value = 0.3
+    turf = mul(turf, cramp(band.outputs["Result"], [(0.0, (1 - st, 1 - st * 0.8, 1 - st * 1.2, 1)), (1.0, (1 + st * 0.8, 1 + st * 0.8, 1 + st * 0.3, 1))]))
     # the lawn, and the beige-brown ground beside the track
     lawn = mul(srgb("#bcc98c"), cramp(noise(0.12, 3), [(0.3, g(0.86)), (0.7, g(1.1))]))
     lawn = mul(lawn, cramp(noise(3.0, 4, 0.6), [(0.35, g(0.92)), (0.65, g(1.05))]))

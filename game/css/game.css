@@ -383,6 +383,9 @@ button{font:inherit;cursor:pointer;color:inherit}
 /* ---------------------------------------------------------------- overlays from the Ascot game, in the same dress */
 .foal-wrap{z-index:45}
 .watch{z-index:50;background:#16302a}
+/* While a race is on, nothing under it is drawn: the browser no longer composites the board's canvases, glows and the
+   sheet behind the race picture every frame (it couldn't skip them, being under another page). */
+body.watching > :not(.watch){visibility:hidden!important}
 .watch .x{background:var(--tb-panel);color:var(--tb-green);box-shadow:0 0 0 1px var(--tb-gold),0 6px 18px rgba(0,0,0,.35);font-weight:700;text-transform:none}
 .watch .x .sh{display:none}
 @media (max-width:600px){ .watch .x .lg{display:none} .watch .x .sh{display:inline} .watch .x{padding:6px 11px;font-size:13px} }
