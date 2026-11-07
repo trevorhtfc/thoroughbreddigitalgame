@@ -140,6 +140,7 @@ button:focus-visible { outline: 2px solid var(--cream-edge); outline-offset: 2px
   background: rgba(20, 30, 22, 0.86); color: #f3ead2; border-radius: 3px; font: 12px/1.45 ui-monospace, Menlo, monospace;
 }
 .diag #diagText { white-space: pre-wrap; }
+.in-game .diag { top: calc(78px + env(safe-area-inset-top, 0px)); right: auto; left: calc(10px + env(safe-area-inset-left, 0px)); }
 .diag-sw { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 6px; }
 .diag-sw button { font-size: 0.72rem; padding: 3px 6px; }
 .loading {
@@ -162,9 +163,8 @@ button:focus-visible { outline: 2px solid var(--cream-edge); outline-offset: 2px
 /* The storybook finish (in the game, or ?finish=story): the same grade as the game's films and cover
    (game/tools/storybook_grade.py, fitted as a CSS filter: softer colour, greens towards the board's olive, a
    parchment cast), and a soft vignette. Applied as the picture goes on screen, so the race itself is untouched. */
-.story #scene { filter: saturate(1.15) sepia(.25) hue-rotate(-12deg) brightness(.96) contrast(.935); }
-.veil { position: fixed; inset: 0; pointer-events: none; display: none; background: radial-gradient(ellipse 80% 75% at 50% 46%, rgba(30, 22, 8, 0) 58%, rgba(30, 22, 8, .26) 100%); }
-.story .veil { display: block; }
+/* (since 7 Nov 2026 both are drawn by the race view itself: see GRADE in the script. A CSS filter on the 3D picture
+   made the browser redraw the whole screen through the filter every frame, which slow graphics chips felt badly.) */
 /* ---------- In the game (Thoroughbred Ascot opens this page with ?game=1): the game's own dress ----------
    Parchment panels with a gold hairline, an engraved serif for names (Crimson Pro), Jost in spaced capitals for labels,
    Nunito for reading: the same as the Newmarket board and the game's sheets. The racecard before the off and the
@@ -219,7 +219,6 @@ button:focus-visible { outline: 2px solid var(--cream-edge); outline-offset: 2px
 </style>
 
 <canvas id="scene"></canvas>
-<div class="veil" aria-hidden="true"></div>
 <button id="showBar" class="showbar" type="button" hidden>Controls</button>
 <div class="loading" id="loading">Setting up the course…</div>
 
@@ -234,6 +233,8 @@ button:focus-visible { outline: 2px solid var(--cream-edge); outline-offset: 2px
 <div class="bar">
   <div class="group" id="races"><span>Race</span><select id="raceSel" aria-label="Race"></select><select id="goingSel" aria-label="Going"></select><select id="runnersSel" aria-label="Runners"></select><span>Seed</span><input id="seedIn" class="seed" type="number" min="1" step="1" inputmode="numeric" aria-label="Race seed" title="Race seed: the same seed runs the same race"><button id="newRace" type="button" title="A new race with a new seed">New race</button></div>
   <div class="group" id="horses"><span>Horse</span></div>
+  <div class="group" id="looks"><span>Look</span></div>
+  <div class="group" id="standsG"><span>Stand</span><select id="standSel" aria-label="Grandstand style"></select></div>
   <div class="group" id="cams"><span>Camera</span></div>
   <div class="group" id="finish"><span>Finish</span></div>
   <div class="group" id="quality"><span>Quality</span></div>
@@ -298,6 +299,10 @@ import { RoomEnvironment } from "three/addons/environments/RoomEnvironment.js";
 import { mergeGeometries, mergeVertices } from "three/addons/utils/BufferGeometryUtils.js";
 import { SimplifyModifier } from "three/addons/modifiers/SimplifyModifier.js";
 import * as HorseV2 from "./horse-v2.js";
+// Graphic style options (?look=model|diorama|faceted); without ?look nothing changes. See looks.js.
+import * as LOOKS from "./looks.js";
+// Grandstand style tests (?stand=pastel|brick&v=1..3); without ?stand nothing changes. See stand-styles.js.
+import * as STANDS from "./stand-styles.js";
 // The race engine (race-engine/ in the repo; a copy lives in assets/engine/): it decides the race, the view plays it back.
 import { runRace } from "./assets/engine/engine.js";
 import { randomField } from "./assets/engine/field.js";
@@ -411,15 +416,6 @@ const headingAt = (u, yaw) => { const r = railAt(DIST - u); return Math.atan2(-r
 const FRONT = COURSE.grandstand.frontLine;
 
 // ---------- Renderer ----------
-const canvas = document.getElementById("scene");
-const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: "high-performance", preserveDrawingBuffer: params.has("still") });
-renderer.info.autoReset = false;
-const LAYERS = { horses: [], trees: [], rails: [], kick: [], buildings: [], crowd: [], stalls: [] };   // for the diagnostics panel
-renderer.shadowMap.enabled = true;
-// Colour handled as Blender handles the stills: AgX, lifted a third of a stop.
-renderer.toneMapping = THREE.AgXToneMapping;
-renderer.toneMappingExposure = Math.pow(2, 0.35);
-
 // Quality presets. Most of the cost is filling pixels: a Retina Mac at full resolution draws four
 // times the pixels of a normal screen, each multisampled and shadowed. "Auto" starts at Medium on
 // high-resolution screens (High elsewhere) and steps down by itself if the frame rate drops.
@@ -434,44 +430,98 @@ const QUALITY = {
 const ORDER = ["high", "medium", "low", "lightest"];
 let qMode = params.get("quality") || (() => { try { return localStorage.getItem("tb-quality"); } catch { return null; } })() || "auto";
 if (qMode !== "auto" && !QUALITY[qMode]) qMode = "auto";
-let qLevel = qMode === "auto" ? (DPR > 1.5 ? "medium" : "high") : qMode;
+// Auto remembers, per browser, the level this machine settled on, and starts there next time (each race in the game
+// opens the view afresh): a slow machine no longer spends the start of every race stepping down, and on Low and
+// Lightest the picture is made without multisampling from the start (that can only be chosen as the view opens).
+const AUTO_START = DPR > 1.5 ? "medium" : "high";
+const autoLevel = (() => { try { const v = localStorage.getItem("tb-auto-level"); return QUALITY[v] ? v : null; } catch { return null; } })();
+let qLevel = qMode === "auto" ? (autoLevel || AUTO_START) : qMode;
+const LEGACY_GROUND = !!LOOKS.lookId;
+const canvas = document.getElementById("scene");
+// Multisampled edges on High and Medium; Low and Lightest leave them out (a quarter of the memory traffic on a big screen).
+const renderer = new THREE.WebGLRenderer({ canvas, antialias: QUALITY[qLevel].samples > 0, stencil: true, powerPreference: "high-performance", preserveDrawingBuffer: params.has("still") });
+renderer.info.autoReset = false;
+const LAYERS = { horses: [], trees: [], rails: [], kick: [], buildings: [], crowd: [], stalls: [], ground: [], sky: [], decals: [] };   // for the diagnostics panel
+renderer.shadowMap.enabled = true;
+// Colour handled as Blender handles the finish study: AgX (base contrast), exposure +0.12.
+renderer.toneMapping = THREE.AgXToneMapping;
+// The storybook finish (the game's grade, game/tools/storybook_grade.py): it was a CSS filter on the picture,
+// saturate(1.15) sepia(.25) hue-rotate(-12deg) brightness(.96) contrast(.935). Those are all straight colour sums, so
+// they fold into one 3x3 matrix and an offset, applied here in every shader just after AgX (the same numbers, in the
+// same sRGB values the browser used) instead of in an extra full-screen pass by the browser every frame. Switched
+// with the tone mapping (AgX alone, or AgX + grade); the haze colour is graded to match, as the filter graded it.
+const GRADE = (() => {
+  const mul = (A, B) => A.map((r) => [0, 1, 2].map((j) => r[0] * B[0][j] + r[1] * B[1][j] + r[2] * B[2][j]));
+  const s = 1.15, sat = [[0.213 + 0.787 * s, 0.715 - 0.715 * s, 0.072 - 0.072 * s], [0.213 - 0.213 * s, 0.715 + 0.285 * s, 0.072 - 0.072 * s], [0.213 - 0.213 * s, 0.715 - 0.715 * s, 0.072 + 0.928 * s]];
+  const a = 1 - 0.25, sep = [[0.393 + 0.607 * a, 0.769 - 0.769 * a, 0.189 - 0.189 * a], [0.349 - 0.349 * a, 0.686 + 0.314 * a, 0.168 - 0.168 * a], [0.272 - 0.272 * a, 0.534 - 0.534 * a, 0.131 + 0.869 * a]];
+  const th = (-12 * Math.PI) / 180, c = Math.cos(th), n = Math.sin(th);
+  const hue = [[0.213 + c * 0.787 - n * 0.213, 0.715 - c * 0.715 - n * 0.715, 0.072 - c * 0.072 + n * 0.928],
+               [0.213 - c * 0.213 + n * 0.143, 0.715 + c * 0.285 + n * 0.140, 0.072 - c * 0.072 - n * 0.283],
+               [0.213 - c * 0.213 - n * 0.787, 0.715 - c * 0.715 + n * 0.715, 0.072 + c * 0.928 + n * 0.072]];
+  const br = 0.96, ct = 0.935;
+  const M = mul(hue, mul(sep, sat)).map((r) => r.map((v) => v * br * ct)), B = 0.5 - 0.5 * ct;
+  const f = (v) => v.toFixed(6);
+  // The custom tone mapping is AgX itself, and flags the shader; the colour-space step just after it (which turns
+  // the colour into screen values anyway) applies the matrix there, so the grade costs one small sum per pixel.
+  // Materials that skip tone mapping (the vignette) are left ungraded, as they were outside the CSS filter.
+  const mat = `mat3( ${[0, 1, 2].map((j) => [0, 1, 2].map((i) => f(M[i][j])).join(", ")).join(", ")} )`;
+  THREE.ShaderChunk.tonemapping_pars_fragment = THREE.ShaderChunk.tonemapping_pars_fragment.replace(
+    "vec3 CustomToneMapping( vec3 color ) { return color; }",
+    "bool tbGrade = false;\nvec3 CustomToneMapping( vec3 color ) { tbGrade = true; return AgXToneMapping( color ); }");
+  THREE.ShaderChunk.colorspace_fragment = THREE.ShaderChunk.colorspace_fragment +
+    `\n#ifdef TONE_MAPPING\nif ( tbGrade ) gl_FragColor.rgb = clamp( ${mat} * gl_FragColor.rgb + ${f(B)}, 0.0, 1.0 );\n#endif\n`;
+  // the same grade in JS, for colours mixed in after the shaders' colour handling (the haze)
+  const apply = (rgb) => rgb.map((_, i) => Math.min(1, Math.max(0, M[i][0] * rgb[0] + M[i][1] * rgb[1] + M[i][2] * rgb[2] + B)));
+  return { apply, on: false };
+})();
+renderer.toneMappingExposure = Math.pow(2, 0.12);
+
+
 renderer.shadowMap.type = QUALITY[qLevel].soft ? THREE.PCFSoftShadowMap : THREE.PCFShadowMap;
 renderer.setPixelRatio(QUALITY[qLevel].scale);
 const KICK = { perSecond: 26, maxClods: 1600, share: QUALITY[qLevel].kick };   // turf kick-back
 
 const scene = new THREE.Scene();
-// Haze into the distance, as in the stills: up to 55% towards a pale blue, starting 70 m out.
-// (three.js mixes fog after its colour handling, so the haze colour is given as it should look on screen.)
-const HAZE = new THREE.Color().setRGB(0.81, 0.85, 0.89, THREE.LinearSRGBColorSpace);
-scene.fog = new THREE.Fog(HAZE, 70, 800);
+// Haze into the distance: up to 30% towards a soft, faintly cool pale grey, starting 120 m out
+// (the finish study's softer light, owner 6 Nov 2026). Three.js mixes fog after its colour handling,
+// so the haze colour is given as it should look on screen.
+const HAZE = new THREE.Color().setRGB(0.8, 0.82, 0.86, THREE.LinearSRGBColorSpace);
+scene.fog = new THREE.Fog(HAZE, 120, 900);
 THREE.ShaderChunk.fog_fragment = `#ifdef USE_FOG
-  float fogFactor = 0.55 * (1.0 - exp(-max(vFogDepth - fogNear, 0.0) / fogFar));
+  float fogFactor = 0.3 * (1.0 - exp(-max(vFogDepth - fogNear, 0.0) / fogFar));
   gl_FragColor.rgb = mix(gl_FragColor.rgb, fogColor, fogFactor);
 #endif`;
 
-// Sky: the stills' painted gradient (pale at the horizon to deep blue overhead), through the same colour handling.
+// Sky: the bake's soft pastel gradient (peach at the horizon, a pale rose-grey, dusty blue overhead), through
+// the same colour handling (tools/blender/bake_static_world.py: the same stops, linear values, strength 0.8).
 {
-  const lin = (h) => new THREE.Color(h);
+  const lin = (r, g, b) => new THREE.Color().setRGB(r, g, b, THREE.LinearSRGBColorSpace);
   const mat = new THREE.ShaderMaterial({
     side: THREE.BackSide, depthWrite: false, fog: false,
-    uniforms: { c0: { value: lin("#e4e6dc") }, c1: { value: lin("#b8d4ec") }, c2: { value: lin("#6faee6") }, c3: { value: lin("#3a86d6") } },
+    stencilWrite: true, stencilRef: 0, stencilFunc: THREE.EqualStencilFunc, stencilZPass: THREE.KeepStencilOp,   // never over the ground
+    uniforms: { c0: { value: lin(1.0, 0.86, 0.74) }, c1: { value: lin(0.93, 0.87, 0.85) }, c2: { value: lin(0.56, 0.7, 0.9) }, c3: { value: lin(0.56, 0.7, 0.9) } },
     vertexShader: "varying vec3 vP; void main(){ vP = normalize(position); gl_Position = projectionMatrix * modelViewMatrix * vec4(position,1.0); }",
     fragmentShader: `uniform vec3 c0, c1, c2, c3; varying vec3 vP;
       void main(){
         float h = max(vP.y, 0.0);
-        vec3 c = h < 0.04 ? mix(c0, c1, h / 0.04) : h < 0.14 ? mix(c1, c2, (h - 0.04) / 0.10) : mix(c2, c3, clamp((h - 0.14) / 0.31, 0.0, 1.0));
-        gl_FragColor = vec4(c * 1.05, 1.0);
+        vec3 c = h < 0.16 ? mix(c0, c1, h / 0.16) : mix(c1, c2, clamp((h - 0.16) / 0.46, 0.0, 1.0));
+        gl_FragColor = vec4(c * 0.8, 1.0);
         #include <tonemapping_fragment>
         #include <colorspace_fragment>
       }`,
   });
   const sky = new THREE.Mesh(new THREE.SphereGeometry(2500, 32, 16), mat);
-  sky.renderOrder = -4;                                  // first of all, before the ground layers
+  // drawn after everything solid, so only the pixels where sky shows are painted (it used to be painted under the
+  // whole picture first, then painted over: a whole extra screen of work every frame)
+  sky.renderOrder = LEGACY_GROUND ? -4 : 1000;
+  if (LEGACY_GROUND) sky.material.stencilWrite = false;
+  LAYERS.sky.push(sky);
   scene.add(sky);
   scene.userData.sky = sky;
   // Puffy clouds over the far side: merged soft balls with flattened undersides.
   const rc = (() => { let s = 77; return () => ((s = (s * 1664525 + 1013904223) >>> 0) / 4294967296); })();
-  const cloudMat = new THREE.MeshLambertMaterial({ color: "#f4f2ec", emissive: new THREE.Color("#9fb8d8").multiplyScalar(0.25), fog: false });
+  const cloudMat = new THREE.MeshLambertMaterial({ color: "#f6f0ea", emissive: new THREE.Color("#c8c4d4").multiplyScalar(0.3), fog: false });
+  scene.userData.cloudMat = cloudMat;
   for (let i = 0; i < 16; i++) {
     const W = 110 + rc() * 130, parts = [];
     for (let k = 0, n = 5 + Math.floor(rc() * 4); k < n; k++) {
@@ -483,18 +533,19 @@ THREE.ShaderChunk.fog_fragment = `#ifdef USE_FOG
     for (let k = 0; k < p.count; k++) p.setY(k, Math.max(p.getY(k), -W * 0.03));
     g.computeVertexNormals();
     const c = new THREE.Mesh(g, cloudMat);
+    c.renderOrder = 1001;     // after the sky (drawn last): the farthest clouds lie beyond the sky sphere's 2,500 m
     c.position.set(-1400 + rc() * 2800, 260 + rc() * 360, -(1700 + rc() * 900));
     c.scale.z = 0.6;
     scene.add(c);
   }
 }
 
-// Light, as in the stills: a warm sun (strength 5, soft-edged) from the far side and to the left,
-// and the painted sky all round. Static scenery has this light baked in by Blender; horses, jockeys,
-// crowd and rails get it live.
-const sky = new THREE.HemisphereLight(new THREE.Color("#7fb2e2"), new THREE.Color("#5c7c38"), 2.4);
+// Light, as baked: a big soft warm sun (strength 4.6, peach) raking in from the west, a little in front of
+// the stand, and the pastel sky all round, with a warm neutral bounce from the ground (no green cast).
+// Static scenery has this light baked in by Blender; horses, jockeys, crowd and rails get it live.
+const sky = new THREE.HemisphereLight(new THREE.Color("#a9b8d0"), new THREE.Color("#a29680"), 2.2);
 scene.add(sky);
-const sun = new THREE.DirectionalLight(new THREE.Color().setRGB(1.0, 0.9, 0.76, THREE.LinearSRGBColorSpace), 5.0);
+const sun = new THREE.DirectionalLight(new THREE.Color().setRGB(1.0, 0.8, 0.62, THREE.LinearSRGBColorSpace), 4.6);
 sun.castShadow = true;
 sun.shadow.mapSize.set(QUALITY[qLevel].shadow, QUALITY[qLevel].shadow);
 sun.shadow.radius = 4;
@@ -507,8 +558,10 @@ Object.assign(sun.shadow.camera, { left: -45, right: 45, top: 45, bottom: -45, n
 sun.shadow.bias = -0.0005;
 sun.shadow.normalBias = 0.03;
 scene.add(sun, sun.target);
-const SUN_OFFSET = new THREE.Vector3(-110, 84, -58.5);   // Blender's sun direction, in the course's axes
+LOOKS.setupScene({ scene, hemi: sky, sun, cloudMat: scene.userData.cloudMat });
+const SUN_OFFSET = new THREE.Vector3(-110, 49.5, -35.2);   // the bake's sun direction (Blender (-1, 0.32, 0.45)), in the course's axes
 
+let shadowCatcher = null;
 // ---------- Textures ----------
 // Count textures still loading, so ?still=1 screenshots wait for every image.
 let texturesPending = 0;
@@ -593,8 +646,14 @@ function distToRails(x, z) {
 // The turf right round the course, for wherever the baked ground stops, with the soft mown lanes along the
 // running line (courses/ascot-view.json -> lanes; the ground bake draws the same stripes).
 // The ground layers (plain grass, this turf, the baked ground) lie a few centimetres apart: far off the depth
-// buffer can't tell them apart and they flashed. So the two underneath are drawn first and write no depth,
-// and the baked ground simply paints over them.
+// buffer can't tell them apart and they flashed. So the top one (the baked ground) is drawn first, then the turf,
+// then the grass, and each marks the pixels it paints in the stencil buffer; the next one only paints pixels not
+// yet marked. No flashing, and every pixel of ground is painted once instead of three times. The sky, drawn last,
+// only paints pixels that nothing has covered (no ground mark, and nothing nearer in depth).
+// (The style tests, ?look=, draw into their own picture without a stencil buffer: there the old order is kept: grass,
+// then turf, writing no depth, then the baked ground over them; the sky first of all.)
+const GROUND_FIRST = LEGACY_GROUND ? {} : { stencilWrite: true, stencilRef: 1, stencilFunc: THREE.AlwaysStencilFunc, stencilZPass: THREE.ReplaceStencilOp };
+const GROUND_UNDER = LEGACY_GROUND ? { depthWrite: false } : { stencilWrite: true, stencilRef: 1, stencilFunc: THREE.NotEqualStencilFunc, stencilZPass: THREE.ReplaceStencilOp };
 function lanesMaterial(mat) {
   const L = VIEW.lanes;
   if (!L) return mat;
@@ -611,28 +670,74 @@ function lanesMaterial(mat) {
     sh.fragmentShader = sh.fragmentShader
       .replace("#include <common>", "#include <common>\nuniform sampler2D lanesMap; uniform vec3 lanesK; varying vec2 vLaneUv;")
       .replace("#include <color_fragment>", `#include <color_fragment>
-        { float d = texture2D(lanesMap, vLaneUv).r * lanesK.x; diffuseColor.rgb *= 1.0 + lanesK.z * cos(lanesK.y * d); }`);
+        { float d = texture2D(lanesMap, vLaneUv).r * lanesK.x, b = clamp((cos(lanesK.y * d) + 0.3) / 0.6, 0.0, 1.0), k = lanesK.z;
+          diffuseColor.rgb *= mix(vec3(1.0 - k, 1.0 - k * 0.8, 1.0 - k * 1.2), vec3(1.0 + k * 0.8, 1.0 + k * 0.8, 1.0 + k * 0.3), b); }`);   // crisp mown bands, as the study's
   };
   mat.customProgramCacheKey = () => "turf-lanes";
+  return mat;
+}
+// The turf's fine grain, laid live over the ground (owner, 7 Nov 2026: texture, so the turf feels 3D under
+// the horses): tufts and blades from a tileable image (tools/web/make_turf_detail.py), read twice at different
+// sizes and turns so it never repeats visibly; its mipmaps fade it to nothing in the distance, so it doesn't shimmer.
+let detailTex = null;
+function groundDetail(mat, k = 0.3) {
+  if (params.get("grain") === "0") return mat;
+  if (!detailTex) {
+    detailTex = texLoader.load("assets/course/turf_detail.png");
+    detailTex.wrapS = detailTex.wrapT = THREE.RepeatWrapping; detailTex.colorSpace = THREE.NoColorSpace;
+    detailTex.anisotropy = 8;
+  }
+  const prev = mat.onBeforeCompile, prevKey = mat.customProgramCacheKey;
+  mat.onBeforeCompile = (sh, r) => {
+    if (prev) prev(sh, r);
+    sh.uniforms.detailMap = { value: detailTex };
+    sh.vertexShader = sh.vertexShader
+      .replace("#include <common>", "#include <common>\nvarying vec2 vDetW;")
+      .replace("#include <fog_vertex>", "#include <fog_vertex>\n{ vDetW = (modelMatrix * vec4(transformed, 1.0)).xz; }");
+    sh.fragmentShader = sh.fragmentShader
+      .replace("#include <common>", "#include <common>\nuniform sampler2D detailMap; varying vec2 vDetW;")
+      .replace("#include <color_fragment>", `#include <color_fragment>
+        { float a = texture2D(detailMap, vDetW / 2.0).r;
+          float b = texture2D(detailMap, mat2(0.8, -0.6, 0.6, 0.8) * vDetW / 5.3 + 0.37).r;
+          diffuseColor.rgb *= 1.0 + ${k.toFixed(3)} * (a - 0.5) + ${(k * 0.6).toFixed(3)} * (b - 0.5); }`);
+  };
+  mat.customProgramCacheKey = () => (prevKey ? prevKey.call(mat) : "") + "+grain" + k;
   return mat;
 }
 function buildTurf(colour) {
   const shape = new THREE.Shape(SURF[0].map(([x, z]) => new THREE.Vector2(x, -z)));
   for (const h of SURF.slice(1)) shape.holes.push(new THREE.Path(h.map(([x, z]) => new THREE.Vector2(x, -z))));
   const g = new THREE.ShapeGeometry(shape).rotateX(-Math.PI / 2);
-  const m = new THREE.Mesh(g, lanesMaterial(new THREE.MeshBasicMaterial({ color: colour, depthWrite: false })));
+  const m = new THREE.Mesh(g, LOOKS.patchGround(groundDetail(lanesMaterial(new THREE.MeshBasicMaterial({ color: colour, ...GROUND_UNDER }))), "turf"));
   m.position.y = -0.03;
   m.renderOrder = -2;
+  LAYERS.ground.push(m);
   scene.add(m);
 }
 
+// The Ascot running rail, as in the owner's photo and the finish study: a broad white board facing the track,
+// 26 cm deep, with a rounded capping on top 1.12 m up, on a square white post set back behind it; nothing below.
+// One bay, L metres along local x, the track towards -z.
+function ascotRail(L) {
+  const h = 1.12, board = 0.26;
+  const prof = [[-0.02, h - board], [-0.02, h], [0.02, h + 0.05], [0.1, h + 0.06], [0.18, h + 0.03], [0.18, h - 0.02], [0.07, h - 0.02], [0.07, h - board]];
+  const shape = new THREE.Shape(prof.map(([z, y]) => new THREE.Vector2(-z, y)));
+  const top = new THREE.ExtrudeGeometry(shape, { depth: L + 0.01, bevelEnabled: false }).rotateY(Math.PI / 2);
+  const post = new THREE.BoxGeometry(0.1, h - 0.02, 0.1).translate(L / 2, (h - 0.02) / 2, 0.14).toNonIndexed();
+  const g = mergeGeometries([top, post]);
+  const mat = new THREE.MeshStandardMaterial({ color: "#f4f2ea", roughness: 0.92, flatShading: true });
+  return new THREE.Mesh(g, mat);
+}
 function placeProps(gltf) {
   const byName = (n) => gltf.scene.getObjectByName(n);
   gltf.scene.traverse((o) => { if (o.isMesh) { o.castShadow = true; o.receiveShadow = true; o.material.roughness = 0.6; } });
-  // Rails: one instanced module (3 m, its track side towards -z) laid along each rail line of the course.
-  const SPACING = 3;
+  // Rails: one instanced module (its track side towards -z) laid along each rail line of the course: the
+  // Ascot rail (owner's photo, 7 Nov 2026), one 2.4 m bay of it per module; ?rail=old for the earlier 3 m module.
+  const ASCOT_RAIL = params.get("rail") !== "old";
+  const SPACING = ASCOT_RAIL ? 2.4 : 3;
   const parts = [];
-  byName("rail_module").traverse((o) => { if (o.isMesh) parts.push(o); });
+  if (ASCOT_RAIL) parts.push(ascotRail(SPACING));
+  else byName("rail_module").traverse((o) => { if (o.isMesh) parts.push(o); });
   // The finish-line assembly brings its own 30 m of rail on the far side at the post.
   const gap = (x, z) => Math.abs(z + COURSE.rails.gap) < 1.5 && x > -16.7 && x < 16.3;
   const spots = [];
@@ -796,7 +901,9 @@ function bakedTex(file) {
 function bakedMaterial(m, info, tex, key) {
   const name = m.material.name || "";
   let mat;
-  if (key === "ground") mat = new THREE.MeshBasicMaterial({ map: tex, color: new THREE.Color(info.scale, info.scale, info.scale) });
+  if (key === "ground") mat = groundDetail(new THREE.MeshBasicMaterial({ map: tex, color: new THREE.Color(info.scale, info.scale, info.scale), ...GROUND_FIRST }));
+  // the baked ground is drawn first of all and marks its pixels; the plain turf and grass under it skip every pixel
+  // it covers (they used to be painted in full, then painted over: two extra screens of work every frame)
   else if (name.includes("digit")) mat = new THREE.MeshBasicMaterial({ color: m.material.color.clone().multiplyScalar(2.2) });
   else {
     const col = m.material.color.clone();
@@ -804,6 +911,7 @@ function bakedMaterial(m, info, tex, key) {
     mat = new THREE.MeshBasicMaterial({ color: col, lightMap: tex, lightMapIntensity: Math.PI * info.scale });
   }
   mat.name = name;
+  if (key === "stand" && STANDS.standId) STANDS.patchStand(mat, name); else LOOKS.patchBaked(mat, name, key);
   return mat;
 }
 function placeBaked(gltf, B, dressing) {
@@ -813,28 +921,36 @@ function placeBaked(gltf, B, dressing) {
     const node = gltf.scene.getObjectByName(info.mesh);
     if (!node) { console.warn("Baked mesh missing:", key); continue; }
     const tex = bakedTex(info.lightMap || info.map);
+    if (key === "stand") STANDS.setModules(COURSE.grandstand.modules);
     for (const m of meshesOf(node)) {
       m.material = bakedMaterial(m, info, tex, key);
       m.castShadow = false; m.receiveShadow = false;
-      if (key !== "ground") LAYERS.buildings.push(m);
+      if (key === "ground") m.renderOrder = LEGACY_GROUND ? 0 : -3;
+      (key === "ground" ? LAYERS.ground : LAYERS.buildings).push(m);
     }
     scene.add(node);
+    if (key === "stand") STANDS.addStandLines(scene, meshesOf(node));
   }
   if (B.site && B.site.kit && dressing) placeSiteKit(gltf, B.site, dressing.pieces);
   // Beyond the baked ground: plain grass, and the turf right round the course, in the same light
   // (both drawn first, writing no depth: see buildTurf).
   const o = B.ground.outside, tf = B.ground.turf || [0.12, 0.3, 0.06];
-  const far = new THREE.Mesh(new THREE.PlaneGeometry(9000, 9000), new THREE.MeshBasicMaterial({ color: new THREE.Color(o[0], o[1], o[2]), depthWrite: false }));
+  const far = new THREE.Mesh(new THREE.PlaneGeometry(9000, 9000), LOOKS.patchGround(groundDetail(new THREE.MeshBasicMaterial({ color: new THREE.Color(o[0], o[1], o[2]), ...GROUND_UNDER }), 0.2), "far"));
   far.rotation.x = -Math.PI / 2; far.position.set(700, -0.06, -400);
-  far.renderOrder = -3;
+  far.renderOrder = LEGACY_GROUND ? -3 : -1;
   scene.add(far);
+  LAYERS.ground.push(far);
   buildTurf(new THREE.Color(tf[0], tf[1], tf[2]));
-  // Live shadows of the field, laid over the baked turf of the home straight (pulled towards the camera in
-  // depth, so it never flashes against the ground beneath it).
-  const catcher = new THREE.Mesh(new THREE.PlaneGeometry(420, 34), new THREE.ShadowMaterial({ color: "#1d2c14", opacity: 0.38, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -4 }));
-  catcher.rotation.x = -Math.PI / 2; catcher.position.set(60, 0.03, MID_Z);
+  // Live shadows of the field, laid over the turf round the runners (pulled towards the camera in depth, so it never
+  // flashes against the ground beneath it). It moves with the field, lined up with the course (see the frame loop):
+  // only the ground the shadow map covers is shaded for shadows (it used to be a fixed strip the length of the home
+  // straight, shaded wherever it was in shot), and the field now has its shadows on the round course's bends too.
+  const catcher = new THREE.Mesh(new THREE.PlaneGeometry(120, 44).rotateX(-Math.PI / 2), new THREE.ShadowMaterial({ color: "#1d2c14", opacity: 0.38, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -4 }));
+  catcher.position.set(60, 0.03, MID_Z);
   catcher.receiveShadow = true;
   scene.add(catcher);
+  LAYERS.decals.push(catcher);
+  shadowCatcher = catcher;
 }
 
 // The site components, instanced: the bake made one mesh per piece and quarter turn (bake.json -> site.kit,
@@ -881,12 +997,34 @@ function placeSiteKit(gltf, info, pieces) {
 // boards just behind the far rails, a low dense hedge closing the view at eye level, and rows of the
 // leafy trees behind and above it. Lit live like the loose trees.
 const TD = VIEW.treeDetail;
-const isNear = (x, z) => Math.hypot(x - TD.centre[0], z - TD.centre[1]) < TD.nearRadius;
+// (the clay trees' full crowns are heavier: on lower quality settings fewer trees get them)
+const NEAR_K = { high: 1, medium: 0.6, low: 0.3, lightest: 0.15 };
+const isNear = (x, z) => Math.hypot(x - TD.centre[0], z - TD.centre[1]) < TD.nearRadius * (CLAY_TREES ? NEAR_K[qLevel] : 1);
+// The hedge as the study's clipped leafy clay: its own light and shade kept (relative to its average), in the
+// study's dark hedge greens, changing colour gently along its length.
+function clayHedge(g) {
+  const c = g.attributes.color, p = g.attributes.position;
+  if (!c) return;
+  const H = CLAY_TREES.hedge.map((h) => new THREE.Color(h)), lum = new Float32Array(c.count);
+  let mean = 0;
+  for (let i = 0; i < c.count; i++) { lum[i] = 0.3 * c.getX(i) + 0.59 * c.getY(i) + 0.11 * c.getZ(i); mean += lum[i]; }
+  mean /= c.count || 1;
+  const col = new THREE.Color(), a = new THREE.Vector3();
+  const out = new THREE.Float32BufferAttribute(new Float32Array(c.count * 3), 3);
+  for (let i = 0; i < c.count; i++) {
+    a.fromBufferAttribute(p, i);
+    const w = 0.5 + 0.5 * Math.sin(a.x * 0.031 + a.z * 0.017), k = Math.floor(w * 2.999);
+    col.copy(H[k]).lerp(H[Math.min(k + 1, 2)], (w * 2.999) % 1).multiplyScalar(Math.min(Math.max(lum[i] / mean, 0.7), 1.2));
+    out.setXYZ(i, col.r, col.g, col.b);
+  }
+  g.setAttribute("color", out);
+}
 function placeBelts(gltf, planting, treeLib) {
   const hedge = gltf.scene.getObjectByName("planting_hedge");
   if (hedge) {
     for (const m of meshesOf(hedge)) {
-      m.material = new THREE.MeshLambertMaterial({ vertexColors: true });
+      if (CLAY_TREES) clayHedge(m.geometry);
+      m.material = LOOKS.patchFoliage(new THREE.MeshLambertMaterial({ vertexColors: true }), "hedge");
       LAYERS.trees.push(m);
     }
     scene.add(hedge);
@@ -912,6 +1050,18 @@ function placeBelts(gltf, planting, treeLib) {
 
 // Instance tree models: full crowns near the action, light crowns further off (see treeDetail).
 const treeMat = new THREE.MeshLambertMaterial({ vertexColors: true });
+// The finish study's clay trees (tools/blender/export_clay_trees.py, owner 7 Nov 2026): the crowns carry their
+// shading as vertex colours and each copy gets its leaf colour here, one of the study's greens (the odd copper beech).
+let CLAY_TREES = null;
+const _leafCol = new THREE.Color();
+function clayLeaf(key, t, i) {
+  if (!CLAY_TREES || !key.includes("_crown")) return null;
+  const L = CLAY_TREES.leaf, h = Math.abs(Math.sin((t.x * 12.9898 + t.z * 78.233) * 0.0137) * 43758.5453) % 1;
+  _leafCol.set(L[Math.floor(h * L.length) % L.length]);
+  // a little richer than the study's colours: the live light is warmer on the leaves than Cycles' leaf material
+  const g = 0.3 * _leafCol.r + 0.59 * _leafCol.g + 0.11 * _leafCol.b;
+  return _leafCol.setRGB(g + (_leafCol.r - g) * 1.3, g + (_leafCol.g - g) * 1.3, g + (_leafCol.b - g) * 1.3).multiplyScalar(CLAY_TREES.shadeMax);
+}
 function instanceTrees(gltf, list) {
   const groups = new Map();
   for (const t of list) {
@@ -928,8 +1078,9 @@ function instanceTrees(gltf, list) {
     const node = gltf.scene.getObjectByName(key) || gltf.scene.getObjectByName(key.replace("_far", ""));
     if (!node) continue;
     for (const mesh of meshesOf(node)) {
-      const inst = new THREE.InstancedMesh(mesh.geometry, treeMat, ts.length);
-      ts.forEach((t, i) => { q.setFromAxisAngle(up, (t.turn || 0) * Math.PI / 180); sc.set(t.s, t.s * (t.sy || 1), t.s); inst.setMatrixAt(i, m4.compose(p.set(t.x, 0, t.z), q, sc)); });
+      // a look may swap the tree's shape and material, and give each tree its own colour (looks.js)
+      const inst = new THREE.InstancedMesh(LOOKS.treeGeometry(key, mesh.geometry) || mesh.geometry, LOOKS.treeMaterial(treeMat, key), ts.length);
+      ts.forEach((t, i) => { q.setFromAxisAngle(up, (t.turn || 0) * Math.PI / 180); sc.set(t.s, t.s * (t.sy || 1), t.s); inst.setMatrixAt(i, m4.compose(p.set(t.x, 0, t.z), q, sc)); const c = LOOKS.treeColour(key, t, i) || clayLeaf(key, t, i); if (c) inst.setColorAt(i, c); });
       inst.computeBoundingSphere();
       scene.add(inst);
       LAYERS.trees.push(inst);
@@ -987,14 +1138,28 @@ function placeTrees(gltf, dressing) {
 // floors on the site pieces, and the dressing's crowd areas. Full along the final furlong and round the
 // post; thinner up the straight, where it is only ever seen from afar.
 const CROWD_FULL = [-110, 220];
+// The skittle figures (assets/models/architecture/crowd_set_8.glb, owner's pick "1C", 6 Nov 2026) and their
+// colours, as in the finish study (tools/blender/stand_clean_study.py): the top-hat gents in near-black
+// morning coats and black top hats, the odd grey; everyone else in muted heritage tones and pastels.
+let SKITTLES = false;
+const CROWD_PARTS = ["clothes", "skin", "hat", "trim", "hair"];
+const SK = {
+  clothes: ["#2c3140", "#3a3d44", "#4b4d52", "#2f3a33", "#59544c", "#c9a0a8", "#9fb6c8", "#ddd2b8", "#a8706a", "#88a383", "#d2b874", "#e8e2d6", "#9a88b4", "#cf9476"],
+  hats: ["#222226", "#222226", "#2a2a2e", "#efe6d2", "#d8c08a", "#c9a0a8", "#9fb6c8"],
+  skin: ["#efc6a4", "#e2b48e", "#c99572", "#9a6a4a"],
+  accent: ["#e6998b", "#8db58c", "#eccd7c", "#8eb0d6", "#b49fd2", "#f2ece0", "#c0453a"],
+  dark: ["#24262b", "#2f3036", "#3b352f"],
+  tophat: ["#1a1a1e", "#1f1f23", "#222226", "#1c1c20", "#26262a", "#1d1d21", "#55555c"],
+  tails: ["#1c1d22", "#202128", "#24262c", "#1e1f24", "#2a2c33", "#22232a", "#5c5e64", "#1b1c21"],
+};
 const crowdKeep = (x, rnd) => (x >= CROWD_FULL[0] && x <= CROWD_FULL[1]) || rnd() < 0.12;
 function buildCrowd(gltf, data, pieceAt) {
   const rnd = seeded(21);
   const pick = (a) => a[Math.floor(rnd() * a.length)];
-  const P = data.palette;
+  const P = LOOKS.crowdPalette(data.palette);
   const spots = [];
   const add = (x, y, z, seated = false) => { if (crowdKeep(x, rnd)) spots.push({ x, y, z, seated }); };
-  const S0 = -102.5, S1 = 405;                                  // the stand's west and east ends
+  const S0 = -101.5, S1 = 406;                                  // the stand's west and east ends
   // the lawn between the outer rail and the stand
   const nearRail = COURSE.trackWidth + COURSE.rails.gap;
   for (let z = nearRail + 1.6; z < FRONT - 1.5; z += 0.7) {
@@ -1009,12 +1174,12 @@ function buildCrowd(gltf, data, pieceAt) {
   }
   // the stand's verandas, balconies, galleries and steps (areas relative to the clock tower on the front line)
   for (const a of data.areas || []) {
-    if (a.kind === "lawn_front_line") continue;
+    if (a.kind === "lawn_front_line" || (SKITTLES && a.kind === "steps")) continue;
     const rows = a.z1 - a.z0 < 1.4 ? 1 : 2;
     for (let r = 0; r < rows; r++) {
       const lz = a.z0 + 0.15 + r * 0.75;
       for (let x = a.x0; x < a.x1; x += 0.62) {
-        if (rnd() >= (a.kind === "steps" ? 0.35 : r === 0 ? 0.78 : 0.4)) continue;
+        if (rnd() >= (a.kind === "steps" ? 0.35 : a.kind === "terrace" ? 0.85 : r === 0 ? 0.78 : 0.4)) continue;
         let y = a.floor;
         if (a.kind === "steps") y = 3.0 * (lz - a.z0 + 0.3) / (a.z1 - a.z0 + 0.6);
         add(x + (rnd() - 0.5) * 0.2, y, FRONT + lz);
@@ -1048,15 +1213,24 @@ function buildCrowd(gltf, data, pieceAt) {
   // shuffle, so lowering the quality thins the crowd evenly instead of emptying whole areas
   for (let i = spots.length - 1; i > 0; i--) { const j = Math.floor(rnd() * (i + 1)); [spots[i], spots[j]] = [spots[j], spots[i]]; }
 
-  const figures = ["person_gent_tophat", "person_gent", "person_lady", "person_lady_b"].map((n) => gltf.scene.getObjectByName(n)).filter(Boolean);
+  // The skittle figures (crowd_set_8: five gents, five ladies, each a different hat) or the old four.
+  const figures = SKITTLES ? gltf.scene.children.filter((o) => /^(gent|lady)_/.test(o.name))
+                           : ["person_gent_tophat", "person_gent", "person_lady", "person_lady_b"].map((n) => gltf.scene.getObjectByName(n)).filter(Boolean);
+  // about half the crowd are gentlemen in black top hats and tails (owner, 6 Nov 2026): the two top-hat
+  // figures are picked four times as often as the others
+  const weights = figures.map((f) => (SKITTLES && f.name.includes("_top") ? 4 : 1)), wsum = weights.reduce((a, b) => a + b, 0);
+  const pickFig = () => { let r = rnd() * wsum, k = 0; while (r >= weights[k] && k < weights.length - 1) r -= weights[k++]; return k; };
   const byFig = figures.map(() => []);
-  for (const s of spots) byFig[Math.floor(rnd() * figures.length)].push(s);
+  for (const s of spots) byFig[pickFig()].push(s);
   const m = new THREE.Matrix4(), q = new THREE.Quaternion(), sc = new THREE.Vector3(), pos = new THREE.Vector3(), up = new THREE.Vector3(0, 1, 0);
   const col = new THREE.Color();
   figures.forEach((fig, fi) => {
-    const lady = fig.name.includes("lady");
-    const people = byFig[fi].map((s) => ({ s, L: {
-      clothes: pick(lady ? P.dresses : P.suits), skin: pick(P.skin), hat: pick(lady ? P.hats_lady : P.hats_gent),
+    const lady = fig.name.includes("lady"), top = fig.name.includes("_top");
+    const people = byFig[fi].map((s) => ({ s, L: SKITTLES ? {
+      clothes: pick(top ? SK.tails : SK.clothes), skin: pick(SK.skin), hat: pick(top ? SK.tophat : SK.hats), trim: pick(SK.accent), hair: pick(SK.dark),
+      yaw: (rnd() - 0.5) * 1.0, s: 0.94 + rnd() * 0.12,
+    } : {
+      clothes: pick(lady ? P.dresses : P.suits), skin: pick(P.skin), hat: pick(lady ? P.hats_lady : P.hats_gent), trim: "#ffffff", hair: "#ffffff",
       yaw: (rnd() - 0.5) * 1.2, s: 0.94 + rnd() * 0.12,            // facing the track, as on the stands side before
     } }));
     // Sort into 25 m cells (keeping the shuffled order inside each cell), so whole cells can be skipped when
@@ -1068,7 +1242,7 @@ function buildCrowd(gltf, data, pieceAt) {
       cells.get(key).push(p);
     }
     const n = people.length;
-    const F = { n, mats: new Float32Array(16 * n), cols: [new Float32Array(3 * n), new Float32Array(3 * n), new Float32Array(3 * n)], cells: [] };
+    const F = { n, mats: new Float32Array(16 * n), cols: CROWD_PARTS.map(() => new Float32Array(3 * n)), cells: [] };
     let i = 0;
     for (const list of cells.values()) {
       const box = new THREE.Box3();
@@ -1076,7 +1250,7 @@ function buildCrowd(gltf, data, pieceAt) {
       for (const { s, L } of list) {
         pos.set(s.x, s.y, s.z); q.setFromAxisAngle(up, s.z < 0 ? L.yaw + Math.PI : L.yaw); sc.set(L.s, L.s * (s.seated ? 0.7 : 1), L.s);
         m.compose(pos, q, sc).toArray(F.mats, 16 * i);
-        ["clothes", "skin", "hat"].forEach((k, j) => col.set(L[k]).toArray(F.cols[j], 3 * i));
+        CROWD_PARTS.forEach((k, j) => col.set(L[k]).toArray(F.cols[j], 3 * i));
         box.expandByPoint(pos);
         i++;
       }
@@ -1085,13 +1259,14 @@ function buildCrowd(gltf, data, pieceAt) {
       F.cells.push({ start, count: list.length, sphere });
     }
     // One mesh per figure for each level of detail, its parts merged and told apart by aPart (0 clothes,
-    // 1 skin, 2 hat); the light one, for far off, has about a third of the triangles.
+    // 1 skin, 2 hat, 3 trim, 4 hair); the light one, for far off, has about a third of the triangles.
     const parts = meshesOf(fig).map((p) => {
       const g = new THREE.BufferGeometry();
       g.setAttribute("position", p.geometry.attributes.position);
       g.setAttribute("normal", p.geometry.attributes.normal);
       g.setIndex(p.geometry.index);
-      return [g, ["clothes", "skin", "hat"].findIndex((k) => p.material.name.includes(k))];
+      const mn = p.material.name;
+      return [g, [["clothes", "fig_main"], ["skin"], ["hat"], ["trim"], ["hair"]].findIndex((ks) => ks.some((k) => mn.includes(k)))];
     });
     const tag = (g, k) => { g.setAttribute("aPart", new THREE.Float32BufferAttribute(new Float32Array(g.attributes.position.count).fill(Math.max(0, k)), 1)); return g; };
     const nearGeo = mergeGeometries(parts.map(([g, k]) => tag(g.clone(), k)));
@@ -1103,11 +1278,11 @@ function buildCrowd(gltf, data, pieceAt) {
       return tag(sg.index ? sg.toNonIndexed() : sg, k);
     }).map((g) => (g.index ? g.toNonIndexed() : g)));
     const make = (geo) => {
-      const cs = [0, 1, 2].map((j) => { const a = new THREE.InstancedBufferAttribute(new Float32Array(3 * n), 3); a.setUsage(THREE.DynamicDrawUsage); geo.setAttribute("aC" + j, a); return a; });
+      const cs = CROWD_PARTS.map((_, j) => { const a = new THREE.InstancedBufferAttribute(new Float32Array(3 * n), 3); a.setUsage(THREE.DynamicDrawUsage); geo.setAttribute("aC" + j, a); return a; });
       const inst = new THREE.InstancedMesh(geo, crowdMaterial(), n);
       inst.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
       inst.count = 0; inst.frustumCulled = false;
-      inst.castShadow = false; inst.receiveShadow = true;
+      inst.castShadow = false; inst.receiveShadow = false;   // nothing that casts reaches them; saves a shadow lookup per pixel
       scene.add(inst);
       LAYERS.crowd.push(inst);
       return { inst, cs };
@@ -1130,10 +1305,10 @@ function crowdMaterial() {
     Object.assign(sh.uniforms, CROWD.uniforms);
     sh.vertexShader = sh.vertexShader
       .replace("#include <common>", `#include <common>
-        attribute float aPart; attribute vec3 aC0; attribute vec3 aC1; attribute vec3 aC2;
+        attribute float aPart; attribute vec3 aC0; attribute vec3 aC1; attribute vec3 aC2; attribute vec3 aC3; attribute vec3 aC4;
         uniform float uTime; uniform vec2 uLeader; varying vec3 vPartCol;`)
       .replace("#include <begin_vertex>", `#include <begin_vertex>
-        vPartCol = aPart < 0.5 ? aC0 : aPart < 1.5 ? aC1 : aC2;
+        vPartCol = aPart < 0.5 ? aC0 : aPart < 1.5 ? aC1 : aPart < 2.5 ? aC2 : aPart < 3.5 ? aC3 : aC4;
         {
           vec3 ip = vec3(instanceMatrix[3][0], instanceMatrix[3][1], instanceMatrix[3][2]);
           float seed = fract(sin(dot(ip.xz, vec2(12.9898, 78.233))) * 43758.5453);
@@ -1144,13 +1319,14 @@ function crowdMaterial() {
           transformed.x += (sway + ex * 0.025 * sin(uTime * 2.7 + seed * 9.0)) * h;
           transformed.z -= ex * 0.05 * h;
           transformed.y += bob;
-          if (aPart > 1.5 && seed > 0.62) transformed.y += ex * 0.2 * smoothstep(0.35, 0.9, 0.5 + 0.5 * sin(uTime * 2.1 + seed * 31.0));
+          if (aPart > 1.5 && aPart < 2.5 && seed > 0.62) transformed.y += ex * 0.2 * smoothstep(0.35, 0.9, 0.5 + 0.5 * sin(uTime * 2.1 + seed * 31.0));
         }`);
     sh.fragmentShader = sh.fragmentShader
       .replace("#include <common>", "#include <common>\nvarying vec3 vPartCol;")
       .replace("#include <color_fragment>", "#include <color_fragment>\ndiffuseColor.rgb *= vPartCol;");
   };
-  mat.customProgramCacheKey = () => "crowd-life";
+  const ob = mat.onBeforeCompile; mat.onBeforeCompile = (sh) => { ob(sh); LOOKS.patchCrowd(sh); };
+  mat.customProgramCacheKey = () => "crowd-life" + (LOOKS.lookId || "");
   return mat;
 }
 function setCrowdShare(share) { CROWD.share = share; CROWD.sig = ""; }
@@ -1222,6 +1398,45 @@ function makeTintable(mat, u) {
   mat.customProgramCacheKey = () => "horse-tint";
 }
 
+// The light horse (tools/blender/export_horse_lod.py: about 5,800 triangles against 19,300, the same skeleton): its
+// geometry, with the bone numbers rewritten to this horse's own skeleton (the exporter lists the bones in another
+// order). Each runner shows it when small on screen; see chooseHorseDetail().
+function horseLod(horse, light) {
+  const full = [], lite = [];
+  horse.scene.traverse((o) => { if (o.isSkinnedMesh) full.push(o); });
+  light.scene.traverse((o) => { if (o.isSkinnedMesh) lite.push(o); });
+  if (full.length !== lite.length) { console.warn("light horse: parts don't match"); return null; }
+  const out = [];
+  for (let k = 0; k < lite.length; k++) {
+    const names = full[k].skeleton.bones.map((b) => b.name), map = lite[k].skeleton.bones.map((b) => names.indexOf(b.name));
+    if (map.some((i) => i < 0)) { console.warn("light horse: bones don't match"); return null; }
+    const g = lite[k].geometry.clone(), si = g.attributes.skinIndex;
+    if (!si || si.isInterleavedBufferAttribute) { console.warn("light horse: bone numbers not as expected"); return null; }
+    const a = si.array.slice();
+    for (let i = 0; i < a.length; i++) { if (a[i] >= map.length) { console.warn("light horse: bone number out of range"); return null; } a[i] = map[a[i]]; }
+    g.setAttribute("skinIndex", new THREE.BufferAttribute(a, 4, si.normalized));
+    out.push(g);
+  }
+  return out;
+}
+// Full detail for a horse more than about 100 pixels tall on screen (the picture's real pixels, so a big Retina
+// screen keeps full detail further out), the light one below that, where its triangles are a couple of pixels each
+// and look the same (a little either side, so a horse right on the line doesn't flicker between them). The shadows
+// follow suit.
+const _hp = new THREE.Vector3(), _hs = new THREE.Vector2(), LOD_ALL = params.get("lod") === "all";     // ?lod=all: the light horse everywhere, for checking it
+function chooseHorseDetail() {
+  const k = renderer.getDrawingBufferSize(_hs).y / (2 * Math.tan(THREE.MathUtils.degToRad(camera.fov) / 2));
+  for (const r of runners) {
+    if (!r.light) continue;
+    r.obj.getWorldPosition(_hp);
+    const px = 2.6 * k / Math.max(1, _hp.distanceTo(camera.position));       // the horse's height on screen, in pixels
+    const near = LOD_ALL ? false : r.near ? px > 90 : px > 110;
+    if (near === r.near) continue;
+    r.near = near;
+    r.full.forEach((o) => (o.visible = near)); r.light.forEach((o) => (o.visible = !near));
+  }
+}
+
 // ---------- The race ----------
 // The race engine (race-engine/engine.js, rules from tools/race-bench) runs the whole race before the view starts and
 // hands back a timeline: { dt: 0.1, frames }, each frame every runner in draw order as [distance run from the gate
@@ -1250,72 +1465,42 @@ window.__T = { finish: T_FINISH, end: T_END, replay: REPLAY };      // checking 
 const runners = [];
 let sentFinish = false;
 
-// ---------- Post-processing: the illustrated finish ----------
-const rt = new THREE.WebGLRenderTarget(1, 1, { type: THREE.HalfFloatType, samples: QUALITY[qLevel].samples, depthTexture: new THREE.DepthTexture(1, 1) });
-const paper = (() => {
-  const c = document.createElement("canvas"); c.width = c.height = 512;
-  const g = c.getContext("2d");
-  const img = g.createImageData(512, 512);
-  const rnd = seeded(5);
-  for (let i = 0; i < img.data.length; i += 4) { const v = 128 + (rnd() - 0.5) * 70; img.data[i] = img.data[i + 1] = img.data[i + 2] = v; img.data[i + 3] = 255; }
-  g.putImageData(img, 0, 0);
-  g.globalAlpha = 0.08; g.strokeStyle = "#000";
-  for (let i = 0; i < 900; i++) { g.lineWidth = rnd() * 1.2; g.beginPath(); const x = rnd() * 512, y = rnd() * 512, a = rnd() * 6.28, l = 6 + rnd() * 26; g.moveTo(x, y); g.lineTo(x + Math.cos(a) * l, y + Math.sin(a) * l); g.stroke(); }
-  const t = new THREE.CanvasTexture(c); t.wrapS = t.wrapT = THREE.RepeatWrapping;
-  return t;
+// ---------- The storybook finish's vignette (was a CSS overlay; see GRADE) ----------
+// A soft darkening towards the corners: radial-gradient(ellipse 80% 75% at 50% 46%, rgba(30,22,8,0) 58%,
+// rgba(30,22,8,.26) 100%), drawn as the last thing in the 3D picture, at the picture's own resolution.
+// Drawn only on the part of the screen it darkens: a 16 x 16 grid over the picture, leaving out every cell that lies
+// wholly inside the clear middle (the ellipse is convex, so a cell whose four corners are inside is inside).
+const vignetteGeo = (() => {
+  const N = 16, pos = [], inside = (u, v) => Math.hypot((u - 0.5) / 0.8, ((1 - v) - 0.46) / 0.75) < 0.58;
+  for (let j = 0; j < N; j++) for (let i = 0; i < N; i++) {
+    const u0 = i / N, u1 = (i + 1) / N, v0 = j / N, v1 = (j + 1) / N;
+    if (inside(u0, v0) && inside(u1, v0) && inside(u0, v1) && inside(u1, v1)) continue;
+    const X = (u) => u * 2 - 1, Y = (v) => v * 2 - 1;
+    pos.push(X(u0), Y(v0), 0, X(u1), Y(v0), 0, X(u1), Y(v1), 0, X(u0), Y(v0), 0, X(u1), Y(v1), 0, X(u0), Y(v1), 0);
+  }
+  return new THREE.BufferGeometry().setAttribute("position", new THREE.Float32BufferAttribute(pos, 3));
 })();
-const post = new THREE.ShaderMaterial({
-  uniforms: {
-    tColor: { value: rt.texture }, tDepth: { value: rt.depthTexture }, tPaper: { value: paper },
-    res: { value: new THREE.Vector2(1, 1) }, near: { value: 0.2 }, far: { value: 4000 }, painted: { value: 1 }, pxScale: { value: 1 },
-  },
-  vertexShader: "varying vec2 vUv; void main(){ vUv = uv; gl_Position = vec4(position.xy, 0.0, 1.0); }",
-  fragmentShader: `
-    #include <packing>
-    uniform sampler2D tColor, tDepth, tPaper;
-    uniform vec2 res; uniform float near, far, painted, pxScale;
-    varying vec2 vUv;
-    float vz(vec2 uv) { return -perspectiveDepthToViewZ(texture2D(tDepth, uv).x, near, far); }
-    vec3 aces(vec3 x) { return clamp((x * (2.51 * x + 0.03)) / (x * (2.43 * x + 0.59) + 0.14), 0.0, 1.0); }
-    vec3 toDisplay(vec3 c) { return pow(aces(c * 0.95), vec3(1.0 / 2.2)); }
-    void main() {
-      vec3 c = toDisplay(texture2D(tColor, vUv).rgb);
-      if (painted < 0.5) { gl_FragColor = vec4(c, 1.0); return; }
-      #ifdef EDGES
-      // Faint ink line where depth jumps (silhouettes of horses, posts, rails, trees): an illustrator's edge, not a cartoon outline.
-      vec2 px = pxScale / res;
-      float d = vz(vUv);
-      float e = 0.0;
-      e += abs(vz(vUv + vec2(px.x, 0.0)) - d);
-      e += abs(vz(vUv - vec2(px.x, 0.0)) - d);
-      e += abs(vz(vUv + vec2(0.0, px.y)) - d);
-      e += abs(vz(vUv - vec2(0.0, px.y)) - d);
-      float edge = smoothstep(0.05, 0.2, e / max(d, 1.0)) * (1.0 - smoothstep(120.0, 400.0, d));
-      c = mix(c, c * vec3(0.42, 0.40, 0.30), edge * 0.45);
-      #endif
-      // Heritage grade: warm highlights, gently cooled shadows, slightly softened saturation and lifted blacks.
-      float l = dot(c, vec3(0.299, 0.587, 0.114));
-      c = mix(vec3(l), c, 0.93);
-      c *= vec3(1.035, 1.0, 0.92);
-      c = mix(c * vec3(0.9, 0.97, 1.04), c, smoothstep(0.05, 0.5, l));
-      c = c * 0.95 + vec3(0.035, 0.03, 0.015);
-      // Barely-there grain and a soft vignette.
-      float p = texture2D(tPaper, vUv * res / (512.0 * pxScale)).r;
-      c *= 0.985 + 0.03 * p;
-      float v = length((vUv - 0.5) * vec2(1.0, 0.85));
-      c *= mix(1.0, 0.86, smoothstep(0.4, 0.85, v));
-      gl_FragColor = vec4(c, 1.0);
+const vignette = new THREE.Mesh(vignetteGeo, new THREE.ShaderMaterial({
+  uniforms: { res: { value: new THREE.Vector2(1, 1) } },
+  vertexShader: "void main(){ gl_Position = vec4(position.xy, 0.0, 1.0); }",
+  fragmentShader: `uniform vec2 res;
+    void main(){
+      vec2 p = vec2(gl_FragCoord.x / res.x - 0.5, (1.0 - gl_FragCoord.y / res.y) - 0.46) / vec2(0.8, 0.75);
+      gl_FragColor = vec4(30.0 / 255.0, 22.0 / 255.0, 8.0 / 255.0, 0.26 * clamp((length(p) - 0.58) / 0.42, 0.0, 1.0));
     }`,
-  depthTest: false, depthWrite: false,
-  defines: QUALITY[qLevel].edges ? { EDGES: 1 } : {},
-});
-const postScene = new THREE.Scene();
-const postCam = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1);
-postScene.add(new THREE.Mesh(new THREE.PlaneGeometry(2, 2), post));
+  transparent: true, depthTest: false, depthWrite: false, toneMapped: false, fog: false,
+}));
+vignette.frustumCulled = false; vignette.renderOrder = 1e9; vignette.visible = false;
+scene.add(vignette);
+function setGrade(on) {
+  GRADE.on = on;
+  renderer.toneMapping = on ? THREE.CustomToneMapping : THREE.AgXToneMapping;
+  if (scene.fog && !LOOKS.lookId) { const c = HAZE; scene.fog.color.setRGB(...(on ? GRADE.apply([c.r, c.g, c.b]) : [c.r, c.g, c.b]), THREE.LinearSRGBColorSpace); }
+  vignette.visible = on;
+}
 
 // ---------- Cameras ----------
 const camera = new THREE.PerspectiveCamera(30, 1, 0.5, 4000);   // near 0.5 (was 0.2): 2.5 times the depth precision far off
-post.uniforms.near.value = camera.near; post.uniforms.far.value = camera.far;
 const focus = new THREE.Vector3();
 const RCAMS = VIEW.raceCameras, SET = VIEW.setPieces;
 // The show runs in phases: the grandstand set piece before the off, the horses standing in the stalls (the
@@ -1429,6 +1614,16 @@ function cameraTarget(now) {
   const leadU = leaderAt(now);
   const id = directorShot(DIST - leadU, leadU);
   const c = RCAMS[id];
+  // The finish (owner, 7 Nov): once the winner is past the post the grandstand camera stops following it and holds on
+  // the winning line, so the placings are seen crossing it. It pans across to the line (the look point eases over, no
+  // cut) and frames the line and every runner still to finish within 30 m of it, plus any just over it.
+  if (id === "grandstand" && leadU >= DIST) {
+    const [lx, lz] = toWorld(DIST, 0), line = new THREE.Vector3(lx, 1.3, lz);
+    const near = [];
+    for (const h of now) if (h[0] > DIST - 30 && h[0] < DIST + 4) { const [x, z] = toWorld(h[0], h[1]); near.push(new THREE.Vector3(x, 1.3, z)); }
+    const eye = new THREE.Vector3(...c.at), pts = near.length ? near.concat([line]) : [line];
+    return { eye, look: line, fov: near.length ? fitFov(eye, line, pts, c.fov) : camera.fov, id, anchor: line, guard: pts, range: c.fov };
+  }
   // who is framed: the whole field (all but one or two tailed off), or just the leading group
   const pts = c.frame === "leaders" ? field.filter((p, i) => i < 2 || leadU - p.u <= (c.window || 12)) : field;
   const lead = field[0];
@@ -1520,6 +1715,18 @@ for (const [id, label] of [["v1", "v1 (current)"], ["v2", "v2 (new)"]]) {
   }, "horse-" + id);
   b.setAttribute("aria-pressed", id === HORSE_V);
 }
+// Graphic style options (looks.js): each reloads the page with ?look=
+const looksEl = document.getElementById("looks");
+for (const [id, label] of [["", "Current"], ["model", "Model maker"], ["diorama", "Sunlit diorama"], ["faceted", "Faceted parkland"]]) {
+  const b = button(looksEl, label, () => { const p = new URLSearchParams(location.search); if (id) p.set("look", id); else p.delete("look"); location.search = p.toString(); }, "look-" + (id || "current"));
+  b.setAttribute("aria-pressed", id === (LOOKS.lookId || ""));
+}
+// Grandstand style tests (stand-styles.js): each reloads the page with ?stand= and &v=
+{
+  const sel = document.getElementById("standSel"), now = STANDS.standId ? STANDS.standId + (STANDS.standId === "debug" ? "" : (params.get("v") || "1")) : "";
+  fill(sel, [["", "Current"], ["pastel1", "Pastel row"], ["pastel2", "Pastel row, line work"], ["pastel3", "Sorbet"], ["brick1", "Red brick, ink"], ["brick2", "Red brick, no line"], ["brick3", "Stock brick and slate"], ["debug", "Materials"]], now);
+  sel.onchange = () => { const p = new URLSearchParams(location.search); const v = sel.value; if (!v) { p.delete("stand"); p.delete("v"); } else { p.set("stand", v.replace(/\d$/, "")); if (/\d$/.test(v)) p.set("v", v.slice(-1)); else p.delete("v"); } location.search = p.toString(); };
+}
 const finEl = document.getElementById("finish");
 // The finish: storybook (the game's grade, the default in the game) or the plain 3D picture. Remembered per browser.
 let storybook = (() => { try { const v = localStorage.getItem("tb-finish"); if (v) return v === "story"; } catch {} return GAME || params.get("finish") === "story"; })();
@@ -1532,8 +1739,9 @@ const finButtons = [["story", "Storybook"], ["plain", "Plain 3D"]].map(([id, lab
 function syncButtons() {
   camButtons.forEach((b) => b.setAttribute("aria-pressed", b.dataset.cam === state.cam));
   finButtons.forEach((b) => b.setAttribute("aria-pressed", (b.dataset.fin === "story") === storybook));
-  document.documentElement.classList.toggle("story", storybook);
-  post.uniforms.painted.value = state.painted ? 1 : 0;
+  const on = storybook && !LOOKS.lookId && !STANDS.standId;
+  document.documentElement.classList.toggle("story", on);
+  setGrade(on);
 }
 syncButtons();
 
@@ -1542,15 +1750,17 @@ const qButtons = [["auto", "Auto"], ...ORDER.map((k) => [k, QUALITY[k].label])].
   const b = button(qEl, label, () => {
     qMode = id;
     try { localStorage.setItem("tb-quality", id); } catch {}
-    applyQuality(id === "auto" ? (DPR > 1.5 ? "medium" : "high") : id);
+    if (id === "auto") { perf.ceiling = 0; perf.remember(AUTO_START); }
+    applyQuality(id === "auto" ? AUTO_START : id);
   }, "q-" + id);
   b.dataset.q = id; return b;
 });
 const fpsEl = document.createElement("span"); fpsEl.className = "fps"; qEl.append(fpsEl);
 
-// Diagnostics (?debug=1, or tap the frame rate): what each frame costs, and switches to take
-// parts of the scene out one at a time to see which one is slow on this machine.
-const diag = { on: params.has("debug"), shadows: true, js: 0, draw: 0, n: 0 };
+// Diagnostics (?debug=1, the D key, or tap the frame rate): what each frame costs, and switches to take
+// parts of the scene out one at a time to see which one is slow on this machine. In the game, D on the race
+// view (or the game page passing it on) shows it too.
+const diag = { on: params.has("debug"), shadows: true, js: 0, draw: 0, n: 0, sec: { race: 0, camera: 0, crowd: 0, panels: 0 }, frames: 0, t0: performance.now() };
 const diagEl = document.createElement("div"); diagEl.className = "diag"; diagEl.hidden = !diag.on;
 document.body.append(diagEl);
 const gpuName = (() => {
@@ -1571,17 +1781,25 @@ for (const [key, label] of [["horses", "Horses"], ["trees", "Trees"], ["rails", 
   b.setAttribute("aria-pressed", "true");
 }
 fpsEl.style.cursor = "pointer";
-fpsEl.onclick = () => { diag.on = !diag.on; diagEl.hidden = !diag.on; };
+const toggleDiag = () => { diag.on = !diag.on; diagEl.hidden = !diag.on; diag.js = diag.draw = diag.n = 0; for (const k in diag.sec) diag.sec[k] = 0; };
+fpsEl.onclick = toggleDiag;
+addEventListener("keydown", (e) => { if ((e.key === "d" || e.key === "D") && !e.metaKey && !e.ctrlKey && !(e.target instanceof HTMLInputElement)) toggleDiag(); });
+addEventListener("message", (e) => { if (e.data && e.data.type === "diag") toggleDiag(); });
 function showDiag(fps) {
   if (!diag.on) return;
-  const i = renderer.info;
-  const n = Math.max(1, diag.n);
+  const i = renderer.info, Q = QUALITY[qLevel], gl = renderer.getContext();
+  const n = Math.max(1, diag.n), ms = (v) => (v / n).toFixed(1);
+  const aa = gl.getContextAttributes().antialias;
   document.getElementById("diagText").textContent =
-    `${fps} fps · ${QUALITY[qLevel].label} · ${renderer.domElement.width}×${renderer.domElement.height}\n` +
-    `Graphics: ${gpuName}\n` +
-    `Per frame: scripts ${(diag.js / n).toFixed(1)} ms, drawing ${(diag.draw / n).toFixed(1)} ms\n` +
-    `${i.render.calls} draw calls, ${(i.render.triangles / 1000).toFixed(0)}k triangles`;
-  diag.js = diag.draw = diag.n = 0;
+    `${fps} fps · ${Q.label}${qMode === "auto" ? " (Auto)" : ""}\n` +
+    `Picture ${renderer.domElement.width}×${renderer.domElement.height} · pixel ratio ${renderer.getPixelRatio().toFixed(2)} (screen ${DPR})\n` +
+    `Edges ${aa ? "multisampled" : "plain"} · shadows ${sun.castShadow ? Q.shadow + (Q.soft ? " soft" : "") + (Q.shadowEvery > 1 ? `, every ${Q.shadowEvery} frames` : "") : "off"}\n` +
+    `${i.render.calls} draw calls · ${(i.render.triangles / 1000).toFixed(0)}k triangles\n` +
+    `Scripts ${ms(diag.js)} ms (race ${ms(diag.sec.race)}, camera ${ms(diag.sec.camera)}, crowd ${ms(diag.sec.crowd)}, panels ${ms(diag.sec.panels)})\n` +
+    `Handing to the graphics chip ${ms(diag.draw)} ms\n` +
+    `In memory: ${i.memory.geometries} meshes, ${i.memory.textures} images, ${i.programs ? i.programs.length : "?"} shaders\n` +
+    `Graphics: ${gpuName}`;
+  diag.js = diag.draw = diag.n = 0; for (const k in diag.sec) diag.sec[k] = 0;
 }
 function syncQuality() { qButtons.forEach((b) => b.setAttribute("aria-pressed", b.dataset.q === qMode)); }
 syncQuality();
@@ -1590,7 +1808,6 @@ function applyQuality(level) {
   qLevel = level;
   const Q = QUALITY[level];
   renderer.setPixelRatio(Q.scale);
-  if (rt.samples !== Q.samples) { rt.samples = Q.samples; rt.dispose(); }
   if (sun.shadow.mapSize.x !== Q.shadow) {
     sun.shadow.mapSize.set(Q.shadow, Q.shadow);
     if (sun.shadow.map) { sun.shadow.map.dispose(); sun.shadow.map = null; }
@@ -1600,8 +1817,6 @@ function applyQuality(level) {
     renderer.shadowMap.type = type;
     scene.traverse((o) => { if (o.material) [].concat(o.material).forEach((m) => (m.needsUpdate = true)); });
   }
-  post.defines = Q.edges ? { EDGES: 1 } : {};
-  post.needsUpdate = true;
   KICK.share = Q.kick;
   setCrowdShare(Q.crowd);
   sun.shadow.autoUpdate = true;
@@ -1610,24 +1825,38 @@ function applyQuality(level) {
   syncQuality();
 }
 
-// Frame-time watch: shows the frame rate, and in Auto drops a level when it stays under ~45 fps.
+// Frame-time watch: shows the frame rate, and in Auto drops a level when it can't hold 30 fps (the owner's target:
+// a machine holding 35-55 keeps its quality, and a browser that caps itself at 30 to save power isn't walked down).
+// Auto also climbs back a level when there's plenty to spare (55+ fps for about four seconds), but never back to a
+// level it had to leave in this race. The level it is on when the race ends is remembered for the next race
+// (tb-auto-level). A long frame (the tab hidden, the machine busy for a moment) restarts the count instead of
+// counting as a slow second.
 const perf = {
-  n: 0, sum: 0, wait: 1,
-  reset() { this.n = 0; this.sum = 0; this.wait = 1; },
+  n: 0, sum: 0, wait: 1, good: 0, ceiling: 0, fps: 0, longs: 0,
+  reset() { this.n = 0; this.sum = 0; this.wait = 1; this.good = 0; },
   tick(dt) {
+    if (document.hidden) { this.reset(); return; }
+    // one or two long frames (back from a hidden tab, a hiccup) restart the count; a run of them is a slow machine
+    if (dt > 0.25) { if (++this.longs < 3) { this.n = 0; this.sum = 0; return; } } else this.longs = 0;
     if (this.wait > 0) { this.wait -= dt; return; }   // let a change settle before judging it
     this.n++; this.sum += dt;
     if (this.sum < 1.25) return;                     // judge every second and a quarter, so a slow machine settles quickly
     const fps = Math.round(this.n / this.sum);
+    this.fps = fps;
     this.n = 0; this.sum = 0;
-    if (qMode === "auto" && fps < 45) {
-      const next = ORDER[ORDER.indexOf(qLevel) + 1];
-      if (next) applyQuality(next);
+    if (qMode === "auto") {
+      const at = ORDER.indexOf(qLevel);
+      if (fps < 30 && at < ORDER.length - 1) { this.ceiling = Math.max(this.ceiling, at + 1); applyQuality(ORDER[at + 1]); }
+      else if (fps >= 55 && at > Math.max(this.ceiling, ORDER.indexOf(AUTO_START))) {
+        if (++this.good >= 3) applyQuality(ORDER[at - 1]);
+      } else this.good = 0;
     }
     fpsEl.textContent = `${fps} fps · ${QUALITY[qLevel].label}`;
     showDiag(fps);
   },
+  remember(level) { try { localStorage.setItem("tb-auto-level", level); } catch {} },
 };
+addEventListener("visibilitychange", () => perf.reset());
 document.getElementById("pause").onclick = (e) => {
   state.paused = !state.paused;
   e.currentTarget.setAttribute("aria-pressed", state.paused);
@@ -1650,9 +1879,7 @@ document.getElementById("restart").onclick = () => { gatesAt = -1; state.phase =
 function resize() {
   const w = window.innerWidth, h = window.innerHeight, pr = renderer.getPixelRatio();
   renderer.setSize(w, h, false);
-  rt.setSize(Math.floor(w * pr), Math.floor(h * pr));
-  post.uniforms.res.value.set(Math.floor(w * pr), Math.floor(h * pr));
-  post.uniforms.pxScale.value = Math.max(1, pr);
+  vignette.material.uniforms.res.value.set(Math.floor(w * pr), Math.floor(h * pr));
   camera.aspect = w / h;
   camera.updateProjectionMatrix();
 }
@@ -1664,14 +1891,18 @@ try {
   const optional = (p, what) => p.catch((e) => { console.warn(what + " missing:", e.message); return null; });
   const json = (url) => optional(fetch(url).then((r) => { if (!r.ok) throw new Error(url + " " + r.status); return r.json(); }), url);
   const file = (path) => "assets/course/" + path.split("/").pop();
-  const [props, horse, world, trees, belts, crowd, bakeInfo, dressing, planting, areas, spots, palette, stalls, stallKit] = await Promise.all([
+  const [props, horse, world, trees, belts, crowd, bakeInfo, dressing, planting, areas, spots, palette, stalls, stallKit, horseLight] = await Promise.all([
     optional(loadModel("assets/course", "course-props"), "Course furniture"),
     HORSE_V === "v2" ? HorseV2.loadHorse(loadModel, "assets/model-v2", (url, srgb) => { const t = texLoader.load(url); t.flipY = false; if (srgb) t.colorSpace = THREE.SRGBColorSpace; return t; })
                      : loadModel("assets/model", "racehorse"),
     optional(loadModel("assets/baked", "static_world"), "Baked scenery"),
-    optional(loadModel("assets/trees", "trees"), "Trees"),
+    // the leafy trees (owner, 7 Nov: preferred to the clay ones, which stay on ?trees=clay)
+    params.get("trees") !== "clay" ? optional(loadModel("assets/trees", "trees"), "Trees")
+      : Promise.all([optional(loadModel("assets/trees", "trees_clay"), "Trees"), json("assets/trees/trees_clay_info.json")])
+          .then(([g, info]) => (g && info ? ((CLAY_TREES = info), g) : optional(loadModel("assets/trees", "trees"), "Trees"))),
     optional(loadModel("assets/course", "planting_belts"), "Planting belts"),
-    optional(loadModel(ARCH, "crowd_people"), "Crowd"),
+    params.get("crowd") === "old" ? optional(loadModel(ARCH, "crowd_people"), "Crowd")
+      : optional(loadModel(ARCH, "crowd_set_8"), "Crowd").then((g) => (g ? ((SKITTLES = true), g) : optional(loadModel(ARCH, "crowd_people"), "Crowd"))),
     json("assets/baked/bake.json"),
     json(file(VIEW.dressing)),
     json(file(VIEW.planting)),
@@ -1680,6 +1911,7 @@ try {
     json(ARCH + "/crowd_palette.json"),
     optional(loadModel("assets/course", "starting_stalls"), "Starting stalls"),
     json("assets/course/starting_stalls_kit.json"),
+    HORSE_V === "v1" && !params.has("nolod") ? optional(loadModel("assets/model", "racehorse_lod"), "Light horse") : null,
   ]);
   if (stalls && stallKit) buildStalls(stalls, stallKit);
   if (props) placeProps(props);
@@ -1701,6 +1933,7 @@ try {
     runners.push({ obj: h.obj, v2: h, effort: 0 });
   }
   const clips = HORSE_V === "v2" ? [] : horse.animations;
+  const lod = horseLight ? horseLod(horse, horseLight) : null;
   for (let i = 0; i < RUNNERS && HORSE_V === "v1"; i++) {
     const obj = SkeletonUtils.clone(horse.scene);
     obj.scale.setScalar(HORSE_SCALE);
@@ -1710,21 +1943,36 @@ try {
       mask: { value: maskTex }, coatCol: { value: new THREE.Color(coat.body) },
       pointsCol: { value: new THREE.Color(coat.points) }, silkCol: { value: new THREE.Color(silk.colour) },
     };
+    const full = [];
     obj.traverse((o) => {
       if (!o.isMesh) return;
       o.castShadow = true; o.frustumCulled = false;
       o.material = o.material.clone();
       if (o.material.name === "silks") { o.material.map = silkTexture(silk.id); o.material.roughness = 0.6; }
       else makeTintable(o.material, u);
+      full.push(o);
     });
+    // the light horse, sharing this runner's skeleton (so the same animation moves it) and its materials
+    const light = lod ? full.map((o, k) => {
+      const l = new THREE.SkinnedMesh(lod[k], o.material);
+      l.position.copy(o.position); l.quaternion.copy(o.quaternion); l.scale.copy(o.scale);
+      l.bind(o.skeleton, o.bindMatrix);
+      l.castShadow = true; l.frustumCulled = false; l.visible = false;
+      o.parent.add(l);
+      return l;
+    }) : null;
     const mixer = new THREE.AnimationMixer(obj);
     const actions = {};
     for (const c of clips) { actions[c.name] = mixer.clipAction(c); actions[c.name].play(); }
     mixer.setTime((i * 0.137) % 0.48);
     scene.add(obj);
     LAYERS.horses.push(obj);
-    runners.push({ obj, mixer, actions, effort: 0 });
+    runners.push({ obj, mixer, actions, effort: 0, full, light, near: true });
   }
+  // Compile every shader now, while the loading note is up (in parallel where the browser can), instead of the first
+  // time each thing comes into shot, which stalled a frame or two mid-race and could tip Auto into dropping a level.
+  setGrade(GRADE.on);
+  try { await renderer.compileAsync(scene, camera); } catch (e) { console.warn("compile", e); }
   document.getElementById("loading").hidden = true;
 } catch (err) {
   console.error(err);
@@ -1919,14 +2167,18 @@ const DOCK = (() => {
     return { t: Infinity, v: 1 };
   });
   const winT = Math.min(...finish.map((f) => f.t));
-  let lastOrder = 0;
+  let lastOrder = 0, lastDots = 0, lastTop = -1;
   return {
     update(now, t, phase) {
       if (dockEl.hidden) return;
-      // dots on the map: every frame
+      // dots on the map: 20 times a second (a dot moves well under a pixel a frame; redrawing the map every frame was
+      // the browser's work, not the race's)
+      const tn = performance.now();
+      if (tn - lastDots < 50 && !params.has("still")) return;
+      lastDots = tn;
       now.forEach((h, i) => { const [x, z] = toWorld(Math.max(0, Math.min(h[0], DIST + 60)), h[1]); dots[i].setAttribute("cx", x.toFixed(1)); dots[i].setAttribute("cy", z.toFixed(1)); });
       const order = now.map((h, i) => [h[0], i]).sort((a, b) => b[0] - a[0]);
-      if (dots.length) svg.appendChild(dots[order[0][1]]);                // the leader's dot on top
+      if (dots.length && lastTop !== order[0][1]) { lastTop = order[0][1]; svg.appendChild(dots[lastTop]); }   // the leader's dot on top
       // the order strip and the pace: a few times a second
       if (performance.now() - lastOrder < 200 && !params.has("still")) return;
       lastOrder = performance.now();
@@ -2026,12 +2278,13 @@ function frame() {
     state.pt += dt;
     if (state.phase === "prelude") { if (state.pt > SET.prelude.seconds) { state.phase = "stalls"; state.pt = 0; state.t = 0; snap = true; } }
     else if (state.phase === "stalls") { if (state.pt > PRE.standSeconds) { state.phase = "race"; state.pt = 0; state.t = 0; } }   // the off: no cut
-    else if (state.phase === "race") { state.t += dt; if (GAME && !sentFinish && state.t > T_FINISH) { sentFinish = true; toGame({ type: "finished", order: RESULT.placed.map((p) => CARD[p.runner].id) }); } if (state.t > T_END) { state.phase = "replay"; state.pt = 0; state.t = REPLAY[0]; snap = true; live.length = 0; } }
+    else if (state.phase === "race") { state.t += dt; if (GAME && !sentFinish && state.t > T_FINISH) { sentFinish = true; toGame({ type: "finished", order: RESULT.placed.map((p) => CARD[p.runner].id) }); } if (state.t > T_END) { state.phase = "replay"; state.pt = 0; state.t = REPLAY[0]; snap = true; live.length = 0; if (qMode === "auto" && !params.has("still")) perf.remember(qLevel); } }
     else if (state.phase === "replay") { state.t += step; if (state.t > REPLAY[1]) { state.phase = "postlude"; state.pt = 0; state.t = T_END; snap = true; } }
     else if (state.phase === "postlude" && state.pt > SET.postlude.seconds) { if (GAME) state.pt = SET.postlude.seconds; else { state.phase = "prelude"; state.pt = 0; state.t = 0; snap = true; live.length = 0; } }
   }
   const now = sample(state.t);
   let leader = -1e9, leaderZ = MID_Z, sum = 0, leaderXw = 0;
+  const tRace = performance.now();
   runners.forEach((r, i) => {
     const [x, z, v, eff, yaw] = now[i];
     const [wx, wz] = toWorld(x, z);                            // along the course -> world
@@ -2078,7 +2331,10 @@ function frame() {
     stallsGroup.visible = !(STALLS_COME_BACK && (state.phase === "race" || state.phase === "replay" || state.phase === "postlude") && leader > PRE.hideAfter);
   }
 
+  const tCam = performance.now(); diag.sec.race += tCam - tRace;
   updateCamera(now, dt);
+  chooseHorseDetail();
+  diag.sec.camera += performance.now() - tCam;
   if (HORSE_V === "v2" && runners.length) {           // v2: detail levels by size on screen, a few close at most
     camera.updateMatrixWorld();
     HorseV2.chooseLevels(runners.map((r) => r.v2), camera, { close: { high: 4, medium: 2, low: 0 }[qLevel] });
@@ -2086,25 +2342,35 @@ function frame() {
   const [sx, sz] = toWorld(packU, 0);
   const sunAt = new THREE.Vector3(sx, 0, sz);
   sun.position.copy(sunAt).add(SUN_OFFSET); sun.target.position.copy(sunAt);
+  if (shadowCatcher) {
+    const rr = railAt(Math.min(DIST, Math.max(0, DIST - packU)));
+    shadowCatcher.position.set(sx, 0.03, sz); shadowCatcher.rotation.y = Math.atan2(-rr.tz, rr.tx);
+  }
   scene.userData.sky.position.copy(camera.position);
   CROWD.uniforms.uTime.value = performance.now() / 1000;
   CROWD.uniforms.uLeader.value.set(leaderXw, leaderZ);
   camera.updateMatrixWorld();
+  const tCrowd = performance.now();
   updateCrowd(camera);
+  const tPanels = performance.now(); diag.sec.crowd += tPanels - tCrowd;
 
   const left = (DIST - leader) / FURLONG;
-  toRunEl.textContent = state.phase === "prelude" ? RACE.label : state.phase === "stalls" ? "All in" : state.phase === "replay" ? "Replay" : left <= 0 ? "Finished"
+  // (written only when they change: rewriting the same text every frame still makes the browser lay the page out again)
+  const toRun = state.phase === "prelude" ? RACE.label : state.phase === "stalls" ? "All in" : state.phase === "replay" ? "Replay" : left <= 0 ? "Finished"
     : left < 1 ? Math.round(left * 220) + " yds" : left.toFixed(1).replace(/\.0$/, "") + "f";
-  toRunLabel.hidden = left <= 0 || state.phase === "prelude" || state.phase === "stalls" || state.phase === "replay";
+  if (toRunEl.textContent !== toRun) toRunEl.textContent = toRun;
+  const runHidden = left <= 0 || state.phase === "prelude" || state.phase === "stalls" || state.phase === "replay";
+  if (toRunLabel.hidden !== runHidden) toRunLabel.hidden = runHidden;
   DOCK.update(now, state.t, state.phase);
   GAMEUI.update(state.phase, state.t);
+  diag.sec.panels += performance.now() - tPanels;
 
   const every = QUALITY[qLevel].shadowEvery;
   sun.shadow.autoUpdate = every === 1;
   if (every > 1 && framesDrawn % every === 0) sun.shadow.needsUpdate = true;
   const t1 = performance.now();
   renderer.info.reset();
-  renderer.render(scene, camera);
+  LOOKS.render(renderer, scene, camera, focus, state.phase === "prelude" || state.phase === "postlude");
   framesDrawn++;
   diag.js += t1 - t0; diag.draw += performance.now() - t1; diag.n++;
   // ?still=1 (used for checking screenshots): draw a few frames once loaded, then stop.
@@ -2119,4 +2385,6 @@ function frame() {
   requestAnimationFrame(frame);
 }
 requestAnimationFrame(frame);
+// Checking aid (?bench=1): the scene's parts, for timing each one on its own (see the rig's bench script).
+if (params.has("bench")) window.__dbg = { THREE, renderer, scene, camera, LAYERS, sun, QUALITY, runners, get qLevel() { return qLevel; } };
 </script>

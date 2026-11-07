@@ -850,6 +850,7 @@ let last = performance.now(), clockT = 0, skyT = 0, slowT = 0;
 function frame(now) {
   const raw = Math.min((now - last) / 1000, 0.1);
   if (LITE && (API.covered || document.hidden)) { last = now; requestAnimationFrame(frame); return; }   // a phone's sheet fills the screen
+  if (document.body.classList.contains("watching")) { last = now; requestAnimationFrame(frame); return; }   // a race is on over everything
   if (LITE && now - last < 31) { requestAnimationFrame(frame); return; }
   last = now;
   if (API.covered) { slowT += raw; if (slowT < 0.25) { requestAnimationFrame(frame); return; } }

@@ -122,7 +122,7 @@ function cardFor(id) {
       else { c.status = "Royal Ascot is over for this year"; c.text = `You won ${money(prizeWon())} and ${winsNow()} race${winsNow() === 1 ? "" : "s"}.`; c.cta = ""; }
       break;
   }
-  if (st === "next" && ch && ch.title) c.kicker = `${ch.season} · ${ch.title}`;
+  if (st === "next" && ch && ch.title) c.kicker = ch.title;   // no time of year on the labels (owner, 7 Nov: it is never winter at Royal Ascot)
   return c;
 }
 
@@ -166,7 +166,7 @@ function paintGuide() {
     gallops: "Bring your string on at Warren Hill", entries: nx === "races" ? "Every race has a runner: off to Royal Ascot" : `Make your entries at the Jockey Club (${entered()} of ${RACES.length})`,
     week: "Race week at Royal Ascot", standings: "The final standings at Ascot", home: "Collect your title at Palace House",
   }[ph];
-  g.innerHTML = `<div class="g-step"><b>${ch.step}</b><span>of 5</span></div><div class="g-t"><span class="g-k">${ch.season} · ${ch.title}</span><b>${what}</b></div>
+  g.innerHTML = `<div class="g-step"><b>${ch.step}</b><span>of 5</span></div><div class="g-t"><span class="g-k">${ch.title}</span><b>${what}</b></div>
     <button class="g-go" type="button" data-guide="${nx}" aria-label="Show me ${p ? p.title : ""}">Show me<svg viewBox="0 0 10 16" aria-hidden="true"><path d="M1.6 0 0 1.6 6.4 8 0 14.4 1.6 16l8-8z"/></svg></button>`;
   g.hidden = atAscot() || UI.cineOn;
 }
@@ -224,7 +224,7 @@ function paintSheet(first) {
   $("#shTitle").textContent = id === "races" ? (S.step >= 5 ? "Final standings" : "Royal Ascot") : atAscot() && id === "jockey" ? "Declarations" : SHEET_TITLE[id];
   $("#shKicker").textContent = id === "races" ? `${MEETING.month} ${MEETING.year} · ${S.step >= 5 ? "the week is run" : "race week"}`
     : atAscot() && id === "jockey" ? `${MEETING.name} · change your runners before the first race`
-    : (placeStates()[id] === "next" ? `${ch.season} · Step ${ch.step} of 5 · ${ch.title}` : cardFor(id).kicker);
+    : (placeStates()[id] === "next" ? `Step ${ch.step} of 5 · ${ch.title}` : cardFor(id).kicker);
   const ic = PLACE_ICON[id];
   $("#shMedal").innerHTML = ic === "JC" ? `<span class="jc">JC</span>` : ic === "horse" ? `<span class="hz"></span>` : `<svg viewBox="0 0 512 512">${ICON[ic]}</svg>`;
   const pic = $("#shPic");

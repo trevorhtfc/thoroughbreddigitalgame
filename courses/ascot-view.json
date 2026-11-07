@@ -191,8 +191,8 @@
   "note": "Trees within nearRadius metres of centre use the full leafy crowns; further off, the light _crown_far versions (belt trees there also drop their trunks, which the hedge hides)."
  },
  "glass": {
-  "reflect": "#7f93a6",
-  "amount": 0.3,
+  "reflect": "#8f8c99",
+  "amount": 0.12,
   "note": "Window glass on the baked buildings picks up this much of the sky's reflection, so big glazed screens read as glass rather than dark holes."
  },
  "lanes": {
@@ -207,7 +207,7 @@
   "maxDist": 20.0,
   "lanes": 8,
   "width": 30,
-  "strength": 0.14
+  "strength": 0.16
  },
  "races": {
   "_about": "The races the view can show, one for every Ascot trip; the race engine (race-engine/engine.js) runs each one and hands the view its timeline. course: 'round' runs along roundCourse.insideRail (a closed loop, so races over 1m6f and more pass the post more than once); 'roundMile' up the chute (roundMileSpur) and on round the loop; 'straight' along the straight course. distance in metres. start: which start in courses/ascot-stalls.json (where the stalls stand and each stall's draw). The keys 'long', 'mile' and 'roundmile' are kept so older links still work.",

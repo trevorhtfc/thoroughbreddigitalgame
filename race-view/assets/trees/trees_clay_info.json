@@ -1,0 +1,23 @@
+{
+ "_about": "Clay trees for the race view (tools/blender/export_clay_trees.py). Crown vertex colours are shading / shadeMax; multiply by shadeMax and the leaf colour per copy.",
+ "shadeMax": 1.12,
+ "leaf": [
+  "#6f9a4e",
+  "#7da85a",
+  "#628c46",
+  "#8bb265",
+  "#5c8546",
+  "#86ad5c",
+  "#73a052",
+  "#79a456",
+  "#668f4a",
+  "#8ab062",
+  "#5f8946",
+  "#9a6a52"
+ ],
+ "hedge": [
+  "#5a8544",
+  "#608a47",
+  "#557f41"
+ ]
+}

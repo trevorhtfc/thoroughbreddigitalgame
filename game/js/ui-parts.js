@@ -629,8 +629,11 @@ function watch(i) {
   if (!window.ENGINE) { toast("The race engine is still loading. Try again in a moment."); return; }
   const field = fieldFor(i);
   box.className = "watch";
-  box.innerHTML = `<iframe src="final-furlong.html?game=1${window.__watchQuery || ""}" title="${esc2(race.name)}" allow="fullscreen"></iframe><button class="tb-btn ghost x" id="closeWatch"><span class="lg">Back to the racecard</span><span class="sh">Racecard</span></button>`;
+  // the race view's diagnostics: the game opened as …#debug (or ?debug=1) opens every race with them showing
+  const dbg = location.hash === "#debug" || /[?&]debug=1\b/.test(location.search) ? "&debug=1" : "";
+  box.innerHTML = `<iframe src="final-furlong.html?game=1${dbg}${window.__watchQuery || ""}" title="${esc2(race.name)}" allow="fullscreen"></iframe><button class="tb-btn ghost x" id="closeWatch"><span class="lg">Back to the racecard</span><span class="sh">Racecard</span></button>`;
   document.body.appendChild(box); document.body.style.overflow = "hidden";
+  document.body.classList.add("watching");      // everything under the race is hidden and the board's loop rests (css/game.css)
   const frame = box.querySelector("iframe");
   watching = { i, box, frame, sent: false };
   watching.timer = setTimeout(() => { if (watching && !watching.sent) {
@@ -645,7 +648,11 @@ function watch(i) {
     // and, for the dock and the racecard: the owner's own graphic silks, the price and the race-day colour card
     runners: field.map((h, k) => ({ ...engineRunner(h), silk: SILK3D[h.sk], silk2d: SILKS[h.sk].img, odds: mkt[k].odds, card: mkt[k].card, coat: { body: h.coat[0], points: h.coat[1] }, mine: !!h.mine })) };
 }
-function closeWatch() { if (!watching) return; clearTimeout(watching.timer); watching.box.remove(); watching = null; document.body.style.overflow = ""; render(); }
+function closeWatch() { if (!watching) return; clearTimeout(watching.timer); watching.box.remove(); watching = null; document.body.style.overflow = ""; document.body.classList.remove("watching"); render(); }
+// D shows or hides the race view's diagnostics (frame rate, draw calls, triangles, pixel ratio) while a race is on
+addEventListener("keydown", e => {
+  if (watching && (e.key === "d" || e.key === "D") && !e.metaKey && !e.ctrlKey && !e.altKey) watching.frame.contentWindow.postMessage({ type: "diag" }, "*");
+});
 addEventListener("message", e => {
   if (!watching || e.source !== watching.frame.contentWindow) return;
   const d = e.data || {};

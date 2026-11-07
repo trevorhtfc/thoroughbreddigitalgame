@@ -97,8 +97,9 @@ def end_pavilion(x0, x1, D, tiers):
 
 def stair_bay(x0, x1, D, party=()):
     """A narrow stair hall between wings, with a broad flight from the lawn in front."""
-    block({"x0": x0, "x1": x1, "storeys": 3, "depth": D, "party": party})
-    steps({"x": (x0 + x1) / 2, "width": x1 - x0 - 0.9, "run": MODS["stair_bay"]["frontProjection"]})
+    # four storeys (owner, 6 Nov 2026: taller, so the elevation isn't so flat; the roof room on top was dropped)
+    block({"x0": x0, "x1": x1, "storeys": 4, "depth": D, "party": party})
+    steps({"x": (x0 + x1) / 2, "width": min(x1 - x0 - 0.9, 6.1), "run": MODS["stair_bay"]["frontProjection"]})   # one flight, however wide the block
 
 
 def grand_pavilion(x0, x1, D, party=()):
@@ -116,7 +117,9 @@ VER = {"porch": dict(tiers=1, depth=9.0, setback=0.0, roof="hip"),
        "link": dict(tiers=3, depth=18.0, setback=1.2, roof="flat")}
 
 
-def build_module(name, x0, length, party=()):
+def build_module(name, x0, length, party=(), roof=False, join=()):
+    """roof: the grand canopy's roof carried on over this stretch (owner's sketch); join: sides where the
+    canopy roof carries on into the neighbour."""
     """Build one module (or a run of one repeatable module) with its front-left corner at x0.
     party: which ends ('left', 'right') butt against a neighbour, so their end windows are left off."""
     m = MODS[name]; x1 = x0 + length
@@ -128,33 +131,41 @@ def build_module(name, x0, length, party=()):
         end_pavilion(x0, x1 - 1.6, m["depth"], m["tiers"])            # the end gallery fills the last 1.6 m
     elif name == "stair_bay":
         stair_bay(x0, x1, m["depth"], party)
+    elif name == "terrace_stand":
+        t = terrace({"x0": x0, "x1": x1, "depth": m["depth"], "party": party, "open_ends": roof})
+        if roof:
+            canopy_roof(x0, x1, t["top"], t["depth"], t["deck"], t["top"] + 1.25, grand=True, join=join, lantern=False)
     elif name == "clock_centre":
-        block({"x0": x0, "x1": x0 + 21.0, "storeys": 4, "depth": 22.0, "balconies": True, "chimney": x0 + 10.0,
-               "party": ("right",) + tuple(p for p in party if p == "left")})
-        ironwork({"x0": x0 + 21.0, "x1": x1, "levels": 3, "depth": 20.0})
-        tower({"x": x0 + m["towerFromLeft"], "y": 6.0, "width": m["towerWidth"], "base_z": 17.0, "top_z": 24.5})
+        # since 6 Nov 2026 (owner's elevation markup): the iron lace bay, doubled, with the old belfry clock tower
+        # rising from its centre; the gallery-balcony blocks either side are separate stair_bay items
+        ironwork({"x0": x0, "x1": x1, "levels": 3, "depth": 20.0})
+        tower_belfry({"x": x0 + m["towerFromLeft"], "y": 7.0, "width": m["towerWidth"], "base_z": 13.2, "top_z": 36.0})
     elif name == "ironwork_bay":
         ironwork({"x0": x0, "x1": x1, "levels": 3, "depth": m["depth"]})
+        if roof:
+            H = P + 3 * S
+            canopy_roof(x0, x1, terrace_top(18.0), 18.0, H + 0.35, H, grand=True, join=join, lantern=False)
     elif name == "window_block":
         block({"x0": x0, "x1": x1, "storeys": 4, "depth": m["depth"], "party": party})
     elif name == "three_storey_block":
         block({"x0": x0, "x1": x1, "storeys": 3, "depth": m["depth"], "roof_room": True, "party": party})
     elif name == "pavilion":
-        pavilion({"x0": x0, "x1": x1, "storeys": 2, "storey": 4.6, "depth": m["depth"], "pitch_deg": 24, "party": party})
+        # since 6 Nov 2026 (owner): a light pitched roof over the open terrace, the terrace running through
+        canopy_terrace({"x0": x0, "x1": x1, "depth": 18.0, "party": party})
     elif name == "grand_pavilion":
-        grand_pavilion(x0, x1, m["depth"], party)
+        canopy_terrace({"x0": x0, "x1": x1, "depth": 18.0, "party": party, "join": join}, grand=True)
     else:
         raise KeyError(name)
 
 
-def build_placed(name, x0, length, mirror, party=()):
+def build_placed(name, x0, length, mirror, party=(), roof=False, join=()):
     if mirror:                                  # mirrored: the module's own left end is on the right
         swap = {"left": "right", "right": "left"}
         K.push(Matrix.Translation((x0 + length, 0, 0)) @ Matrix.Diagonal((-1, 1, 1, 1)))
-        build_module(name, 0.0, length, tuple(swap[p] for p in party))
+        build_module(name, 0.0, length, tuple(swap[p] for p in party), roof, tuple(swap[p] for p in join))
         K.pop()
     else:
-        build_module(name, x0, length, party)
+        build_module(name, x0, length, party, roof, join)
 
 
 # ------------------------------------------------------------------ 1) the kit: one node per module
@@ -174,23 +185,28 @@ print("kit:", ", ".join(f"{n} {b}b {t}t" for n, b, t in kit_report), flush=True)
 
 # ------------------------------------------------------------------ 2) Ascot's stand, assembled
 runs = []                                   # merge back-to-back repeats of a repeatable module into one run
-for item in ASM["order"]:
-    name = item["module"]; n = item.get("repeat", 1); mir = item.get("mirror", False)
-    if runs and runs[-1][0] == name and MODS[name].get("repeatable") and not mir and not runs[-1][2]:
+for item in ASM["order"]:                   # runs hold widths in bays; an item's own "bays" overrides the catalogue
+    name = item["module"]; n = item.get("repeat", 1) * item.get("bays", MODS[name]["bays"]); mir = item.get("mirror", False)
+    roof = bool(item.get("roof"))           # a long roof over this run (owner's sketch)
+    if runs and runs[-1][0] == name and MODS[name].get("repeatable") and not mir and not runs[-1][2] and runs[-1][3] == roof:
         runs[-1][1] += n
     else:
-        runs.append([name, n, mir])
+        runs.append([name, n, mir, roof])
 def assemble(far, coll_name, mesh_prefix):
     """Assemble Ascot's stand from the runs, in world axes, one mesh per material."""
     global CROWD
     K.far = far
     cum, tower_c = 0.0, None
-    for i, (name, n, mir) in enumerate(runs):
-        Lm = MODS[name]["bays"] * BAY * n
+    for i, (name, n, mir, roof) in enumerate(runs):
+        Lm = BAY * n
         if name == ASM["anchor"]["module"]:
             tower_c = cum + MODS[name]["towerFromLeft"]
         party = tuple(p for p, on in (("left", i > 0), ("right", i < len(runs) - 1)) if on)
-        build_placed(name, cum, Lm, mir, party)
+        # the canopy roof carries on between a grand canopy and roofed stretches, and between roofed stretches
+        roofish = lambda j: 0 <= j < len(runs) and (runs[j][3] or runs[j][0] == "grand_pavilion")
+        join = tuple(sd for sd, j in (("left", i - 1), ("right", i + 1))
+                     if (roof or name == "grand_pavilion") and roofish(j) and (roof or runs[j][3]))
+        build_placed(name, cum, Lm, mir, party, roof, join)
         cum += Lm
     assert abs(cum - COURSE["grandstand"]["length"]) < 0.01, (cum, COURSE["grandstand"]["length"])
     stand_area(0.3, cum - 0.3, 0.0, 0.0, 0, "lawn_front_line")
