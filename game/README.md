@@ -159,7 +159,7 @@ An independent read of the shell found no runtime errors and eight flow bugs, al
 | `assets/newmarket/` | The board and what the board needs (occlusion, chimneys and windows, banners, silks for the banners). |
 | `src/` | Sources for the built files, plus `sites.json` (the places' outlines), `icons.json` (game-icons.net, CC BY 3.0) and the horse mark. |
 | `tools/build.py` | Builds `index.html`, `js/board.js` and `js/life.js` from `src/`. Run after changing anything in `src/`. |
-| `tools/stage.py` | Gathers everything the published game needs (241 files, about 35 MB) into one folder. |
+| `tools/stage.py` | Gathers everything the published game needs (250 files, about 35 MB) into one folder, escaping non-ASCII characters. |
 | `tools/grade_map_clip.py`, `tools/storybook_grade.py` | The films' grades. |
 | `tools/harness.js`, `tools/cost-by-rating.js` | Balance checks (load into the page). |
 
@@ -176,14 +176,21 @@ console: `__setHour(19)` sets the time of day on the board; `LIFE.__advance(10)`
 
 ## 7 Nov 2026: the new look and a faster race view in the game (version 6)
 
-- The race view now carries the finish study's look (dressed terraced stand, skittle crowd in tops and tails, crisp
-  mown lanes, beige ground by the track, the Ascot rail, soft warm light) with the leafy trees; the finish camera
-  holds on the winning line once the winner is past the post.
-- Faster on every machine (see `claude/race-view-performance.md` in the project): the storybook grade is drawn in
-  the shaders instead of a CSS filter; while a race plays, everything under it is hidden and the board's loop rests
-  (`body.watching`); ground and sky painted once; no multisampling on Low and Lightest; Auto remembers its level;
-  a light horse for small horses on screen. **D** shows the race view's diagnostics (also `#debug` on the game's
-  address).
-- No time of year on the labels.
-- `tools/stage.py` writes every non-ASCII character in the pages, scripts and styles as an escape (the published
-  scripts carry no charset; a Mac showed "4YO+ Â· âš¥"). 250 files, 35 MB.
+**Branch now `claude/race-look-options`** (it sits on top of `claude/thoroughbred-game`; nothing to merge back the other
+way). Published as version 6 of the live game.
+
+- **The race view carries the finish study's look**: the dressed terraced stand (pastel doors and balusters, striped
+  awnings, flags), the skittle crowd with about half the gents in black tops and tails, crisp mown lanes, beige ground
+  beside the track, the Ascot rail, soft warm light. The leafy trees stay (owner preferred them to the clay ones).
+- **The finish camera holds on the winning line** once the winner is past the post, so the placings are seen crossing.
+- **No time of year** on the labels (the chapters' seasons are no longer shown).
+- **Garbled text fixed at the source**: the published scripts carry no charset, so a Mac read "·" and "⚥" as
+  "Â·" and "âš¥". `tools/stage.py` now writes every non-ASCII character as an escape.
+- **Faster on every machine** (details: `claude/race-view-performance.md`): the storybook grade is drawn in the shaders
+  instead of a CSS filter (same colours); while a race plays the game hides everything under it and the board's loop
+  rests (`body.watching`); ground and sky painted once; no multisampling on Low and Lightest; Auto remembers its level
+  per browser and drops under 40 fps; a light horse for horses small on screen; shaders compiled before the off.
+- **Diagnostics**: press **D** during a race (or open the game as `…#debug`): frame rate, draw calls, triangles,
+  pixel ratio, picture size, edges, shadows, script time by part, memory, the graphics chip's name.
+- `tools/stage.py` now gathers 250 files, 35 MB (adds `looks.js`, `stand-styles.js`, the skittle crowd, the turf grain
+  and the light horse; leaves out the clay trees).
