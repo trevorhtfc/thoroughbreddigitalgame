@@ -213,33 +213,49 @@ button:focus-visible { outline: 2px solid var(--cream-edge); outline-offset: 2px
 .rr-btns { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 12px; }
 .rr-btns button { flex: 1 1 auto; padding: 9px 10px; font-size: .86rem; font-weight: 600; }
 .rr-btns button.go { background: var(--green); color: #f6f1e6; border-color: var(--green); }
-/* The runners, before the off (owner, 7 Nov): the drone glides along the stand while each runner is announced with its
-   number, colours and price; then the racecard. And the commentary during the race, a line at a time. */
-.parade, .call { position: fixed; z-index: 6; left: 50%; transform: translateX(-50%); color: var(--green-ink); background: var(--cream); border-radius: 3px;
+/* Before the off (owner, 7 Nov): one card of every runner (stall, colours, name, price) over a still aerial of the
+   course, the carnival in front and the stand beyond; then the start. And the commentary, a line at a time. */
+.call { position: fixed; z-index: 6; left: 50%; transform: translateX(-50%); color: var(--green-ink); background: var(--cream); border-radius: 3px;
   bottom: calc(env(safe-area-inset-bottom, 0px) + 26px + var(--dock-h) + var(--ctl-h, 0px));
   box-shadow: inset 0 0 0 1px rgba(183,144,66,.6), 0 0 0 3px var(--cream), 0 0 0 4px rgba(183,144,66,.75), 0 14px 36px rgba(15,25,18,.45); transition: opacity .45s, transform .45s; }
-.parade { width: min(460px, calc(100% - 32px)); padding: 10px 14px 12px 16px; box-sizing: border-box; }
-.parade.gone, .call.gone { opacity: 0; transform: translate(-50%, 10px); pointer-events: none; }
-.pd-top { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; }
-.pd-k { font: 600 .66rem var(--body); letter-spacing: .2em; text-transform: uppercase; color: #8d6b2a; }
-.pd-skip { padding: 2px 9px; font-size: .74rem; }
-.pd-row { display: grid; grid-template-columns: auto 34px 1fr auto; align-items: center; gap: 10px; margin-top: 6px; }
-.pd-row.in { animation: pdIn .45s ease-out; }
-@keyframes pdIn { from { opacity: 0; transform: translateX(14px); } to { opacity: 1; transform: none; } }
-.pd-no { min-width: 30px; height: 30px; display: grid; place-items: center; border-radius: 3px; background: var(--green); color: #f6f1e6; font: 700 1rem var(--body); }
-.pd-row img { width: 34px; height: 42px; object-fit: contain; }
-.pd-name { min-width: 0; }
-.pd-name b { display: block; font-family: var(--display); font-weight: 700; font-size: 1.45rem; line-height: 1.05; color: #2b3f33; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.pd-name small { display: block; color: var(--ink-soft); font-size: .78rem; margin-top: 2px; }
-.pd-row.mine .pd-name b { color: #8d6b2a; }
-.pd-odds { font: 700 1.05rem var(--body); padding: 4px 10px; border-radius: 3px; color: #fff; background: #6b6a60; }
-.pd-odds:empty { display: none; }
-.pd-odds.k-black { background: #3b3b3b; } .pd-odds.k-red { background: #cc4a32; } .pd-odds.k-yellow { background: #e6ab4a; color: #2a210b; } .pd-odds.k-blue { background: #6491a8; }
+.call.gone { opacity: 0; transform: translate(-50%, 10px); pointer-events: none; }
+body.pre .dock { display: none; }
+.intro { position: fixed; z-index: 7; left: 50%; transform: translateX(-50%); top: calc(env(safe-area-inset-top, 0px) + 84px); bottom: calc(env(safe-area-inset-bottom, 0px) + 18px + var(--ctl-h, 0px));
+  width: min(720px, calc(100% - 28px)); display: flex; flex-direction: column; justify-content: center; pointer-events: none; transition: opacity .5s, transform .5s; }
+.intro.gone { opacity: 0; transform: translate(-50%, 14px); }
+.intro.gone * { pointer-events: none !important; }
+.in-card { pointer-events: auto; display: flex; flex-direction: column; min-height: 0; color: var(--green-ink); background: rgba(250,245,232,.95); border-radius: 3px;
+  box-shadow: inset 0 0 0 1px rgba(183,144,66,.6), 0 0 0 3px var(--cream), 0 0 0 4px rgba(183,144,66,.75), 0 18px 44px rgba(15,25,18,.45); }
+.in-head { display: flex; align-items: flex-end; justify-content: space-between; gap: 12px; padding: 14px 18px 10px; border-bottom: 1px solid rgba(183,144,66,.45); }
+.in-k { font: 600 .66rem var(--body); letter-spacing: .2em; text-transform: uppercase; color: #8d6b2a; }
+.in-t { font-family: var(--display); font-weight: 700; font-size: 1.75rem; line-height: 1.02; color: #2b3f33; margin: 3px 0 4px; }
+.in-f { font-size: .82rem; color: var(--ink-soft); }
+.in-f b { color: var(--green-ink); }
+.in-go { flex: none; position: relative; overflow: hidden; padding: 9px 14px; font-weight: 600; background: var(--green); color: #f6f1e6; border-color: var(--green); }
+.in-go i { position: absolute; left: 0; bottom: 0; height: 3px; background: #e8cf8e; width: 0; }
+.in-list { list-style: none; margin: 0; padding: 8px 12px 12px; display: grid; grid-template-columns: repeat(var(--cols, 2), minmax(0, 1fr)); gap: 4px 12px; overflow-y: auto; min-height: 0; }
+.in-list li { display: grid; grid-template-columns: 28px 26px minmax(0, 1fr) auto; align-items: center; gap: 8px; padding: 4px 6px; border-radius: 3px; }
+.in-list li:nth-child(4n+1), .in-list li:nth-child(4n+2) { background: rgba(255,255,255,.55); }
+.in-list li.mine { background: #fff1c9; box-shadow: inset 0 0 0 2px #b79042; }
+.in-no { height: 24px; display: grid; place-items: center; border-radius: 3px; background: var(--green); color: #f6f1e6; font: 700 .85rem var(--body); }
+.in-list img { width: 26px; height: 32px; object-fit: contain; }
+.in-n { min-width: 0; }
+.in-n b { display: block; font-family: var(--display); font-weight: 700; font-size: 1.02rem; line-height: 1.1; color: #2b3f33; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.in-n small { display: block; font-size: .7rem; color: var(--ink-soft); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.in-list li.mine .in-n b { color: #8d6b2a; }
+.in-odds { font: 700 .85rem var(--body); padding: 3px 8px; border-radius: 3px; color: #fff; background: #6b6a60; white-space: nowrap; }
+.intro.short .in-n small { display: none; } .intro.short .in-list { gap: 2px 10px; padding: 4px 8px 6px; } .intro.short .in-list li { padding: 2px 4px; } .intro.short .in-list img { width: 20px; height: 24px; } .intro.short .in-no { height: 20px; } .intro.short .in-head { padding: 8px 12px 6px; } .intro.short .in-t { font-size: 1.2rem; margin: 1px 0 2px; }
+.intro.short { top: calc(env(safe-area-inset-top, 0px) + 60px); bottom: calc(env(safe-area-inset-bottom, 0px) + 10px + var(--ctl-h, 0px)); }
+.in-odds.k-black { background: #3b3b3b; } .in-odds.k-red { background: #cc4a32; } .in-odds.k-yellow { background: #e6ab4a; color: #2a210b; } .in-odds.k-blue { background: #6491a8; }
 .call { max-width: min(620px, calc(100% - 32px)); box-sizing: border-box; padding: 8px 16px 9px; font: 500 1rem/1.35 var(--read, var(--body)); text-align: center; }
 .call b { font-weight: 700; color: #2b3f33; }
 .call b.mine { color: #8d6b2a; }
 @media (max-width: 700px) {
-  .pd-name b { font-size: 1.15rem; } .call { font-size: .88rem; padding: 6px 12px 7px; }
+  .call { font-size: .88rem; padding: 6px 12px 7px; }
+  .intro { top: calc(env(safe-area-inset-top, 0px) + 66px); width: calc(100% - 20px); }
+  .in-head { padding: 10px 12px 8px; } .in-t { font-size: 1.3rem; } .in-f { font-size: .74rem; }
+  .in-list { padding: 6px 8px 8px; } .in-list li { grid-template-columns: 24px 22px minmax(0, 1fr) auto; gap: 6px; padding: 3px 4px; }
+  .in-list img { width: 22px; height: 27px; } .in-n b { font-size: .95rem; }
   .in-game .plate { padding: 6px 12px 7px; gap: 10px; } .in-game .plate h1 { font-size: 1.12rem; } .in-game .plate .togo strong { font-size: 1.05rem; }
   .rc { padding: 10px 14px 12px; } .rc-t { font-size: 1.5rem; } .rc-f { font-size: .8rem; }
   .rr { left: 12px; right: 12px; width: auto; top: calc(env(safe-area-inset-top, 0px) + 60px); padding: 12px 14px; }
@@ -285,8 +301,8 @@ button:focus-visible { outline: 2px solid var(--cream-edge); outline-offset: 2px
 
 <!-- in the game: the racecard before the off, and the result after the line -->
 <div class="rc gone" id="rc" hidden><div class="rc-k" id="rcK"></div><div class="rc-t" id="rcT"></div><div class="rc-f" id="rcF"></div><div id="rcMeBox"></div></div>
-<div class="parade gone" id="parade" aria-live="polite"><div class="pd-top"><span class="pd-k" id="pdK">The runners</span><button type="button" class="pd-skip" id="pdSkip">Skip</button></div>
-  <div class="pd-row" id="pdRow"><span class="pd-no" id="pdNo"></span><img id="pdSilk" alt=""><span class="pd-name"><b id="pdName"></b><small id="pdSub"></small></span><span class="pd-odds" id="pdOdds"></span></div></div>
+<div class="intro gone" id="intro"><div class="in-card"><div class="in-head"><div><div class="in-k" id="inK"></div><div class="in-t" id="inT"></div><div class="in-f" id="inF"></div></div>
+  <button type="button" class="in-go" id="inGo">To the start ›<i id="inBar"></i></button></div><ol class="in-list" id="inList"></ol></div></div>
 <div class="call gone" id="call" aria-live="polite"></div>
 <div class="rr gone" id="rr" hidden><div class="rr-k" id="rrK"></div><div class="rr-t" id="rrT"></div><ol id="rrList"></ol><div class="rr-me" id="rrMe"></div>
   <div class="rr-btns"><button type="button" id="rrReplay">Watch the replay</button><button type="button" id="rrBack">Back to the racecard</button><button type="button" class="go" id="rrNext" hidden>Next race</button></div></div>
@@ -486,15 +502,21 @@ renderer.toneMapping = THREE.AgXToneMapping;
 // they fold into one 3x3 matrix and an offset, applied here in every shader just after AgX (the same numbers, in the
 // same sRGB values the browser used) instead of in an extra full-screen pass by the browser every frame. Switched
 // with the tone mapping (AgX alone, or AgX + grade); the haze colour is graded to match, as the filter graded it.
+// The fresh light (owner, 7 Nov): the grade, the sun's colour and the sky's horizon. Checking aids: ?grade=, ?suncol=r,g,b, ?skyh=r,g,b
+const numList = (k, n) => { const v = (params.get(k) || "").split(",").filter(Boolean).map(Number); return v.length === n && v.every(Number.isFinite) ? v : null; };
+const FRESH = { grade: [1.02, 0.07, -5, 1.04, 0.95], sun: numList("suncol", 3) || [1.0, 0.9, 0.8], horizon: numList("skyh", 3) || [0.95, 0.91, 0.86] };
 const GRADE = (() => {
   const mul = (A, B) => A.map((r) => [0, 1, 2].map((j) => r[0] * B[0][j] + r[1] * B[1][j] + r[2] * B[2][j]));
-  const s = 1.15, sat = [[0.213 + 0.787 * s, 0.715 - 0.715 * s, 0.072 - 0.072 * s], [0.213 - 0.213 * s, 0.715 + 0.285 * s, 0.072 - 0.072 * s], [0.213 - 0.213 * s, 0.715 - 0.715 * s, 0.072 + 0.928 * s]];
-  const a = 1 - 0.25, sep = [[0.393 + 0.607 * a, 0.769 - 0.769 * a, 0.189 - 0.189 * a], [0.349 - 0.349 * a, 0.686 + 0.314 * a, 0.168 - 0.168 * a], [0.272 - 0.272 * a, 0.534 - 0.534 * a, 0.131 + 0.869 * a]];
-  const th = (-12 * Math.PI) / 180, c = Math.cos(th), n = Math.sin(th);
+  // owner, 7 Nov: lighter and fresher, between the storybook and the "model maker" look: not over-saturated, not
+  // over-yellow. Was saturate 1.15, sepia .25, hue -12, brightness .96, contrast .935. (?grade=s,sepia,hue,b,c to try others)
+  const G = ((v) => (v.length === 5 && v.every(Number.isFinite) ? v : null))((params.get("grade") || "").split(",").filter(Boolean).map(Number)) || FRESH.grade;
+  const s = G[0], sat = [[0.213 + 0.787 * s, 0.715 - 0.715 * s, 0.072 - 0.072 * s], [0.213 - 0.213 * s, 0.715 + 0.285 * s, 0.072 - 0.072 * s], [0.213 - 0.213 * s, 0.715 - 0.715 * s, 0.072 + 0.928 * s]];
+  const a = 1 - G[1], sep = [[0.393 + 0.607 * a, 0.769 - 0.769 * a, 0.189 - 0.189 * a], [0.349 - 0.349 * a, 0.686 + 0.314 * a, 0.168 - 0.168 * a], [0.272 - 0.272 * a, 0.534 - 0.534 * a, 0.131 + 0.869 * a]];
+  const th = (G[2] * Math.PI) / 180, c = Math.cos(th), n = Math.sin(th);
   const hue = [[0.213 + c * 0.787 - n * 0.213, 0.715 - c * 0.715 - n * 0.715, 0.072 - c * 0.072 + n * 0.928],
                [0.213 - c * 0.213 + n * 0.143, 0.715 + c * 0.285 + n * 0.140, 0.072 - c * 0.072 - n * 0.283],
                [0.213 - c * 0.213 - n * 0.787, 0.715 - c * 0.715 + n * 0.715, 0.072 + c * 0.928 + n * 0.072]];
-  const br = 0.96, ct = 0.935;
+  const br = G[3], ct = G[4];
   const M = mul(hue, mul(sep, sat)).map((r) => r.map((v) => v * br * ct)), B = 0.5 - 0.5 * ct;
   const f = (v) => v.toFixed(6);
   // The custom tone mapping is AgX itself, and flags the shader; the colour-space step just after it (which turns
@@ -535,7 +557,7 @@ THREE.ShaderChunk.fog_fragment = `#ifdef USE_FOG
   const mat = new THREE.ShaderMaterial({
     side: THREE.BackSide, depthWrite: false, fog: false,
     stencilWrite: true, stencilRef: 0, stencilFunc: THREE.EqualStencilFunc, stencilZPass: THREE.KeepStencilOp,   // never over the ground
-    uniforms: { c0: { value: lin(1.0, 0.86, 0.74) }, c1: { value: lin(0.93, 0.87, 0.85) }, c2: { value: lin(0.56, 0.7, 0.9) }, c3: { value: lin(0.56, 0.7, 0.9) } },
+    uniforms: { c0: { value: lin(...FRESH.horizon) }, c1: { value: lin(0.93, 0.87, 0.85) }, c2: { value: lin(0.56, 0.7, 0.9) }, c3: { value: lin(0.56, 0.7, 0.9) } },
     vertexShader: "varying vec3 vP; void main(){ vP = normalize(position); gl_Position = projectionMatrix * modelViewMatrix * vec4(position,1.0); }",
     fragmentShader: `uniform vec3 c0, c1, c2, c3; varying vec3 vP;
       void main(){
@@ -581,7 +603,7 @@ THREE.ShaderChunk.fog_fragment = `#ifdef USE_FOG
 // Static scenery has this light baked in by Blender; horses, jockeys, crowd and rails get it live.
 const sky = new THREE.HemisphereLight(new THREE.Color("#a9b8d0"), new THREE.Color("#a29680"), 2.2);
 scene.add(sky);
-const sun = new THREE.DirectionalLight(new THREE.Color().setRGB(1.0, 0.8, 0.62, THREE.LinearSRGBColorSpace), 4.6);
+const sun = new THREE.DirectionalLight(new THREE.Color().setRGB(...FRESH.sun, THREE.LinearSRGBColorSpace), 4.6);   // was 1, .8, .62 (owner, 7 Nov: fresher)
 sun.castShadow = true;
 sun.shadow.mapSize.set(QUALITY[qLevel].shadow, QUALITY[qLevel].shadow);
 sun.shadow.radius = 4;
@@ -1123,7 +1145,9 @@ function instanceTrees(gltf, list) {
   const groups = new Map();
   for (const t of list) {
     const near = isNear(t.x, t.z);
-    const parts = [near ? "_crown" : "_crown_far"].concat(near || !t.belt ? ["_trunk"] : []);
+    // belt trees also get an understorey: their light crown squashed low under the real one, so the belts read as
+    // solid woodland down to the hedge instead of crowns floating over a strip of sky (owner, 7 Nov)
+    const parts = [near ? "_crown" : "_crown_far"].concat(near || !t.belt ? ["_trunk"] : []).concat(t.belt ? ["_under"] : []);
     for (const part of parts) {
       const key = t.tree + part;
       if (!groups.has(key)) groups.set(key, []);
@@ -1132,12 +1156,18 @@ function instanceTrees(gltf, list) {
   }
   const m4 = new THREE.Matrix4(), q = new THREE.Quaternion(), sc = new THREE.Vector3(), p = new THREE.Vector3(), up = new THREE.Vector3(0, 1, 0);
   for (const [key, ts] of groups) {
-    const node = gltf.scene.getObjectByName(key) || gltf.scene.getObjectByName(key.replace("_far", ""));
+    const under = key.endsWith("_under"), base = under ? key.replace("_under", "_crown_far") : key;
+    const node = gltf.scene.getObjectByName(base) || gltf.scene.getObjectByName(base.replace("_far", ""));
     if (!node) continue;
     for (const mesh of meshesOf(node)) {
       // a look may swap the tree's shape and material, and give each tree its own colour (looks.js)
-      const inst = new THREE.InstancedMesh(LOOKS.treeGeometry(key, mesh.geometry) || mesh.geometry, LOOKS.treeMaterial(treeMat, key), ts.length);
-      ts.forEach((t, i) => { q.setFromAxisAngle(up, (t.turn || 0) * Math.PI / 180); sc.set(t.s, t.s * (t.sy || 1), t.s); inst.setMatrixAt(i, m4.compose(p.set(t.x, 0, t.z), q, sc)); const c = LOOKS.treeColour(key, t, i) || clayLeaf(key, t, i); if (c) inst.setColorAt(i, c); });
+      const inst = new THREE.InstancedMesh(LOOKS.treeGeometry(base, mesh.geometry) || mesh.geometry, LOOKS.treeMaterial(treeMat, base), ts.length);
+      ts.forEach((t, i) => {
+        q.setFromAxisAngle(up, ((t.turn || 0) + (under ? 70 : 0)) * Math.PI / 180);
+        if (under) sc.set(t.s * 1.15, t.s * 0.55, t.s * 1.15); else sc.set(t.s, t.s * (t.sy || 1), t.s);
+        inst.setMatrixAt(i, m4.compose(p.set(t.x, under ? -0.6 : 0, t.z), q, sc));
+        const c = under ? _leafCol.setScalar(0.82) : LOOKS.treeColour(key, t, i) || clayLeaf(key, t, i); if (c) inst.setColorAt(i, c);
+      });
       inst.computeBoundingSphere();
       scene.add(inst);
       LAYERS.trees.push(inst);
@@ -1509,6 +1539,20 @@ const ENGINE_SETTINGS = await fetch("assets/engine/settings.json").then((r) => r
 const RUNNERS = THREE.MathUtils.clamp(Number(params.get("runners") || 12), 1, STALLS.maxRunners);
 const SEED = /^\d+$/.test(params.get("seed") || "") ? params.get("seed") : "3";
 const CARD = GP ? GP.runners : randomField(RUNNERS, SEED, ENGINE_SETTINGS);
+// The view's own races (outside the game) get names and a betting market too (owner, 7 Nov: the runners' names "should
+// be given to them"): names drawn from the seed, prices from the ratings (a soft favourite, an over-round of 1.2).
+const ODDS = [];
+if (!GP) {
+  const A = ["Desert", "Royal", "Silver", "Golden", "Midnight", "Highland", "Frost", "Lucky", "Crimson", "Summer", "Northern", "Gallant", "Velvet", "Copper", "Morning", "Ocean", "Winter", "Evening", "Hidden", "Wild", "Quiet", "Proud", "Amber", "Scarlet"];
+  const Bn = ["Crown", "Banner", "Reverie", "Quarry", "Meadow", "Storm", "Legend", "Arrow", "Spirit", "Echo", "Harbour", "Lantern", "Comet", "Dancer", "Monarch", "Rose", "Falcon", "Sovereign", "Melody", "Voyage", "Charm", "Ember", "Willow", "Tide"];
+  let h = [...SEED].reduce((a, ch) => (a * 31 + ch.charCodeAt(0)) >>> 0, 7);
+  const rnd = () => ((h = (h * 1664525 + 1013904223) >>> 0) / 4294967296);
+  const used = new Set();
+  CARD.forEach((c) => { let nm; do nm = A[Math.floor(rnd() * A.length)] + " " + Bn[Math.floor(rnd() * Bn.length)]; while (used.has(nm)); used.add(nm); c.name = nm; });
+  const LADDER = [["Evens", 1], ["11/10", 1.1], ["5/4", 1.25], ["11/8", 1.375], ["6/4", 1.5], ["7/4", 1.75], ["2/1", 2], ["9/4", 2.25], ["5/2", 2.5], ["11/4", 2.75], ["3/1", 3], ["7/2", 3.5], ["4/1", 4], ["9/2", 4.5], ["5/1", 5], ["11/2", 5.5], ["6/1", 6], ["13/2", 6.5], ["7/1", 7], ["15/2", 7.5], ["8/1", 8], ["9/1", 9], ["10/1", 10], ["12/1", 12], ["14/1", 14], ["16/1", 16], ["20/1", 20], ["25/1", 25], ["33/1", 33], ["40/1", 40], ["50/1", 50], ["66/1", 66]];
+  const w = CARD.map((c) => Math.exp((c.rating || 80) / 6)), sum = w.reduce((a, b) => a + b, 0);
+  w.forEach((x, i) => { const p = (x / sum) * 1.2, d = 1 / p - 1; ODDS[i] = LADDER.reduce((a, b) => (Math.abs(Math.log(b[1] / d)) < Math.abs(Math.log(a[1] / d)) ? b : a))[0]; });
+}
 const { timeline, result: RESULT } = runRace(
   { course: RACE.course, distance: RACE.distance, start: RACE.start, going: GOING, seed: SEED }, CARD,
   { course: COURSE, stalls: STALLS, standards: STANDARDS, settings: ENGINE_SETTINGS });
@@ -1562,9 +1606,8 @@ function setGrade(on) {
 const camera = new THREE.PerspectiveCamera(30, 1, 0.5, 4000);   // near 0.5 (was 0.2): 2.5 times the depth precision far off
 const focus = new THREE.Vector3();
 const RCAMS = VIEW.raceCameras, SET = VIEW.setPieces;
-// The runners are announced one by one during the prelude (setPieces.prelude: intro, perRunner, outro seconds), so it
-// lasts as long as the field needs.
-if (SET.prelude.perRunner) SET.prelude.seconds = SET.prelude.intro + SET.prelude.perRunner * RUNNERS_N() + SET.prelude.outro;
+// The runners' card shows for the prelude: long enough to read (setPieces.prelude.list: seconds, plus so many a runner).
+if (SET.prelude.list) SET.prelude.seconds = SET.prelude.list[0] + SET.prelude.list[1] * RUNNERS_N();
 function RUNNERS_N() { return GP ? GP.runners.length : THREE.MathUtils.clamp(Number(params.get("runners") || 12), 1, STALLS.maxRunners); }
 // The show runs in phases: the grandstand set piece before the off, the horses standing in the stalls (the
 // view's own pre-roll: courses/ascot-view.json -> startSequence), the race from the off (cut by the TV director, or
@@ -1664,7 +1707,7 @@ const lerp3 = (a, b, k) => new THREE.Vector3(...a).lerp(new THREE.Vector3(...b),
 // Zoom ranges in the camera plan are set for a landscape screen. On a narrower one (a phone held upright) the widest
 // zoom opens up so the same width of course still fits across the screen (owner, 7 Nov: on a phone the finish camera
 // couldn't widen enough to keep the winner in shot as they crossed the line).
-const REF_ASPECT = 1.6;
+const REF_ASPECT = 1.25;
 function rangeFor(r) {
   if (camera.aspect >= REF_ASPECT) return r;
   const k = REF_ASPECT / camera.aspect, wide = 2 * THREE.MathUtils.radToDeg(Math.atan(Math.tan(THREE.MathUtils.degToRad(r[1]) / 2) * k));
@@ -1699,7 +1742,7 @@ function cameraTarget(now) {
   if (id === "grandstand" && leadU >= DIST) {
     const [lx, lz] = toWorld(DIST, 0), line = new THREE.Vector3(lx, 1.3, lz);
     const near = [];
-    for (const h of now) if (h[0] > DIST - 30 && h[0] < DIST + 4) { const [x, z] = toWorld(h[0], h[1]); near.push(new THREE.Vector3(x, 1.3, z)); }
+    for (const h of now) if (h[0] > DIST - (camera.aspect < 1 ? 10 : 30) && h[0] < DIST + 4) { const [x, z] = toWorld(h[0], h[1]); near.push(new THREE.Vector3(x, 1.3, z)); }
     const eye = new THREE.Vector3(...c.at), pts = near.length ? near.concat([line]) : [line];
     return { eye, look: line, fov: near.length ? fitFov(eye, line, pts, R) : camera.fov, id, anchor: line, guard: pts, range: R };
   }
@@ -1707,7 +1750,9 @@ function cameraTarget(now) {
   // (track, drone) keep the horses within a stretch of the leader that suits the screen's shape, and always the first
   // three (owner, 7 Nov: a strung-out field made them zoom out far more than needed on the bends, worst on a phone).
   const moving = c.kind === "track" || c.kind === "drone";
-  const span = moving ? THREE.MathUtils.clamp(4 + 9 * camera.aspect, 12, 26) : Infinity;
+  // (on a phone held upright the grandstand camera keeps just the leaders, the first three and any within 6 m: the
+  // whole field across a narrow screen is a picture of crowd and sky with the horses as specks)
+  const span = moving ? THREE.MathUtils.clamp(4 + 9 * camera.aspect, 12, 26) : camera.aspect < 1 ? 6 : Infinity;
   const pts = c.frame === "leaders" ? field.filter((p, i) => i < 2 || leadU - p.u <= (c.window || 12))
     : field.filter((p, i) => i < 3 || leadU - p.u <= span);
   const lead = field[0];
@@ -1753,7 +1798,7 @@ function cameraTarget(now) {
   if (c.closeIn) {
     const [from, to, win] = c.closeIn, k = 1 - THREE.MathUtils.smoothstep(DIST - leadU, to, from);
     if (k > 0) {
-      const grp = field.filter((p, i) => i < 2 || leadU - p.u <= win);
+      const grp = field.filter((p, i) => i < 2 || leadU - p.u <= Math.min(win, span));
       const gc = new THREE.Box3().setFromPoints(grp).getCenter(new THREE.Vector3()).addScaledVector(run, c.leadRoom || 0);
       look = centre.clone().lerp(gc, k);
       fov = THREE.MathUtils.lerp(fitFov(eye, look, pts, R), fitFov(eye, look, grp, R), k);
@@ -2355,40 +2400,42 @@ const GAMEUI = (() => {
   $("rrBack").onclick = () => toGame({ type: "back" });
   $("rrNext").onclick = () => toGame({ type: "next" });
   return { update(phase, t) {
-    rc.classList.toggle("gone", !((phase === "prelude" && !PARADE.on()) || phase === "stalls"));
+    rc.classList.toggle("gone", true);              // the runners' card before the off has the race's details now
     if (phase === "replay") dismissed = true;
     rr.classList.toggle("gone", !((phase === "race" && t > T_FINISH + 1.6 && !dismissed) || phase === "postlude"));
   } };
 })();
 
-// ---------- The runners, announced before the off (owner, 7 Nov) ----------
-// While the prelude's drone glides along the stand, each runner in turn: number, colours, name, a line about it and
-// (in the game) its price on its race-day colour card. Skip jumps to the racecard.
-const PARADE = (() => {
-  const P = SET.prelude, $ = (id) => document.getElementById(id), box = $("parade"), row = $("pdRow");
+// ---------- The runners before the off (owner, 7 Nov) ----------
+// One card of the whole field over a still aerial of the course (the prelude's camera): stall, colours, name, price, and
+// your runner picked out; "To the start" goes now, otherwise it goes by itself once the prelude's time is up.
+const INTRO = (() => {
+  const $ = (id) => document.getElementById(id), box = $("intro");
   const esc = (v) => String(v == null ? "" : v).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
-  if (!P.perRunner) return { on: () => false, update() {} };
-  const STYLE = { front: "Likes to lead", prominent: "Races prominently", midfield: "Settles in midfield", holdup: "Comes from off the pace" };
-  const n = CARD.length, end = P.intro + P.perRunner * n;
-  let shown = -1;
-  $("pdSkip").onclick = () => { if (state.phase === "prelude") state.pt = Math.max(state.pt, end); };
-  const on = () => state.phase === "prelude" && state.pt < end;
-  return { on, update() {
-    box.classList.toggle("gone", !on());
-    if (!on()) { shown = -1; return; }
-    const k = THREE.MathUtils.clamp(Math.floor((state.pt - P.intro) / P.perRunner), 0, n - 1);
-    $("pdK").textContent = `The runners · ${k + 1} of ${n}`;
-    if (k === shown) return;
-    shown = k;
-    const R = GP ? GP.runners[k] : null, c = CARD[k];
-    $("pdNo").textContent = k + 1;
-    $("pdSilk").src = R && R.silk2d ? R.silk2d : `assets/silks-icons/${silkFor(k).id}.png`;
-    $("pdName").textContent = c.name || `No. ${k + 1}`;
-    $("pdSub").textContent = [R && R.mine ? "Your runner" : "", `Stall ${k + 1}`, STYLE[c.style] || "", R ? "" : silkFor(k).name].filter(Boolean).join(" · ");
-    $("pdOdds").textContent = R && R.odds ? R.odds : "";
-    $("pdOdds").className = "pd-odds" + (R && R.card ? " k-" + R.card : "");
-    row.classList.toggle("mine", !!(R && R.mine));
-    row.classList.remove("in"); void row.offsetWidth; row.classList.add("in");
+  const STYLE = { front: "Likes to lead", prominent: "Races prominently", midfield: "Settles in midfield", holdup: "Held up" };
+  const C = (GP && GP.card) || {}, n = CARD.length;
+  $("inK").textContent = GP ? (GP.kicker || C.meeting || COURSE.name) : `${COURSE.name} · the runners`;
+  $("inT").textContent = GP ? (GP.title || RACE.label) : RACE.label;
+  $("inF").innerHTML = [C.dist || "", C.conditions ? esc(C.conditions) : "", `Going <b>${GOING}</b>`, `<b>${n}</b> runners`, C.prizes ? `1st <b>£${Math.round(C.prizes[0]).toLocaleString("en-GB")}</b>` : ""].filter(Boolean).join(" · ");
+  $("inList").innerHTML = CARD.map((c, i) => {
+    const R = GP ? GP.runners[i] : null, odds = R ? R.odds : ODDS[i], mine = !!(R && R.mine);
+    return `<li class="${mine ? "mine" : ""}"><span class="in-no">${i + 1}</span><img alt="" src="${R && R.silk2d ? R.silk2d : `assets/silks-icons/${silkFor(i).id}.png`}">`
+      + `<span class="in-n"><b>${esc(c.name || "No. " + (i + 1))}</b><small>${[mine ? "Your runner" : "", `Stall ${i + 1}`, STYLE[c.style] || ""].filter(Boolean).join(" · ")}</small></span>`
+      + `${odds ? `<span class="in-odds${R && R.card ? " k-" + R.card : ""}">${odds}</span>` : "<span></span>"}</li>`;
+  }).join("");
+  $("inGo").onclick = () => { if (state.phase === "prelude") state.pt = SET.prelude.seconds; };
+  // one column on a phone held upright; two (three on a short, wide screen or a big field on a big one) otherwise
+  const fit = () => {
+    const short = innerHeight < 520;
+    box.style.setProperty("--cols", innerWidth >= 560 && n > 6 ? ((short && innerWidth >= 1000) || (innerWidth >= 1100 && n > 18) ? 3 : 2) : 1);
+    box.classList.toggle("short", short);
+  };
+  addEventListener("resize", fit); fit();
+  return { update() {
+    const on = state.phase === "prelude";
+    box.classList.toggle("gone", !on);
+    document.body.classList.toggle("pre", on);
+    if (on) $("inBar").style.width = Math.min(100, (state.pt / SET.prelude.seconds) * 100).toFixed(1) + "%";
   } };
 })();
 
@@ -2573,7 +2620,7 @@ function frame() {
   if (toRunLabel.hidden !== runHidden) toRunLabel.hidden = runHidden;
   DOCK.update(now, state.t, state.phase);
   GAMEUI.update(state.phase, state.t);
-  PARADE.update(); CALLER.update(state.phase, state.t);
+  INTRO.update(); CALLER.update(state.phase, state.t);
   diag.sec.panels += performance.now() - tPanels;
 
   const every = QUALITY[qLevel].shadowEvery;

@@ -222,3 +222,23 @@ way). Published as version 7 of the live game.
 - **Style review page** (`race-view/styles.html`, live at `/styles.html`): every look, stand and tree style side by
   side with pictures (`race-view/assets/styles/`), each opening the real race in that style, plus mix and match. The
   owner picks one of each; then the game is set to those and the others removed.
+
+### 7 Nov (later): the owner's choices and second round of notes
+
+**Branch `claude/playtest-fixes-2`**, merged into `main`.
+
+- **Chosen style:** today's leafy trees and today's stand, with a **fresher light** between the storybook grade and
+  the "model maker" look: the grade is now saturate 1.02, sepia .07, hue -5, brightness 1.04, contrast .95 (was 1.15,
+  .25, -12, .96, .935), the sun less orange, the sky's horizon less peach (`FRESH` in the race view; `?grade=`,
+  `?suncol=`, `?skyh=` try others). The style review page is no longer published (still in the repo).
+- **Smooth clay stand**: the baked light maps (stand, site pieces, finish) smoothed island by island and their gutters
+  filled (`tools/course/smooth_lightmaps.py`, untouched bakes in `race-view/assets/baked/raw/`): no grain, blotches,
+  brick-like banding or flicker.
+- **Trees**: the belts get an understorey (each belt tree's light crown squashed low under it), so no sky between the
+  hedge and the crowns.
+- **Home bend**: the carnival path no longer runs across the turf in the baked ground (`tools/course/fix_ground_path.py`).
+- **Finish camera on a phone held upright**: zoom ranges open up on narrow screens and the grandstand camera keeps just
+  the leaders, so the winner is seen crossing the line.
+- **Before the off**: one card of the whole field (stall, colours, name, price; your runner picked out) over a still
+  aerial from behind the carnival across the track to the stand, with "To the start" (it goes by itself after 7 s plus
+  0.6 s a runner). The race view's own races get names and prices too.

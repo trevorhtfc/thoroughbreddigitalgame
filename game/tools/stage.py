@@ -27,14 +27,13 @@ for p in sorted((game / "assets" / "board-model").glob("*")): add(p, p.relative_
 # the 3D race view and what it loads in the game
 add(view / "final-furlong.html", "final-furlong.html")
 for f in ["horse-v2.js", "looks.js", "stand-styles.js"]: add(view / f, f)
-# the style review page (owner, 7 Nov): every look, stand and tree style side by side, each opening the race in it
-add(view / "styles.html", "styles.html")
-for p in sorted((view / "assets" / "styles").glob("*.jpg")): add(p, p.relative_to(view))
+# (the style review page, race-view/styles.html, was live for the owner's choice on 7 Nov: today's trees and stand, a
+# fresher light. It stays in the repo but is no longer published.)
 A = view / "assets"
 for f in ["silks-catalogue.json", "tint-mask.png"]: add(A / f, "assets/" + f)
 for d in ["engine", "model", "trees", "baked"]:
     for p in sorted((A / d).glob("*")):
-        if p.is_file(): add(p, p.relative_to(view))      # the leafy trees, and the clay ones for the style review (?trees=clay)
+        if p.is_file() and not p.name.startswith("trees_clay"): add(p, p.relative_to(view))   # the leafy trees only (owner's choice, 7 Nov)
 for f in ["ascot.json", "ascot-view.json", "ascot-stalls.json", "ascot-standards.json", "ascot-planting.json", "ascot-site-dressing.json",
           "ad-boards.png", "lanes.png", "course-props.json", "course-props-geometry.txt", "planting_belts.json", "planting_belts-geometry.txt",
           "starting_stalls.json", "starting_stalls-geometry.txt", "starting_stalls_kit.json", "turf_detail.png"]:

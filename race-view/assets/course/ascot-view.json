@@ -460,34 +460,35 @@
    "seconds": 9,
    "eye": [
     [
-     -38,
-     4.2,
-     4
+     60,
+     30,
+     -75
     ],
     [
-     42,
-     5.2,
-     7
+     60,
+     30,
+     -75
     ]
    ],
    "at": [
     [
-     -30,
-     8,
-     60
+     40,
+     4,
+     45
     ],
     [
-     34,
-     9,
-     60
+     40,
+     4,
+     45
     ]
    ],
-   "fov": 40,
+   "fov": 50,
    "grab": "grab-11.png",
-   "intro": 2.0,
-   "perRunner": 1.7,
-   "outro": 3.0,
-   "note": "Owner, 7 Nov: no pan down the home straight; a low drone gliding along in front of the stand, looking across at it (low enough that nothing beyond the stand shows), while each runner is announced with its number, colours, name and price (intro, then perRunner seconds each, then outro with the racecard). 'seconds' is worked out from the field."
+   "note": "Owner, 7 Nov: one card of every runner (stall, colours, name, price) over a still aerial: high over the infield behind the carnival, looking across it and the track to the stand. It shows for list[0] seconds plus list[1] a runner ('To the start' goes now).",
+   "list": [
+    7,
+    0.6
+   ]
   },
   "postlude": {
    "label": "After the race",
