@@ -188,6 +188,10 @@ DRESS["crowds"] += [      # owner, 3 Nov: "it wants to feel like a crowd, not a 
     {"note": "far rail in front of the carnival's seating stands, packed", "x": [110, 470], "z": [-5.6, -1.4], "density": 1.6, "group": "carn"},
     {"note": "far rail on east of the seating stands", "x": [470, 615], "z": [-5.6, -1.4], "density": 1.4, "group": "carn"},
     {"note": "far rail by the terraces before the post", "x": [-100, -20], "z": [-4.8, -1.6], "density": 0.8, "group": "carn"},
+    # owner, 7 Nov: "the crowd thins out too much on the festival side near the finish line": the far rail from the
+    # terraces to the seating stands, filled like the rest of the far rail, and a looser crowd behind it
+    {"note": "far rail at the finish, between the terraces and the seating stands", "x": [-20, 110], "z": [-5.2, -1.4], "density": 1.4, "group": "carn"},
+    {"note": "behind the far rail crowd at the finish", "x": [-20, 110], "z": [-13, -5.2], "density": 0.3, "group": "carn"},
     {"note": "round the terraces before the post", "x": [-100, -20], "z": [-20, -5], "density": 0.2, "group": "carn"},
     {"note": "thronging between the seating stands and the counters", "x": [110, 615], "z": [-21.0, -6.5], "density": 0.32, "group": "carn"},
     {"note": "along the carnival path", "x": [-40, 620], "z": [-26.5, -21.5], "density": 0.45, "group": "carn"},
