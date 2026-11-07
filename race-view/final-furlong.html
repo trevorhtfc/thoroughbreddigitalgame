@@ -213,7 +213,33 @@ button:focus-visible { outline: 2px solid var(--cream-edge); outline-offset: 2px
 .rr-btns { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 12px; }
 .rr-btns button { flex: 1 1 auto; padding: 9px 10px; font-size: .86rem; font-weight: 600; }
 .rr-btns button.go { background: var(--green); color: #f6f1e6; border-color: var(--green); }
+/* The runners, before the off (owner, 7 Nov): the drone glides along the stand while each runner is announced with its
+   number, colours and price; then the racecard. And the commentary during the race, a line at a time. */
+.parade, .call { position: fixed; z-index: 6; left: 50%; transform: translateX(-50%); color: var(--green-ink); background: var(--cream); border-radius: 3px;
+  bottom: calc(env(safe-area-inset-bottom, 0px) + 26px + var(--dock-h) + var(--ctl-h, 0px));
+  box-shadow: inset 0 0 0 1px rgba(183,144,66,.6), 0 0 0 3px var(--cream), 0 0 0 4px rgba(183,144,66,.75), 0 14px 36px rgba(15,25,18,.45); transition: opacity .45s, transform .45s; }
+.parade { width: min(460px, calc(100% - 32px)); padding: 10px 14px 12px 16px; box-sizing: border-box; }
+.parade.gone, .call.gone { opacity: 0; transform: translate(-50%, 10px); pointer-events: none; }
+.pd-top { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; }
+.pd-k { font: 600 .66rem var(--body); letter-spacing: .2em; text-transform: uppercase; color: #8d6b2a; }
+.pd-skip { padding: 2px 9px; font-size: .74rem; }
+.pd-row { display: grid; grid-template-columns: auto 34px 1fr auto; align-items: center; gap: 10px; margin-top: 6px; }
+.pd-row.in { animation: pdIn .45s ease-out; }
+@keyframes pdIn { from { opacity: 0; transform: translateX(14px); } to { opacity: 1; transform: none; } }
+.pd-no { min-width: 30px; height: 30px; display: grid; place-items: center; border-radius: 3px; background: var(--green); color: #f6f1e6; font: 700 1rem var(--body); }
+.pd-row img { width: 34px; height: 42px; object-fit: contain; }
+.pd-name { min-width: 0; }
+.pd-name b { display: block; font-family: var(--display); font-weight: 700; font-size: 1.45rem; line-height: 1.05; color: #2b3f33; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pd-name small { display: block; color: var(--ink-soft); font-size: .78rem; margin-top: 2px; }
+.pd-row.mine .pd-name b { color: #8d6b2a; }
+.pd-odds { font: 700 1.05rem var(--body); padding: 4px 10px; border-radius: 3px; color: #fff; background: #6b6a60; }
+.pd-odds:empty { display: none; }
+.pd-odds.k-black { background: #3b3b3b; } .pd-odds.k-red { background: #cc4a32; } .pd-odds.k-yellow { background: #e6ab4a; color: #2a210b; } .pd-odds.k-blue { background: #6491a8; }
+.call { max-width: min(620px, calc(100% - 32px)); box-sizing: border-box; padding: 8px 16px 9px; font: 500 1rem/1.35 var(--read, var(--body)); text-align: center; }
+.call b { font-weight: 700; color: #2b3f33; }
+.call b.mine { color: #8d6b2a; }
 @media (max-width: 700px) {
+  .pd-name b { font-size: 1.15rem; } .call { font-size: .88rem; padding: 6px 12px 7px; }
   .in-game .plate { padding: 6px 12px 7px; gap: 10px; } .in-game .plate h1 { font-size: 1.12rem; } .in-game .plate .togo strong { font-size: 1.05rem; }
   .rc { padding: 10px 14px 12px; } .rc-t { font-size: 1.5rem; } .rc-f { font-size: .8rem; }
   .rr { left: 12px; right: 12px; width: auto; top: calc(env(safe-area-inset-top, 0px) + 60px); padding: 12px 14px; }
@@ -259,6 +285,9 @@ button:focus-visible { outline: 2px solid var(--cream-edge); outline-offset: 2px
 
 <!-- in the game: the racecard before the off, and the result after the line -->
 <div class="rc gone" id="rc" hidden><div class="rc-k" id="rcK"></div><div class="rc-t" id="rcT"></div><div class="rc-f" id="rcF"></div><div id="rcMeBox"></div></div>
+<div class="parade gone" id="parade" aria-live="polite"><div class="pd-top"><span class="pd-k" id="pdK">The runners</span><button type="button" class="pd-skip" id="pdSkip">Skip</button></div>
+  <div class="pd-row" id="pdRow"><span class="pd-no" id="pdNo"></span><img id="pdSilk" alt=""><span class="pd-name"><b id="pdName"></b><small id="pdSub"></small></span><span class="pd-odds" id="pdOdds"></span></div></div>
+<div class="call gone" id="call" aria-live="polite"></div>
 <div class="rr gone" id="rr" hidden><div class="rr-k" id="rrK"></div><div class="rr-t" id="rrT"></div><ol id="rrList"></ol><div class="rr-me" id="rrMe"></div>
   <div class="rr-btns"><button type="button" id="rrReplay">Watch the replay</button><button type="button" id="rrBack">Back to the racecard</button><button type="button" class="go" id="rrNext" hidden>Next race</button></div></div>
 <script>
@@ -1533,6 +1562,10 @@ function setGrade(on) {
 const camera = new THREE.PerspectiveCamera(30, 1, 0.5, 4000);   // near 0.5 (was 0.2): 2.5 times the depth precision far off
 const focus = new THREE.Vector3();
 const RCAMS = VIEW.raceCameras, SET = VIEW.setPieces;
+// The runners are announced one by one during the prelude (setPieces.prelude: intro, perRunner, outro seconds), so it
+// lasts as long as the field needs.
+if (SET.prelude.perRunner) SET.prelude.seconds = SET.prelude.intro + SET.prelude.perRunner * RUNNERS_N() + SET.prelude.outro;
+function RUNNERS_N() { return GP ? GP.runners.length : THREE.MathUtils.clamp(Number(params.get("runners") || 12), 1, STALLS.maxRunners); }
 // The show runs in phases: the grandstand set piece before the off, the horses standing in the stalls (the
 // view's own pre-roll: courses/ascot-view.json -> startSequence), the race from the off (cut by the TV director, or
 // one camera picked by hand), the finish again side-on in slow motion, and a set piece after it.
@@ -2311,9 +2344,119 @@ const GAMEUI = (() => {
   $("rrBack").onclick = () => toGame({ type: "back" });
   $("rrNext").onclick = () => toGame({ type: "next" });
   return { update(phase, t) {
-    rc.classList.toggle("gone", !(phase === "prelude" || phase === "stalls"));
+    rc.classList.toggle("gone", !((phase === "prelude" && !PARADE.on()) || phase === "stalls"));
     if (phase === "replay") dismissed = true;
     rr.classList.toggle("gone", !((phase === "race" && t > T_FINISH + 1.6 && !dismissed) || phase === "postlude"));
+  } };
+})();
+
+// ---------- The runners, announced before the off (owner, 7 Nov) ----------
+// While the prelude's drone glides along the stand, each runner in turn: number, colours, name, a line about it and
+// (in the game) its price on its race-day colour card. Skip jumps to the racecard.
+const PARADE = (() => {
+  const P = SET.prelude, $ = (id) => document.getElementById(id), box = $("parade"), row = $("pdRow");
+  const esc = (v) => String(v == null ? "" : v).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+  if (!P.perRunner) return { on: () => false, update() {} };
+  const STYLE = { front: "Likes to lead", prominent: "Races prominently", midfield: "Settles in midfield", holdup: "Comes from off the pace" };
+  const n = CARD.length, end = P.intro + P.perRunner * n;
+  let shown = -1;
+  $("pdSkip").onclick = () => { if (state.phase === "prelude") state.pt = Math.max(state.pt, end); };
+  const on = () => state.phase === "prelude" && state.pt < end;
+  return { on, update() {
+    box.classList.toggle("gone", !on());
+    if (!on()) { shown = -1; return; }
+    const k = THREE.MathUtils.clamp(Math.floor((state.pt - P.intro) / P.perRunner), 0, n - 1);
+    $("pdK").textContent = `The runners · ${k + 1} of ${n}`;
+    if (k === shown) return;
+    shown = k;
+    const R = GP ? GP.runners[k] : null, c = CARD[k];
+    $("pdNo").textContent = k + 1;
+    $("pdSilk").src = R && R.silk2d ? R.silk2d : `assets/silks-icons/${silkFor(k).id}.png`;
+    $("pdName").textContent = c.name || `No. ${k + 1}`;
+    $("pdSub").textContent = [R && R.mine ? "Your runner" : "", `Stall ${k + 1}`, STYLE[c.style] || "", R ? "" : silkFor(k).name].filter(Boolean).join(" · ");
+    $("pdOdds").textContent = R && R.odds ? R.odds : "";
+    $("pdOdds").className = "pd-odds" + (R && R.card ? " k-" + R.card : "");
+    row.classList.toggle("mine", !!(R && R.mine));
+    row.classList.remove("in"); void row.offsetWidth; row.classList.add("in");
+  } };
+})();
+
+// ---------- The commentary (owner, 7 Nov: "even if it's just text") ----------
+// Written once from the race the engine ran (its timeline and its events: who led, lead changes, who kicked, who was
+// short of room or weakening) and the course (passing the stand, the home turn, the furlongs), then shown a line at a
+// time as the race plays. Lines are kept apart so each can be read; the finish is always called.
+const CALLER = (() => {
+  const box = document.getElementById("call");
+  const esc = (v) => String(v == null ? "" : v).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+  const MINE = CARD.findIndex((h) => h.mine);
+  const name = (i) => `<b${i === MINE ? ' class="mine"' : ""}>${esc(CARD[i].name || "No. " + (i + 1))}</b>`;
+  const F = timeline.frames, dt = timeline.dt, LEN = 2.4, L = LOOP.length;
+  const frameAt = (t) => F[Math.min(F.length - 1, Math.max(0, Math.round(t / dt)))];
+  const order = (f) => f.map((h, i) => [h[0], i]).sort((a, b) => b[0] - a[0]);
+  const when = (u) => { for (let k = 0; k < F.length; k++) if (leaderAt(F[k]) >= u) return k * dt; return Infinity; };
+  const margin = (m) => { const l = m / LEN; if (l < 0.3) return "a head"; if (l < 0.6) return "a neck"; if (l < 0.9) return "half a length"; if (l < 1.4) return "a length";
+    if (l < 1.9) return "a length and a half"; return `${Math.round(l)} lengths`; };
+  const furl = (d) => { const f = Math.round(d / FURLONG); return f === 1 ? "a furlong" : `${f} furlongs`; };
+  const lines = [];                                       // { t, text, p: priority (higher wins a clash) }
+  const add = (t, text, p) => { if (t >= 0 && t <= T_FINISH + 0.1) lines.push({ t, text, p }); };
+  // the off
+  const missed = RESULT.events.filter((e) => e.kind === "missed the break").map((e) => e.runner);
+  add(0.2, missed.length ? `They're off! And ${missed.map(name).join(" and ")} ${missed.length > 1 ? "have" : "has"} missed the break.` : "They're off, and they've all got away well.", 9);
+  // the race's own events (a long race swaps the lead often: early on, only one change in every 20 seconds is called)
+  const pick = (arr, k) => arr[k % arr.length];
+  let lastChange = -99, nChange = 0;
+  for (const e of RESULT.events) {
+    const lead = order(frameAt(e.t))[0][1], toGo = DIST - leaderAt(frameAt(e.t));
+    if (e.kind === "led") add(e.t + 0.6, pick([`${name(e.runner)} goes on and makes the running.`, `${name(e.runner)} is quickly away and takes them along.`], e.runner), 6);
+    else if (e.kind === "lead change") {
+      const late = toGo < 800;
+      if (!late && e.t - lastChange < 20) continue;
+      lastChange = e.t;
+      add(e.t, pick([`${name(e.runner)} takes it up from ${name(e.from)}!`, `${name(e.runner)} goes past ${name(e.from)} into the lead.`, `Now it's ${name(e.runner)} in front.`, `${name(e.runner)} hits the front!`], nChange++), late ? 7 : 4);
+    }
+    else if (e.kind === "kicked") add(e.t, `${name(e.runner)} ${e.first ? "is the first to kick for home" : "kicks on"}!`, e.first ? 7 : 5);
+    else if (e.kind === "weakening" && e.place <= 5) add(e.t, `${name(e.runner)} is starting to weaken.`, 3);
+    else if (e.kind === "short of room" && e.lengths >= 1) add(e.t, `${name(e.runner)} is short of room${e.runner === lead ? "" : " in behind"}.`, e.runner === MINE ? 5 : 3);
+    else if (e.kind === "switched" && e.runner === MINE) add(e.t, `${name(e.runner)} is switched ${e.side === "out" ? "to the outside" : "to the inside"}.`, 3);
+  }
+  // the order, every so often: who leads, by how far, who's next, who's last
+  const every = DIST > 2400 ? 500 : DIST > 1500 ? 380 : 300;
+  let k = 0;
+  for (let u = every * 0.7; u < DIST - 420; u += every, k++) {
+    const t = when(u), f = frameAt(t), o = order(f), n = o.length, gap = o[0][0] - o[1][0];
+    let text = gap > 2 * LEN ? pick([`${name(o[0][1])} leads by ${margin(gap)}`, `${name(o[0][1])} is ${margin(gap)} clear`], k) : pick([`${name(o[0][1])} just leads ${name(o[1][1])}`, `${name(o[0][1])} and ${name(o[1][1])} disputing it`], k);
+    text += gap > 2 * LEN ? `, ${name(o[1][1])} second${n > 2 ? `, ${name(o[2][1])} third` : ""}.` : `${n > 2 ? `, with ${name(o[2][1])} close up` : ""}.`;
+    if (k % 2 === 1 && n > 5) text += ` ${name(o[n - 1][1])} brings up the rear.`;
+    if (MINE >= 0) { const pos = o.findIndex((q) => q[1] === MINE); if (pos > 2 && pos < n - 1 && k % 2 === 0) text += ` ${name(MINE)} is ${pos + 1}${pos + 1 === 2 ? "nd" : pos + 1 === 3 ? "rd" : "th"}.`; }
+    add(t, text, 2);
+  }
+  // the course: past the stand with a circuit to go, round the home turn, into the straight, the last two furlongs
+  if (RACE.course !== "straight") {
+    for (let d = L; d < DIST - 100; d += L) add(when(DIST - d), `Past the stands, and ${name(order(frameAt(when(DIST - d)))[0][1])} leads them out on to the final circuit.`, 8);
+    add(when(DIST - 820), `Round the home turn, ${name(order(frameAt(when(DIST - 820)))[0][1])} in front.`, 8);
+    add(when(DIST - 560), `Into the straight! ${furl(560)} to run.`, 8);
+  }
+  { const t = when(DIST - 2 * FURLONG), o = order(frameAt(t));
+    add(t, `Two furlongs out: ${name(o[0][1])}${o[0][0] - o[1][0] > 1.5 * LEN ? ` has ${margin(o[0][0] - o[1][0])} to spare` : ` and ${name(o[1][1])} locked together`}.`, 9); }
+  { const t = when(DIST - FURLONG), o = order(frameAt(t)), g = o[0][0] - o[1][0];
+    add(t, g > 2 * LEN ? `Inside the final furlong, ${name(o[0][1])} is clear!` : `Inside the final furlong, ${name(o[0][1])}, ${name(o[1][1])}${o.length > 2 && o[1][0] - o[2][0] < LEN ? `, ${name(o[2][1])}` : ""}, there's nothing between them!`, 9); }
+  // keep the lines apart: the important ones first, then the rest where there's room
+  const GAP = 3.2, kept = [];
+  for (const l of lines.slice().sort((a, b) => b.p - a.p || a.t - b.t)) if (!kept.some((q) => Math.abs(q.t - l.t) < GAP)) kept.push(l);
+  kept.sort((a, b) => a.t - b.t);
+  // the finish, always
+  const P = RESULT.placed;
+  kept.push({ t: T_FINISH, text: `${name(P[0].runner)} wins it${P[1] ? `, by ${margin(P[1].margin * LEN)}` : ""}!`, p: 10 });
+  if (P[1]) kept.push({ t: T_FINISH + 2.4, text: `${name(P[0].runner)} first, ${name(P[1].runner)} second${P[2] ? `, ${name(P[2].runner)} third` : ""}.${MINE >= 0 && P[0].runner !== MINE ? ` ${name(MINE)} finishes ${(() => { const p = P.findIndex((q) => q.runner === MINE) + 1; return p + (p === 1 ? "st" : p === 2 ? "nd" : p === 3 ? "rd" : "th"); })()}.` : ""}`, p: 10 });
+  window.__calls = kept.map((l) => [+l.t.toFixed(1), l.text.replace(/<[^>]+>/g, "")]);   // checking aid
+  let shown = -1;
+  return { update(phase, t) {
+    const live = phase === "race" && t >= 0;
+    let k = -1; if (live) for (let i = 0; i < kept.length && kept[i].t <= t; i++) k = i;
+    const fresh = k >= 0 && t - kept[k].t < (k === kept.length - 1 ? 6 : 7);
+    box.classList.toggle("gone", !fresh);
+    if (k !== shown && k >= 0) { shown = k; box.innerHTML = kept[k].text; }
+    if (!live) shown = -1;
   } };
 })();
 
@@ -2419,6 +2562,7 @@ function frame() {
   if (toRunLabel.hidden !== runHidden) toRunLabel.hidden = runHidden;
   DOCK.update(now, state.t, state.phase);
   GAMEUI.update(state.phase, state.t);
+  PARADE.update(); CALLER.update(state.phase, state.t);
   diag.sec.panels += performance.now() - tPanels;
 
   const every = QUALITY[qLevel].shadowEvery;

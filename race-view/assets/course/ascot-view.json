@@ -456,34 +456,38 @@
  "setPieces": {
   "_about": "Grandstand set pieces (owner, 3 Nov: 'to portray the excellent grandstand'): camera moves before the off and after the replay. eye and at go from the first to the second over 'seconds'.",
   "prelude": {
-   "label": "Before the off",
+   "label": "The runners",
    "seconds": 9,
    "eye": [
     [
-     -40,
-     7,
-     -3
+     -38,
+     4.2,
+     4
     ],
     [
-     180,
-     9,
-     -3
+     42,
+     5.2,
+     7
     ]
    ],
    "at": [
     [
-     -40,
-     9,
-     70
+     -30,
+     8,
+     60
     ],
     [
-     180,
-     11,
-     70
+     34,
+     9,
+     60
     ]
    ],
-   "fov": 50,
-   "grab": "grab-11.png"
+   "fov": 40,
+   "grab": "grab-11.png",
+   "intro": 2.0,
+   "perRunner": 1.7,
+   "outro": 3.0,
+   "note": "Owner, 7 Nov: no pan down the home straight; a low drone gliding along in front of the stand, looking across at it (low enough that nothing beyond the stand shows), while each runner is announced with its number, colours, name and price (intro, then perRunner seconds each, then outro with the racecard). 'seconds' is worked out from the field."
   },
   "postlude": {
    "label": "After the race",
