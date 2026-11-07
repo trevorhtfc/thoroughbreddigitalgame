@@ -467,7 +467,7 @@ if ACCENT:
     print("crowd:", len(pts), "people", flush=True)
 
 # ground, track, rails
-def turf_mat(name, base, stripe=0.0, stripe_w=10.0, lane_k=0.0, flecks=True, light=False):
+def turf_mat(name, base, stripe=0.0, stripe_w=10.0, lane_k=0.0, flecks=True, light=False, beige_near=None):
     """Racecourse turf (owner, 6 Nov 2026, from his toy-town reference): a fine blade texture, slight colour
     variation over metres, broad soft mowing stripes across the track, and the odd divot and daisy.
     light: the lawns off the track, lighter, even, a finer texture and no stripes."""
@@ -519,6 +519,20 @@ def turf_mat(name, base, stripe=0.0, stripe_w=10.0, lane_k=0.0, flecks=True, lig
         keep = N.new("ShaderNodeMath"); keep.operation = "GREATER_THAN"; Lk.new(vor.outputs["Color"], keep.inputs[0]); keep.inputs[1].default_value = 0.72
         fl = N.new("ShaderNodeMath"); fl.operation = "MULTIPLY"; Lk.new(dots, fl.inputs[0]); Lk.new(keep.outputs[0], fl.inputs[1])
         col = mix(col, lin("#efe9d2") if light else lin("#6d5236"), fl.outputs[0])
+    if beige_near:
+        # beige-brown trodden ground next to the track (owner, 7 Nov 2026): within ~45 m of the track either side,
+        # fading into the light green lawn further out; a fine sandy grain and the odd darker pebble
+        ay = N.new("ShaderNodeMath"); ay.operation = "ADD"; Lk.new(sep.outputs["Y"], ay.inputs[0]); ay.inputs[1].default_value = W / 2
+        ab = N.new("ShaderNodeMath"); ab.operation = "ABSOLUTE"; Lk.new(ay.outputs[0], ab.inputs[0])
+        dd = N.new("ShaderNodeMath"); dd.operation = "SUBTRACT"; Lk.new(ab.outputs[0], dd.inputs[0]); dd.inputs[1].default_value = W / 2
+        mk = N.new("ShaderNodeMapRange"); Lk.new(dd.outputs[0], mk.inputs["Value"]); mk.inputs["From Min"].default_value = 45.0; mk.inputs["From Max"].default_value = 85.0
+        mk.inputs["To Min"].default_value = 1.0; mk.inputs["To Max"].default_value = 0.0
+        sand = mul(lin(beige_near), ramp(noise(0.1, 3).outputs["Fac"], [(0.3, g(0.92)), (0.7, g(1.06))]))
+        sand = mul(sand, ramp(noise(30.0, 6, 0.7).outputs["Fac"], [(0.3, g(0.9)), (0.7, g(1.07))]))
+        vp = N.new("ShaderNodeTexVoronoi"); vp.inputs["Scale"].default_value = 4.0; Lk.new(tc.outputs["Object"], vp.inputs["Vector"])
+        peb = ramp(vp.outputs["Distance"], [(0.0, (0, 0, 0, 1)), (0.06, (1, 1, 1, 1))])
+        sand = mix(mul((0.78, 0.74, 0.7, 1), sand), sand, peb)
+        col = mix(col, sand, mk.outputs["Result"])
     Lk.new(col, b.inputs["Base Color"])
     hsum = N.new("ShaderNodeMath"); hsum.operation = "ADD"; Lk.new(blades.outputs["Fac"], hsum.inputs[0]); Lk.new(tufts.outputs["Fac"], hsum.inputs[1])
     bp = N.new("ShaderNodeBump"); bp.inputs["Strength"].default_value = 0.6 if not light else 0.4; bp.inputs["Distance"].default_value = 0.04
@@ -527,7 +541,7 @@ def turf_mat(name, base, stripe=0.0, stripe_w=10.0, lane_k=0.0, flecks=True, lig
 
 if SOFT:
     turf = turf_mat("turf_track", "#7fa952", stripe=0.16, stripe_w=3.75)       # the racing surface: richer, eight mown lanes
-    grass = turf_mat("turf_lawn", "#bcc98c", light=True)                        # the lawns off the track: lighter, even
+    grass = turf_mat("turf_lawn", "#bcc98c", light=True, beige_near="#cdb894")  # beige-brown by the track, light lawn beyond
 plane("ground", -900, 1400, -700, 500, grass, -0.02)
 plane("track", -300, 1300, -W, 0, turf, 0.0)
 
@@ -621,7 +635,7 @@ if SOFT and GRASS:
     gx0, gx1 = float(os.environ.get("GRASS_X0", "-40")), float(os.environ.get("GRASS_X1", "140"))
     # a happy medium (owner: the first blades were too much, too dark and contrasty): shorter, sparser, lighter
     grass_blades("turf_blades", gx0, gx1, -W + 0.1, -0.1, 95 * GRASS, 0.045, "#9cc46a", lanes=True, seed=3)
-    grass_blades("lawn_blades", gx0, gx1, -FRONT + 0.5, -W - 0.5, 60 * GRASS, 0.03, "#c8d39c", seed=5)
+    # (no grass blades on the beige ground by the track)
 
 
 def horses():
