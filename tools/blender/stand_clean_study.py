@@ -676,6 +676,9 @@ def horses():
 if os.environ.get("HORSES"):
     horses()
 
+if os.environ.get("TREES"):                 # trees and hedges in the clay style (tools/blender/study_trees.py)
+    exec(open(rp("tools/blender/study_trees.py")).read())
+
 
 ascot_rail(0.0, -1)       # the far (inside) rail: the track is to its south (Blender -y)
 ascot_rail(-W, +1)        # the near (outer) rail by the lawn and the stand: the track is to its north
@@ -718,6 +721,9 @@ SHOTS = {
     "wing": ((230, 30, -45), (120, 9, 52), 40, (150, 9, 46), 5.6),
     # across the track from the inside, low, at the rail and the lawn crowd (owner's turf reference)
     "track": ((70, 3.2, -4), (40, 1.2, 34), 38, (48, 1.0, 28), 4.0),
+    # from the stand looking across the track to the infield trees, and down the straight mile at the planting belt
+    "fromstand": ((40, 16, 42), (40, 2, -70), 48, (40, 2, -40), None),
+    "belt": ((690, 6, 14), (960, 5, 36), 36, (900, 5, 36), None),
     # low and close with the horses in the grass
     "horses": ((72, 1.1, 7), (50, 1.4, 14), 34, (53, 1.0, 13), 2.8),
     # checking aid: the turf close up, and the track and lawn from above
