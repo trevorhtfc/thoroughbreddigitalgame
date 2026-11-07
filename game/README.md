@@ -173,3 +173,17 @@ as its `files` (one publish takes 255 files and 64 MB; this is 241 files and 35 
 Serve the staged folder (`python3 -m http.server`) and play it in a browser. On a machine without a graphics chip, add
 `?nolife=1` (the 3D life on the board is very slow in software rendering, though fine on a real graphics chip). In the
 console: `__setHour(19)` sets the time of day on the board; `LIFE.__advance(10)` moves a procession on 10 seconds.
+
+## 7 Nov 2026: the new look and a faster race view in the game (version 6)
+
+- The race view now carries the finish study's look (dressed terraced stand, skittle crowd in tops and tails, crisp
+  mown lanes, beige ground by the track, the Ascot rail, soft warm light) with the leafy trees; the finish camera
+  holds on the winning line once the winner is past the post.
+- Faster on every machine (see `claude/race-view-performance.md` in the project): the storybook grade is drawn in
+  the shaders instead of a CSS filter; while a race plays, everything under it is hidden and the board's loop rests
+  (`body.watching`); ground and sky painted once; no multisampling on Low and Lightest; Auto remembers its level;
+  a light horse for small horses on screen. **D** shows the race view's diagnostics (also `#debug` on the game's
+  address).
+- No time of year on the labels.
+- `tools/stage.py` writes every non-ASCII character in the pages, scripts and styles as an escape (the published
+  scripts carry no charset; a Mac showed "4YO+ Â· âš¥"). 250 files, 35 MB.
