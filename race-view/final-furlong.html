@@ -1531,11 +1531,16 @@ function aheadOf(eye, u) {                                           // is a poi
 function directorShot(d, leadU) {
   if (state.cam !== "auto" && RCAMS[state.cam] && state.cam !== "sideon") return state.cam;
   if (d < 0) return "grandstand";                                    // past the line: stay on the grandstand camera
+  // down the round mile's chute the tracking car would be in the hedge: the drone, over the turf (owner, 7 Nov)
+  if (RACE.course === "roundMile" && RCAMS.drone && d > SPUR.join - ((DIR_.roundMile || {}).drone ?? 40)) return "drone";
   if (RACE.course === "straight") return d > DIR_.straight.grandstand ? "track_straight" : "grandstand";
   // the 2m4f's run down the straight course to its first pass of the post: the straight mile's cameras
   if (ON_STRAIGHT && d > LOOP.length) return d - LOOP.length > DIR_.straight.grandstand ? "track_straight" : "grandstand";
   const L = LOOP.length, q = ((d % L) + L) % L;                       // metres to the next pass of the post
   if (q <= DIR_.round.grandstand || d <= DIR_.round.grandstand) return "grandstand";
+  // just past a post that isn't the finish: the drone, ahead of the field round the bend with the stand behind them (owner,
+  // 7 Nov: the fixed look-back camera had the field hidden behind the carnival's terraces and towers by the far rail)
+  if (q > L - DIR_.round.lookback && d < DIST - 50 && RCAMS.drone) return "drone";
   if (q > L - DIR_.round.lookback && d < DIST - 50 && aheadOf(RCAMS.lookback.at, leadU)) return "lookback";
   return "track_loop";
 }
@@ -1635,8 +1640,13 @@ function cameraTarget(now) {
     const eye = new THREE.Vector3(...c.at), pts = near.length ? near.concat([line]) : [line];
     return { eye, look: line, fov: near.length ? fitFov(eye, line, pts, c.fov) : camera.fov, id, anchor: line, guard: pts, range: c.fov };
   }
-  // who is framed: the whole field (all but one or two tailed off), or just the leading group
-  const pts = c.frame === "leaders" ? field.filter((p, i) => i < 2 || leadU - p.u <= (c.window || 12)) : field;
+  // who is framed: the whole field (all but one or two tailed off), or just the leading group. The tracking cameras
+  // (track, drone) keep the horses within a stretch of the leader that suits the screen's shape, and always the first
+  // three (owner, 7 Nov: a strung-out field made them zoom out far more than needed on the bends, worst on a phone).
+  const moving = c.kind === "track" || c.kind === "drone";
+  const span = moving ? THREE.MathUtils.clamp(4 + 9 * camera.aspect, 12, 26) : Infinity;
+  const pts = c.frame === "leaders" ? field.filter((p, i) => i < 2 || leadU - p.u <= (c.window || 12))
+    : field.filter((p, i) => i < 3 || leadU - p.u <= span);
   const lead = field[0];
   const r = railAt(DIST - leadU), run = new THREE.Vector3(r.tx, 0, r.tz);
   const centre = new THREE.Box3().setFromPoints(pts).getCenter(new THREE.Vector3()).addScaledVector(run, c.leadRoom || 0);
@@ -1655,6 +1665,10 @@ function cameraTarget(now) {
         y = Math.max(y, c.height + (h - c.height) * k);
       }
       return new THREE.Vector3(x, y, z);
+    }
+    if (c.kind === "drone") {                                       // over the turf, 'across' from the middle
+      const [x, z] = toWorld(leadU + a, c.across || 0);
+      return new THREE.Vector3(x, c.height, z);
     }
     if (c.kind === "rail") {
       const [lx] = toWorld(leadU, 0);
@@ -1681,6 +1695,12 @@ function cameraTarget(now) {
       look = centre.clone().lerp(gc, k);
       fov = THREE.MathUtils.lerp(fitFov(eye, look, pts, c.fov), fitFov(eye, look, grp, c.fov), k);
     }
+  }
+  // widening (owner, 7 Nov): over the last stretch the zoom eases steadily out a little, so a bit more is seen as
+  // they come to the line ([from, to, factor] metres out)
+  if (c.widen) {
+    const [from, to, f] = c.widen, k = 1 - THREE.MathUtils.smoothstep(DIST - leadU, to, from);
+    fov = Math.min(fov * (1 + (f - 1) * k), c.fov[1]);
   }
   const [ax, az] = toWorld(leadU, 0);
   return { eye, look, fov, id, anchor: new THREE.Vector3(ax, 1.3, az), guard: field.slice(0, 2), range: c.fov };
@@ -2084,9 +2104,13 @@ window.__camTrace = (t0, t1, step = 1 / 30) => {
   for (let t = t0; t <= t1; t += step) {
     state.t = t; state.dt = step;
     camera.getWorldDirection(d0);
-    updateCamera(sample(t), step);
+    const now = sample(t);
+    updateCamera(now, step);
     camera.updateMatrixWorld(); camera.getWorldDirection(d1);
-    out.push([+t.toFixed(2), lastShot, +camera.fov.toFixed(2), +THREE.MathUtils.radToDeg(d0.angleTo(d1)).toFixed(2)]);
+    const lu = leaderAt(now), us = now.map((h) => h[0]).sort((p, q) => q - p);
+    // [t, shot, zoom, turn, metres to go, camera to the look point, the field's spread (leader to last, metres)]
+    out.push([+t.toFixed(2), lastShot, +camera.fov.toFixed(2), +THREE.MathUtils.radToDeg(d0.angleTo(d1)).toFixed(2),
+      Math.round(DIST - lu), Math.round(camera.position.distanceTo(focus)), Math.round(us[0] - us[us.length - 1])]);
   }
   return out;
 };
@@ -2396,6 +2420,8 @@ function frame() {
   requestAnimationFrame(frame);
 }
 requestAnimationFrame(frame);
+// Checking aid (?still=1): jump to another moment of the race and draw it again: window.__seek(t), then wait for __ready.
+if (params.has("still")) window.__seek = (t) => { state.phase = "race"; state.t = t; snap = true; stillFrames = 0; window.__ready = false; requestAnimationFrame(frame); };
 // Checking aid (?bench=1): the scene's parts, for timing each one on its own (see the rig's bench script).
 if (params.has("bench")) window.__dbg = { THREE, renderer, scene, camera, LAYERS, sun, QUALITY, runners, get qLevel() { return qLevel; } };
 </script>
