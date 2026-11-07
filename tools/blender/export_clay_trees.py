@@ -11,7 +11,7 @@ bush_a and bush_b shrubs). The study's 1.15 size is built in.
 Crowns carry their shading as vertex colours (grey: darker underneath, sunlit on top, a soft mottle, divided by
 SHADE_MAX so it fits 0..1); the race view gives each tree its leaf colour per copy (one of the study's twelve
 greens, the odd copper beech) and multiplies SHADE_MAX back in. Normals are bent a little over half way out from the crown's
-centre, so each crown reads as one soft mass. Near crowns: each lump an ico sphere of 642 points; far: 42.
+centre, so each crown reads as one soft mass. Near crowns: each lump an ico sphere of 642 points; far: 162.
 Trunks: the study's bark colour as a flat vertex colour.
 """
 import os, math, json, random
@@ -95,7 +95,7 @@ for name, (sp, seed) in NAMES.items():
         rr = random.Random(seed)
         a = rr.uniform(0, 2 * math.pi); R = Matrix.Rotation(a, 3, "Z")
         centres = [(tuple(R @ Vector(c) + Vector((rr.uniform(-0.4, 0.4), rr.uniform(-0.4, 0.4), rr.uniform(-0.3, 0.3)))), r * rr.uniform(0.92, 1.08)) for c, r in centres]
-    for suffix, sub in (("_crown", 3), ("_crown_far", 1)):
+    for suffix, sub in (("_crown", 3), ("_crown_far", 2)):
         o = crown(name + suffix, centres, sub, seed); o.data.materials.append(leaf); objs.append(o)
     if sp != "shrub":
         limbs = [] if sp == "poplar" else [(0.6, 0.2, 1), (-0.5, 0.4, 1), (0.1, -0.6, 1)]

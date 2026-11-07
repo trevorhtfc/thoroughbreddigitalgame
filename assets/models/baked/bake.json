@@ -4,12 +4,12 @@
  "finish": {
   "mesh": "finish",
   "lightMap": "finish_light.jpg",
-  "scale": 1.8013
+  "scale": 1.937
  },
  "site": {
   "mesh": null,
   "lightMap": "site_light.jpg",
-  "scale": 1.8675,
+  "scale": 1.9601,
   "kit": {
    "banner_flag_q0": "kit_banner_flag_q0",
    "banner_flag_q2": "kit_banner_flag_q2",
@@ -57,12 +57,12 @@
  "stand": {
   "mesh": "stand",
   "lightMap": "stand_light.jpg",
-  "scale": 1.6458
+  "scale": 1.8837
  },
  "ground": {
   "mesh": "ground",
   "map": "ground.jpg",
-  "scale": 0.7116,
+  "scale": 0.8095,
   "area": {
    "x0": -260.0,
    "x1": 700.0,
@@ -70,14 +70,14 @@
    "z1": 140.0
   },
   "outside": [
-   0.1306,
-   0.3424,
-   0.0615
+   0.5194,
+   0.5856,
+   0.2693
   ],
   "turf": [
-   0.0737,
-   0.3411,
-   0.0537
+   0.2056,
+   0.3801,
+   0.0765
   ]
  }
 }
