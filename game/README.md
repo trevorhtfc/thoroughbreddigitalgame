@@ -174,10 +174,10 @@ Serve the staged folder (`python3 -m http.server`) and play it in a browser. On 
 `?nolife=1` (the 3D life on the board is very slow in software rendering, though fine on a real graphics chip). In the
 console: `__setHour(19)` sets the time of day on the board; `LIFE.__advance(10)` moves a procession on 10 seconds.
 
-## 7 Nov 2026: the new look and a faster race view in the game (version 6)
+## 7 Nov 2026: the new look and a faster race view in the game (version 7)
 
 **Branch now `claude/race-look-options`** (it sits on top of `claude/thoroughbred-game`; nothing to merge back the other
-way). Published as version 6 of the live game.
+way). Published as version 7 of the live game.
 
 - **The race view carries the finish study's look**: the dressed terraced stand (pastel doors and balusters, striped
   awnings, flags), the skittle crowd with about half the gents in black tops and tails, crisp mown lanes, beige ground
