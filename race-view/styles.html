@@ -1,0 +1,143 @@
+<!doctype html>
+<html lang="en-GB">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Race view styles</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Jost:wght@400;500;600&family=Crimson+Pro:wght@600;700&family=Nunito:wght@400;600;700&display=swap">
+<style>
+/* The style review (owner, 7 Nov: "build a small testing site for this so I can review, make a decision and then
+   publish just a single version"). Every look, grandstand and tree style the race view can wear, side by side, each
+   opening the real 3D race in that style. Not part of the game: the game only ever shows the chosen one. */
+:root {
+  --paper: #f2ecdf; --paper-dk: #e8e0cc; --ink: #2c3a30; --muted: #6b6a60; --green: #3d7153; --green-dk: #2c4d43;
+  --gold: #b79042; --gold-ink: #8d6b2a; --line: rgba(183,144,66,.55);
+  --serif: "Crimson Pro", Georgia, serif; --label: "Jost", "Helvetica Neue", Arial, sans-serif; --read: "Nunito", system-ui, sans-serif;
+  color-scheme: light;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; }
+body { background: var(--paper); color: var(--ink); font: 16px/1.5 var(--read); }
+header { background: var(--green-dk); color: #f6f1e6; padding: calc(28px + env(safe-area-inset-top, 0px)) 16px 26px; }
+.wrap { max-width: 1120px; margin: 0 auto; padding: 0 16px; }
+header .wrap { padding: 0; max-width: 1088px; }
+.k { font: 600 .72rem var(--label); letter-spacing: .22em; text-transform: uppercase; color: #e8cf8e; margin: 0; }
+h1 { font: 700 2.4rem/1.05 var(--serif); margin: 6px 0 10px; }
+header p.lede { margin: 0; max-width: 62ch; color: rgba(246,241,230,.88); }
+h2 { font: 700 1.7rem/1.1 var(--serif); margin: 0; }
+section { padding: 30px 0 6px; }
+.sec-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 14px; margin-bottom: 4px; }
+.sec-head .k { color: var(--gold-ink); }
+section > .wrap > p { margin: 0 0 16px; color: var(--muted); max-width: 70ch; }
+.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 16px; }
+.card { background: #fffaf0; border-radius: 4px; box-shadow: inset 0 0 0 1px var(--line), 0 6px 18px rgba(40,30,15,.08); overflow: hidden; display: flex; flex-direction: column; }
+.card.now { box-shadow: inset 0 0 0 2px var(--green), 0 6px 18px rgba(40,30,15,.1); }
+.shots { display: grid; grid-template-columns: 1fr 1fr; gap: 2px; background: var(--paper-dk); }
+.shots img { display: block; width: 100%; aspect-ratio: 16 / 9; object-fit: cover; background: #d9d2c0; cursor: zoom-in; }
+.body { padding: 12px 14px 14px; display: flex; flex-direction: column; gap: 6px; flex: 1; }
+.body h3 { margin: 0; font: 700 1.3rem/1.1 var(--serif); display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.tag { font: 600 .62rem var(--label); letter-spacing: .14em; text-transform: uppercase; padding: 3px 7px; border-radius: 2px; background: var(--green); color: #f6f1e6; }
+.body p { margin: 0; font-size: .92rem; color: var(--muted); }
+.btns { display: flex; flex-wrap: wrap; gap: 8px; margin-top: auto; padding-top: 8px; }
+.btn { display: inline-flex; align-items: center; gap: 6px; padding: 9px 14px; border-radius: 3px; font: 600 .9rem var(--label); text-decoration: none; color: var(--green-dk); box-shadow: inset 0 0 0 1px var(--green); background: transparent; cursor: pointer; }
+.btn.go { background: var(--green); color: #f6f1e6; }
+.btn:hover { filter: brightness(1.06); }
+.mix { background: #fffaf0; border-radius: 4px; box-shadow: inset 0 0 0 1px var(--line); padding: 14px; display: flex; flex-wrap: wrap; gap: 10px 14px; align-items: end; }
+.mix label { display: flex; flex-direction: column; gap: 4px; font: 600 .7rem var(--label); letter-spacing: .14em; text-transform: uppercase; color: var(--gold-ink); }
+.mix select { font: 500 .95rem var(--read); padding: 8px 10px; border-radius: 3px; border: 1px solid #cfc5ad; background: #fff; color: var(--ink); min-width: 190px; }
+.note { margin: 28px 0 40px; padding: 14px 16px; border-radius: 4px; background: var(--paper-dk); color: var(--ink); font-size: .92rem; }
+.note b { color: var(--green-dk); }
+dialog { border: 0; padding: 0; background: transparent; max-width: min(1100px, 96vw); }
+dialog::backdrop { background: rgba(15,25,18,.8); }
+dialog img { display: block; width: 100%; border-radius: 4px; }
+dialog p { color: #f6f1e6; text-align: center; margin: 8px 0 0; font: 600 .8rem var(--label); letter-spacing: .1em; text-transform: uppercase; }
+@media (max-width: 600px) {
+  h1 { font-size: 1.9rem; } h2 { font-size: 1.4rem; }
+  .grid { grid-template-columns: 1fr; }
+  .mix select { min-width: 0; width: 100%; } .mix label { flex: 1 1 100%; }
+}
+</style>
+
+<header><div class="wrap">
+  <p class="k">Thoroughbred Ascot · style review</p>
+  <h1>Race view styles</h1>
+  <p class="lede">Every look, grandstand and tree style the 3D race can wear, side by side. Each picture is the same race at the same moment: on the left the drone along the stand before the off, on the right the field coming up the straight. Tap a picture to see it bigger, or open the real race in that style. Choose one of each, and the game will ship only those.</p>
+</div></header>
+
+<section><div class="wrap">
+  <div class="sec-head"><p class="k">1 · Overall look</p><h2>The whole picture</h2></div>
+  <p>The look sets the colour, the light and the finish of everything: the turf, the trees, the crowd, the buildings, and the grade over the top. "Storybook" is what the game uses today.</p>
+  <div class="grid" id="looks"></div>
+</div></section>
+
+<section><div class="wrap">
+  <div class="sec-head"><p class="k">2 · Grandstand</p><h2>The stand's dress</h2></div>
+  <p>Only the main stand changes: its colours, its surface and any line work round its edges. Shown here with today's overall look.</p>
+  <div class="grid" id="stands"></div>
+</div></section>
+
+<section><div class="wrap">
+  <div class="sec-head"><p class="k">3 · Trees</p><h2>The trees</h2></div>
+  <p>Leafy is the set the game uses today (owner, 7 Nov: "I actually preferred the old trees"). Clay is the finish study's set.</p>
+  <div class="grid" id="trees"></div>
+</div></section>
+
+<section><div class="wrap">
+  <div class="sec-head"><p class="k">4 · Mix and match</p><h2>Try a combination</h2></div>
+  <p>Any look with any stand and either set of trees, in the real race.</p>
+  <div class="mix">
+    <label>Look<select id="mLook"></select></label>
+    <label>Grandstand<select id="mStand"></select></label>
+    <label>Trees<select id="mTrees"><option value="">Leafy (today)</option><option value="clay">Clay</option></select></label>
+    <label>Race<select id="mRace"><option value="mile">Straight mile</option><option value="1m4f">1m4f, round</option><option value="2m4f">2m4f, the Gold Cup</option><option value="6f">6f sprint</option></select></label>
+    <a class="btn go" id="mGo" href="#">Open the race ›</a>
+  </div>
+  <div class="note"><b>How to choose:</b> open a few on the device you'll play on (the race runs from the runners' parade; tap Skip to go straight to the off). Then tell Claude which look, grandstand and trees you want, and the game will be set to those and the others taken out.</div>
+</div></section>
+
+<dialog id="big"><img alt=""><p></p></dialog>
+
+<script>
+// Each option: what it is, the address it adds to the race view, and its two pictures (assets/styles/<id>-stand.jpg,
+// <id>-race.jpg, shot with the rig at the same moment of the same race).
+const LOOKS = [
+  { id: "current", q: "", name: "Storybook", now: true, about: "Soft daylight, crisp lanes, beige ground, the leafy trees and the game's parchment grade: what the game shows today." },
+  { id: "model", q: "look=model", name: "Model maker", about: "Faceted foam trees on brass pins, flocked grass, painted card buildings and enamel-painted figures, in a soft studio light with a shallow miniature focus." },
+  { id: "diorama", q: "look=diorama", name: "Sunlit diorama", about: "Pastel plaster washes and a warm, sun-bleached grade, mossy tufted trees, a pastel crowd and a strong tilt-shift." },
+  { id: "faceted", q: "look=faceted", name: "Faceted parkland", about: "Low-poly faceted trees and spires with a few copper beeches, stone coursing and slate on the buildings, faceted turf, deep layered haze." },
+];
+const STANDS = [
+  { id: "current", q: "", name: "Today's stand", now: true, about: "The dressed terraced stand as it is in the game now." },
+  { id: "pastel1", q: "stand=pastel&v=1", name: "Pastel row", about: "A row of plaster buildings, each its own colour, with white trims, bronze ironwork and terracotta roofs. No line work." },
+  { id: "pastel2", q: "stand=pastel&v=2", name: "Pastel row, line work", about: "The pastel row with soft coloured line work drawn along its edges." },
+  { id: "pastel3", q: "stand=pastel&v=3", name: "Sorbet", about: "Bolder colours with white line work." },
+  { id: "brick1", q: "stand=brick&v=1", name: "Red brick, ink lines", about: "Big stylised red brick on a grey stone base, cream trim, tile roofs, black ironwork and crisp ink line work." },
+  { id: "brick2", q: "stand=brick&v=2", name: "Red brick, no lines", about: "The red brick stand without the line work." },
+  { id: "brick3", q: "stand=brick&v=3", name: "Mixed terrace", about: "Red and white brick with racing-green trim and ink line work." },
+];
+const TREES = [
+  { id: "current", q: "", name: "Leafy", now: true, about: "The leafy trees the game uses today." },
+  { id: "clay", q: "trees=clay", name: "Clay", about: "The finish study's rounded clay crowns: clustered, lumpy and soft, in twelve greens and the odd copper beech." },
+];
+const race = (q, r = "mile") => `final-furlong.html?race=${r}&finish=story${q ? "&" + q : ""}`;
+function cards(el, list) {
+  document.getElementById(el).innerHTML = list.map((o) => `
+    <article class="card${o.now ? " now" : ""}">
+      <div class="shots"><img loading="lazy" src="assets/styles/${o.id === "current" && el !== "looks" ? "current" : o.id}-stand.jpg" alt="${o.name}: the stand before the off" data-cap="${o.name} · before the off"><img loading="lazy" src="assets/styles/${o.id === "current" && el !== "looks" ? "current" : o.id}-race.jpg" alt="${o.name}: the field up the straight" data-cap="${o.name} · up the straight"></div>
+      <div class="body"><h3>${o.name}${o.now ? '<span class="tag">In the game now</span>' : ""}</h3><p>${o.about}</p>
+        <div class="btns"><a class="btn go" href="${race(o.q)}">Watch the mile ›</a><a class="btn" href="${race(o.q, "1m4f")}">Round course</a></div></div>
+    </article>`).join("");
+}
+cards("looks", LOOKS); cards("stands", STANDS); cards("trees", TREES);
+const fill = (id, list) => { document.getElementById(id).innerHTML = list.map((o) => `<option value="${o.q}">${o.name}${o.now ? " (today)" : ""}</option>`).join(""); };
+fill("mLook", LOOKS); fill("mStand", STANDS);
+const mix = () => { const q = ["mLook", "mStand"].map((id) => document.getElementById(id).value).concat(document.getElementById("mTrees").value ? ["trees=clay"] : []).filter(Boolean).join("&");
+  document.getElementById("mGo").href = race(q, document.getElementById("mRace").value); };
+document.querySelectorAll(".mix select").forEach((s) => (s.onchange = mix)); mix();
+const big = document.getElementById("big");
+document.addEventListener("click", (e) => {
+  const img = e.target.closest(".shots img");
+  if (img) { big.querySelector("img").src = img.src; big.querySelector("p").textContent = img.dataset.cap; big.showModal(); return; }
+  if (e.target.closest("dialog")) big.close();
+});
+</script>

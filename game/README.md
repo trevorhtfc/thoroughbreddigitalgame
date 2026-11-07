@@ -194,3 +194,31 @@ way). Published as version 7 of the live game.
   pixel ratio, picture size, edges, shadows, script time by part, memory, the graphics chip's name.
 - `tools/stage.py` now gathers 250 files, 35 MB (adds `looks.js`, `stand-styles.js`, the skittle crowd, the turf grain
   and the light horse; leaves out the clay trees).
+
+## 7 Nov 2026 (afternoon): the owner's phone playtest
+
+**Branch `claude/playtest-fixes`**, from `main`; merged into `main` for the live site (Cloudflare).
+
+- **Phones**: the game page had no doctype, charset or viewport, so on the live site a phone drew the desktop layout
+  shrunk down, in quirks mode (the programme in five tiny columns, the draw's deck over the cards, the toast over the
+  stud's footer). `src/index.src.html` now starts with them. The draw's deck has its own space at the foot of the table;
+  the toast sits above an open sheet's footer (`--foot-h`, measured in `ui.js`).
+- **The board holds still behind a sheet** (programme, stud, sales...): no ticking map underneath (`board.src.js`,
+  `life.src.js`).
+- **The race view's Look and Stand menus are out of the game** (switching reloaded the view and stuck on the loading
+  screen; the game also re-sends the race whenever the view says it's ready). They live on the style review page.
+- **The crowd's hats**: far-off figures no longer simplified into black cones.
+- **The 2m4f (Gold Cup) starts on the straight course**, 1334 m out, runs past the stand and once round
+  (`tools/course/place_stalls.py` `onStraight`; the engine meets no bend until the post; the view's `railAt`).
+- **Cameras**: tracking shots frame the horses within about 8 lengths of the leader (less on a phone held upright),
+  so a strung-out field no longer pulls them wide on the bends; a new **drone** camera over the turf down the round
+  mile's chute (its tracking car was in the hedge) and just past the post (the look-back camera had the field behind
+  the carnival's terraces); the grandstand camera only from 600 m out on the round course (before that the carnival
+  hides the home bend); a gentle steady zoom out over the last 220 m.
+- **Before the off**: a low drone glides along the stand while each runner is announced (number, colours, name, price),
+  with Skip; then the racecard. **Commentary**: a line at a time, written from the engine's events and the timeline.
+- **Course**: a paler cut strip across the track at the winning line, fainter ones at each furlong of the straight;
+  the far (carnival) rail at the finish filled with crowd.
+- **Style review page** (`race-view/styles.html`, live at `/styles.html`): every look, stand and tree style side by
+  side with pictures (`race-view/assets/styles/`), each opening the real race in that style, plus mix and match. The
+  owner picks one of each; then the game is set to those and the others removed.
