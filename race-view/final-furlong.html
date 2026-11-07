@@ -1661,6 +1661,15 @@ const lerp3 = (a, b, k) => new THREE.Vector3(...a).lerp(new THREE.Vector3(...b),
 // Returns { eye, look, fov, id, anchor, guard }. During the race the frame loop keeps the look point tied to
 // the leader (anchor) and smooths only the offset from it, so a moving field never drags behind the camera
 // (that lag was what cropped the leading horse); 'guard' are horses that must never leave the shot.
+// Zoom ranges in the camera plan are set for a landscape screen. On a narrower one (a phone held upright) the widest
+// zoom opens up so the same width of course still fits across the screen (owner, 7 Nov: on a phone the finish camera
+// couldn't widen enough to keep the winner in shot as they crossed the line).
+const REF_ASPECT = 1.6;
+function rangeFor(r) {
+  if (camera.aspect >= REF_ASPECT) return r;
+  const k = REF_ASPECT / camera.aspect, wide = 2 * THREE.MathUtils.radToDeg(Math.atan(Math.tan(THREE.MathUtils.degToRad(r[1]) / 2) * k));
+  return [r[0], Math.min(78, wide)];
+}
 function cameraTarget(now) {
   const still = (eye, look, fov, id) => ({ eye, look, fov, id });
   if (EYE && AT) return still(new THREE.Vector3(...EYE.split(",").map(Number)), new THREE.Vector3(...AT.split(",").map(Number)), Number(params.get("fov") || 40), "free");
@@ -1678,12 +1687,12 @@ function cameraTarget(now) {
     const c = RCAMS.sideon, look = new THREE.Vector3(...c.look);
     const [lx] = toWorld(leaderAt(now), 0);
     look.x += THREE.MathUtils.clamp(lx - look.x, -12, 18) * 0.8;          // pans a little with the leader
-    return still(new THREE.Vector3(...c.at), look, c.fov[0], "sideon");
+    return still(new THREE.Vector3(...c.at), look, R[0], "sideon");
   }
   const field = fieldInShot(now);
   const leadU = leaderAt(now);
   const id = directorShot(DIST - leadU, leadU);
-  const c = RCAMS[id];
+  const c = RCAMS[id], R = rangeFor(c.fov);
   // The finish (owner, 7 Nov): once the winner is past the post the grandstand camera stops following it and holds on
   // the winning line, so the placings are seen crossing it. It pans across to the line (the look point eases over, no
   // cut) and frames the line and every runner still to finish within 30 m of it, plus any just over it.
@@ -1692,7 +1701,7 @@ function cameraTarget(now) {
     const near = [];
     for (const h of now) if (h[0] > DIST - 30 && h[0] < DIST + 4) { const [x, z] = toWorld(h[0], h[1]); near.push(new THREE.Vector3(x, 1.3, z)); }
     const eye = new THREE.Vector3(...c.at), pts = near.length ? near.concat([line]) : [line];
-    return { eye, look: line, fov: near.length ? fitFov(eye, line, pts, c.fov) : camera.fov, id, anchor: line, guard: pts, range: c.fov };
+    return { eye, look: line, fov: near.length ? fitFov(eye, line, pts, R) : camera.fov, id, anchor: line, guard: pts, range: R };
   }
   // who is framed: the whole field (all but one or two tailed off), or just the leading group. The tracking cameras
   // (track, drone) keep the horses within a stretch of the leader that suits the screen's shape, and always the first
@@ -1733,12 +1742,12 @@ function cameraTarget(now) {
   let eye;
   if (c.ahead) {
     let want = c.ahead[c.ahead.length - 1];
-    for (const a of c.ahead) if (fitFov(eyeAt(a), centre, pts, c.fov) < c.fov[1] * 0.8) { want = a; break; }
+    for (const a of c.ahead) if (fitFov(eyeAt(a), centre, pts, R) < R[1] * 0.8) { want = a; break; }
     if (state.aheadFor !== id || snap) { state.aheadFor = id; state.ahead = want; }
     state.ahead += (want - state.ahead) * (1 - Math.exp(-(state.dt || 0.016) * 0.7));   // ease, never jump
     eye = eyeAt(state.ahead);
   } else eye = eyeAt(0);
-  let look = centre, fov = fitFov(eye, centre, pts, c.fov);
+  let look = centre, fov = fitFov(eye, centre, pts, R);
   // closing in: over the last stretch the camera eases from the whole field to the leading group, so
   // the finish is as tight as possible, with no cut ([start, end] metres out, and the group's window)
   if (c.closeIn) {
@@ -1747,17 +1756,17 @@ function cameraTarget(now) {
       const grp = field.filter((p, i) => i < 2 || leadU - p.u <= win);
       const gc = new THREE.Box3().setFromPoints(grp).getCenter(new THREE.Vector3()).addScaledVector(run, c.leadRoom || 0);
       look = centre.clone().lerp(gc, k);
-      fov = THREE.MathUtils.lerp(fitFov(eye, look, pts, c.fov), fitFov(eye, look, grp, c.fov), k);
+      fov = THREE.MathUtils.lerp(fitFov(eye, look, pts, R), fitFov(eye, look, grp, R), k);
     }
   }
   // widening (owner, 7 Nov): over the last stretch the zoom eases steadily out a little, so a bit more is seen as
   // they come to the line ([from, to, factor] metres out)
   if (c.widen) {
     const [from, to, f] = c.widen, k = 1 - THREE.MathUtils.smoothstep(DIST - leadU, to, from);
-    fov = Math.min(fov * (1 + (f - 1) * k), c.fov[1]);
+    fov = Math.min(fov * (1 + (f - 1) * k), R[1]);
   }
   const [ax, az] = toWorld(leadU, 0);
-  return { eye, look, fov, id, anchor: new THREE.Vector3(ax, 1.3, az), guard: field.slice(0, 2), range: c.fov };
+  return { eye, look, fov, id, anchor: new THREE.Vector3(ax, 1.3, az), guard: field.slice(0, 2), range: R };
 }
 
 // ---------- Controls ----------
