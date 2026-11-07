@@ -75,8 +75,9 @@ FUR = C["furlong"]
 LOOP = C["roundCourse"]["length"]
 # Every Ascot trip (the race engine's distances, courses/ascot-standards.json). Straight-course starts stand on the
 # straight course, `distance` metres up from the post (z 0 is its inside rail); round-course starts stand where the
-# distance falls on the loop (2m, 2m4f, 2m6f and 1m6f go past the post more than once; 2m4f starts part-way round the kink
-# by the chute); the round mile starts at the top of the chute.
+# distance falls on the loop (2m, 2m6f and 1m6f go past the post more than once), except the 2m4f (the Gold Cup), which
+# starts on the straight course, runs down past the stand and then goes once round (owner, 7 Nov: "the 2m4f start is in
+# the wrong place, it should start on the straight"; as at the real Ascot); the round mile starts at the top of the chute.
 STRAIGHT = [("fiveFurlongs", "5f (straight)", 5 * FUR), ("sixFurlongs", "6f (straight)", 6 * FUR),
             ("sevenFurlongs", "7f (straight)", 7 * FUR), ("straightMile", "Straight mile (8f)", sm["length"])]
 ROUND = [("mileTwo", "1m2f", 10 * FUR), ("mileFour", "1m4f", 12 * FUR), ("mileSix", "1m6f", 14 * FUR),
@@ -89,7 +90,15 @@ for key, label, d in STRAIGHT:
                    else "the straight mile's stalls at the top of the straight course"}
 starts["roundMile"] = {"label": "Round mile (8.2f)", "course": "roundMile", "distance": sp["startDistance"],
                        "rail": sp["from"], "run": ((tx - fx) / l, (tz - fz) / l), "where": "the start of the chute (round-mile spur) at the top of the right-hand straight"}
+ON_STRAIGHT = {"twoMilesFour"}
 for key, label, d in ROUND:
+    if key in ON_STRAIGHT:
+        x = d - LOOP
+        assert 0 < x < sm["length"]
+        starts[key] = {"label": label, "course": "round", "distance": d, "rail": [round(x, 2), 0.0], "run": (-1.0, 0.0),
+                       "onStraight": True, "where": "on the straight course, %.0f m before the post: the field runs past the stand, "
+                       "then once round the loop" % x}
+        continue
     p, r = loop_at(d)
     laps = d / LOOP
     where = "on the loop, %.0f m before the post" % (d % LOOP) if laps > 1 else "on the loop, %.0f m to go" % d
@@ -132,6 +141,9 @@ for key, s in starts.items():
         "runningDirection": [round(rx, 5), round(rz, 5)],
         "towardsOuterRail": [round(ox, 5), round(oz, 5)],
         "stall1": "far side (inside rail)" if s["course"] == "straight" else "inside rail, on the horses' right",
+        **({"onStraight": True, "_onStraight": "a round-course race that starts on the straight course: its first "
+            "distance - roundCourse.length metres run down the straight course (z 0 its inside rail) to the post, then it "
+            "goes once round the loop"} if s.get("onStraight") else {}),
         "stalls": stalls,
         "_stalls": "at = the middle of the stall on the gate line (world x, z); fromInsideRail = metres from the inside "
                    "rail; across = metres from the middle of the track (+ towards the outer rail), as the race view's v",

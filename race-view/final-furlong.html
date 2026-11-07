@@ -384,11 +384,15 @@ const SPUR = (() => {
   const s = COURSE.roundMileSpur, [fx, fz] = s.from, [tx, tz] = s.to, l = Math.hypot(tx - fx, tz - fz);
   return { join: s.distanceToGoAtJoin, len: l, to: s.to, dir: [(tx - fx) / l, (tz - fz) / l] };
 })();
+// The 2m4f (the Gold Cup) starts on the straight course (the stalls file's start has onStraight): it runs down the
+// straight course to the post, past the stand, and then once round the loop (owner, 7 Nov). The straight course and
+// the loop meet at the post, both on z 0 heading -x, so the one line runs straight into the other.
+const ON_STRAIGHT = RACE.course === "round" && !!START.onStraight;
 // A race longer than the loop passes its own start again (2 miles): its stalls are towed away after the off.
-const STALLS_COME_BACK = RACE.course === "round" && DIST > LOOP.length - 50;
+const STALLS_COME_BACK = RACE.course === "round" && !ON_STRAIGHT && DIST > LOOP.length - 50;
 // Point on the race's inside rail with d metres still to run, and the running direction there.
 function railAt(d) {
-  if (RACE.course === "straight") return { x: d, z: 0, tx: -1, tz: 0 };
+  if (RACE.course === "straight" || (ON_STRAIGHT && d > LOOP.length)) return { x: d - (ON_STRAIGHT ? LOOP.length : 0), z: 0, tx: -1, tz: 0 };
   if (RACE.course === "roundMile" && d > SPUR.join - 15) {
     const [dx, dz] = SPUR.dir, k = d - SPUR.join;
     if (k >= 15) return { x: SPUR.to[0] - dx * k, z: SPUR.to[1] - dz * k, tx: dx, tz: dz };
@@ -1528,6 +1532,8 @@ function directorShot(d, leadU) {
   if (state.cam !== "auto" && RCAMS[state.cam] && state.cam !== "sideon") return state.cam;
   if (d < 0) return "grandstand";                                    // past the line: stay on the grandstand camera
   if (RACE.course === "straight") return d > DIR_.straight.grandstand ? "track_straight" : "grandstand";
+  // the 2m4f's run down the straight course to its first pass of the post: the straight mile's cameras
+  if (ON_STRAIGHT && d > LOOP.length) return d - LOOP.length > DIR_.straight.grandstand ? "track_straight" : "grandstand";
   const L = LOOP.length, q = ((d % L) + L) % L;                       // metres to the next pass of the post
   if (q <= DIR_.round.grandstand || d <= DIR_.round.grandstand) return "grandstand";
   if (q > L - DIR_.round.lookback && d < DIST - 50 && aheadOf(RCAMS.lookback.at, leadU)) return "lookback";

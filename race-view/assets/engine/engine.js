@@ -120,8 +120,9 @@ export function standardFor(standards, course, distance) {
 
 // The bends a race meets, as [metres to go where it starts, where it ends, angle turned (radians)], from the round
 // course's inside rail in courses/ascot.json. A race that starts, or joins the loop (the round mile from the chute),
-// part-way round a bend gets that share of its turn, as the bench does.
-export function bendsFor(course, kind, distance) {
+// part-way round a bend gets that share of its turn, as the bench does. A round race that starts on the straight course
+// (the stalls file's start has onStraight: the 2m4f) meets no bend until it has passed the post and joined the loop.
+export function bendsFor(course, kind, distance, onStraight = false) {
   if (kind === "straight") return { bends: [], home: 0 };
   const rc = course.roundCourse, pts = rc.insideRail.points, sp = rc.insideRail.spacing, n = pts.length, L = n * sp;
   const heading = (d) => {                                  // running direction at d metres to go on the loop
@@ -140,7 +141,7 @@ export function bendsFor(course, kind, distance) {
     return Math.abs(tot);
   };
   const loop = rc.bends.map((b) => [b.from, b.to, turned(b.from, b.to)]);
-  const join = kind === "roundMile" ? course.roundMileSpur.distanceToGoAtJoin : Infinity;
+  const join = kind === "roundMile" ? course.roundMileSpur.distanceToGoAtJoin : onStraight ? L : Infinity;
   const bends = [];
   for (let k = 0; k < 3; k++) for (const [a0, b0, ang0] of loop) {
     let A = a0 + k * L, B = b0 + k * L, ang = ang0;
@@ -215,7 +216,7 @@ export function runRace(race, runners, data, options = {}) {
   const D = race.distance, kind = race.course === "straight" ? "straight" : race.course === "roundMile" ? "roundMile" : "round";
   const straight = kind === "straight";
   const W = data.course.trackWidth, MID = W / 2, Z0 = P.RAIL_CLEAR, Z1 = W - P.RAIL_CLEAR;
-  const { bends, home } = bendsFor(data.course, kind, D);
+  const { bends, home } = bendsFor(data.course, kind, D, !!start.onStraight);
   const join = bends.length ? bends[0][0] : D;
   const std = standardFor(data.standards, race.course, D);
   const goingName = data.standards.going[race.going] ? race.going : "Good";
