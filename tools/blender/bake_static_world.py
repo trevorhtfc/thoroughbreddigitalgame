@@ -70,19 +70,25 @@ def ramp(nodes, stops):
     return r
 
 
-# ---------------- light: as in tools/blender/stylised_look_test.py ----------------
+# ---------------- light: the finish study's soft warm light (tools/blender/stand_clean_study.py, "soft") ----------------
+# A pastel sky (peach at the horizon, dusty blue above) and a big soft warm sun raking in from the west, a
+# little in front of the stand (owner, 6 Nov 2026: softer, warmer, no intense blue, no green cast).
 world = bpy.data.worlds.new("sky"); scene.world = world
 world.use_nodes = True
 wn, wl = world.node_tree.nodes, world.node_tree.links
 tc = wn.new("ShaderNodeTexCoord"); sep = wn.new("ShaderNodeSeparateXYZ")
 wl.new(tc.outputs["Generated"], sep.inputs[0])
-sky = ramp(wn, [(0.0, "#e4e6dc"), (0.04, "#b8d4ec"), (0.14, "#6faee6"), (0.45, "#3a86d6")])
+sky = wn.new("ShaderNodeValToRGB"); el = sky.color_ramp.elements
+el[0].position, el[0].color = 0.0, (1.0, 0.86, 0.74, 1)
+el[1].position, el[1].color = 0.62, (0.56, 0.7, 0.9, 1)
+el.new(0.16).color = (0.93, 0.87, 0.85, 1)
 wl.new(sep.outputs["Z"], sky.inputs[0])
-wl.new(sky.outputs[0], wn["Background"].inputs["Color"]); wn["Background"].inputs["Strength"].default_value = 1.05
+wl.new(sky.outputs[0], wn["Background"].inputs["Color"]); wn["Background"].inputs["Strength"].default_value = 0.8
 bpy.ops.object.light_add(type="SUN")
 sun = bpy.context.object
-sun.data.energy = 5.0; sun.data.angle = math.radians(5); sun.data.color = (1.0, 0.9, 0.76)
-sun.rotation_euler = (math.radians(56), 0, math.radians(-118))
+sun.data.energy = 4.6; sun.data.angle = math.radians(14); sun.data.color = (1.0, 0.8, 0.62)
+SUN_DIR = Vector((-1.0, 0.32, 0.45)).normalized()             # towards the sun, Blender axes (world x, -z, y)
+sun.rotation_euler = (-SUN_DIR).to_track_quat("-Z", "Y").to_euler()
 
 # ---------------- ground: the stills' turf, lanes, grass and paths ----------------
 def ground_mask():
@@ -108,6 +114,11 @@ def ground_mask():
     lanes = lf.lanes_value(dist, L["lanes"], L["width"])
     rgb = np.array(im)
     rgb[..., 2] = (lanes * 255 + 0.5).astype(np.uint8)
+    # beige-brown ground beside the track (owner, 7 Nov 2026): 1 within 45 m of the track, fading out by 85 m
+    from scipy.ndimage import distance_transform_edt
+    dm = distance_transform_edt(rgb[..., 0] < 128, sampling=(1 / sz, 1 / sx))
+    near = np.clip((85.0 - dm) / 40.0, 0, 1)
+    Image.fromarray((near * 255 + 0.5).astype(np.uint8), "L").filter(ImageFilter.GaussianBlur(2)).save(os.path.join(OUT, "_ground_near.png"))
     im = Image.fromarray(rgb, "RGB")
     path = os.path.join(OUT, "_ground_mask.png")
     im.filter(ImageFilter.GaussianBlur(1.2)).save(path)
@@ -123,6 +134,8 @@ def ground_material():
     mask.interpolation = "Linear"; mask.extension = "EXTEND"
     uvn = gn.new("ShaderNodeUVMap"); uvn.uv_map = "lightmap"; gl.new(uvn.outputs["UV"], mask.inputs["Vector"])
     msep = gn.new("ShaderNodeSeparateColor"); gl.new(mask.outputs["Color"], msep.inputs[0])
+    if SOFT_GROUND:
+        return soft_ground(gm, gn, gl, tco, uvn, msep)
     # soft lanes along the running line, round the bends too: the mask's blue channel holds
     # 0.5 + 0.5 cos(pi * 8 * d / 30), d = metres from the turf's edge; back to -1..1 here
     cosn = gn.new("ShaderNodeMath"); cosn.operation = "MULTIPLY_ADD"; cosn.inputs[1].default_value = 2.0; cosn.inputs[2].default_value = -1.0
@@ -149,6 +162,56 @@ def ground_material():
     return gm
 
 
+def soft_ground(gm, gn, gl, tco, uvn, msep):
+    """The finish study's ground (tools/blender/stand_clean_study.py turf_mat), at the bake's resolution
+    (about 19 cm a pixel): the racing turf with its eight mown lanes along the running line, broad patches
+    and tufts; beside the track the beige-brown trodden ground, fading into the light green lawn further
+    out; the paths. The fine blades and grain are too small for the bake: the viewer lays them on live."""
+    near = gn.new("ShaderNodeTexImage"); near.image = bpy.data.images.load(os.path.join(OUT, "_ground_near.png"))
+    near.image.colorspace_settings.name = "Non-Color"; near.interpolation = "Linear"; near.extension = "EXTEND"
+    gl.new(uvn.outputs["UV"], near.inputs["Vector"])
+    def noise(scale, detail=4, rough=0.6):
+        n = gn.new("ShaderNodeTexNoise"); n.inputs["Scale"].default_value = scale; n.inputs["Detail"].default_value = detail
+        n.inputs["Roughness"].default_value = rough; gl.new(tco.outputs["Object"], n.inputs["Vector"]); return n.outputs["Fac"]
+    def cramp(inp, stops):
+        r = gn.new("ShaderNodeValToRGB"); gl.new(inp, r.inputs[0]); els = r.color_ramp.elements
+        while len(els) < len(stops): els.new(0.5)
+        for e, (p, c) in zip(els, stops): e.position = p; e.color = c
+        return r.outputs[0]
+    def mul(a, b):
+        x = gn.new("ShaderNodeMix"); x.data_type = "RGBA"; x.blend_type = "MULTIPLY"; x.inputs["Factor"].default_value = 1.0
+        for slot, v in ((6, a), (7, b)):
+            if isinstance(v, tuple): x.inputs[slot].default_value = v
+            else: gl.new(v, x.inputs[slot])
+        return x.outputs[2]
+    def mix(a, b, fac):
+        x = gn.new("ShaderNodeMix"); x.data_type = "RGBA"
+        gl.new(fac, x.inputs["Factor"])
+        for slot, v in ((6, a), (7, b)):
+            if isinstance(v, tuple): x.inputs[slot].default_value = v
+            else: gl.new(v, x.inputs[slot])
+        return x.outputs[2]
+    g = lambda v: (v, v, v, 1)
+    # the racing turf: base, broad patches, tufts, and the lanes (the mask's blue: 0.5 + 0.5 cos(pi * 8 * d / 30))
+    turf = mul(srgb("#7fa952"), cramp(noise(0.08, 3), [(0.3, g(0.86)), (0.7, g(1.1))]))
+    turf = mul(turf, cramp(noise(2.2, 4, 0.6), [(0.35, g(0.88)), (0.65, g(1.08))]))
+    st = 0.16
+    turf = mul(turf, cramp(msep.outputs[2], [(0.0, (1 - st, 1 - st * 0.8, 1 - st * 1.2, 1)), (1.0, (1 + st * 0.8, 1 + st * 0.8, 1 + st * 0.3, 1))]))
+    # the lawn, and the beige-brown ground beside the track
+    lawn = mul(srgb("#bcc98c"), cramp(noise(0.12, 3), [(0.3, g(0.86)), (0.7, g(1.1))]))
+    lawn = mul(lawn, cramp(noise(3.0, 4, 0.6), [(0.35, g(0.92)), (0.65, g(1.05))]))
+    sand = mul(srgb("#cdb894"), cramp(noise(0.1, 3), [(0.3, g(0.92)), (0.7, g(1.06))]))
+    sand = mul(sand, cramp(noise(4.0, 4, 0.6), [(0.3, g(0.95)), (0.7, g(1.04))]))
+    off = mix(lawn, sand, near.outputs["Color"])
+    col = mix(off, turf, msep.outputs[0])
+    col = mix(col, srgb("#d8c29a"), msep.outputs[1])
+    b = gn["Principled BSDF"]
+    gl.new(col, b.inputs["Base Color"]); b.inputs["Roughness"].default_value = 0.97
+    b.inputs["Specular IOR Level"].default_value = 0.1
+    return gm
+
+
+SOFT_GROUND = True
 me = bpy.data.meshes.new("ground")
 bm = bmesh.new()
 g = GROUND
@@ -194,7 +257,8 @@ def join(objs, name):
 
 
 arch = os.path.join(REPO, "assets/models/architecture")
-stand_parts = import_glb(os.path.join(arch, "ascot_main_stand_far.glb"))
+# the light stand with the owner's dressing (clay colours, pastel accents, awnings, flags: tools/blender/stand_accents.py)
+stand_parts = import_glb(os.path.join(arch, "ascot_main_stand_far_dressed.glb"))
 for o in stand_parts:                                          # built in world axes: origin at the clock tower
     o.parent = None
     o.matrix_world = Matrix.Translation((0, -FRONT, 0)) @ o.matrix_world
@@ -335,7 +399,14 @@ def encode(px, path, scale, jpeg=False, blur=1.0):
 
 INFO = {"_about": "Baked light for the static world (tools/blender/bake_static_world.py), world axes as courses/ascot.json. Each image stores value / scale, sRGB-encoded. Viewer: colour = material colour x light x scale (light maps), or image x scale (ground; its area is in world x, z, image top = north). 'outside' and 'turf' are the plain grass and turf colours (linear) to carry on beyond the baked ground.",
         "glb": "static_world.glb"}
-for o, name, size in ((finish, "finish", 2048), (site, "site", 2048), (stand, "stand", 3072)):
+# The grass looks green to the camera but must not throw a green cast up onto the stone (owner: no green
+# hue): while the buildings bake, the ground is a warm neutral; it gets its own material back for its bake.
+ground_mat = ground.data.materials[0]
+bounce = bpy.data.materials.new("bounce_neutral"); bounce.use_nodes = True
+bounce.node_tree.nodes["Principled BSDF"].inputs["Base Color"].default_value = srgb("#a29680")
+bounce.node_tree.nodes["Principled BSDF"].inputs["Roughness"].default_value = 1.0
+ground.data.materials[0] = bounce
+for o, name, size in ((finish, "finish", 2048), (site, "site", 2048), (stand, "stand", 4096)):
     import time; t0 = time.time()
     px = bake(o, name, size // 8 if SMOKE else size, size // 8 if SMOKE else size, "light")
     lum = px[..., :3].max(axis=2)[px[..., 3] > 0.5]
@@ -344,6 +415,7 @@ for o, name, size in ((finish, "finish", 2048), (site, "site", 2048), (stand, "s
     INFO[name] = {"mesh": o.name, "lightMap": name + "_light.jpg", "scale": round(scale, 4)}
     print("baked %s in %.0fs, scale %.3f" % (name, time.time() - t0, scale), flush=True)
 
+ground.data.materials[0] = ground_mat
 t0 = time.time()
 if os.environ.get("KEEP_GROUND") and os.path.exists(os.path.join(OUT, "bake.json")):
     INFO["ground"] = json.load(open(os.path.join(OUT, "bake.json")))["ground"]     # reuse the last ground bake
@@ -356,7 +428,8 @@ if px is not None:
     m = (np.array(Image.open(os.path.join(OUT, "_ground_mask.png")).resize((GROUND["w"], GROUND["h"]))))
     # px is top row first = north; the mask's row 0 is north as well
     turf = px[..., :3][m[..., 0] > 200]
-    grass = px[..., :3][(m[..., 0] < 20) & (m[..., 1] < 20)]
+    nr = np.array(Image.open(os.path.join(OUT, "_ground_near.png")).resize((GROUND["w"], GROUND["h"])))
+    grass = px[..., :3][(m[..., 0] < 20) & (m[..., 1] < 20) & (nr < 10)]          # the lawn, away from the beige
     INFO["ground"] = {"mesh": "ground", "map": "ground.jpg", "scale": round(scale, 4),
                       "area": {k: GROUND[k] for k in ("x0", "x1", "z0", "z1")},
                       "outside": [round(float(c), 4) for c in np.median(grass[::50], axis=0)],
@@ -400,5 +473,6 @@ for o in (stand, finish, ground, *kit_objs):
 bpy.ops.export_scene.gltf(filepath=os.path.join(OUT, "static_world.glb"), export_format="GLB", use_selection=True,
                           export_yup=True, export_texcoords=True, export_normals=True, export_apply=False, export_animations=False)
 json.dump(INFO, open(os.path.join(OUT, "bake.json"), "w"), indent=1)
-os.remove(os.path.join(OUT, "_ground_mask.png"))
+for f in ("_ground_mask.png", "_ground_near.png"):
+    if os.path.exists(os.path.join(OUT, f)): os.remove(os.path.join(OUT, f))
 print("exported static_world.glb", flush=True)

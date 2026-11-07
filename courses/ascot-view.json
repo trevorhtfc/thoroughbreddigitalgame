@@ -191,8 +191,8 @@
   "note": "Trees within nearRadius metres of centre use the full leafy crowns; further off, the light _crown_far versions (belt trees there also drop their trunks, which the hedge hides)."
  },
  "glass": {
-  "reflect": "#7f93a6",
-  "amount": 0.3,
+  "reflect": "#8f8c99",
+  "amount": 0.12,
   "note": "Window glass on the baked buildings picks up this much of the sky's reflection, so big glazed screens read as glass rather than dark holes."
  },
  "lanes": {
