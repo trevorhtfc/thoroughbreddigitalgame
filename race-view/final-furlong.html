@@ -2277,12 +2277,14 @@ const DOCK = (() => {
         order.splice(0, order.length, ...finish.map((f, i) => [f.t, i]).sort((a, b) => a[0] - b[0]).map(([ft, i]) => [DIST - (ft - winT) * finish[i].v, i]));
         lead = DIST;
       }
+      if (phase === "stalls" || phase === "prelude") order.sort((p, q) => p[1] - q[1]);
       order.forEach(([u, i], k) => {
         const c = chips[i];
         c.style.transform = `translateX(${k * step}px)`;
-        c.classList.toggle("lead", k === 0);
-        c.querySelector(".pos").textContent = k + 1 + (k === 0 ? "st" : k === 1 ? "nd" : k === 2 ? "rd" : "th");
-        c.querySelector(".gap").textContent = k === 0 ? (phase === "stalls" || phase === "prelude" ? "" : over ? "won" : "lead") : lengths(lead - u);
+        const before = phase === "stalls" || phase === "prelude";     // before the off: the card in stall order, no places
+        c.classList.toggle("lead", k === 0 && !before);
+        c.querySelector(".pos").textContent = before ? "" : k + 1 + (k === 0 ? "st" : k === 1 ? "nd" : k === 2 ? "rd" : "th");
+        c.querySelector(".gap").textContent = before ? "" : k === 0 ? (over ? "won" : "lead") : lengths(lead - u);
       });
       spacer.style.width = RUNNERS * step - 4 + "px";
       title.textContent = phase === "prelude" || phase === "stalls" ? "Runners" : lead >= DIST ? "Result" : "Running order";
