@@ -339,7 +339,7 @@ window.LIFE = { procession, __advance: (secs) => { stepShots(0, secs); return sh
 B.addFrame((t, dt) => {
   if (!renderer || lost) return;
   // nothing to draw while the board is out of sight: at Ascot, or under a sheet on a phone (where the sheet fills the screen)
-  if (document.body.classList.contains("at-ascot") || (B.covered && innerWidth <= 760)) return;
+  if (document.body.classList.contains("at-ascot") || B.covered) return;   // still behind a sheet, like the board
   for (const mv of movers) { mv.step(t, dt); if (mv.m.mixer && mv.m.obj.visible) mv.m.mixer.update(dt); }
   stepShots(t, dt);
   renderer.render(scene, cam);

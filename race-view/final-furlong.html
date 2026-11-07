@@ -171,6 +171,9 @@ button:focus-visible { outline: 2px solid var(--cream-edge); outline-offset: 2px
    result after the line are the game's; the race itself is unchanged. */
 .in-game { --cream: #f2ecdf; --cream-edge: #b79042; --green: #3d7153; --green-ink: #2c3a30; --ink-soft: #6b6a60; --display: "Crimson Pro", Georgia, serif; --body: "Jost", "Helvetica Neue", Arial, sans-serif; --read: "Nunito", system-ui, sans-serif; }
 .in-game #horses { display: none; }
+/* The look and grandstand style tests reload the page, and in the game the race is only handed over once: they live
+   on the race view's own page (the testing page) and stay out of the game (owner, 7 Nov). */
+.in-game #looks, .in-game #standsG { display: none; }
 .in-game .plate { padding: 9px 16px 10px; gap: 16px; box-shadow: 0 0 0 3px var(--cream), 0 0 0 4px rgba(183,144,66,.75), 0 8px 22px rgba(20,30,20,.3); }
 .in-game .plate h1 { font-family: var(--display); font-size: 1.55rem; letter-spacing: 0; text-transform: none; font-weight: 700; }
 .in-game .plate p { font-family: var(--body); letter-spacing: .16em; text-transform: uppercase; font-size: .66rem; color: #8d6b2a; }
@@ -1270,7 +1273,9 @@ function buildCrowd(gltf, data, pieceAt) {
     });
     const tag = (g, k) => { g.setAttribute("aPart", new THREE.Float32BufferAttribute(new Float32Array(g.attributes.position.count).fill(Math.max(0, k)), 1)); return g; };
     const nearGeo = mergeGeometries(parts.map(([g, k]) => tag(g.clone(), k)));
-    const farGeo = mergeGeometries(parts.map(([g, k]) => {
+    // (the skittle figures are already a few hundred points each: simplifying them further turned the hats into cones,
+    // so far off they use the same shape)
+    const farGeo = SKITTLES ? nearGeo.clone() : mergeGeometries(parts.map(([g, k]) => {
       const w0 = g.clone(); w0.deleteAttribute("normal");
       const w = mergeVertices(w0);
       const sg = new SimplifyModifier().modify(w, Math.floor(w.attributes.position.count * 0.65));

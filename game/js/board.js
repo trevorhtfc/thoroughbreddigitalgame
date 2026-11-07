@@ -844,17 +844,19 @@ racesBtn.addEventListener("focus", () => hover("races", true)); racesBtn.addEven
 stage.appendChild(racesBtn); racesBtn.style.left = RACES_AT[0] + "px"; racesBtn.style.top = RACES_AT[1] + "px";
 
 // ---------------------------------------------------------------- the loop
-// While a sheet covers the board it's barely seen, so it runs at a few frames a second to spare the phone.
+// While a sheet covers the board it holds still (see frame()).
 const frameHooks = [];
-let last = performance.now(), clockT = 0, skyT = 0, slowT = 0;
+let last = performance.now(), clockT = 0, skyT = 0;
 function frame(now) {
   const raw = Math.min((now - last) / 1000, 0.1);
   if (LITE && (API.covered || document.hidden)) { last = now; requestAnimationFrame(frame); return; }   // a phone's sheet fills the screen
   if (document.body.classList.contains("watching")) { last = now; requestAnimationFrame(frame); return; }   // a race is on over everything
   if (LITE && now - last < 31) { requestAnimationFrame(frame); return; }
   last = now;
-  if (API.covered) { slowT += raw; if (slowT < 0.25) { requestAnimationFrame(frame); return; } }
-  const dt = API.covered ? Math.min(slowT, 0.3) : raw; slowT = 0;
+  // a sheet is open over the board (the programme, the stud, the sales...): the board holds still behind it, as a
+  // still picture, instead of ticking over at a few frames a second (owner, 7 Nov: the moving map was wasted there)
+  if (API.covered) { last = now; requestAnimationFrame(frame); return; }
+  const dt = raw;
   clockT += dt; const t = clockT;
   if (!API.holdDay) stepDay(dt); else stepDay(0);
   stepSmoke(dt); drawFx(t, dt); drawBanners(t, dt);

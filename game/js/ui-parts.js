@@ -656,7 +656,8 @@ addEventListener("keydown", e => {
 addEventListener("message", e => {
   if (!watching || e.source !== watching.frame.contentWindow) return;
   const d = e.data || {};
-  if (d.type === "ready" && !watching.sent) {
+  // the race is sent every time the view says it's ready (if the view reloads itself it gets the race again)
+  if (d.type === "ready") {
     watching.sent = true; clearTimeout(watching.timer);
     const m = watching.box.querySelector(".msg"); if (m) m.remove();     // it loaded late: the race goes on after all
     watching.frame.contentWindow.postMessage(watching.payload, "*");
