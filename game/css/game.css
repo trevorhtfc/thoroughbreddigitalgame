@@ -366,7 +366,12 @@ button{font:inherit;cursor:pointer;color:inherit}
 /* ---------------------------------------------------------------- films between the places */
 .cine{position:fixed;inset:0;z-index:65;background:#0f1c17;overflow:hidden;--clip:inset(0px)}
 .cine[hidden]{display:none}
-.cine video{position:absolute;left:0;top:0;width:100%;height:100%;object-fit:fill;clip-path:var(--clip);-webkit-clip-path:var(--clip)}
+.cine video{position:absolute;left:0;top:0;width:100%;height:100%;object-fit:fill;clip-path:var(--clip);-webkit-clip-path:var(--clip);will-change:transform;backface-visibility:hidden}
+/* a film that lands on the board plays under the top bar, as the board does (no dark strip opening at the top) */
+.cine.under-bar{top:var(--bar-h)}
+/* the drifting clouds along the top come in softly after the film, rather than popping in */
+#wisps{transition:opacity 1.6s ease .3s}
+body.filming #wisps{opacity:0;transition:none}
 .cine.fade-in{animation:cineIn .5s ease both}
 .cine.landing{background:transparent;transition:background .5s}
 .cine.fade-out{animation:cineOut .65s ease both}

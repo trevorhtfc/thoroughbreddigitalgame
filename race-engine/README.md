@@ -66,3 +66,35 @@ node check/table.mjs                       # the side-by-side table
 ## Changing the rules
 
 Tune in the bench first (`tools/race-bench`), then copy the numbers into `settings.json` → `bench` and re-run the comparison. A rule change goes into both `racebench.py` and `engine.js`.
+
+## 7 Nov 2026: more horses coming from the back
+
+The owner, after watching a handful of races: very little comes from the back. Measured (`check/closers.mjs`, 16
+runners): the winner was usually already up with the pace 2 furlongs out (leading at 2f out in 45% of straight-mile
+races and 43% at 1m4f; only 0.2 L behind the leader at the 2f pole on the straight mile, median). The cause: every
+jockey kicked at the same point (about 3.4f out in a mile) and rationed the horse's energy exactly to the line, so the
+held-up horses made their ground between 3.5f and 2f out, and leaders never ran out of petrol.
+
+Two new numbers and one changed (in `bench` and the bench's own settings; the same rule in `racebench.py` and `engine.js`):
+
+| Setting | Front · Prominent · Midfield · Hold-up | What it does |
+|---|---|---|
+| `KICK_STYLE` | 1 · 1 · 0.88 · 0.76 | Where each style's jockey goes for home, as a share of the usual kick point: held-up horses wait. |
+| `KICK_REACH` | 0.8 · 0.87 · 0.96 · 1 | How far off a jockey judges the line when he kicks: a front-runner is set alight as if it were 20% nearer, so it can empty before the post and come back to the field in the last furlong. |
+| `BURST_STYLE` | 0 · 0 · 0.008 · 0.016 (was 0.006, 0.018) | The final sprint's extra for midfield and hold-up horses. |
+
+Before → after (`node check/closers.mjs 300 16`, Good ground; before was 200 races):
+
+| | Winner in the back half 2f out | Winner leading 2f out | Winner's lengths behind the leader 2f out (median) | Hold-up wins (share 25%) | Best horse wins |
+|---|---|---|---|---|---|
+| 6f straight | 24% → 29% | 27% → 27% | 1.2 → 1.4 | 20% → 20% | 34% → 34% |
+| Straight mile | 9% → 20% | 45% → 36% | 0.2 → 1.2 | 30% → 29% | 40% → 34% |
+| Round mile | 19% → 24% | 25% → 29% | 2.4 → 2.9 | 18% → 17% | 28% → 29% |
+| 1m4f | 5% → 11% | 43% → 37% | 0.7 → 1.9 | 19% → 26% | 28% → 29% |
+| 2m | 11% → 13% | 36% → 42% | 1.7 → 1.0 | 35% → 29% | 29% → 30% |
+
+Stronger settings were tried (front-runners judging the line 30% nearer, hold-up horses kicking at 0.65–0.8 of the
+usual point, a bigger burst): they doubled the effect (straight mile 24% from the back half, 1m4f 17%, winners 2–3 L
+down at the 2f pole) but front-runners then won only 0.64–0.88 of their share on the bench (they had been about 1).
+This balanced version keeps front-runners at about 0.82–0.99 and lifts midfield horses on the round course (0.5–0.85
+before, now about 0.77–1.03). The engine and the bench were compared again afterwards: `check/results/compare.md`.

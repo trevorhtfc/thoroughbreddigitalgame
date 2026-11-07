@@ -183,11 +183,12 @@ export function makeRunner(proto, { coat, silk, seed = 1, texLoader, castShadow 
 // For a field: detail levels by size on screen, with at most 'close' runners at the close level (the
 // biggest on screen), so a telephoto shot of a big field never draws every horse at full detail.
 // Far: smaller than about 6% of the screen's height. Close: bigger than about a fifth.
-export function chooseLevels(list, camera, { close = 4 } = {}) {
+// 'far' moves the far level's threshold (the Lightest quality uses the far horse for more of the field).
+export function chooseLevels(list, camera, { close = 4, far = 0.06 } = {}) {
   const sized = list.map((r, i) => [r.screenFrac(camera), i]).sort((a, b) => b[0] - a[0]);
   sized.forEach(([f, i], k) => {
     const r = list[i], cur = r.level;
-    let lv = f < (cur === 2 ? 0.075 : 0.06) ? 2 : 1;
+    let lv = f < (cur === 2 ? far * 1.25 : far) ? 2 : 1;
     if (k < close && f > (cur === 0 ? 0.17 : 0.21)) lv = 0;
     if (lv !== cur) r.setLevel(lv);
   });

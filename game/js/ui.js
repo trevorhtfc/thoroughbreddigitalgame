@@ -432,50 +432,68 @@ function museumBody() {
 // exactly over the live board as it lands, and fades into it.
 const CLIP = { w: 1280, h: 720, k: 0.706, x: 129.5, y: -23.6 };
 function boardRect() { const r = $("#stage").getBoundingClientRect(); return r; }
+// rects are measured inside the film's box (which sits under the top bar when the film lands on the board)
+function boxRect() { return $("#cine").getBoundingClientRect(); }
 function clipRectOnBoard() {
-  const b = boardRect(), s = b.width / 1448, f = s / CLIP.k;
-  return { left: b.left - CLIP.x * f, top: b.top - CLIP.y * f, width: CLIP.w * f, height: CLIP.h * f, board: b };
+  const o = boxRect(), b = boardRect(), s = b.width / 1448, f = s / CLIP.k;
+  return { left: b.left - o.left - CLIP.x * f, top: b.top - o.top - CLIP.y * f, width: CLIP.w * f, height: CLIP.h * f,
+    board: { left: b.left - o.left, top: b.top - o.top, right: b.right - o.left, bottom: b.bottom - o.top }, box: o };
 }
 function coverRect(w, h) {
-  const W = innerWidth, H = innerHeight, k = Math.max(W / w, H / h);
+  const o = boxRect(), W = o.width, H = o.height, k = Math.max(W / w, H / h);
   return { left: (W - w * k) / 2, top: (H - h * k) / 2, width: w * k, height: h * k };
 }
 const lerpRect = (a, b, u) => ({ left: a.left + (b.left - a.left) * u, top: a.top + (b.top - a.top) * u, width: a.width + (b.width - a.width) * u, height: a.height + (b.height - a.height) * u });
 // play a film: from one framing to another; resolves when it ends (or is skipped)
+// (owner, 7 Nov: the landing wobbled) The film itself is steadied and runs at 48 frames a second; its framing is now
+// moved only when a new frame of the film is shown (requestVideoFrameCallback), with a transform, so the picture and its
+// frame always move together instead of the frame gliding between the film's own steps.
 function film(src, { from = "cover", to = "cover", caption = "", sound = false, fadeOut = true, fadeIn = true, poster } = {}) {
   return new Promise((done) => {
     const box = $("#cine"), v = $("#cineVid"), cap = $("#cineCap");
+    const onBoard = from === "board" || to === "board";
     UI.cineOn = true; paintGuide();
-    box.hidden = false; box.className = "cine on" + (fadeIn ? " fade-in" : "");
+    document.body.classList.toggle("filming", onBoard);
+    box.hidden = false; box.className = "cine on" + (fadeIn ? " fade-in" : "") + (onBoard ? " under-bar" : "");
     cap.innerHTML = caption; cap.classList.remove("show");
     v.muted = !(sound && BOARD.Sound.on); v.src = src; if (poster) v.poster = poster;
-    let finished = false, raf = 0;
+    let finished = false, raf = 0, vfc = 0;
     const rectFor = (k) => k === "board" ? clipRectOnBoard() : coverRect(v.videoWidth || CLIP.w, v.videoHeight || CLIP.h);
-    const place = (r) => Object.assign(v.style, { left: r.left + "px", top: r.top + "px", width: r.width + "px", height: r.height + "px" });
+    const W0 = CLIP.w, H0 = CLIP.h;
+    Object.assign(v.style, { left: "0px", top: "0px", width: W0 + "px", height: H0 + "px", transformOrigin: "0 0" });
+    const place = (r) => { v.style.transform = `translate3d(${r.left}px,${r.top}px,0) scale(${r.width / W0},${r.height / H0})`; };
     const end = () => {
-      if (finished) return; finished = true; cancelAnimationFrame(raf);
-      const close = () => { box.hidden = true; box.className = "cine"; v.removeAttribute("src"); v.load(); UI.cineOn = false; paintGuide(); done(); };
-      if (fadeOut) { box.classList.add("fade-out"); setTimeout(close, 650); } else close();
+      if (finished) return; finished = true; cancelAnimationFrame(raf); if (vfc && v.cancelVideoFrameCallback) v.cancelVideoFrameCallback(vfc);
+      const close = () => { box.hidden = true; box.className = "cine"; v.removeAttribute("src"); v.load(); v.style.transform = ""; UI.cineOn = false; document.body.classList.remove("filming"); paintGuide(); done(); };
+      if (fadeOut) { box.classList.add("fade-out"); document.body.classList.remove("filming"); setTimeout(close, 650); } else close();
     };
-    const tick = () => {
+    const frame = (t) => {
       if (finished) return;
-      const d = v.duration || 4, u = Math.min(1, v.currentTime / d), e = u < 0.5 ? 2 * u * u : 1 - Math.pow(-2 * u + 2, 2) / 2;
+      const d = v.duration || 4, u = Math.min(1, t / d), e = u < 0.5 ? 2 * u * u : 1 - Math.pow(-2 * u + 2, 2) / 2;
       const a = rectFor(from), b = rectFor(to), r = lerpRect(a, b, e); place(r);
       // landing on (or leaving) the board: clip the film to the board's frame, so the clip's dark edges never show
-      if (from === "board" || to === "board") {
-        const br = clipRectOnBoard().board, w = to === "board" ? e : 1 - e, ins = (x) => Math.max(0, x * w);
-        box.style.setProperty("--clip", `inset(${ins(br.top)}px ${ins(innerWidth - br.right)}px ${ins(innerHeight - br.bottom)}px ${ins(br.left)}px)`);
-        box.classList.toggle("landing", to === "board" && u > 0.86);
+      if (onBoard) {
+        const br = clipRectOnBoard(), bd = br.board, w = to === "board" ? e : 1 - e, ins = (x) => Math.max(0, x * w);
+        box.style.setProperty("--clip", `inset(${ins(bd.top)}px ${ins(br.box.width - bd.right)}px ${ins(br.box.height - bd.bottom)}px ${ins(bd.left)}px)`);
+        // the clip's last frame doesn't quite reach the board's top and bottom edges on a tall screen: let the board
+        // show through there instead of the dark backing (owner, 7 Nov: a strip at the top on a phone)
+        const gap = r.top > 0.5 || r.top + r.height < br.box.height - 0.5 || r.left > 0.5 || r.left + r.width < br.box.width - 0.5;
+        box.classList.toggle("landing", to === "board" && (u > 0.86 || gap));
       }
       if (u > 0.15 && caption) cap.classList.add("show");
       if (u > 0.82 && caption) cap.classList.remove("show");
-      raf = requestAnimationFrame(tick);
     };
+    if (v.requestVideoFrameCallback) {
+      const onFrame = (now, meta) => { frame(meta.mediaTime); vfc = v.requestVideoFrameCallback(onFrame); };
+      vfc = v.requestVideoFrameCallback(onFrame);
+    } else {
+      const tick = () => { if (finished) return; frame(v.currentTime); raf = requestAnimationFrame(tick); };
+      raf = requestAnimationFrame(tick);
+    }
     $("#cineSkip").onclick = end;
     v.onended = end; v.onerror = end;
-    v.onloadedmetadata = () => place(rectFor(from));
+    v.onloadedmetadata = () => frame(0);
     const go = v.play(); if (go && go.catch) go.catch(() => { v.muted = true; v.play().catch(end); });
-    raf = requestAnimationFrame(tick);
     setTimeout(() => { if (!finished && v.currentTime === 0) end(); }, 9000);   // never hang on a film that won't play
   });
 }

@@ -242,3 +242,43 @@ way). Published as version 7 of the live game.
 - **Before the off**: one card of the whole field (stall, colours, name, price; your runner picked out) over a still
   aerial from behind the carnival across the track to the stand, with "To the start" (it goes by itself after 7 s plus
   0.6 s a runner). The race view's own races get names and prices too.
+
+## 7 Nov 2026 (evening): the owner's run-through list
+
+**Branch `claude/run-through-fixes`**, from `main`; merged into `main` for the live site.
+
+- **The opening film wobbled.** The map clip (`video/newmarket-arrive.mp4`) had an uneven cadence: every few frames the
+  zoom jumped further than the frames either side (measured frame to frame), so the descent juddered. It's now steadied
+  (each frame re-warped onto a smoothed camera path, `tools/steady_film.py`, run on the original clip) and
+  interpolated to 48 frames a second; its last frame is untouched, so it still lands exactly on the board. In `film()`
+  the film's framing now moves only when a new frame of the film is shown (`requestVideoFrameCallback`, with a
+  transform), so the picture and its frame move together.
+- **The strip at the top on a phone.** On a tall screen the clip's last frame doesn't reach the board's top and bottom
+  edges (about 24 px each), and the film covered the top bar, which then appeared as a dark band that "loaded later".
+  A film that lands on the board now plays under the top bar (`.cine.under-bar`), the board shows through wherever the
+  film doesn't reach (instead of the dark backing), and the drifting clouds along the top fade in after the film
+  (`body.filming #wisps`) rather than popping in.
+- **Horseboxes off the roads.** The vans' routes came from hand-placed road lines that ran up to ~15 px off the painted
+  roads (onto verges, a front garden, the grass by the Stud's lawn), and keeping left pushed them further. Now
+  `tools/snap_van_routes.py` finds the painted road surface on the board and slides each main road's line onto its
+  middle (writes `VAN_ROUTES` into `src/life.src.js`; run `tools/build.py` after). The lane from the stables past the
+  Jockey Club is a faint track and stays as drawn. Bury Road's end now follows the road off the top of the board.
+  Vans keep left by 4 px (was 6). Walkers and the strings still use the hand-placed lines.
+- **The crowd** in the race view is calmed right down (owner: keep it minimal so the figures draw less attention): no
+  hopping on the toes, a barely-there sway, a slow lean in as the leaders pass, and only a few hats lifted, slowly.
+- **Coming from the back**: see `race-engine/README.md` (7 Nov): held-up horses wait longer and finish stronger, and
+  leaders who kick for home can empty before the post.
+- **Prices against the colour cards** (owner: reds shouldn't be 20/1). The card comes from the race-day figure against
+  the race's bands (rating, less 5 a step off its trip, plus or minus the going, so the ground does count); the price
+  came from the horse's chance in the whole field, so a red in a strong field could be 20/1. `marketFor()` in
+  `js/rules.js` now keeps every price inside its card's range (`CARD_ODDS`): black about evens to 4/1 (odds-on only
+  for a strong favourite), red 5/1 to 10/1, yellow 11/1 to 20/1, blue 25/1 and longer. The horses on one card are
+  spread across its range in the order of their chances.
+- **The v2 horse and jockey are now the race view's horse** (owner: the boots matched the horse and the shoulder patch
+  was back; "I thought we developed a better horse/jockey model"). The game had still been showing v1, whose colours
+  were painted through a texture mask that leaks. v2 (`race-view/horse-v2.js`) has black boots and no leaks;
+  `?horse=v1` brings back the old one. `tools/stage.py` now ships `assets/model-v2/` and `assets/silks-3d-v2/`
+  (about 5.4 MB more). On Low and Lightest more of the field uses v2's light horse.
+- **Trackside boards** stand 0.8 m higher on longer legs, so "Thoroughbred" reads over the rail; the understorey
+  behind them (the fill between the hedge and the trees) is no longer one flat green but a mix of dark greens round the
+  hedge's own colour.

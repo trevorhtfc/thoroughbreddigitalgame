@@ -97,7 +97,7 @@ def run(P,course='straight',N=1500,n=10,seed=7,trace=None):
     vR=PAR*(1+(R-100)*S); vC=vR*P['COMFORT']; ref=(1-P['COMFORT'])*vR
     vK0=vR*P['TOP']; burst=vR*(P['BURST']+P['SHADE_TOP']*shade+np.array(P.get('BURST_STYLE',[0,0,0,0]))[sty]*(D/1609.3)**P.get('BURST_DIST_EXP',0.0)); E=P['TANK']*tscale/gcost*(1-P['SHADE_TANK']*shade)
     settle=np.array(P['SETTLE'])[sty]; follow=np.array(P['FOLLOW'])[sty]; own=vR*P['OWN']
-    kickAt=np.clip(P['KICK_FROM']/1609.3*D,400,1000)+g.normal(0,P['JUDGE_SD'],(N,n))
+    kickAt=np.clip(P['KICK_FROM']/1609.3*D,400,1000)*np.array(P.get('KICK_STYLE',[1,1,1,1]))[sty]+g.normal(0,P['JUDGE_SD'],(N,n))   # held-up horses wait longer (owner, 7 Nov)
     # the break (owner, 5 Nov): most within a length of each other; about 1 in 50 misses it and loses several lengths,
     # keen (fractious) horses far more often than calm ones; horses ridden to be held up come out a touch slower
     react=g.uniform(P['BREAK_MIN'],P['BREAK_MAX'],(N,n))
@@ -113,7 +113,7 @@ def run(P,course='straight',N=1500,n=10,seed=7,trace=None):
         # ---- what each horse wants (energy and pace model)
         cruise=np.where(vp<=own,vp,follow*vp+(1-follow)*own)
         want=np.where(x<200,vp*(1-settle),cruise)
-        T=np.maximum(toGo,1)/np.maximum(v,10)
+        T=np.maximum(toGo,1)/np.maximum(v,10)*np.array(P.get('KICK_REACH',[1,1,1,1]))[sty]   # below 1: kicks as if the line were nearer, empties before the post (owner, 7 Nov)
         hold=vC+ref*np.sqrt(np.maximum(E,0)/(ref*T))
         kick=toGo<=kickAt
         inB=kick&(toGo<=P['BURST_DIST'])&(E>P.get('BURST_NEEDS',3))

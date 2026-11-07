@@ -1,7 +1,7 @@
 """Gathers everything the published game needs into one folder, laid out as the game expects (the page at the top,
 the race view beside it, the race view's assets under assets/ with the Newmarket board's own in assets/newmarket/).
 Only the files the game actually loads are taken (found by playing it through with every request logged), so the
-horse v2 test files and the look test's straight are left out.
+look test's straight is left out (the v2 horse is in: it has been the race view's horse since 7 Nov).
 
 python3 game/tools/stage.py <out dir>      then publish <out dir>/index.html with the rest as its files."""
 import re, shutil, sys
@@ -31,7 +31,7 @@ for f in ["horse-v2.js", "looks.js", "stand-styles.js"]: add(view / f, f)
 # fresher light. It stays in the repo but is no longer published.)
 A = view / "assets"
 for f in ["silks-catalogue.json", "tint-mask.png"]: add(A / f, "assets/" + f)
-for d in ["engine", "model", "trees", "baked"]:
+for d in ["engine", "model", "model-v2", "trees", "baked"]:   # model-v2: the v2 horse, the race view's horse since 7 Nov (it reuses two of v1's maps)
     for p in sorted((A / d).glob("*")):
         if p.is_file() and not p.name.startswith("trees_clay"): add(p, p.relative_to(view))   # the leafy trees only (owner's choice, 7 Nov)
 for f in ["ascot.json", "ascot-view.json", "ascot-stalls.json", "ascot-standards.json", "ascot-planting.json", "ascot-site-dressing.json",
@@ -42,7 +42,7 @@ for f in ["ascot_main_stand_crowd_areas.json", "crowd_palette.json", "crowd_peop
           "crowd_set_8.json", "crowd_set_8-geometry.txt"]:
     add(A / "architecture" / f, "assets/architecture/" + f)
 # the 3D silks and their icons: every set but the pattern catalogue's test swatches
-for d in ["silks-3d", "silks-icons"]:
+for d in ["silks-3d", "silks-3d-v2", "silks-icons"]:
     for p in sorted((A / d).glob("*.png")):
         if not p.name.startswith("catalogue-"): add(p, p.relative_to(view))
 # Every character outside plain ASCII in the pages, scripts and styles is written as an escape (\u00b7 in scripts,

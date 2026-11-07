@@ -315,7 +315,8 @@ export function runRace(race, runners, data, options = {}) {
     burst[i] = vR[i] * (P.BURST + P.SHADE_TOP * c.shade + P.BURST_STYLE[c.ridden] * pow(D / P.MILE, P.BURST_DIST_EXP));
     E[i] = E0[i] = (P.TANK * tscale / going.sapping) * (1 - P.SHADE_TANK * c.shade);
     settle[i] = P.SETTLE[c.ridden]; follow[i] = P.FOLLOW[c.ridden]; own[i] = vR[i] * P.OWN;
-    kickAt[i] = clip(P.KICK_FROM / P.MILE * D, P.KICK_MIN, P.KICK_MAX) + rnd.normal(0, P.JUDGE_SD);
+    // when the jockey goes for home; those ridden to be held up wait longer (KICK_STYLE, owner 7 Nov: more coming from the back)
+    kickAt[i] = clip(P.KICK_FROM / P.MILE * D, P.KICK_MIN, P.KICK_MAX) * (P.KICK_STYLE ? P.KICK_STYLE[c.ridden] : 1) + rnd.normal(0, P.JUDGE_SD);
   }
 
   // --- run it
@@ -354,7 +355,9 @@ export function runRace(race, runners, data, options = {}) {
       const toGo = D - x[i];
       const cruise = vp[i] <= own[i] ? vp[i] : follow[i] * vp[i] + (1 - follow[i]) * own[i];
       let w = x[i] < P.EARLY ? vp[i] * (1 - settle[i]) : cruise;
-      const T = Math.max(toGo, 1) / Math.max(v[i], P.HOLD_MIN_SPEED);
+      // KICK_REACH (owner, 7 Nov): below 1, a jockey sets his horse alight as if the line were nearer than it is, so it
+      // empties before the post and comes back to the closers in the last furlong
+      const T = Math.max(toGo, 1) / Math.max(v[i], P.HOLD_MIN_SPEED) * (P.KICK_REACH ? P.KICK_REACH[card[i].ridden] : 1);
       const hold = vC[i] + ref[i] * Math.sqrt(Math.max(E[i], 0) / (ref[i] * T));
       kick[i] = toGo <= kickAt[i] ? 1 : 0;
       inB[i] = kick[i] && toGo <= P.BURST_DIST && E[i] > P.BURST_NEEDS ? 1 : 0;

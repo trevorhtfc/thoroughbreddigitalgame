@@ -377,6 +377,7 @@ function fieldFor(i) {
 // the board game's: black at or above the race's top band, then red, yellow, blue. The market prices the figures
 // (a horse 5 better is about twice as likely to win), with a bookmaker's margin, on the usual ladder of odds.
 const CARD_KEYS = ["black", "red", "yellow", "blue"];
+const CARD_ODDS = { black: [0, 4], red: [5, 10], yellow: [11, 20], blue: [25, 100] };   // each card's price range (to 1)
 const ODDS_LADDER = [[1, 3], [2, 5], [1, 2], [4, 7], [8, 13], [4, 6], [8, 11], [4, 5], [10, 11], [1, 1], [6, 5], [5, 4], [11, 8], [6, 4], [13, 8], [7, 4], [15, 8], [2, 1], [9, 4], [5, 2], [11, 4], [3, 1], [10, 3], [7, 2], [4, 1], [9, 2], [5, 1], [11, 2], [6, 1], [13, 2], [7, 1], [15, 2], [8, 1], [17, 2], [9, 1], [10, 1], [11, 1], [12, 1], [14, 1], [16, 1], [18, 1], [20, 1], [25, 1], [33, 1], [40, 1], [50, 1], [66, 1], [100, 1]];
 function dayFigure(h, race) {
   const lo = DISTANCES.indexOf(h.trip[0]), hi = DISTANCES.indexOf(h.trip[1]);
@@ -386,11 +387,27 @@ function dayFigure(h, race) {
 function marketFor(i) {
   const race = RACES[i], field = fieldFor(i), figs = field.map(h => dayFigure(h, race));
   const w = figs.map(f => Math.exp(f / 7)), tot = w.reduce((a, b) => a + b, 0);
+  const raw = w.map(x => 1 / Math.min(0.85, (x / tot) * 1.18) - 1);                 // the price against, before the cards
+  const card = figs.map(f => CARD_KEYS[race.bands.findIndex(b => f >= b)] || "blue");
+  // (owner, 7 Nov) the price sits in its colour card's range: black about evens to 4/1 (odds-on only for a strong
+  // favourite), red 5/1 to 10/1, yellow 11/1 to 20/1, blue 25/1 and longer. The horses on one card are spread across
+  // its range in the order of their chances (not all pinned at its end): the best keeps its own price if that falls
+  // in the range, the weakest goes to the range's long end if its own price is longer still.
+  const want = raw.slice();
+  for (const key of CARD_KEYS) {
+    const ks = field.map((_, k) => k).filter(k => card[k] === key);
+    if (!ks.length) continue;
+    const [lo, hi] = CARD_ODDS[key], L = Math.log, mid = Math.exp((L(Math.max(lo, 1)) + L(hi)) / 2);
+    const rs = ks.map(k => L(raw[k])), r0 = Math.min(...rs), r1 = Math.max(...rs);
+    // the card's best at its own price, kept to the shorter half of the range; its weakest at the long end
+    const a = L(Math.min(Math.max(Math.exp(r0), Math.max(lo, 0.3)), ks.length > 1 ? mid : hi)), z = ks.length > 1 ? L(hi) : a;
+    ks.forEach((k, j) => { want[k] = Math.exp(r1 > r0 ? a + (z - a) * (rs[j] - r0) / (r1 - r0) : a); });
+  }
   return field.map((h, k) => {
-    const p = Math.min(0.85, (w[k] / tot) * 1.18), dec = 1 / p - 1;              // the price against, before the ladder
-    const [n, d] = ODDS_LADDER.reduce((a, b) => Math.abs(b[0] / b[1] - dec) < Math.abs(a[0] / a[1] - dec) ? b : a);
-    const key = CARD_KEYS[race.bands.findIndex(b => figs[k] >= b)] || "blue";
-    return { fig: figs[k], odds: n === d ? "Evens" : `${n}/${d}`, card: key };
+    const [lo, hi] = CARD_ODDS[card[k]];
+    const [n, d] = ODDS_LADDER.filter(([a, b]) => a / b >= lo - 1e-9 && a / b <= hi + 1e-9)
+      .reduce((a, b) => Math.abs(Math.log(b[0] / b[1] / want[k])) < Math.abs(Math.log(a[0] / a[1] / want[k])) ? b : a);
+    return { fig: figs[k], odds: n === d ? "Evens" : `${n}/${d}`, card: card[k] };
   });
 }
 const engineRunner = h => ({ id: h.id, name: h.name, rating: h.rating, trip: h.trip, goings: h.goings, style: h.style, flex: h.flex, temperament: h.temper });

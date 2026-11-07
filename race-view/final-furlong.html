@@ -410,8 +410,10 @@ document.getElementById("courseName").textContent = GP ? `${COURSE.name} · ${GP
 //          than the loop passes the post more than once; straight: the straight mile's inside rail (z 0).
 const FURLONG = COURSE.furlong;
 const STRIDE_SPEED = 14.6;   // m/s at which the gallop loop matches the ground at scale 3
-// Which horse and jockey: the current one (v1, the default) or the quality test (?horse=v2, horse-v2.js).
-const HORSE_V = params.get("horse") === "v2" ? "v2" : "v1";
+// Which horse and jockey: v2 (horse-v2.js, the default since 7 Nov) or the old one (?horse=v1).
+// (owner, 7 Nov: the boots matched the horse and the shoulder patch was back; "I thought we developed a better
+// horse/jockey model") v2 is now the horse everywhere: its colours stop at their edges (black boots, no leaks). ?horse=v1 for the old one.
+const HORSE_V = params.get("horse") === "v1" ? "v1" : "v2";
 const HORSE_SCALE = 3;
 const HALF_W = COURSE.trackWidth / 2;
 const MID_Z = VIEW.homeStraight.centreZ;
@@ -1105,6 +1107,8 @@ function placeBelts(gltf, planting, treeLib) {
   if (hedge) {
     for (const m of meshesOf(hedge)) {
       if (CLAY_TREES) clayHedge(m.geometry);
+      const hc = m.geometry.attributes.color;                     // the hedge's own average green, for the understorey
+      if (hc && hc.count) { let r = 0, g = 0, b = 0; for (let i = 0; i < hc.count; i++) { r += hc.getX(i); g += hc.getY(i); b += hc.getZ(i); } HEDGE_MEAN = new THREE.Color(r / hc.count, g / hc.count, b / hc.count); }
       m.material = LOOKS.patchFoliage(new THREE.MeshLambertMaterial({ vertexColors: true }), "hedge");
       LAYERS.trees.push(m);
     }
@@ -1119,7 +1123,12 @@ function placeBelts(gltf, planting, treeLib) {
     if (!node) continue;
     for (const part of meshesOf(node)) {
       const mat = new THREE.MeshLambertMaterial({ color: part.material.color, map: part.material.map || null });
-      const inst = new THREE.InstancedMesh(part.geometry, mat, list.length);
+      // (owner, 7 Nov: the boards higher, so the Thoroughbred advertising reads over the rail) the board and its frame
+      // stand BOARD_LIFT metres higher on longer legs: everything above the feet moves up, the feet stay on the ground
+      const geo = part.geometry.clone(), pos = geo.attributes.position;
+      for (let i = 0; i < pos.count; i++) if (pos.getY(i) > 0.2) pos.setY(i, pos.getY(i) + BOARD_LIFT);
+      geo.computeBoundingSphere(); geo.computeBoundingBox();
+      const inst = new THREE.InstancedMesh(geo, mat, list.length);
       list.forEach(([x, z, turn], i) => inst.setMatrixAt(i, m4.compose(p.set(x, 0, z), q.setFromAxisAngle(up, turn * Math.PI / 180), one)));
       inst.computeBoundingSphere();
       scene.add(inst);
@@ -1148,12 +1157,24 @@ function clayLeaf(key, t, i) {
 const LITE_TREES = qLevel === "low" || qLevel === "lightest", THIN_BELTS = qLevel === "lightest";
 // The understorey's shape: a low, rounded mass of 80 faces in a dark leaf green (the light crowns are 220 each, and
 // there are 1,400 belt trees): it only has to fill the gap between the hedge and the crowns.
-let UNDER_GEO = null;
+// (owner, 7 Nov: the fill was all one green; mix greens, more the darker hedge's colour) Its geometry carries only
+// light and shade; each tree's understorey takes one of a few dark greens round the hedge's own (UNDER_MIX).
+let UNDER_GEO = null, HEDGE_MEAN = null;
+const BOARD_LIFT = 0.8;
+const UNDER_MIX = [[0.95, 1, 0.9], [0.8, 0.88, 0.78], [1.08, 1.06, 0.82], [0.72, 0.8, 0.8], [0.9, 0.98, 1.02], [1.15, 1.1, 0.9]];
+function underColour(t, crownMean) {
+  const h = Math.abs(Math.sin((t.x * 7.31 + t.z * 3.17) * 0.091) * 24634.6345) % 1;
+  const base = (HEDGE_MEAN || crownMean).clone().lerp(crownMean, 0.25);
+  const k = UNDER_MIX[Math.floor(h * UNDER_MIX.length) % UNDER_MIX.length];
+  return base.setRGB(base.r * k[0], base.g * k[1], base.b * k[2]).multiplyScalar(0.92 + 0.16 * ((h * 7.13) % 1));
+}
+let UNDER_CROWN = null;
 function underGeometry(crown) {
   if (UNDER_GEO) return UNDER_GEO;
   const g = new THREE.IcosahedronGeometry(1, 1), c = crown.attributes.color;
-  const base = new THREE.Color(0.2, 0.3, 0.12);
-  if (c) { let r = 0, gg = 0, b = 0; const n = c.count; for (let i = 0; i < n; i++) { r += c.getX(i); gg += c.getY(i); b += c.getZ(i); } base.setRGB(r / n, gg / n, b / n).multiplyScalar(0.8); }
+  const base = new THREE.Color(1, 1, 1);
+  UNDER_CROWN = new THREE.Color(0.2, 0.3, 0.12);
+  if (c) { let r = 0, gg = 0, b = 0; const n = c.count; for (let i = 0; i < n; i++) { r += c.getX(i); gg += c.getY(i); b += c.getZ(i); } UNDER_CROWN.setRGB(r / n, gg / n, b / n).multiplyScalar(0.8); }
   g.scale(4.6, 2.6, 4.6).translate(0, 3.0, 0);
   const pos = g.attributes.position, col = new Float32Array(pos.count * 3);
   for (let i = 0; i < pos.count; i++) { const k = 0.75 + 0.35 * THREE.MathUtils.clamp((pos.getY(i) - 0.4) / 5.2, 0, 1); col[i * 3] = base.r * k; col[i * 3 + 1] = base.g * k; col[i * 3 + 2] = base.b * k; }
@@ -1187,7 +1208,7 @@ function instanceTrees(gltf, list) {
         q.setFromAxisAngle(up, ((t.turn || 0) + (under ? 70 : 0)) * Math.PI / 180);
         if (under) sc.set(t.s, t.s, t.s); else sc.set(t.s, t.s * (t.sy || 1), t.s);
         inst.setMatrixAt(i, m4.compose(p.set(t.x, under ? -0.6 : 0, t.z), q, sc));
-        const c = under ? null : LOOKS.treeColour(key, t, i) || clayLeaf(key, t, i); if (c) inst.setColorAt(i, c);
+        const c = under ? underColour(t, UNDER_CROWN) : LOOKS.treeColour(key, t, i) || clayLeaf(key, t, i); if (c) inst.setColorAt(i, c);
       });
       inst.computeBoundingSphere();
       scene.add(inst);
@@ -1405,9 +1426,9 @@ function buildCrowd(gltf, data, pieceAt) {
   setCrowdShare(QUALITY[qLevel].crowd);
 }
 
-// The crowd's gentle life, in the vertex shader (nothing per person is sent each frame): a slow sway, never
-// in step with the neighbours; and as the leader comes by, those near the rail rock on their toes, lean in
-// towards the track, and some of the gents raise their hats. Who does what comes from where they stand.
+// The crowd's gentle life, in the vertex shader (nothing per person is sent each frame): a very slight, slow sway,
+// never in step with the neighbours; as the leader comes by, those near the rail lean in towards the track and a few
+// of the gents slowly lift their hats. Kept minimal on purpose (owner, 7 Nov). Who does what comes from where they stand.
 const CROWD = { figs: [], share: 1, sig: "", uniforms: { uTime: { value: 0 }, uLeader: { value: new THREE.Vector2(0, MID_Z) } }, near: 90 };
 function crowdMaterial() {
   const mat = new THREE.MeshLambertMaterial({ color: "#ffffff" });
@@ -1423,13 +1444,14 @@ function crowdMaterial() {
           vec3 ip = vec3(instanceMatrix[3][0], instanceMatrix[3][1], instanceMatrix[3][2]);
           float seed = fract(sin(dot(ip.xz, vec2(12.9898, 78.233))) * 43758.5453);
           float h = transformed.y;
-          float sway = 0.018 * sin(uTime * (0.6 + 0.5 * seed) + seed * 6.2832);
+          // (owner, 7 Nov: calm the crowd right down; minimal movement draws less attention to the figures) No
+          // hopping on the toes now: a barely-there sway, a slow lean in towards the track as the leaders come by,
+          // and only a few hats lifted, slowly.
+          float sway = 0.006 * sin(uTime * (0.35 + 0.25 * seed) + seed * 6.2832);
           float ex = smoothstep(75.0, 15.0, abs(ip.x - uLeader.x)) * smoothstep(55.0, 18.0, abs(ip.z - uLeader.y)) * step(0.2, seed);
-          float bob = ex * 0.06 * max(0.0, sin(uTime * (6.0 + 3.0 * seed) + seed * 40.0));
-          transformed.x += (sway + ex * 0.025 * sin(uTime * 2.7 + seed * 9.0)) * h;
-          transformed.z -= ex * 0.05 * h;
-          transformed.y += bob;
-          if (aPart > 1.5 && aPart < 2.5 && seed > 0.62) transformed.y += ex * 0.2 * smoothstep(0.35, 0.9, 0.5 + 0.5 * sin(uTime * 2.1 + seed * 31.0));
+          transformed.x += (sway + ex * 0.006 * sin(uTime * 1.1 + seed * 9.0)) * h;
+          transformed.z -= ex * 0.03 * h;
+          if (aPart > 1.5 && aPart < 2.5 && seed > 0.88) transformed.y += ex * 0.1 * smoothstep(0.4, 0.95, 0.5 + 0.5 * sin(uTime * 0.9 + seed * 31.0));
         }`);
     sh.fragmentShader = sh.fragmentShader
       .replace("#include <common>", "#include <common>\nvarying vec3 vPartCol;")
@@ -1867,10 +1889,10 @@ seedIn.value = SEED;
 seedIn.onchange = () => { if (/^\d+$/.test(seedIn.value) && seedIn.value !== SEED) reload({ seed: seedIn.value }); };
 document.getElementById("newRace").onclick = () => reload({ seed: String(1 + Math.floor(Math.random() * 99999)) });
 const horsesEl = document.getElementById("horses");
-for (const [id, label] of [["v1", "v1 (current)"], ["v2", "v2 (new)"]]) {
+for (const [id, label] of [["v1", "v1 (old)"], ["v2", "v2 (current)"]]) {
   const b = button(horsesEl, label, () => {
     const p = new URLSearchParams(location.search);
-    if (id === "v2") p.set("horse", "v2"); else p.delete("horse");
+    if (id === "v1") p.set("horse", "v1"); else p.delete("horse");
     location.search = p.toString();
   }, "horse-" + id);
   b.setAttribute("aria-pressed", id === HORSE_V);
@@ -2619,7 +2641,7 @@ function frame() {
   diag.sec.camera += performance.now() - tCam;
   if (HORSE_V === "v2" && runners.length) {           // v2: detail levels by size on screen, a few close at most
     camera.updateMatrixWorld();
-    HorseV2.chooseLevels(runners.map((r) => r.v2), camera, { close: { high: 4, medium: 2, low: 0 }[qLevel] });
+    HorseV2.chooseLevels(runners.map((r) => r.v2), camera, { close: { high: 4, medium: 2, low: 0, lightest: 0 }[qLevel] ?? 0, far: { low: 0.09, lightest: 0.14 }[qLevel] ?? 0.06 });
   }
   const [sx, sz] = toWorld(packU, 0);
   const sunAt = new THREE.Vector3(sx, 0, sz);
