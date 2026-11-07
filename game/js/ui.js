@@ -148,7 +148,13 @@ function fitBar() {
   st.classList.remove("tight");
   if (st.scrollWidth > st.clientWidth + 1) st.classList.add("tight");
 }
-addEventListener("resize", () => fitBar());
+addEventListener("resize", () => { fitBar(); footRoom(); });
+// the message toast sits just above an open sheet's footer, never over its buttons (owner, 7 Nov: on a phone the
+// stud's "targeted at the Gold Cup" covered "close the stud and go to the sales")
+function footRoom() {
+  const f = $("#go"), h = f && !f.hidden && UI.sheet ? f.getBoundingClientRect().height : 0;
+  document.documentElement.style.setProperty("--foot-h", Math.round(h) + "px");
+}
 if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => fitBar());
 
 /* ================= The board: the places' states, the card, the guide ================= */
@@ -234,6 +240,7 @@ function paintSheet(first) {
   $("#main").innerHTML = SHEETS[id]();
   $("#go").innerHTML = FOOTS[id] ? FOOTS[id]() : "";
   $("#go").hidden = !$("#go").innerHTML.trim();
+  footRoom();
   if (id === "races" && S.step >= 5) resultAfter(prizeWon());
   if (id === "jockey" && UI.dealing && D) reattachDeal();
   body.scrollTop = keep;

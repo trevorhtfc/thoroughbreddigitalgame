@@ -446,3 +446,9 @@ body.watching > :not(.watch):not(#toast){visibility:hidden!important}
 /* one box at a time: the guide steps aside while a place's card is open */
 body.card-open .guide{display:none}
 .chapter{display:none!important}
+
+/* owner, 7 Nov (phone): the toast clears an open sheet's footer (--foot-h, measured in ui.js), and the draw's deck
+   sits in its own space at the foot of the table instead of over the last row of cards */
+body.sheet-open .tb-toast{bottom:calc(var(--foot-h,0px) + 12px)}
+.deal.in-sheet .deal-deck{bottom:20px;width:64px;height:88px;margin-left:-32px}
+.deal.in-sheet .deal-foot{min-height:100px}
