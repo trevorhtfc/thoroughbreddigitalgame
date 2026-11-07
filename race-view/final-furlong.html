@@ -475,9 +475,11 @@ const DPR = window.devicePixelRatio || 1;
 const QUALITY = {
   high:   { label: "High",   scale: Math.min(DPR, 2),    samples: 4, shadow: 4096, soft: true,  kick: 1,    edges: true, shadowEvery: 1, crowd: 0.7 },
   medium: { label: "Medium", scale: Math.min(DPR, 1.25), samples: 2, shadow: 2048, soft: false, kick: 0.6,  edges: true, shadowEvery: 1, crowd: 0.5 },
-  low:    { label: "Low",    scale: Math.min(DPR, 1),    samples: 0, shadow: 1024, soft: false, kick: 0.35, edges: false, shadowEvery: 2, crowd: 0.25 },
+  low:    { label: "Low",    scale: Math.min(DPR, 1),    samples: 0, shadow: 1024, soft: false, kick: 0.35, edges: false, shadowEvery: 2, crowd: 0.15 },
   // only ever reached by Auto, for a machine that still can't keep up on Low (a laptop's built-in graphics on a big screen)
-  lightest: { label: "Lightest", scale: Math.min(DPR, 0.75), samples: 0, shadow: 1024, soft: false, kick: 0.15, edges: false, shadowEvery: 3, crowd: 0.15 },
+  // (owner's 2015 MacBook Pro, 7 Nov: 13-14 fps on Lightest with 2 million triangles: Lightest now has no sun shadows,
+  // a thinner crowd, and the simple tree shapes with every other belt tree)
+  lightest: { label: "Lightest", scale: Math.min(DPR, 0.65), samples: 0, shadow: 0, soft: false, kick: 0.15, edges: false, shadowEvery: 3, crowd: 0.06 },
 };
 const ORDER = ["high", "medium", "low", "lightest"];
 let qMode = params.get("quality") || (() => { try { return localStorage.getItem("tb-quality"); } catch { return null; } })() || "auto";
@@ -604,8 +606,8 @@ THREE.ShaderChunk.fog_fragment = `#ifdef USE_FOG
 const sky = new THREE.HemisphereLight(new THREE.Color("#a9b8d0"), new THREE.Color("#a29680"), 2.2);
 scene.add(sky);
 const sun = new THREE.DirectionalLight(new THREE.Color().setRGB(...FRESH.sun, THREE.LinearSRGBColorSpace), 4.6);   // was 1, .8, .62 (owner, 7 Nov: fresher)
-sun.castShadow = true;
-sun.shadow.mapSize.set(QUALITY[qLevel].shadow, QUALITY[qLevel].shadow);
+sun.castShadow = QUALITY[qLevel].shadow > 0;          // Lightest: no sun shadows (the horses keep their soft contact shadows)
+sun.shadow.mapSize.set(QUALITY[qLevel].shadow || 1024, QUALITY[qLevel].shadow || 1024);
 sun.shadow.radius = 4;
 Object.assign(sun.shadow.camera, { left: -45, right: 45, top: 45, bottom: -45, near: 1, far: 400 });
 {
@@ -1141,10 +1143,28 @@ function clayLeaf(key, t, i) {
   const g = 0.3 * _leafCol.r + 0.59 * _leafCol.g + 0.11 * _leafCol.b;
   return _leafCol.setRGB(g + (_leafCol.r - g) * 1.3, g + (_leafCol.g - g) * 1.3, g + (_leafCol.b - g) * 1.3).multiplyScalar(CLAY_TREES.shadeMax);
 }
+// Low and Lightest (chosen as the view opens, or remembered by Auto from the last race) use the simple crowns
+// everywhere; Lightest also leaves out every other tree in the belts and away from the action, the rest a little bigger.
+const LITE_TREES = qLevel === "low" || qLevel === "lightest", THIN_BELTS = qLevel === "lightest";
+// The understorey's shape: a low, rounded mass of 80 faces in a dark leaf green (the light crowns are 220 each, and
+// there are 1,400 belt trees): it only has to fill the gap between the hedge and the crowns.
+let UNDER_GEO = null;
+function underGeometry(crown) {
+  if (UNDER_GEO) return UNDER_GEO;
+  const g = new THREE.IcosahedronGeometry(1, 1), c = crown.attributes.color;
+  const base = new THREE.Color(0.2, 0.3, 0.12);
+  if (c) { let r = 0, gg = 0, b = 0; const n = c.count; for (let i = 0; i < n; i++) { r += c.getX(i); gg += c.getY(i); b += c.getZ(i); } base.setRGB(r / n, gg / n, b / n).multiplyScalar(0.8); }
+  g.scale(4.6, 2.6, 4.6).translate(0, 3.0, 0);
+  const pos = g.attributes.position, col = new Float32Array(pos.count * 3);
+  for (let i = 0; i < pos.count; i++) { const k = 0.75 + 0.35 * THREE.MathUtils.clamp((pos.getY(i) - 0.4) / 5.2, 0, 1); col[i * 3] = base.r * k; col[i * 3 + 1] = base.g * k; col[i * 3 + 2] = base.b * k; }
+  g.setAttribute("color", new THREE.BufferAttribute(col, 3));
+  return (UNDER_GEO = g);
+}
 function instanceTrees(gltf, list) {
   const groups = new Map();
   for (const t of list) {
-    const near = isNear(t.x, t.z);
+    if (THIN_BELTS && (t.belt || !isNear(t.x, t.z))) { if ((Math.round(t.x * 7 + t.z * 13) & 1) === 1) continue; t.s *= 1.12; }
+    const near = !LITE_TREES && isNear(t.x, t.z);
     // belt trees also get an understorey: their light crown squashed low under the real one, so the belts read as
     // solid woodland down to the hedge instead of crowns floating over a strip of sky (owner, 7 Nov)
     const parts = [near ? "_crown" : "_crown_far"].concat(near || !t.belt ? ["_trunk"] : []).concat(t.belt ? ["_under"] : []);
@@ -1161,12 +1181,13 @@ function instanceTrees(gltf, list) {
     if (!node) continue;
     for (const mesh of meshesOf(node)) {
       // a look may swap the tree's shape and material, and give each tree its own colour (looks.js)
-      const inst = new THREE.InstancedMesh(LOOKS.treeGeometry(base, mesh.geometry) || mesh.geometry, LOOKS.treeMaterial(treeMat, base), ts.length);
+      const geo = under ? underGeometry(mesh.geometry) : LOOKS.treeGeometry(base, mesh.geometry) || mesh.geometry;
+      const inst = new THREE.InstancedMesh(geo, LOOKS.treeMaterial(treeMat, base), ts.length);
       ts.forEach((t, i) => {
         q.setFromAxisAngle(up, ((t.turn || 0) + (under ? 70 : 0)) * Math.PI / 180);
-        if (under) sc.set(t.s * 1.15, t.s * 0.55, t.s * 1.15); else sc.set(t.s, t.s * (t.sy || 1), t.s);
+        if (under) sc.set(t.s, t.s, t.s); else sc.set(t.s, t.s * (t.sy || 1), t.s);
         inst.setMatrixAt(i, m4.compose(p.set(t.x, under ? -0.6 : 0, t.z), q, sc));
-        const c = under ? _leafCol.setScalar(0.82) : LOOKS.treeColour(key, t, i) || clayLeaf(key, t, i); if (c) inst.setColorAt(i, c);
+        const c = under ? null : LOOKS.treeColour(key, t, i) || clayLeaf(key, t, i); if (c) inst.setColorAt(i, c);
       });
       inst.computeBoundingSphere();
       scene.add(inst);
@@ -1947,7 +1968,9 @@ function applyQuality(level) {
   qLevel = level;
   const Q = QUALITY[level];
   renderer.setPixelRatio(Q.scale);
-  if (sun.shadow.mapSize.x !== Q.shadow) {
+  const shadowsOn = Q.shadow > 0 && diag.shadows !== false;
+  if (sun.castShadow !== shadowsOn) { sun.castShadow = shadowsOn; scene.traverse((o) => { if (o.material) [].concat(o.material).forEach((m) => (m.needsUpdate = true)); }); }
+  if (Q.shadow > 0 && sun.shadow.mapSize.x !== Q.shadow) {
     sun.shadow.mapSize.set(Q.shadow, Q.shadow);
     if (sun.shadow.map) { sun.shadow.map.dispose(); sun.shadow.map = null; }
   }
@@ -1985,7 +2008,9 @@ const perf = {
     this.n = 0; this.sum = 0;
     if (qMode === "auto") {
       const at = ORDER.indexOf(qLevel);
-      if (fps < 30 && at < ORDER.length - 1) { this.ceiling = Math.max(this.ceiling, at + 1); applyQuality(ORDER[at + 1]); }
+      // a step down is remembered at once (not only when the race ends), so leaving a race early still starts the next
+      // one at the right level, with its lighter trees and crowd, which are chosen as the view opens
+      if (fps < 30 && at < ORDER.length - 1) { this.ceiling = Math.max(this.ceiling, at + 1); applyQuality(ORDER[at + 1]); if (!params.has("still")) this.remember(ORDER[at + 1]); }
       else if (fps >= 55 && at > Math.max(this.ceiling, ORDER.indexOf(AUTO_START))) {
         if (++this.good >= 3) applyQuality(ORDER[at - 1]);
       } else this.good = 0;
