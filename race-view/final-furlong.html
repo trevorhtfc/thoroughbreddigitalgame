@@ -722,6 +722,26 @@ function buildTurf(colour) {
   scene.add(m);
 }
 
+// The winning line and the furlongs (owner, 7 Nov): a strip of turf cut a shade paler straight across the track at the
+// post, and a fainter, narrower one at each furlong up the straight course. Soft-edged, laid just over the turf.
+function buildLineStrips() {
+  const c = document.createElement("canvas"); c.width = 64; c.height = 1;
+  const g = c.getContext("2d"), grd = g.createLinearGradient(0, 0, 64, 0);
+  grd.addColorStop(0, "rgba(255,255,255,0)"); grd.addColorStop(0.3, "rgba(255,255,255,1)"); grd.addColorStop(0.7, "rgba(255,255,255,1)"); grd.addColorStop(1, "rgba(255,255,255,0)");
+  g.fillStyle = grd; g.fillRect(0, 0, 64, 1);
+  const tex = new THREE.CanvasTexture(c);
+  const W = COURSE.trackWidth;
+  const strip = (x, width, opacity) => {
+    const geo = new THREE.PlaneGeometry(width, W + 0.6).rotateX(-Math.PI / 2).translate(x, 0.015, W / 2);
+    const m = new THREE.Mesh(geo, new THREE.MeshBasicMaterial({ color: "#eef5d8", map: tex, transparent: true, opacity, depthWrite: false,
+      polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -4 }));
+    m.renderOrder = -1;                  // before the shadow catcher (which writes depth just above), so shadows fall on it
+    LAYERS.ground.push(m); scene.add(m);
+  };
+  strip(0, 2.2, 0.55);                                                   // the winning line
+  for (const f of COURSE.straightMile.furlongPoles) strip(f.at[0], 1.4, 0.26);
+}
+
 // The Ascot running rail, as in the owner's photo and the finish study: a broad white board facing the track,
 // 26 cm deep, with a rounded capping on top 1.12 m up, on a square white post set back behind it; nothing below.
 // One bay, L metres along local x, the track towards -z.
@@ -948,6 +968,7 @@ function placeBaked(gltf, B, dressing) {
   scene.add(far);
   LAYERS.ground.push(far);
   buildTurf(new THREE.Color(tf[0], tf[1], tf[2]));
+  buildLineStrips();
   // Live shadows of the field, laid over the turf round the runners (pulled towards the camera in depth, so it never
   // flashes against the ground beneath it). It moves with the field, lined up with the course (see the frame loop):
   // only the ground the shadow map covers is shaded for shadows (it used to be a fixed strip the length of the home
