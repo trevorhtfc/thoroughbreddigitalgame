@@ -1185,3 +1185,8 @@ body.modal-open{overflow:hidden}
 .watch iframe{background:#16302a}
 .watch .x{top:calc(12px + env(safe-area-inset-top,0px));bottom:auto;right:calc(12px + env(safe-area-inset-right,0px))}
 @media (max-width:600px){ .watch .x{padding:6px 10px;font-size:13px} }
+/* owner, 7 Nov (Safari): a horse card's coloured head stopped part way across (Safari doesn't stretch a button's flex
+   children), and the mare/stallion letter ran into the name ("M ANNA LAW" read as "Manna Law"): the head and body now
+   fill the card, and the letter sits behind a hairline */
+.hc > .hc-top, .hc > .hc-b{width:100%;box-sizing:border-box;align-self:stretch}
+.hc-l{padding-right:9px;margin-right:1px;border-right:1px solid rgba(253,241,207,.4)}
