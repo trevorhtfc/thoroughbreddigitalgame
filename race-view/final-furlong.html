@@ -436,6 +436,7 @@ if (qMode !== "auto" && !QUALITY[qMode]) qMode = "auto";
 const AUTO_START = DPR > 1.5 ? "medium" : "high";
 const autoLevel = (() => { try { const v = localStorage.getItem("tb-auto-level"); return QUALITY[v] ? v : null; } catch { return null; } })();
 let qLevel = qMode === "auto" ? (autoLevel || AUTO_START) : qMode;
+const LEGACY_GROUND = !!LOOKS.lookId;
 const canvas = document.getElementById("scene");
 // Multisampled edges on High and Medium; Low and Lightest leave them out (a quarter of the memory traffic on a big screen).
 const renderer = new THREE.WebGLRenderer({ canvas, antialias: QUALITY[qLevel].samples > 0, stencil: true, powerPreference: "high-performance", preserveDrawingBuffer: params.has("still") });
@@ -512,7 +513,8 @@ THREE.ShaderChunk.fog_fragment = `#ifdef USE_FOG
   const sky = new THREE.Mesh(new THREE.SphereGeometry(2500, 32, 16), mat);
   // drawn after everything solid, so only the pixels where sky shows are painted (it used to be painted under the
   // whole picture first, then painted over: a whole extra screen of work every frame)
-  sky.renderOrder = 1000;
+  sky.renderOrder = LEGACY_GROUND ? -4 : 1000;
+  if (LEGACY_GROUND) sky.material.stencilWrite = false;
   LAYERS.sky.push(sky);
   scene.add(sky);
   scene.userData.sky = sky;
@@ -531,6 +533,7 @@ THREE.ShaderChunk.fog_fragment = `#ifdef USE_FOG
     for (let k = 0; k < p.count; k++) p.setY(k, Math.max(p.getY(k), -W * 0.03));
     g.computeVertexNormals();
     const c = new THREE.Mesh(g, cloudMat);
+    c.renderOrder = 1001;     // after the sky (drawn last): the farthest clouds lie beyond the sky sphere's 2,500 m
     c.position.set(-1400 + rc() * 2800, 260 + rc() * 360, -(1700 + rc() * 900));
     c.scale.z = 0.6;
     scene.add(c);
@@ -647,8 +650,10 @@ function distToRails(x, z) {
 // then the grass, and each marks the pixels it paints in the stencil buffer; the next one only paints pixels not
 // yet marked. No flashing, and every pixel of ground is painted once instead of three times. The sky, drawn last,
 // only paints pixels that nothing has covered (no ground mark, and nothing nearer in depth).
-const GROUND_FIRST = { stencilWrite: true, stencilRef: 1, stencilFunc: THREE.AlwaysStencilFunc, stencilZPass: THREE.ReplaceStencilOp };
-const GROUND_UNDER = { stencilWrite: true, stencilRef: 1, stencilFunc: THREE.NotEqualStencilFunc, stencilZPass: THREE.ReplaceStencilOp };
+// (The style tests, ?look=, draw into their own picture without a stencil buffer: there the old order is kept: grass,
+// then turf, writing no depth, then the baked ground over them; the sky first of all.)
+const GROUND_FIRST = LEGACY_GROUND ? {} : { stencilWrite: true, stencilRef: 1, stencilFunc: THREE.AlwaysStencilFunc, stencilZPass: THREE.ReplaceStencilOp };
+const GROUND_UNDER = LEGACY_GROUND ? { depthWrite: false } : { stencilWrite: true, stencilRef: 1, stencilFunc: THREE.NotEqualStencilFunc, stencilZPass: THREE.ReplaceStencilOp };
 function lanesMaterial(mat) {
   const L = VIEW.lanes;
   if (!L) return mat;
@@ -920,7 +925,7 @@ function placeBaked(gltf, B, dressing) {
     for (const m of meshesOf(node)) {
       m.material = bakedMaterial(m, info, tex, key);
       m.castShadow = false; m.receiveShadow = false;
-      if (key === "ground") m.renderOrder = -3;
+      if (key === "ground") m.renderOrder = LEGACY_GROUND ? 0 : -3;
       (key === "ground" ? LAYERS.ground : LAYERS.buildings).push(m);
     }
     scene.add(node);
@@ -932,7 +937,7 @@ function placeBaked(gltf, B, dressing) {
   const o = B.ground.outside, tf = B.ground.turf || [0.12, 0.3, 0.06];
   const far = new THREE.Mesh(new THREE.PlaneGeometry(9000, 9000), LOOKS.patchGround(groundDetail(new THREE.MeshBasicMaterial({ color: new THREE.Color(o[0], o[1], o[2]), ...GROUND_UNDER }), 0.2), "far"));
   far.rotation.x = -Math.PI / 2; far.position.set(700, -0.06, -400);
-  far.renderOrder = -1;
+  far.renderOrder = LEGACY_GROUND ? -3 : -1;
   scene.add(far);
   LAYERS.ground.push(far);
   buildTurf(new THREE.Color(tf[0], tf[1], tf[2]));
@@ -1405,8 +1410,10 @@ function horseLod(horse, light) {
   for (let k = 0; k < lite.length; k++) {
     const names = full[k].skeleton.bones.map((b) => b.name), map = lite[k].skeleton.bones.map((b) => names.indexOf(b.name));
     if (map.some((i) => i < 0)) { console.warn("light horse: bones don't match"); return null; }
-    const g = lite[k].geometry.clone(), si = g.attributes.skinIndex, a = si.array.slice();
-    for (let i = 0; i < a.length; i++) a[i] = map[a[i]];
+    const g = lite[k].geometry.clone(), si = g.attributes.skinIndex;
+    if (!si || si.isInterleavedBufferAttribute) { console.warn("light horse: bone numbers not as expected"); return null; }
+    const a = si.array.slice();
+    for (let i = 0; i < a.length; i++) { if (a[i] >= map.length) { console.warn("light horse: bone number out of range"); return null; } a[i] = map[a[i]]; }
     g.setAttribute("skinIndex", new THREE.BufferAttribute(a, 4, si.normalized));
     out.push(g);
   }
@@ -1612,11 +1619,10 @@ function cameraTarget(now) {
   // cut) and frames the line and every runner still to finish within 30 m of it, plus any just over it.
   if (id === "grandstand" && leadU >= DIST) {
     const [lx, lz] = toWorld(DIST, 0), line = new THREE.Vector3(lx, 1.3, lz);
-    const ends = [-HALF_W, HALF_W].map((a) => { const [x, z] = toWorld(DIST, a); return new THREE.Vector3(x, 1.0, z); });
     const near = [];
     for (const h of now) if (h[0] > DIST - 30 && h[0] < DIST + 4) { const [x, z] = toWorld(h[0], h[1]); near.push(new THREE.Vector3(x, 1.3, z)); }
-    const eye = new THREE.Vector3(...c.at);
-    return { eye, look: line, fov: fitFov(eye, line, ends.concat(near), c.fov), id, anchor: line, guard: near.length ? near : ends, range: c.fov };
+    const eye = new THREE.Vector3(...c.at), pts = near.length ? near.concat([line]) : [line];
+    return { eye, look: line, fov: near.length ? fitFov(eye, line, pts, c.fov) : camera.fov, id, anchor: line, guard: pts, range: c.fov };
   }
   // who is framed: the whole field (all but one or two tailed off), or just the leading group
   const pts = c.frame === "leaders" ? field.filter((p, i) => i < 2 || leadU - p.u <= (c.window || 12)) : field;
@@ -1819,14 +1825,19 @@ function applyQuality(level) {
   syncQuality();
 }
 
-// Frame-time watch: shows the frame rate, and in Auto drops a level when it stays under 40 fps (comfortably above the
-// 30 that still looks smooth, so a machine holding 35-40 isn't pushed down a level for nothing). Auto also climbs
-// back a level when there's plenty to spare (58+ fps for about four seconds), but never back to a level it had to
-// leave in this race; the level it settles on is remembered for the next race (tb-auto-level).
+// Frame-time watch: shows the frame rate, and in Auto drops a level when it can't hold 30 fps (the owner's target:
+// a machine holding 35-55 keeps its quality, and a browser that caps itself at 30 to save power isn't walked down).
+// Auto also climbs back a level when there's plenty to spare (55+ fps for about four seconds), but never back to a
+// level it had to leave in this race. The level it is on when the race ends is remembered for the next race
+// (tb-auto-level). A long frame (the tab hidden, the machine busy for a moment) restarts the count instead of
+// counting as a slow second.
 const perf = {
-  n: 0, sum: 0, wait: 1, good: 0, ceiling: 0, fps: 0,
+  n: 0, sum: 0, wait: 1, good: 0, ceiling: 0, fps: 0, longs: 0,
   reset() { this.n = 0; this.sum = 0; this.wait = 1; this.good = 0; },
   tick(dt) {
+    if (document.hidden) { this.reset(); return; }
+    // one or two long frames (back from a hidden tab, a hiccup) restart the count; a run of them is a slow machine
+    if (dt > 0.25) { if (++this.longs < 3) { this.n = 0; this.sum = 0; return; } } else this.longs = 0;
     if (this.wait > 0) { this.wait -= dt; return; }   // let a change settle before judging it
     this.n++; this.sum += dt;
     if (this.sum < 1.25) return;                     // judge every second and a quarter, so a slow machine settles quickly
@@ -1835,9 +1846,9 @@ const perf = {
     this.n = 0; this.sum = 0;
     if (qMode === "auto") {
       const at = ORDER.indexOf(qLevel);
-      if (fps < 40 && at < ORDER.length - 1) { this.ceiling = Math.max(this.ceiling, at + 1); this.remember(ORDER[at + 1]); applyQuality(ORDER[at + 1]); }
-      else if (fps >= 58 && at > Math.max(this.ceiling, ORDER.indexOf(AUTO_START))) {
-        if (++this.good >= 3) { this.remember(ORDER[at - 1]); applyQuality(ORDER[at - 1]); }
+      if (fps < 30 && at < ORDER.length - 1) { this.ceiling = Math.max(this.ceiling, at + 1); applyQuality(ORDER[at + 1]); }
+      else if (fps >= 55 && at > Math.max(this.ceiling, ORDER.indexOf(AUTO_START))) {
+        if (++this.good >= 3) applyQuality(ORDER[at - 1]);
       } else this.good = 0;
     }
     fpsEl.textContent = `${fps} fps · ${QUALITY[qLevel].label}`;
@@ -1845,6 +1856,7 @@ const perf = {
   },
   remember(level) { try { localStorage.setItem("tb-auto-level", level); } catch {} },
 };
+addEventListener("visibilitychange", () => perf.reset());
 document.getElementById("pause").onclick = (e) => {
   state.paused = !state.paused;
   e.currentTarget.setAttribute("aria-pressed", state.paused);
@@ -2266,7 +2278,7 @@ function frame() {
     state.pt += dt;
     if (state.phase === "prelude") { if (state.pt > SET.prelude.seconds) { state.phase = "stalls"; state.pt = 0; state.t = 0; snap = true; } }
     else if (state.phase === "stalls") { if (state.pt > PRE.standSeconds) { state.phase = "race"; state.pt = 0; state.t = 0; } }   // the off: no cut
-    else if (state.phase === "race") { state.t += dt; if (GAME && !sentFinish && state.t > T_FINISH) { sentFinish = true; toGame({ type: "finished", order: RESULT.placed.map((p) => CARD[p.runner].id) }); } if (state.t > T_END) { state.phase = "replay"; state.pt = 0; state.t = REPLAY[0]; snap = true; live.length = 0; } }
+    else if (state.phase === "race") { state.t += dt; if (GAME && !sentFinish && state.t > T_FINISH) { sentFinish = true; toGame({ type: "finished", order: RESULT.placed.map((p) => CARD[p.runner].id) }); } if (state.t > T_END) { state.phase = "replay"; state.pt = 0; state.t = REPLAY[0]; snap = true; live.length = 0; if (qMode === "auto" && !params.has("still")) perf.remember(qLevel); } }
     else if (state.phase === "replay") { state.t += step; if (state.t > REPLAY[1]) { state.phase = "postlude"; state.pt = 0; state.t = T_END; snap = true; } }
     else if (state.phase === "postlude" && state.pt > SET.postlude.seconds) { if (GAME) state.pt = SET.postlude.seconds; else { state.phase = "prelude"; state.pt = 0; state.t = 0; snap = true; live.length = 0; } }
   }
