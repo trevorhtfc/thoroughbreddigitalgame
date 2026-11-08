@@ -2732,10 +2732,10 @@ const CALLER = (() => {
 // ---------- Loop ----------
 const toRunEl = document.getElementById("toRun"), toRunLabel = document.querySelector(".togo span");
 const clock = new THREE.Clock();
-let framesDrawn = 0, stillFrames = 0, kickWarm = false;
+let framesDrawn = 0, stillFrames = 0, kickWarm = false, FIXED_DT = 0;
 function frame() {
   const t0 = performance.now();
-  const rawDt = clock.getDelta();
+  const rawDt = FIXED_DT || clock.getDelta();
   const dt = Math.min(rawDt, 0.05);
   if (runners.length && !params.has("still")) perf.tick(rawDt);
   // phases: before the off -> the race -> the finish again, slowed -> after the race -> round again
@@ -2855,6 +2855,9 @@ function frame() {
 }
 requestAnimationFrame(frame);
 // Checking aid (?still=1): jump to another moment of the race and draw it again: window.__seek(t), then wait for __ready.
+// Checking aid (?still=1): play on by exactly dt seconds and draw (the whole show, phases and all), for recording a
+// film frame by frame: window.__advance(1 / 25).
+if (params.has("still")) window.__advance = (dt) => { FIXED_DT = dt; state.paused = false; stillFrames = 99; frame(); state.paused = true; FIXED_DT = 0; };
 if (params.has("still")) window.__seek = (t) => { state.phase = "race"; state.t = t; snap = true; stillFrames = 0; window.__ready = false; requestAnimationFrame(frame); };
 // Checking aid (?bench=1): the scene's parts, for timing each one on its own (see the rig's bench script).
 if (params.has("bench")) window.__dbg = { THREE, renderer, scene, camera, LAYERS, sun, QUALITY, runners, get qLevel() { return qLevel; } };
