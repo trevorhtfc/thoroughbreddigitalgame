@@ -17,7 +17,7 @@ sys.path.insert(0, os.path.join(REPO, "tools/course/newmarket"))
 import draft_layout as R
 OUT = os.path.join(REPO, "reference/newmarket/renders"); os.makedirs(OUT, exist_ok=True)
 SAMPLES = int(os.environ.get("SAMPLES", "24"))
-SHOTS = [s for s in os.environ.get("SHOTS", "across,across_up,track,aerial").split(",") if s]
+SHOTS = [s for s in os.environ.get("SHOTS", "across,across_up,track,aerial,plan").split(",") if s]
 RES = [int(v) for v in os.environ.get("RES", "1280x720").split("x")]
 W = R.TRACK_W
 bpy.ops.wm.read_factory_settings(use_empty=True)
@@ -180,19 +180,25 @@ for m in {sl.material for o in jsp.values() for sl in o.material_slots if sl.mat
     clayify(m, 0.0 if m.name.split(".")[0] in ("rm_glass", "rm_iron", "rm_bench") else 0.12)
 people, nogo = [], []
 rnd = random.Random(4)
+from matplotlib.path import Path as MPath
 for st in R.STAND_PIECES:
-    cx = sum(st["x"]) / 2; zf = W + st["front"]
-    ob = place(jsp[st["piece"]], cx, zf, 180.0, name=st["name"]); soften(ob)
     pi = info[st["piece"]]; off = pi.get("offset", 0.0)
-    nogo.append((cx - off - pi["width"] / 2 - 1, cx - off + pi["width"] / 2 + 1, zf - 7.0, zf + pi["depth"] + 2))
+    if "turn" in st:
+        ox, oz, turn = st["at"][0], W + st["at"][1], st["turn"]
+    else:
+        ox, oz, turn = sum(st["x"]) / 2, W + st["front"], 180.0
+    ob = place(jsp[st["piece"]], ox, oz, turn, name=st["name"]); soften(ob)
+    a = math.radians(turn); ca, sa = math.cos(a), math.sin(a)
+    to_c = lambda u, v: (ox + u * ca - v * sa, oz - (u * sa + v * ca))
+    hw = pi["width"] / 2
+    nogo.append(MPath(np.array([to_c(u, v) for u, v in ((-hw + off, -8.0), (hw + off, -8.0), (hw + off, pi["depth"] + 2), (-hw + off, pi["depth"] + 2))])))
     for x0, x1, y0, y1, fz in pi["crowd"]:
         for _ in range(int((x1 - x0) * (y1 - y0) * 1.5)):
-            u, v = rnd.uniform(x0, x1), rnd.uniform(y0, y1)
-            people.append((cx - u, zf + v, fz, 180.0))           # turned 180: local x -> -course x, local y -> +course z
+            people.append(to_c(rnd.uniform(x0, x1), rnd.uniform(y0, y1)) + (fz, turn))
 # the lawn between the stands and the rail
 for _ in range(int(560 * 34 * 0.3)):                                  # the lawns in front of the stands, down to the rail
     x, z = rnd.uniform(-60, 500), rnd.uniform(W + 2, W + 36)
-    if not any(a <= x <= b and c <= z <= d for a, b, c, d in nogo):
+    if not any(q.contains_point((x, z)) for q in nogo):
         people.append((x, z, 0.0, 180.0))
 cr = load("assets/models/architecture/crowd_set_8.glb")
 SKC = {"clothes": ["#2c3140", "#3a3d44", "#4b4d52", "#2f3a33", "#59544c", "#c9a0a8", "#9fb6c8", "#ddd2b8", "#a8706a", "#88a383", "#d2b874", "#e8e2d6", "#9a88b4", "#cf9476"],
@@ -248,6 +254,7 @@ CAMS = {   # course (x, z, height) from and to, lens
     "across_up": ((300.0, -3.0, 6.0), (330.0, 70.0, 12.0), 22),      # at the Rowley stand and the old stand
     "track": ((-90.0, 16.0, 9.0), (150.0, 70.0, 16.0), 28),          # down the straight from beyond the post
     "aerial": ((210.0, -170.0, 150.0), (210.0, 60.0, 0.0), 26),      # high over the far side
+    "plan": ((210.0, 60.0, 500.0), (210.0, 60.0001, 0.0), 0),         # straight down (orthographic), to mark up
 }
 scene.render.engine = "CYCLES"; scene.cycles.device = "CPU"; scene.cycles.samples = SAMPLES; scene.cycles.use_denoising = True
 scene.cycles.max_bounces = 4
@@ -259,7 +266,12 @@ scene.view_settings.exposure = 0.12
 import time
 for s in SHOTS:
     (fx, fz, fy), (tx, tz, ty), lens = CAMS[s]
-    cam = bpy.data.objects.new(s, bpy.data.cameras.new(s)); cam.data.lens = lens; cam.data.clip_end = 5000
+    cam = bpy.data.objects.new(s, bpy.data.cameras.new(s)); cam.data.lens = lens or 50; cam.data.clip_end = 5000
+    if s == "plan":
+        cam.data.type = "ORTHO"; cam.data.ortho_scale = 560.0
+        scene.render.resolution_x, scene.render.resolution_y = 2400, 1200
+    else:
+        scene.render.resolution_x, scene.render.resolution_y = RES
     scene.collection.objects.link(cam)
     frm, to = Vector(B(fx, fz, fy)), Vector(B(tx, tz, ty)); cam.location = frm
     cam.rotation_euler = (to - frm).to_track_quat("-Z", "Y").to_euler(); scene.camera = cam

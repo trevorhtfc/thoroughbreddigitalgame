@@ -19,7 +19,7 @@ Building coordinates (Blender), as the other kits: x along the front, left to ri
 building (the front faces -y); z up; origin the middle of the front, on the ground; walls run 1 m below the ground.
 
 Pieces
-  millennium_stand   the Millennium's form (four wave canopies on masts over a deep block) with Ascot's heritage dress: a terrace from the lawn, a colonnade and covered terrace, balconies, a veranda   113 x 44 m, 45 m
+  millennium_stand   the Millennium's form (four wave canopies on masts over a deep block) with Ascot's heritage dress: a terrace from the lawn, a colonnade and covered terrace, balconies, a veranda   113 x 44 m, 50 m
   rowley_stand       glazed base, an open seating terrace under a flat canopy, an upper floor, the clock cupola, a brick end   110 x 18 m, 24 m
   victorian_stand    two tiers under a hipped slate roof with dormers, lantern and chimneys; standing terrace in front; low wing   112 x 22 m, 19 m
   judges_kiosk       the white judge's kiosk with a pyramid cap                                              3 x 3 m, 6 m
@@ -131,8 +131,9 @@ def millennium_stand(n=4, bay=28.0, D=42.0):
     rows, tread, rise = 14, 0.85, 0.38
     yf = rows * tread + 0.4                                           # the building's face, behind the terrace
     # the terrace: from the lawn straight up to the arcade, a low balustrade along its foot, benches on the rows
-    K.balustrade(-h, h, -0.3, 0.0, h=0.9, mat="trim", spacing=0.34)
-    yb, zt = steps("concrete", -h, h, 0.0, 0.3, rows, tread, rise, seat="bench")
+    K.box("wall", -h, h, -0.35, 0.0, -1.0, 1.0)                                  # a plain low wall at its foot
+    K.box("trim", -h - 0.05, h + 0.05, -0.42, 0.07, 1.0, 1.12)
+    yb, zt = steps("concrete", -h, h, 0.0, 0.3, rows, tread, rise)                   # plain standing steps
     K.box("concrete", -h, h, yb, yf + 0.5, -1.0, zt)
     z1 = zt + 0.05                                                     # the gallery floor, level with the top row
     # a colonnade of plain square piers carrying an entablature (owner, 8 Nov: straight piers rather than arches),
@@ -143,25 +144,20 @@ def millennium_stand(n=4, bay=28.0, D=42.0):
     K.box("concrete", -h, h, yf, yf + 7.8, z1 - 0.4, z1)
     for k in range(n * 4 + 1):
         x = -h + k * span
-        K.box("wall", x - pier / 2, x + pier / 2, yf, yf + pier, z1, zc)
-        K.box("podium", x - pier / 2 - 0.12, x + pier / 2 + 0.12, yf - 0.12, yf + pier + 0.12, z1, z1 + 0.5)     # the bases
-        K.box("trim", x - pier / 2 - 0.12, x + pier / 2 + 0.12, yf - 0.12, yf + pier + 0.12, zc - 0.35, zc)    # the capitals
+        K.box("wall", x - pier / 2, x + pier / 2, yf, yf + pier, z1, zc)            # plain square piers
     area(-h + 0.6, h - 0.6, yf + 1.4, yf + 7.2, z1)
     K.box("wall", -h, h, yf, yf + 2.4, zc, zc + 1.0)
-    # two upper floors: balconies with balustrades, tall windows in cream walls, a veranda on iron columns
+    # three upper floors (owner, 8 Nov: "a bit low... add extra height by another terrace", "strip out some of the
+    # extra detail"): each a balcony with a plain solid parapet in front of tall windows in cream walls
     z = zc + 1.5
-    for lv in range(2):
+    for lv in range(3):
         H = 4.6
         K.box("wall", -h, h, yf + 2.4, D, z, z + H)
         for k in range(int(L // 3.5)):
             win(-h + 1.75 + k * 3.5, yf + 2.4, z + 0.6, 1.5, 2.8)
         K.box("podium", -h - 0.2, h + 0.2, yf - 0.2, yf + 2.6, z - 0.35, z)                 # the balcony slab
-        K.balustrade(-h, h, yf, z, h=1.0, mat="trim", spacing=0.34)
-        for k in range(n * 2 + 1):                                          # the veranda's iron columns
-            x = -h + 0.4 + k * (L - 0.8) / (n * 2)
-            K.cyl("ironwork", x, yf + 0.25, z, z + H - 0.4, 0.13, segs=8)
-        K.box("roof", -h - 0.2, h + 0.2, yf - 0.1, yf + 2.4, z + H - 0.4, z + H - 0.15)       # its light roof
-        K.box("ironwork", -h - 0.2, h + 0.2, yf - 0.15, yf + 0.05, z + H - 0.7, z + H - 0.15)
+        K.box("wall", -h - 0.2, h + 0.2, yf - 0.2, yf + 0.05, z, z + 1.05)                  # its parapet
+        K.box("trim", -h - 0.25, h + 0.25, yf - 0.28, yf + 0.12, z + 1.05, z + 1.17)
         area(-h + 0.4, h - 0.4, yf + 0.4, yf + 2.2, z)
         z += H
     K.box("wall", -h, h, yf + 2.4, D, z, z + 1.4)
