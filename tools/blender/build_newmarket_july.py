@@ -549,12 +549,16 @@ CAMS = {   # course (x, z, height) from and to, lens mm
     "overview": ((300.0, 700.0, 300.0), (260.0, 0.0, 0.0), 30),
     "reverse": ((25.0, W + 3.0, 5.0), (-8.0, -25.0, 7.0), 24),                  # from the far rail back at the line
     "reverse_up": ((150.0, W + 3.0, 5.0), (130.0, -25.0, 8.0), 24),             # the same, at the stands up the course
+    "plan": ((125.0, 20.0, 400.0), (125.0, 20.0001, 0.0), 0),                  # straight down, for marking up (orthographic)
 }
+PLAN = {"x": [-200.0, 450.0], "z": [-110.0, 150.0], "px": 3000}                  # the plan's extent; stand side at the top
 
 
 def camera(name):
     (fx, fz, fy), (tx, tz, ty), lens = CAMS[name]
-    cam = bpy.data.cameras.new(name); cam.lens = lens; cam.clip_end = 6000
+    cam = bpy.data.cameras.new(name); cam.lens = lens or 50; cam.clip_end = 6000
+    if name == "plan":
+        cam.type = "ORTHO"; cam.ortho_scale = PLAN["x"][1] - PLAN["x"][0]
     ob = bpy.data.objects.new(name, cam); scene.collection.objects.link(ob)
     frm = Vector(B(fx, fz, float(ground_height(fx, fz)) + fy)); to = Vector(B(tx, tz, float(ground_height(tx, tz)) + ty))
     ob.location = frm; ob.rotation_euler = (to - frm).to_track_quat("-Z", "Y").to_euler()
@@ -573,6 +577,11 @@ def render():
     for s in SHOTS:
         t0 = time.time()
         scene.camera = camera(s)
+        if s == "plan":
+            scene.render.resolution_x = PLAN["px"]
+            scene.render.resolution_y = round(PLAN["px"] * (PLAN["z"][1] - PLAN["z"][0]) / (PLAN["x"][1] - PLAN["x"][0]))
+        else:
+            scene.render.resolution_x, scene.render.resolution_y = RES
         scene.render.filepath = os.path.join(OUT, s + ".png")
         bpy.ops.render.render(write_still=True)
         print("rendered", s, round(time.time() - t0), "s", flush=True)
