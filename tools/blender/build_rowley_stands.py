@@ -19,7 +19,7 @@ Building coordinates (Blender), as the other kits: x along the front, left to ri
 building (the front faces -y); z up; origin the middle of the front, on the ground; walls run 1 m below the ground.
 
 Pieces
-  millennium_stand   four wave canopies on a white frame (ribs, ring beam, masts and stays) over three glazed floors and an open terrace; stair tower   112 x 30 m, 45 m
+  millennium_stand   the Millennium's form (four wave canopies on masts over a deep block) with Ascot's heritage dress: a terrace from the lawn, an arcade, balconies, a veranda, a clock tower   123 x 32 m, 45 m
   rowley_stand       glazed base, an open seating terrace under a flat canopy, an upper floor, the clock cupola, a brick end   110 x 18 m, 24 m
   victorian_stand    two tiers under a hipped slate roof with dormers, lantern and chimneys; standing terrace in front; low wing   112 x 22 m, 19 m
   judges_kiosk       the white judge's kiosk with a pyramid cap                                              3 x 3 m, 6 m
@@ -39,6 +39,9 @@ COL = {   # the pastel-street palette, as the July Course's pieces
     "white": "#f6f2ea", "cream": "#efe3cd", "glass": "#3f3a4d", "trim": "#f7efe2", "seat": "#9dbfa6", "concrete": "#e6d9c4",
     "fascia": "#e8b29b", "mast": "#f3f0ea", "brick": "#dc9c86", "slate": "#8f95a8", "roof": "#b4aaa2", "canvas": "#fbf8f1",
     "door": "#7f9f8c", "green": "#93b89e", "iron": "#5b6273", "bench": "#857f96",
+    # Ascot's heritage palette, as the finish study (stand_clean_study.py): cream walls, a warmer stone for the base and
+    # pilasters, dark green ironwork, gilt finials, a clock face
+    "wall": "#ecdcc0", "podium": "#dccaa8", "ironwork": "#4f6b5a", "gilt": "#c8a466", "clock": "#fbf5ea", "clockdark": "#2a2c30",
 }
 MATS = {k: material("rm_" + k, v, rough=0.9) for k, v in COL.items()}
 K = Kit()
@@ -116,78 +119,119 @@ def sheet_solid(mat, fz, x0, x1, y0, y1, nx, ny, t):
 
 # ------------------------------------------------------------------------------------------ 1: the Millennium Grandstand
 def millennium_stand(n=4, bay=28.0, D=30.0):
-    """Owner (8 Nov, on the first look): "not the right proportion... make it a bit squarer, and incorporate the roof
-    structure": four canopies as the real stand, a floor more, deeper, and the canopies carried on a white frame of
-    trough ribs, a front ring beam and tall masts with fans of stays, sitting on the top floor rather than over it."""
+    """The Millennium Grandstand's form and proportion (four wave canopies on masts over a deep block) dressed with the
+    Royal Ascot stand's old-school details (owner, 8 Nov: "something about it is still not convincing. The steps should
+    come down to ground. The raised platform isn't helping... take the form and proportion of the new stand but
+    integrate some of the Royal Ascot old school vibe into it, so it feels more heritage"):
+    a standing terrace that steps up from the lawn; an arcade of round arches behind it; cream walls with pilasters at
+    the bay lines and deep cornices; balconies with balustrades; a veranda on dark green iron columns; the canopies on
+    dark green masts with gilt finials; a clock tower in place of the glazed stair tower."""
     L = n * bay; h = L / 2
-    # ground floor: dark glazing between cream piers, a cream band over it
-    K.box("glass", -h, h, 0.6, D, -1.0, 4.6)
-    for k in range(int(L // 7) + 1):
-        x = -h + k * L / int(L // 7)
-        K.box("cream", x - 0.45, x + 0.45, 0.2, 0.8, -1.0, 4.6)
-    K.box("cream", -h - 0.2, h + 0.2, -0.4, D, 4.6, 5.2)
-    # the open terrace: green seats stepping up, a white balustrade along its front
-    yb, zt = steps("concrete", -h, h, 0.0, 5.5, 9, 1.05, 0.4, seat="seat")
-    K.box("white", -h, h, -0.12, 0.05, 5.2, 6.4)
-    K.box("glass", -h + 0.5, h - 0.5, yb - 0.05, yb + 0.05, zt + 0.4, 12.0)                 # the bars behind it
-    # the boxes: a white slab over the terrace with the pink sponsor fascia, three glazed floors with balconies above
-    K.box("white", -h, h, 1.6, D, 12.0, 12.7)
-    for k in range(n):
-        x = -h + bay * (k + 0.5)
-        K.box("fascia", x - bay * 0.38, x + bay * 0.38, 1.45, 1.6, 12.0, 13.8)
-    K.box("white", -h, h, 1.55, 1.75, 13.8, 14.05)
-    z = 12.7
-    for k, (inset, height) in enumerate(((3.4, 4.0), (4.6, 4.0), (6.0, 3.8))):
-        K.box("glass", -h, h, inset, D, z, z + height)
-        K.box("white", -h, h, 1.6, inset, z, z + 0.25)
-        K.balustrade(-h, h, 1.75, z + 0.25, h=1.0, mat="white", spacing=0.6, piers=False)
-        for j in range(n + 1):                                            # white mullion frames at the bay lines
-            x = -h + bay * j
-            K.box("white", x - 0.35, x + 0.35, inset - 0.15, inset + 0.3, z, z + height)
-        z += height
-        K.box("white", -h, h, 1.6, D, z, z + 0.7)
-        z += 0.7
-    deck = z                                                              # about 26.5 m
-    for x in (-h, h):                                                     # cream end walls
-        K.box("cream", x - 0.5, x + 0.5, 0.0, D + 0.5, -1.0, deck)
-    # the wave canopies: each a vault across its bay springing from the deck, rising towards the front and cantilevered
-    # out over the balconies
-    def fz(x, y, xc):
-        t = min(max((x - (xc - bay / 2)) / bay, 0.0), 1.0)
-        rise = 3.0 * (D + 2 - y) / (D + 9)
-        return deck + 0.3 + rise + 6.5 * math.sin(math.pi * t) ** 0.75
-    for k in range(n):
-        xc = -h + bay * (k + 0.5)
-        sheet_solid("canvas", lambda x, y, xc=xc: fz(x, y, xc), xc - bay / 2 + 0.35, xc + bay / 2 - 0.35, -7.0, D + 2.0, 18, 10, 0.25)
-    # the frame: a white rib along every trough, a ring beam along the front edge, masts with fans of stays
+    rows, tread, rise = 14, 0.85, 0.38
+    yf = rows * tread + 0.4                                           # the building's face, behind the terrace
+    # the terrace: from the lawn straight up to the arcade, a low balustrade along its foot, benches on the rows
+    K.balustrade(-h, h, -0.3, 0.0, h=0.9, mat="trim", spacing=0.34)
+    yb, zt = steps("concrete", -h, h, 0.0, 0.3, rows, tread, rise, seat="bench")
+    K.box("concrete", -h, h, yb, yf + 0.5, -1.0, zt)
+    z1 = zt + 0.05                                                     # the gallery floor, level with the top row
+    # the arcade: round arches between piers, the gallery dark behind them
+    span, pier = bay / 4, 1.3
+    r = (span - pier) / 2; zs = z1 + 3.2
+    K.box("glass", -h, h, yf + 3.0, yf + 3.2, z1, zs + r + 0.5)
+    for k in range(n * 4 + 1):
+        x = -h + k * span
+        K.box("wall", x - pier / 2, x + pier / 2, yf, yf + 0.7, z1, zs + r + 0.9)
+        if k < n * 4:
+            xc = x + span / 2
+            K.arc_band("wall", xc, zs, r, r * 1.45, 0.0, math.pi, yf, yf + 0.7, n=12)
+            K.arc_band("trim", xc, zs, r - 0.02, r + 0.22, 0.0, math.pi, yf - 0.08, yf + 0.05, n=12)   # the archivolt
+    zc = zs + r + 0.9
+    K.box("wall", -h, h, yf, yf + 0.7, zc - 0.4, zc + 1.0)
+    K.cornice(-h, h, yf - 0.1, yf + 0.7, zc + 1.0, ov=0.4, h=0.5)
+    # two upper floors: balconies with balustrades, tall windows in cream walls, a veranda on iron columns
+    z = zc + 1.5
+    for lv in range(2):
+        H = 4.6
+        K.box("wall", -h, h, yf + 2.4, D, z, z + H)
+        for k in range(int(L // 3.5)):
+            win(-h + 1.75 + k * 3.5, yf + 2.4, z + 0.6, 1.5, 2.8)
+        K.box("podium", -h - 0.2, h + 0.2, yf - 0.2, yf + 2.6, z - 0.35, z)                 # the balcony slab
+        K.balustrade(-h, h, yf, z, h=1.0, mat="trim", spacing=0.34)
+        for k in range(n * 2 + 1):                                          # the veranda's iron columns
+            x = -h + 0.4 + k * (L - 0.8) / (n * 2)
+            K.cyl("ironwork", x, yf + 0.25, z, z + H - 0.4, 0.13, segs=8)
+        K.box("roof", -h - 0.2, h + 0.2, yf - 0.1, yf + 2.4, z + H - 0.4, z + H - 0.15)       # its light roof
+        K.box("ironwork", -h - 0.2, h + 0.2, yf - 0.15, yf + 0.05, z + H - 0.7, z + H - 0.15)
+        area(-h + 0.4, h - 0.4, yf + 0.4, yf + 2.2, z)
+        z += H
+    K.box("wall", -h, h, yf + 2.4, D, z, z + 1.4)
+    K.cornice(-h, h, yf + 2.0, D, z + 1.4, ov=0.6, h=0.6)
+    deck = z + 2.0
+    # pilasters at the bay lines, full height, and the ends in cream with windows and cornices
     for j in range(n + 1):
         x = -h + bay * j
-        prof = [(y, deck + 0.3 + 3.0 * (D + 2 - y) / (D + 9)) for y in (-7.0, D + 2.0)]
-        K.prism_x("white", x - 0.45, x + 0.45, [(prof[0][0], prof[0][1] - 0.9), (prof[1][0], prof[1][1] - 0.9),
-                                                 (prof[1][0], prof[1][1] + 0.35), (prof[0][0], prof[0][1] + 0.35)])
-        mz, my = deck + 18.0, D * 0.42
-        K.cyl("mast", x, my, deck - 2.0, mz, 0.45, 0.3, segs=10)
-        K.sphere("mast", x, my, mz + 0.15, 0.42, sub=1)
-        ends = [(x + s_ * bay * f, ye) for s_ in (-1, 1) for f in (0.22, 0.42) for ye in (-7.0, D + 2.0)]
-        for xe, ye in ends:
-            if not (-h <= xe <= h):
-                continue
-            xc = -h + bay * (math.floor((xe + h) / bay) + 0.5)
-            v = Vector((xe - x, ye - my, fz(xe, ye, xc) + 0.2 - mz)); m = v.length
-            rot = Vector((0, 0, 1)).rotation_difference(v.normalized()).to_matrix().to_4x4()
-            K.push(Matrix.Translation((x, my, mz)) @ rot)
-            K.cyl("mast", 0, 0, 0, m, 0.06, segs=4, smooth=False)
-            K.pop()
-    K.prism_x("white", -h, h, [(-7.0, deck + 0.3 + 3.0 * (D + 9) / (D + 9) - 0.5), (-6.4, deck + 2.8), (-6.4, deck + 3.7), (-7.0, deck + 3.7)])
-    # the glazed stair tower at the right-hand end, with pale green bands
-    tx0, tx1 = h + 0.5, h + 10.0
-    K.box("glass", tx0, tx1, 2.0, D - 2.0, -1.0, deck + 4.0)
-    for zz in range(2, int(deck + 4), 3):
-        K.box("green", tx0 - 0.08, tx1 + 0.08, 1.92, D - 1.92, zz, zz + 0.45)
-    for xx in (tx0, tx1):
-        K.box("white", xx - 0.3, xx + 0.3, 1.7, D - 1.7, -1.0, deck + 4.6)
-    K.box("white", tx0 - 0.3, tx1 + 0.3, 1.7, D - 1.7, deck + 4.0, deck + 4.7)
-    return {"width": L + 10.3, "depth": D + 2.0, "height": deck + 18.6, "offset": (tx1 + 0.3 - h) / 2}
+        K.box("podium", x - 0.9, x + 0.9, yf - 0.35, yf + 0.1, z1, zc + 1.0)
+        K.box("podium", x - 0.9, x + 0.9, yf + 2.0, yf + 2.45, zc + 1.0, deck - 0.6)
+    for x, f in ((-h, -1), (h, 1)):
+        K.box("wall", x - 0.5 * f - 0.5, x - 0.5 * f + 0.5, yf, D + 0.5, -1.0, deck)
+        for zz in (z1 + 1.0, zc + 2.2, zc + 6.8):
+            for y in (yf + 6.0, yf + 11.0, D - 4.0):
+                side_window(x + 0.5 * f, f, y, zz, 1.4, 2.4)
+    # the wave canopies: vaults across the bays springing from the cornice, rising towards the front
+    def fz(x, y, xc):
+        t = min(max((x - (xc - bay / 2)) / bay, 0.0), 1.0)
+        rise_ = 1.5 * (D + 2 - y) / (D + 2 - yf + 9)                     # a gentle lift to the front: springing
+        return deck - 0.3 + rise_ + 6.5 * math.sin(math.pi * t) ** 0.75     # straight off the top cornice
+    y0c = yf - 6.0
+    for k in range(n):
+        xc = -h + bay * (k + 0.5)
+        sheet_solid("canvas", lambda x, y, xc=xc: fz(x, y, xc), xc - bay / 2 + 0.35, xc + bay / 2 - 0.35, y0c, D + 2.0, 18, 10, 0.25)
+    # the frame: ribs along the troughs, a ring beam along the front, dark green masts with gilt finials and stays
+    for j in range(n + 1):
+        x = -h + bay * j
+        p0, p1 = (y0c, fz(x, y0c, x + bay / 2)), (D + 2.0, fz(x, D + 2.0, x + bay / 2))     # along the trough
+        K.prism_x("trim", x - 0.45, x + 0.45, [(p0[0], p0[1] - 0.9), (p1[0], p1[1] - 0.9), (p1[0], p1[1] + 0.35), (p0[0], p0[1] + 0.35)])
+        mz, my = deck + 17.0, yf + (D - yf) * 0.45
+        K.cyl("ironwork", x, my, deck - 2.0, mz, 0.45, 0.3, segs=10)
+        K.sphere("gilt", x, my, mz + 0.35, 0.55, sub=1)
+        for s_ in (-1, 1):
+            for f_ in (0.22, 0.42):
+                for ye in (y0c, D + 2.0):
+                    xe = x + s_ * bay * f_
+                    if not (-h <= xe <= h):
+                        continue
+                    xc = -h + bay * (math.floor((xe + h) / bay) + 0.5)
+                    v = Vector((xe - x, ye - my, fz(xe, ye, xc) + 0.2 - mz)); m = v.length
+                    rot = Vector((0, 0, 1)).rotation_difference(v.normalized()).to_matrix().to_4x4()
+                    K.push(Matrix.Translation((x, my, mz)) @ rot)
+                    K.cyl("ironwork", 0, 0, 0, m, 0.06, segs=4, smooth=False)
+                    K.pop()
+    zr = fz(-h, y0c, -h + bay / 2)                                    # the ring beam at the troughs' height
+    K.prism_x("trim", -h, h, [(y0c, zr - 0.5), (y0c + 0.6, zr - 0.5), (y0c + 0.6, zr + 0.35), (y0c, zr + 0.35)])
+    # the clock tower at the right-hand end (in place of the glazed stair tower): a stone base, cream shaft with arched
+    # windows and cornices, a belfry stage with clock faces, a lead cupola and a gilt finial
+    tx0, tx1 = h + 0.6, h + 10.6; tc = (tx0 + tx1) / 2; ty0, ty1 = yf - 1.0, yf + 9.0; tyc = (ty0 + ty1) / 2
+    K.box("podium", tx0, tx1, ty0, ty1, -1.0, z1 + 1.0)
+    K.box("wall", tx0 + 0.3, tx1 - 0.3, ty0 + 0.3, ty1 - 0.3, z1 + 1.0, deck + 4.0)
+    for zz in (z1 + 1.0, zc + 1.0, deck - 0.6):
+        K.cornice(tx0 + 0.3, tx1 - 0.3, ty0 + 0.3, ty1 - 0.3, zz, ov=0.35, h=0.45)
+    for zz in (z1 + 2.2, zc + 2.5, zc + 7.2):
+        for x in (tc - 2.2, tc + 2.2):
+            win(x, ty0 + 0.3, zz, 1.4, 3.0)
+            K.arc_band("trim", x, zz + 3.0, 0.7, 0.92, 0.0, math.pi, ty0 + 0.22, ty0 + 0.36, n=8)
+    K.door(tc, ty0, 0.0, 2.0, 3.2)
+    bz = deck + 4.0
+    K.box("wall", tc - 3.6, tc + 3.6, tyc - 3.6, tyc + 3.6, bz, bz + 7.0)
+    K.cornice(tc - 3.6, tc + 3.6, tyc - 3.6, tyc + 3.6, bz + 7.0, ov=0.45, h=0.6)
+    K.disc_y("clock", tc, tyc - 3.72, tyc - 3.6, bz + 4.4, 1.7, segs=28)
+    K.disc_y("clockdark", tc, tyc - 3.78, tyc - 3.72, bz + 4.4, 0.12, segs=12)
+    K.box("clockdark", tc - 0.06, tc + 0.06, tyc - 3.8, tyc - 3.74, bz + 4.4, bz + 5.6)
+    K.box("clockdark", tc - 0.06, tc + 0.9, tyc - 3.8, tyc - 3.74, bz + 4.34, bz + 4.46)
+    K.arc_band("trim", tc, bz + 1.6, 1.0, 1.3, 0.0, math.pi, tyc - 3.75, tyc - 3.55, n=10)
+    K.cyl("slate", tc, tyc, bz + 7.6, bz + 11.0, 3.2, 0.5, segs=16)
+    K.cyl("gilt", tc, tyc, bz + 11.0, bz + 13.0, 0.08, segs=6)
+    K.sphere("gilt", tc, tyc, bz + 13.1, 0.3, sub=1)
+    return {"width": L + 11.2, "depth": D + 2.0, "height": max(deck + 17.6, bz + 13.4), "offset": (tx1 - h) / 2}
 
 
 # ------------------------------------------------------------------------------------------ 1b: the Rowley stand
