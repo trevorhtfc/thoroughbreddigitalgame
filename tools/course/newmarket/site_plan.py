@@ -122,10 +122,10 @@ def main():
         "rowley": {"post": [0, 0], "stands": rect(rs), "festival": rect(R.FESTIVAL),
                    "standCamera": {"at": [0, R.STANDS["front"] + 2, 14], "looks": [0, -1], "note": "across the track to the Dyke"}},
         "july": {"post": list(map(lambda v: round(v, 1), j2s(0, 0))),
-                 "stands": [rect({"x": s["x"], "z": [-(J.STAND_BACK + s["depth"]), -J.STAND_BACK]}, j2s) for s in J.STANDS],
+                 "stands": [rect(r, j2s) for r in J.stand_rects()],
                  "festival": rect(J.FESTIVAL, j2s), "farFestival": rect(J.far_rect(J.FAR_FESTIVAL), j2s),
-                 "standCamera": {"at": list(map(lambda v: round(v, 1), j2s(0, -J.STAND_BACK - 2))) + [12], "looks": [round(-S, 3), round(C, 3)],
-                                 "note": "across the track to the far-side festival and the Dyke"}},
+                 "standCamera": {"at": list(map(lambda v: round(v, 1), j2s(0, -13.5))) + [13], "looks": [round(-S, 3), round(C, 3)],
+                                 "note": "across the track to the far-side festival and the Dyke, from the roof of the judge's box"}},
         "bankSkips": {"rowley": R.BANK_SKIP, "july": J.BANK_SKIP},
     }
     (REPO / "courses/newmarket-site.json").write_text(json.dumps(site, indent=1))

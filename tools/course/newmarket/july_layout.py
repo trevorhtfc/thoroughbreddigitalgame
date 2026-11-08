@@ -42,18 +42,85 @@ COMPASS = "owner's sketch, 8 Nov: in courses/newmarket-site.json north is at the
 
 # ---------------------------------------------------------------- the stand side: behind the inside rail (z < 0)
 # Owner: "a series of grandstands with crowds in and around", then festival pieces on the stand side towards 3/4f
-# (his sketch: the stands from about the post up the course, a smaller festival area beyond them). Each stand: x from,
-# x to (metres along the straight, + up the course), depth, height; the fronts STAND_BACK metres behind the inside rail,
-# behind a packed lawn. Low heritage stands (red brick ends, timber canopy roofs, a red judge's box on top of one).
-STAND_BACK = 16.0
-STANDS = [
-    {"name": "Garden stand", "x": [-110, -62], "depth": 22, "height": 12},
-    {"name": "Grandstand", "x": [-50, 36], "depth": 28, "height": 16, "note": "the winning line in front of it"},
-    {"name": "Judge's box stand", "x": [48, 128], "depth": 26, "height": 17, "note": "the red judge's box tower on its roof"},
-    {"name": "Premier stand", "x": [140, 240], "depth": 30, "height": 18},
-    {"name": "Paddock stand", "x": [252, 330], "depth": 22, "height": 13},
+# (his sketch: the stands from about the post up the course, a smaller festival area beyond them). Then (8 Nov, with
+# photos in reference/newmarket-july/): plain traditional stands rather than Ascot's ornate modules (stepped terraces
+# under flat dark canopy roofs, red-brick end blocks); the one nearest the line an old-world pavilion; the old judge's
+# box on the line and a Victorian red-brick house (the weighing room) with a bell tent and a little pavilion near the
+# finish; a few trees between and around the stands, not too many. The buildings are the pieces in
+# assets/models/architecture/july_stands.glb (tools/blender/build_july_stands.py). Each: x from, x to (metres along
+# the straight, + up the course); front = its front line in metres behind the inside rail; depth; height; the piece.
+STAND_BACK = 16.0         # the stands' usual front line, behind a packed lawn
+STANDS = [                # from the run-out up the course
+    {"name": "Garden stand", "piece": "terrace_low", "x": [-170, -105], "front": 16, "depth": 6, "height": 8},
+    {"name": "Little pavilion", "piece": "little_pavilion", "x": [-94, -87], "front": 24, "depth": 7, "height": 5},
+    {"name": "Bell tent", "piece": "bell_tent", "x": [-83, -76], "front": 23, "depth": 7, "height": 6},
+    {"name": "Weighing room", "piece": "victorian_house", "x": [-72, -54], "front": 20, "depth": 9, "height": 13,
+     "note": "the red-brick Victorian house, behind its own white rail and gate"},
+    {"name": "Old pavilion", "piece": "old_pavilion", "x": [-48, -4], "front": 16, "depth": 11, "height": 16,
+     "note": "the stand nearest the line: 40 m long, a veranda and two balconied stands, a side stair, a picket fence"},
+    {"name": "Judge's box", "piece": "judges_box", "x": [-2.5, 2.5], "front": 9, "depth": 5, "height": 8,
+     "note": "on the line, people on its roof; the stand camera sits on top of it"},
+    {"name": "Grandstand", "piece": "terrace_grand", "x": [14, 94], "front": 16, "depth": 15, "height": 21},
+    {"name": "Premier stand", "piece": "terrace_mid", "x": [108, 170], "front": 16, "depth": 12, "height": 15},
+    {"name": "Paddock stand", "piece": "terrace_small", "x": [184, 236], "front": 16, "depth": 10, "height": 13.5},
+    {"name": "Members' terrace", "piece": "terrace_low", "x": [256, 330], "front": 16, "depth": 6, "height": 8},
 ]
-LAWN = {"x": [-120, 340], "z": [-(STAND_BACK - 1), -2.0], "note": "the lawns between the stands and the rail, packed, coloured umbrellas"}
+# Behind the stands (owner, 8 Nov, on the view back across the line: "add pavilions etc behind the grandstands with
+# some further planting just to create a visual infill", then "a full wall of stuff that blocks the gaps, I can see gaps
+# still"). In every gap between the stands a marquee fills the gap at the stands' line (stretched to fit: "fit"), a row
+# of big trees close behind it; over the low pieces a continuous row of peaked marquees, then a row of big trees. Each
+# piece: from site_props.glb or july_stands.glb, the middle of its footprint (x, z), its footprint w x d, facing the track.
+def _row(piece, x0, x1, z, w, d):
+    n = max(1, round((x1 - x0) / w))
+    return [{"piece": piece, "kit": "site_props", "at": [x0 + (x1 - x0) * (k + 0.5) / n, z], "size": [(x1 - x0) / n, d], "fit": True}
+            for k in range(n)]
+INFILL = [
+    {"piece": "marquee_clearspan", "kit": "site_props", "at": [-50.5, -24.5], "size": [11.0, 9], "fit": True, "note": "the weighing room / pavilion gap"},
+    {"piece": "marquee_clearspan", "kit": "site_props", "at": [6.3, -24.0], "size": [15.0, 9], "fit": True, "note": "the judge's box / Grandstand gap, and behind the box"},
+    {"piece": "marquee_peaks", "kit": "site_props", "at": [4.0, -36.0], "size": [24, 8], "note": "behind the judge's box"},
+    {"piece": "marquee_clearspan", "kit": "site_props", "at": [100.45, -22.0], "size": [11.5, 9], "fit": True},
+    {"piece": "marquee_clearspan", "kit": "site_props", "at": [177.0, -22.0], "size": [12.6, 9], "fit": True},
+    {"piece": "marquee_clearspan", "kit": "site_props", "at": [245.4, -22.0], "size": [17.6, 9], "fit": True},
+] + _row("marquee_peaks", -178, -58, -38.0, 24, 8) + _row("marquee_peaks", 256, 344, -30.0, 24, 8)
+# the rows of big trees behind them (each with a row of smaller trees just in front): x from, x to, z, spacing, scale
+WALL_TREES = [(-180, -56, -50.0, 9.0, [1.8, 2.3]), (-58, -44, -35.0, 7.0, [1.8, 2.2]), (-12, 18, -46.0, 7.0, [2.0, 2.4]),
+              (95, 106, -33.0, 6.0, [1.9, 2.3]), (171, 183, -33.0, 6.0, [1.9, 2.3]), (237, 254, -33.0, 6.0, [1.9, 2.3]),
+              (256, 345, -42.0, 9.0, [1.7, 2.2])]
+INFILL_BELT = {"x": [-175, 345], "z": [-100, -46], "tries": 140, "spacing": 15.0, "scale": [1.5, 2.2]}
+# A few trees just behind the stands, their tops over the roofs (owner: "some trees between and around the
+# grandstands, just not too many"; his photo of the stands). Placed by hand: x, z, kind, scale, turn.
+STAND_TREES = [
+    [36, -44, "oak_c", 2.1, 70], [74, -48, "wide_b", 2.2, 190], [128, -40, "oak_a", 1.9, 310],
+    [158, -46, "poplar_a", 1.8, 30], [204, -40, "oak_b", 1.8, 100], [-22, -42, "oak_c", 1.9, 160],
+]
+# Behind the stands (owner, 8 Nov, on the view back across the line: "add pavilions etc behind the grandstands with
+# some further planting just to create a visual infill"): marquees and pavilions seen through the gaps and over the low
+# stands, then a belt of trees. Each: the piece (from site_props.glb or july_stands.glb), the middle of its footprint
+# (x, z), its footprint w x d, facing the track.
+INFILL = [
+    {"piece": "marquee_peaks", "kit": "site_props", "at": [8, -40], "size": [24, 8], "note": "behind the gap between the judge's box and the Grandstand"},
+    {"piece": "marquee_peaks", "kit": "site_props", "at": [101, -44], "size": [24, 8]},
+    {"piece": "pagoda_counter", "kit": "site_props", "at": [172, -38], "size": [5, 5], "scale": 1.3},
+    {"piece": "pagoda_counter", "kit": "site_props", "at": [182, -38], "size": [5, 5], "scale": 1.3},
+    {"piece": "marquee_clearspan", "kit": "site_props", "at": [246, -40], "size": [20, 9]},
+    {"piece": "marquee_peaks", "kit": "site_props", "at": [276, -34], "size": [24, 8]},
+    {"piece": "marquee_peaks", "kit": "site_props", "at": [310, -34], "size": [24, 8]},
+    {"piece": "marquee_clearspan", "kit": "site_props", "at": [-140, -32], "size": [20, 9]},
+    {"piece": "marquee_peaks", "kit": "site_props", "at": [-112, -32], "size": [24, 8]},
+    {"piece": "bell_tent", "kit": "july_stands", "at": [-80, -41.5], "size": [7, 7]},
+]
+INFILL_BELT = {"x": [-175, 345], "z": [-100, -46], "tries": 140, "spacing": 15.0, "scale": [1.5, 2.2]}
+# A few trees between and just behind the stands, their tops over the roofs (owner: "some trees between and around
+# the grandstands, just not too many"; his photo of the stands). Placed by hand: x, z, kind, scale, turn.
+STAND_TREES = [
+    [101, -30, "oak_a", 1.7, 20], [177, -30, "wide_a", 1.5, 140], [246, -28, "oak_b", 1.6, 260],
+    [36, -44, "oak_c", 2.1, 70], [74, -48, "wide_b", 2.2, 190], [128, -40, "oak_a", 1.9, 310],
+    [158, -46, "poplar_a", 1.8, 30], [204, -40, "oak_b", 1.8, 100], [292, -44, "wide_a", 1.5, 220],
+    [327, -44, "oak_c", 1.6, 340], [-22, -42, "oak_c", 1.9, 160], [-42, -36, "oak_a", 1.6, 280],
+    [-66, -40, "wide_b", 1.8, 50], [-95, -36, "oak_b", 1.6, 120], [-128, -36, "wide_a", 1.9, 240],
+    [-150, -40, "poplar_a", 1.7, 0], [8, -46, "wide_a", 2.0, 200],
+]
+LAWN = {"x": [-175, 340], "z": [-(STAND_BACK - 1), -2.0], "note": "the lawns between the stands and the rail, packed, coloured umbrellas"}
 FESTIVAL = {"x": [345, 3.5 * F], "z": [-62.0, -10.0],
             "note": "stand-side festival pieces from the end of the stands to 3.5f out: food and drink stalls, bars, umbrellas, "
                     "picnic lawns; 10 m back from the rail, leaving a lane for the tracking car; a few shade trees"}
@@ -105,7 +172,8 @@ BIG_TREES = [1.5, 2.3]                    # the far-side festival's trees (crown
 HEAD_ON = {"at": [-RUN_ON + 40, TRACK_W / 2, 4.0], "halfAngle": 16.0,
            "note": "the head-on long lens beyond the line, in the middle of the run-out, looking up the straight"}
 KEY_CAMERAS = {
-    "standCamera": {"at": [0, -(STAND_BACK + 2), 12], "looks": "across the track to the far side"},
+    "standCamera": {"at": [0, -13.5, 13], "looks": "across the track to the far side, from the roof of the judge's box on the line"},
+    "reverse": {"at": [25, TRACK_W + 3, 5], "looks": "back across the line at the stands (a still for judging the stand side)"},
     "trackingCar": {"lane": -5.0, "height": 3.0, "looks": "across the track to the far side, from the stand side"},
     "headOn": HEAD_ON,
     "drone": {"across": -3.0, "height": 15.0, "looks": "back up the straight at the field, from over the stand side"},
@@ -192,7 +260,12 @@ def far_rect(r):
 
 
 def stand_rects():
-    return [{"x": s["x"], "z": [-(STAND_BACK + s["depth"]), -STAND_BACK]} for s in STANDS]
+    return [{"x": s["x"], "z": [-(s["front"] + s["depth"]), -s["front"]]} for s in STANDS]
+
+
+def infill_rects():
+    return [{"x": [p["at"][0] - p["size"][0] / 2, p["at"][0] + p["size"][0] / 2],
+             "z": [p["at"][1] - p["size"][1] / 2, p["at"][1] + p["size"][1] / 2]} for p in INFILL]
 
 
 def boards():
@@ -223,7 +296,7 @@ def trees():
     g = random.Random(TREE_SEED)
     kinds = list(TREE_KINDS); weights = [TREE_KINDS[k] for k in kinds]
     out, grid = [], {}
-    blocked = stand_rects() + [far_rect(p) for p in PAVILIONS] + [far_rect(TIER), LAWN, far_rect(FAR_CROWD)]
+    blocked = stand_rects() + infill_rects() + [far_rect(p) for p in PAVILIONS] + [far_rect(TIER), LAWN, far_rect(FAR_CROWD)]
     def ok(x, z, sp):
         gx, gz = int(x // TREE_SPACING), int(z // TREE_SPACING)
         for i in (-2, -1, 0, 1, 2):
@@ -242,10 +315,10 @@ def trees():
                 if (mx - x) ** 2 + (mz - z) ** 2 < (TRACK_W / 2 + 10) ** 2:
                     return True
         return False
-    def put(x, z, sp=TREE_SPACING, scale=TREE_SCALE):
+    def put(x, z, sp=TREE_SPACING, scale=TREE_SCALE, infill=False):
         if any(rect_hit(x, z, r, 4.0) for r in blocked) or on_track(x, z) or not ok(x, z, sp):
             return
-        if z < 0 and (x < STANDS[-1]["x"][1] + 15 or not in_head_on(x, z)):  # the stand side: only what the head-on sees
+        if not infill and z < 0 and (x < STANDS[-1]["x"][1] + 15 or not in_head_on(x, z)):  # stand side: what the head-on sees
             return
         grid.setdefault((int(x // TREE_SPACING), int(z // TREE_SPACING)), []).append((x, z, sp))
         out.append([round(x, 2), round(z, 2), g.choices(kinds, weights)[0], round(g.uniform(*scale), 2), g.randrange(360)])
@@ -264,6 +337,22 @@ def trees():
     belt(345, 3.5 * F, -58, -18, 22, 16.0)
     belt(345, 3.5 * F + 80, -130, -70, 70, 22.0)
     belt(3.5 * F + 80, STRAIGHT - 60, -120, -45, 45, 28.0)
+    out += [list(t) for t in STAND_TREES]                                       # the few placed among the stands
+    wall_kinds = ["oak_a", "oak_b", "oak_c", "wide_a", "wide_b"]
+    wr = random.Random(TREE_SEED + 7)
+    nwall = 0
+    for x0, x1, z, every, scale in WALL_TREES:          # the rows behind the gap marquees: big trees, and in front of
+        for zz, ev, sc in ((z, every, scale), (z + 4.0, every * 0.6, [1.0, 1.35])):    # them smaller ones, so no light
+            n = max(1, int(round((x1 - x0) / ev)))                                      # shows under the big crowns
+            for k in range(n):
+                out.append([round(x0 + (x1 - x0) * (k + 0.5) / n + wr.uniform(-1.0, 1.0), 2), round(zz + wr.uniform(-1.5, 1.5), 2),
+                            wr.choice(wall_kinds), round(wr.uniform(*sc), 2), wr.randrange(360)])
+                nwall += 1
+    for t in out[-len(STAND_TREES) - nwall:]:
+        grid.setdefault((int(t[0] // TREE_SPACING), int(t[1] // TREE_SPACING)), []).append((t[0], t[1], 12.0))
+    b = INFILL_BELT                                                             # and the belt behind them (owner, 8 Nov)
+    for _ in range(b["tries"]):
+        put(g.uniform(*b["x"]), g.uniform(*b["z"]), b["spacing"], b["scale"], infill=True)
     return out
 
 
@@ -300,7 +389,7 @@ def main():
         "insideRail": {"spacing": step, "fields": "x, z, height, metres to go", "points": pts},
         "profile": {"points": PROFILE, "note": "the owner's notes: rolling for the first three-quarters of the straight, downhill 6f to 5f out, a steep sustained climb over the last 2f"},
         "starts": starts, "furlongPoles": poles, "keyCameras": KEY_CAMERAS,
-        "standSide": {"side": "behind the inside rail (z < 0)", "standBack": STAND_BACK, "stands": STANDS, "lawn": LAWN, "festival": FESTIVAL, "paddock": PADDOCK},
+        "standSide": {"side": "behind the inside rail (z < 0)", "standBack": STAND_BACK, "stands": STANDS, "infill": INFILL, "lawn": LAWN, "festival": FESTIVAL, "paddock": PADDOCK},
         "farSide": {"side": "beyond the outer rail: 'off' = metres beyond it", "festival": FAR_FESTIVAL, "crowd": FAR_CROWD, "tier": TIER, "pavilions": PAVILIONS},
         "dykeFace": {"near": BANK_NEAR, "far": BANK_FAR, "spans": spans,
                      "line": [[d] + [round(v, 2) for v in far(d, sum(bank_at(d)["crest"]) / 2)] + [round(bank_at(d)["height"], 2)]
@@ -369,7 +458,7 @@ STAND, LAWNC, FEST, PAV, TIERC, CROWD, POST = "#cdb79a", "#c9d9a6", "#f1d9a8", "
 LEAF = ["#5f7f45", "#6e8d4c", "#557440", "#7a9655"]
 BOARD_C = {"green": "#2f5d3a", "cream": "#e9dfc3", "navy": "#24324f", "white": "#f6f6f2"}
 # the cross-sections are drawn from the far (outer) rail: 0 there, the track 0 to TRACK_W, the stands beyond
-CAMS = {"tracking car": (TRACK_W + 5.0, 3.0), "stand camera": (TRACK_W + STAND_BACK + 2.0, 12.0), "drone": (TRACK_W / 2 + 20.0, 15.0)}
+CAMS = {"tracking car": (TRACK_W + 5.0, 3.0), "stand camera": (TRACK_W + 13.5, 13.0), "drone": (TRACK_W / 2 + 20.0, 15.0)}
 
 
 def draw(c):
@@ -418,10 +507,14 @@ def draw(c):
     Z.text(-8, TRACK_W / 2, "post", ha="right", va="center", fontsize=9, color=POST, rotation=90)
     lab = dict(fontsize=8.5, color=INK, ha="center", va="center")
     for s, r in zip(STANDS, stand_rects()):
-        Z.text(sum(r["x"]) / 2, sum(r["z"]) / 2, s["name"].replace(" ", "\n", 1), **lab)
-    Z.text(-118, -8, "packed lawns, umbrellas", fontsize=7.5, color=INK, ha="left", va="center")
+        if r["x"][1] - r["x"][0] >= 20:
+            Z.text(sum(r["x"]) / 2, sum(r["z"]) / 2, s["name"].replace(" ", "\n", 1), **lab)
+        else:                                       # the small pieces: a small label above them
+            Z.text(sum(r["x"]) / 2, r["z"][0] - 3, s["name"], fontsize=6.5, color=INK, ha="center", va="bottom", rotation=90)
+    Z.text(100, -8, "packed lawns, umbrellas", fontsize=7.5, color=INK, ha="left", va="center")
     Z.text(sum(FESTIVAL["x"]) / 2 + 20, sum(FESTIVAL["z"]) / 2, "stand-side festival to 3.5f out", **lab)
-    Z.text(115, -150, "parade rings and paddock (no trees: never on camera)", **lab)
+    Z.text(115, -150, "parade rings and paddock, behind a belt of trees and marquees (the stands' backdrop)", **lab)
+    for r in infill_rects(): rr(r, fc=PAV, ec="#8d826b", lw=0.6)
     hx, hz = HEAD_ON["at"][0], HEAD_ON["at"][1]; ta = math.tan(math.radians(HEAD_ON["halfAngle"]))
     for sg in (-1, 1):
         Z.plot([hx, zx[1]], [hz, hz + sg * ta * (zx[1] - hx)], color="#2a6f97", lw=0.9, ls="--")
@@ -464,9 +557,10 @@ def draw(c):
             ax.text(-sum(TIER["off"]) / 2, TIER["height"] * EX + 3, "tiered stand", ha="center", fontsize=8)
             ax.add_patch(Rectangle((-FAR_CROWD["off"][1], 0), FAR_CROWD["off"][1] - FAR_CROWD["off"][0], 1.8 * EX, fc=CROWD, ec="none"))
             ax.add_patch(Rectangle((TRACK_W + 2, 0), STAND_BACK - 3, 1.8 * EX, fc=CROWD, ec="none"))
-            s = STANDS[1]
-            ax.add_patch(Rectangle((TRACK_W + STAND_BACK, 0), s["depth"], s["height"] * EX, fc=STAND, ec="#8d826b", lw=0.8))
-            ax.text(TRACK_W + STAND_BACK + s["depth"] / 2, s["height"] * EX + 3, "stands", ha="center", fontsize=8)
+            for s in STANDS:                      # on the line: the judge's box, the old pavilion behind it
+                if s["name"] in ("Judge's box", "Old pavilion"):
+                    ax.add_patch(Rectangle((TRACK_W + s["front"], 0), s["depth"], s["height"] * EX, fc=STAND, ec="#8d826b", lw=0.8))
+                    ax.text(TRACK_W + s["front"] + s["depth"] / 2, s["height"] * EX + 3, s["name"].lower(), ha="center", fontsize=8)
         else:
             for k in range(5):
                 ax.add_patch(Rectangle((TRACK_W + 12 + k * 9, 0), 5, 3.2 * EX, fc=FEST, ec="#b49a6a", lw=0.6))

@@ -20,6 +20,16 @@ reference only (screenshots, maps, photos and TV frames are not ours to publish)
   the far rail with the Dyke and trees rising behind. `tv-1m5f-run-in.jpg`: the head-on, the 2f pole, the crowd on the
   stand-side rail, and the finish side-on: a white pavilion and crowd among trees behind the far rail, a long red
   sponsor board along it.
+- The owner's references for the stand side's buildings (8 Nov, afternoon): `stands-traditional.png` (plain terraced
+  stands with flat dark canopy roofs and red-brick end blocks, a few trees between and behind them), `old-pavilion.png`
+  (a two-storey veranda-and-balcony pavilion with fretwork brackets and a picket fence: the stand nearest the line),
+  `judges-box-1805.png` (Sartorius's painting of the winning post at Newmarket, 1805: a small brick box with people on its
+  roof) and `victorian-house.png` (a red-brick house with steep gables, tall chimneys, a white rail and gate, a bell tent
+  and a little hipped pavilion behind). `precedent-pastel-street.png`: the look to follow (pastel tones, soft shadows, a
+  smooth clay finish; "don't try too hard to make these look like real buildings"). `owner-note-infill.png`: his note on
+  the view back across the line (pavilion taller; marquees and trees to fill the gaps behind the stands).
+- `renders/`: stills of the Blender build (tools/blender/build_newmarket_july.py), and `sheet_*.png` of the stand-side
+  pieces (tools/blender/build_july_stands.py).
 
 ## The owner's brief (8 Nov)
 
