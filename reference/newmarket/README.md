@@ -21,3 +21,9 @@ For building Newmarket as the game's second course. Private reference only (TV f
   finish; blue: each course's main stand camera, looking across its track towards the Dyke. `site-plan-draft.png` is
   the two courses built from it (`tools/course/newmarket/site_plan.py`), with the sketch beside it.
 
+- The stand side's architecture (owner, 8 Nov evening): `aerial-stands-marked.png` (his aerial marked 1 = the Millennium
+  Grandstand, 2 = the finish line, 3 = the old stand up the course), `millennium-grandstand.png` (point 1: the wave
+  canopies, the glazed stair tower and the lower Rowley stand with its clock cupola and brick end) and
+  `old-stand-victorian.png` (point 3: a two-tier Victorian grandstand under a hipped slate roof with dormers, a lantern
+  and chimneys, a white judge's kiosk and a small pavilion). Built as `tools/blender/build_rowley_stands.py`; a first
+  look in place in `renders/` (`tools/blender/preview_rowley_stands.py`).

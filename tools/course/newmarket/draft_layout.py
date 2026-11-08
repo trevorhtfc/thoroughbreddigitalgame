@@ -49,13 +49,25 @@ BOARD_DESIGNS = ["green", "cream", "navy", "white"]
 # from the tracking car only the crowns show over the crest. Seeded, so the same trees every time.
 TREES = {"from": 62.0, "to": 150.0, "start": -320.0, "end": 20 * F + 220.0, "spacing": 7.5, "seed": 8,
          "kinds": {"oak_a": 3, "oak_b": 3, "oak_c": 3, "wide_a": 3, "wide_b": 3, "poplar_a": 1}, "scale": [1.0, 1.6]}
+# The stand side's buildings (owner, 8 Nov, his aerial marked 1-3 and photos: reference/newmarket/): the Millennium
+# Grandstand from about the post up the course, the lower Rowley stand with its clock cupola beyond it, then the old
+# Victorian stand up the course (his point 3) with its white judge's kiosk by the rail and a small pavilion. Pieces in
+# assets/models/architecture/rowley_stands.glb (tools/blender/build_rowley_stands.py). Each: x from, x to (the main
+# block, metres along the straight), front = metres beyond the NEAR rail, the piece; all face the track.
+STAND_PIECES = [
+    {"name": "Millennium Grandstand", "piece": "millennium_stand", "x": [-8.0, 160.0], "front": 14.0, "note": "five wave canopies; its stair tower at the up-course end"},
+    {"name": "Rowley stand", "piece": "rowley_stand", "x": [172.0, 282.0], "front": 16.0, "note": "the clock cupola; a brick end up the course"},
+    {"name": "Small pavilion", "piece": "victorian_pavilion", "x": [329.0, 340.0], "front": 34.0},
+    {"name": "Judge's kiosk", "piece": "judges_kiosk", "x": [350.0, 353.4], "front": 7.0},
+    {"name": "Old stand", "piece": "victorian_stand", "x": [350.0, 446.0], "front": 34.0, "note": "his point 3: two tiers under a hipped slate roof; its low wing up the course"},
+]
 STANDS = {"front": TRACK_W + 14.0, "x": [-170.0, 330.0], "height": 26.0,
           "note": "Interpretive and bigger than life (owner): the Millennium Grandstand's row of wave-shaped canopies, "
                   "longer than the real stand, from the stand kit with a new canopy module, smooth clay finish."}
 # The festival area (owner's sketch of both courses, 8 Nov: yellow beside the stands, up the course from them): stalls,
 # bars, umbrellas and picnic lawns from the end of the stands to about 3.5f out, set 10 m back from the near rail to
 # leave a lane for the tracking car.
-FESTIVAL = {"x": [345.0, 3.5 * F], "z": [TRACK_W + 10, TRACK_W + 60],
+FESTIVAL = {"x": [470.0, 3.5 * F], "z": [TRACK_W + 10, TRACK_W + 60],
             "note": "festival pieces from the end of the stands to 3.5f out (owner's sketch, 8 Nov), 10 m back from the near rail"}
 # The compass (owner's sketch, 8 Nov): north is at the BOTTOM of these plans, so +z points north and +x west. (The axes'
 # names below are Ascot's; the real compass matters only for the sun.)
@@ -214,7 +226,7 @@ def main():
         "heights": {"from": -RUN_ON, "spacing": step, "h": [p[2] for p in pts],
                     "note": "The ground's height (m, against the post) every 'spacing' metres to go from 'from', along the inside "
                             "rail: what the race engine reads for the Dip (owner, 8 Nov: it counts). Straight lines between points."},
-        "starts": starts, "furlongPoles": poles, "stands": STANDS, "festival": FESTIVAL,
+        "starts": starts, "furlongPoles": poles, "stands": STANDS, "standPieces": STAND_PIECES, "festival": FESTIVAL,
         "farBank": {**BANK, "spans": bank_spans(), "profileAcross": [[o, round(bank_h(o), 2)] for o in range(0, int(BANK["back"]) + 3, 2)],
                     "spansNote": "the stretches (metres to go) where the bank stands: it stops where the July Course runs through, inside the bend"},
         "boards": {"length": BOARD_LEN, "behindRail": BOARDS_BEHIND, "runs": BOARD_RUNS,
