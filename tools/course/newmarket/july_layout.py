@@ -259,10 +259,11 @@ def trees():
         B = bank_at(d)
         if g.random() < (0.85 if d < 650 else 0.45):
             put(*far(d + g.uniform(-4, 4), B["back"] + g.uniform(10, 110 if d < 650 else 80)))
-    # the stand side (z < 0): shade trees in the festival, a belt behind it and on up the straight (the head-on keeps them)
-    belt(345, 3.5 * F, -58, -18, 34, 14.0)
-    belt(345, 3.5 * F + 80, -170, -66, 260)
-    belt(3.5 * F + 80, STRAIGHT - 60, -150, -40, 150, 11.0)
+    # the stand side (z < 0): a few shade trees in the festival, then only a thin, open backdrop behind it and on up the
+    # straight (owner, 8 Nov: "thin out the whole backdrop to the back of the stand side"); the head-on keeps them
+    belt(345, 3.5 * F, -58, -18, 22, 16.0)
+    belt(345, 3.5 * F + 80, -130, -70, 70, 22.0)
+    belt(3.5 * F + 80, STRAIGHT - 60, -120, -45, 45, 28.0)
     return out
 
 
