@@ -23,28 +23,33 @@ def tag(x, z, text, size=22, fill="#ffffffe6", ink=INK, bold=True):
     d.text((px - w / 2, py - h / 2 - t), text, font=f, fill=ink)
 # the stand side's buildings
 for s_ in J.STANDS:
-    x = sum(s_["x"]) / 2; z = -(s_["front"] + s_["depth"] / 2)
-    small = s_["x"][1] - s_["x"][0] < 20
+    fp = J.footprint(s_)
+    x = sum(p[0] for p in fp) / 4; z = sum(p[1] for p in fp) / 4
+    small = max(p[0] for p in fp) - min(p[0] for p in fp) < 20
     if s_["name"] == "Judge's box":
-        tag(x, -32, "Judge's box", 18)
+        tag(x, -5, "Judge's box", 17)
     elif small:
-        tag(x, z - 12 if s_["name"] != "Bell tent" else z + 20, s_["name"], 17)
+        tag(x, z - 12 if s_["name"] != "Bell tent" else z + 16, s_["name"], 17)
     else:
         tag(x, z, s_["name"], 21)
-tag(-45, -60, "gap marquee + trees", 15, bold=False)
-tag(100.5, -58, "gap marquee + trees", 15, bold=False)
-tag(177, -58, "gap marquee + trees", 15, bold=False)
-tag(245, -58, "gap marquee + trees", 15, bold=False)
-tag(300, -48, "marquee row + trees", 15, bold=False)
-tag(-120, -48, "marquee row + tree wall", 15, bold=False)
-tag(400, -40, "stand-side festival (to 3.5f)", 17)
-tag(60, -6, "packed lawns", 15, bold=False)
+for p_ in J.INFILL:
+    if p_["piece"] == "pavilion_small":
+        tag(p_["at"][0], p_["at"][1], "pavilion", 15, bold=False)
+tag(-94, -46, "marquees + tree wall", 15, bold=False)
+tag(150, -77, "white boundary wall, planting in front", 15, bold=False)
+tag(400, -30, "stand-side festival, crowd (to 3.5f)", 17)
+tag(80, -6, "packed lawns", 15, bold=False)
+tag(470, -1.0, "Thoroughbred boards", 14, bold=False)
 # the far side
 W = J.TRACK_W
+for s_ in J.FAR_STANDS:
+    tag(sum(s_["x"]) / 2, W + s_["off"] + s_["depth"] / 2 + (8 if s_["name"] == "Far tower" else 0), s_["name"], 18)
+tag(-150, W + 14, "crowd", 15, bold=False)
 tag(2.5, W + 23, "Tiered stand", 18)
+tag(0, W + 4, "finish line (post, time board, hedges)", 14, bold=False)
 tag(300, W + 8, "crowd along the far rail", 15, bold=False)
-tag(330, W + 72, "far-side festival: marquees and pavilions among big trees (from 3f to the finish)", 18)
-tag(-140, W + 70, "big trees (towards the Dyke and the Rowley Mile)", 16, bold=False)
+tag(330, W + 26, "far-side festival: marquees and pavilions among big trees", 18)
+tag(200, W + 39, "white boundary wall, planting in front", 15, bold=False)
 # the post, furlong poles, direction of running
 px, _ = P(0, 0); d.line((px, P(0, -4)[1], px, P(0, W + 4)[1]), fill=RED, width=6)
 tag(0, W / 2, "POST", 20, ink=RED)

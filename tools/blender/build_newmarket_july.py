@@ -171,6 +171,10 @@ fc = J.far_rect(J.FAR_CROWD); lawn |= rect_mask(fc["x"][0], fc["x"][1], fc["z"][
 for s in J.stand_rects():
     lawn |= rect_mask(s["x"][0] - 6, s["x"][1] + 6, s["z"][0] - 6, s["z"][1] + 2)
 rough = gaussian_filter(inside.astype(float), 3) > 0.5
+# Ascot's ground (owner, 8 Nov: "all the other bits to match the Ascot course"): beige-brown beside the track, fading to
+# the light lawn from 45 to 85 m out
+dtrk = np.minimum(TJm.query(P)[0] - W / 2, TRm.query(P)[0] - R.TRACK_W / 2).reshape(X.shape)
+NEAR = np.clip((85.0 - dtrk) / 40.0, 0.0, 1.0)
 M = np.stack([gaussian_filter(mR.astype(float), 0.6), gaussian_filter(lawn.astype(float), 0.8), gaussian_filter(rough.astype(float), 2.0)], -1)
 
 
@@ -195,6 +199,8 @@ def build_ground():
     me.update(); me.validate()
     col = me.color_attributes.new("mask", "FLOAT_COLOR", "POINT")
     col.data.foreach_set("color", np.c_[M.reshape(-1, 3), np.ones(ny * nx)].astype(np.float32).ravel())
+    nr = me.color_attributes.new("near", "FLOAT_COLOR", "POINT")
+    nv = NEAR.reshape(-1); nr.data.foreach_set("color", np.c_[nv, nv, nv, np.ones(ny * nx)].astype(np.float32).ravel())
     me.polygons.foreach_set("use_smooth", np.ones(len(quads), bool))
     ob = bpy.data.objects.new("ground", me); scene.collection.objects.link(ob)
     ob.data.materials.append(ground_material())
@@ -202,96 +208,148 @@ def build_ground():
 
 
 def ground_material():
+    """Ascot's ground, as the finish study and the race view (tools/blender/stand_clean_study.py turf_mat): the track
+    turf #7fa952 with patches, tufts, blades and the odd divot, mown in lanes 3.75 m wide along the straight; the
+    lawns #bcc98c, lighter and finer, the odd daisy; beige-brown #cdb894 trodden ground beside the track, fading into
+    the lawn from 45 to 85 m out; a strip of turf cut a shade paler across the track at the winning line (2.2 m) and a
+    fainter, narrower one at each furlong pole. The grass bounces a warm neutral light, not green."""
     m = bpy.data.materials.new("ground"); m.use_nodes = True
-    nt = m.node_tree; n, l = nt.nodes, nt.links
-    bsdf = n["Principled BSDF"]; bsdf.inputs["Roughness"].default_value = 0.95
-    tc = n.new("ShaderNodeTexCoord"); sep = n.new("ShaderNodeSeparateXYZ"); l.new(tc.outputs["Object"], sep.inputs[0])
-    att = n.new("ShaderNodeVertexColor"); att.layer_name = "mask"
-    sm = n.new("ShaderNodeSeparateColor"); l.new(att.outputs["Color"], sm.inputs[0])
-    def noise(scale, detail=3, rough=0.55):
-        t = n.new("ShaderNodeTexNoise"); t.inputs["Scale"].default_value = scale; t.inputs["Detail"].default_value = detail
-        t.inputs["Roughness"].default_value = rough; l.new(tc.outputs["Object"], t.inputs["Vector"]); return t.outputs["Fac"]
-    def tint(hexc, scale, spread, fine=None):
-        r = n.new("ShaderNodeValToRGB"); el = r.color_ramp.elements
-        base = srgb(hexc); el[0].position, el[1].position = 0.3, 0.7
-        el[0].color = tuple(v * (1 - spread) for v in base[:3]) + (1,); el[1].color = tuple(min(v * (1 + spread), 1) for v in base[:3]) + (1,)
-        l.new(noise(scale), r.inputs[0]); out = r.outputs[0]
-        if fine:
-            r2 = n.new("ShaderNodeValToRGB"); e2 = r2.color_ramp.elements; e2[0].position, e2[1].position = 0.35, 0.65
-            e2[0].color = (1 - fine, 1 - fine, 1 - fine, 1); e2[1].color = (1 + fine, 1 + fine, 1 + fine, 1)
-            l.new(noise(scale * 30, 4, 0.6), r2.inputs[0]); mm = n.new("ShaderNodeMix"); mm.data_type = "RGBA"; mm.blend_type = "MULTIPLY"
-            mm.inputs["Factor"].default_value = 1.0; l.new(out, mm.inputs["A"]); l.new(r2.outputs[0], mm.inputs["B"]); out = mm.outputs["Result"]
-        return out
-    heath = tint("#b2b47a", 0.006, 0.12, 0.08)     # the open heath: paler, drier and more olive than the course
-    lawn = tint("#b4c785", 0.02, 0.07, 0.06)
-    scrub = tint("#8f9c5c", 0.01, 0.16, 0.12)
-    turf = tint("#6a9c44", 0.01, 0.08, 0.06)      # the racing turf: a deeper, watered green so the track reads
-    # mowing bands across the July straight, 9 m wide
-    band = n.new("ShaderNodeMath"); band.operation = "SINE"
-    mul = n.new("ShaderNodeMath"); mul.operation = "MULTIPLY"; mul.inputs[1].default_value = math.pi / 9.0
-    l.new(sep.outputs["X"], mul.inputs[0]); l.new(mul.outputs[0], band.inputs[0])
-    br = n.new("ShaderNodeMapRange"); br.inputs["From Min"].default_value = -1; br.inputs["To Min"].default_value = 0.88; br.inputs["To Max"].default_value = 1.12
-    l.new(band.outputs[0], br.inputs["Value"])
-    bandc = n.new("ShaderNodeCombineColor"); [l.new(br.outputs[0], bandc.inputs[k]) for k in range(3)]
-    turf2 = n.new("ShaderNodeMix"); turf2.data_type = "RGBA"; turf2.blend_type = "MULTIPLY"; turf2.inputs["Factor"].default_value = 1.0
-    l.new(turf, turf2.inputs["A"]); l.new(bandc.outputs[0], turf2.inputs["B"])
-    # the July straight and run-out, sharp: -W <= Blender y <= 0 and x >= -RUN_ON (the bend is in the mask)
+    nt = m.node_tree; N, L = nt.nodes, nt.links
+    bsdf = N["Principled BSDF"]; bsdf.inputs["Roughness"].default_value = 0.97; bsdf.inputs["Specular IOR Level"].default_value = 0.15
+    tc = N.new("ShaderNodeTexCoord"); sep = N.new("ShaderNodeSeparateXYZ"); L.new(tc.outputs["Object"], sep.inputs[0])
+    att = N.new("ShaderNodeVertexColor"); att.layer_name = "mask"
+    sm = N.new("ShaderNodeSeparateColor"); L.new(att.outputs["Color"], sm.inputs[0])
+    nat = N.new("ShaderNodeVertexColor"); nat.layer_name = "near"
+    nsep = N.new("ShaderNodeSeparateColor"); L.new(nat.outputs["Color"], nsep.inputs[0])
+    def noise(scale, detail=4, rough=0.6):
+        t = N.new("ShaderNodeTexNoise"); t.inputs["Scale"].default_value = scale; t.inputs["Detail"].default_value = detail
+        t.inputs["Roughness"].default_value = rough; L.new(tc.outputs["Object"], t.inputs["Vector"]); return t
+    def ramp(inp, stops):
+        r = N.new("ShaderNodeValToRGB"); L.new(inp, r.inputs[0]); els = r.color_ramp.elements
+        while len(els) < len(stops): els.new(0.5)
+        for e, (p_, c_) in zip(els, stops): e.position = p_; e.color = c_
+        return r.outputs[0]
+    def mul(colin, fac):
+        x = N.new("ShaderNodeMix"); x.data_type = "RGBA"; x.blend_type = "MULTIPLY"; x.inputs["Factor"].default_value = 1.0
+        if isinstance(colin, tuple): x.inputs[6].default_value = colin
+        else: L.new(colin, x.inputs[6])
+        if isinstance(fac, tuple): x.inputs[7].default_value = fac
+        else: L.new(fac, x.inputs[7])
+        return x.outputs[2]
+    def mix(a_, b_, f):
+        x = N.new("ShaderNodeMix"); x.data_type = "RGBA"
+        if isinstance(f, float): x.inputs["Factor"].default_value = f
+        else: L.new(f, x.inputs["Factor"])
+        for slot, v in ((6, a_), (7, b_)):
+            if isinstance(v, tuple): x.inputs[slot].default_value = v
+            else: L.new(v, x.inputs[slot])
+        return x.outputs[2]
+    def math_(op, a_, b_=None):
+        x = N.new("ShaderNodeMath"); x.operation = op
+        for i, v in enumerate((a_, b_)):
+            if v is None: continue
+            if isinstance(v, (int, float)): x.inputs[i].default_value = v
+            else: L.new(v, x.inputs[i])
+        return x.outputs[0]
+    g = lambda v: (v, v, v, 1)
+    tufts, blades = noise(2.2, 6, 0.7), noise(18.0, 8, 0.75)
+    def grass(hexc, light):
+        c = mul(srgb(hexc), ramp(noise(0.08 if not light else 0.12, 3).outputs["Fac"], [(0.3, g(0.86)), (0.7, g(1.1))]))
+        c = mul(c, ramp(tufts.outputs["Fac"], [(0.35, g(0.8)), (0.65, g(1.13))] if not light else [(0.35, g(0.88)), (0.65, g(1.08))]))
+        c = mul(c, ramp(blades.outputs["Fac"], [(0.3, g(0.78)), (0.7, g(1.15))] if not light else [(0.3, g(0.88)), (0.7, g(1.08))]))
+        vor = N.new("ShaderNodeTexVoronoi"); vor.inputs["Scale"].default_value = 1.6 if not light else 2.4; L.new(tc.outputs["Object"], vor.inputs["Vector"])
+        dots = ramp(vor.outputs["Distance"], [(0.0, (1, 1, 1, 1)), (0.035 if not light else 0.03, (0, 0, 0, 1))])
+        fl = math_("MULTIPLY", dots, math_("GREATER_THAN", vor.outputs["Color"], 0.72))
+        return mix(c, srgb("#efe9d2") if light else srgb("#6d5236"), fl)
+    turf = grass("#7fa952", False)
+    # eight-odd mown lanes along the straight (Blender y = -course z), soft-edged, 3.75 m wide
+    st = N.new("ShaderNodeMapRange"); L.new(math_("SINE", math_("MULTIPLY", sep.outputs["Y"], math.pi / 3.75)), st.inputs["Value"])
+    st.inputs["From Min"].default_value = -0.3; st.inputs["From Max"].default_value = 0.3
+    k = 0.16
+    lanes = mul(turf, ramp(st.outputs["Result"], [(0.0, (1 - k, 1 - k * 0.8, 1 - k * 1.2, 1)), (1.0, (1 + k * 0.8, 1 + k * 0.8, 1 + k * 0.3, 1))]))
     def step(inp, edge, above=True):
-        mth = n.new("ShaderNodeMath"); mth.operation = "GREATER_THAN" if above else "LESS_THAN"; mth.inputs[1].default_value = edge
-        l.new(inp, mth.inputs[0]); return mth.outputs[0]
-    def mult(a, b):
-        mth = n.new("ShaderNodeMath"); mth.operation = "MULTIPLY"; l.new(a, mth.inputs[0]); l.new(b, mth.inputs[1]); return mth.outputs[0]
-    on_straight = mult(mult(step(sep.outputs["Y"], -W), step(sep.outputs["Y"], 0.0, False)), mult(step(sep.outputs["X"], -J.RUN_ON), step(sep.outputs["X"], J.STRAIGHT + 2, False)))
-    trk = n.new("ShaderNodeMath"); trk.operation = "MAXIMUM"; l.new(on_straight, trk.inputs[0]); l.new(sm.outputs["Red"], trk.inputs[1])
-    def mix(a, b, f):
-        mm = n.new("ShaderNodeMix"); mm.data_type = "RGBA"; l.new(f, mm.inputs["Factor"]); l.new(a, mm.inputs["A"]); l.new(b, mm.inputs["B"]); return mm.outputs["Result"]
-    c = mix(heath, scrub, sm.outputs["Blue"])
-    c = mix(c, lawn, sm.outputs["Green"])
-    c = mix(c, turf2.outputs["Result"], trk.outputs[0])
-    l.new(c, bsdf.inputs["Base Color"])
+        return math_("GREATER_THAN" if above else "LESS_THAN", inp, edge)
+    on_straight = math_("MULTIPLY", math_("MULTIPLY", step(sep.outputs["Y"], -W), step(sep.outputs["Y"], 0.0, False)),
+                        math_("MULTIPLY", step(sep.outputs["X"], -J.RUN_ON - 2), step(sep.outputs["X"], J.STRAIGHT + 2, False)))
+    turf_c = mix(turf, lanes, on_straight)
+    # the cut strips across the straight: the winning line, and fainter ones at the furlong poles
+    cut = None
+    for x0, w, op in [(0.0, 2.2, 0.55)] + [(f * J.F, 1.4, 0.26) for f in range(1, 9)]:
+        r = N.new("ShaderNodeMapRange"); L.new(math_("ABSOLUTE", math_("SUBTRACT", sep.outputs["X"], x0)), r.inputs["Value"])
+        r.inputs["From Min"].default_value = w * 0.2; r.inputs["From Max"].default_value = w * 0.5
+        r.inputs["To Min"].default_value = op; r.inputs["To Max"].default_value = 0.0
+        cut = r.outputs["Result"] if cut is None else math_("MAXIMUM", cut, r.outputs["Result"])
+    turf_c = mix(turf_c, mul(turf_c, (1.45, 1.4, 1.2, 1)), math_("MULTIPLY", cut, on_straight))   # a shade paler, not white
+    lawn = grass("#bcc98c", True)
+    sand = mul(srgb("#cdb894"), ramp(noise(0.1, 3).outputs["Fac"], [(0.3, g(0.92)), (0.7, g(1.06))]))
+    sand = mul(sand, ramp(noise(30.0, 6, 0.7).outputs["Fac"], [(0.3, g(0.9)), (0.7, g(1.07))]))
+    vp = N.new("ShaderNodeTexVoronoi"); vp.inputs["Scale"].default_value = 4.0; L.new(tc.outputs["Object"], vp.inputs["Vector"])
+    sand = mix(mul((0.78, 0.74, 0.7, 1), sand), sand, ramp(vp.outputs["Distance"], [(0.0, (0, 0, 0, 1)), (0.06, (1, 1, 1, 1))]))
+    rough_c = mul(lawn, (0.86, 0.9, 0.8, 1))                       # the Dyke's top: a rougher, darker lawn
+    trk = math_("MAXIMUM", on_straight, sm.outputs["Red"])
+    c = mix(lawn, rough_c, sm.outputs["Blue"])
+    c = mix(c, sand, nsep.outputs["Red"])
+    c = mix(c, turf_c, trk)
+    L.new(c, bsdf.inputs["Base Color"])
+    bp = N.new("ShaderNodeBump"); bp.inputs["Strength"].default_value = 0.5; bp.inputs["Distance"].default_value = 0.04
+    L.new(math_("ADD", blades.outputs["Fac"], tufts.outputs["Fac"]), bp.inputs["Height"]); L.new(bp.outputs["Normal"], bsdf.inputs["Normal"])
+    # the grass looks green to the camera but bounces a warm neutral light onto everything else (no green cast)
+    out = N["Material Output"]; lp = N.new("ShaderNodeLightPath"); d = N.new("ShaderNodeBsdfDiffuse"); d.inputs["Color"].default_value = srgb("#a29680")
+    mx = N.new("ShaderNodeMixShader"); L.new(lp.outputs["Is Camera Ray"], mx.inputs["Fac"]); L.new(d.outputs[0], mx.inputs[1]); L.new(bsdf.outputs[0], mx.inputs[2])
+    L.new(mx.outputs[0], out.inputs["Surface"])
     return m
 
 
-# ------------------------------------------------------------------------------------------ the white hoop rails
+# ------------------------------------------------------------------------------------------ the Ascot running rail
 RAIL_MAT = flat_material("rail_white", "#f4f2ec", 0.5)
+RAIL_H = 1.12
 
 
-def rails(course_pt, d0, d1, offset, outward, to_local=lambda x, z: (x, z), spacing=2.5):
-    """Newmarket's white plastic rail: a round top rail 1.05 m up, on hoops (up from the ground on the side away from
-    the track, curving over to hold the rail). offset: metres from the inside rail; outward: +1 if 'away from the
-    track' is towards larger offsets, -1 if towards the inside."""
+def rails(course_pt, d0, d1, offset, outward, to_local=lambda x, z: (x, z), spacing=2.4, skip=None):
+    """The Ascot running rail (owner, 8 Nov: the rails to match Ascot): a broad white board facing the track with a
+    rounded capping on top, on square white posts every 2.4 m set back behind it; nothing below. offset: metres from
+    the inside rail; outward: +1 if 'away from the track' is towards larger offsets, -1 if towards the inside.
+    skip: (d0, d1) left out (where the finish-line assembly brings its own rail)."""
+    prof = [(-0.02, RAIL_H - 0.26), (-0.02, RAIL_H), (0.02, RAIL_H + 0.05), (0.10, RAIL_H + 0.06), (0.18, RAIL_H + 0.03),
+            (0.18, RAIL_H - 0.02), (0.07, RAIL_H - 0.02), (0.07, RAIL_H - 0.26)]
     bm = bmesh.new()
-    pts, tans = [], []
+    pts = []
     d = d0
     while d <= d1:
-        (x, z), (tx, tz) = course_pt(d)
-        p = to_local(x + tz * offset, z - tx * offset)
-        if GX0 + 5 < p[0] < GX1 - 5 and GZ0 + 5 < p[1] < GZ1 - 5:
-            q = to_local(x + tz * (offset + outward), z - tx * (offset + outward))
-            pts.append((p, (q[0] - p[0], q[1] - p[1]), d))
+        if not (skip and skip[0] < d < skip[1]):
+            (x, z), (tx, tz) = course_pt(d)
+            p = to_local(x + tz * offset, z - tx * offset)
+            if GX0 + 5 < p[0] < GX1 - 5 and GZ0 + 5 < p[1] < GZ1 - 5:
+                q = to_local(x + tz * (offset + outward), z - tx * (offset + outward))
+                pts.append((p, (q[0] - p[0], q[1] - p[1])))
+            else:
+                pts.append(None)
+        else:
+            pts.append(None)
         d += spacing
-    if len(pts) < 2: return None
-    hs = ground_height(np.array([p[0][0] for p in pts]), np.array([p[0][1] for p in pts]))
-    ring, rr = 6, 0.045
-    rings = []
-    for k, ((px, pz), (ox, oz), d) in enumerate(pts):
-        o = Vector((ox, -oz, 0)).normalized(); up = Vector((0, 0, 1))
-        c = Vector((px, -pz, hs[k] + 1.05))
-        rings.append([bm.verts.new(c + (o * math.cos(t) + up * math.sin(t)) * rr) for t in [2 * math.pi * i / ring for i in range(ring)]])
-        # the hoop: up from 0.28 m out, then a quarter circle over to the rail
-        hp = [Vector((0.28, 0.0)), Vector((0.28, 0.78))] + [Vector((0.28 * math.cos(a), 0.78 + 0.27 * math.sin(a))) for a in np.linspace(0.25, math.pi / 2, 5)]
-        prev = None
-        for (u, w) in hp:
-            cc = Vector((px, -pz, hs[k])) + o * u + up * w
-            sq = [bm.verts.new(cc + Vector(t)) for t in ((0.025, 0.025, 0), (-0.025, 0.025, 0), (-0.025, -0.025, 0), (0.025, -0.025, 0))]
-            if prev:
-                for i in range(4): bm.faces.new((prev[i], prev[(i + 1) % 4], sq[(i + 1) % 4], sq[i]))
-            prev = sq
-    for a, b in zip(rings[:-1], rings[1:]):
-        if (a[0].co - b[0].co).length > spacing * 3: continue
-        for i in range(ring): bm.faces.new((a[i], a[(i + 1) % ring], b[(i + 1) % ring], b[i]))
+    good = [p for p in pts if p]
+    if len(good) < 2: return None
+    hs = iter(ground_height(np.array([p[0][0] for p in good]), np.array([p[0][1] for p in good])))
+    up = Vector((0, 0, 1)); prev = None
+    for item in pts:
+        if item is None:
+            prev = None; continue
+        (px, pz), (ox, oz) = item; h = next(hs)
+        o = Vector((ox, -oz, 0)).normalized(); base = Vector((px, -pz, h))
+        ring = [bm.verts.new(base + o * u + up * w) for u, w in prof]
+        if prev:
+            n = len(prof)
+            for i in range(n): bm.faces.new((prev[i], prev[(i + 1) % n], ring[(i + 1) % n], ring[i]))
+        prev = ring
+        side = o.cross(up).normalized()                               # a square post set back behind the board
+        c = base + o * 0.14
+        sq = [c + side * a_ + o * b_ for a_, b_ in ((-0.05, -0.05), (0.05, -0.05), (0.05, 0.05), (-0.05, 0.05))]
+        bot = [bm.verts.new(v_ - up * 0.3) for v_ in sq]; top = [bm.verts.new(v_ + up * (RAIL_H - 0.02)) for v_ in sq]
+        for i in range(4): bm.faces.new((bot[i], bot[(i + 1) % 4], top[(i + 1) % 4], top[i]))
+        bm.faces.new(top[::-1])
     me = bpy.data.meshes.new("rail"); bm.to_mesh(me); bm.free()
     ob = bpy.data.objects.new("rail", me); scene.collection.objects.link(ob); me.materials.append(RAIL_MAT)
+    bv = ob.modifiers.new("bevel", "BEVEL"); bv.width = 0.012; bv.segments = 2; bv.limit_method = "ANGLE"
     return ob
 
 
@@ -360,17 +418,51 @@ def collection_of(name, objs):
     return c
 
 
+WALL_MAT = None
+
+
+def boundary_wall(x0, x1, z, panel=3.0):
+    """The boundary (owner's light purple on the plan): a white rendered wall 2.2 m high with piers every 3 m and a
+    coping, following the ground; low planting stands in front of it (in the trees list)."""
+    global WALL_MAT
+    if WALL_MAT is None:
+        WALL_MAT = clayify(flat_material("boundary_wall", "#f3ede2", 0.9))
+    bm = bmesh.new()
+    def box(cx, cz, w, d, z0, z1):
+        bmesh.ops.create_cube(bm, size=1.0, matrix=Matrix.Translation((cx, -cz, (z0 + z1) / 2)) @ Matrix.Diagonal((w, d, z1 - z0, 1)))
+    x = x0
+    while x < x1:
+        h = float(ground_height(x + panel / 2, z))
+        box(x + panel / 2, z, panel + 0.02, 0.3, h - 0.6, h + 2.2)            # the panel
+        box(x + panel / 2, z, panel + 0.06, 0.42, h + 2.2, h + 2.32)          # its coping
+        hp = float(ground_height(x, z))
+        box(x, z, 0.5, 0.5, hp - 0.6, hp + 2.45)                               # a pier
+        box(x, z, 0.62, 0.62, hp + 2.45, hp + 2.58)
+        x += panel
+    me = bpy.data.meshes.new("boundary"); bm.to_mesh(me); bm.free(); me.materials.append(WALL_MAT)
+    ob = bpy.data.objects.new("boundary", me); scene.collection.objects.link(ob); soften(ob, 0.03)
+    return ob
+
+
 def build():
     ground = build_ground()
     # --- rails: the July Course (inside rail on the stand side, outer rail on the far side) and the Rowley Mile
     jd1 = J.STRAIGHT + J.BEND_LEN + 2600
+    # --- Ascot's finish-line assembly on the far rail at the line, facing the stands (the post with its red loop,
+    # the race-time board, hedges and boards); it brings its own stretch of rail
+    fl = load("assets/models/architecture/finish_line.glb")["finish_line"]
+    clayify_all = [sl.material for sl in fl.material_slots if sl.material]
+    for m_ in clayify_all: clayify(m_)
+    fv = np.empty(len(fl.data.vertices) * 3); fl.data.vertices.foreach_get("co", fv); fxs = fv[0::3]
+    fob = place(fl, J.FINISH_LINE["at"][0], J.FINISH_LINE["at"][1], 180.0)        # turned to face the stands
+    skip = (J.FINISH_LINE["at"][0] - fxs.max() + 0.6, J.FINISH_LINE["at"][0] - fxs.min() - 0.6)
+    fob.location.z = float(ground_height(0.0, W))
     rails(J.course_pt, -J.RUN_ON, jd1, 0.0, -1)
-    rails(J.course_pt, -J.RUN_ON, jd1, W, +1)
+    rails(J.course_pt, -J.RUN_ON, jd1, W, +1, skip=skip)
     rails(R.course_pt, -R.RUN_ON, R.STRAIGHT + R.BEND_LEN + 300, 0.0, -1, r_to_local)
     rails(R.course_pt, -R.RUN_ON, R.STRAIGHT + R.BEND_LEN + 300, R.TRACK_W, +1, r_to_local)
-    # --- the winning post and furlong poles (on the inside rail: the stand side here)
+    # --- the furlong poles (on the inside rail: the stand side here; the winning post is the finish-line assembly's)
     props = load("assets/models/course/course_props.glb")
-    place(props["winning_post"], 0.0, -0.9)
     for k in range(1, 8):
         place(props["furlong_%d" % k], k * J.F, -0.9)
     # --- boards (far side only), the July Course's and the Rowley Mile's in view
@@ -422,27 +514,46 @@ def build():
     TINT = {"Garden stand": {"jc_brick": "#e6ae98"}, "Weighing room": {"jc_brick": "#d99683"},
             "Judge's box": {"jc_brick": "#df977f"}, "Grandstand": {"jc_brick": "#e09c86"},
             "Premier stand": {"jc_brick": "#ecb497"}, "Paddock stand": {"jc_brick": "#e4a69c"},
-            "Members' terrace": {"jc_brick": "#e8ae94"}, "Little pavilion": {"jc_paint": "#c4d4de"}}
+            "Far tower": {"jc_brick": "#e2a48c"}, "Little pavilion": {"jc_paint": "#c4d4de"}}
     stand_people = []                                                  # (x, z, height, facing) on the stands themselves
+    NOGO = []                                                          # footprints the ground crowd keeps out of
     rs = random.Random(21)
-    for st in J.STANDS:
-        info = jsi[st["piece"]]
-        cx = (st["x"][0] + st["x"][1]) / 2
-        sx = (st["x"][1] - st["x"][0]) / info["width"] if st["piece"].startswith("terrace") else 1.0
-        ob = place(jsp[st["piece"]], cx, -st["front"], 0.0, 1.0, sx=sx, name=st["name"])
+    def put_piece(st, piece, ox, oz, turn, sx=1.0, scale=1.0, front_pad=0.5):
+        """A July piece with its front middle at course (ox, oz), turned; its crowd areas filled; its footprint kept clear."""
+        info = jsi[piece]
+        ob = place(jsp[piece], ox, oz, turn, scale, sx=sx * scale, name=st["name"])
         soften(ob)
-        for i, sl in enumerate(ob.material_slots):
+        for sl in ob.material_slots:
             hexc = TINT.get(st["name"], {}).get(sl.material.name.split(".")[0] if sl.material else "")
             if hexc:
                 m = sl.material.copy(); m.node_tree.nodes["clay_mix"].inputs[6].default_value = srgb(hexc)
                 sl.link = "OBJECT"; sl.material = m
+        a = math.radians(turn); ca, sa = math.cos(a), math.sin(a)
+        to_c = lambda u, v: (ox + u * ca - v * sa, oz - (u * sa + v * ca))
+        hw = info["width"] / 2 * sx * scale
+        NOGO.append([to_c(u, v) for u, v in ((-hw, -front_pad), (hw, -front_pad), (hw, info["depth"] * scale), (-hw, info["depth"] * scale))])
         base = ob.location.z
-        fill = rs.uniform(0.75, 0.95)
-        dens = {"judges_box": 0.8, "old_pavilion": 1.3}.get(st["piece"], 1.8) * fill
+        dens = {"judges_box": 0.8, "old_pavilion": 1.3, "old_pavilion_wing": 1.3, "pavilion_small": 0.9}.get(piece, 1.8) * rs.uniform(0.75, 0.95)
         for x0, x1, y0, y1, fz in info["crowd"]:
-            n = int((x1 - x0) * sx * (y1 - y0) * dens + rs.random())
+            n = int((x1 - x0) * sx * scale * (y1 - y0) * scale * dens + rs.random())
             for _ in range(n):
-                stand_people.append((cx + rs.uniform(x0, x1) * sx, -st["front"] - rs.uniform(y0, y1), base + fz, 0.0))
+                cx_, cz_ = to_c(rs.uniform(x0, x1) * sx * scale, rs.uniform(y0, y1) * scale)
+                stand_people.append((cx_, cz_, base + fz * scale, turn))
+        return ob
+    PAD = {"old_pavilion": 3.6, "old_pavilion_wing": 3.6, "victorian_house": 6.0, "judges_box": 1.0}
+    for st in J.STANDS:                                                # the stand side, facing the track
+        info = jsi[st["piece"]]
+        if "turn" in st:
+            put_piece(st, st["piece"], st["at"][0], st["at"][1], st["turn"], front_pad=PAD.get(st["piece"], 0.5))
+        else:
+            cx = (st["x"][0] + st["x"][1]) / 2
+            sx = (st["x"][1] - st["x"][0]) / info["width"] if st["piece"].startswith("terrace") else 1.0
+            put_piece(st, st["piece"], cx, -st["front"], 0.0, sx=sx, front_pad=PAD.get(st["piece"], 0.5))
+    for st in J.FAR_STANDS:                                            # the far side, turned to face the track
+        info = jsi[st["piece"]]
+        cx = (st["x"][0] + st["x"][1]) / 2
+        sx = (st["x"][1] - st["x"][0]) / info["width"] if st["piece"].startswith("terrace") else 1.0
+        put_piece(st, st["piece"], cx, W + st["off"], 180.0, sx=sx, scale=st.get("scale", 1.0))
     # --- festival pieces
     sp = load("assets/models/architecture/site_props.glb")
     for m in {sl.material for o in sp.values() for sl in o.material_slots if sl.material}:
@@ -451,6 +562,7 @@ def build():
     kind_piece = {"long marquee": "marquee_clearspan", "three-peak marquee": "marquee_peaks", "pagoda marquee": "pagoda_counter",
                   "white pitched-roof pavilion": "marquee_peaks"}
     size = {k: (abs(o.dimensions.x), abs(o.dimensions.y)) for k, o in sp.items()}
+    FEST_RECTS = []
     for p in J.PAVILIONS:                                              # far side: facing the track (course -z)
         piece = kind_piece[p["kind"]]; w, d = size[piece]
         rx0, rx1 = p["x"]; z0, z1 = W + p["off"][0], W + p["off"][1]
@@ -464,7 +576,9 @@ def build():
             sxf = p["size"][0] / size[p["piece"]][0] * p.get("scale", 1.0) if p.get("fit") else None
             place(sp[p["piece"]], p["at"][0], p["at"][1], 0.0, p.get("scale", 1.0), sx=sxf)
         else:                                                          # the July pieces' origin is the middle of the front
-            soften(place(jsp[p["piece"]], p["at"][0], p["at"][1] + p["size"][1] / 2, 0.0, p.get("scale", 1.0)))
+            put_piece({"name": p["piece"]}, p["piece"], p["at"][0], p["at"][1] + p["size"][1] / 2, 0.0, scale=p.get("scale", 1.0))
+    for bd in J.BOUNDARY:                                              # the white boundary walls, both sides
+        boundary_wall(bd["x"][0], bd["x"][1], bd["z"])
     t0, t1 = J.TIER["x"]; zt = W + sum(J.TIER["off"]) / 2                 # the tiered stand behind the finish
     for k in range(3):
         place(sp["stand_covered"], t0 + (k + 0.5) * (t1 - t0) / 3, zt, 180.0, 1.5)
@@ -474,9 +588,11 @@ def build():
     fx0, fx1 = J.FESTIVAL["x"]
     x = fx0 + 6
     while x < fx1 - 8:
-        place(sp[rnd.choice(["terrace_deck", "terrace_deck", "kiosk_awning", "pagoda_kiosk"])], x, -16.0, 0.0)
-        place(sp[rnd.choice(["kiosk_row_arched", "pergola_picnic", "pagoda_counter", "kiosk_awning"])], x + 4, -32.0, 0.0)
-        if rnd.random() < 0.45: place(sp["marquee_peaks"], x + 10, -50.0, 0.0)
+        for pc, px_, pz_ in ((rnd.choice(["terrace_deck", "terrace_deck", "kiosk_awning", "pagoda_kiosk"]), x, -16.0),
+                             (rnd.choice(["kiosk_row_arched", "pergola_picnic", "pagoda_counter", "kiosk_awning"]), x + 4, -32.0)) + \
+                (((("marquee_peaks", x + 10, -50.0),) if rnd.random() < 0.45 else ())):
+            place(sp[pc], px_, pz_, 0.0)
+            w_, d_ = size[pc]; FEST_RECTS.append({"x": [px_ - w_ / 2, px_ + w_ / 2], "z": [pz_ - d_ / 2, pz_ + d_ / 2]})
         place(sp["banner_flag"], x - 3, -11.5, 0.0)
         for _ in range(3): place(sp["picnic_table"], x + rnd.uniform(-5, 12), rnd.uniform(-44, -22), rnd.uniform(0, 180))
         x += rnd.uniform(22, 30)
@@ -504,11 +620,19 @@ def build():
         n = int((x1 - x0) * (z1 - z0) * density)
         for _ in range(n): pts.append((rnd.uniform(x0, x1), rnd.uniform(z0, z1))); facing.append(face)
     fill(J.LAWN["x"][0], J.LAWN["x"][1], J.LAWN["z"][0] + 1, J.LAWN["z"][1] - 1, 0.42, 0.0)
+    fill(J.ENCLOSURE["x"][0], J.ENCLOSURE["x"][1], J.ENCLOSURE["z"][0], J.ENCLOSURE["z"][1], 0.3, 0.0)
     fill(J.FAR_CROWD["x"][0], J.FAR_CROWD["x"][1], W + J.FAR_CROWD["off"][0], W + J.FAR_CROWD["off"][1], 0.38, 180.0)
-    fill(J.FESTIVAL["x"][0], J.FESTIVAL["x"][1], -60, -12, 0.035, None)
+    fr = J.FAR_RUNOUT_CROWD; fill(fr["x"][0], fr["x"][1], W + fr["off"][0], W + fr["off"][1], 0.3, 180.0)   # owner's orange
+    fill(J.FESTIVAL["x"][0], J.FESTIVAL["x"][1], J.FESTIVAL["crowd"][0], J.FESTIVAL["crowd"][1], 0.2, None)  # owner's orange
     ff = J.far_rect(J.FAR_FESTIVAL); fill(ff["x"][0], ff["x"][1], ff["z"][0] + 2, ff["z"][1], 0.035, None)
-    blocked = J.stand_rects() + [J.far_rect(p) for p in J.PAVILIONS] + [J.far_rect(J.TIER)]
-    keep = [i for i, (x, z) in enumerate(pts) if not any(J.rect_hit(x, z, r, 1.0) for r in blocked)]
+    blocked = [J.far_rect(p) for p in J.PAVILIONS] + [J.far_rect(J.TIER)] + J.infill_rects() + FEST_RECTS
+    nogo = [MPath(np.array(q)) for q in NOGO]
+    pa = np.array(pts)
+    bad = np.zeros(len(pts), bool)
+    for q in nogo: bad |= q.contains_points(pa)
+    for i, (x, z) in enumerate(pts):
+        if not bad[i] and any(J.rect_hit(x, z, r, 1.0) for r in blocked): bad[i] = True
+    keep = [i for i in range(len(pts)) if not bad[i]]
     xs = np.array([pts[i][0] for i in keep] + [p[0] for p in stand_people])
     zs = np.array([pts[i][1] for i in keep] + [p[1] for p in stand_people])
     hs = np.r_[ground_height(xs[:len(keep)], zs[:len(keep)]), [p[2] for p in stand_people]]

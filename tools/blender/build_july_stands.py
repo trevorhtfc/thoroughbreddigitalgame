@@ -216,7 +216,7 @@ def terrace_stand(L, rows, H, left=None, right=None, tread=0.8, riser=0.42, z0=1
 
 
 # ------------------------------------------------------------------------------------------ the old-world pavilion
-def old_pavilion(L=40.0, D=9.0, G=4.0, S=3.9, levels=2):
+def old_pavilion(L=40.0, D=9.0, G=4.0, S=3.9, levels=2, stair=True, fence=True):
     """Two open balconied stands over a veranda (owner, 8 Nov: "make the pavilion grandstand taller", then "longer"):
     G = ground storey, S = each upper storey, levels = how many balconies."""
     half = L / 2
@@ -248,7 +248,7 @@ def old_pavilion(L=40.0, D=9.0, G=4.0, S=3.9, levels=2):
         K.box("deck", -half - 0.3, half + 0.3, -0.95, D, zf - 0.25, zf)
         K.balustrade(-half - 0.15, half + 0.15, -0.8, zf, h=1.0, mat="trim", spacing=0.3)
         K.balustrade(-0.8, 3.0, -half - 0.15, zf, h=1.0, mat="trim", spacing=0.3, axis="y")
-        K.balustrade(-0.8, 0.6 if lv == 0 else 3.0, half + 0.15, zf, h=1.0, mat="trim", spacing=0.3, axis="y")
+        K.balustrade(-0.8, 0.6 if (lv == 0 and stair) else 3.0, half + 0.15, zf, h=1.0, mat="trim", spacing=0.3, axis="y")
         for x in posts:
             K.box("trim", x - 0.09, x + 0.09, -0.89, -0.71, zf, top - 0.25)
             brackets(x, -0.84, -0.76, top - 0.25)
@@ -273,17 +273,18 @@ def old_pavilion(L=40.0, D=9.0, G=4.0, S=3.9, levels=2):
     rz = gable_x(-half, half, -0.95, D, E, 30, 0.7, roof="slate", wall="paint")
     # the side stair (right end) up to the first balcony, open treads on stringers with a white handrail
     sx0, sx1 = half + 0.35, half + 1.65
-    n = 13
+    n = 13 if stair else 0
     for j in range(n):
         zj = G * (j + 1) / n
         yj = D + 1.6 - (D + 1.6 - 1.6) * (j + 1) / n
         K.box("deck", sx0, sx1, yj, yj + 0.85, zj - 0.08, zj)
-    for xs in (sx0, sx1 - 0.08):
+    for xs in ((sx0, sx1 - 0.08) if stair else ()):
         K.prism_x("trim", xs, xs + 0.08, [(D + 1.6, -0.2), (1.6, G - 0.1), (1.6, G + 0.15), (D + 1.6, 0.05)])
-    rod("trim", sx1 - 0.04, D + 1.6, 1.0, 1.6, G + 1.0)
+    if stair:
+        rod("trim", sx1 - 0.04, D + 1.6, 1.0, 1.6, G + 1.0)
     # the white picket fence in front, with a gap for the gate
     fy = -3.2
-    for a, b in ((-half - 2.0, -1.5), (1.5, half + 2.0)):
+    for a, b in (((-half - 2.0, -1.5), (1.5, half + 2.0)) if fence else ()):
         K.box("trim", a, b, fy + 0.04, fy + 0.1, 0.28, 0.38)
         K.box("trim", a, b, fy + 0.04, fy + 0.1, 0.72, 0.82)
         x = a + 0.06
@@ -401,7 +402,9 @@ PIECES = [
     ("terrace_mid", lambda: terrace_stand(62.0, 12, 14.5, right="block", riser=0.46, z0=1.8)),
     ("terrace_small", lambda: terrace_stand(52.0, 10, 13.0, left="block", right="block", riser=0.46, z0=1.8)),
     ("terrace_low", lambda: terrace_stand(70.0, 6, 8.0, z0=1.2, riser=0.46, gallery=False)),
-    ("old_pavilion", old_pavilion),
+    ("old_pavilion", lambda: old_pavilion(42.0)),                       # owner: cranked round the finish line, this the main stand
+    ("old_pavilion_wing", lambda: old_pavilion(28.0, stair=False)),      # and its wing, turned towards the track
+    ("pavilion_small", lambda: old_pavilion(46.0, levels=1, stair=False, fence=False)),   # behind the gaps between the stands
     ("judges_box", judges_box),
     ("victorian_house", victorian_house),
     ("bell_tent", bell_tent),
