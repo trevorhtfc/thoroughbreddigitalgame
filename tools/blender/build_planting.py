@@ -37,6 +37,7 @@ W = C["trackWidth"]
 PL = C["zones"]["planting"]
 GAP, DEPTH = PL["gap"], PL["depth"]
 BOARD_BACK = 3.0          # boards stand this far behind the outer rail's line (the track edge)
+NEAR_SIDE_Z, NEAR_SIDE_X = 15.0, 400.0   # boards south of this line (the stand side of the straight) and east of x: left out
 BOARD_LEN, BOARD_H, BOARD_FOOT = 6.0, 1.25, 0.3
 rng = np.random.default_rng(7)
 
@@ -267,6 +268,10 @@ for ring in rings:
         s = (i + 0.5) * ls.length / n
         p = ls.interpolate(s); a = ls.interpolate(s - 1.0); b = ls.interpolate(s + 1.0)
         if not near_belt.contains(p):
+            continue
+        # (owner, 8 Nov: advertising only on the far side of the cameras) none on the grandstand side of the straight
+        # course (south of it, east of the stand), where the straight-course cameras look through them
+        if p.y > NEAR_SIDE_Z and p.x > NEAR_SIDE_X:
             continue
         tx, tz = b.x - a.x, b.y - a.y
         tl = math.hypot(tx, tz); tx, tz = tx / tl, tz / tl

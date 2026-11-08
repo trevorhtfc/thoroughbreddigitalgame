@@ -434,16 +434,39 @@
    "leadRoom": 2,
    "note": "Owner, 7 Nov ('we can always use a drone tracking cam'): a drone over the inside half of the track ('across' metres from the middle, - towards the inside rail), 'height' up, 'ahead' metres in front of the leader, looking back at the field. Over the turf it can't meet a hedge or a tree. Used down the round mile's chute. And for round.lookback metres after each pass of the post that isn't the finish, in place of the look-back camera."
   },
-  "_framing": "Owner, 7 Nov: the tracking cameras (track, drone) frame the horses within 4 + 9 x the screen's width/height metres of the leader (12 to 26 m: about 20 m, 8 lengths, on a 16:9 screen; 12 m on a phone held upright) and always the first three; a strung-out field no longer pulls them wide on the bends."
+  "_framing": "Owner, 7 Nov: the tracking cameras (track, drone) frame the horses within 4 + 9 x the screen's width/height metres of the leader (12 to 26 m: about 20 m, 8 lengths, on a 16:9 screen; 12 m on a phone held upright) and always the first three; a strung-out field no longer pulls them wide on the bends.",
+  "drone_straight": {
+   "label": "Drone",
+   "kind": "drone",
+   "course": "straight",
+   "note": "Owner, 8 Nov: on the straight course the tracking car zoomed in on one group and the boards it filmed through filled the foreground; a drone flying along the grandstand side instead. 'across' metres from the middle of the track towards the stand (the stand-side rail is at 15), 'height' up, 'ahead' of the leader looking back at the field. frame 'all': every runner (the groups across the track too), never just the leaders; the zoom fits them all.",
+   "across": 20,
+   "height": 15,
+   "ahead": [
+    24,
+    36,
+    52,
+    72,
+    96,
+    125
+   ],
+   "fov": [
+    10,
+    55
+   ],
+   "frame": "all",
+   "leadRoom": 4
+  }
  },
  "raceDirector": {
-  "_about": "When the TV director cuts (distance to go of the leader, metres). Straight mile: tracking until straight.grandstand out, then the grandstand camera to the line and beyond (no cut at the finish). Round course: the grandstand camera from round.grandstand metres before each pass of the post; the look-back camera for round.lookback metres after a pass that isn't the finish (only while still ahead of the leader); tracking otherwise. After the finish: the side-on replay, slowed to replaySpeed, from replayFrom metres before the line to replayTo after it. Owner, 7 Nov: the grandstand camera picks the field up only once it is out of the home bend (round.grandstand 600: before that the carnival in the middle of the course stands between the stand and the bend); the round mile's chute is filmed by the drone (roundMile.drone: until the field is that many metres past the join), its tracking car would be in the hedge.",
+  "_about": "When the TV director cuts (distance to go of the leader, metres). Straight course: the drone along the grandstand side (owner, 8 Nov; was the tracking car) until straight.grandstand out, then the grandstand camera to the line and beyond (no cut at the finish). Round course: the grandstand camera from round.grandstand metres before each pass of the post; the look-back camera for round.lookback metres after a pass that isn't the finish (only while still ahead of the leader); tracking otherwise. After the finish: the side-on replay, slowed to replaySpeed, from replayFrom metres before the line to replayTo after it. Owner, 7 Nov: the grandstand camera picks the field up only once it is out of the home bend (round.grandstand 600: before that the carnival in the middle of the course stands between the stand and the bend); the round mile's chute is filmed by the drone (roundMile.drone: until the field is that many metres past the join), its tracking car would be in the hedge.",
   "round": {
    "grandstand": 600,
    "lookback": 380
   },
   "straight": {
-   "grandstand": 600
+   "grandstand": 600,
+   "camera": "drone_straight"
   },
   "afterFinish": 4,
   "replayFrom": 30,

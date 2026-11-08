@@ -1673,9 +1673,11 @@ function directorShot(d, leadU) {
   if (d < 0) return "grandstand";                                    // past the line: stay on the grandstand camera
   // down the round mile's chute the tracking car would be in the hedge: the drone, over the turf (owner, 7 Nov)
   if (RACE.course === "roundMile" && RCAMS.drone && d > SPUR.join - ((DIR_.roundMile || {}).drone ?? 40)) return "drone";
-  if (RACE.course === "straight") return d > DIR_.straight.grandstand ? "track_straight" : "grandstand";
+  // the straight course (owner, 8 Nov): the drone along the grandstand side, then the grandstand camera
+  const STRAIGHT_CAM = RCAMS[DIR_.straight.camera] ? DIR_.straight.camera : "track_straight";
+  if (RACE.course === "straight") return d > DIR_.straight.grandstand ? STRAIGHT_CAM : "grandstand";
   // the 2m4f's run down the straight course to its first pass of the post: the straight mile's cameras
-  if (ON_STRAIGHT && d > LOOP.length) return d - LOOP.length > DIR_.straight.grandstand ? "track_straight" : "grandstand";
+  if (ON_STRAIGHT && d > LOOP.length) return d - LOOP.length > DIR_.straight.grandstand ? STRAIGHT_CAM : "grandstand";
   const L = LOOP.length, q = ((d % L) + L) % L;                       // metres to the next pass of the post
   if (q <= DIR_.round.grandstand || d <= DIR_.round.grandstand) return "grandstand";
   // just past a post that isn't the finish: the drone, ahead of the field round the bend with the stand behind them (owner,
@@ -1795,7 +1797,10 @@ function cameraTarget(now) {
   const moving = c.kind === "track" || c.kind === "drone";
   // (on a phone held upright the grandstand camera keeps just the leaders, the first three and any within 6 m: the
   // whole field across a narrow screen is a picture of crowd and sky with the horses as specks)
-  const span = moving ? THREE.MathUtils.clamp(4 + 9 * camera.aspect, 12, 26) : camera.aspect < 1 ? 6 : Infinity;
+  // On the straight course the grandstand camera keeps the whole field until it closes in (owner, 8 Nov: the groups
+  // spread across the track; framing only the leaders lost the rest), and frame 'all' never narrows.
+  const straightNow = RACE.course === "straight" || (ON_STRAIGHT && DIST - leadU > LOOP.length);
+  const span = c.frame === "all" ? Infinity : moving ? THREE.MathUtils.clamp(4 + 9 * camera.aspect, 12, 26) : camera.aspect < 1 && !straightNow ? 6 : Infinity;
   const pts = c.frame === "leaders" ? field.filter((p, i) => i < 2 || leadU - p.u <= (c.window || 12))
     : field.filter((p, i) => i < 3 || leadU - p.u <= span);
   const lead = field[0];
@@ -1863,7 +1868,7 @@ function button(parent, label, onClick, id) {
   parent.append(b); return b;
 }
 const camsEl = document.getElementById("cams");
-const camChoices = [["auto", "TV director"], [RACE.course === "straight" ? "track_straight" : "track_loop", "Tracking"], ["grandstand", "Grandstand"]]
+const camChoices = [["auto", "TV director"]].concat(RACE.course === "straight" ? [["drone_straight", "Drone"], ["track_straight", "Tracking"]] : [["track_loop", "Tracking"]], [["grandstand", "Grandstand"]])
   .concat(RACE.course === "round" ? [["lookback", "Looking back"]] : []);
 const camButtons = camChoices.map(([id, label]) => {
   const b = button(camsEl, label, () => { state.cam = id; snap = true; syncButtons(); }, "cam-" + id);
