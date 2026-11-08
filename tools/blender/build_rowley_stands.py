@@ -206,40 +206,44 @@ def millennium_stand(n=4, bay=28.0, D=42.0):
 
 
 # ------------------------------------------------------------------------------------------ 1b: the Rowley stand
-def rowley_stand(L=110.0, D=18.0):
+def rowley_stand(L=110.0, D=18.0, cupola=True, brick=True):
     h = L / 2
+    eb = 12.0 if brick else 0.0
     K.box("glass", -h, h, 0.6, D, -1.0, 4.0)
     for k in range(int(L // 7) + 1):
         x = -h + k * L / int(L // 7)
         K.box("cream", x - 0.4, x + 0.4, 0.2, 0.8, -1.0, 4.0)
     K.box("cream", -h, h, -0.3, D, 4.0, 4.6)
-    yb, zt = steps("concrete", -h, h - 12.0, 0.0, 4.9, 9, 0.95, 0.36, seat="seat")
-    K.box("white", -h, h - 12.0, -0.12, 0.05, 4.6, 5.8)
-    K.box("glass", -h + 0.5, h - 12.5, yb - 0.05, yb + 0.05, zt + 0.4, 10.4)
-    K.box("cream", -h, h - 12.0, yb, D, 4.6, 10.4)
-    K.box("white", -h - 0.3, h - 12.0, -1.2, D, 10.4, 11.1)                              # the flat canopy
-    K.box("white", -h - 0.3, h - 12.0, -1.3, -1.0, 9.9, 11.2)
+    yb, zt = steps("concrete", -h, h - eb, 0.0, 4.9, 9, 0.95, 0.36, seat="seat")
+    K.box("white", -h, h - eb, -0.12, 0.05, 4.6, 5.8)
+    K.box("glass", -h + 0.5, h - eb - 0.5, yb - 0.05, yb + 0.05, zt + 0.4, 10.4)
+    K.box("cream", -h, h - eb, yb, D, 4.6, 10.4)
+    K.box("white", -h - 0.3, h - eb, -1.2, D, 10.4, 11.1)                              # the flat canopy
+    K.box("white", -h - 0.3, h - eb, -1.3, -1.0, 9.9, 11.2)
     for k in range(int((L - 12) // 9) + 1):                                              # slim columns under it
         x = -h + 1.0 + k * (L - 14.0) / int((L - 12) // 9)
         K.box("iron", x - 0.12, x + 0.12, -0.8, -0.56, 4.6, 10.4)
-    K.box("cream", -h, h - 12.0, 5.0, D, 11.1, 14.3)                                      # the top floor, set back
+    K.box("cream", -h, h - eb, 5.0, D, 11.1, 14.3)                                      # the top floor, set back
     for k in range(int((L - 14) // 4)):
         win(-h + 2.5 + k * 4.0, 5.0, 11.9, 2.2, 1.6)
-    K.box("white", -h - 0.2, h - 11.8, 4.7, D + 0.2, 14.3, 14.8)
+    K.box("white", -h - 0.2, h - eb + 0.2, 4.7, D + 0.2, 14.3, 14.8)
     # the clock cupola on the roof
-    cx = -h + (L - 12) * 0.62
-    K.box("cream", cx - 1.8, cx + 1.8, 9.0, 12.6, 14.8, 18.0)
-    K.disc_y("trim", cx, 8.92, 9.0, 16.4, 1.0, segs=20)
-    K.cyl("white", cx, 10.8, 18.0, 20.6, 1.45, segs=12)
-    K.cyl("slate", cx, 10.8, 20.6, 22.3, 1.6, 0.15, segs=12)
-    K.cyl("iron", cx, 10.8, 22.3, 24.2, 0.05, segs=4, smooth=False)
-    K.box("iron", cx - 0.6, cx + 0.6, 10.78, 10.82, 23.5, 23.8)
+    cx = -h + (L - eb) * 0.62
+    if not cupola: cx = None
+    if cx is not None:
+        K.box("cream", cx - 1.8, cx + 1.8, 9.0, 12.6, 14.8, 18.0)
+        K.disc_y("trim", cx, 8.92, 9.0, 16.4, 1.0, segs=20)
+        K.cyl("white", cx, 10.8, 18.0, 20.6, 1.45, segs=12)
+        K.cyl("slate", cx, 10.8, 20.6, 22.3, 1.6, 0.15, segs=12)
+        K.cyl("iron", cx, 10.8, 22.3, 24.2, 0.05, segs=4, smooth=False)
+        K.box("iron", cx - 0.6, cx + 0.6, 10.78, 10.82, 23.5, 23.8)
     # the brick block at the right-hand end
-    K.box("brick", h - 12.0, h, -0.4, D + 1.0, -1.0, 16.0)
-    K.box("trim", h - 12.15, h + 0.15, -0.55, D + 1.15, 16.0, 16.35)
-    for z in (1.0, 5.0, 9.0, 12.6):
-        for x in (h - 9.0, h - 3.0):
-            win(x, -0.4, z, 1.6, 1.8)
+    if brick:
+        K.box("brick", h - 12.0, h, -0.4, D + 1.0, -1.0, 16.0)
+        K.box("trim", h - 12.15, h + 0.15, -0.55, D + 1.15, 16.0, 16.35)
+        for z in (1.0, 5.0, 9.0, 12.6):
+            for x in (h - 9.0, h - 3.0):
+                win(x, -0.4, z, 1.6, 1.8)
     return {"width": L, "depth": D + 1.0, "height": 24.2}
 
 
@@ -322,6 +326,10 @@ def victorian_pavilion(Lx=10.0, D=8.0):
 PIECES = [
     ("millennium_stand", millennium_stand),
     ("rowley_stand", rowley_stand),
+    # owner's sketch (8 Nov): the pavilion stand cranks round by the winning line: a wing in line with the Millennium,
+    # then an end stand at right angles to the track, past the post, looking back up the course
+    ("rowley_wing", lambda: rowley_stand(42.0, cupola=False, brick=False)),
+    ("rowley_end", lambda: rowley_stand(52.0)),
     ("victorian_stand", victorian_stand),
     ("judges_kiosk", judges_kiosk),
     ("victorian_pavilion", victorian_pavilion),
@@ -329,7 +337,7 @@ PIECES = [
 LIB = bpy.data.collections.new("rowley_stands")
 bpy.context.scene.collection.children.link(LIB)
 OBJ, INFO = {}, {}
-MIRROR = {"millennium_stand", "rowley_stand"}    # built with the tower / brick end on the right, then mirrored so they
+MIRROR = {"millennium_stand", "rowley_stand", "rowley_wing", "rowley_end"}    # built with the tower / brick end on the right, then mirrored so they
                                                  # stand at the up-course end (the left as seen from the track)
 for name, fn in PIECES:
     CROWD.clear()

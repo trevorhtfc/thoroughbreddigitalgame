@@ -6,7 +6,7 @@ from PIL import Image, ImageDraw, ImageFont
 sys.path.insert(0, "tools/course/newmarket")
 import draft_layout as R
 W = R.TRACK_W
-CX, CZ, SCALE, PX = 210.0, 60.0, 560.0, 2400
+CX, CZ, SCALE, PX = 65.0, 60.0, 400.0, 2400
 S = PX / SCALE
 # turned half round so the stands are at the top, as on the July Course's plan (the horses then run left to right)
 im = Image.open("reference/newmarket/renders/plan.png").convert("RGB").rotate(180); w, h = im.size
@@ -20,17 +20,19 @@ def tag(x, z, text, size=20, ink=INK, bold=True):
     d.rounded_rectangle((px - (r - l) / 2 - 8, py - (b - t) / 2 - 6, px + (r - l) / 2 + 8, py + (b - t) / 2 + 8), 8, fill="#ffffff", outline="#b9b2a2")
     d.text((px - (r - l) / 2, py - (b - t) / 2 - t), text, font=f, fill=ink)
 for st in R.STAND_PIECES:
-    if "turn" in st: x, z = st["at"][0], W + st["at"][1] + 10
+    if "turn" in st:
+        a = math.radians(st["turn"]); d_ = st["depth"] / 2
+        x, z = st["at"][0] - d_ * math.sin(a), W + st["at"][1] - d_ * math.cos(a)
     else: x, z = sum(st["x"]) / 2, W + st["front"] + (18 if st["piece"] == "millennium_stand" else 6)
     if st["piece"] == "judges_kiosk": z -= 4
     tag(x, z, st["name"], 18 if st["piece"] in ("judges_kiosk", "victorian_pavilion") else 21)
 x0, _ = P(0, 0); d.line((x0, P(0, -3)[1], x0, P(0, W + 3)[1]), fill=RED, width=6); tag(0, W / 2, "POST", 20, ink=RED)
-tag(R.F, W / 2, "1f", 20); tag(2 * R.F, W / 2, "2f", 20)
-ax, ay = P(-20, W / 2); bx, _ = P(-62, W / 2)
+tag(R.F, W / 2, "1f", 20)
+ax, ay = P(-30, W / 2); bx, _ = P(-80, W / 2)
 d.line((ax, ay, bx, ay), fill="white", width=8); d.polygon([(bx + 4, ay), (bx - 24, ay - 15), (bx - 24, ay + 15)], fill="white")
-tag(-30, W / 2 + 10, "direction of running", 15, bold=False)
+tag(-55, W / 2 + 10, "direction of running", 15, bold=False)
 tag(0, -6, "finish line (far rail)", 15, bold=False)
-tag(150, W + 22, "lawns", 15, bold=False)
+tag(120, W + 22, "lawns", 15, bold=False)
 d.text((24, 20), "Rowley Mile: the stands from above (draft, 8 Nov 2026)", font=F(36, True), fill=INK)
 d.text((24, 64), "Stands at the top, the far side (towards the Dyke) at the bottom; the horses run left to right. For marking up.", font=F(22), fill="#5f5b52")
 y = h + TOP + 22; d.line((24, y + 12, 24 + 100 * S, y + 12), fill=INK, width=5)

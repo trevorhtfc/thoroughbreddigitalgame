@@ -17,7 +17,7 @@ sys.path.insert(0, os.path.join(REPO, "tools/course/newmarket"))
 import draft_layout as R
 OUT = os.path.join(REPO, "reference/newmarket/renders"); os.makedirs(OUT, exist_ok=True)
 SAMPLES = int(os.environ.get("SAMPLES", "24"))
-SHOTS = [s for s in os.environ.get("SHOTS", "across,across_up,track,aerial,plan").split(",") if s]
+SHOTS = [s for s in os.environ.get("SHOTS", "across,across_up,post,track,aerial,plan").split(",") if s]
 RES = [int(v) for v in os.environ.get("RES", "1280x720").split("x")]
 W = R.TRACK_W
 bpy.ops.wm.read_factory_settings(use_empty=True)
@@ -228,8 +228,9 @@ for k in kinds:
 trunks = [bpy.data.objects.new(k + "_t", tr[k + "_trunk"].data) for k in kinds]
 bark = flat("bark", "#7a6650"); [o.data.materials.__setitem__(0, bark) for o in trunks]
 T = []
-for x in np.arange(-120, 520, 11):                                    # behind the stands
-    T.append((x + rnd.uniform(-3, 3), W + rnd.uniform(62, 80), rnd.randrange(5), rnd.uniform(1.9, 2.5)))
+for x in np.arange(-130, 520, 11):                                    # behind the stands, clear of their backs
+    back = 112.0 if x < 105 else 78.0
+    T.append((x + rnd.uniform(-3, 3), W + rnd.uniform(back, back + 16), rnd.randrange(5), rnd.uniform(1.9, 2.5)))
 for x in np.arange(-200, 900, 16):                                    # across the heath beyond the far rail
     T.append((x + rnd.uniform(-5, 5), -rnd.uniform(70, 140), rnd.randrange(5), rnd.uniform(1.4, 2.2)))
 instances("crowns", crowns, [B(x, z, -0.2) for x, z, *_ in T], [k * 4 + rnd.randrange(4) for _, _, k, _ in T],
@@ -250,11 +251,12 @@ to_sun = Vector((0.55, -0.8, 0.0)).normalized() * math.cos(math.radians(32)) + V
 sun.rotation_euler = (-to_sun).to_track_quat("-Z", "Y").to_euler()
 
 CAMS = {   # course (x, z, height) from and to, lens
-    "across": ((40.0, -3.0, 6.0), (50.0, 90.0, 20.0), 20),            # from the far rail at the post, at the Millennium
-    "across_up": ((300.0, -3.0, 6.0), (330.0, 70.0, 12.0), 22),      # at the Rowley stand and the old stand
-    "track": ((-90.0, 16.0, 9.0), (150.0, 70.0, 16.0), 28),          # down the straight from beyond the post
-    "aerial": ((210.0, -170.0, 150.0), (210.0, 60.0, 0.0), 26),      # high over the far side
-    "plan": ((210.0, 60.0, 500.0), (210.0, 60.0001, 0.0), 0),         # straight down (orthographic), to mark up
+    "across": ((30.0, -3.0, 6.0), (30.0, 95.0, 20.0), 20),            # from the far rail, at the Millennium
+    "across_up": ((165.0, -3.0, 6.0), (160.0, 90.0, 12.0), 22),      # at the old stand
+    "post": ((70.0, 8.0, 8.0), (-60.0, 52.0, 12.0), 24),             # from the track before the line, at the end stand
+    "track": ((-40.0, 10.0, 9.0), (150.0, 75.0, 16.0), 28),          # up the straight from just past the post
+    "aerial": ((60.0, -190.0, 160.0), (60.0, 60.0, 0.0), 26),        # high over the far side
+    "plan": ((65.0, 60.0, 500.0), (65.0, 60.0001, 0.0), 0),          # straight down (orthographic), to mark up
 }
 scene.render.engine = "CYCLES"; scene.cycles.device = "CPU"; scene.cycles.samples = SAMPLES; scene.cycles.use_denoising = True
 scene.cycles.max_bounces = 4
@@ -268,7 +270,7 @@ for s in SHOTS:
     (fx, fz, fy), (tx, tz, ty), lens = CAMS[s]
     cam = bpy.data.objects.new(s, bpy.data.cameras.new(s)); cam.data.lens = lens or 50; cam.data.clip_end = 5000
     if s == "plan":
-        cam.data.type = "ORTHO"; cam.data.ortho_scale = 560.0
+        cam.data.type = "ORTHO"; cam.data.ortho_scale = 400.0
         scene.render.resolution_x, scene.render.resolution_y = 2400, 1200
     else:
         scene.render.resolution_x, scene.render.resolution_y = RES
