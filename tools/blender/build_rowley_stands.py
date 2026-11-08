@@ -19,7 +19,7 @@ Building coordinates (Blender), as the other kits: x along the front, left to ri
 building (the front faces -y); z up; origin the middle of the front, on the ground; walls run 1 m below the ground.
 
 Pieces
-  millennium_stand   the Millennium's form (four wave canopies on masts over a deep block) with Ascot's heritage dress: a terrace from the lawn, an arcade, balconies, a veranda, a clock tower   123 x 32 m, 45 m
+  millennium_stand   the Millennium's form (four wave canopies on masts over a deep block) with Ascot's heritage dress: a terrace from the lawn, a colonnade and covered terrace, balconies, a veranda   113 x 44 m, 45 m
   rowley_stand       glazed base, an open seating terrace under a flat canopy, an upper floor, the clock cupola, a brick end   110 x 18 m, 24 m
   victorian_stand    two tiers under a hipped slate roof with dormers, lantern and chimneys; standing terrace in front; low wing   112 x 22 m, 19 m
   judges_kiosk       the white judge's kiosk with a pyramid cap                                              3 x 3 m, 6 m
@@ -118,14 +118,15 @@ def sheet_solid(mat, fz, x0, x1, y0, y1, nx, ny, t):
 
 
 # ------------------------------------------------------------------------------------------ 1: the Millennium Grandstand
-def millennium_stand(n=4, bay=28.0, D=30.0):
+def millennium_stand(n=4, bay=28.0, D=42.0):
     """The Millennium Grandstand's form and proportion (four wave canopies on masts over a deep block) dressed with the
     Royal Ascot stand's old-school details (owner, 8 Nov: "something about it is still not convincing. The steps should
     come down to ground. The raised platform isn't helping... take the form and proportion of the new stand but
     integrate some of the Royal Ascot old school vibe into it, so it feels more heritage"):
-    a standing terrace that steps up from the lawn; an arcade of round arches behind it; cream walls with pilasters at
-    the bay lines and deep cornices; balconies with balustrades; a veranda on dark green iron columns; the canopies on
-    dark green masts with gilt finials; a clock tower in place of the glazed stair tower."""
+    a standing terrace that steps up from the lawn; cream walls with pilasters at the bay lines and deep cornices;
+    balconies with balustrades; a veranda on dark green iron columns; the canopies on dark green masts with gilt
+    finials. Then (on the second look): a colonnade of straight piers with a covered terrace behind, in place of the
+    arches; no ring beam along the canopies' front; no clock tower; deeper, the canopies reaching further out."""
     L = n * bay; h = L / 2
     rows, tread, rise = 14, 0.85, 0.38
     yf = rows * tread + 0.4                                           # the building's face, behind the terrace
@@ -134,20 +135,19 @@ def millennium_stand(n=4, bay=28.0, D=30.0):
     yb, zt = steps("concrete", -h, h, 0.0, 0.3, rows, tread, rise, seat="bench")
     K.box("concrete", -h, h, yb, yf + 0.5, -1.0, zt)
     z1 = zt + 0.05                                                     # the gallery floor, level with the top row
-    # the arcade: round arches between piers, the gallery dark behind them
-    span, pier = bay / 4, 1.3
-    r = (span - pier) / 2; zs = z1 + 3.2
-    K.box("glass", -h, h, yf + 3.0, yf + 3.2, z1, zs + r + 0.5)
+    # a colonnade of plain square piers carrying an entablature (owner, 8 Nov: straight piers rather than arches),
+    # with a deep covered terrace behind it, level with the top row
+    span, pier = bay / 4, 1.2
+    zc = z1 + 5.2
+    K.box("glass", -h, h, yf + 7.6, yf + 7.8, z1, zc)
+    K.box("concrete", -h, h, yf, yf + 7.8, z1 - 0.4, z1)
     for k in range(n * 4 + 1):
         x = -h + k * span
-        K.box("wall", x - pier / 2, x + pier / 2, yf, yf + 0.7, z1, zs + r + 0.9)
-        if k < n * 4:
-            xc = x + span / 2
-            K.arc_band("wall", xc, zs, r, r * 1.45, 0.0, math.pi, yf, yf + 0.7, n=12)
-            K.arc_band("trim", xc, zs, r - 0.02, r + 0.22, 0.0, math.pi, yf - 0.08, yf + 0.05, n=12)   # the archivolt
-    zc = zs + r + 0.9
-    K.box("wall", -h, h, yf, yf + 0.7, zc - 0.4, zc + 1.0)
-    K.cornice(-h, h, yf - 0.1, yf + 0.7, zc + 1.0, ov=0.4, h=0.5)
+        K.box("wall", x - pier / 2, x + pier / 2, yf, yf + pier, z1, zc)
+        K.box("podium", x - pier / 2 - 0.12, x + pier / 2 + 0.12, yf - 0.12, yf + pier + 0.12, z1, z1 + 0.5)     # the bases
+        K.box("trim", x - pier / 2 - 0.12, x + pier / 2 + 0.12, yf - 0.12, yf + pier + 0.12, zc - 0.35, zc)    # the capitals
+    area(-h + 0.6, h - 0.6, yf + 1.4, yf + 7.2, z1)
+    K.box("wall", -h, h, yf, yf + 2.4, zc, zc + 1.0)
     # two upper floors: balconies with balustrades, tall windows in cream walls, a veranda on iron columns
     z = zc + 1.5
     for lv in range(2):
@@ -182,7 +182,7 @@ def millennium_stand(n=4, bay=28.0, D=30.0):
         t = min(max((x - (xc - bay / 2)) / bay, 0.0), 1.0)
         rise_ = 1.5 * (D + 2 - y) / (D + 2 - yf + 9)                     # a gentle lift to the front: springing
         return deck - 0.3 + rise_ + 6.5 * math.sin(math.pi * t) ** 0.75     # straight off the top cornice
-    y0c = yf - 6.0
+    y0c = yf - 11.0                                                   # the canopies reach well out over the terrace
     for k in range(n):
         xc = -h + bay * (k + 0.5)
         sheet_solid("canvas", lambda x, y, xc=xc: fz(x, y, xc), xc - bay / 2 + 0.35, xc + bay / 2 - 0.35, y0c, D + 2.0, 18, 10, 0.25)
@@ -206,32 +206,7 @@ def millennium_stand(n=4, bay=28.0, D=30.0):
                     K.push(Matrix.Translation((x, my, mz)) @ rot)
                     K.cyl("ironwork", 0, 0, 0, m, 0.06, segs=4, smooth=False)
                     K.pop()
-    zr = fz(-h, y0c, -h + bay / 2)                                    # the ring beam at the troughs' height
-    K.prism_x("trim", -h, h, [(y0c, zr - 0.5), (y0c + 0.6, zr - 0.5), (y0c + 0.6, zr + 0.35), (y0c, zr + 0.35)])
-    # the clock tower at the right-hand end (in place of the glazed stair tower): a stone base, cream shaft with arched
-    # windows and cornices, a belfry stage with clock faces, a lead cupola and a gilt finial
-    tx0, tx1 = h + 0.6, h + 10.6; tc = (tx0 + tx1) / 2; ty0, ty1 = yf - 1.0, yf + 9.0; tyc = (ty0 + ty1) / 2
-    K.box("podium", tx0, tx1, ty0, ty1, -1.0, z1 + 1.0)
-    K.box("wall", tx0 + 0.3, tx1 - 0.3, ty0 + 0.3, ty1 - 0.3, z1 + 1.0, deck + 4.0)
-    for zz in (z1 + 1.0, zc + 1.0, deck - 0.6):
-        K.cornice(tx0 + 0.3, tx1 - 0.3, ty0 + 0.3, ty1 - 0.3, zz, ov=0.35, h=0.45)
-    for zz in (z1 + 2.2, zc + 2.5, zc + 7.2):
-        for x in (tc - 2.2, tc + 2.2):
-            win(x, ty0 + 0.3, zz, 1.4, 3.0)
-            K.arc_band("trim", x, zz + 3.0, 0.7, 0.92, 0.0, math.pi, ty0 + 0.22, ty0 + 0.36, n=8)
-    K.door(tc, ty0, 0.0, 2.0, 3.2)
-    bz = deck + 4.0
-    K.box("wall", tc - 3.6, tc + 3.6, tyc - 3.6, tyc + 3.6, bz, bz + 7.0)
-    K.cornice(tc - 3.6, tc + 3.6, tyc - 3.6, tyc + 3.6, bz + 7.0, ov=0.45, h=0.6)
-    K.disc_y("clock", tc, tyc - 3.72, tyc - 3.6, bz + 4.4, 1.7, segs=28)
-    K.disc_y("clockdark", tc, tyc - 3.78, tyc - 3.72, bz + 4.4, 0.12, segs=12)
-    K.box("clockdark", tc - 0.06, tc + 0.06, tyc - 3.8, tyc - 3.74, bz + 4.4, bz + 5.6)
-    K.box("clockdark", tc - 0.06, tc + 0.9, tyc - 3.8, tyc - 3.74, bz + 4.34, bz + 4.46)
-    K.arc_band("trim", tc, bz + 1.6, 1.0, 1.3, 0.0, math.pi, tyc - 3.75, tyc - 3.55, n=10)
-    K.cyl("slate", tc, tyc, bz + 7.6, bz + 11.0, 3.2, 0.5, segs=16)
-    K.cyl("gilt", tc, tyc, bz + 11.0, bz + 13.0, 0.08, segs=6)
-    K.sphere("gilt", tc, tyc, bz + 13.1, 0.3, sub=1)
-    return {"width": L + 11.2, "depth": D + 2.0, "height": max(deck + 17.6, bz + 13.4), "offset": (tx1 - h) / 2}
+    return {"width": L + 1.0, "depth": D + 2.0, "height": deck + 17.6}
 
 
 # ------------------------------------------------------------------------------------------ 1b: the Rowley stand
