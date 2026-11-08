@@ -128,7 +128,7 @@ def millennium_stand(n=4, bay=28.0, D=42.0):
     finials. Then (on the second look): a colonnade of straight piers with a covered terrace behind, in place of the
     arches; no ring beam along the canopies' front; no clock tower; deeper, the canopies reaching further out."""
     L = n * bay; h = L / 2
-    rows, tread, rise = 14, 0.85, 0.38
+    rows, tread, rise = 26, 1.0, 0.2         # owner: a much shallower rake, so the terrace comes much further forward
     yf = rows * tread + 0.4                                           # the building's face, behind the terrace
     # the terrace: from the lawn straight up to the arcade, a low balustrade along its foot, benches on the rows
     K.box("wall", -h, h, -0.35, 0.0, -1.0, 1.0)                                  # a plain low wall at its foot
@@ -206,92 +206,97 @@ def millennium_stand(n=4, bay=28.0, D=42.0):
 
 
 # ------------------------------------------------------------------------------------------ 1b: the Rowley stand
-def rowley_stand(L=110.0, D=18.0, cupola=True, brick=True):
+def rowley_stand(L=110.0, cupola=True, brick=True, rows=26, tread=1.0, rise=0.2):
+    """The Rowley stand, from the owner's photo (rowley-stand-photo.jpg) and notes (8 Nov): slim profiles, projecting
+    roofs, and a terrace down to the ground that runs on from the Millennium's (the same shallow rake): a low
+    canopy on slim posts over the back of the terrace, glazed boxes and a balcony of seats above, a thin roof projecting
+    well out over them, the clock cupola, a brick end."""
     h = L / 2
     eb = 12.0 if brick else 0.0
-    K.box("glass", -h, h, 0.6, D, -1.0, 4.0)
-    for k in range(int(L // 7) + 1):
-        x = -h + k * L / int(L // 7)
-        K.box("cream", x - 0.4, x + 0.4, 0.2, 0.8, -1.0, 4.0)
-    K.box("cream", -h, h, -0.3, D, 4.0, 4.6)
-    yb, zt = steps("concrete", -h, h - eb, 0.0, 4.9, 9, 0.95, 0.36, seat="seat")
-    K.box("white", -h, h - eb, -0.12, 0.05, 4.6, 5.8)
-    K.box("glass", -h + 0.5, h - eb - 0.5, yb - 0.05, yb + 0.05, zt + 0.4, 10.4)
-    K.box("cream", -h, h - eb, yb, D, 4.6, 10.4)
-    K.box("white", -h - 0.3, h - eb, -1.2, D, 10.4, 11.1)                              # the flat canopy
-    K.box("white", -h - 0.3, h - eb, -1.3, -1.0, 9.9, 11.2)
-    for k in range(int((L - 12) // 9) + 1):                                              # slim columns under it
-        x = -h + 1.0 + k * (L - 14.0) / int((L - 12) // 9)
-        K.box("iron", x - 0.12, x + 0.12, -0.8, -0.56, 4.6, 10.4)
-    K.box("cream", -h, h - eb, 5.0, D, 11.1, 14.3)                                      # the top floor, set back
-    for k in range(int((L - 14) // 4)):
-        win(-h + 2.5 + k * 4.0, 5.0, 11.9, 2.2, 1.6)
-    K.box("white", -h - 0.2, h - eb + 0.2, 4.7, D + 0.2, 14.3, 14.8)
-    # the clock cupola on the roof
-    cx = -h + (L - eb) * 0.62
-    if not cupola: cx = None
-    if cx is not None:
-        K.box("cream", cx - 1.8, cx + 1.8, 9.0, 12.6, 14.8, 18.0)
-        K.disc_y("trim", cx, 8.92, 9.0, 16.4, 1.0, segs=20)
-        K.cyl("white", cx, 10.8, 18.0, 20.6, 1.45, segs=12)
-        K.cyl("slate", cx, 10.8, 20.6, 22.3, 1.6, 0.15, segs=12)
-        K.cyl("iron", cx, 10.8, 22.3, 24.2, 0.05, segs=4, smooth=False)
-        K.box("iron", cx - 0.6, cx + 0.6, 10.78, 10.82, 23.5, 23.8)
-    # the brick block at the right-hand end
+    x0, x1 = -h, h - eb
+    yb, zt = steps("concrete", -h, h, 0.0, 0.25, rows, tread, rise)            # the terrace, from the lawn
+    D = yb + 11.0
+    # behind the terrace top: a glazed concourse under the low canopy, the cream block behind everything
+    K.box("glass", x0, x1, yb, yb + 0.2, zt, zt + 3.4)
+    K.box("cream", x0, x1, yb + 0.2, D, -1.0, zt + 9.0)
+    # the low canopy: a thin white slab on slim posts over the back of the terrace
+    yc0 = yb - 9.0
+    K.box("white", x0 - 0.3, x1, yc0, yb + 0.2, zt + 3.4, zt + 3.7)
+    n = max(2, round((x1 - x0) / 8.0))
+    for k in range(n + 1):
+        x = x0 + 0.4 + (x1 - x0 - 0.8) * k / n
+        zb = 0.25 + int((yc0 + 0.4) / tread) * rise
+        K.box("iron", x - 0.09, x + 0.09, yc0 + 0.3, yc0 + 0.48, zb, zt + 3.4)
+    # above it: a balcony of green seats stepping back to glazed boxes, a thin roof projecting well out
+    yb2, zt2 = steps("concrete", x0, x1, yb - 3.0, zt + 3.7, 5, 0.9, 0.34, seat="seat")
+    K.box("white", x0, x1, yb - 3.12, yb - 3.0, zt + 3.7, zt + 4.7)
+    K.box("glass", x0, x1, yb2, yb2 + 0.2, zt2 + 0.3, zt + 9.0)
+    K.box("white", x0 - 0.3, x1, yb - 8.0, D + 0.3, zt + 9.0, zt + 9.3)              # the upper roof
+    K.box("white", x0 - 0.3, x1, yb - 8.1, yb - 7.9, zt + 8.75, zt + 9.35)           # its slim front edge
+    for k in range(int((x1 - x0) // 4)):                                             # windows in the block's top
+        win(x0 + 2.0 + k * 4.0, yb2 + 0.2, zt + 9.6, 2.2, 1.4)
+    K.box("cream", x0, x1, yb2 + 0.2, D, zt + 9.3, zt + 11.6)
+    K.box("white", x0 - 0.2, x1 + 0.2, yb2, D + 0.2, zt + 11.6, zt + 11.9)
+    top = zt + 11.9
+    if cupola:
+        cx = x0 + (x1 - x0) * 0.62; cy = (yb2 + D) / 2
+        K.box("cream", cx - 1.8, cx + 1.8, cy - 1.8, cy + 1.8, top, top + 3.0)
+        K.disc_y("trim", cx, cy - 1.88, cy - 1.8, top + 1.6, 1.0, segs=20)
+        K.cyl("white", cx, cy, top + 3.0, top + 5.4, 1.45, segs=12)
+        K.cyl("slate", cx, cy, top + 5.4, top + 7.0, 1.6, 0.15, segs=12)
+        K.cyl("iron", cx, cy, top + 7.0, top + 8.8, 0.05, segs=4, smooth=False)
+        K.box("gilt", cx - 0.6, cx + 0.6, cy - 0.02, cy + 0.02, top + 8.1, top + 8.4)
     if brick:
-        K.box("brick", h - 12.0, h, -0.4, D + 1.0, -1.0, 16.0)
-        K.box("trim", h - 12.15, h + 0.15, -0.55, D + 1.15, 16.0, 16.35)
-        for z in (1.0, 5.0, 9.0, 12.6):
+        K.box("brick", h - eb, h, yb - 4.0, D + 1.0, -1.0, top + 1.5)
+        K.box("trim", h - eb - 0.15, h + 0.15, yb - 4.15, D + 1.15, top + 1.5, top + 1.85)
+        for z in (zt + 0.6, zt + 4.4, zt + 8.0):
             for x in (h - 9.0, h - 3.0):
-                win(x, -0.4, z, 1.6, 1.8)
-    return {"width": L, "depth": D + 1.0, "height": 24.2}
+                win(x, yb - 4.0, z, 1.6, 1.8)
+    return {"width": L, "depth": D + 1.0, "height": top + 8.8}
 
 
 # ------------------------------------------------------------------------------------------ 3: the old Victorian stand
-def victorian_stand(L=96.0, D=16.0):
+def victorian_stand(L=128.0, rows=24, tread=1.0, rise=0.28):
+    """The old stand (owner's photos old-stand-victorian.png, old-stand-photo-2.jpg; 8 Nov: "a bit bigger... again bring
+    the terraces to ground", a shallow rake): a long open stand of seats rising from the lawn under a big slate roof on
+    slim posts, rooms behind, gablet dormers and chimneys, and an end pavilion with a clock turret."""
     h = L / 2
-    # the standing terrace in front, packed in the photo
-    steps("concrete", -h, h, -6.5, 0.35, 5, 1.2, 0.3)
-    # the ground floor: cream rooms with plain windows, an upper deck of seats under the roof
-    K.box("cream", -h, h, 0.0, D, -1.0, 4.8)
+    yb, zt = steps("concrete", -h, h, 0.0, 0.3, rows, tread, rise, seat="bench")
+    D = yb + 7.0
+    K.box("cream", -h, h, yb, D, -1.0, zt + 4.2)                                      # the rooms behind
     for k in range(int(L // 4.0)):
-        win(-h + 2.0 + k * 4.0, 0.0, 1.0, 1.6, 2.2)
-    K.box("trim", -h - 0.2, h + 0.2, -0.3, D, 4.8, 5.3)
-    yb, zt = steps("concrete", -h + 0.3, h - 0.3, 0.3, 5.6, 7, 1.15, 0.42, seat="bench")
-    K.balustrade(-h, h, 0.2, 5.3, h=1.0, mat="trim", spacing=0.32)
-    K.box("cream", -h, h, D - 0.5, D, 5.3, 11.4)
-    for x in (-h, h):
-        K.box("cream", x - 0.3, x + 0.3, 0.0, D, 5.3, 11.4)
-    for k in range(int(L // 6.0) + 1):                                    # slender posts carrying the roof
+        win(-h + 2.0 + k * 4.0, yb, zt + 1.0, 1.4, 2.0)
+    for k in range(int(L // 6.0) + 1):                                                # slim posts along the front
         x = -h + k * L / int(L // 6.0)
-        K.box("trim", x - 0.13, x + 0.13, 0.05, 0.31, 5.3, 11.2)
-    K.box("trim", -h - 0.2, h + 0.2, -0.05, 0.4, 11.0, 11.4)
-    # the big hipped slate roof, with gablet dormers, a lantern and flag, chimneys
-    K.hip_roof(-h, h, 0.0, D, 11.4, 5.2, ov=0.9, mat="slate")
-    tn = 5.2 / (D / 2 + 0.9)
-    for k in range(5):
-        x = -h + L * (k + 0.5) / 5
-        z0 = 11.4 + 2.0 * tn
-        K.box("cream", x - 1.5, x + 1.5, 1.2, 4.0, z0 - 1.2, z0 + 1.0)
-        gable_y(x - 1.5, x + 1.5, 1.2, 4.0, z0 + 1.0, 42, 0.25)
-        win(x, 1.2, z0 - 0.7, 1.2, 1.3)
-    rz = 11.4 + 5.2
-    K.box("cream", -2.2, 2.2, D / 2 - 2.2, D / 2 + 2.2, rz - 1.0, rz + 2.0)
-    K.hip_roof(-2.2, 2.2, D / 2 - 2.2, D / 2 + 2.2, rz + 2.0, 1.8, ov=0.3, mat="slate")
-    K.cyl("iron", 0.0, D / 2, rz + 3.6, rz + 7.0, 0.05, segs=4, smooth=False)
-    K.box("fascia", 0.05, 1.3, D / 2 - 0.03, D / 2 + 0.03, rz + 6.0, rz + 6.8)
-    for x in (-h * 0.62, h * 0.62, -h * 0.2, h * 0.2):
-        K.box("brick", x - 0.6, x + 0.6, D / 2 - 0.4, D / 2 + 0.8, rz - 2.0, rz + 1.8)
-        K.box("trim", x - 0.72, x + 0.72, D / 2 - 0.52, D / 2 + 0.92, rz + 1.8, rz + 2.0)
-    # the low wing at the left-hand end, gable to the front
-    wx0, wx1 = -h - 15.0, -h - 0.2
-    K.box("cream", wx0, wx1, 1.5, D, -1.0, 6.5)
-    for k in range(3):
-        win(wx0 + 2.5 + k * 5.0, 1.5, 1.2, 1.6, 2.2)
-    gable_x(wx0, wx1, 1.5, D, 6.5, 32, 0.5)
-    gable_y(wx0 + 3.0, wx0 + 10.0, -1.0, 1.5, 6.5, 40, 0.3)
-    K.box("cream", wx0 + 3.0, wx0 + 10.0, -1.0, 1.5, -1.0, 6.5)
-    return {"width": L + 15.0, "depth": D, "height": rz + 7.0, "offset": -7.5}
+        K.box("trim", x - 0.12, x + 0.12, -1.3, -1.06, -0.5, 7.2)
+    K.box("trim", -h - 0.3, h + 0.3, -1.6, -0.9, 6.9, 7.3)
+    K.hip_roof(-h, h, -1.5, D, 7.3, 6.0, ov=0.6, mat="slate")
+    tn = 6.0 / ((D + 1.5) / 2 + 0.6)
+    for k in range(7):                                                                # gablet dormers on the front slope
+        x = -h + L * (k + 0.5) / 7
+        z0 = 7.3 + 3.5 * tn
+        K.box("cream", x - 1.4, x + 1.4, 2.0, 4.6, z0 - 1.2, z0 + 0.9)
+        gable_y(x - 1.4, x + 1.4, 2.0, 4.6, z0 + 0.9, 42, 0.25)
+        win(x, 2.0, z0 - 0.7, 1.1, 1.2)
+    rz = 7.3 + 6.0
+    for x in (-h * 0.6, -h * 0.15, h * 0.3):
+        K.box("brick", x - 0.6, x + 0.6, (D - 1.5) / 2 - 0.4, (D - 1.5) / 2 + 0.8, rz - 2.5, rz + 1.6)
+        K.box("trim", x - 0.72, x + 0.72, (D - 1.5) / 2 - 0.52, (D - 1.5) / 2 + 0.92, rz + 1.6, rz + 1.8)
+    # the end pavilion (right as seen from the track), two storeys under its own roof, with a clock turret
+    px0, px1 = h, h + 16.0
+    K.box("cream", px0, px1, -1.0, D, -1.0, 10.5)
+    for z in (1.0, 5.5):
+        for x in (px0 + 3.0, px0 + 8.0, px0 + 13.0):
+            win(x, -1.0, z, 1.6, 2.4)
+    K.hip_roof(px0, px1, -1.0, D, 10.5, 5.0, ov=0.5, mat="slate")
+    tc, tyc = (px0 + px1) / 2, 4.0
+    K.box("cream", tc - 1.6, tc + 1.6, tyc - 1.6, tyc + 1.6, 12.0, 16.6)
+    K.disc_y("trim", tc, tyc - 1.68, tyc - 1.6, 15.0, 0.9, segs=20)
+    K.hip_roof(tc - 1.6, tc + 1.6, tyc - 1.6, tyc + 1.6, 16.6, 1.6, ov=0.25, mat="slate")
+    K.cyl("iron", tc, tyc, 18.2, 20.6, 0.05, segs=4, smooth=False)
+    K.box("gilt", tc - 0.5, tc + 0.5, tyc - 0.02, tyc + 0.02, 19.9, 20.2)
+    K.box("brick", px1 - 3.0, px1 - 1.8, D - 4.0, D - 2.8, 12.0, 17.5)
+    return {"width": L + 16.0, "depth": D, "height": 20.6, "offset": 8.0}
 
 
 def judges_kiosk(S=2.6):
@@ -329,7 +334,7 @@ PIECES = [
     # owner's sketch (8 Nov): the pavilion stand cranks round by the winning line: a wing in line with the Millennium,
     # then an end stand at right angles to the track, past the post, looking back up the course
     ("rowley_wing", lambda: rowley_stand(42.0, cupola=False, brick=False)),
-    ("rowley_end", lambda: rowley_stand(81.7)),           # as long as the layout's end stand (draft_layout.STAND_PIECES)
+    ("rowley_end", lambda: rowley_stand(82.6)),           # as long as the layout's end stand (draft_layout.STAND_PIECES)
     ("victorian_stand", victorian_stand),
     ("judges_kiosk", judges_kiosk),
     ("victorian_pavilion", victorian_pavilion),

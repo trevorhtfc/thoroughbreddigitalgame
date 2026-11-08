@@ -6,7 +6,7 @@ from PIL import Image, ImageDraw, ImageFont
 sys.path.insert(0, "tools/course/newmarket")
 import draft_layout as R
 W = R.TRACK_W
-CX, CZ, SCALE, PX = 65.0, 85.0, 400.0, 2400
+CX, CZ, SCALE, PX = 110.0, 75.0, 460.0, 2400
 S = PX / SCALE
 # turned half round so the stands are at the top, as on the July Course's plan (the horses then run left to right)
 im = Image.open("reference/newmarket/renders/plan.png").convert("RGB").rotate(180); w, h = im.size
@@ -32,7 +32,7 @@ ax, ay = P(-30, W / 2); bx, _ = P(-80, W / 2)
 d.line((ax, ay, bx, ay), fill="white", width=8); d.polygon([(bx + 4, ay), (bx - 24, ay - 15), (bx - 24, ay + 15)], fill="white")
 tag(-55, W / 2 + 10, "direction of running", 15, bold=False)
 tag(0, -6, "finish line (far rail)", 15, bold=False)
-tag(120, W + 22, "lawns", 15, bold=False)
+tag(120, W + 22, "lawns", 15, bold=False); tag(310, W + 30, "festival", 20)
 d.text((24, 20), "Rowley Mile: the stands from above (draft, 8 Nov 2026)", font=F(36, True), fill=INK)
 d.text((24, 64), "Stands at the top, the far side (towards the Dyke) at the bottom; the horses run left to right. For marking up.", font=F(22), fill="#5f5b52")
 y = h + TOP + 22; d.line((24, y + 12, 24 + 100 * S, y + 12), fill=INK, width=5)

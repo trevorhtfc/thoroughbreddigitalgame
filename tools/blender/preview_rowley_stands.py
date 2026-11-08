@@ -17,7 +17,7 @@ sys.path.insert(0, os.path.join(REPO, "tools/course/newmarket"))
 import draft_layout as R
 OUT = os.path.join(REPO, "reference/newmarket/renders"); os.makedirs(OUT, exist_ok=True)
 SAMPLES = int(os.environ.get("SAMPLES", "24"))
-SHOTS = [s for s in os.environ.get("SHOTS", "across,across_up,post,track,aerial,plan").split(",") if s]
+SHOTS = [s for s in os.environ.get("SHOTS", "across,across_up,post,track,festival,aerial,plan").split(",") if s]
 RES = [int(v) for v in os.environ.get("RES", "1280x720").split("x")]
 W = R.TRACK_W
 bpy.ops.wm.read_factory_settings(use_empty=True)
@@ -178,7 +178,7 @@ jsp = load("assets/models/architecture/rowley_stands.glb")
 info = json.load(open(os.path.join(REPO, "assets/models/architecture/rowley_stands.json")))["pieces"]
 for m in {sl.material for o in jsp.values() for sl in o.material_slots if sl.material}:
     clayify(m, 0.0 if m.name.split(".")[0] in ("rm_glass", "rm_iron", "rm_bench") else 0.12)
-people, nogo = [], []
+people, nogo, APRONS = [], [], []
 rnd = random.Random(4)
 from matplotlib.path import Path as MPath
 for st in R.STAND_PIECES:
@@ -191,15 +191,58 @@ for st in R.STAND_PIECES:
     a = math.radians(turn); ca, sa = math.cos(a), math.sin(a)
     to_c = lambda u, v: (ox + u * ca - v * sa, oz - (u * sa + v * ca))
     hw = pi["width"] / 2
-    nogo.append(MPath(np.array([to_c(u, v) for u, v in ((-hw + off, -8.0), (hw + off, -8.0), (hw + off, pi["depth"] + 2), (-hw + off, pi["depth"] + 2))])))
+    nogo.append(MPath(np.array([to_c(u, v) for u, v in ((-hw + off, -0.5), (hw + off, -0.5), (hw + off, pi["depth"] + 2), (-hw + off, pi["depth"] + 2))])))
+    if st["piece"] not in ("judges_kiosk",):
+        APRONS.append((to_c, -hw + off - 3.0, hw + off + 3.0, -10.0 if st["piece"] != "victorian_pavilion" else -5.0, pi["depth"] + 3.0))
     for x0, x1, y0, y1, fz in pi["crowd"]:
         for _ in range(int((x1 - x0) * (y1 - y0) * 1.5)):
             people.append(to_c(rnd.uniform(x0, x1), rnd.uniform(y0, y1)) + (fz, turn))
-# the lawn between the stands and the rail
-for _ in range(int(560 * 64 * 0.25)):                                 # the lawns in front of the stands, down to the rail
-    x, z = rnd.uniform(-60, 500), rnd.uniform(W + 2, W + 66)
-    if not any(q.contains_point((x, z)) for q in nogo):
-        people.append((x, z, 0.0, 180.0))
+# ---- the ground tied together (owner, 8 Nov: "items plonked on the ground... embed everything together"): a paved
+# apron round every stand, running under its terrace and out 10 m in front, so the stands stand on one continuous
+# forecourt; a gravel walk along the rail; low clipped hedges edging the lawns with gaps to walk through, and small
+# trees in the gaps; the stand-side festival up the course with its own crowd
+pave = clayify(flat("paving", "#e4d8c2", 0.95), 0); hedge_m = clayify(flat("hedge", "#5f8350", 0.95), 0)
+gravel = clayify(flat("gravel", "#d9c9a8", 0.97), 0)
+for k, (to_c, u0, u1, v0, v1) in enumerate(APRONS):
+    me = bpy.data.meshes.new("apron"); pts = [to_c(u0, v0), to_c(u1, v0), to_c(u1, v1), to_c(u0, v1)]
+    me.from_pydata([B(x, z, 0.03 + k * 0.004) for x, z in pts], [], [(0, 3, 2, 1)]); me.materials.append(pave)
+    scene.collection.objects.link(bpy.data.objects.new("apron", me))
+plane("rail_walk", -R.RUN_ON - 100, 900, W + 0.6, W + 4.6, gravel, 0.025)
+hb = bmesh.new(); small_trees = []
+for to_c, u0, u1, v0, v1 in APRONS:                                    # hedges along the apron's front edge
+    u = u0
+    while u < u1 - 2.0:
+        seg = min(9.0, u1 - u)
+        c0, c1 = to_c(u, v0 - 0.6), to_c(u + seg - 3.0, v0 - 0.6)
+        mx, mz = (c0[0] + c1[0]) / 2, (c0[1] + c1[1]) / 2; ln = math.hypot(c1[0] - c0[0], c1[1] - c0[1]); ang = math.atan2(-(c1[1] - c0[1]), c1[0] - c0[0])
+        bmesh.ops.create_cube(hb, size=1.0, matrix=Matrix.Translation(B(mx, mz, 0.5)) @ Matrix.Rotation(ang, 4, "Z") @ Matrix.Diagonal((ln, 1.0, 1.0, 1)))
+        if len(small_trees) % 2 == 0 or True: small_trees.append(to_c(u + seg - 1.5, v0 - 0.6))
+        u += seg
+me = bpy.data.meshes.new("hedges"); hb.to_mesh(me); hb.free(); me.materials.append(hedge_m)
+ho = bpy.data.objects.new("hedges", me); scene.collection.objects.link(ho); soften(ho, 0.2)
+sp = load("assets/models/architecture/site_props.glb")
+for m in {sl.material for o in sp.values() for sl in o.material_slots if sl.material}: clayify(m)
+fx0, fx1 = R.FESTIVAL["x"]; x = max(fx0, 285.0) + 6
+fest = []
+while x < fx1 - 10:                                                    # festival pavilions in loose rows, facing the track
+    for piece, dz in ((rnd.choice(["terrace_deck", "kiosk_awning", "pagoda_kiosk", "pagoda_counter"]), 18.0),
+                      (rnd.choice(["kiosk_row_arched", "pergola_picnic", "pagoda_counter", "marquee_clearspan"]), 34.0),
+                      (rnd.choice(["marquee_peaks", "marquee_clearspan", "big_top"]), 54.0)):
+        if piece == "big_top" and rnd.random() < 0.6: continue
+        ob = place(sp[piece], x + rnd.uniform(-2, 2), W + dz, 180.0)
+        fest.append((ob.location.x, -ob.location.y, max(ob.dimensions.x, ob.dimensions.y) / 2 + 1.5))
+    place(sp["banner_flag"], x - 4, W + 9.0, 180.0)
+    x += rnd.uniform(24, 32)
+for _ in range(int((fx1 - fx0) * 50 * 0.12)):
+    x, z = rnd.uniform(fx0, fx1), rnd.uniform(W + 6, W + 64)
+    if not any((x - a) ** 2 + (z - b) ** 2 < r * r for a, b, r in fest):
+        people.append((x, z, 0.0, rnd.uniform(0, 360)))
+# the lawns in front of the stands, down to the rail walk (crowd on the aprons too, not on the hedges)
+for zr0, zr1, dens in ((W + 5, W + 14, 0.32), (W + 14, W + 75, 0.07)):   # packed along the rail, thinner on the lawns behind
+    for _ in range(int(350 * (zr1 - zr0) * dens)):
+        x, z = rnd.uniform(-60, 290), rnd.uniform(zr0, zr1)
+        if not any(q.contains_point((x, z)) for q in nogo):
+            people.append((x, z, 0.0, 180.0))
 cr = load("assets/models/architecture/crowd_set_8.glb")
 SKC = {"clothes": ["#2c3140", "#3a3d44", "#4b4d52", "#2f3a33", "#59544c", "#c9a0a8", "#9fb6c8", "#ddd2b8", "#a8706a", "#88a383", "#d2b874", "#e8e2d6", "#9a88b4", "#cf9476"],
        "hats": ["#222226", "#efe6d2", "#d8c08a", "#c9a0a8", "#9fb6c8"], "skin": ["#efc6a4", "#e2b48e", "#c99572", "#9a6a4a"]}
@@ -228,8 +271,10 @@ for k in kinds:
 trunks = [bpy.data.objects.new(k + "_t", tr[k + "_trunk"].data) for k in kinds]
 bark = flat("bark", "#7a6650"); [o.data.materials.__setitem__(0, bark) for o in trunks]
 T = []
-for x in np.arange(-130, 520, 11):                                    # behind the stands, clear of their backs
-    back = 142.0 if x < 105 else 108.0
+for x_, z_ in small_trees:                                             # small trees in the hedge gaps
+    if rnd.random() < 0.5: T.append((x_, z_, rnd.randrange(5), rnd.uniform(0.55, 0.75)))
+for x in np.arange(-130, 760, 11):                                    # behind the stands, clear of their backs
+    back = 165.0 if x < 105 else (125.0 if x < 290 else 108.0)
     T.append((x + rnd.uniform(-3, 3), W + rnd.uniform(back, back + 16), rnd.randrange(5), rnd.uniform(1.9, 2.5)))
 for x in np.arange(-200, 900, 16):                                    # across the heath beyond the far rail
     T.append((x + rnd.uniform(-5, 5), -rnd.uniform(70, 140), rnd.randrange(5), rnd.uniform(1.4, 2.2)))
@@ -251,12 +296,13 @@ to_sun = Vector((0.55, -0.8, 0.0)).normalized() * math.cos(math.radians(32)) + V
 sun.rotation_euler = (-to_sun).to_track_quat("-Z", "Y").to_euler()
 
 CAMS = {   # course (x, z, height) from and to, lens
-    "across": ((30.0, -3.0, 6.0), (30.0, 125.0, 24.0), 20),            # from the far rail, at the Millennium
-    "across_up": ((165.0, -3.0, 6.0), (160.0, 120.0, 12.0), 22),      # at the old stand
+    "across": ((30.0, -3.0, 6.0), (30.0, 125.0, 22.0), 20),           # from the far rail, at the Millennium
+    "across_up": ((190.0, -3.0, 6.0), (190.0, 120.0, 12.0), 22),     # at the old stand
     "post": ((70.0, 8.0, 8.0), (-60.0, 70.0, 12.0), 24),             # from the track before the line, at the end stand
-    "track": ((-40.0, 10.0, 9.0), (150.0, 75.0, 16.0), 28),          # up the straight from just past the post
-    "aerial": ((60.0, -190.0, 160.0), (60.0, 60.0, 0.0), 26),        # high over the far side
-    "plan": ((65.0, 85.0, 500.0), (65.0, 85.0001, 0.0), 0),          # straight down (orthographic), to mark up
+    "track": ((-30.0, 10.0, 9.0), (150.0, 80.0, 16.0), 26),          # up the straight from just past the post
+    "festival": ((470.0, -3.0, 6.0), (470.0, 70.0, 6.0), 22),        # the stand-side festival up the course
+    "aerial": ((110.0, -230.0, 190.0), (110.0, 70.0, 0.0), 26),      # high over the far side
+    "plan": ((110.0, 75.0, 500.0), (110.0, 75.0001, 0.0), 0),        # straight down (orthographic), to mark up
 }
 scene.render.engine = "CYCLES"; scene.cycles.device = "CPU"; scene.cycles.samples = SAMPLES; scene.cycles.use_denoising = True
 scene.cycles.max_bounces = 4
@@ -270,7 +316,7 @@ for s in SHOTS:
     (fx, fz, fy), (tx, tz, ty), lens = CAMS[s]
     cam = bpy.data.objects.new(s, bpy.data.cameras.new(s)); cam.data.lens = lens or 50; cam.data.clip_end = 5000
     if s == "plan":
-        cam.data.type = "ORTHO"; cam.data.ortho_scale = 400.0
+        cam.data.type = "ORTHO"; cam.data.ortho_scale = 460.0
         scene.render.resolution_x, scene.render.resolution_y = 2400, 1200
     else:
         scene.render.resolution_x, scene.render.resolution_y = RES

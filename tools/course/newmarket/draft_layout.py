@@ -59,17 +59,18 @@ STAND_PIECES = [
     # owner's sketch (8 Nov, reference/newmarket/owner-sketch-stands.jpg): the Millennium at an angle to the track, its
     # up-course end further back; the pavilion stand (the Rowley stand) carrying on from its post end and cranking round
     # by the winning line, at right angles to the track; the older, longer stand up the course from the Millennium.
-    # Then: "the crank stand doesn't have enough stand in the section perpendicular to the track: move it all back to
-    # elongate that": everything 30 m further back, the end stand 82 m long.
-    {"name": "Millennium Grandstand", "piece": "millennium_stand", "at": [35.05, 72.71], "turn": 167.0, "length": 113.0, "depth": 44.0,
-     "note": "at an angle to the track: its post end 60 m beyond the near rail, its up-course end further back"},
-    {"name": "Rowley stand", "piece": "rowley_wing", "at": [-44.36, 54.38], "turn": 167.0, "length": 42.0, "depth": 19.0,
-     "note": "the pavilion stand's first wing, in line with the Millennium"},
-    {"name": "Rowley end stand", "piece": "rowley_end", "at": [-64.82, 54.83], "turn": 90.0, "length": 81.7, "depth": 19.0,
+    # Then: everything moved back so the cranked end stand is longer; and (his photos and notes, 8 Nov evening) every
+    # stand's terrace down to the lawn with a much shallower rake, coming much further forward, the Rowley stand's
+    # running on from the Millennium's; the old stand bigger and further back. 'at' is the front of each terrace.
+    {"name": "Millennium Grandstand", "piece": "millennium_stand", "at": [35.05, 58.71], "turn": 167.0, "length": 113.0, "depth": 58.0,
+     "note": "at an angle to the track: its terrace foot 46 m beyond the near rail at the post end, the building 26 m behind it"},
+    {"name": "Rowley stand", "piece": "rowley_wing", "at": [-40.46, 41.28], "turn": 167.0, "length": 42.0, "depth": 38.0,
+     "note": "the pavilion stand's first wing, in line with the Millennium, its terrace running on from the Millennium's"},
+    {"name": "Rowley end stand", "piece": "rowley_end", "at": [-42.92, 55.28], "turn": 90.0, "length": 82.6, "depth": 38.0,
      "note": "cranked round by the winning line: at right angles to the track, past the post, looking back up the course; the clock cupola, a brick end"},
-    {"name": "Old stand", "piece": "victorian_stand", "x": [115.0, 211.0], "front": 82.0, "note": "his point 3: the older, longer stand up the course from the Millennium; its low wing up the course"},
-    {"name": "Judge's kiosk", "piece": "judges_kiosk", "x": [160.0, 163.4], "front": 7.0},
-    {"name": "Small pavilion", "piece": "victorian_pavilion", "x": [232.0, 243.0], "front": 80.0},
+    {"name": "Old stand", "piece": "victorian_stand", "x": [125.0, 253.0], "front": 72.0, "note": "his point 3: the older, longer stand up the course from the Millennium; its end pavilion with the clock turret at the Millennium end"},
+    {"name": "Judge's kiosk", "piece": "judges_kiosk", "x": [190.0, 193.4], "front": 7.0},
+    {"name": "Small pavilion", "piece": "victorian_pavilion", "x": [262.0, 273.0], "front": 84.0},
 ]
 STANDS = {"front": TRACK_W + 14.0, "x": [-170.0, 330.0], "height": 26.0,
           "note": "Interpretive and bigger than life (owner): the Millennium Grandstand's row of wave-shaped canopies, "
@@ -77,7 +78,7 @@ STANDS = {"front": TRACK_W + 14.0, "x": [-170.0, 330.0], "height": 26.0,
 # The festival area (owner's sketch of both courses, 8 Nov: yellow beside the stands, up the course from them): stalls,
 # bars, umbrellas and picnic lawns from the end of the stands to about 3.5f out, set 10 m back from the near rail to
 # leave a lane for the tracking car.
-FESTIVAL = {"x": [470.0, 3.5 * F], "z": [TRACK_W + 10, TRACK_W + 60],
+FESTIVAL = {"x": [290.0, 3.5 * F], "z": [TRACK_W + 10, TRACK_W + 60],
             "note": "festival pieces from the end of the stands to 3.5f out (owner's sketch, 8 Nov), 10 m back from the near rail"}
 # The compass (owner's sketch, 8 Nov): north is at the BOTTOM of these plans, so +z points north and +x west. (The axes'
 # names below are Ascot's; the real compass matters only for the sun.)
