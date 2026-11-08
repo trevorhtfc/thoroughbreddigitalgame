@@ -29,6 +29,8 @@ const { timeline, result } = runRace(
 );
 ```
 
+**Newmarket** (8 Nov 2026, draft): hand over `courses/newmarket-draft.json`, `newmarket-stalls.json` and `newmarket-standards.json` instead; the races are `straight` (up to 1m2f) or `round` (1m4f and up, with the one bend), the starts are named by trip (`"5f"` … `"2m4f"`), and fields go up to 30. In the checks: `COURSE=newmarket node check/test.mjs` (and the same for `compare.mjs`, with `OUT=engine-newmarket`).
+
 **The race**: `course` (`straight`, `roundMile` or `round`), `distance` in metres, `start` (a start in `courses/ascot-stalls.json`), `going` (Heavy, Softer, Good, Quicker, Quick), `seed`, and for handicaps `handicap: true`.
 
 **Each runner** (the racecard fields agreed on 4 Nov):
@@ -98,3 +100,23 @@ usual point, a bigger burst): they doubled the effect (straight mile 24% from th
 down at the 2f pole) but front-runners then won only 0.64–0.88 of their share on the bench (they had been about 1).
 This balanced version keeps front-runners at about 0.82–0.99 and lifts midfield horses on the round course (0.5–0.85
 before, now about 0.77–1.03). The engine and the bench were compared again afterwards: `check/results/compare.md`.
+
+## 8 Nov 2026: hills (Newmarket's Dip counts)
+
+The owner: "the Dip should count, yes: you need more energy to go up than on the flat, so it uses a little more.
+Downhill is not a free pass either, as it needs balance." A course can now carry the height of its ground
+(`heights` in the course file: every 5 m along the inside rail, by metres to go). Ascot has none, so its races are
+exactly as before. Newmarket's is the draft profile: gentle ridges down the straight, then down into the Dip from the
+Bushes (2f out), the bottom at the 1f pole, and a 3.6 m climb to the post.
+
+| Setting | Value | What it does |
+|---|---|---|
+| `HILL_UP` | 0.5 | Energy for every metre climbed (the tank is about 94 for a mile): the last furlong's climb costs about 2% of it. |
+| `HILL_DOWN` | 0.15 | Energy for every metre run downhill (balance): about a third of the climb's. No extra speed downhill. |
+| `HILL_SLOW` | 0 | Tried and set to 0: slowing every horse uphill *helped* front-runners (slower speeds cost less energy, and the closers' final sprint was cut back too). |
+
+It is a small cost, but it comes at the worst moment for a horse that has already emptied the tank: a front-runner
+that went for home early has nothing left for the climb and comes back to the closers. Measured on the bench
+(`tools/race-bench/nmdip.py`, a flat Newmarket against the same races with the Dip): see the table in
+`tools/race-bench/README.md`. The par times at Newmarket (`courses/newmarket-standards.json`) are set so that the
+winning times, Dip included, come out at rough real Rowley Mile times (`tools/race-bench/nmcalibrate.py`).

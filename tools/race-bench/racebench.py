@@ -10,8 +10,31 @@ FUR=201.168
 PAR_TIME={'s5f':60.0,'s6f':73.0,'s7f':86.5,'s1m':99.5,'r1m':100.5,'r1m2f':126.0,'r1m4f':150.5,'r1m6f':178.0,'r2m':207.0,'r2m4f':266.0,'r2m6f':297.0}
 DIST={'s5f':5*FUR,'s6f':6*FUR,'s7f':7*FUR,'s1m':8*FUR,'r1m':1649.4,'r1m2f':10*FUR,'r1m4f':12*FUR,'r1m6f':14*FUR,'r2m':16*FUR,'r2m4f':20*FUR,'r2m6f':22*FUR}
 PPL={'s5f':3.0,'s6f':2.6,'s7f':2.3,'s1m':2.0,'r1m':2.0,'r1m2f':1.75,'r1m4f':1.5,'r1m6f':1.35,'r2m':1.2,'r2m4f':1.0,'r2m6f':0.9}   # rating points per length
+# Newmarket (Rowley Mile), DRAFT (owner, 8 Nov): one path, not a loop; a 36 m track; the straight 1m2f with the Dip
+# in it, and the ground's height every 5 m (courses/newmarket-draft.json, built by tools/course/newmarket/draft_layout.py)
+import os
+_REPO=os.path.join(os.path.dirname(os.path.abspath(__file__)),'..','..')
+def _load(p):
+    with open(os.path.join(_REPO,p)) as f: return json.load(f)
+NM=_load('courses/newmarket-draft.json'); NM_STD=_load('courses/newmarket-standards.json')
+REAL_TIME=dict(PAR_TIME)
+for _p in NM_STD['parTimes']:
+    PAR_TIME[_p['key']]=_p['seconds']; REAL_TIME[_p['key']]=_p['winningTime']; DIST[_p['key']]=_p['distance']
+PPL.update({'nm5f':3.0,'nm6f':2.6,'nm7f':2.3,'nm1m':2.0,'nm1m1f':1.85,'nm1m2f':1.75,'nm1m4f':1.5,'nm1m6f':1.35,'nm2m':1.2,'nm2m2f':1.1,'nm2m4f':1.0})
+def kind_of(key):
+    if key.startswith('nm'): return 'straight' if DIST[key]<=NM['straight']['length']+1e-6 else 'round'
+    return 'straight' if key[0]=='s' else 'round'
 def make_course(key):
     D=DIST[key]
+    if key.startswith('nm'):
+        H=NM['heights']; bends=[]
+        for (a,b,deg) in NM['path']['bends']:
+            if b>=D: continue
+            A,ang=a,math.radians(deg)
+            if A>D: ang*=(D-b)/(A-b); A=D
+            bends.append((A,b,ang))
+        bends.sort(key=lambda t:-t[0])
+        return dict(D=D,bends=bends,stall1=1.625,kind=kind_of(key),W=NM['trackWidth'],home=NM['path']['home'],hts=(H['from'],H['spacing'],np.array(H['h'],float)))
     if key[0]=='s': return dict(D=D,bends=[],stall1=1.625,kind='straight')
     if key=='r1m': return dict(D=D,bends=[(1311.8,1276.0,math.radians(18)),(840.0,605.0,math.radians(94))],stall1=1.625,kind='round')
     bends=[]
@@ -37,7 +60,7 @@ def split_groups(g,n):
     return 3 if r<0.35 else (2 if r<0.95 else 1)
 def pace_level(fs,fps): return np.where(fs<=0.15,0,np.where((fs>=0.40)|(fps>=0.75),3,np.where(fs>0.30,2,1)))
 def run(P,course='straight',N=1500,n=10,seed=7,trace=None):
-    C=make_course(course) if course in DIST else COURSES_OLD[course]; D=C['D']; kind=C.get('kind','straight' if course=='straight' else 'round'); S=LEN/(2.0*1609.3)*1609.3/D*1.0
+    C=make_course(course) if course in DIST else COURSES_OLD[course]; D=C['D']; W_T=C.get('W',30.0); HOME=C.get('home',605.0); kind=C.get('kind','straight' if course=='straight' else 'round'); S=LEN/(2.0*1609.3)*1609.3/D*1.0
     S=LEN/(PPL.get(course,2.0)*D)
     GOING=P.get('GOING','Good'); gs={'Heavy':0.95,'Softer':0.975,'Good':1.0,'Quicker':1.006,'Quick':1.012}[GOING]; gcost={'Heavy':1.25,'Softer':1.1,'Good':1.0,'Quicker':0.97,'Quick':0.95}[GOING]
     PAR=(D/PAR_TIME[course]*P.get('PAR_FUDGE',1.013) if course in PAR_TIME else 16.25)*gs
@@ -83,8 +106,8 @@ def run(P,course='straight',N=1500,n=10,seed=7,trace=None):
     gc=np.zeros((N,3)); pace=np.zeros((N,3),int)
     for gi in range(3):
         m=grp==gi; cnt=m.sum(1)
-        mz=np.where(cnt>0,(stallz[None,:]*m).sum(1)/np.maximum(cnt,1),15)
-        gc[:,gi]=mz+(15-mz)*0.25
+        mz=np.where(cnt>0,(stallz[None,:]*m).sum(1)/np.maximum(cnt,1),W_T/2)
+        gc[:,gi]=mz+(W_T/2-mz)*0.25
         fs=((sty==0)&m).sum(1)/np.maximum(cnt,1); fps=((sty<=1)&m).sum(1)/np.maximum(cnt,1)
         pace[:,gi]=pace_level(fs,fps)
     hp=np.take_along_axis(pace,grp,1)            # each horse's group pace level
@@ -104,9 +127,17 @@ def run(P,course='straight',N=1500,n=10,seed=7,trace=None):
     miss=g.random((N,n))<np.where(keen,P['MISS_P_KEEN'],P['MISS_P_CALM'])
     react=react+np.where(miss,g.uniform(P['MISS_MIN'],P['MISS_MAX'],(N,n)),0)+np.where(sty==3,P['HOLDUP_SLOW'],0)
     x=np.full((N,n),-1.55); v=np.zeros((N,n)); vz=np.zeros((N,n)); fin=np.full((N,n),np.nan)
-    extra=np.zeros((N,n)); rank700=np.full((N,n),np.nan); E700=np.full((N,n),np.nan); z700=np.full((N,n),np.nan); ovl=0.0; ovn=0
+    extra=np.zeros((N,n)); rank700=np.full((N,n),np.nan); rank2f=np.full((N,n),np.nan); t2f=np.full(N,np.nan); E700=np.full((N,n),np.nan); z700=np.full((N,n),np.nan); ovl=0.0; ovn=0
     lost=np.zeros((N,n)); since=np.full((N,n),9.0); blockedT=np.zeros((N,n)); switchT=np.zeros((N,n)); switchDir=np.zeros((N,n)); inB=np.zeros((N,n),bool)
     dt=0.1; t=0.0; frames=[]
+    # Hills (owner, 8 Nov, Newmarket's Dip): the ground's rise per metre ahead at each horse, from the course's heights
+    # (none at Ascot). Uphill costs energy and a little speed; downhill is no free pass (balance): a smaller cost, no
+    # extra speed. See race-engine/README.md, 'Hills'.
+    if 'hts' in C:
+        h0,hs,hh=C['hts']; hx=h0+hs*np.arange(len(hh))
+        def grade(tg): return (np.interp(tg-1.0,hx,hh)-np.interp(tg+1.0,hx,hh))/2.0
+    else:
+        grade=None
     W=P.get('BODY_W',0.95); AHEAD=P.get('BODY_L',2.9)
     while np.isnan(fin).any() and t<D/11+40:
         toGo=D-x; live=np.isnan(fin)
@@ -118,6 +149,8 @@ def run(P,course='straight',N=1500,n=10,seed=7,trace=None):
         kick=toGo<=kickAt
         inB=kick&(toGo<=P['BURST_DIST'])&(E>P.get('BURST_NEEDS',3))
         want=np.where(kick,np.minimum(vK0,hold)+np.where(inB,burst,0),want)
+        gr=grade(toGo) if grade is not None else np.zeros((N,n))
+        want=want*(1-P.get('HILL_SLOW',0.0)*np.maximum(gr,0))
         want=np.where(t<react,0,want)
         # ---- who is around whom: dx[b,i,j] = x_j - x_i
         dx=x[:,None,:]-x[:,:,None]; dz=z[:,None,:]-z[:,:,None]
@@ -133,7 +166,7 @@ def run(P,course='straight',N=1500,n=10,seed=7,trace=None):
         def clear(side):
             tz=z+side*1.15
             occ=((dx>-P.get('GAP_BEHIND',1.8))&(dx<P.get('GAP_AHEAD',3.0))&(np.abs(z[:,None,:]-tz[:,:,None])<W)&other).any(2)
-            return ~occ&(tz>0.6)&(tz<29.4)
+            return ~occ&(tz>0.6)&(tz<W_T-0.6)
         cOut,cIn=clear(1.0),clear(-1.0)
         aheadK=P.get('SEE_AHEAD',7.0)
         trouble=((dx>0)&(dx<aheadK)&(np.abs(dz)<W)&other).any(2)&kick
@@ -154,7 +187,7 @@ def run(P,course='straight',N=1500,n=10,seed=7,trace=None):
             # in the home straight only the leaders keep the rail, the rest hold their line and angle out for room
             join=C['bends'][0][0] if C['bends'] else D
             tz=np.where(toGo>join, 0.6+(z-0.6)*P.get('CHUTE_AIM',0.6), 0.6)
-            tz=np.where((toGo<605)&(rank>=2), z, tz)
+            tz=np.where((toGo<HOME)&(rank>=2), z, tz)
         az=np.clip((tz-z)*0.25,-0.6,0.6)
         near=(np.abs(dx)<AHEAD)&(np.abs(dz)<1.15)&other
         rep=np.where(near,-np.sign(dz+1e-6)*(1.15-np.abs(dz))*2.2,0).sum(2)
@@ -172,7 +205,7 @@ def run(P,course='straight',N=1500,n=10,seed=7,trace=None):
         if kind!='straight':
             join=C['bends'][0][0] if C['bends'] else D
             alongside=((np.abs(dx)<P.get('BODY_L',2.9))&(dz<0)&(dz>-1.6)&other).any(2)
-            settling=(z>1.6)&alongside&(toGo<=join+P.get('SETTLE_FROM',150))&(toGo>605)&~kick&(x>40)
+            settling=(z>1.6)&alongside&(toGo<=join+P.get('SETTLE_FROM',150))&(toGo>HOME)&~kick&(x>40)
             fac=np.where(sty>=2,1-P.get('EASE',0.02),1+P.get('PUSH',0.008))
             want=np.where(settling,want*fac,want)
             want=np.where(blocked,np.minimum(want,vfront),want)
@@ -183,10 +216,11 @@ def run(P,course='straight',N=1500,n=10,seed=7,trace=None):
         over=np.maximum(v-np.where(inB,burst,0)-vC,0)
         covered=((dx>0.5)&(dx<P.get('DRAFT_LEN',8.0))&(np.abs(dz)<1.2)&other).any(2)   # shelter: tucked in behind another horse
         E=E-ref*(over/ref)**2*dt*np.where(covered,1-P.get('DRAFT',0.0),1.0)-np.where(keen&(vp<own)&~kick,P['KEEN_BURN'],0)*dt
+        E=E-(P.get('HILL_UP',0.0)*np.maximum(gr,0)+P.get('HILL_DOWN',0.0)*np.maximum(-gr,0))*v*dt
         kap=np.zeros((N,n))
         for (a,b,ang) in C['bends']:
             kap=np.where((toGo<=a)&(toGo>b),ang/(a-b),kap)
-        z=np.clip(z+vz*dt,0.6,29.4)
+        z=np.clip(z+vz*dt,0.6,W_T-0.6)
         for _ in range(3):
             ddx=x[:,None,:]-x[:,:,None]; ddz=z[:,None,:]-z[:,:,None]
             hit=(ddx>=0)&(ddx<BL)&(np.abs(ddz)<W)&other&live[:,:,None]&(np.arange(n)[None,None,:]!=np.arange(n)[None,:,None])
@@ -201,6 +235,7 @@ def run(P,course='straight',N=1500,n=10,seed=7,trace=None):
         lead=x.max(1,keepdims=True); at=np.isnan(rank700)&(D-lead<=700)
         rk=np.argsort(np.argsort(-x,1),1)
         rank700=np.where(at,rk,rank700); E700=np.where(at,E,E700); z700=np.where(at,z,z700)
+        at2=np.isnan(rank2f)&(D-lead<=402.3); rank2f=np.where(at2,rk,rank2f); t2f=np.where(at2[:,0],t,t2f)   # the running order 2f out (when the leader passes the 2f pole)
         ddx=x[:,None,:]-x[:,:,None]; ddz=z[:,None,:]-z[:,:,None]
         ovl+=((np.abs(ddx)<2.6)&(np.abs(ddz)<0.85)&other&live[:,:,None]).sum()/2; ovn+=N      # running wide on a bend: more ground for the same progress along the rail
         t+=dt
@@ -222,7 +257,7 @@ def run(P,course='straight',N=1500,n=10,seed=7,trace=None):
     lvl=pace_level((sty==0).mean(1),(sty<=1).mean(1))
     res['style_by_pace']={nm:{s_:round(float((sty[lvl==k][np.arange((lvl==k).sum()),w[lvl==k]]==j).mean()/max((sty[lvl==k]==j).mean(),1e-9)),2) for j,s_ in enumerate('FPMH')} for k,nm in enumerate(['slow','even','strong','fast']) if (lvl==k).sum()>20}
     pos=np.argsort(o,1)+1
-    res['raw']=dict(Rday=Rday,R0=R0,sty=sty,lvl=lvl,lost=L,pos=pos,shade=shade,keen=keen,form=R-R0)
+    res['raw']=dict(Rday=Rday,R0=R0,sty=sty,lvl=lvl,lost=L,pos=pos,shade=shade,keen=keen,form=R-R0,rank2f=rank2f,t2f=t2f,fin=fin)
     res['style_win']={s:round(float((sty[ix,w]==k).mean()/(sty==k).mean()),2) for k,s in enumerate('FPMH')}
     res['groups']=dict(share_split=round(float((grp.max(1)>0).mean()),2))
     marg=(fin[ix,o[:,1]]-fin[ix,w])*PAR/LEN

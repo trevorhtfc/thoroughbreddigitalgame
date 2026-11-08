@@ -4,10 +4,15 @@ import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 export const REPO = join(dirname(fileURLToPath(import.meta.url)), "..", "..");
 const read = (p) => JSON.parse(readFileSync(join(REPO, p), "utf8"));
+// COURSE=newmarket (8 Nov, draft): the Rowley Mile instead, with its own races (by its standards keys, nm5f ... nm2m4f)
+export const COURSE = process.env.COURSE || "ascot";
+const FILES = COURSE === "newmarket"
+  ? ["courses/newmarket-draft.json", "courses/newmarket-stalls.json", "courses/newmarket-standards.json"]
+  : ["courses/ascot.json", "courses/ascot-stalls.json", "courses/ascot-standards.json"];
 export const data = {
-  course: read("courses/ascot.json"),
-  stalls: read("courses/ascot-stalls.json"),
-  standards: read("courses/ascot-standards.json"),
+  course: read(FILES[0]),
+  stalls: read(FILES[1]),
+  standards: read(FILES[2]),
   settings: read("race-engine/settings.json"),
 };
 // The races by the standards file's keys, with the start each uses (courses/ascot-stalls.json).
@@ -19,4 +24,8 @@ export const RACES = {
   r2m: { course: "round", start: "twoMiles" }, r2m4f: { course: "round", start: "twoMilesFour" },
   r2m6f: { course: "round", start: "twoMilesSix" },
 };
+if (COURSE === "newmarket") {
+  for (const k of Object.keys(RACES)) delete RACES[k];
+  for (const [name, st] of Object.entries(data.stalls.starts)) RACES[st.key] = { course: st.course, start: name };
+}
 for (const [k, r] of Object.entries(RACES)) r.distance = data.stalls.starts[r.start].distance;

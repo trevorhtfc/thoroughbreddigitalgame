@@ -11,3 +11,8 @@ For building Newmarket as the game's second course. Private reference only (TV f
   (Racing TV): open heath, low hedges and tree lines on the horizon, white plastic rails, side-on tracking car,
   head-on long lens down the straight, the ground falling away into the Dip and rising to the line.
 - Owner: model the mound / dyke (the Devil's Dyke) on the far side of the track from the camera, as a visual screen.
+- Owner, 8 Nov (second look at the draft): instead of a tall dyke far back, a **gentle bank behind the far rail the
+  whole way round**, closer to the track than real life; **tree tops** showing beyond it; **advertising boards**
+  dotted along the course (far side only). `plan-draft.png` is now the second version, with a cross-section showing
+  what each camera sees over the bank.
+
