@@ -55,8 +55,8 @@ TREES = {"from": 62.0, "to": 150.0, "start": -320.0, "end": 20 * F + 220.0, "spa
 # assets/models/architecture/rowley_stands.glb (tools/blender/build_rowley_stands.py). Each: x from, x to (the main
 # block, metres along the straight), front = metres beyond the NEAR rail, the piece; all face the track.
 STAND_PIECES = [
-    {"name": "Millennium Grandstand", "piece": "millennium_stand", "x": [-8.0, 160.0], "front": 14.0, "note": "five wave canopies; its stair tower at the up-course end"},
-    {"name": "Rowley stand", "piece": "rowley_stand", "x": [172.0, 282.0], "front": 16.0, "note": "the clock cupola; a brick end up the course"},
+    {"name": "Millennium Grandstand", "piece": "millennium_stand", "x": [-4.0, 108.0], "front": 42.0, "note": "four wave canopies on a white frame; its stair tower at the up-course end; set back behind a lawn (owner: too close to the track)"},
+    {"name": "Rowley stand", "piece": "rowley_stand", "x": [124.0, 234.0], "front": 38.0, "note": "the clock cupola; a brick end up the course"},
     {"name": "Small pavilion", "piece": "victorian_pavilion", "x": [329.0, 340.0], "front": 34.0},
     {"name": "Judge's kiosk", "piece": "judges_kiosk", "x": [350.0, 353.4], "front": 7.0},
     {"name": "Old stand", "piece": "victorian_stand", "x": [350.0, 446.0], "front": 34.0, "note": "his point 3: two tiers under a hipped slate roof; its low wing up the course"},

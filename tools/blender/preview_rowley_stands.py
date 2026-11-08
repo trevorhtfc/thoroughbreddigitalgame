@@ -190,9 +190,9 @@ for st in R.STAND_PIECES:
             u, v = rnd.uniform(x0, x1), rnd.uniform(y0, y1)
             people.append((cx - u, zf + v, fz, 180.0))           # turned 180: local x -> -course x, local y -> +course z
 # the lawn between the stands and the rail
-for _ in range(int(560 * 11 * 0.4)):
-    x, z = rnd.uniform(-60, 500), rnd.uniform(W + 2, W + 13)
-    if not any(a <= x <= b and c <= z <= d for a, b, c, d in nogo if c < W + 13 and d > W + 13 and False):
+for _ in range(int(560 * 34 * 0.3)):                                  # the lawns in front of the stands, down to the rail
+    x, z = rnd.uniform(-60, 500), rnd.uniform(W + 2, W + 36)
+    if not any(a <= x <= b and c <= z <= d for a, b, c, d in nogo):
         people.append((x, z, 0.0, 180.0))
 cr = load("assets/models/architecture/crowd_set_8.glb")
 SKC = {"clothes": ["#2c3140", "#3a3d44", "#4b4d52", "#2f3a33", "#59544c", "#c9a0a8", "#9fb6c8", "#ddd2b8", "#a8706a", "#88a383", "#d2b874", "#e8e2d6", "#9a88b4", "#cf9476"],
@@ -244,9 +244,9 @@ to_sun = Vector((0.55, -0.8, 0.0)).normalized() * math.cos(math.radians(32)) + V
 sun.rotation_euler = (-to_sun).to_track_quat("-Z", "Y").to_euler()
 
 CAMS = {   # course (x, z, height) from and to, lens
-    "across": ((40.0, -3.0, 6.0), (60.0, 70.0, 14.0), 22),            # from the far rail at the post, at the Millennium
+    "across": ((40.0, -3.0, 6.0), (50.0, 90.0, 20.0), 20),            # from the far rail at the post, at the Millennium
     "across_up": ((300.0, -3.0, 6.0), (330.0, 70.0, 12.0), 22),      # at the Rowley stand and the old stand
-    "track": ((-70.0, 16.0, 9.0), (150.0, 60.0, 14.0), 30),          # down the straight from beyond the post
+    "track": ((-90.0, 16.0, 9.0), (150.0, 70.0, 16.0), 28),          # down the straight from beyond the post
     "aerial": ((210.0, -170.0, 150.0), (210.0, 60.0, 0.0), 26),      # high over the far side
 }
 scene.render.engine = "CYCLES"; scene.cycles.device = "CPU"; scene.cycles.samples = SAMPLES; scene.cycles.use_denoising = True

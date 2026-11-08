@@ -19,7 +19,7 @@ Building coordinates (Blender), as the other kits: x along the front, left to ri
 building (the front faces -y); z up; origin the middle of the front, on the ground; walls run 1 m below the ground.
 
 Pieces
-  millennium_stand   five wave canopies on masts over three glazed floors and an open terrace; stair tower   168 x 26 m, 30 m
+  millennium_stand   four wave canopies on a white frame (ribs, ring beam, masts and stays) over three glazed floors and an open terrace; stair tower   112 x 30 m, 45 m
   rowley_stand       glazed base, an open seating terrace under a flat canopy, an upper floor, the clock cupola, a brick end   110 x 18 m, 24 m
   victorian_stand    two tiers under a hipped slate roof with dormers, lantern and chimneys; standing terrace in front; low wing   112 x 22 m, 19 m
   judges_kiosk       the white judge's kiosk with a pyramid cap                                              3 x 3 m, 6 m
@@ -115,64 +115,79 @@ def sheet_solid(mat, fz, x0, x1, y0, y1, nx, ny, t):
 
 
 # ------------------------------------------------------------------------------------------ 1: the Millennium Grandstand
-def millennium_stand(n=5, bay=32.0, D=26.0):
-    """Interpretive and bigger than life: five wave canopies (the real stand has four)."""
+def millennium_stand(n=4, bay=28.0, D=30.0):
+    """Owner (8 Nov, on the first look): "not the right proportion... make it a bit squarer, and incorporate the roof
+    structure": four canopies as the real stand, a floor more, deeper, and the canopies carried on a white frame of
+    trough ribs, a front ring beam and tall masts with fans of stays, sitting on the top floor rather than over it."""
     L = n * bay; h = L / 2
     # ground floor: dark glazing between cream piers, a cream band over it
-    K.box("glass", -h, h, 0.6, D, -1.0, 4.4)
-    for k in range(int(L // 8) + 1):
-        x = -h + k * L / int(L // 8)
-        K.box("cream", x - 0.45, x + 0.45, 0.2, 0.8, -1.0, 4.4)
-    K.box("cream", -h - 0.2, h + 0.2, -0.4, D, 4.4, 5.0)
+    K.box("glass", -h, h, 0.6, D, -1.0, 4.6)
+    for k in range(int(L // 7) + 1):
+        x = -h + k * L / int(L // 7)
+        K.box("cream", x - 0.45, x + 0.45, 0.2, 0.8, -1.0, 4.6)
+    K.box("cream", -h - 0.2, h + 0.2, -0.4, D, 4.6, 5.2)
     # the open terrace: green seats stepping up, a white balustrade along its front
-    yb, zt = steps("concrete", -h, h, 0.0, 5.3, 8, 1.05, 0.38, seat="seat")
-    K.box("white", -h, h, -0.12, 0.05, 5.0, 6.2)
-    K.box("glass", -h + 0.5, h - 0.5, yb - 0.05, yb + 0.05, zt + 0.4, 11.0)                 # the bars behind it
-    # the boxes: a white slab over the terrace with the pink sponsor fascia, glazed floors with balconies above
-    K.box("white", -h, h, 1.6, D, 11.0, 11.7)
+    yb, zt = steps("concrete", -h, h, 0.0, 5.5, 9, 1.05, 0.4, seat="seat")
+    K.box("white", -h, h, -0.12, 0.05, 5.2, 6.4)
+    K.box("glass", -h + 0.5, h - 0.5, yb - 0.05, yb + 0.05, zt + 0.4, 12.0)                 # the bars behind it
+    # the boxes: a white slab over the terrace with the pink sponsor fascia, three glazed floors with balconies above
+    K.box("white", -h, h, 1.6, D, 12.0, 12.7)
     for k in range(n):
         x = -h + bay * (k + 0.5)
-        K.box("fascia", x - bay * 0.38, x + bay * 0.38, 1.45, 1.6, 11.0, 12.6)
-    K.box("white", -h, h, 1.55, 1.75, 12.6, 12.85)
-    K.box("glass", -h, h, 3.4, D, 11.7, 15.6)
-    K.box("white", -h, h, 1.6, 3.4, 11.7, 11.95)
-    K.balustrade(-h, h, 1.75, 11.95, h=1.0, mat="white", spacing=0.6, piers=False)
-    K.box("white", -h, h, 1.6, D, 15.6, 16.3)
-    K.box("glass", -h, h, 5.0, D, 16.3, 19.8)
-    K.balustrade(-h, h, 1.8, 16.3, h=1.0, mat="white", spacing=0.6, piers=False)
-    K.box("white", -h, h, 1.6, D + 0.5, 19.8, 20.5)
+        K.box("fascia", x - bay * 0.38, x + bay * 0.38, 1.45, 1.6, 12.0, 13.8)
+    K.box("white", -h, h, 1.55, 1.75, 13.8, 14.05)
+    z = 12.7
+    for k, (inset, height) in enumerate(((3.4, 4.0), (4.6, 4.0), (6.0, 3.8))):
+        K.box("glass", -h, h, inset, D, z, z + height)
+        K.box("white", -h, h, 1.6, inset, z, z + 0.25)
+        K.balustrade(-h, h, 1.75, z + 0.25, h=1.0, mat="white", spacing=0.6, piers=False)
+        for j in range(n + 1):                                            # white mullion frames at the bay lines
+            x = -h + bay * j
+            K.box("white", x - 0.35, x + 0.35, inset - 0.15, inset + 0.3, z, z + height)
+        z += height
+        K.box("white", -h, h, 1.6, D, z, z + 0.7)
+        z += 0.7
+    deck = z                                                              # about 26.5 m
     for x in (-h, h):                                                     # cream end walls
-        K.box("cream", x - 0.4, x + 0.4, 0.0, D + 0.5, -1.0, 20.5)
-    # the wave canopies: each a vault across its bay, rising towards the front and cantilevered over the balconies
+        K.box("cream", x - 0.5, x + 0.5, 0.0, D + 0.5, -1.0, deck)
+    # the wave canopies: each a vault across its bay springing from the deck, rising towards the front and cantilevered
+    # out over the balconies
     def fz(x, y, xc):
-        t = (x - (xc - bay / 2)) / bay
-        rise = 2.6 * (D + 3 - y) / (D + 9)
-        return 21.2 + rise + 5.0 * math.sin(math.pi * t) ** 0.8
+        t = min(max((x - (xc - bay / 2)) / bay, 0.0), 1.0)
+        rise = 3.0 * (D + 2 - y) / (D + 9)
+        return deck + 0.3 + rise + 6.5 * math.sin(math.pi * t) ** 0.75
     for k in range(n):
         xc = -h + bay * (k + 0.5)
-        sheet_solid("canvas", lambda x, y, xc=xc: fz(x, y, xc), xc - bay / 2 + 0.3, xc + bay / 2 - 0.3, -6.0, D + 3.0, 16, 8, 0.22)
-    # masts between the canopies with stays out to the canopies' front edges
-    for k in range(n + 1):
-        x = -h + bay * k
-        K.cyl("mast", x, D * 0.45, 20.5, 31.5, 0.32, 0.22, segs=10)
-        K.sphere("mast", x, D * 0.45, 31.6, 0.35, sub=1)
-        for s_ in (-1, 1):
-            xe = x + s_ * bay * 0.32
-            if -h < xe < h:
-                v = Vector((xe - x, -6.0 - D * 0.45, fz(xe, -6.0, x + s_ * bay / 2) - 31.0)); m = v.length
-                rot = Vector((0, 0, 1)).rotation_difference(v.normalized()).to_matrix().to_4x4()
-                K.push(Matrix.Translation((x, D * 0.45, 31.0)) @ rot)
-                K.cyl("mast", 0, 0, 0, m, 0.05, segs=4, smooth=False)
-                K.pop()
+        sheet_solid("canvas", lambda x, y, xc=xc: fz(x, y, xc), xc - bay / 2 + 0.35, xc + bay / 2 - 0.35, -7.0, D + 2.0, 18, 10, 0.25)
+    # the frame: a white rib along every trough, a ring beam along the front edge, masts with fans of stays
+    for j in range(n + 1):
+        x = -h + bay * j
+        prof = [(y, deck + 0.3 + 3.0 * (D + 2 - y) / (D + 9)) for y in (-7.0, D + 2.0)]
+        K.prism_x("white", x - 0.45, x + 0.45, [(prof[0][0], prof[0][1] - 0.9), (prof[1][0], prof[1][1] - 0.9),
+                                                 (prof[1][0], prof[1][1] + 0.35), (prof[0][0], prof[0][1] + 0.35)])
+        mz, my = deck + 18.0, D * 0.42
+        K.cyl("mast", x, my, deck - 2.0, mz, 0.45, 0.3, segs=10)
+        K.sphere("mast", x, my, mz + 0.15, 0.42, sub=1)
+        ends = [(x + s_ * bay * f, ye) for s_ in (-1, 1) for f in (0.22, 0.42) for ye in (-7.0, D + 2.0)]
+        for xe, ye in ends:
+            if not (-h <= xe <= h):
+                continue
+            xc = -h + bay * (math.floor((xe + h) / bay) + 0.5)
+            v = Vector((xe - x, ye - my, fz(xe, ye, xc) + 0.2 - mz)); m = v.length
+            rot = Vector((0, 0, 1)).rotation_difference(v.normalized()).to_matrix().to_4x4()
+            K.push(Matrix.Translation((x, my, mz)) @ rot)
+            K.cyl("mast", 0, 0, 0, m, 0.06, segs=4, smooth=False)
+            K.pop()
+    K.prism_x("white", -h, h, [(-7.0, deck + 0.3 + 3.0 * (D + 9) / (D + 9) - 0.5), (-6.4, deck + 2.8), (-6.4, deck + 3.7), (-7.0, deck + 3.7)])
     # the glazed stair tower at the right-hand end, with pale green bands
-    tx0, tx1 = h + 0.4, h + 9.0
-    K.box("glass", tx0, tx1, 2.0, D - 2.0, -1.0, 24.0)
-    for z in range(2, 24, 3):
-        K.box("green", tx0 - 0.08, tx1 + 0.08, 1.92, D - 1.92, z, z + 0.45)
+    tx0, tx1 = h + 0.5, h + 10.0
+    K.box("glass", tx0, tx1, 2.0, D - 2.0, -1.0, deck + 4.0)
+    for zz in range(2, int(deck + 4), 3):
+        K.box("green", tx0 - 0.08, tx1 + 0.08, 1.92, D - 1.92, zz, zz + 0.45)
     for xx in (tx0, tx1):
-        K.box("white", xx - 0.3, xx + 0.3, 1.7, D - 1.7, -1.0, 24.6)
-    K.box("white", tx0 - 0.3, tx1 + 0.3, 1.7, D - 1.7, 24.0, 24.7)
-    return {"width": L + 18.8, "depth": D + 3.0, "height": 31.9, "offset": (tx1 + 0.3 - h) / 2}
+        K.box("white", xx - 0.3, xx + 0.3, 1.7, D - 1.7, -1.0, deck + 4.6)
+    K.box("white", tx0 - 0.3, tx1 + 0.3, 1.7, D - 1.7, deck + 4.0, deck + 4.7)
+    return {"width": L + 10.3, "depth": D + 2.0, "height": deck + 18.6, "offset": (tx1 + 0.3 - h) / 2}
 
 
 # ------------------------------------------------------------------------------------------ 1b: the Rowley stand
