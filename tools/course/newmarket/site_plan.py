@@ -207,7 +207,7 @@ def draw(rc, jc, site):
     ax.text(sum(R.FESTIVAL["x"]) / 2, R.FESTIVAL["z"][1] + 45, "Rowley festival", ha="center", **lab)
     jx, jz = j2s(140, -J.STAND_BACK - 75); ax.text(jx, jz, "July stands", ha="center", **lab)
     jx, jz = j2s(sum(J.FESTIVAL["x"]) / 2, -95); ax.text(jx, jz, "July festival", ha="center", **lab)
-    jx, jz = j2s(-130, J.TRACK_W + 50); ax.text(jx, jz, "July far-side\nfestival", ha="center", va="center", fontsize=8.5, color=INK, zorder=9)
+    jx, jz = j2s(280, J.TRACK_W + 140); ax.text(jx, jz, "July far-side festival", ha="center", va="center", fontsize=8.5, color=INK, zorder=9, rotation=-J.SPLAY)
     # the compass: north at the bottom, as the sketch
     cx_, cz_ = -500, -1500
     ax.add_patch(Circle((cx_, cz_), 110, fc="white", ec=INK, lw=1.2, zorder=9))

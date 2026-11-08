@@ -30,12 +30,12 @@ STRAIGHT = 8 * F        # the Bunbury Mile: everything up to a mile is run strai
 SPLAY = 25.0            # owner's sketch: the July straight runs off at about 25 degrees to the Rowley Mile's
 LEG_ANGLE = 62.0 + SPLAY   # so the turn off the Cesarewitch leg is the Rowley Mile's 62 degrees plus that: 87
 BEND_R = 180.0          # the bend's inside-rail radius
-RUN_ON = 120.0          # the straight carries on past the post
+RUN_ON = 300.0          # the run-out: the straight carries on past the post (owner, 8 Nov: extend it)
 TRIPS = {"5f": 5, "6f": 6, "7f": 7, "1m": 8, "1m2f": 10, "1m4f": 12, "1m5f": 13, "1m6f": 14, "2m": 16}
 # The ground (owner's notes): the first three-quarters of the straight mile roll; after the first two furlongs it runs
 # downhill for about a furlong (6f to 5f out); then a steep, sustained climb over the last two furlongs to the line.
 # Heights in metres against the post, by metres to go; smooth between. The leg rises towards the far starts.
-PROFILE = [(-RUN_ON, 0.4), (0, 0.0), (100, -1.3), (201, -2.4), (300, -3.1), (402, -3.4), (500, -3.0), (603, -2.4),
+PROFILE = [(-RUN_ON, 0.8), (-150, 0.5), (0, 0.0), (100, -1.3), (201, -2.4), (300, -3.1), (402, -3.4), (500, -3.0), (603, -2.4),
            (700, -2.7), (805, -2.0), (900, -2.3), (1006, -1.8), (1207, 0.6), (1300, 0.9), (1408, 0.5), (1500, 0.9),
            (STRAIGHT, 0.8), (1900, 1.6), (2400, 3.0), (3000, 4.5), (3600, 6.0)]
 COMPASS = "owner's sketch, 8 Nov: in courses/newmarket-site.json north is at the bottom of the plans (+z north, +x west)"
@@ -60,40 +60,56 @@ FESTIVAL = {"x": [345, 3.5 * F], "z": [-62.0, -10.0],
 PADDOCK = {"x": [-100, 330], "z": [-170.0, -60.0], "note": "behind the stands: the parade rings and buildings among trees (barely seen)"}
 # ---------------------------------------------------------------- the far side: beyond the outer rail (z > TRACK_W)
 # Owner: "a series of marquees etc nestled in the trees with crowd in front, and a tier structure behind the finish";
-# his sketch puts this festival area opposite the stands and on past the post, with the Dyke behind it. Distances on
-# this side are metres beyond the OUTER rail ('off'); x as above.
-FAR_FESTIVAL = {"x": [-360, 130], "off": [12.0, 92.0], "note": "marquees and pavilions among the trees, opposite the stands and past the post"}
-FAR_CROWD = {"x": [-350, 120], "off": [4.0, 12.0], "note": "the crowd in front of them, along the far rail"}
+# then (8 Nov, on the second draft) the far-side festival runs from about 3f out to the finish, opposite the stands, with
+# nice big trees, and the Dyke moved back to make room. Distances on this side are metres beyond the OUTER rail ('off').
+FAR_FESTIVAL = {"x": [-60, 610], "off": [12.0, 92.0], "note": "marquees and pavilions among big trees, from 3f out to just past the post"}
+FAR_CROWD = {"x": [-50, 600], "off": [4.0, 12.0], "note": "the crowd in front of them, along the far rail"}
 TIER = {"name": "Tiered stand", "x": [-25, 30], "off": [14.0, 32.0], "height": 9,
         "note": "behind the finish as the stand camera sees it: open tiers facing the track, opposite the line"}
 PAVILIONS = [
-    {"name": "Pavilion 1", "x": [-340, -296], "off": [16, 34], "height": 8, "kind": "long marquee"},
-    {"name": "Pavilion 2", "x": [-280, -244], "off": [16, 30], "height": 7, "kind": "white pitched-roof pavilion"},
-    {"name": "Pavilion 3", "x": [-226, -202], "off": [16, 30], "height": 7, "kind": "pagoda marquee"},
-    {"name": "Pavilion 4", "x": [-186, -132], "off": [17, 35], "height": 8, "kind": "three-peak marquee"},
-    {"name": "Pavilion 5", "x": [-116, -80], "off": [16, 30], "height": 7, "kind": "white pitched-roof pavilion"},
-    {"name": "Pavilion 6", "x": [-66, -38], "off": [16, 30], "height": 7, "kind": "pagoda marquee"},
-    {"name": "Pavilion 7", "x": [44, 96], "off": [16, 34], "height": 8, "kind": "long marquee"},
-    {"name": "Pavilion 8", "x": [70, 110], "off": [52, 70], "height": 7, "kind": "white pitched-roof pavilion"},
-    {"name": "Pavilion 9", "x": [-230, -170], "off": [54, 74], "height": 8, "kind": "long marquee"},
+    {"name": "Pavilion 1", "x": [42, 94], "off": [16, 34], "height": 8, "kind": "long marquee"},
+    {"name": "Pavilion 2", "x": [108, 132], "off": [16, 30], "height": 7, "kind": "pagoda marquee"},
+    {"name": "Pavilion 3", "x": [146, 200], "off": [17, 35], "height": 8, "kind": "three-peak marquee"},
+    {"name": "Pavilion 4", "x": [216, 252], "off": [16, 30], "height": 7, "kind": "white pitched-roof pavilion"},
+    {"name": "Pavilion 5", "x": [266, 290], "off": [16, 30], "height": 7, "kind": "pagoda marquee"},
+    {"name": "Pavilion 6", "x": [304, 360], "off": [16, 34], "height": 8, "kind": "long marquee"},
+    {"name": "Pavilion 7", "x": [376, 412], "off": [16, 30], "height": 7, "kind": "white pitched-roof pavilion"},
+    {"name": "Pavilion 8", "x": [428, 452], "off": [16, 30], "height": 7, "kind": "pagoda marquee"},
+    {"name": "Pavilion 9", "x": [468, 524], "off": [17, 35], "height": 8, "kind": "three-peak marquee"},
+    {"name": "Pavilion 10", "x": [540, 576], "off": [16, 30], "height": 7, "kind": "white pitched-roof pavilion"},
+    {"name": "Pavilion 11", "x": [70, 130], "off": [52, 72], "height": 8, "kind": "long marquee"},
+    {"name": "Pavilion 12", "x": [236, 296], "off": [52, 72], "height": 8, "kind": "long marquee"},
+    {"name": "Pavilion 13", "x": [404, 454], "off": [52, 70], "height": 7, "kind": "white pitched-roof pavilion"},
 ]
 # The Dyke's face behind the far side (owner: "the dyke should be on the far rail" opposite the grandstands; his sketch:
 # between the two courses, behind the far-side festival). Behind the festival it stands back; up the straight it comes in
 # to the Rowley Mile's distance. Metres beyond the outer rail: foot, crest, back; height. Between the two courses the
 # Dyke's top is drawn in courses/newmarket-site.json.
-BANK_NEAR = {"foot": 96.0, "crest": [108.0, 116.0], "back": 132.0, "height": 4.5, "upTo": 160.0}
-BANK_FAR = {"foot": 12.0, "crest": [28.0, 34.0], "back": 50.0, "height": 4.0, "from": 420.0}
+BANK_NEAR = {"foot": 96.0, "crest": [108.0, 116.0], "back": 132.0, "height": 4.5, "upTo": 640.0}
+BANK_FAR = {"foot": 12.0, "crest": [28.0, 34.0], "back": 50.0, "height": 4.0, "from": 860.0}
 BANK = {"from": -380.0, "to": 5.5 * F}       # his sketch: the Dyke runs from beyond the post to about 5f out
 BANK_SKIP = []          # set by site_plan.py: stretches (metres to go) where the Rowley Mile is too close
 KEEP = None             # set by site_plan.py: KEEP(x, z) -> False to leave a tree or board out
 # Advertising boards: far side only. A long sponsor run along the far rail at the finish (in front of the crowd), then
 # short runs dotted up the straight. Each run: metres to go at its middle, how many 6 m boards.
 BOARD_LEN, BOARDS_BEYOND = 6.0, 2.5
-BOARD_RUNS = [(30, 18), (300, 4), (520, 3), (760, 5), (1010, 3), (1260, 4)]
+BOARD_RUNS = [(30, 18), (300, 5), (520, 4), (800, 5), (1050, 3), (1300, 4)]
 BOARD_DESIGNS = ["green", "cream", "navy", "white"]
-# Trees: "a much leafier" course. Seeded. Kinds as Ascot's planting.
+# Trees: "a much leafier" course, but only where the cameras look (owner, 8 Nov: lose the trees behind the grandstand,
+# be selective for the key views). The far side is what every camera looks at: big trees among the festival there. On
+# the stand side the cameras look away, so trees stay only where the head-on long lens (beyond the line, looking up the
+# straight) or the drone ahead of the leaders sees them: in HEAD_ON's view cone, and never behind the stands.
 TREE_KINDS = {"oak_a": 3, "oak_b": 3, "oak_c": 3, "wide_a": 3, "wide_b": 3, "poplar_a": 1}
 TREE_SPACING, TREE_SEED, TREE_SCALE = 7.5, 11, [1.0, 1.7]
+BIG_TREES = [1.5, 2.3]                    # the far-side festival's trees (crowns about 15 to 24 m high)
+HEAD_ON = {"at": [-RUN_ON + 40, TRACK_W / 2, 4.0], "halfAngle": 16.0,
+           "note": "the head-on long lens beyond the line, in the middle of the run-out, looking up the straight"}
+KEY_CAMERAS = {
+    "standCamera": {"at": [0, -(STAND_BACK + 2), 12], "looks": "across the track to the far side"},
+    "trackingCar": {"lane": -5.0, "height": 3.0, "looks": "across the track to the far side, from the stand side"},
+    "headOn": HEAD_ON,
+    "drone": {"across": -3.0, "height": 15.0, "looks": "back up the straight at the field, from over the stand side"},
+}
 
 
 # ---------------------------------------------------------------- the path
@@ -196,25 +212,28 @@ def rect_hit(x, z, r, pad=0.0):
     return r["x"][0] - pad <= x <= r["x"][1] + pad and r["z"][0] - pad <= z <= r["z"][1] + pad
 
 
+def in_head_on(x, z):
+    hx, hz = HEAD_ON["at"][0], HEAD_ON["at"][1]
+    return x > hx and abs(z - hz) <= math.tan(math.radians(HEAD_ON["halfAngle"])) * (x - hx)
+
+
 def trees():
-    """Leafy: belts round and behind the stands, shade trees in the stand-side festival, trees among the far-side
-    marquees, a wood behind the Dyke's face opposite the stands, and clumps beyond it up the straight."""
+    """Big trees among the far-side festival, more past the post and behind the Dyke's face; on the stand side only
+    what the head-on and the drone see (none behind the stands)."""
     g = random.Random(TREE_SEED)
     kinds = list(TREE_KINDS); weights = [TREE_KINDS[k] for k in kinds]
     out, grid = [], {}
-    blocked = stand_rects() + [far_rect(p) for p in PAVILIONS] + [far_rect(TIER), LAWN, far_rect(FAR_CROWD),
-                                                                   {"x": PADDOCK["x"], "z": [PADDOCK["z"][0] + 25, PADDOCK["z"][1] - 10]}]
-    track = [course_pt(d)[0] for d in range(int(-RUN_ON), int(16 * F) + 60, 10)]
+    blocked = stand_rects() + [far_rect(p) for p in PAVILIONS] + [far_rect(TIER), LAWN, far_rect(FAR_CROWD)]
     def ok(x, z, sp):
         gx, gz = int(x // TREE_SPACING), int(z // TREE_SPACING)
-        for i in (-1, 0, 1):
-            for j in (-1, 0, 1):
-                for (px, pz) in grid.get((gx + i, gz + j), []):
-                    if (px - x) ** 2 + (pz - z) ** 2 < sp ** 2:
+        for i in (-2, -1, 0, 1, 2):
+            for j in (-2, -1, 0, 1, 2):
+                for (px, pz, ps) in grid.get((gx + i, gz + j), []):
+                    if (px - x) ** 2 + (pz - z) ** 2 < max(sp, ps) ** 2:
                         return False
         return True
     def on_track(x, z):
-        if -RUN_ON - 60 < x < STRAIGHT and -8.0 < z < TRACK_W + 8.0:            # the straight
+        if -RUN_ON - 60 < x < STRAIGHT and -8.0 < z < TRACK_W + 8.0:            # the straight and the run-out
             return True
         if x >= STRAIGHT - 60:                                                  # round the bend and up the leg
             for d in range(int(STRAIGHT - 60), int(16 * F) + 60, 15):
@@ -223,26 +242,27 @@ def trees():
                 if (mx - x) ** 2 + (mz - z) ** 2 < (TRACK_W / 2 + 10) ** 2:
                     return True
         return False
-    def put(x, z, sp=TREE_SPACING):
+    def put(x, z, sp=TREE_SPACING, scale=TREE_SCALE):
         if any(rect_hit(x, z, r, 4.0) for r in blocked) or on_track(x, z) or not ok(x, z, sp):
             return
-        grid.setdefault((int(x // TREE_SPACING), int(z // TREE_SPACING)), []).append((x, z))
-        out.append([round(x, 2), round(z, 2), g.choices(kinds, weights)[0], round(g.uniform(*TREE_SCALE), 2), g.randrange(360)])
-    def belt(x0, x1, z0, z1, n, sp=TREE_SPACING):
+        if z < 0 and (x < STANDS[-1]["x"][1] + 15 or not in_head_on(x, z)):  # the stand side: only what the head-on sees
+            return
+        grid.setdefault((int(x // TREE_SPACING), int(z // TREE_SPACING)), []).append((x, z, sp))
+        out.append([round(x, 2), round(z, 2), g.choices(kinds, weights)[0], round(g.uniform(*scale), 2), g.randrange(360)])
+    def belt(x0, x1, z0, z1, n, sp=TREE_SPACING, scale=TREE_SCALE):
         for _ in range(n):
-            put(g.uniform(x0, x1), g.uniform(z0, z1), sp)
-    # the stand side (z < 0)
-    belt(-280, 340, -200, -50, 560)                                     # round and behind the stands, the paddock among trees
-    belt(-280, -125, -48, -8, 40)                                       # past the stands' far end
-    belt(345, 3.5 * F, -58, -18, 34, 14.0)                              # a few shade trees among the festival pieces
-    belt(345, 3.5 * F + 80, -170, -66, 260)                             # a belt behind the festival
-    belt(3.5 * F + 80, STRAIGHT - 60, -150, -40, 150, 11.0)             # thinner on up the straight (behind the tracking car)
-    # the far side (z > TRACK_W): among the marquees, then behind the Dyke's face
-    belt(-370, 140, TRACK_W + 14, TRACK_W + 94, 230, 9.0)
+            put(g.uniform(x0, x1), g.uniform(z0, z1), sp, scale)
+    # the far side (z > TRACK_W): big trees among the festival's marquees, more past the post, then behind the Dyke's face
+    belt(FAR_FESTIVAL["x"][0], FAR_FESTIVAL["x"][1], TRACK_W + 14, TRACK_W + 94, 260, 13.0, BIG_TREES)
+    belt(-RUN_ON - 80, FAR_FESTIVAL["x"][0], TRACK_W + 10, TRACK_W + 100, 90, 10.0, [1.2, 2.0])
     for d in range(int(BANK["from"]), int(STRAIGHT), 8):
         B = bank_at(d)
-        if g.random() < (0.85 if d < 300 else 0.45):
-            put(*far(d + g.uniform(-4, 4), B["back"] + g.uniform(10, 110 if d < 300 else 80)))
+        if g.random() < (0.85 if d < 650 else 0.45):
+            put(*far(d + g.uniform(-4, 4), B["back"] + g.uniform(10, 110 if d < 650 else 80)))
+    # the stand side (z < 0): shade trees in the festival, a belt behind it and on up the straight (the head-on keeps them)
+    belt(345, 3.5 * F, -58, -18, 34, 14.0)
+    belt(345, 3.5 * F + 80, -170, -66, 260)
+    belt(3.5 * F + 80, STRAIGHT - 60, -150, -40, 150, 11.0)
     return out
 
 
@@ -278,7 +298,7 @@ def main():
                     "note": "The ground's height (m, against the post) every 'spacing' metres to go from 'from', along the inside rail: what the race engine reads (owner, 8 Nov: the dips and the climb count)."},
         "insideRail": {"spacing": step, "fields": "x, z, height, metres to go", "points": pts},
         "profile": {"points": PROFILE, "note": "the owner's notes: rolling for the first three-quarters of the straight, downhill 6f to 5f out, a steep sustained climb over the last 2f"},
-        "starts": starts, "furlongPoles": poles,
+        "starts": starts, "furlongPoles": poles, "keyCameras": KEY_CAMERAS,
         "standSide": {"side": "behind the inside rail (z < 0)", "standBack": STAND_BACK, "stands": STANDS, "lawn": LAWN, "festival": FESTIVAL, "paddock": PADDOCK},
         "farSide": {"side": "beyond the outer rail: 'off' = metres beyond it", "festival": FAR_FESTIVAL, "crowd": FAR_CROWD, "tier": TIER, "pavilions": PAVILIONS},
         "dykeFace": {"near": BANK_NEAR, "far": BANK_FAR, "spans": spans,
@@ -358,7 +378,7 @@ def draw(c):
     from matplotlib.patches import Polygon, Rectangle, Ellipse
     plt.rcParams["font.family"] = "Inter"
     W_IN = 14.0
-    zx, zz_ = (-420.0, 4.4 * F), (-210.0, TRACK_W + 175.0)
+    zx, zz_ = (-440.0, 5.2 * F), (-210.0, TRACK_W + 185.0)
     hZ = W_IN * 0.9 * (zz_[1] - zz_[0]) / (zx[1] - zx[0])
     hX, hP, gap, top, bottom = 2.6, 1.9, 0.75, 0.55, 0.6
     H_IN = top + hZ + gap + hX + gap + hP + bottom
@@ -399,16 +419,22 @@ def draw(c):
     for s, r in zip(STANDS, stand_rects()):
         Z.text(sum(r["x"]) / 2, sum(r["z"]) / 2, s["name"].replace(" ", "\n", 1), **lab)
     Z.text(-118, -8, "packed lawns, umbrellas", fontsize=7.5, color=INK, ha="left", va="center")
-    Z.text(sum(FESTIVAL["x"]) / 2, sum(FESTIVAL["z"]) / 2, "festival pieces to 3.5f out: stalls, bars, umbrellas, picnic lawns", **lab)
-    Z.text(115, -150, "parade rings and paddock among trees", **lab)
+    Z.text(sum(FESTIVAL["x"]) / 2 + 20, sum(FESTIVAL["z"]) / 2, "stand-side festival to 3.5f out", **lab)
+    Z.text(115, -150, "parade rings and paddock (no trees: never on camera)", **lab)
+    hx, hz = HEAD_ON["at"][0], HEAD_ON["at"][1]; ta = math.tan(math.radians(HEAD_ON["halfAngle"]))
+    for sg in (-1, 1):
+        Z.plot([hx, zx[1]], [hz, hz + sg * ta * (zx[1] - hx)], color="#2a6f97", lw=0.9, ls="--")
+    Z.plot(hx, hz, marker="o", color="#2a6f97", ms=6)
+    Z.text(hx - 8, hz - 30, "head-on camera:\nstand-side trees kept\nonly inside its view", fontsize=8, color="#2a6f97", ha="right", va="center")
     t_ = far_rect(TIER); Z.text(sum(t_["x"]) / 2, sum(t_["z"]) / 2, "tiered\nstand", **lab)
-    Z.annotate("far-side festival: marquees and pavilions among the trees, a crowd along the rail", xy=(-150, TRACK_W + 60), xytext=(-410, TRACK_W + 150),
+    Z.annotate("far-side festival from 3f out to the finish: marquees and pavilions among big trees, a crowd along the rail", xy=(330, TRACK_W + 80), xytext=(-430, TRACK_W + 160),
                arrowprops=dict(arrowstyle="-", color=INK, lw=0.7), fontsize=8.5, color=INK, ha="left")
-    Z.annotate("the Dyke's face, set back behind the festival", xy=(60, TRACK_W + 112), xytext=(170, TRACK_W + 160), arrowprops=dict(arrowstyle="-", color=INK, lw=0.7), fontsize=8.5, color=INK, ha="left")
-    Z.annotate("coming in to 30 m beyond the far rail up the straight", xy=(700, TRACK_W + 31), xytext=(560, TRACK_W + 130), arrowprops=dict(arrowstyle="-", color=INK, lw=0.7), fontsize=8.5, color=INK, ha="left")
-    Z.annotate("a long sponsor board\nalong the far rail", xy=(60, TRACK_W + 2.5), xytext=(150, TRACK_W + 70), arrowprops=dict(arrowstyle="-", color=INK, lw=0.7), fontsize=8.5, color=INK, ha="left")
+    Z.annotate("the Dyke's face, set back behind the festival", xy=(560, TRACK_W + 112), xytext=(640, TRACK_W + 160), arrowprops=dict(arrowstyle="-", color=INK, lw=0.7), fontsize=8.5, color=INK, ha="left")
+    Z.annotate("coming in to 30 m\nbeyond the far rail", xy=(940, TRACK_W + 31), xytext=(880, TRACK_W + 110), arrowprops=dict(arrowstyle="-", color=INK, lw=0.7), fontsize=8.5, color=INK, ha="left")
+    Z.annotate("a long sponsor board along the far rail", xy=(-20, TRACK_W + 2.5), xytext=(-430, TRACK_W + 45), arrowprops=dict(arrowstyle="-", color=INK, lw=0.7), fontsize=8.5, color=INK, ha="left")
     Z.set_aspect("equal"); Z.set_xlim(*zx); Z.set_ylim(zz_[1], zz_[0]); Z.tick_params(labelsize=7, colors=MUTED)
-    Z.set_title("July Course, the run-in close up (turned so the straight runs across the page; the post on the left). Stands and festival above; the far-side festival and the Dyke below, towards the Rowley Mile", fontsize=10, loc="left", color=INK)
+    Z.text(-RUN_ON / 2 - 20, TRACK_W / 2, "the run-out", ha="center", va="center", fontsize=9, color="white", fontweight="bold")
+    Z.set_title("July Course, the run-in close up (turned so the straight runs across the page; the post on the left, the run-out beyond it). Stands and festival above;\nthe far-side festival and the Dyke below, towards the Rowley Mile", fontsize=10, loc="left", color=INK)
 
     # ---- two cross-sections, from the far rail (left) to the stands (right)
     EX = 3.0
@@ -426,8 +452,13 @@ def draw(c):
             ax.add_patch(Ellipse((u, h * 0.68 * EX), 9.0, h * 0.62 * EX, fc=LEAF[r.randrange(4)], ec="none"))
         for ut in [-(B["back"] + 8 + k * 11 + r.uniform(-3, 3)) for k in range(8)]:
             if ut > u0 + 4: tree(ut, r.uniform(11, 14) * r.uniform(1.0, 1.6))
+        if FAR_FESTIVAL["x"][0] <= d <= FAR_FESTIVAL["x"][1]:      # the far-side festival: big trees, a crowd at the rail
+            for k in range(5): tree(-40 - k * 11 + r.uniform(-2, 2), r.uniform(10, 13) * r.uniform(BIG_TREES[0], BIG_TREES[1]) * 0.8)
+            ax.add_patch(Rectangle((-FAR_CROWD["off"][1], 0), FAR_CROWD["off"][1] - FAR_CROWD["off"][0], 1.8 * EX, fc=CROWD, ec="none"))
+            ax.add_patch(Rectangle((-BOARDS_BEYOND - 0.2, 0.5 * EX), 0.4, 1.0 * EX, fc=BOARD_C["navy"], ec="none"))
+        if not near and FAR_FESTIVAL["x"][0] <= d <= FAR_FESTIVAL["x"][1]:
+            ax.add_patch(Rectangle((-34, 0), 18, 8 * EX, fc=PAV, ec="#8d826b", lw=0.8)); ax.text(-25, 8 * EX + 3, "marquee", ha="center", fontsize=8)
         if near:
-            for k in range(6): tree(-40 - k * 9 + r.uniform(-2, 2), r.uniform(10, 13) * r.uniform(1.0, 1.4))
             ax.add_patch(Rectangle((-TIER["off"][1], 0), TIER["off"][1] - TIER["off"][0], TIER["height"] * EX, fc=TIERC, ec="#8d826b", lw=0.8))
             ax.text(-sum(TIER["off"]) / 2, TIER["height"] * EX + 3, "tiered stand", ha="center", fontsize=8)
             ax.add_patch(Rectangle((-FAR_CROWD["off"][1], 0), FAR_CROWD["off"][1] - FAR_CROWD["off"][0], 1.8 * EX, fc=CROWD, ec="none"))
@@ -436,7 +467,6 @@ def draw(c):
             ax.add_patch(Rectangle((TRACK_W + STAND_BACK, 0), s["depth"], s["height"] * EX, fc=STAND, ec="#8d826b", lw=0.8))
             ax.text(TRACK_W + STAND_BACK + s["depth"] / 2, s["height"] * EX + 3, "stands", ha="center", fontsize=8)
         else:
-            ax.add_patch(Rectangle((-BOARDS_BEYOND - 0.2, 0.5 * EX), 0.4, 1.0 * EX, fc=BOARD_C["navy"], ec="none"))
             for k in range(5):
                 ax.add_patch(Rectangle((TRACK_W + 12 + k * 9, 0), 5, 3.2 * EX, fc=FEST, ec="#b49a6a", lw=0.6))
             tree(TRACK_W + 30, 12); ax.text(TRACK_W + 36, 6.2 * EX, "festival pieces", ha="center", fontsize=8)
@@ -456,7 +486,7 @@ def draw(c):
     section(X2, 3 * F, "Across at 3f out", False)
 
     # ---- the height profile
-    dd = list(range(-120, int(STRAIGHT) + 1, 5))
+    dd = list(range(int(-RUN_ON), int(STRAIGHT) + 1, 5))
     PR.fill_between([d / F for d in dd], [height(d) for d in dd], -5, color=TURF, alpha=0.6); PR.plot([d / F for d in dd], [height(d) for d in dd], color=INK, lw=1.2)
     PR.axvline(0, color=POST, lw=1.2)
     for f_, t_ in [(2, "the climb starts, 2f"), (5, "down 6f to 5f")]:
