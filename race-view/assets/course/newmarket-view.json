@@ -1,0 +1,428 @@
+{
+ "_about": "The race view's cameras and dressing for Newmarket (Rowley Mile), draft. Written by tools/course/newmarket/to_race_view.py; don't edit by hand (change the script). World axes as newmarket.json.",
+ "homeStraight": {
+  "runTowards": [
+   -1,
+   0
+  ],
+  "centreZ": 18.0,
+  "standSide": 1
+ },
+ "scenery": "newmarket-scenery.json",
+ "ground": {
+  "outside": [
+   0.5194,
+   0.5856,
+   0.2693
+  ],
+  "turf": [
+   0.199,
+   0.3713,
+   0.0748
+  ],
+  "bank": [
+   0.44,
+   0.53,
+   0.22
+  ],
+  "note": "Ascot's lawn and turf colours (the bake's), so the two courses read as one game"
+ },
+ "lanesStraight": {
+  "x": [
+   -120.0,
+   2011.68
+  ],
+  "width": 36.0,
+  "lanes": 10,
+  "strength": 0.12,
+  "note": "soft mown lanes along the straight, 3.75 m wide, as Ascot's"
+ },
+ "treeDetail": {
+  "centre": [
+   150,
+   18.0
+  ],
+  "nearRadius": 420
+ },
+ "sun": [
+  -110,
+  49.5,
+  -35.2
+ ],
+ "races": {
+  "_about": "The races the view can show, one for every start in newmarket-stalls.json. course: 'straight' (no bend) or 'round' (down the leg and round the bend into the straight); distance in metres; start: the key in the stalls file.",
+  "5f": {
+   "label": "5f",
+   "course": "straight",
+   "distance": 1005.8,
+   "start": "5f"
+  },
+  "6f": {
+   "label": "6f",
+   "course": "straight",
+   "distance": 1207.0,
+   "start": "6f"
+  },
+  "7f": {
+   "label": "7f",
+   "course": "straight",
+   "distance": 1408.2,
+   "start": "7f"
+  },
+  "1m": {
+   "label": "1m",
+   "course": "straight",
+   "distance": 1609.3,
+   "start": "1m"
+  },
+  "1m1f": {
+   "label": "1m1f",
+   "course": "straight",
+   "distance": 1810.5,
+   "start": "1m1f"
+  },
+  "1m2f": {
+   "label": "1m2f",
+   "course": "straight",
+   "distance": 2011.7,
+   "start": "1m2f"
+  },
+  "1m4f": {
+   "label": "1m4f",
+   "course": "round",
+   "distance": 2414.0,
+   "start": "1m4f"
+  },
+  "1m6f": {
+   "label": "1m6f",
+   "course": "round",
+   "distance": 2816.4,
+   "start": "1m6f"
+  },
+  "2m": {
+   "label": "2m",
+   "course": "round",
+   "distance": 3218.7,
+   "start": "2m"
+  },
+  "2m2f": {
+   "label": "2m2f",
+   "course": "round",
+   "distance": 3621.0,
+   "start": "2m2f"
+  },
+  "2m4f": {
+   "label": "2m4f",
+   "course": "round",
+   "distance": 4023.4,
+   "start": "2m4f"
+  },
+  "_default": "1m"
+ },
+ "raceCameras": {
+  "track_straight": {
+   "label": "Tracking",
+   "kind": "track",
+   "course": "straight",
+   "side": 5,
+   "height": 3.0,
+   "fov": [
+    8,
+    50
+   ],
+   "railSide": "outer",
+   "ahead": [
+    6,
+    12,
+    20,
+    30,
+    45,
+    65,
+    90
+   ],
+   "raise": [
+    [
+     -200,
+     720,
+     9
+    ]
+   ],
+   "frame": "field",
+   "leadRoom": 2,
+   "note": "the car along the stand-side rail, up over the lawns and the festival (raise: x from, x to, height)"
+  },
+  "track_loop": {
+   "label": "Tracking",
+   "kind": "track",
+   "course": "round",
+   "side": 12,
+   "height": 3.2,
+   "fov": [
+    6,
+    45
+   ],
+   "ahead": [
+    6,
+    12,
+    20,
+    30,
+    45,
+    65,
+    90
+   ],
+   "railSide": "outer",
+   "frame": "field",
+   "leadRoom": 2,
+   "note": "the car down the leg and round the bend, on the stand side of the track (the outside of the bend at the Rowley Mile, the inside on the July Course)"
+  },
+  "drone_straight": {
+   "label": "Drone",
+   "kind": "drone",
+   "across": 20,
+   "height": 15,
+   "ahead": [
+    24,
+    36,
+    52,
+    72,
+    96,
+    125
+   ],
+   "fov": [
+    10,
+    55
+   ],
+   "frame": "all",
+   "leadRoom": 4,
+   "note": "ahead of the leaders, looking back at the whole field (Ascot's straight-course drone): over the stand side at the Rowley Mile; over the inside half of the track on the July Course, so its picture is the track and the far side, not the empty lawns up the straight behind the inside rail"
+  },
+  "headon": {
+   "label": "Head-on",
+   "kind": "fixed",
+   "at": [
+    -108.0,
+    5.0,
+    18.0
+   ],
+   "fov": [
+    0.6,
+    24
+   ],
+   "frame": "leaders",
+   "window": 28,
+   "leadRoom": 3,
+   "note": "the long lens beyond the line, in the middle of the run-out, looking straight up the course: the field coming at it, the groups spread across the track"
+  },
+  "grandstand": {
+   "label": "Stand",
+   "kind": "fixed",
+   "at": [
+    0,
+    14,
+    64.0
+   ],
+   "fov": [
+    1.5,
+    24
+   ],
+   "frame": "field",
+   "leadRoom": 3,
+   "closeIn": [
+    260,
+    60,
+    18
+   ],
+   "widen": [
+    220,
+    0,
+    1.2
+   ],
+   "note": "the stand camera on the winning line: picks the field up down the straight, closes in on the leaders, pans round until they cross the line square on to it (Ascot's grandstand camera)"
+  },
+  "sideon": {
+   "label": "Side-on replay",
+   "kind": "fixed",
+   "at": [
+    0,
+    4.5,
+    45.0
+   ],
+   "look": [
+    0,
+    1.4,
+    15.12
+   ],
+   "fov": [
+    26,
+    26
+   ],
+   "note": "square on to the winning line from the stand side: the finish again in slow motion"
+  },
+  "start": {
+   "label": "Start",
+   "kind": "start",
+   "ahead": [
+    24,
+    32,
+    42
+   ],
+   "side": 1.3,
+   "height": 2.3,
+   "fov": [
+    12,
+    46
+   ],
+   "leadRoom": 2,
+   "note": "low on the outer side in front of the stalls, looking back across their faces (Ascot's)"
+  },
+  "drone": {
+   "label": "Drone",
+   "kind": "drone",
+   "across": -8,
+   "height": 7,
+   "ahead": [
+    8,
+    14,
+    22,
+    32,
+    45,
+    60
+   ],
+   "fov": [
+    8,
+    40
+   ],
+   "frame": "field",
+   "leadRoom": 2
+  }
+ },
+ "cameraMenu": {
+  "straight": [
+   [
+    "drone_straight",
+    "Drone"
+   ],
+   [
+    "track_straight",
+    "Tracking"
+   ],
+   [
+    "headon",
+    "Head-on"
+   ],
+   [
+    "grandstand",
+    "Stand"
+   ]
+  ],
+  "round": [
+   [
+    "track_loop",
+    "Tracking"
+   ],
+   [
+    "drone_straight",
+    "Drone"
+   ],
+   [
+    "headon",
+    "Head-on"
+   ],
+   [
+    "grandstand",
+    "Stand"
+   ]
+  ]
+ },
+ "raceDirector": {
+  "_about": "One path (owner, 8 Nov: tracking car, head-on, the stand camera, the drone). Round races: the tracking car down the leg and round the bend until path.drone metres into the straight; then the drone along the stand side; the head-on long lens from beyond the line for the stretch path.headon ([from, to] metres to go, only when the race is longer than path.headonMin); the stand camera from path.grandstand to the line and beyond. After the finish: the side-on replay, slowed to replaySpeed, from replayFrom metres before the line to replayTo after it.",
+  "path": {
+   "drone": 120,
+   "headon": [
+    1000,
+    600
+   ],
+   "headonMin": 1150,
+   "grandstand": 600
+  },
+  "straight": {
+   "grandstand": 600,
+   "camera": "drone_straight"
+  },
+  "afterFinish": 4,
+  "replayFrom": 30,
+  "replayTo": 14,
+  "replaySpeed": 0.3
+ },
+ "setPieces": {
+  "_about": "Before the off and after the race: eye and at go from the first to the second over 'seconds'.",
+  "prelude": {
+   "label": "The runners",
+   "seconds": 9,
+   "eye": [
+    [
+     200,
+     62,
+     -190
+    ],
+    [
+     90,
+     58,
+     -190
+    ]
+   ],
+   "at": [
+    [
+     100,
+     8,
+     96.0
+    ],
+    [
+     20,
+     8,
+     96.0
+    ]
+   ],
+   "fov": 40,
+   "list": [
+    7,
+    0.6
+   ]
+  },
+  "postlude": {
+   "label": "After the race",
+   "seconds": 8,
+   "eye": [
+    [
+     20,
+     3,
+     28.0
+    ],
+    [
+     60,
+     45,
+     -60
+    ]
+   ],
+   "at": [
+    [
+     0,
+     8,
+     96.0
+    ],
+    [
+     -10,
+     6,
+     106.0
+    ]
+   ],
+   "fov": 42
+  }
+ },
+ "startSequence": {
+  "standSeconds": 3.0,
+  "holdAfterOff": 4.0,
+  "passAt": 8,
+  "hideAfter": 350
+ }
+}
