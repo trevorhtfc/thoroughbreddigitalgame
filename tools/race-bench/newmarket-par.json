@@ -11,7 +11,16 @@
   "nm1m6f": 177.8,
   "nm2m": 206.41,
   "nm2m2f": 234.92,
-  "nm2m4f": 264.63
+  "nm2m4f": 264.63,
+  "jc5f": 57.23,
+  "jc6f": 69.72,
+  "jc7f": 83.51,
+  "jc1m": 97.4,
+  "jc1m2f": 123.8,
+  "jc1m4f": 150.8,
+  "jc1m5f": 164.1,
+  "jc1m6f": 177.9,
+  "jc2m": 206.51
  },
  "measured": {
   "nm5f": {
@@ -68,6 +77,51 @@
    "with par": 262.0,
    "winning time": 259.4,
    "target": 262.0
+  },
+  "jc5f": {
+   "with par": 58.5,
+   "winning time": 59.8,
+   "target": 58.5
+  },
+  "jc6f": {
+   "with par": 70.8,
+   "winning time": 71.9,
+   "target": 70.8
+  },
+  "jc7f": {
+   "with par": 84.3,
+   "winning time": 85.1,
+   "target": 84.3
+  },
+  "jc1m": {
+   "with par": 97.8,
+   "winning time": 98.2,
+   "target": 97.8
+  },
+  "jc1m2f": {
+   "with par": 123.8,
+   "winning time": 124.0,
+   "target": 124.0
+  },
+  "jc1m4f": {
+   "with par": 150.8,
+   "winning time": 150.5,
+   "target": 150.5
+  },
+  "jc1m5f": {
+   "with par": 164.1,
+   "winning time": 163.5,
+   "target": 163.5
+  },
+  "jc1m6f": {
+   "with par": 177.8,
+   "winning time": 176.9,
+   "target": 177.0
+  },
+  "jc2m": {
+   "with par": 206.41,
+   "winning time": 204.9,
+   "target": 205.0
   }
  }
 }

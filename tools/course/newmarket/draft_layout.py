@@ -52,6 +52,18 @@ TREES = {"from": 62.0, "to": 150.0, "start": -320.0, "end": 20 * F + 220.0, "spa
 STANDS = {"front": TRACK_W + 14.0, "x": [-170.0, 330.0], "height": 26.0,
           "note": "Interpretive and bigger than life (owner): the Millennium Grandstand's row of wave-shaped canopies, "
                   "longer than the real stand, from the stand kit with a new canopy module, smooth clay finish."}
+# The festival area (owner's sketch of both courses, 8 Nov: yellow beside the stands, up the course from them): stalls,
+# bars, umbrellas and picnic lawns from the end of the stands to about 3.5f out, set 10 m back from the near rail to
+# leave a lane for the tracking car.
+FESTIVAL = {"x": [345.0, 3.5 * F], "z": [TRACK_W + 10, TRACK_W + 60],
+            "note": "festival pieces from the end of the stands to 3.5f out (owner's sketch, 8 Nov), 10 m back from the near rail"}
+# The compass (owner's sketch, 8 Nov): north is at the BOTTOM of these plans, so +z points north and +x west. (The axes'
+# names below are Ascot's; the real compass matters only for the sun.)
+COMPASS = "owner's sketch, 8 Nov: north is at the bottom of the plans: +z is north, +x is west"
+# Set by site_plan.py, which builds both Newmarket courses together: stretches of the bank to leave out (where the July
+# Course runs through), and a test for trees and boards that would stand on the July Course.
+BANK_SKIP = []          # [[metres to go from, to], ...]
+KEEP = None             # KEEP(x, z) -> False to leave a tree or board out
 
 
 def straight_pt(d):                            # d metres to go on the straight, inside rail
@@ -105,6 +117,19 @@ def bank_h(off):
     else:
         u = (B["back"] - off) / (B["back"] - b)
     return B["height"] * (0.5 - 0.5 * math.cos(math.pi * u))
+
+
+def bank_spans():
+    """The bank's stretches, metres to go, with BANK_SKIP left out."""
+    spans = [[BANK["from"], BANK["to"]]]
+    for a, b in sorted(BANK_SKIP):
+        out = []
+        for s0, s1 in spans:
+            if b <= s0 or a >= s1: out.append([s0, s1]); continue
+            if a > s0: out.append([s0, a])
+            if b < s1: out.append([b, s1])
+        spans = out
+    return [[round(a, 1), round(b, 1)] for a, b in spans if b - a > 20]
 
 
 def boards():
@@ -170,10 +195,12 @@ def main():
                         "onStraight": dist <= STRAIGHT + 1e-6}
     poles = [{"furlongs": k, "at": [round(c, 2) for c in course_pt(k * F)[0]]} for k in range(1, 25) if k * F <= longest]
     rail_xz = [course_pt(dd)[0] for dd in range(int(BANK["from"]), int(longest) + 1, 5)]
+    keep = KEEP or (lambda x, z: True)
     out = {
         "id": "newmarket", "name": "Newmarket (Rowley Mile), draft", "status": "DRAFT, second version for the owner's check (8 Nov 2026): not used by the game yet",
         "_about": "Built by tools/course/newmarket/draft_layout.py. Interpretive, not surveyed: every number is a named choice in that script.",
-        "axes": "As courses/ascot.json: origin = winning post on the inside rail; x east, z south, y up. On the straight horses run towards -x, inside rail z = 0 (far side), stands +z.",
+        "axes": "As courses/ascot.json: origin = winning post on the inside rail; y up. On the straight horses run towards -x, inside rail z = 0 (far side), stands +z.",
+        "compass": COMPASS, "site": "Placed with the July Course in courses/newmarket-site.json (this course's axes are the site's).",
         "direction": "clockwise (right-handed: one bend, from the Cesarewitch leg into the straight)",
         "trackWidth": TRACK_W, "furlong": F,
         "straight": {"length": round(STRAIGHT, 1), "note": "1m2f from the post to the bend: races up to 1m2f are run straight"},
@@ -187,12 +214,13 @@ def main():
         "heights": {"from": -RUN_ON, "spacing": step, "h": [p[2] for p in pts],
                     "note": "The ground's height (m, against the post) every 'spacing' metres to go from 'from', along the inside "
                             "rail: what the race engine reads for the Dip (owner, 8 Nov: it counts). Straight lines between points."},
-        "starts": starts, "furlongPoles": poles, "stands": STANDS,
-        "farBank": {**BANK, "profileAcross": [[o, round(bank_h(o), 2)] for o in range(0, int(BANK["back"]) + 3, 2)]},
+        "starts": starts, "furlongPoles": poles, "stands": STANDS, "festival": FESTIVAL,
+        "farBank": {**BANK, "spans": bank_spans(), "profileAcross": [[o, round(bank_h(o), 2)] for o in range(0, int(BANK["back"]) + 3, 2)],
+                    "spansNote": "the stretches (metres to go) where the bank stands: it stops where the July Course runs through, inside the bend"},
         "boards": {"length": BOARD_LEN, "behindRail": BOARDS_BEHIND, "runs": BOARD_RUNS,
                    "fields": "x, z, turn (degrees anticlockwise from above; 0 = facing south, as ascot-planting.json), design",
-                   "list": boards()},
-        "trees": {"fields": "x, z, tree (as ascot-planting.json), scale, turn", "note": "tree tops beyond the far bank (owner, 8 Nov)", "list": trees(rail_xz)},
+                   "list": [b for b in boards() if keep(b[0], b[1])]},
+        "trees": {"fields": "x, z, tree (as ascot-planting.json), scale, turn", "note": "tree tops beyond the far bank (owner, 8 Nov)", "list": [t for t in trees(rail_xz) if keep(t[0], t[1])]},
     }
     (REPO / "courses/newmarket-draft.json").write_text(json.dumps(out, separators=(",", ":")))
     (REPO / "courses/newmarket-stalls.json").write_text(json.dumps(stalls(starts), indent=1))
@@ -200,6 +228,7 @@ def main():
     draw(out)
     print("wrote courses/newmarket-draft.json and reference/newmarket/plan-draft.png:",
           len(out["boards"]["list"]), "boards,", len(out["trees"]["list"]), "trees")
+    return out
 
 
 # The starting stalls, laid out as Ascot's (courses/ascot-stalls.json): stall 1 on the inside (far) rail, 1.05 m apart.
@@ -275,9 +304,13 @@ def draw(c):
         (x, z), (tx, tz) = course_pt(d)
         return x + tz * off, z - tx * off
     ds = [p[3] for p in P]
-    bd = list(range(int(BANK["from"]), int(BANK["to"]) + 1, 5))
-    ax.add_patch(Polygon([behind(d, BANK["foot"]) for d in bd] + [behind(d, BANK["back"]) for d in bd[::-1]], closed=True, fc=BANKC, ec="none"))
-    ax.plot(*zip(*[behind(d, sum(BANK["crest"]) / 2) for d in bd]), color=CREST, lw=1.0)
+    for s0, s1 in c["farBank"]["spans"]:
+        bd = [s0 + i * 5 for i in range(int((s1 - s0) / 5) + 1)]
+        ax.add_patch(Polygon([behind(d, BANK["foot"]) for d in bd] + [behind(d, BANK["back"]) for d in bd[::-1]], closed=True, fc=BANKC, ec="none"))
+        ax.plot(*zip(*[behind(d, sum(BANK["crest"]) / 2) for d in bd]), color=CREST, lw=1.0)
+    FE = c["festival"]
+    ax.add_patch(Rectangle((FE["x"][0], FE["z"][0]), FE["x"][1] - FE["x"][0], FE["z"][1] - FE["z"][0], fc="#f1d9a8", ec="#b49a6a", lw=0.6))
+    ax.text(FE["x"][1] + 20, (FE["z"][0] + FE["z"][1]) / 2 + 30, "festival area", ha="left", va="center", fontsize=9, color=INK)
     for t in c["trees"]["list"]:
         ax.add_patch(Ellipse((t[0], t[1]), 9 * t[3], 9 * t[3], fc=LEAF[hash(t[2]) % len(LEAF)], ec="none", alpha=0.9))
     ax.add_patch(Polygon([(p[0], p[1]) for p in P] + [left(d, TRACK_W) for d in ds[::-1]], closed=True, fc=TURF, ec="none"))
@@ -298,7 +331,7 @@ def draw(c):
         if p["furlongs"] <= 10: ax.plot(p["at"][0], p["at"][1], marker="|", color=INK, ms=7)
     ax.annotate("running", xy=(1350, TRACK_W + 70), xytext=(1700, TRACK_W + 70), arrowprops=dict(arrowstyle="->", color=INK), fontsize=8.5, va="center", color=INK)
     lab = behind(1000, sum(BANK["crest"]) / 2)
-    ax.annotate("the far bank, about %d m high, the whole way round" % BANK["height"], xy=lab, xytext=(lab[0] - 150, lab[1] - 260),
+    ax.annotate("the far bank, about %d m high, round to where the July Course crosses" % BANK["height"], xy=lab, xytext=(lab[0] - 150, lab[1] - 260),
                 arrowprops=dict(arrowstyle="-", color=INK, lw=0.7), fontsize=9, color=INK, ha="center")
     tl = behind(1600, 100)
     ax.annotate("tree tops beyond the bank", xy=tl, xytext=(tl[0] - 200, tl[1] - 300), arrowprops=dict(arrowstyle="-", color=INK, lw=0.7), fontsize=9, color=INK, ha="center")
@@ -307,7 +340,7 @@ def draw(c):
     ax.set_aspect("equal"); ax.invert_yaxis()
     allx = [p[0] for p in P] + [t[0] for t in c["trees"]["list"]]; allz = [p[1] for p in P] + [t[1] for t in c["trees"]["list"]]
     ax.set_xlim(min(allx) - 60, max(allx) + 140); ax.set_ylim(max(allz) + 150, min(allz) - 60)
-    ax.set_title("Newmarket, Rowley Mile: draft layout, second version (interpretive, metres; north up, as your plan: the post on the left, the bend on the right)", fontsize=11, color=INK, loc="left")
+    ax.set_title("Newmarket, Rowley Mile: draft layout, third version (interpretive, metres; as your plans: the post on the left, the bend on the right, north at the bottom)", fontsize=11, color=INK, loc="left")
     ax.tick_params(labelsize=7, colors=MUTED)
 
     # ---- the cross-section, 3f out, looking up the course (the far side on the left, the stands on the right)
@@ -364,4 +397,6 @@ def draw(c):
 
 
 if __name__ == "__main__":
-    main()
+    # The two Newmarket courses are built together, so neither puts trees, boards or banks on the other.
+    import site_plan
+    site_plan.main()

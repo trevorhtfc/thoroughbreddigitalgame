@@ -6,8 +6,11 @@ export const REPO = join(dirname(fileURLToPath(import.meta.url)), "..", "..");
 const read = (p) => JSON.parse(readFileSync(join(REPO, p), "utf8"));
 // COURSE=newmarket (8 Nov, draft): the Rowley Mile instead, with its own races (by its standards keys, nm5f ... nm2m4f)
 export const COURSE = process.env.COURSE || "ascot";
+// COURSE=july: Newmarket's July Course (draft), its races jc5f ... jc2m
 const FILES = COURSE === "newmarket"
   ? ["courses/newmarket-draft.json", "courses/newmarket-stalls.json", "courses/newmarket-standards.json"]
+  : COURSE === "july"
+  ? ["courses/newmarket-july-draft.json", "courses/newmarket-july-stalls.json", "courses/newmarket-july-standards.json"]
   : ["courses/ascot.json", "courses/ascot-stalls.json", "courses/ascot-standards.json"];
 export const data = {
   course: read(FILES[0]),
@@ -24,7 +27,7 @@ export const RACES = {
   r2m: { course: "round", start: "twoMiles" }, r2m4f: { course: "round", start: "twoMilesFour" },
   r2m6f: { course: "round", start: "twoMilesSix" },
 };
-if (COURSE === "newmarket") {
+if (COURSE === "newmarket" || COURSE === "july") {
   for (const k of Object.keys(RACES)) delete RACES[k];
   for (const [name, st] of Object.entries(data.stalls.starts)) RACES[st.key] = { course: st.course, start: name };
 }

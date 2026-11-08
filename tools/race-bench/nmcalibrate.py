@@ -1,13 +1,13 @@
-# Newmarket par times (8 Nov): the engine's par for each distance, set so the bench's median winning time (12 runners,
+# Newmarket par times (8 Nov), the Rowley Mile and the July Course: the engine's par for each distance, set so the bench's median winning time (12 runners,
 # good ground, the Dip included) comes out at the target winning time in courses/newmarket-standards.json.
 #   python3 nmcalibrate.py [races] [distances]      then: python3 ../course/newmarket/draft_layout.py
-# Writes newmarket-par.json, which draft_layout.py reads when it writes courses/newmarket-standards.json.
+# Writes newmarket-par.json, which draft_layout.py and july_layout.py read when they write the standards files.
 import json, sys, warnings, numpy as np
 warnings.filterwarnings('ignore')
 import racebench as rb
 P = json.load(open('settings.json'))
 N = int(sys.argv[1]) if len(sys.argv) > 1 else 400
-keys = sys.argv[2].split(',') if len(sys.argv) > 2 else [p['key'] for p in rb.NM_STD['parTimes']]
+keys = sys.argv[2].split(',') if len(sys.argv) > 2 else [p['key'] for p in rb.NM_STD['parTimes']]   # the July Course: name its jc keys
 try: out = json.load(open('newmarket-par.json'))
 except FileNotFoundError: out = {"_about": "Written by nmcalibrate.py: the par (seconds) the race engine uses at Newmarket, so its winning times match the targets.", "par": {}, "measured": {}}
 for key in keys:

@@ -31,6 +31,8 @@ const { timeline, result } = runRace(
 
 **Newmarket** (8 Nov 2026, draft): hand over `courses/newmarket-draft.json`, `newmarket-stalls.json` and `newmarket-standards.json` instead; the races are `straight` (up to 1m2f) or `round` (1m4f and up, with the one bend), the starts are named by trip (`"5f"` … `"2m4f"`), and fields go up to 30. In the checks: `COURSE=newmarket node check/test.mjs` (and the same for `compare.mjs`, with `OUT=engine-newmarket`).
 
+**The July Course** (8 Nov 2026, draft): `courses/newmarket-july-draft.json`, `-stalls.json` and `-standards.json`; `straight` up to a mile (the Bunbury Mile), `round` from 1m2f (the bend from the Cesarewitch leg), starts `"5f"` … `"2m"`, fields up to 28. In the checks: `COURSE=july`.
+
 **The race**: `course` (`straight`, `roundMile` or `round`), `distance` in metres, `start` (a start in `courses/ascot-stalls.json`), `going` (Heavy, Softer, Good, Quicker, Quick), `seed`, and for handicaps `handicap: true`.
 
 **Each runner** (the racecard fields agreed on 4 Nov):

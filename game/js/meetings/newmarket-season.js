@@ -11,13 +11,16 @@ window.MEETINGS["newmarket-season"] = {
   id: "newmarket-season",
   name: "The Newmarket Season",
   short: "Newmarket",
-  course: "newmarket",                   // courses/newmarket-draft.json, -stalls.json, -standards.json (the Rowley Mile)
   year: 2026,
   status: "DRAFT",
-  // QUESTION 1: the July Festival is on the July Course, a separate course (its own straight, joined from the same
-  // Cesarewitch leg, and its own thatched stands). Build it as a second Newmarket scene, or run those races on the
-  // Rowley Mile for now?
-  courses: { rowley: "Rowley Mile", july: "July Course" },
+  // Two courses (owner, 8 Nov: "add the July course", much leafier): each meeting is at one of them. Course files:
+  // courses/<file>-draft.json, <file>-stalls.json, <file>-standards.json.
+  courses: {
+    rowley: { name: "Rowley Mile", file: "newmarket", straightUpTo: 10,
+              starts: { 5: "5f", 6: "6f", 7: "7f", 8: "1m", 9: "1m1f", 10: "1m2f", 12: "1m4f", 14: "1m6f", 16: "2m", 18: "2m2f", 20: "2m4f" } },
+    july: { name: "July Course", file: "newmarket-july", straightUpTo: 8,
+            starts: { 5: "5f", 6: "6f", 7: "7f", 8: "1m", 10: "1m2f", 12: "1m4f", 13: "1m5f", 14: "1m6f", 16: "2m" } },
+  },
   meetings: [
     { id: "craven", name: "The Craven Meeting", month: "April", course: "rowley", days: 3 },
     { id: "guineas", name: "The Guineas Festival", month: "May", course: "rowley", days: 3 },
@@ -39,12 +42,9 @@ window.MEETINGS["newmarket-season"] = {
     "Listed": { cls: "gl", short: "L", bands: [105, 100, 95, 90], prizes: [100000, 50000, 30000, 15000] },
     "Handicap": { cls: "gh", short: "Hcap", bands: [100, 95, 90, 85], prizes: [60000, 30000, 15000, 8000] },
   },
-  // Runners, your horse included: as Royal Ascot, but the Rowley Mile takes up to 30, so the big autumn handicaps (the
-  // Cambridgeshire, the Cesarewitch) get the big fields they have in real life.
-  fieldSize: { twoYO: [12, 22], hcapStraight: [20, 30], hcapRound: [20, 30], groupStraight: [8, 16], groupRound: [8, 14], other: [10, 16] },
-  straightUpTo: 10,                      // the Rowley Mile's straight is 1m2f: everything up to 1m2f is run straight
-  // The start in the course files, by furlongs (courses/newmarket-stalls.json)
-  starts: { 5: "5f", 6: "6f", 7: "7f", 8: "1m", 9: "1m1f", 10: "1m2f", 12: "1m4f", 14: "1m6f", 16: "2m", 18: "2m2f", 20: "2m4f" },
+  // Runners, your horse included: as Royal Ascot, but the Rowley Mile takes up to 30 (the July Course 28), so the big
+  // handicaps (the Bunbury Cup, the Cambridgeshire, the Cesarewitch) get the big fields they have in real life.
+  fieldSize: { twoYO: [12, 22], hcapStraight: [20, 28], hcapRound: [20, 28], groupStraight: [8, 16], groupRound: [8, 14], other: [10, 16] },
   pool: [
     // 1. The Craven Meeting (April), Rowley Mile: the Classic trials
     { id: "craven", meeting: 0, name: "Craven Stakes", grade: "Group 3", f: 8, dist: "1m", ages: [3, 3], ageLabel: "3YO colts", sex: "C", course: "rowley" },

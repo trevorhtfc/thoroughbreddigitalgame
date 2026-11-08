@@ -1,6 +1,7 @@
 // Checks on the engine: the same seed replays exactly; the timeline has the shape the race view plays; horses never
 // share the same space; effort stays 0-3; the result agrees with the timeline.   node check/test.mjs
-// (COURSE=newmarket node check/test.mjs: the same at the Rowley Mile, draft, with fields up to 30)
+// (COURSE=newmarket node check/test.mjs: the same at the Rowley Mile, draft, with fields up to 30; COURSE=july: the July
+// Course, draft, up to 28)
 import { createHash } from "node:crypto";
 import { runRace } from "../engine.js";
 import { randomField } from "../field.js";
@@ -8,7 +9,7 @@ import { data, RACES } from "./data.mjs";
 let fails = 0;
 const ok = (cond, msg) => { if (!cond) { fails++; console.log("FAIL", msg); } };
 const hash = (o) => createHash("sha1").update(JSON.stringify(o)).digest("hex").slice(0, 12);
-for (const [key, r] of Object.entries(RACES)) for (const n of (process.env.COURSE === "newmarket" ? [8, 16, 30] : [8, 16, 26])) for (const going of ["Good", "Heavy"]) {
+for (const [key, r] of Object.entries(RACES)) for (const n of (process.env.COURSE === "newmarket" ? [8, 16, 30] : process.env.COURSE === "july" ? [8, 16, 28] : [8, 16, 26])) for (const going of ["Good", "Heavy"]) {
   const seed = `test-${key}-${n}`;
   const race = { ...r, going, seed };
   const a = runRace(race, randomField(n, seed, data.settings), data), b = runRace(race, randomField(n, seed, data.settings), data);

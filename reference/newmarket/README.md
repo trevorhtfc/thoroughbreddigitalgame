@@ -15,4 +15,9 @@ For building Newmarket as the game's second course. Private reference only (TV f
   whole way round**, closer to the track than real life; **tree tops** showing beyond it; **advertising boards**
   dotted along the course (far side only). `plan-draft.png` is now the second version, with a cross-section showing
   what each camera sees over the bank.
+- `owner-sketch-zones.png`, `owner-sketch-arrows.png` (8 Nov): the owner's sketch of BOTH Newmarket courses on one map
+  (north at the bottom). Purple: each course's grandstands; yellow: festival areas (beside each course's stands, and the
+  July Course's far side); orange: the Dyke, in the wedge between the two straights; red: the way they run to each
+  finish; blue: each course's main stand camera, looking across its track towards the Dyke. `site-plan-draft.png` is
+  the two courses built from it (`tools/course/newmarket/site_plan.py`), with the sketch beside it.
 

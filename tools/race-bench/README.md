@@ -83,3 +83,20 @@ horse's chances don't change. The winning times barely move (0.1–0.2 s), so th
 Newmarket distances (`race-engine/check/results/compare-newmarket.md`, 1,200 races each): every difference is within
 chance.
 
+### The July Course (8 Nov 2026, draft: `jc5f` … `jc2m`)
+
+The owner's notes: the Bunbury Mile rolls for its first three-quarters, runs downhill from 6f to 5f out, then climbs
+steeply and steadily over the last two furlongs ("tired horses tie up"; jockeys mustn't kick too early). Same rule,
+no new numbers: the climb is 3.4 m over 2f, so it catches anyone who went for home early. `nmdip.py`, 800 races of 14
+runners:
+
+| Distance | Front-runners win | Hold-up horses win | Leader 2f out wins | Winner in the back half 2f out |
+|---|---|---|---|---|
+| 6f | 0.89 → 0.73 | 0.86 → 1.01 | 29% → 26% | 24% → 28% |
+| Mile | 0.83 → 0.72 | 0.99 → 1.10 | 38% → 35% | 16% → 18% |
+| 1m4f | 0.84 → 0.72 | 0.89 → 0.99 | 43% → 40% | 12% → 14% |
+| 1m5f | 0.84 → 0.74 | 0.91 → 1.01 | 44% → 40% | 10% → 13% |
+
+A little stronger than the Rowley Mile's Dip over sprint trips, as the owner's notes would have it. The engine matches
+the bench on the July Course too (`race-engine/check/results/compare-july.md`: 6f, mile, 1m5f).
+

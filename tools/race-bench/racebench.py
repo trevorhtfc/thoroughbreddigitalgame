@@ -10,31 +10,39 @@ FUR=201.168
 PAR_TIME={'s5f':60.0,'s6f':73.0,'s7f':86.5,'s1m':99.5,'r1m':100.5,'r1m2f':126.0,'r1m4f':150.5,'r1m6f':178.0,'r2m':207.0,'r2m4f':266.0,'r2m6f':297.0}
 DIST={'s5f':5*FUR,'s6f':6*FUR,'s7f':7*FUR,'s1m':8*FUR,'r1m':1649.4,'r1m2f':10*FUR,'r1m4f':12*FUR,'r1m6f':14*FUR,'r2m':16*FUR,'r2m4f':20*FUR,'r2m6f':22*FUR}
 PPL={'s5f':3.0,'s6f':2.6,'s7f':2.3,'s1m':2.0,'r1m':2.0,'r1m2f':1.75,'r1m4f':1.5,'r1m6f':1.35,'r2m':1.2,'r2m4f':1.0,'r2m6f':0.9}   # rating points per length
-# Newmarket (Rowley Mile), DRAFT (owner, 8 Nov): one path, not a loop; a 36 m track; the straight 1m2f with the Dip
-# in it, and the ground's height every 5 m (courses/newmarket-draft.json, built by tools/course/newmarket/draft_layout.py)
+# Courses that are one path (8 Nov 2026, drafts): Newmarket's Rowley Mile ('nm' races) and July Course ('jc' races).
+# Each: a course file (the path's bends, a track width, the ground's height every 5 m) and a standards file (par times),
+# built by tools/course/newmarket/draft_layout.py and july_layout.py.
 import os
 _REPO=os.path.join(os.path.dirname(os.path.abspath(__file__)),'..','..')
 def _load(p):
     with open(os.path.join(_REPO,p)) as f: return json.load(f)
-NM=_load('courses/newmarket-draft.json'); NM_STD=_load('courses/newmarket-standards.json')
+PATHS={'nm':('courses/newmarket-draft.json','courses/newmarket-standards.json'),'jc':('courses/newmarket-july-draft.json','courses/newmarket-july-standards.json')}
+PATH_COURSES={k:_load(c) for k,(c,_) in PATHS.items()}
+NM=PATH_COURSES['nm']; NM_STD=_load(PATHS['nm'][1])
 REAL_TIME=dict(PAR_TIME)
-for _p in NM_STD['parTimes']:
-    PAR_TIME[_p['key']]=_p['seconds']; REAL_TIME[_p['key']]=_p['winningTime']; DIST[_p['key']]=_p['distance']
-PPL.update({'nm5f':3.0,'nm6f':2.6,'nm7f':2.3,'nm1m':2.0,'nm1m1f':1.85,'nm1m2f':1.75,'nm1m4f':1.5,'nm1m6f':1.35,'nm2m':1.2,'nm2m2f':1.1,'nm2m4f':1.0})
+for _k,(_c,_s) in PATHS.items():
+    for _p in _load(_s)['parTimes']:
+        PAR_TIME[_p['key']]=_p['seconds']; REAL_TIME[_p['key']]=_p['winningTime']; DIST[_p['key']]=_p['distance']
+_PPL_F={5:3.0,6:2.6,7:2.3,8:2.0,9:1.85,10:1.75,12:1.5,13:1.42,14:1.35,16:1.2,18:1.1,20:1.0}   # rating points per length by furlongs
+for _k in list(DIST):
+    if _k[:2] in PATHS: PPL[_k]=_PPL_F[round(DIST[_k]/FUR)]
+def course_of(key): return PATH_COURSES.get(key[:2])
 def kind_of(key):
-    if key.startswith('nm'): return 'straight' if DIST[key]<=NM['straight']['length']+1e-6 else 'round'
+    C=course_of(key)
+    if C is not None: return 'straight' if DIST[key]<=C['straight']['length']+1e-6 else 'round'
     return 'straight' if key[0]=='s' else 'round'
 def make_course(key):
     D=DIST[key]
-    if key.startswith('nm'):
-        H=NM['heights']; bends=[]
-        for (a,b,deg) in NM['path']['bends']:
+    if course_of(key) is not None:
+        CC=course_of(key); H=CC['heights']; bends=[]
+        for (a,b,deg) in CC['path']['bends']:
             if b>=D: continue
             A,ang=a,math.radians(deg)
             if A>D: ang*=(D-b)/(A-b); A=D
             bends.append((A,b,ang))
         bends.sort(key=lambda t:-t[0])
-        return dict(D=D,bends=bends,stall1=1.625,kind=kind_of(key),W=NM['trackWidth'],home=NM['path']['home'],hts=(H['from'],H['spacing'],np.array(H['h'],float)))
+        return dict(D=D,bends=bends,stall1=1.625,kind=kind_of(key),W=CC['trackWidth'],home=CC['path']['home'],hts=(H['from'],H['spacing'],np.array(H['h'],float)))
     if key[0]=='s': return dict(D=D,bends=[],stall1=1.625,kind='straight')
     if key=='r1m': return dict(D=D,bends=[(1311.8,1276.0,math.radians(18)),(840.0,605.0,math.radians(94))],stall1=1.625,kind='round')
     bends=[]
