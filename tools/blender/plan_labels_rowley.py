@@ -6,7 +6,7 @@ from PIL import Image, ImageDraw, ImageFont
 sys.path.insert(0, "tools/course/newmarket")
 import draft_layout as R
 W = R.TRACK_W
-CX, CZ, SCALE, PX = 65.0, 60.0, 400.0, 2400
+CX, CZ, SCALE, PX = 65.0, 85.0, 400.0, 2400
 S = PX / SCALE
 # turned half round so the stands are at the top, as on the July Course's plan (the horses then run left to right)
 im = Image.open("reference/newmarket/renders/plan.png").convert("RGB").rotate(180); w, h = im.size

@@ -59,15 +59,17 @@ STAND_PIECES = [
     # owner's sketch (8 Nov, reference/newmarket/owner-sketch-stands.jpg): the Millennium at an angle to the track, its
     # up-course end further back; the pavilion stand (the Rowley stand) carrying on from its post end and cranking round
     # by the winning line, at right angles to the track; the older, longer stand up the course from the Millennium.
-    {"name": "Millennium Grandstand", "piece": "millennium_stand", "at": [35.05, 42.71], "turn": 167.0, "length": 113.0, "depth": 44.0,
-     "note": "at an angle to the track: its post end 30 m beyond the near rail, its up-course end further back"},
-    {"name": "Rowley stand", "piece": "rowley_wing", "at": [-44.36, 24.38], "turn": 167.0, "length": 42.0, "depth": 19.0,
+    # Then: "the crank stand doesn't have enough stand in the section perpendicular to the track: move it all back to
+    # elongate that": everything 30 m further back, the end stand 82 m long.
+    {"name": "Millennium Grandstand", "piece": "millennium_stand", "at": [35.05, 72.71], "turn": 167.0, "length": 113.0, "depth": 44.0,
+     "note": "at an angle to the track: its post end 60 m beyond the near rail, its up-course end further back"},
+    {"name": "Rowley stand", "piece": "rowley_wing", "at": [-44.36, 54.38], "turn": 167.0, "length": 42.0, "depth": 19.0,
      "note": "the pavilion stand's first wing, in line with the Millennium"},
-    {"name": "Rowley end stand", "piece": "rowley_end", "at": [-64.82, 40.00], "turn": 90.0, "length": 52.0, "depth": 19.0,
+    {"name": "Rowley end stand", "piece": "rowley_end", "at": [-64.82, 54.83], "turn": 90.0, "length": 81.7, "depth": 19.0,
      "note": "cranked round by the winning line: at right angles to the track, past the post, looking back up the course; the clock cupola, a brick end"},
-    {"name": "Old stand", "piece": "victorian_stand", "x": [115.0, 211.0], "front": 52.0, "note": "his point 3: the older, longer stand up the course from the Millennium; its low wing up the course"},
+    {"name": "Old stand", "piece": "victorian_stand", "x": [115.0, 211.0], "front": 82.0, "note": "his point 3: the older, longer stand up the course from the Millennium; its low wing up the course"},
     {"name": "Judge's kiosk", "piece": "judges_kiosk", "x": [160.0, 163.4], "front": 7.0},
-    {"name": "Small pavilion", "piece": "victorian_pavilion", "x": [232.0, 243.0], "front": 50.0},
+    {"name": "Small pavilion", "piece": "victorian_pavilion", "x": [232.0, 243.0], "front": 80.0},
 ]
 STANDS = {"front": TRACK_W + 14.0, "x": [-170.0, 330.0], "height": 26.0,
           "note": "Interpretive and bigger than life (owner): the Millennium Grandstand's row of wave-shaped canopies, "

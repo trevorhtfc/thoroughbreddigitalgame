@@ -329,7 +329,7 @@ PIECES = [
     # owner's sketch (8 Nov): the pavilion stand cranks round by the winning line: a wing in line with the Millennium,
     # then an end stand at right angles to the track, past the post, looking back up the course
     ("rowley_wing", lambda: rowley_stand(42.0, cupola=False, brick=False)),
-    ("rowley_end", lambda: rowley_stand(52.0)),
+    ("rowley_end", lambda: rowley_stand(81.7)),           # as long as the layout's end stand (draft_layout.STAND_PIECES)
     ("victorian_stand", victorian_stand),
     ("judges_kiosk", judges_kiosk),
     ("victorian_pavilion", victorian_pavilion),

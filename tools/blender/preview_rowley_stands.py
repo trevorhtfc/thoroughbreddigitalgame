@@ -196,8 +196,8 @@ for st in R.STAND_PIECES:
         for _ in range(int((x1 - x0) * (y1 - y0) * 1.5)):
             people.append(to_c(rnd.uniform(x0, x1), rnd.uniform(y0, y1)) + (fz, turn))
 # the lawn between the stands and the rail
-for _ in range(int(560 * 34 * 0.3)):                                  # the lawns in front of the stands, down to the rail
-    x, z = rnd.uniform(-60, 500), rnd.uniform(W + 2, W + 36)
+for _ in range(int(560 * 64 * 0.25)):                                 # the lawns in front of the stands, down to the rail
+    x, z = rnd.uniform(-60, 500), rnd.uniform(W + 2, W + 66)
     if not any(q.contains_point((x, z)) for q in nogo):
         people.append((x, z, 0.0, 180.0))
 cr = load("assets/models/architecture/crowd_set_8.glb")
@@ -229,7 +229,7 @@ trunks = [bpy.data.objects.new(k + "_t", tr[k + "_trunk"].data) for k in kinds]
 bark = flat("bark", "#7a6650"); [o.data.materials.__setitem__(0, bark) for o in trunks]
 T = []
 for x in np.arange(-130, 520, 11):                                    # behind the stands, clear of their backs
-    back = 112.0 if x < 105 else 78.0
+    back = 142.0 if x < 105 else 108.0
     T.append((x + rnd.uniform(-3, 3), W + rnd.uniform(back, back + 16), rnd.randrange(5), rnd.uniform(1.9, 2.5)))
 for x in np.arange(-200, 900, 16):                                    # across the heath beyond the far rail
     T.append((x + rnd.uniform(-5, 5), -rnd.uniform(70, 140), rnd.randrange(5), rnd.uniform(1.4, 2.2)))
@@ -251,12 +251,12 @@ to_sun = Vector((0.55, -0.8, 0.0)).normalized() * math.cos(math.radians(32)) + V
 sun.rotation_euler = (-to_sun).to_track_quat("-Z", "Y").to_euler()
 
 CAMS = {   # course (x, z, height) from and to, lens
-    "across": ((30.0, -3.0, 6.0), (30.0, 95.0, 20.0), 20),            # from the far rail, at the Millennium
-    "across_up": ((165.0, -3.0, 6.0), (160.0, 90.0, 12.0), 22),      # at the old stand
-    "post": ((70.0, 8.0, 8.0), (-60.0, 52.0, 12.0), 24),             # from the track before the line, at the end stand
+    "across": ((30.0, -3.0, 6.0), (30.0, 125.0, 24.0), 20),            # from the far rail, at the Millennium
+    "across_up": ((165.0, -3.0, 6.0), (160.0, 120.0, 12.0), 22),      # at the old stand
+    "post": ((70.0, 8.0, 8.0), (-60.0, 70.0, 12.0), 24),             # from the track before the line, at the end stand
     "track": ((-40.0, 10.0, 9.0), (150.0, 75.0, 16.0), 28),          # up the straight from just past the post
     "aerial": ((60.0, -190.0, 160.0), (60.0, 60.0, 0.0), 26),        # high over the far side
-    "plan": ((65.0, 60.0, 500.0), (65.0, 60.0001, 0.0), 0),          # straight down (orthographic), to mark up
+    "plan": ((65.0, 85.0, 500.0), (65.0, 85.0001, 0.0), 0),          # straight down (orthographic), to mark up
 }
 scene.render.engine = "CYCLES"; scene.cycles.device = "CPU"; scene.cycles.samples = SAMPLES; scene.cycles.use_denoising = True
 scene.cycles.max_bounces = 4
