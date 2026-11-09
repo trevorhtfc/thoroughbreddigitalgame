@@ -344,6 +344,7 @@ CAMS = {   # course (x, z, height) from and to, lens
     "upcourse": ((-55.0, 14.0, 24.0), (700.0, 0.0, 0.0), 30),          # from the cranked stand, up the course
     "farside": ((60.0, 75.0, 22.0), (60.0, -45.0, 0.0), 24),           # from the Millennium across to the far side
     "paddock": ((40.0, 330.0, 90.0), (40.0, 140.0, 0.0), 28),          # over the paddock behind the stands
+    "balloons": ((300.0, 8.0, 5.0), (345.0, 46.0, 5.5), 30),          # the row of balloon pods up the course
 }
 scene.render.engine = "CYCLES"; scene.cycles.device = "CPU"; scene.cycles.samples = SAMPLES; scene.cycles.use_denoising = True
 scene.cycles.max_bounces = 4
