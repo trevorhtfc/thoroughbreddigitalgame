@@ -113,7 +113,9 @@ let post = null;
 function makePost(renderer) {
   const depth = new THREE.DepthTexture(1, 1, THREE.UnsignedInt248Type);
   depth.format = THREE.DepthStencilFormat;
-  const rt = new THREE.WebGLRenderTarget(1, 1, { type: THREE.HalfFloatType, samples: 0, depthBuffer: true, stencilBuffer: true, depthTexture: depth });
+  // smoothed edges as the game's own picture has them (the game asks the browser for them on the screen; drawn into an
+  // off-screen picture they must be asked for here, or every rail, roof line and figure comes out jagged)
+  const rt = new THREE.WebGLRenderTarget(1, 1, { type: THREE.HalfFloatType, samples: C.samples(), depthBuffer: true, stencilBuffer: true, depthTexture: depth });
   const mat = new THREE.ShaderMaterial({
     uniforms: {
       tColor: { value: rt.texture }, tDepth: { value: depth }, res: { value: new THREE.Vector2(1, 1) },
@@ -277,6 +279,7 @@ let fogBase = null;
 export function render(renderer, scene, camera) {
   if (!post) post = makePost(renderer);
   renderer.getDrawingBufferSize(_sz);
+  if (post.rt.samples !== C.samples()) { post.rt.dispose(); post.rt.samples = C.samples(); }
   if (post.rt.width !== _sz.x || post.rt.height !== _sz.y) post.rt.setSize(_sz.x, _sz.y);
   const u = post.mat.uniforms;
   u.res.value.copy(_sz); u.near.value = camera.near; u.far.value = camera.far;

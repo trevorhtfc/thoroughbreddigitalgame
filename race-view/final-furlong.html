@@ -2874,6 +2874,7 @@ function frame() {
 if (MINI) MINI.init({
   renderer, scene, sun, hemi: sky, sunOffset: SUN_OFFSET, lanes: () => LANES_U, catcher: () => shadowCatcher,
   shadowType: () => (QUALITY[qLevel].soft ? THREE.PCFSoftShadowMap : THREE.PCFShadowMap),
+  samples: () => (renderer.capabilities.isWebGL2 ? Math.max(QUALITY[qLevel].samples, renderer.getContextAttributes().antialias ? 4 : 0) : 0),
   recompile: () => scene.traverse((o) => { if (o.material) [].concat(o.material).forEach((m) => (m.needsUpdate = true)); }),
   crowdPalette: (on) => { for (const F of CROWD.figs) if (F.colsMini) F.cols = on ? F.colsMini : F.colsBase; CROWD.sig = ""; },
   redraw: () => { if (params.has("still") && window.__ready) { stillFrames = 0; window.__ready = false; requestAnimationFrame(frame); } },
