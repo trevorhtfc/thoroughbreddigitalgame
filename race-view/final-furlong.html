@@ -772,7 +772,35 @@ function distToRails(x, z) {
 const GROUND_FIRST = LEGACY_GROUND ? {} : { stencilWrite: true, stencilRef: 1, stencilFunc: THREE.AlwaysStencilFunc, stencilZPass: THREE.ReplaceStencilOp };
 const GROUND_UNDER = LEGACY_GROUND ? { depthWrite: false } : { stencilWrite: true, stencilRef: 1, stencilFunc: THREE.NotEqualStencilFunc, stencilZPass: THREE.ReplaceStencilOp };
 // the ground's look: the graphic style tests (looks.js) and the miniature test (miniature.js), when asked for
-const turfLook = (m, which) => { m = LOOKS.patchGround(m, which); return MINI && which === "turf" ? MINI.patchTurf(m) : m; };
+const turfLook = (m, which) => { m = groundLight(LOOKS.patchGround(m, which)); return MINI && which === "turf" ? MINI.patchTurf(m) : m; };
+// The ground's light from the buildings, baked once in Blender for a course drawn live (Newmarket: the view file's
+// groundLight, tools/blender/bake_newmarket_ground.py): the soft shadows of the stands, marquees and walls on the lawns
+// and the shade at their feet, in the model look's light. The ground colour is multiplied by it inside its area.
+let groundLightTex = null;
+function groundLight(mat) {
+  const GL = VIEW.groundLight;
+  if (!GL || params.get("light") === "before") return mat;
+  if (!groundLightTex) {
+    groundLightTex = texLoader.load("assets/course/" + GL.map);
+    groundLightTex.flipY = false; groundLightTex.colorSpace = THREE.SRGBColorSpace; groundLightTex.anisotropy = 8;
+  }
+  const prev = mat.onBeforeCompile, prevKey = mat.customProgramCacheKey;
+  mat.onBeforeCompile = (sh, r) => {
+    if (prev) prev(sh, r);
+    sh.uniforms.glMap = { value: groundLightTex };
+    sh.uniforms.glArea = { value: new THREE.Vector4(...GL.area) };
+    sh.vertexShader = sh.vertexShader
+      .replace("#include <common>", "#include <common>\nvarying vec2 vGlW;")
+      .replace("#include <fog_vertex>", "#include <fog_vertex>\n{ vGlW = (modelMatrix * vec4(transformed, 1.0)).xz; }");
+    sh.fragmentShader = sh.fragmentShader
+      .replace("#include <common>", "#include <common>\nuniform sampler2D glMap; uniform vec4 glArea; varying vec2 vGlW;")
+      .replace("#include <color_fragment>", `#include <color_fragment>
+        { vec2 uv = (vGlW - glArea.xy) / (glArea.zw - glArea.xy);
+          if (uv.x > 0.0 && uv.x < 1.0 && uv.y > 0.0 && uv.y < 1.0) diffuseColor.rgb *= texture2D(glMap, uv).rgb; }`);
+  };
+  mat.customProgramCacheKey = () => (prevKey ? prevKey.call(mat) : "") + "|ground-light";
+  return mat;
+}
 const LANES_U = [];      // the mown stripes' settings, kept so the miniature test can soften them live
 function lanesMaterial(mat) {
   const L = VIEW.lanes;
@@ -1435,7 +1463,7 @@ function placeScenery(SC, models, treeLib, belts) {
       const g = new THREE.ShapeGeometry(new THREE.Shape(pts.map(([x, z]) => new THREE.Vector2(x, -z)))).rotateX(-Math.PI / 2).translate(0, y, 0);
       return GROUND ? drape(TESSELLATE.modify(g.toNonIndexed())) : g;          // cut fine, so it follows the ground
     });
-    const m = new THREE.Mesh(mergeGeometries(geos), groundDetail(new THREE.MeshBasicMaterial({ color: colour, polygonOffset: true, polygonOffsetFactor: -1, polygonOffsetUnits: -2 }), 0.15));
+    const m = new THREE.Mesh(mergeGeometries(geos), groundLight(groundDetail(new THREE.MeshBasicMaterial({ color: colour, polygonOffset: true, polygonOffsetFactor: -1, polygonOffsetUnits: -2 }), 0.15)));
     m.renderOrder = -1; scene.add(m); LAYERS.ground.push(m);
   }
   // grassy banks: rows of points across each bank, shaded by their slope towards the sun (the flat matches the grass)
