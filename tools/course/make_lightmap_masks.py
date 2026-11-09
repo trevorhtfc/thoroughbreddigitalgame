@@ -12,6 +12,7 @@ Reads assets/models/baked/static_world.glb and bake.json; writes race-view/asset
 import os, json, struct
 import numpy as np
 from PIL import Image, ImageDraw
+from scipy.ndimage import binary_erosion, label
 
 REPO = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
 SRC = os.path.join(REPO, "assets", "models", "baked")
@@ -59,10 +60,19 @@ def mesh_tris(name_ok):
     return np.concatenate(out) if out else np.zeros((0, 3, 2))
 
 
-def draw(tris, size, path):
+def draw(tris, size, path, light):
     im = Image.new("L", (size, size), 0); d = ImageDraw.Draw(im)
     for t in tris:
         d.polygon([(u * size, v * size) for u, v in t], fill=255)       # glTF UVs: v down from the image top
+    # Drawn polygons take in every pixel their edges touch, a pixel wider than the bake filled (its gutters are black):
+    # shrink by a pixel, so the smoother (which grows the mask by one again) fills those edges from the island.
+    full = np.asarray(im) > 127
+    m = binary_erosion(full, iterations=1)
+    lab, n = label(full)                                  # islands too thin to survive the shrink are kept as drawn
+    left = np.bincount(lab[m], minlength=n + 1)
+    lit = np.asarray(Image.open(os.path.join(SRC, light)).convert("RGB")).max(-1) > 2    # (their black edge pixels left out)
+    m |= full & (left[lab] == 0) & lit
+    im = Image.fromarray((m * 255).astype(np.uint8))
     im.save(path)
     print("wrote", path, len(tris), "triangles", flush=True)
 
@@ -71,6 +81,5 @@ def size_of(img):
     return Image.open(os.path.join(SRC, img)).size[0]
 
 
-draw(mesh_tris(lambda n: n == B["stand"]["mesh"]), size_of(B["stand"]["lightMap"]), os.path.join(RAW, "stand_mask.png"))
-draw(mesh_tris(lambda n: n == B["finish"]["mesh"]), size_of(B["finish"]["lightMap"]), os.path.join(RAW, "finish_mask.png"))
-draw(mesh_tris(lambda n: n.startswith("kit_")), size_of(B["site"]["lightMap"]), os.path.join(RAW, "site_mask.png"))
+for key, ok in (("stand", lambda n: n == B["stand"]["mesh"]), ("finish", lambda n: n == B["finish"]["mesh"]), ("site", lambda n: n.startswith("kit_"))):
+    draw(mesh_tris(ok), size_of(B[key]["lightMap"]), os.path.join(RAW, key + "_mask.png"), B[key]["lightMap"])
