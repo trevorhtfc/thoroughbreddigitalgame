@@ -144,10 +144,10 @@ class Fig:
                 j = (i + 1) % n
                 self.F((a[i], a[j], b[j], b[i]), mat)
 
-    def limb(self, pts, radii, n, mat):
+    def limb(self, pts, radii, n, mat, ends=2):
         """Shoulder - elbow - hand as overlapping rolls: the round ends make soft joints."""
         for k in range(len(pts) - 1):
-            self.roll(pts[k], pts[k + 1], radii[k], radii[k + 1], n, mat)
+            self.roll(pts[k], pts[k + 1], radii[k], radii[k + 1], n, mat, ends=ends)
 
     def pillow(self, surf, z0, z1, w, mat, thick=0.007, rows=7, cols=6):
         """A pressed-on panel of clay on the front of a body (the waistcoat): a V from a rounded tip at z0 to
@@ -198,7 +198,7 @@ class Fig:
 
 
 # ---------------------------------------------------------------------------------------- hats
-def hat(F, kind, z, n, s=1.0, tall=1.0, wide=1.0, brim=1.0):
+def hat(F, kind, z, n, s=1.0, tall=1.0, wide=1.0, brim=1.0, lite=False):
     """A hat sitting on a head whose crown is near z. Every edge is rounded (a clay hat has no knife edges).
     brim scales the brim's thickness. Hat in fig_hat, band in fig_trim."""
     H, T = "fig_hat", "fig_trim"
@@ -212,14 +212,18 @@ def hat(F, kind, z, n, s=1.0, tall=1.0, wide=1.0, brim=1.0):
                  (-0.016 - t - droop, rb - e, (rb - e) * ey), (-0.016 - e - droop, rb, rb * ey),
                  (-0.016 - droop, rb - e, (rb - e) * ey), (-0.016 + 0.002 - droop * 0.6, (rc + rb) / 2, (rc + rb) / 2 * ey),
                  (-0.013, rc * 1.04, rc * 1.04 * ey)]
-        mats = [H] * 7
+        if lite:   # far off: a plain brim (under, rim, top), no rounded edge or mid rings
+            rings = [rings[0], rings[1], (-0.016 - t * 0.5 - droop, rb, rb * ey), rings[-1]]
+        mats = [H] * (len(rings) - 1)
+        if lite and len(crown) > 4:   # the crown's band and its rounded top only
+            crown = [crown[0], crown[1], crown[-2], crown[-1]]
         for zc, rr, m in crown:
             rings.append((zc, rr, rr * ey)); mats.append(m)
         F.push(Matrix.Translation((0, cy, 0)))
         F.lathe(rings, n, mats)
         F.pop()
     if kind in ("wide", "picture"):
-        n = int(n * 1.5)                               # big brims need more sides to stay round
+        n = int(n * (1.25 if lite else 1.5))                               # big brims need more sides to stay round
     F.push(Matrix.Translation((0, 0, z)))
     if kind == "top":
         rb, rc, hc = 0.165 * s * wide, 0.096 * s, 0.19 * s * tall
@@ -264,14 +268,15 @@ def clay_figure(var, style):
     """One of the ten 1C people. style 'smooth' keeps 1C's proportions; 'plasticine' pushes them to clay."""
     P = style == "plasticine"
     far = var.get("_far", False)
-    n = 8 if far else (12 if not P else 14)        # sides on the body and dress
-    nl = 5 if far else 8                           # sides on limbs
+    # (plasticine trimmed for the game, 9 Nov 2026: 11 sides on the body, 7 on limbs, fewer rings)
+    n = 6 if far else (12 if not P else 10)        # sides on the body and dress
+    nl = 4 if far else (8 if not P else 6)         # sides on limbs
     F = Fig(n)
     lady = var["lady"]
     tilt = var.get("tilt", (0.0, 0.0))
     limb_k = 1.22 if P else 1.0                    # chunkier rolled limbs
     head_k = 1.1 if P else 1.0
-    per = 1 if far else (2 if not P else 3)
+    per = 1 if far else 2
 
     if not lady:
         # trousered legs, rolled from the shoe to the hip
@@ -299,7 +304,7 @@ def clay_figure(var, style):
         if not far:
             F.pillow(surf, 1.25, 1.43, 0.068, "fig_trim", thick=0.007 if not P else 0.01)
         # a rolled coat collar round the base of the neck: hides the join and softens the shoulders
-        F.ring(1.5 if not P else 1.49, 0.058, 0.05, 0.024 if not P else 0.028, n, "fig_main", m=6 if not far else 4, cy=-0.004)
+        if not far: F.ring(1.5 if not P else 1.49, 0.058, 0.05, 0.024 if not P else 0.028, n, "fig_main", m=(5 if P else 6) if not far else 4, cy=-0.004)
         if var["hat"] == "top":                    # morning coat: two soft rolled tails behind, to the knee
             for sx in (-1, 1):
                 F.roll((sx * 0.07, -0.085, 0.95), (sx * 0.085, -0.11, 0.52), 0.052, 0.044, nl, "fig_main", flat=1.25, ends=1)
@@ -322,12 +327,13 @@ def clay_figure(var, style):
         F.lathe([(hem + 0.005, 0, 0)] + body, n, ["fig_main"] + mats, cap1=True)
         if hem > 0:                                # stockinged legs and little shoes below a shorter dress
             for sx in (-1, 1):
-                F.roll((sx * 0.07, 0.0, 0.06), (sx * 0.072, 0.0, hem + 0.06), 0.034 * limb_k, 0.042 * limb_k, nl - 2, "fig_skin", ends=1)
-                F.egg((sx * 0.07, 0.03, 0.035), 0.042 * limb_k, 0.075, 0.035, nl - 2, 2, "fig_hair")
+                F.roll((sx * 0.07, 0.0, 0.06), (sx * 0.072, 0.0, hem + 0.06), 0.034 * limb_k, 0.042 * limb_k, max(4, nl - 2), "fig_skin", ends=1)
+                F.egg((sx * 0.07, 0.03, 0.035), 0.042 * limb_k, 0.075, 0.035, max(4, nl - 2), 2, "fig_hair")
         top = 1.45
 
-    if not far:
-        # arms: tapered rolls from inside the shoulder to a round elbow and a mitten hand
+    if True:
+        # arms: tapered rolls from inside the shoulder to a round elbow and a mitten hand (far off: plain
+        # four-sided rolls and a small hand, no cuff, card or bag, so a figure keeps its pose as it changes over)
         k = 0.88 if lady else 1.0
         sh = (0.165 if lady else 0.185, 1.33 if lady else 1.375)
         if P: sh = (sh[0] - 0.018, sh[1] - 0.025)
@@ -343,17 +349,20 @@ def clay_figure(var, style):
             if pose == "clasp":
                 pts[-1] = (side * 0.04, pts[-1][1], pts[-1][2])
             r = [0.056 * k * limb_k, 0.046 * k * limb_k, 0.04 * k * limb_k]
-            F.limb(pts, r, nl, "fig_main")
+            F.limb(pts, r, nl, "fig_main", ends=0 if far else (1 if P else 2))
             # the mitten hand, just past the cuff, along the forearm
             e, h = Vector(pts[-2]), Vector(pts[-1])
             hd = (h - e).normalized()
             hc = h + hd * 0.035
+            if far:
+                F.egg(tuple(h + hd * 0.03), 0.036 * k * limb_k, 0.036 * k * limb_k, 0.04 * k, nl, 1, "fig_skin")
+                continue
             # a rolled cuff at the end of the sleeve: the hand comes out of it cleanly (no ragged join)
             F.push(Matrix.Translation(h + hd * 0.008) @ hd.to_track_quat("Z", "Y").to_matrix().to_4x4())
-            F.ring(0.0, r[-1] * 0.82, r[-1] * 0.82, r[-1] * 0.42, nl, "fig_main", m=5)
+            F.ring(0.0, r[-1] * 0.82, r[-1] * 0.82, r[-1] * 0.42, nl, "fig_main", m=4 if P else 5)
             F.pop()
             F.push(Matrix.Translation(hc) @ hd.to_track_quat("Z", "Y").to_matrix().to_4x4())
-            F.egg((0, 0, 0), 0.036 * k * limb_k, 0.032 * k * limb_k, 0.043 * k * (1.1 if P else 1.0), nl, 4, "fig_skin")
+            F.egg((0, 0, 0), 0.036 * k * limb_k, 0.032 * k * limb_k, 0.043 * k * (1.1 if P else 1.0), nl, 3 if P else 4, "fig_skin")
             F.pop()
             if pose == "card":                   # a race card, its corners soft
                 F.push(Matrix.Translation((hc.x + side * 0.01, hc.y + 0.03, hc.z + 0.07)) @ Matrix.Rotation(-0.5, 4, "X"))
@@ -366,12 +375,12 @@ def clay_figure(var, style):
     F.roll((0, 0, top - 0.05), (0, 0, top + 0.07), 0.046 * (1.12 if P else 1.0), 0.044 * (1.12 if P else 1.0), nl, "fig_skin", ends=1)
     F.push(Matrix.Translation((0, 0, top + 0.035)) @ Matrix.Rotation(tilt[0], 4, "X") @ Matrix.Rotation(tilt[1], 4, "Y"))
     hr = (0.094 if lady else 0.1) * head_k
-    F.egg((0, 0.005, 0.1 * head_k), hr, 0.104 * head_k, 0.115 * head_k, n, 6 if not far else 4, "fig_skin")
+    F.egg((0, 0.005, 0.1 * head_k), hr, 0.104 * head_k, 0.115 * head_k, n + (1 if P else 0), (5 if P else 6) if not far else 3, "fig_skin")
     if lady:
         F.egg((0, -0.075 * head_k, 0.135 * head_k), 0.07, 0.06, 0.06, nl, 3, "fig_hair")      # hair up in a bun
         F.egg((0, -0.02, 0.15 * head_k), hr * 1.02, 0.1 * head_k, 0.085 * head_k, n, 4, "fig_hair")  # hair over the crown
     hat(F, var["hat"], 0.185 * head_k + (0.012 if P else 0.0), n, s=(0.94 if lady else 1.0) * (1.05 if P else 1.0),
-        tall=1.18, wide=var.get("wide", 1.22 if lady else 1.04), brim=1.6 if P else 1.0)
+        tall=1.18, wide=var.get("wide", 1.22 if lady else 1.04), brim=1.6 if P else 1.0, lite=far)
     F.pop()
     F.finish(lump=(0.0035 if P and not far else 0.0), seed=var.get("seed", 1))
     return F

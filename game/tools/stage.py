@@ -39,7 +39,8 @@ for f in ["ascot.json", "ascot-view.json", "ascot-stalls.json", "ascot-standards
           "starting_stalls.json", "starting_stalls-geometry.txt", "starting_stalls_kit.json", "turf_detail.png"]:
     add(A / "course" / f, "assets/course/" + f)
 for f in ["ascot_main_stand_crowd_areas.json", "crowd_palette.json", "crowd_people.json", "crowd_people-geometry.txt", "site_props_spots.json",
-          "crowd_set_8.json", "crowd_set_8-geometry.txt"]:
+          "crowd_set_8.json", "crowd_set_8-geometry.txt",
+          "crowd_set_10.json", "crowd_set_10-geometry.txt", "crowd_set_10_far.json", "crowd_set_10_far-geometry.txt"]:
     add(A / "architecture" / f, "assets/architecture/" + f)
 # the 3D silks and their icons: every set but the pattern catalogue's test swatches
 for d in ["silks-3d", "silks-3d-v2", "silks-icons"]:

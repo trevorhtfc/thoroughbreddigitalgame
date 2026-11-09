@@ -37,36 +37,36 @@
   "10": {
    "style": "plasticine",
    "figures": {
-    "gent_00_top": 2488,
-    "gent_01_top": 2520,
-    "gent_02_boater": 2332,
-    "gent_03_bowler": 2360,
-    "gent_04_trilby": 2392,
-    "lady_05_wide": 2520,
-    "lady_06_picture": 2664,
-    "lady_07_fascinator": 2180,
-    "lady_08_cloche": 2460,
-    "lady_09_boater": 2352
+    "gent_00_top": 1526,
+    "gent_01_top": 1558,
+    "gent_02_boater": 1410,
+    "gent_03_bowler": 1430,
+    "gent_04_trilby": 1462,
+    "lady_05_wide": 1454,
+    "lady_06_picture": 1550,
+    "lady_07_fascinator": 1234,
+    "lady_08_cloche": 1406,
+    "lady_09_boater": 1334
    },
-   "mean": 2427,
-   "max": 2664
+   "mean": 1436,
+   "max": 1558
   },
   "10_far": {
    "style": "plasticine (far)",
    "figures": {
-    "gent_00_top": 704,
-    "gent_01_top": 704,
-    "gent_02_boater": 608,
-    "gent_03_bowler": 624,
-    "gent_04_trilby": 624,
-    "lady_05_wide": 678,
-    "lady_06_picture": 750,
-    "lady_07_fascinator": 498,
-    "lady_08_cloche": 606,
-    "lady_09_boater": 582
+    "gent_00_top": 482,
+    "gent_01_top": 482,
+    "gent_02_boater": 418,
+    "gent_03_bowler": 418,
+    "gent_04_trilby": 418,
+    "lady_05_wide": 454,
+    "lady_06_picture": 550,
+    "lady_07_fascinator": 478,
+    "lady_08_cloche": 574,
+    "lady_09_boater": 442
    },
-   "mean": 638,
-   "max": 750
+   "mean": 472,
+   "max": 574
   }
  },
  "_about": "Crowd figure options: triangles per figure (build_crowd_figure_sets.py; 9 and 10 from build_crowd_clay.py)."
