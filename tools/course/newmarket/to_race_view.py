@@ -462,8 +462,25 @@ def july_scenery(course):
 
 
 # ------------------------------------------------------------------------------------------------ cameras and races
+def model_light(sun):
+    """The model look (owner's concept stills, 9 Nov 2026; owner: "start applying this to Newmarket as well"): Ascot's light
+    (ascot-view.json -> light, the one its scenery is baked under), with this course's own sun direction raised to the
+    look's higher sun (twice the height, so shadows half as long)."""
+    light = dict(json.load(open(OUT / "ascot-view.json"))["light"])
+    light["sunDir"] = [sun[0], round(sun[1] * 2.1, 1), sun[2]]
+    light["_about"] = "As Ascot's (courses/ascot-view.json -> light), with this course's sun raised. " + light.get("_about", "")
+    return light
+
+
+def ascot_ground():
+    """Ascot's lawn and turf colours as baked (race-view/assets/baked/bake.json), so the courses read as one game."""
+    g = json.load(open(REPO / "race-view/assets/baked/bake.json"))["ground"]
+    return g["outside"], g["turf"]
+
+
 def view_file(cid, L, course, stalls, stands_side, cams, prelude, postlude, director=None):
     W = L.TRACK_W
+    sun = cams["_sun"]
     races = {"_about": "The races the view can show, one for every start in %s-stalls.json. course: 'straight' (no bend) or 'round' "
                        "(down the leg and round the bend into the straight); distance in metres; start: the key in the stalls file." % cid}
     for k, st in stalls["starts"].items():
@@ -474,7 +491,7 @@ def view_file(cid, L, course, stalls, stands_side, cams, prelude, postlude, dire
                   "(change the script). World axes as %s.json." % (course["name"], cid),
         "homeStraight": {"runTowards": [-1, 0], "centreZ": W / 2, "standSide": stands_side},
         "scenery": "%s-scenery.json" % cid,
-        "ground": {"outside": [0.5194, 0.5856, 0.2693], "turf": [0.199, 0.3713, 0.0748], "bank": [0.44, 0.53, 0.22],
+        "ground": {"outside": ascot_ground()[0], "turf": ascot_ground()[1], "bank": [0.44, 0.53, 0.22],
                    "bankRamp": [[h, lin(c)] for h, c in ((0.0, "#bcc98c"), (0.7, "#9fb676"), (1.7, "#6f8a4a"), (3.2, "#7d8c50"),
                                                           (4.3, "#a39a60"), (5.2, "#b5a66c"))],
                    "bankMottle": 0.08,
@@ -483,6 +500,7 @@ def view_file(cid, L, course, stalls, stands_side, cams, prelude, postlude, dire
                           "note": "soft mown lanes along the straight, 3.75 m wide, as Ascot's"},
         "treeDetail": {"centre": [150, W / 2], "nearRadius": 420},
         "sun": cams.pop("_sun"),
+        "light": model_light(sun),
         "races": races,
         "raceCameras": cams,
         "cameraMenu": {"straight": [["drone_straight", "Drone"], ["track_straight", "Tracking"], ["headon", "Head-on"], ["grandstand", "Stand"]],
