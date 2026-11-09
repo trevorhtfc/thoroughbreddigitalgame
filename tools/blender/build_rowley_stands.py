@@ -36,7 +36,7 @@ bpy.ops.wm.read_factory_settings(use_empty=True)
 exec(open(rp("tools/blender/kit.py")).read())
 
 COL = {   # the pastel-street palette, as the July Course's pieces
-    "white": "#f6f2ea", "cream": "#efe3cd", "glass": "#3f3a4d", "trim": "#f7efe2", "seat": "#9dbfa6", "concrete": "#e6d9c4",
+    "white": "#f6f2ea", "cream": "#efe3cd", "glass": "#3f3a4d", "trim": "#f7efe2", "seat": "#e4d9c4", "concrete": "#e6d9c4",
     "fascia": "#e8b29b", "mast": "#f3f0ea", "brick": "#dc9c86", "slate": "#8f95a8", "roof": "#b4aaa2", "canvas": "#fbf8f1",
     "door": "#7f9f8c", "green": "#93b89e", "iron": "#5b6273", "bench": "#857f96",
     # Ascot's heritage palette, as the finish study (stand_clean_study.py): cream walls, a warmer stone for the base and
@@ -175,14 +175,13 @@ def millennium_stand(n=4, bay=28.0, D=42.4):
     #    (owner, 9 Nov evening: the top row of windows becomes another balcony)
     zA, zB = 6.25, 11.55                                              # the wing's standing terrace and roof terrace
     BAL = [zB, 16.2, 20.85]                                           # balcony floors; the last is the top roof slab
-    zTop = BAL[-1] + 1.2
-    K.box("wall", -h, h, yf, D, -1.0, zTop)
+    zTop = BAL[-1]                                                    # the block's flat roof: a roof terrace (9 Nov late)
+    K.box("wall", -h, h, yf, D, -1.0, zTop - 0.35)
     for k in range(int(L // 4.0)):                                    # dark doors from the tiers into the block
         x = -h + 2.0 + k * 4.0
         K.door(x, yf, zA + 2.45, 1.3, 2.0)
         for zb_ in BAL[:-1]:
             K.door(x, yf, zb_ + 1.45, 1.3, 2.0)
-    K.cornice(-h, h, yf - 0.1, D, zTop, ov=0.6, h=0.6)
     for x, f in ((-h, -1), (h, 1)):                                   # the ends: windows in the cream
         for zz in [zA + 1.0] + [zb_ + 1.0 for zb_ in BAL[:-1]]:
             for y in (yf + 4.0, yf + 8.0, D - 4.0):
@@ -230,8 +229,25 @@ def millennium_stand(n=4, bay=28.0, D=42.4):
         for x in (-h - 0.15, h + 0.15):
             K.balustrade(yB - 0.15, yf, x, zb_, h=1.0, mat="trim", spacing=0.3, axis="y", piers=False)
     zC = BAL[-1]
-    K.box("concrete", -h - 0.3, h + 0.3, yB - 0.5, yf, zC - 0.35, zC)                  # the top roof slab
+    K.box("concrete", -h - 0.3, h + 0.3, yB - 0.5, D, zC - 0.35, zC)                   # the top slab: the roof terrace
     K.box("trim", -h - 0.35, h + 0.35, yB - 0.6, yB - 0.3, zC - 0.75, zC)              # a deep white fascia
+    # the roof terrace (owner, 9 Nov late, his section): a balustrade along its front and ends, a crowd on it, and a
+    # pavilion box at the rear of the roof under the barrels
+    K.balustrade(-h - 0.15, h + 0.15, yB - 0.35, zC, h=1.05, mat="trim", spacing=0.3, piers=True)
+    for x in (-h - 0.15, h + 0.15):
+        K.balustrade(yB - 0.35, D, x, zC, h=1.05, mat="trim", spacing=0.3, axis="y", piers=True)
+    yP = D - 9.0
+    area(-h + 0.6, h - 0.6, yB + 0.2, yP - 1.0, zC)
+    px0, px1 = -h + 6.0, h - 6.0
+    K.box("wall", px0, px1, yP, D - 0.3, zC, zC + 3.6)
+    for k in range(int((px1 - px0) // 3.5)):
+        x = px0 + 1.75 + k * 3.5
+        if k % 4 == 1:
+            K.door(x, yP, zC, 1.4, 2.5)
+        else:
+            win(x, yP, zC + 0.7, 1.8, 2.2)
+    K.box("trim", px0 - 0.4, px1 + 0.4, yP - 1.2, D, zC + 3.6, zC + 3.9)               # its flat roof, a canopy in front
+    K.box("trim", px0 - 0.45, px1 + 0.45, yP - 1.25, yP - 1.0, zC + 3.3, zC + 3.9)
     # -- the posts (the sketch's orange): from the lawn terrace up through tier A and every balcony to the top slab,
     #    with brackets under each slab
     yp = yB + 0.15
@@ -243,7 +259,7 @@ def millennium_stand(n=4, bay=28.0, D=42.4):
         brackets(xp, yp - 0.05, yp + 0.05, zB - 0.35)
     # -- the barrel canopies, lifted clear of the block on posts (3 m, then another 3 m: owner, 9 Nov evening),
     #    reaching out over the terraces
-    zS = zTop + 6.0
+    zS = zTop + 7.2                                                   # as before: 6 m clear of the old parapet line
     y0c, y1c = 4.0, D + 2.0
     def fz(x, y, xc):
         t = min(max((x - (xc - bay / 2)) / bay, 0.0), 1.0)
@@ -287,7 +303,7 @@ def millennium_stand(n=4, bay=28.0, D=42.4):
     for j in range(n + 1):
         x = -h + bay * j
         mz, my = zS + 18.0, yf + (D - yf) * 0.45
-        K.cyl("ironwork", x, my, zTop, mz, 0.45, 0.3, segs=10)
+        K.cyl("white", x, my, zTop, mz, 0.45, 0.3, segs=10)            # white-cream, not green (9 Nov late)
         K.sphere("gilt", x, my, mz + 0.35, 0.55, sub=1)
         for s_ in (-1, 1):
             for f_ in (0.22, 0.42):
@@ -296,7 +312,7 @@ def millennium_stand(n=4, bay=28.0, D=42.4):
                     if not (-h <= xe <= h):
                         continue
                     xc = -h + bay * (math.floor((xe + h) / bay) + 0.5)
-                    strut("ironwork", (x, my, mz), (xe, ye, fz(xe, ye, xc) + 0.2), 0.06)
+                    strut("white", (x, my, mz), (xe, ye, fz(xe, ye, xc) + 0.2), 0.06)
     return {"width": L + 1.0, "depth": D + 2.0, "height": round(zS + 18.6, 2)}
 
 

@@ -342,11 +342,13 @@ trunks = [bpy.data.objects.new(k + "_t", tr[k + "_trunk"].data) for k in kinds]
 bark = flat("bark", "#7a6650"); [o.data.materials.__setitem__(0, bark) for o in trunks]
 T = []
 # (no small trees in the hedge gaps any more: owner, 9 Nov, no trees in front of the stands)
-for x in np.arange(-130, 760, 11):                                    # behind the stands, clear of their backs
+for x in np.arange(-130, 760, 13):                                    # behind the stands, clear of their backs: a thin line
+    if rnd.random() < 0.3: continue
     back = 228.0 if x < 105 else (125.0 if x < 290 else 108.0)   # behind the paddock there (9 Nov)
     T.append((x + rnd.uniform(-3, 3), W + rnd.uniform(back, back + 16), rnd.randrange(5), rnd.uniform(1.9, 2.5)))
 FAR_T = []
-for x in np.arange(-200, 2000, 11):                                   # across the heath beyond the far rail
+for x in np.arange(-200, 2000, 11):                                   # across the heath beyond the far rail: sporadic
+    if rnd.random() > 0.22: continue
     tx = x + rnd.uniform(-5, 5); tz = -(R.BANK["back"] + rnd.uniform(2, 70)) - R.bank_shift(tx)   # just beyond the Dyke
     if not R.in_festival(tx, tz, 6.0): FAR_T.append((tx, tz, rnd.randrange(5), rnd.uniform(1.6, 2.4)))
 scrub_v = sorted([c for c in crowns if c.name.endswith("_3") or c.name.endswith("_2")], key=lambda o: o.name)
@@ -354,12 +356,8 @@ low = [min(v.co.z for v in o.data.vertices) for o in scrub_v]                   
 si = [rnd.randrange(len(scrub_v)) for _ in SCRUB]; ss = [rnd.uniform(0.45, 0.75) for _ in SCRUB]
 instances("scrub", scrub_v, [B(x, z, y + 1.0 - low[i] * s_ - 0.35) for (x, z, y), i, s_ in zip(SCRUB, si, ss)], si,
           [rnd.uniform(0, 6.28) for _ in SCRUB], ss)
-for tb in R.TREE_BELTS:                                                # the owner's belts (9 Nov evening)
-    n_ = int((tb["x"][1] - tb["x"][0]) * (tb["z"][1] - tb["z"][0]) / tb["spacing"] ** 2)
-    for _ in range(n_):
-        tx, tz = rnd.uniform(*tb["x"]), rnd.uniform(*tb["z"])
-        if -6 < tz < W + 6: continue                                     # never on the track
-        T.append((tx, tz, rnd.randrange(5), rnd.uniform(*tb["scale"])))
+for tx, tz, sc_ in R.belt_trees(rnd):                                  # the owner's belts, as thin broken lines (9 Nov late)
+    T.append((tx, tz, rnd.randrange(5), sc_))
 SINK = 4.0                     # the far trees stand sunk (as if in the Dyke's ditch): their tops show over the crest
 T = [(x, z, k, s_, 0.0) for x, z, k, s_ in T] + [(x, z, k, s_, SINK) for x, z, k, s_ in FAR_T]
 instances("crowns", crowns, [B(x, z, -0.2 - sk) for x, z, _, _, sk in T], [k * 4 + rnd.randrange(4) for _, _, k, _, _ in T],

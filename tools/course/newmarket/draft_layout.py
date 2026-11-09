@@ -125,6 +125,26 @@ GRASS_STRIPS = {"x": [3.5 * F + 12.0, 2040.0], "z": [W_ + 8.0, W_ + 260.0], "wid
                 "greens": ["#a9c07f", "#9fb875", "#b2c78b", "#a3bb7a"]}
 
 
+def belt_trees(rnd):
+    """The belts as thin, broken lines (owner, 9 Nov late: "thin lines elsewhere"): one row down the middle of each
+    belt along its longer side, a tree every ~13 m with gaps. [(x, z, scale), ...]"""
+    out = []
+    for tb in TREE_BELTS:
+        (x0, x1), (z0, z1) = tb["x"], tb["z"]
+        along_x = (x1 - x0) >= (z1 - z0)
+        a0, a1 = (x0, x1) if along_x else (z0, z1)
+        mid = (z0 + z1) / 2 if along_x else (x0 + x1) / 2
+        a = a0 + rnd.uniform(0, 6)
+        while a < a1:
+            if rnd.random() > 0.25:
+                j = rnd.uniform(-2.5, 2.5)
+                x, z = (a, mid + j) if along_x else (mid + j, a)
+                if not (-6 < z < TRACK_W + 6):
+                    out.append((x, z, rnd.uniform(*tb["scale"])))
+            a += rnd.uniform(11, 16)
+    return out
+
+
 def grass_strips():
     """Long strips parallel to the track, [z0, z1, colour], seeded."""
     import random as _r
@@ -303,9 +323,9 @@ def trees(rail):
         return True
     d = T["start"]
     while d < T["end"]:
-        d += g.uniform(45, 150)                                  # the gap to the next clump
+        d += g.uniform(110, 280)                                 # the gap to the next clump (9 Nov late: sporadic)
         line = g.random() < 0.35                                 # a tree line along the heath, or a round clump
-        n = int(g.integers(6, 16) if line else g.integers(3, 10))
+        n = int(g.integers(4, 9) if line else g.integers(2, 6))
         depth = g.uniform(T["from"] + 6, T["to"] - 10)
         for _ in range(n):
             dd = d + (g.uniform(-45, 45) if line else g.normal(0, 14))

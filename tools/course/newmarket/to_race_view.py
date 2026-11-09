@@ -226,9 +226,11 @@ def rowley_scenery(course):
     # (no small trees in the hedge gaps: owner, 9 Nov, no trees in front of the stands)
     x = -130.0
     while x < 760:
+        if rnd.random() < 0.3:                                    # a thin, broken line (owner, 9 Nov late)
+            x += 13; continue
         back = 228.0 if x < 105 else (125.0 if x < 290 else 108.0)   # behind the paddock there (9 Nov)
         trees.append([r2(x + rnd.uniform(-3, 3)), r2(W + rnd.uniform(back, back + 16)), rnd.choice(["oak_a", "oak_b", "oak_c", "wide_a", "wide_b"]), r2(rnd.uniform(1.9, 2.5)), rnd.randrange(360)])
-        x += 11
+        x += 13
     # Owner (8 Nov): no gaps where the cameras look. The stand camera and the side-on replay look across to the far side:
     # a belt of tree tops all along beyond the bank, thick opposite the stands. The head-on long lens looks up the
     # straight: a belt of trees across its top, round the bend, and a backdrop beyond the stand-side festival.
@@ -246,15 +248,16 @@ def rowley_scenery(course):
             trees.append([r2(x), r2(z), rnd.choice(kinds), r2(rnd.uniform(*scale)), rnd.randrange(360), 1])
     # (from just behind the bank's crest, so the stand camera's long lens, looking down across the track, sees their tops
     # rising over it: owner, "a gentle bank with tree tops beyond")
-    scatter(-260, 900, -128, -37, 1000, 7.0, [1.5, 2.3])         # tree tops beyond the bank, opposite the stands
-    scatter(900, 2000, -125, -38, 520, 9.0, [1.4, 2.2])          # and on up the straight, a little thinner
-    scatter(2060, 2600, -320, 280, 700, 10.0, [1.8, 2.5], margin=45.0)   # across the top of the straight, round the bend
+    # (owner, 9 Nov late: "lose some density of trees... sporadic behind the dyke and pretty thin lines elsewhere")
+    scatter(-260, 900, -128, -50, 200, 18.0, [1.5, 2.3])         # tree tops beyond the Dyke, opposite the stands: sporadic
+    scatter(900, 2000, -125, -50, 110, 22.0, [1.4, 2.2])         # and on up the straight, sparser still
+    scatter(2060, 2600, -320, 280, 260, 15.0, [1.8, 2.5], margin=45.0)   # across the top of the straight, round the bend
                                                                  # (well back from the leg: the tracking car and the start camera)
-    scatter(700, 2060, W + 70, W + 170, 420, 11.0, [1.6, 2.4])   # beyond the stand-side festival, up the straight
-    scatter(-420, -160, -200, W + 200, 260, 10.0, [1.6, 2.4])   # beyond the run-on, behind the head-on camera's back
-    for tb in R.TREE_BELTS:                                       # the owner's belts (9 Nov evening): behind everything,
-        n = int((tb["x"][1] - tb["x"][0]) * (tb["z"][1] - tb["z"][0]) / tb["spacing"] ** 2 * 1.6)   # the run-out, the elbow
-        scatter(tb["x"][0], tb["x"][1], tb["z"][0], tb["z"][1], n, tb["spacing"], tb["scale"], margin=20.0)
+    scatter(700, 2060, W + 70, W + 170, 130, 18.0, [1.6, 2.4])   # beyond the stand-side festival, up the straight
+    scatter(-420, -160, -200, W + 200, 110, 15.0, [1.6, 2.4])   # beyond the run-on, behind the head-on camera's back
+    for tx, tz, sc_ in R.belt_trees(rnd):                         # the owner's belts as thin broken lines (9 Nov late)
+        if clear(tx, tz, 20.0):
+            trees.append([r2(tx), r2(tz), rnd.choice(["oak_a", "oak_b", "oak_c", "wide_a", "wide_b"]), r2(sc_), rnd.randrange(360), 1])
     # the far bank (owner, 8 Nov: a gentle grassy bank behind the far rail the whole way round)
     fb = course["farBank"]
     prof = [[o, h] for o, h in fb["profileAcross"]] + [[fb["back"] + 30, 0.0]]
