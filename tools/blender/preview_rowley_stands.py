@@ -167,14 +167,15 @@ def dyke():
             a_ = i * n + j; faces.append((a_, a_ + 1, a_ + n + 1, a_ + n))
     me = bpy.data.meshes.new("dyke"); me.from_pydata(verts, [], faces)
     for p_ in me.polygons: p_.use_smooth = True
-    me.materials.append(grass_mat("dyke", "#8b9f63")); ob = bpy.data.objects.new("dyke", me); scene.collection.objects.link(ob)
+    me.materials.append(grass_mat("dyke", "#7d9152")); ob = bpy.data.objects.new("dyke", me); scene.collection.objects.link(ob)
 dyke()
 # scrub along the Dyke's crest (owner, 9 Nov late: it was too smooth and green to read): low dark bushes in clumps
-SCRUB = []
-for x in np.arange(R.BANK["from"] + 20, 2040.0, 7.0):
-    if rnd.random() < 0.55:
-        o = rnd.uniform(R.BANK["crest"][0] - 2, R.BANK["crest"][1] + 4) + R.bank_shift(x)
-        SCRUB.append((x + rnd.uniform(-3, 3), -o, R.bank_h(o - R.bank_shift(x)) - 1.2))
+SCRUB, srnd = [], random.Random(9)
+for x in np.arange(R.BANK["from"] + 20, 2040.0, 3.2):                  # a dense, continuous band along the crest
+    for o in (R.BANK["crest"][0] + 1.0, (R.BANK["crest"][0] + R.BANK["crest"][1]) / 2, R.BANK["crest"][1] - 1.0):
+        if srnd.random() < 0.8:
+            oo = o + srnd.uniform(-1.5, 1.5)
+            SCRUB.append((x + srnd.uniform(-1.6, 1.6), -(oo + R.bank_shift(x)), R.bank_h(oo) - 1.0))
 
 # ---- the Ascot rail on both sides
 rail_m = clayify(flat("rail", "#f4f2ec", 0.5), 0)
@@ -323,7 +324,7 @@ for x in np.arange(-200, 900, 16):                                    # across t
     if not R.in_festival(tx, tz, 6.0): T.append((tx, tz, rnd.randrange(5), rnd.uniform(1.4, 2.2)))
 instances("scrub", [c for c in crowns if c.name.endswith("_3") or c.name.endswith("_2")],
           [B(x, z, y) for x, z, y in SCRUB], [rnd.randrange(10) for _ in SCRUB],
-          [rnd.uniform(0, 6.28) for _ in SCRUB], [rnd.uniform(0.35, 0.6) for _ in SCRUB])
+          [rnd.uniform(0, 6.28) for _ in SCRUB], [rnd.uniform(0.45, 0.75) for _ in SCRUB])
 for tb in R.TREE_BELTS:                                                # the owner's belts (9 Nov evening)
     n_ = int((tb["x"][1] - tb["x"][0]) * (tb["z"][1] - tb["z"][0]) / tb["spacing"] ** 2)
     for _ in range(n_):
