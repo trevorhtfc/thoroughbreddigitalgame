@@ -34,8 +34,8 @@ PROFILE = [(-RUN_ON, 0.6), (0, 0.0), (201, -3.0), (402, 0.6), (520, 1.0), (700, 
 # way round", closer to the track than the real Devil's Dyke. It follows the inside (far) rail from behind the post,
 # along the straight, round the bend and up the Cesarewitch leg. Across it, in metres behind the inside rail: flat
 # heath to 'foot', a soft rise to the crest ('crest', a rounded top), and down again to 'back'. Height in metres.
-# (9 Nov late: a steeper face, so the Dyke reads)
-BANK = {"foot": 12.0, "crest": [20.0, 30.0], "back": 40.0, "height": 3.0, "from": -260.0, "to": 20 * F + 120.0,
+# (9 Nov late: a steeper face so the Dyke reads, and 5 m high so only tree tops show over it)
+BANK = {"foot": 12.0, "crest": [21.0, 30.0], "back": 42.0, "height": 5.0, "from": -260.0, "to": 20 * F + 120.0,
         "note": "Owner, 8 Nov: a gentle grassy bank behind the far rail the whole way round, closer than real life "
                 "(the Devil's Dyke, interpretive). Offsets are metres behind the inside rail; it sits on the ground's "
                 "own height (the Dip runs through it). Low scrub along the crest; tree tops show beyond it."}
@@ -49,7 +49,7 @@ BOARD_DESIGNS = ["green", "cream", "navy", "white"]
 BOARD_ANGLE = -20.0      # degrees off square to the track, turned to face a little towards the stands (owner, 9 Nov)
 # Tree tops beyond the bank (owner, 8 Nov): clumps and short tree lines on the heath behind it, far enough back that
 # from the tracking car only the crowns show over the crest. Seeded, so the same trees every time.
-TREES = {"from": 62.0, "to": 150.0, "start": -320.0, "end": 20 * F + 220.0, "spacing": 7.5, "seed": 8,
+TREES = {"from": 46.0, "to": 150.0, "start": -320.0, "end": 20 * F + 220.0, "spacing": 7.5, "seed": 8,
          "kinds": {"oak_a": 3, "oak_b": 3, "oak_c": 3, "wide_a": 3, "wide_b": 3, "poplar_a": 1}, "scale": [1.0, 1.6]}
 # The stand side's buildings (owner, 8 Nov, his aerial marked 1-3 and photos: reference/newmarket/): the Millennium
 # Grandstand from about the post up the course, the lower Rowley stand with its clock cupola beyond it, then the old
@@ -137,6 +137,8 @@ def grass_strips():
 
 
 # The crowd packed right up against the rail (owner, 9 Nov late): x from, to; z from, to; density per square metre
+LAWN_CROWD = {"z": [W_ + 8.0, W_ + 90.0], "density": 0.2}           # filling back to the stands (owner, 9 Nov late)
+FESTIVAL_DENSITY = {"stand": 0.2, "far": 0.3}                          # denser through the festival (9 Nov late)
 RAIL_CROWD = [
     {"x": [-60.0, 290.0], "z": [W_ + 1.2, W_ + 8.0], "density": 0.6, "face": 180.0},   # the stand side, in front of the stands
     {"x": [-120.0, 470.0], "z": [-7.0, -1.2], "density": 0.5, "face": 0.0},            # the far side, in front of the festival

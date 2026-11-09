@@ -204,17 +204,23 @@ def rowley_scenery(course):
     S.flat("#d9c9a8", [(-R.RUN_ON - 100, W + 0.6), (900, W + 0.6), (900, W + 4.6), (-R.RUN_ON - 100, W + 4.6)], 0.025)
     # the stand-side festival up the course: pavilions in loose rows facing the track, flags, a crowd through it
     rnd = S.rnd
+    spots = json.load(open(REPO / "assets/models/architecture/site_props_spots.json"))["pieces"]
     for piece, px, pz, turn in R.festival_pieces(rnd):                 # every festival zone (owner's markups, 8 and 9 Nov)
         S.piece("site_props", piece, px, pz, turn)
+        ca_, sa_ = math.cos(math.radians(turn)), math.sin(math.radians(turn))
+        for kind in ("seats", "stand"):                                # people in the seats and on the decks (9 Nov late)
+            for lx, ly, lz in spots.get(piece, {}).get(kind, []):
+                if rnd.random() < 0.85:
+                    S.person(px + lx * ca_ - ly * sa_, lz, pz - (lx * sa_ + ly * ca_), face(0, -1) if turn == 180.0 else face(0, 1))
         if piece != "banner_flag":
             w, d = SP_SIZE[piece]
             S.nogo.append([(px - w / 2 - 1, pz - d / 2 - 1), (px + w / 2 + 1, pz - d / 2 - 1), (px + w / 2 + 1, pz + d / 2 + 1), (px - w / 2 - 1, pz + d / 2 + 1)])
     for fz in R.FESTIVAL_ZONES:
-        S.fill(fz["x"][0], fz["x"][1], fz["z"][0] + 2, fz["z"][1] - 2, 0.12)
+        S.fill(fz["x"][0], fz["x"][1], fz["z"][0] + 2, fz["z"][1] - 2, R.FESTIVAL_DENSITY[fz["side"]])
     # the lawns in front of the stands, down to the rail walk: packed along the rail, thinner on the lawns behind
     for rc in R.RAIL_CROWD:                                         # packed right up against the rail (owner, 9 Nov late)
         S.fill(rc["x"][0], rc["x"][1], rc["z"][0], rc["z"][1], rc["density"], face(0, -1) if rc["face"] == 180.0 else face(0, 1))
-    S.fill(-60, 290, W + 14, W + 75, 0.07, face(0, -1))
+    S.fill(-60, 290, R.LAWN_CROWD["z"][0], R.LAWN_CROWD["z"][1], R.LAWN_CROWD["density"], face(0, -1))   # back to the stands
     # trees: the course's own (tops beyond the far bank), small ones in the hedge gaps, a backdrop behind the stands
     trees = [list(t) for t in course["trees"]["list"]]
     # (no small trees in the hedge gaps: owner, 9 Nov, no trees in front of the stands)
