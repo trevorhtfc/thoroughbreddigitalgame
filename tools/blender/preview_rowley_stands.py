@@ -167,8 +167,14 @@ def dyke():
             a_ = i * n + j; faces.append((a_, a_ + 1, a_ + n + 1, a_ + n))
     me = bpy.data.meshes.new("dyke"); me.from_pydata(verts, [], faces)
     for p_ in me.polygons: p_.use_smooth = True
-    me.materials.append(grass_mat("dyke", "#a6be7b")); ob = bpy.data.objects.new("dyke", me); scene.collection.objects.link(ob)
+    me.materials.append(grass_mat("dyke", "#8b9f63")); ob = bpy.data.objects.new("dyke", me); scene.collection.objects.link(ob)
 dyke()
+# scrub along the Dyke's crest (owner, 9 Nov late: it was too smooth and green to read): low dark bushes in clumps
+SCRUB = []
+for x in np.arange(R.BANK["from"] + 20, 2040.0, 7.0):
+    if rnd.random() < 0.55:
+        o = rnd.uniform(R.BANK["crest"][0] - 2, R.BANK["crest"][1] + 4) + R.bank_shift(x)
+        SCRUB.append((x + rnd.uniform(-3, 3), -o, R.bank_h(o - R.bank_shift(x)) - 1.2))
 
 # ---- the Ascot rail on both sides
 rail_m = clayify(flat("rail", "#f4f2ec", 0.5), 0)
@@ -270,7 +276,12 @@ for fz in R.FESTIVAL_ZONES:                                            # a crowd
         if not any((x - a) ** 2 + (z - b) ** 2 < r * r for a, b, r in fest):
             people.append((x, z, 0.0, 180.0 if fz["side"] == "stand" else 0.0))
 # the lawns in front of the stands, down to the rail walk (crowd on the aprons too, not on the hedges)
-for zr0, zr1, dens in ((W + 5, W + 14, 0.32), (W + 14, W + 75, 0.07)):   # packed along the rail, thinner on the lawns behind
+for rc in R.RAIL_CROWD:                                                # packed right up against the rail (9 Nov late)
+    for _ in range(int((rc["x"][1] - rc["x"][0]) * (rc["z"][1] - rc["z"][0]) * rc["density"])):
+        x, z = rnd.uniform(*rc["x"]), rnd.uniform(*rc["z"])
+        if not any(q.contains_point((x, z)) for q in nogo):
+            people.append((x, z, 0.0, rc["face"]))
+for zr0, zr1, dens in ((W + 8, W + 16, 0.25), (W + 16, W + 75, 0.07)):   # thinner on the lawns behind
     for _ in range(int(350 * (zr1 - zr0) * dens)):
         x, z = rnd.uniform(-60, 290), rnd.uniform(zr0, zr1)
         if not any(q.contains_point((x, z)) for q in nogo):
@@ -310,6 +321,9 @@ for x in np.arange(-130, 760, 11):                                    # behind t
 for x in np.arange(-200, 900, 16):                                    # across the heath beyond the far rail
     tx = x + rnd.uniform(-5, 5); tz = -rnd.uniform(70, 140) - R.bank_shift(tx)      # beyond the Dyke
     if not R.in_festival(tx, tz, 6.0): T.append((tx, tz, rnd.randrange(5), rnd.uniform(1.4, 2.2)))
+instances("scrub", [c for c in crowns if c.name.endswith("_3") or c.name.endswith("_2")],
+          [B(x, z, y) for x, z, y in SCRUB], [rnd.randrange(10) for _ in SCRUB],
+          [rnd.uniform(0, 6.28) for _ in SCRUB], [rnd.uniform(0.35, 0.6) for _ in SCRUB])
 for tb in R.TREE_BELTS:                                                # the owner's belts (9 Nov evening)
     n_ = int((tb["x"][1] - tb["x"][0]) * (tb["z"][1] - tb["z"][0]) / tb["spacing"] ** 2)
     for _ in range(n_):
@@ -344,7 +358,7 @@ CAMS = {   # course (x, z, height) from and to, lens
     "upcourse": ((-55.0, 14.0, 24.0), (700.0, 0.0, 0.0), 30),          # from the cranked stand, up the course
     "farside": ((60.0, 75.0, 22.0), (60.0, -45.0, 0.0), 24),           # from the Millennium across to the far side
     "paddock": ((40.0, 330.0, 90.0), (40.0, 140.0, 0.0), 28),          # over the paddock behind the stands
-    "balloons": ((300.0, 8.0, 5.0), (345.0, 46.0, 5.5), 30),          # the row of balloon pods up the course
+    "balloons": ((375.0, 32.0, 5.0), (420.0, -12.0, 5.5), 30),        # the balloon pods on the far side at about 2f
 }
 scene.render.engine = "CYCLES"; scene.cycles.device = "CPU"; scene.cycles.samples = SAMPLES; scene.cycles.use_denoising = True
 scene.cycles.max_bounces = 4

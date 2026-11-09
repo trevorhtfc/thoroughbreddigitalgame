@@ -212,7 +212,8 @@ def rowley_scenery(course):
     for fz in R.FESTIVAL_ZONES:
         S.fill(fz["x"][0], fz["x"][1], fz["z"][0] + 2, fz["z"][1] - 2, 0.12)
     # the lawns in front of the stands, down to the rail walk: packed along the rail, thinner on the lawns behind
-    S.fill(-60, 290, W + 5, W + 14, 0.32, face(0, -1))
+    for rc in R.RAIL_CROWD:                                         # packed right up against the rail (owner, 9 Nov late)
+        S.fill(rc["x"][0], rc["x"][1], rc["z"][0], rc["z"][1], rc["density"], face(0, -1) if rc["face"] == 180.0 else face(0, 1))
     S.fill(-60, 290, W + 14, W + 75, 0.07, face(0, -1))
     # trees: the course's own (tops beyond the far bank), small ones in the hedge gaps, a backdrop behind the stands
     trees = [list(t) for t in course["trees"]["list"]]
