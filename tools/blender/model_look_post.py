@@ -8,7 +8,7 @@ Reads the still, its depth (<still>.exr, written by the study with DEPTH=1 or th
   focus    a shallow miniature focus: sharp at the subject's distance, blurring smoothly nearer and further,
            the way a macro lens sees a table-top model (a real lens's blur, by depth, not a band)
   grade    high key: a touch more exposure, a soft S-curve, lavender in the shadows, warm cream in the highlights,
-           a little less saturation
+           a little less saturation (the sky a little more: the tone mapping greys a pale blue sky)
   glow     the brightest parts bleed a little light, like a soft lens
 Every step has a strength (key=value: haze, focus, grade, glow), so they can be tried one at a time. All plain
 numbers, ready to carry into the race view's own finishing pass.
@@ -49,7 +49,7 @@ h[sky] = 0
 c = img * (1 - h) + haze_col * h
 
 # ---- miniature focus: thin-lens blur (pixels) = A * |1 - zf / z|, capped
-A, CAP = 22.0 * px * K["focus"], 16.0 * px * max(K["focus"], 0.01)
+A, CAP = 9.0 * px * K["focus"], 9.0 * px * max(K["focus"], 0.01)
 coc = np.clip(A * np.abs(1.0 - zf / np.maximum(z, 0.1)), 0, CAP)
 coc[sky] = min(CAP, A)
 if K["focus"] > 0:
@@ -69,7 +69,7 @@ if g > 0:
     graded = np.clip(c * 1.045, 0, 1)
     graded = graded + 0.12 * (graded * graded * (3 - 2 * graded) - graded)           # soft S-curve
     lg = (graded @ np.array([0.299, 0.587, 0.114], np.float32))[..., None]
-    graded = lg + (graded - lg) * 0.93                                               # a little less saturation
+    graded = lg + (graded - lg) * np.where(sky[..., None], 1.7, 0.93)               # a little less saturation; a bluer sky
     graded = graded + (1 - lg) ** 2 * np.array([0.012, 0.004, 0.03], np.float32)     # lavender shadows
     graded = graded * (1 + lg * np.array([0.02, 0.006, -0.025], np.float32))         # warm cream highlights
     c = c + (np.clip(graded, 0, 1) - c) * g
