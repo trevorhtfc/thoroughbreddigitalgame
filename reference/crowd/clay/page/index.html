@@ -1,0 +1,153 @@
+<title>Clay Crowd Figures</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Libre+Caslon+Text:ital,wght@0,400;0,700;1,400&family=Inter:wght@400;500;600&display=swap">
+<style>
+/* Layout: one viewing stage with a wipe between today's figures and a clay option; views and options as tabs above, notes below. */
+:root {
+  --bg: #eef0ec;            /* pale paddock grey-green */
+  --panel: #f8f9f6;
+  --ink: #23302a;           /* Ascot railing green-black */
+  --muted: #5d6a63;
+  --line: #d3d8d1;
+  --accent: #6e64a8;        /* the lilac band of the model sky */
+  --accent-ink: #ffffff;
+  --display: "Libre Caslon Text", Georgia, "Times New Roman", serif;
+  --body: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #171c19; --panel: #1f2521; --ink: #e6ebe6; --muted: #9daaa2; --line: #333b36; --accent: #a99fe0; --accent-ink: #171c19; color-scheme: dark } }
+:root[data-theme="dark"] { --bg: #171c19; --panel: #1f2521; --ink: #e6ebe6; --muted: #9daaa2; --line: #333b36; --accent: #a99fe0; --accent-ink: #171c19; color-scheme: dark }
+
+body { background: var(--bg); color: var(--ink); font-family: var(--body); font-size: 15px; line-height: 1.55;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); padding-block: 28px 48px; }
+.wrap { max-width: 1180px; margin: 0 auto; display: grid; gap: 22px; }
+header { display: grid; gap: 6px; }
+.eyebrow { font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); font-weight: 600; }
+h1 { font-family: var(--display); font-weight: 400; font-size: clamp(28px, 4.4vw, 44px); line-height: 1.1; margin: 0; text-wrap: balance; }
+h1 i { color: var(--accent); }
+.lede { max-width: 66ch; color: var(--muted); margin: 0; }
+
+.controls { display: flex; flex-wrap: wrap; gap: 14px 28px; align-items: center; }
+.group { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.group > span { font-size: 12px; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); margin-right: 4px; font-weight: 600; }
+button.tab { font: 500 14px var(--body); color: var(--ink); background: transparent; border: 1px solid var(--line); border-radius: 999px; padding: 6px 14px; cursor: pointer; }
+button.tab[aria-pressed="true"] { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+button.tab:focus-visible, input:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+.stage { position: relative; border-radius: 6px; overflow: hidden; background: var(--panel); border: 1px solid var(--line); user-select: none; touch-action: pan-y; }
+.stage img { display: block; width: 100%; height: auto; max-width: 100%; }
+.stage .over { position: absolute; inset: 0; clip-path: inset(0 0 0 var(--cut, 50%)); }
+.stage .over img { width: 100%; height: 100%; object-fit: cover; }
+.handle { position: absolute; top: 0; bottom: 0; left: var(--cut, 50%); width: 2px; margin-left: -1px; background: #fff; box-shadow: 0 0 0 1px rgba(0,0,0,.15); pointer-events: none; }
+.handle::after { content: "⟷"; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 34px; height: 34px; border-radius: 50%;
+  background: #fff; color: #23302a; display: grid; place-items: center; font-size: 16px; box-shadow: 0 1px 6px rgba(0,0,0,.25); }
+.tag { position: absolute; top: 10px; font-size: 12px; font-weight: 600; letter-spacing: .04em; padding: 3px 9px; border-radius: 4px; background: rgba(255,255,255,.85); color: #23302a; pointer-events: none; }
+.tag.l { left: 10px; } .tag.r { right: 10px; }
+.slider { width: 100%; accent-color: var(--accent); }
+.hint { font-size: 13px; color: var(--muted); margin: -10px 0 0; }
+
+.notes { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 18px; }
+.note { min-width: 0; border-top: 2px solid var(--ink); padding-top: 10px; }
+.note.sel { border-top-color: var(--accent); }
+.note h2 { font-family: var(--display); font-weight: 400; font-size: 21px; margin: 0 0 6px; }
+.note p, .note ul { margin: 0 0 8px; }
+.note ul { padding-left: 18px; }
+.cost { font-size: 13px; color: var(--muted); font-variant-numeric: tabular-nums; }
+footer { font-size: 13px; color: var(--muted); border-top: 1px solid var(--line); padding-top: 12px; max-width: 80ch; }
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+
+<div class="wrap">
+  <header>
+    <div class="eyebrow">Thoroughbred Ascot · race-view crowd</div>
+    <h1>The 1C racegoers, smoothed into <i>clay</i></h1>
+    <p class="lede">The same ten people, in the same places and colours, under the model-look light. Drag across the picture to wipe between today’s 1C figures (left) and a clay option (right).</p>
+  </header>
+
+  <div class="controls">
+    <div class="group" role="group" aria-label="View">
+      <span>View</span>
+      <button class="tab" id="v-close" data-view="close">Close by the rail</button>
+      <button class="tab" id="v-rail" data-view="rail">Along the rail</button>
+      <button class="tab" id="v-lineup" data-view="lineup">Line-up</button>
+      <button class="tab" id="v-tv" data-view="tv">TV distance</button>
+    </div>
+    <div class="group" role="group" aria-label="Clay option">
+      <span>Compare with</span>
+      <button class="tab" id="o-9" data-set="9">A · Smoothed 1C</button>
+      <button class="tab" id="o-10" data-set="10">B · Plasticine</button>
+    </div>
+  </div>
+
+  <div class="stage" id="stage">
+    <img id="base" alt="Today's 1C figures">
+    <div class="over"><img id="over" alt="Clay option"></div>
+    <div class="handle"></div>
+    <div class="tag l">Today · 1C</div>
+    <div class="tag r" id="rtag">A · Smoothed 1C</div>
+  </div>
+  <input class="slider" id="cut" type="range" min="0" max="100" value="50" aria-label="Wipe between today and the clay option">
+  <p class="hint">Tip: drag on the picture, or use the slider. Line-up rows read left to right in the same order as 1C.</p>
+
+  <section class="notes">
+    <div class="note">
+      <h2>Today · 1C</h2>
+      <p>Eight-sided skittles: flat-ended limbs, a flat triangle for the tie, no feet, hard-edged hat brims.</p>
+      <p class="cost">About 330–390 triangles a person, used near and far.</p>
+    </div>
+    <div class="note" id="n9">
+      <h2>A · Smoothed 1C</h2>
+      <ul>
+        <li>Same people and proportions, rebuilt from soft rounded solids.</li>
+        <li>Arms as tapered rolls with round elbows, a rolled cuff and a mitten hand.</li>
+        <li>The tie is gone: a short soft V of waistcoat pressed onto the chest, and a rolled collar round the neck.</li>
+        <li>Rounded shoes, hems that roll under, round-edged brims.</li>
+      </ul>
+      <p class="cost">About 1,700–2,200 triangles near the camera (five or six times 1C), with a far version of 500–750 and no arms.</p>
+    </div>
+    <div class="note" id="n10">
+      <h2>B · Plasticine</h2>
+      <ul>
+        <li>Option A pushed towards a hand-made figure.</li>
+        <li>Slightly bigger heads, chunkier rolled arms and legs, bigger feet and hands.</li>
+        <li>Thicker, softer hat brims and a faint unevenness over coats and dresses.</li>
+      </ul>
+      <p class="cost">About 2,200–2,700 triangles near the camera, with the same far version of 500–750.</p>
+    </div>
+  </section>
+
+  <footer>Blender stills (Cycles), with today’s model-look sun and sky but no haze, focus blur or grade, so the forms can be judged. Built by tools/blender/build_crowd_clay.py (sets 9 and 10, same ten people and tint slots as set 8); pictures by tools/blender/crowd_clay_review.py.</footer>
+</div>
+
+<script>
+(() => {
+  const stage = document.getElementById("stage"), base = document.getElementById("base"), over = document.getElementById("over");
+  const cut = document.getElementById("cut"), rtag = document.getElementById("rtag");
+  let view = "close", set = "9";
+  const names = { 9: "A · Smoothed 1C", 10: "B · Plasticine" };
+  try { const v = localStorage.getItem("clay-view"), s = localStorage.getItem("clay-set"); if (v) view = v; if (s) set = s; } catch (e) {}
+  const h = (location.hash || "").slice(1);
+  if (["close", "rail", "lineup", "tv"].includes(h)) view = h;
+  function show() {
+    base.src = "img/set8_" + view + ".webp";
+    over.src = "img/set" + set + "_" + view + ".webp";
+    rtag.textContent = names[set];
+    document.querySelectorAll("[data-view]").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.view === view)));
+    document.querySelectorAll("[data-set]").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.set === set)));
+    document.getElementById("n9").classList.toggle("sel", set === "9");
+    document.getElementById("n10").classList.toggle("sel", set === "10");
+    try { localStorage.setItem("clay-view", view); localStorage.setItem("clay-set", set); } catch (e) {}
+  }
+  document.querySelectorAll("[data-view]").forEach((b) => b.addEventListener("click", () => { view = b.dataset.view; show(); }));
+  document.querySelectorAll("[data-set]").forEach((b) => b.addEventListener("click", () => { set = b.dataset.set; show(); }));
+  const setCut = (p) => { p = Math.max(0, Math.min(100, p)); stage.style.setProperty("--cut", p + "%"); cut.value = p; };
+  cut.addEventListener("input", () => setCut(+cut.value));
+  let drag = false;
+  const at = (e) => { const r = stage.getBoundingClientRect(); setCut(((e.clientX - r.left) / r.width) * 100); };
+  stage.addEventListener("pointerdown", (e) => { drag = true; stage.setPointerCapture(e.pointerId); at(e); });
+  stage.addEventListener("pointermove", (e) => { if (drag) at(e); });
+  stage.addEventListener("pointerup", () => { drag = false; });
+  window.addEventListener("hashchange", () => { const k = location.hash.slice(1); if (["close", "rail", "lineup", "tv"].includes(k)) { view = k; show(); } });
+  setCut(50); show();
+})();
+</script>
