@@ -43,6 +43,11 @@ COL = {   # the pastel-street palette, as the July Course's pieces
     # pilasters, dark green ironwork, gilt finials, a clock face
     "wall": "#ecdcc0", "podium": "#dccaa8", "ironwork": "#4f6b5a", "gilt": "#c8a466", "clock": "#fbf5ea", "clockdark": "#2a2c30",
 }
+# The flanking stands are Ascot's grand pavilion, built with Ascot's own piece code (stand_pieces.py), so they take
+# Ascot's colours for the parts only that code uses (owner, 9 Nov: "quite literally applying the architecture of the
+# grand pavilion"): the canopy roof, the cream iron lace and the steps
+ASCOT_COL = json.load(open(rp("assets/models/architecture/victorian_grandstand_layout.json")))["colours"]
+COL.update({k: ASCOT_COL[k] for k in ("roof", "iron", "steps")})
 MATS = {k: material("rm_" + k, v, rough=0.9) for k, v in COL.items()}
 K = Kit()
 CROWD = []
@@ -50,6 +55,19 @@ CROWD = []
 
 def area(x0, x1, y0, y1, z):
     CROWD.append([round(x0, 2), round(x1, 2), round(y0, 2), round(y1, 2), round(z, 2)])
+
+
+# ------------------------------------------------------------------------------------------ Ascot's pieces
+STAND_CAT = json.load(open(rp("assets/models/architecture/stand_modules.json")))
+S, P, BAY = STAND_CAT["storey"], STAND_CAT["podium"], STAND_CAT["bay"]
+
+
+def stand_area(x0, x1, y0, y1, z, kind):
+    a = K.M @ Vector((x0, y0, z)); b = K.M @ Vector((x1, y1, z))
+    area(min(a.x, b.x), max(a.x, b.x), min(a.y, b.y), max(a.y, b.y), a.z)
+
+
+exec(open(rp("tools/blender/stand_pieces.py")).read())
 
 
 def win(x, y, z0, w, h):
@@ -328,14 +346,75 @@ def victorian_pavilion(Lx=10.0, D=8.0):
     return {"width": Lx + 1.0, "depth": D + 1.2, "height": 10.5}
 
 
+# ------------------------------------------------------------------------------------------ 9 Nov: grand pavilions
+def ascot_end_pavilion(x0, x1, D, tiers):
+    """Ascot's end pavilion (as build_stand_modules.end_pavilion): a two-tier veranda pavilion with a wraparound
+    balcony on its dressed (right) end, a hipped roof and a small square cupola."""
+    veranda({"x0": x0, "x1": x1, "tiers": tiers, "depth": D, "setback": 0.0, "roof": "none"})
+    zt = P + tiers * S + 0.6
+    xo = x1 + 1.6
+    for k in range(tiers):
+        z = P + k * S
+        hh = S + (0.6 if k == tiers - 1 else 0)
+        K.box("trim", x1, xo, -0.25, D, z - 0.3, z)
+        n = max(2, round(D / BAY))
+        for i in range(n + 1):
+            K.cyl("trim", xo - 0.35, D * i / n, z, z + hh, 0.15, 0.12)
+        K.box("trim", xo - 0.5, xo - 0.2, 0, D, z + hh - 0.3, z + hh)
+        K.balustrade(0.0, D, xo - 0.35, z, axis="y", piers=False)
+        stand_area(x1 + 0.2, xo - 0.6, 0.6, D - 0.6, z, "veranda")
+    K.box("podium", x1, xo, 0, D, 0, P)
+    K.hip_roof(x0, xo, -0.2, D, zt - 0.6, 2.6, 0.8)
+    cx, cy, cw = (x0 + xo) / 2, D / 2, 3.2
+    zc = zt - 0.6 + 2.6 - 0.4
+    K.box("wall", cx - cw / 2, cx + cw / 2, cy - cw / 2, cy + cw / 2, zc, zc + 1.7)
+    for rot in range(4):
+        K.push(Matrix.Translation((cx, cy, 0)) @ Matrix.Rotation(rot * math.pi / 2, 4, "Z") @ Matrix.Translation((-cx, -cy, 0)))
+        for j in (-0.8, 0.0, 0.8):
+            K.box("glass", cx + j - 0.28, cx + j + 0.28, cy - cw / 2 - 0.05, cy - cw / 2 + 0.05, zc + 0.3, zc + 1.4)
+        K.pop()
+    K.cornice(cx - cw / 2, cx + cw / 2, cy - cw / 2, cy + cw / 2, zc + 1.7, 0.25, 0.25)
+    K.hip_roof(cx - cw / 2, cx + cw / 2, cy - cw / 2, cy + cw / 2, zc + 1.95, 1.2, 0.35)
+    K.cyl("gilt", cx, cy, zc + 3.1, zc + 3.9, 0.04, 0.01, 6)
+
+
+def grand_pavilion_stand(bays, rows, tread, rise, end_pavilion=False):
+    """The flanking stands (owner, 9 Nov): Ascot's grand pavilion, quite literally (the terrace profile under the
+    grand canopy with its glazed ridge lantern), behind a lower tier of terrace that rises from the lawn at the Rowley
+    Mile's shallow rake to just under the boxes' ledge (the podium). Origin: the middle of the lawn terrace's foot.
+    end_pavilion: Ascot's end pavilion on the right as seen from the track (the old stand's clock-turret end)."""
+    L, T, z0 = bays * BAY, rows * tread, 0.25
+    h = L / 2
+    prof = [(0.0, -1.0)]                                                           # the lawn terrace, foot at y = 0
+    for i in range(rows):
+        prof += [(i * tread, z0 + i * rise), ((i + 1) * tread, z0 + i * rise)]
+        area(-h + 0.3, h - 0.3, i * tread + 0.1, (i + 1) * tread - 0.1, z0 + i * rise)
+    prof += [(T, -1.0)]
+    K.prism_x("steps", -h, h, prof)
+    for xa, xb in ((-h - 0.3, -h), (h, h + 0.3)):                                  # low cheek walls at its ends
+        K.box("podium", xa, xb, 0.0, T, -1.0, z0 + rows * rise + 0.6)
+    K.push(Matrix.Translation((-h, T, 0.0)))
+    t = canopy_terrace({"x0": 0.0, "x1": L, "depth": 18.0, "party": ()}, grand=True)
+    if end_pavilion:
+        ascot_end_pavilion(L, L + 4 * BAY - 1.6, 16.0, 2)
+    K.pop()
+    width = L + (4 * BAY if end_pavilion else 0.0)
+    info = {"width": width, "depth": T + 19.0, "height": round(terrace_top(18.0) + 9.6, 2)}
+    if end_pavilion:
+        info["offset"] = 2 * BAY
+    return info
+
+
 PIECES = [
     ("millennium_stand", millennium_stand),
-    ("rowley_stand", rowley_stand),
+    # 9 Nov: the flanking stands become Ascot's grand pavilion behind a lawn terrace (same names, so the layout, the
+    # previews and the race view pick them up); rowley_stand is the full-length version, kept for reference
+    ("rowley_stand", lambda: grand_pavilion_stand(31, 14, 1.0, 0.2)),
     # owner's sketch (8 Nov): the pavilion stand cranks round by the winning line: a wing in line with the Millennium,
     # then an end stand at right angles to the track, past the post, looking back up the course
-    ("rowley_wing", lambda: rowley_stand(42.0, cupola=False, brick=False)),
-    ("rowley_end", lambda: rowley_stand(82.6)),           # as long as the layout's end stand (draft_layout.STAND_PIECES)
-    ("victorian_stand", victorian_stand),
+    ("rowley_wing", lambda: grand_pavilion_stand(12, 14, 1.0, 0.2)),                  # 42 m
+    ("rowley_end", lambda: grand_pavilion_stand(24, 14, 1.0, 0.2)),                   # 84 m
+    ("victorian_stand", lambda: grand_pavilion_stand(37, 10, 1.0, 0.28, end_pavilion=True)),   # 129.5 m + 14 m
     ("judges_kiosk", judges_kiosk),
     ("victorian_pavilion", victorian_pavilion),
 ]
