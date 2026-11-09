@@ -1,0 +1,44 @@
+<title>Newmarket Model Look</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Jost:wght@400;500&display=swap">
+<style>
+/* One screen: the race view at Newmarket in the model look, with a small cream bar to pick the course and compare the light. */
+:root { --ground: #5f8a44; --cream: #f4ead2; --edge: #b8954a; --green: #1f5a38; --ink: #183f2a; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --ground: #2f4a24; color-scheme: dark } }
+:root[data-theme="dark"] { --ground: #2f4a24; color-scheme: dark }
+html, body { height: 100%; }
+body { margin: 0; background: var(--ground); overflow: hidden; font: 500 13px "Jost", "Helvetica Neue", Arial, sans-serif; }
+iframe { display: block; width: 100%; height: 100%; border: 0; background: var(--ground); }
+.pick { position: fixed; top: calc(env(safe-area-inset-top, 0px) + 10px); left: 50%; transform: translateX(-50%); z-index: 2;
+  display: flex; gap: 6px; flex-wrap: wrap; justify-content: center; max-width: calc(100vw - 32px);
+  background: var(--cream); border: 1px solid var(--edge); border-radius: 3px; padding: 5px 7px; box-shadow: 0 4px 14px rgba(20,30,20,.25); }
+.pick button { font: inherit; color: var(--ink); background: transparent; border: 1px solid rgba(31,90,56,.35); border-radius: 3px; padding: 4px 9px; cursor: pointer; }
+.pick button[aria-pressed="true"] { background: var(--green); color: var(--cream); border-color: var(--green); }
+.pick button:focus-visible { outline: 2px solid var(--edge); outline-offset: 2px; }
+.pick span { align-self: center; color: #5c6a56; padding: 0 2px 0 6px; }
+</style>
+<div class="pick" role="group" aria-label="Course and light">
+  <button type="button" id="cRowley" aria-pressed="true">Rowley Mile</button>
+  <button type="button" id="cJuly" aria-pressed="false">July Course</button>
+  <span>Light</span>
+  <button type="button" id="lModel" aria-pressed="true">Model look</button>
+  <button type="button" id="lBefore" aria-pressed="false">Before</button>
+</div>
+<iframe id="view" title="The race view at Newmarket" allow="fullscreen"></iframe>
+<script>
+const st = { course: "newmarket", light: "" };
+const frame = document.getElementById("view");
+function go() {
+  frame.src = "final-furlong.html?course=" + st.course + "&quality=high" + (st.light ? "&light=" + st.light : "");
+  document.getElementById("cRowley").setAttribute("aria-pressed", st.course === "newmarket");
+  document.getElementById("cJuly").setAttribute("aria-pressed", st.course === "newmarket-july");
+  document.getElementById("lModel").setAttribute("aria-pressed", !st.light);
+  document.getElementById("lBefore").setAttribute("aria-pressed", st.light === "before");
+}
+document.getElementById("cRowley").onclick = () => { st.course = "newmarket"; go(); };
+document.getElementById("cJuly").onclick = () => { st.course = "newmarket-july"; go(); };
+document.getElementById("lModel").onclick = () => { st.light = ""; go(); };
+document.getElementById("lBefore").onclick = () => { st.light = "before"; go(); };
+go();
+</script>

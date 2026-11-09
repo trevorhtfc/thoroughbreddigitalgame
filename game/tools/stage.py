@@ -46,6 +46,8 @@ for f in ["ascot_main_stand_crowd_areas.json", "crowd_palette.json", "crowd_peop
 for c in ["newmarket", "newmarket-july"]:
     for f in [f"{c}.json", f"{c}-view.json", f"{c}-stalls.json", f"{c}-standards.json", f"{c}-scenery.json"]:
         add(A / "course" / f, "assets/course/" + f)
+    gl = A / "course" / f"{c}-ground-light.jpg"            # the model look's baked ground light (bake_newmarket_ground.py)
+    if gl.exists(): add(gl, "assets/course/" + gl.name)
 for f in ["rowley_stands", "july_stands", "site_props", "finish_line"]:
     for g in [f + ".json", f + "-geometry.txt"]:
         add(A / "architecture" / g, "assets/architecture/" + g)
