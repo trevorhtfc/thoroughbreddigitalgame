@@ -351,6 +351,8 @@ import * as HorseV2 from "./horse-v2.js";
 import * as LOOKS from "./looks.js";
 // Grandstand style tests (?stand=pastel|brick&v=1..3); without ?stand nothing changes. See stand-styles.js.
 import * as STANDS from "./stand-styles.js";
+// The miniature look test (?mini=1, miniature.js): loaded only when asked for, so the game never fetches it.
+const MINI = new URLSearchParams(location.search).has("mini") ? await import("./miniature.js") : null;
 // The race engine (race-engine/ in the repo; a copy lives in assets/engine/): it decides the race, the view plays it back.
 import { runRace } from "./assets/engine/engine.js";
 import { randomField } from "./assets/engine/field.js";
@@ -735,6 +737,9 @@ function distToRails(x, z) {
 // then turf, writing no depth, then the baked ground over them; the sky first of all.)
 const GROUND_FIRST = LEGACY_GROUND ? {} : { stencilWrite: true, stencilRef: 1, stencilFunc: THREE.AlwaysStencilFunc, stencilZPass: THREE.ReplaceStencilOp };
 const GROUND_UNDER = LEGACY_GROUND ? { depthWrite: false } : { stencilWrite: true, stencilRef: 1, stencilFunc: THREE.NotEqualStencilFunc, stencilZPass: THREE.ReplaceStencilOp };
+// the ground's look: the graphic style tests (looks.js) and the miniature test (miniature.js), when asked for
+const turfLook = (m, which) => { m = LOOKS.patchGround(m, which); return MINI && which === "turf" ? MINI.patchTurf(m) : m; };
+const LANES_U = [];      // the mown stripes' settings, kept so the miniature test can soften them live
 function lanesMaterial(mat) {
   const L = VIEW.lanes;
   if (!L && VIEW.lanesStraight) return lanesStraight(mat);
@@ -762,8 +767,10 @@ function lanesMaterial(mat) {
 // (z = metres from the inside rail), faded out past either end of it (courses/<id>-view.json -> lanesStraight).
 function lanesStraight(mat) {
   const L = VIEW.lanesStraight;
+  const lanesS = { value: new THREE.Vector4(L.x[0], L.x[1], Math.PI * L.lanes / L.width, L.strength), base: L.strength };
+  LANES_U.push(lanesS);
   mat.onBeforeCompile = (sh) => {
-    sh.uniforms.lanesS = { value: new THREE.Vector4(L.x[0], L.x[1], Math.PI * L.lanes / L.width, L.strength) };
+    sh.uniforms.lanesS = lanesS;
     sh.vertexShader = sh.vertexShader
       .replace("#include <common>", "#include <common>\nvarying vec2 vLaneW;")
       .replace("#include <fog_vertex>", "#include <fog_vertex>\n{ vLaneW = (modelMatrix * vec4(transformed, 1.0)).xz; }");
@@ -809,7 +816,7 @@ function buildTurf(colour) {
   const shape = new THREE.Shape(SURF[0].map(([x, z]) => new THREE.Vector2(x, -z)));
   for (const h of SURF.slice(1)) shape.holes.push(new THREE.Path(h.map(([x, z]) => new THREE.Vector2(x, -z))));
   const g = new THREE.ShapeGeometry(shape).rotateX(-Math.PI / 2);
-  const m = new THREE.Mesh(g, LOOKS.patchGround(groundDetail(lanesMaterial(new THREE.MeshBasicMaterial({ color: colour, ...GROUND_UNDER }))), "turf"));
+  const m = new THREE.Mesh(g, turfLook(groundDetail(lanesMaterial(new THREE.MeshBasicMaterial({ color: colour, ...GROUND_UNDER }))), "turf"));
   m.position.y = -0.03;
   m.renderOrder = -2;
   LAYERS.ground.push(m);
@@ -1061,7 +1068,7 @@ function placeBaked(gltf, B, dressing) {
 // course, in the same light (see buildTurf); the paler strips at the line and the furlongs; the field's shadows.
 function buildPlainGround(G) {
   const o = G.outside, tf = G.turf || [0.12, 0.3, 0.06];
-  const far = new THREE.Mesh(new THREE.PlaneGeometry(9000, 9000), LOOKS.patchGround(groundDetail(new THREE.MeshBasicMaterial({ color: new THREE.Color(o[0], o[1], o[2]), ...GROUND_UNDER }), 0.2), "far"));
+  const far = new THREE.Mesh(new THREE.PlaneGeometry(9000, 9000), turfLook(groundDetail(new THREE.MeshBasicMaterial({ color: new THREE.Color(o[0], o[1], o[2]), ...GROUND_UNDER }), 0.2), "far"));
   far.rotation.x = -Math.PI / 2; far.position.set(700, -0.06, -400);
   far.renderOrder = LEGACY_GROUND ? -3 : -1;
   scene.add(far);
@@ -1382,7 +1389,7 @@ function placeScenery(SC, models, treeLib, belts) {
       for (let c = 0; c < 3; c++) col[i * 3 + c] = (foot[c] + (top[c] - foot[c]) * k) * lit / flat;
     }
     geo.setAttribute("color", new THREE.BufferAttribute(col, 3));
-    const m = new THREE.Mesh(geo, LOOKS.patchGround(groundDetail(new THREE.MeshBasicMaterial({ vertexColors: true, side: THREE.DoubleSide }), 0.2), "far"));
+    const m = new THREE.Mesh(geo, turfLook(groundDetail(new THREE.MeshBasicMaterial({ vertexColors: true, side: THREE.DoubleSide }), 0.2), "far"));
     scene.add(m); LAYERS.ground.push(m);
   }
   // the boards (as the planting belts'), then the trees
@@ -1494,11 +1501,14 @@ function buildCrowd(gltf, data, pieceAt) {
   for (const s of spots) byFig[pickFig()].push(s);
   const m = new THREE.Matrix4(), q = new THREE.Quaternion(), sc = new THREE.Vector3(), pos = new THREE.Vector3(), up = new THREE.Vector3(0, 1, 0);
   const col = new THREE.Color();
+  // the miniature test's crowd colours (miniature.js), picked with their own dice so everyone stands where they did
+  const rndM = seeded(97), pickM = (a) => a[Math.floor(rndM() * a.length)];
   figures.forEach((fig, fi) => {
     const lady = fig.name.includes("lady"), top = fig.name.includes("_top");
     const people = byFig[fi].map((s) => ({ s, L: SKITTLES ? {
       clothes: pick(top ? SK.tails : SK.clothes), skin: pick(SK.skin), hat: pick(top ? SK.tophat : SK.hats), trim: pick(SK.accent), hair: pick(SK.dark),
       yaw: (rnd() - 0.5) * 1.0, s: 0.94 + rnd() * 0.12,
+      mini: MINI && { clothes: pickM(top ? MINI.CROWD_MINI.tails : MINI.CROWD_MINI.clothes), hat: pickM(top ? MINI.CROWD_MINI.tophat : MINI.CROWD_MINI.hats), trim: pickM(MINI.CROWD_MINI.accent) },
     } : {
       clothes: pick(lady ? P.dresses : P.suits), skin: pick(P.skin), hat: pick(lady ? P.hats_lady : P.hats_gent), trim: "#ffffff", hair: "#ffffff",
       yaw: (rnd() - 0.5) * 1.2, s: 0.94 + rnd() * 0.12,            // facing the track, as on the stands side before
@@ -1513,6 +1523,7 @@ function buildCrowd(gltf, data, pieceAt) {
     }
     const n = people.length;
     const F = { n, mats: new Float32Array(16 * n), cols: CROWD_PARTS.map(() => new Float32Array(3 * n)), cells: [] };
+    if (MINI) { F.colsBase = F.cols; F.colsMini = CROWD_PARTS.map(() => new Float32Array(3 * n)); }
     let i = 0;
     for (const list of cells.values()) {
       const box = new THREE.Box3();
@@ -1521,6 +1532,7 @@ function buildCrowd(gltf, data, pieceAt) {
         pos.set(s.x, s.y, s.z); q.setFromAxisAngle(up, s.face !== undefined ? s.face + L.yaw : s.z < 0 ? L.yaw + Math.PI : L.yaw); sc.set(L.s, L.s * (s.seated ? 0.7 : 1), L.s);
         m.compose(pos, q, sc).toArray(F.mats, 16 * i);
         CROWD_PARTS.forEach((k, j) => col.set(L[k]).toArray(F.cols[j], 3 * i));
+        if (F.colsMini) CROWD_PARTS.forEach((k, j) => col.set((L.mini && L.mini[k]) || L[k]).toArray(F.colsMini[j], 3 * i));
         box.expandByPoint(pos);
         i++;
       }
@@ -1561,6 +1573,7 @@ function buildCrowd(gltf, data, pieceAt) {
     };
     F.near = make(nearGeo);
     F.far = make(farGeo);
+    if (MINI && MINI.S.crowd) F.cols = F.colsMini;
     CROWD.figs.push(F);
   });
   console.log("crowd:", spots.length, "people");
@@ -1598,8 +1611,8 @@ function crowdMaterial() {
       .replace("#include <common>", "#include <common>\nvarying vec3 vPartCol;")
       .replace("#include <color_fragment>", "#include <color_fragment>\ndiffuseColor.rgb *= vPartCol;");
   };
-  const ob = mat.onBeforeCompile; mat.onBeforeCompile = (sh) => { ob(sh); LOOKS.patchCrowd(sh); };
-  mat.customProgramCacheKey = () => "crowd-life" + (LOOKS.lookId || "");
+  const ob = mat.onBeforeCompile; mat.onBeforeCompile = (sh) => { ob(sh); LOOKS.patchCrowd(sh); if (MINI) MINI.patchCrowd(sh); };
+  mat.customProgramCacheKey = () => "crowd-life" + (LOOKS.lookId || "") + (MINI ? "-mini" : "");
   return mat;
 }
 function setCrowdShare(share) { CROWD.share = share; CROWD.sig = ""; }
@@ -1784,6 +1797,7 @@ function setGrade(on) {
   renderer.toneMapping = on ? THREE.CustomToneMapping : THREE.AgXToneMapping;
   if (scene.fog && !LOOKS.lookId) { const c = HAZE; scene.fog.color.setRGB(...(on ? GRADE.apply([c.r, c.g, c.b]) : [c.r, c.g, c.b]), THREE.LinearSRGBColorSpace); }
   vignette.visible = on;
+  if (MINI) MINI.afterGrade();
 }
 
 // ---------- Cameras ----------
@@ -2801,6 +2815,7 @@ function frame() {
 
   const tCam = performance.now(); diag.sec.race += tCam - tRace;
   updateCamera(now, dt);
+  if (MINI) MINI.camera(camera, focus);
   chooseHorseDetail();
   diag.sec.camera += performance.now() - tCam;
   if (HORSE_V === "v2" && runners.length) {           // v2: detail levels by size on screen, a few close at most
@@ -2814,6 +2829,7 @@ function frame() {
     const rr = railAt(Math.min(DIST, Math.max(0, DIST - packU)));
     shadowCatcher.position.set(sx, 0.03, sz); shadowCatcher.rotation.y = Math.atan2(-rr.tz, rr.tx);
   }
+  if (MINI) MINI.afterSun(sunAt, camera, focus);
   scene.userData.sky.position.copy(camera.position);
   CROWD.uniforms.uTime.value = performance.now() / 1000;
   CROWD.uniforms.uLeader.value.set(leaderXw, leaderZ);
@@ -2839,7 +2855,8 @@ function frame() {
   if (every > 1 && framesDrawn % every === 0) sun.shadow.needsUpdate = true;
   const t1 = performance.now();
   renderer.info.reset();
-  LOOKS.render(renderer, scene, camera, focus, state.phase === "prelude" || state.phase === "postlude");
+  if (MINI) MINI.render(renderer, scene, camera);
+  else LOOKS.render(renderer, scene, camera, focus, state.phase === "prelude" || state.phase === "postlude");
   framesDrawn++;
   diag.js += t1 - t0; diag.draw += performance.now() - t1; diag.n++;
   // ?still=1 (used for checking screenshots): draw a few frames once loaded, then stop.
@@ -2853,6 +2870,14 @@ function frame() {
   }
   requestAnimationFrame(frame);
 }
+// The miniature look test's panel and switches (?mini=1)
+if (MINI) MINI.init({
+  renderer, scene, sun, hemi: sky, sunOffset: SUN_OFFSET, lanes: () => LANES_U, catcher: () => shadowCatcher,
+  shadowType: () => (QUALITY[qLevel].soft ? THREE.PCFSoftShadowMap : THREE.PCFShadowMap),
+  recompile: () => scene.traverse((o) => { if (o.material) [].concat(o.material).forEach((m) => (m.needsUpdate = true)); }),
+  crowdPalette: (on) => { for (const F of CROWD.figs) if (F.colsMini) F.cols = on ? F.colsMini : F.colsBase; CROWD.sig = ""; },
+  redraw: () => { if (params.has("still") && window.__ready) { stillFrames = 0; window.__ready = false; requestAnimationFrame(frame); } },
+});
 requestAnimationFrame(frame);
 // Checking aid (?still=1): jump to another moment of the race and draw it again: window.__seek(t), then wait for __ready.
 // Checking aid (?still=1): play on by exactly dt seconds and draw (the whole show, phases and all), for recording a
