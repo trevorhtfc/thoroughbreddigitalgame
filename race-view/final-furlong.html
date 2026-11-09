@@ -1643,7 +1643,7 @@ function buildCrowd(gltf, data, pieceAt) {
 // of the gents slowly lift their hats. Kept minimal on purpose (owner, 7 Nov). Who does what comes from where they stand.
 // (beyond thinFrom metres a person is a few pixels high: only 'thin' of them are drawn there; owner's Newmarket crowds,
 // 9 Nov, put 35,000 people in the racecard shot)
-const CROWD = { figs: [], share: 1, sig: "", uniforms: { uTime: { value: 0 }, uLeader: { value: new THREE.Vector2(0, MID_Z) } }, near: 90, thinFrom: 240, thin: 0.45 };
+const CROWD = { figs: [], share: 1, sig: "", uniforms: { uTime: { value: 0 }, uLeader: { value: new THREE.Vector2(0, MID_Z) } }, near: 90, thinFrom: 200, thin: 0.32 };
 function crowdMaterial() {
   const mat = new THREE.MeshLambertMaterial({ color: "#ffffff" });
   mat.onBeforeCompile = (sh) => {

@@ -160,12 +160,12 @@ def grass_strips():
 
 # The crowd packed right up against the rail (owner, 9 Nov late): x from, to; z from, to; density per square metre
 # the lawn between the track and the stands (owner, 9 Nov late: "way more dense"): bands of z (from, to, density)
-LAWN_CROWD = {"z": [W_ + 8.0, W_ + 90.0], "density": 0.2, "bands": [[W_ + 8.0, W_ + 45.0, 0.45], [W_ + 45.0, W_ + 90.0, 0.3]]}
-FESTIVAL_DENSITY = {"stand": 0.2, "far": 0.3}                          # denser through the festival (9 Nov late)
+LAWN_CROWD = {"z": [W_ + 8.0, W_ + 90.0], "density": 0.2, "bands": [[W_ + 8.0, W_ + 45.0, 0.8], [W_ + 45.0, W_ + 90.0, 0.55]]}
+FESTIVAL_DENSITY = {"stand": 0.35, "far": 0.5}                          # denser through the festival (9 Nov late)
 RAIL_CROWD = [
     # (the front row stands 1.9 m back from the rail line, clear of the rail and its posts: owner, 9 Nov late)
-    {"x": [-60.0, 290.0], "z": [W_ + 1.9, W_ + 8.0], "density": 0.6, "face": 180.0},   # the stand side, in front of the stands
-    {"x": [-120.0, 470.0], "z": [-7.0, -1.9], "density": 0.5, "face": 0.0},            # the far side, in front of the festival
+    {"x": [-60.0, 290.0], "z": [W_ + 1.9, W_ + 8.0], "density": 1.0, "face": 180.0},   # the stand side, in front of the stands
+    {"x": [-120.0, 470.0], "z": [-7.0, -1.9], "density": 0.85, "face": 0.0},            # the far side, in front of the festival
 ]
 
 

@@ -278,6 +278,8 @@ def rowley_scenery(course):
     for fz in R.FESTIVAL_ZONES:
         S.fill(fz["x"][0], fz["x"][1], fz["z"][0] + 2, fz["z"][1] - 2, R.FESTIVAL_DENSITY[fz["side"]])
     # the lawns in front of the stands, down to the rail walk: packed along the rail, thinner on the lawns behind
+    # nobody behind the finish-line kit's screens (owner, 9 Nov night): it stands on the far rail at the line
+    S.nogo.append([(-20.0, -10.0), (20.0, -10.0), (20.0, 0.0), (-20.0, 0.0)])
     for rc in R.RAIL_CROWD:                                         # packed right up against the rail (owner, 9 Nov late)
         S.fill(rc["x"][0], rc["x"][1], rc["z"][0], rc["z"][1], rc["density"], face(0, -1) if rc["face"] == 180.0 else face(0, 1))
     for z0, z1, dn in R.LAWN_CROWD["bands"]:                       # back to the stands, densest by the rail
@@ -581,9 +583,10 @@ def main():
         c["straightMile"] = {"length": L.STRAIGHT, "furlongPoles": poles}
         if side > 0:
             S, trees, banks = rowley_scenery(course)
-            # the side-on replay (owner, 9 Nov late): from the festival side at the line, looking back across at the stands
-            cams = cameras(W, side, [0, 14, W + 28], ([-6, 9.0, -13], [0, 6.0, W * 0.6]), -L.RUN_ON + 12, [-110, 49.5, -35.2])
-            cams["sideon"]["fov"] = [44, 44]
+            # the side-on replay (owner, 9 Nov late): from the festival side at the line, looking back across at the stands;
+            # on the track side of the finish-line kit, so nothing of it is in the way (9 Nov night)
+            cams = cameras(W, side, [0, 14, W + 28], ([-8, 6.5, 0.8], [0, 6.0, W * 0.65]), -L.RUN_ON + 12, [-110, 49.5, -35.2])
+            cams["sideon"]["fov"] = [46, 46]
             # the director (owner, 9 Nov late): mainly the tracking car, flicks to the drone early on, the drone from 3f, the
             # stand camera down the Dip to the line
             director = {"tracking": True, "drone3f": round(3 * F), "grandstand": 330, "flicks": {"from": 260, "every": 520, "length": 110}}
