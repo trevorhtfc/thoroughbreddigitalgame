@@ -3,3 +3,4 @@ __pycache__/
 
 # the staged game for publishing (built by game/tools/stage.py)
 dist/
+reference/architecture/clean-study/*.exr
