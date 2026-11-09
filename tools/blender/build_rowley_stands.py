@@ -48,6 +48,7 @@ COL = {   # the pastel-street palette, as the July Course's pieces
 # grand pavilion"): the canopy roof, the cream iron lace and the steps
 ASCOT_COL = json.load(open(rp("assets/models/architecture/victorian_grandstand_layout.json")))["colours"]
 COL.update({k: ASCOT_COL[k] for k in ("roof", "iron", "steps")})
+COL["drum"] = "#f6efe0"          # the light cream stair drum at the cranked stand's rail end (owner, 9 Nov)
 MATS = {k: material("rm_" + k, v, rough=0.9) for k, v in COL.items()}
 K = Kit()
 CROWD = []
@@ -136,91 +137,161 @@ def sheet_solid(mat, fz, x0, x1, y0, y1, nx, ny, t):
 
 
 # ------------------------------------------------------------------------------------------ 1: the Millennium Grandstand
-def millennium_stand(n=4, bay=28.0, D=42.0):
-    """The Millennium Grandstand's form and proportion (four wave canopies on masts over a deep block) dressed with the
-    Royal Ascot stand's old-school details (owner, 8 Nov: "something about it is still not convincing. The steps should
-    come down to ground. The raised platform isn't helping... take the form and proportion of the new stand but
-    integrate some of the Royal Ascot old school vibe into it, so it feels more heritage"):
-    a standing terrace that steps up from the lawn; cream walls with pilasters at the bay lines and deep cornices;
-    balconies with balustrades; a veranda on dark green iron columns; the canopies on dark green masts with gilt
-    finials. Then (on the second look): a colonnade of straight piers with a covered terrace behind, in place of the
-    arches; no ring beam along the canopies' front; no clock tower; deeper, the canopies reaching further out."""
+def strut(mat, p0, p1, r=0.07, segs=4):
+    """A thin straight member from p0 to p1 (lattice webs, chords, stays)."""
+    v = Vector(p1) - Vector(p0); m = v.length
+    if m < 1e-3:
+        return
+    rot = Vector((0, 0, 1)).rotation_difference(v.normalized()).to_matrix().to_4x4()
+    K.push(Matrix.Translation(p0) @ rot)
+    K.cyl(mat, 0, 0, 0, m, r, segs=segs, smooth=False)
+    K.pop()
+
+
+def millennium_stand(n=4, bay=28.0, D=42.4):
+    """The Millennium Grandstand: its four barrel canopies kept, the stand under them re-cut (owner, 9 Nov, with his
+    section sketch and the July Course's old pavilion as the reference for the upper levels):
+      - the lawn terrace from the ground up to the block, as before (the same rake as the grand-pavilion wing beside it);
+      - a stepped seating tier projecting in front of the block on slender posts that stand on the lawn terrace, its
+        floor level with the wing's standing terrace (6.25 m), so the terraces read as running on across;
+      - above it a balconied stand in the old pavilion's manner (balustrade, posts with fretwork brackets, rows of
+        benches stepping back), its floor level with the wing's roof terrace (11.55 m), under a deep slab;
+      - the cream block behind, one storey above the tiers, a cornice;
+      - the barrel canopies lifted clear of the block on posts (no longer meeting the stand), reaching out over the
+        terraces, carried on lattice trusses along the bay lines and arched lattice ribs across each barrel;
+      - the masts and stays as before.
+    Section (front to back): lawn terrace foot y = 0, tier fronts y = 14.4 / 15.6, block face yf = 26.4, back D."""
     L = n * bay; h = L / 2
-    rows, tread, rise = 26, 1.0, 0.2         # owner: a much shallower rake, so the terrace comes much further forward
-    yf = rows * tread + 0.4                                           # the building's face, behind the terrace
-    # the terrace: from the lawn straight up to the arcade, a low balustrade along its foot, benches on the rows
-    K.box("wall", -h, h, -0.35, 0.0, -1.0, 1.0)                                  # a plain low wall at its foot
+    rows, tread, rise = 26, 1.0, 0.2
+    yf = rows * tread + 0.4                                           # the block's face, behind the lawn terrace
+    lawn = lambda y: 0.3 + max(0, min(rows - 1, int(y // tread))) * rise
+    # -- the lawn terrace: from the ground up to the block, a low wall along its foot
+    K.box("wall", -h, h, -0.35, 0.0, -1.0, 1.0)
     K.box("trim", -h - 0.05, h + 0.05, -0.42, 0.07, 1.0, 1.12)
-    yb, zt = steps("concrete", -h, h, 0.0, 0.3, rows, tread, rise)                   # plain standing steps
+    yb, zt = steps("concrete", -h, h, 0.0, 0.3, rows, tread, rise)
     K.box("concrete", -h, h, yb, yf + 0.5, -1.0, zt)
-    z1 = zt + 0.05                                                     # the gallery floor, level with the top row
-    # a colonnade of plain square piers carrying an entablature (owner, 8 Nov: straight piers rather than arches),
-    # with a deep covered terrace behind it, level with the top row
-    span, pier = bay / 4, 1.2
-    zc = z1 + 5.2
-    K.box("glass", -h, h, yf + 7.6, yf + 7.8, z1, zc)
-    K.box("concrete", -h, h, yf, yf + 7.8, z1 - 0.4, z1)
-    for k in range(n * 4 + 1):
-        x = -h + k * span
-        K.box("wall", x - pier / 2, x + pier / 2, yf, yf + pier, z1, zc)            # plain square piers
-    area(-h + 0.6, h - 0.6, yf + 1.4, yf + 7.2, z1)
-    K.box("wall", -h, h, yf, yf + 2.4, zc, zc + 1.0)
-    # three upper floors (owner, 8 Nov: "a bit low... add extra height by another terrace", "strip out some of the
-    # extra detail"): each a balcony with a plain solid parapet in front of tall windows in cream walls
-    z = zc + 1.5
-    for lv in range(3):
-        H = 4.6
-        K.box("wall", -h, h, yf + 2.4, D, z, z + H)
-        for k in range(int(L // 3.5)):
-            win(-h + 1.75 + k * 3.5, yf + 2.4, z + 0.6, 1.5, 2.8)
-        K.box("podium", -h - 0.2, h + 0.2, yf - 0.2, yf + 2.6, z - 0.35, z)                 # the balcony slab
-        K.box("wall", -h - 0.2, h + 0.2, yf - 0.2, yf + 0.05, z, z + 1.05)                  # its parapet
-        K.box("trim", -h - 0.25, h + 0.25, yf - 0.28, yf + 0.12, z + 1.05, z + 1.17)
-        area(-h + 0.4, h - 0.4, yf + 0.4, yf + 2.2, z)
-        z += H
-    K.box("wall", -h, h, yf + 2.4, D, z, z + 1.4)
-    K.cornice(-h, h, yf + 2.0, D, z + 1.4, ov=0.6, h=0.6)
-    deck = z + 2.0
-    # pilasters at the bay lines, full height, and the ends in cream with windows and cornices
-    for j in range(n + 1):
-        x = -h + bay * j
-        K.box("podium", x - 0.9, x + 0.9, yf - 0.35, yf + 0.1, z1, zc + 1.0)
-        K.box("podium", x - 0.9, x + 0.9, yf + 2.0, yf + 2.45, zc + 1.0, deck - 0.6)
-    for x, f in ((-h, -1), (h, 1)):
-        K.box("wall", x - 0.5 * f - 0.5, x - 0.5 * f + 0.5, yf, D + 0.5, -1.0, deck)
-        for zz in (z1 + 1.0, zc + 2.2, zc + 6.8):
-            for y in (yf + 6.0, yf + 11.0, D - 4.0):
-                side_window(x + 0.5 * f, f, y, zz, 1.4, 2.4)
-    # the wave canopies: vaults across the bays springing from the cornice, rising towards the front
+    # -- the block behind the tiers: cream, the full width, up to one storey above the balcony stand's slab
+    zA, zB = 6.25, 11.55                                              # the wing's standing terrace and roof terrace
+    zC = 16.2                                                         # the balcony stand's slab (its roof)
+    zTop = zC + 3.8
+    K.box("wall", -h, h, yf, D, -1.0, zTop)
+    for k in range(int(L // 4.0)):                                    # dark doors from the tiers into the block
+        x = -h + 2.0 + k * 4.0
+        K.door(x, yf, zA + 2.45, 1.3, 2.0)
+        K.door(x, yf, zB + 1.45, 1.3, 2.0)
+        win(x, yf, zC + 1.0, 1.6, 1.8)
+    K.cornice(-h, h, yf - 0.1, D, zTop, ov=0.6, h=0.6)
+    for x, f in ((-h, -1), (h, 1)):                                   # the ends: windows in the cream
+        for zz in (zA + 1.0, zB + 1.0, zC + 1.0):
+            for y in (yf + 4.0, yf + 8.0, D - 4.0):
+                side_window(x, f, y, zz, 1.4, 2.0)
+    span = bay / 4                                                    # posts every 7 m
+    posts = [-h + k * span for k in range(n * 4 + 1)]
+    def brackets(x, y0, y1, z):                                       # the old pavilion's fretwork brackets
+        for s_ in (-1, 1):
+            if -h < x + s_ * 0.7 < h:
+                K.prism_y("trim", y0, y1, [(x, z), (x + s_ * 0.7, z), (x, z - 0.7)])
+    # -- tier A: stepped seating projecting in front of the block, from the wing's standing-terrace level
+    yA, nA = 14.4, 7
+    tA = (yf - (yA + 0.9)) / nA
+    prof = [(yA, zA - 0.5), (yA, zA), (yA + 0.9, zA)]
+    for i in range(nA):
+        z = zA + (i + 1) * 0.34
+        prof += [(yA + 0.9 + i * tA, z), (yA + 0.9 + (i + 1) * tA, z)]
+    prof += [(yf, zA + 2.05)]                                         # a sloping soffit, clear of the lawn rows below
+    K.prism_x("concrete", -h, h, prof)
+    K.balustrade(-h, h, yA + 0.12, zA, h=1.0, mat="trim", spacing=0.3, piers=False)
+    area(-h + 0.4, h - 0.4, yA + 0.3, yA + 0.85, zA)
+    for i in range(nA):
+        z = zA + (i + 1) * 0.34; y0 = yA + 0.9 + i * tA
+        K.box("seat", -h + 0.4, h - 0.4, y0 + tA - 0.45, y0 + tA - 0.08, z, z + 0.42)
+        area(-h + 0.4, h - 0.4, y0 + 0.1, y0 + tA - 0.5, z)
+    for x in (-h, h):
+        K.balustrade(yA, yf, x, zA, h=1.0, mat="trim", spacing=0.3, axis="y", piers=False)
+    # -- tier B: the balcony stand, the old pavilion's way, from the wing's roof-terrace level
+    yB, nB = 15.6, 4
+    tB = (yf - (yB + 1.2)) / nB
+    K.box("concrete", -h - 0.3, h + 0.3, yB - 0.3, yf, zB - 0.35, zB)                  # the balcony slab
+    prof = [(yB + 1.2, zB - 0.01)]
+    for i in range(nB):
+        z = zB + (i + 1) * 0.34
+        prof += [(yB + 1.2 + i * tB, z), (yB + 1.2 + (i + 1) * tB, z)]
+    prof += [(yf, zB - 0.01)]
+    K.prism_x("concrete", -h, h, prof)
+    K.balustrade(-h - 0.15, h + 0.15, yB - 0.15, zB, h=1.0, mat="trim", spacing=0.3, piers=False)
+    area(-h + 0.4, h - 0.4, yB + 0.1, yB + 1.1, zB)
+    for i in range(nB):
+        z = zB + (i + 1) * 0.34; y0 = yB + 1.2 + i * tB
+        K.box("seat", -h + 0.4, h - 0.4, y0 + tB - 0.45, y0 + tB - 0.08, z, z + 0.42)
+        area(-h + 0.4, h - 0.4, y0 + 0.1, y0 + tB - 0.5, z)
+    for x in (-h - 0.15, h + 0.15):
+        K.balustrade(yB - 0.15, yf, x, zB, h=1.0, mat="trim", spacing=0.3, axis="y", piers=False)
+    K.box("concrete", -h - 0.3, h + 0.3, yB - 0.5, yf, zC - 0.35, zC)                  # its roof slab
+    K.box("trim", -h - 0.35, h + 0.35, yB - 0.6, yB - 0.3, zC - 0.75, zC)              # a deep white fascia
+    # -- the posts (the sketch's orange): from the lawn terrace up through tier A to the balcony slab, and on up to
+    #    the roof slab, with brackets under each slab
+    yp = yB + 0.15
+    for x in posts:
+        xp = max(-h + 0.15, min(h - 0.15, x))
+        K.box("trim", xp - 0.13, xp + 0.13, yp - 0.13, yp + 0.13, lawn(yp) - 0.2, zC - 0.75)
+        brackets(xp, yp - 0.05, yp + 0.05, zB - 0.35)
+        brackets(xp, yp - 0.05, yp + 0.05, zC - 0.75)
+    # -- the barrel canopies, lifted 3 m clear of the block on posts, reaching out over the terraces
+    zS = zTop + 3.0
+    y0c, y1c = 4.0, D + 2.0
     def fz(x, y, xc):
         t = min(max((x - (xc - bay / 2)) / bay, 0.0), 1.0)
-        rise_ = 1.5 * (D + 2 - y) / (D + 2 - yf + 9)                     # a gentle lift to the front: springing
-        return deck - 0.3 + rise_ + 6.5 * math.sin(math.pi * t) ** 0.75     # straight off the top cornice
-    y0c = yf - 11.0                                                   # the canopies reach well out over the terrace
+        return zS + 2.0 * (y1c - y) / (y1c - y0c) + 6.5 * math.sin(math.pi * t) ** 0.75
     for k in range(n):
         xc = -h + bay * (k + 0.5)
-        sheet_solid("canvas", lambda x, y, xc=xc: fz(x, y, xc), xc - bay / 2 + 0.35, xc + bay / 2 - 0.35, y0c, D + 2.0, 18, 10, 0.25)
-    # the frame: ribs along the troughs, a ring beam along the front, dark green masts with gilt finials and stays
+        sheet_solid("canvas", lambda x, y, xc=xc: fz(x, y, xc), xc - bay / 2 + 0.35, xc + bay / 2 - 0.35, y0c, y1c, 18, 12, 0.25)
+    trough = lambda y: zS + 2.0 * (y1c - y) / (y1c - y0c) - 0.3          # the roof's underside along a bay line
     for j in range(n + 1):
         x = -h + bay * j
-        p0, p1 = (y0c, fz(x, y0c, x + bay / 2)), (D + 2.0, fz(x, D + 2.0, x + bay / 2))     # along the trough
-        K.prism_x("trim", x - 0.45, x + 0.45, [(p0[0], p0[1] - 0.9), (p1[0], p1[1] - 0.9), (p1[0], p1[1] + 0.35), (p0[0], p0[1] + 0.35)])
-        mz, my = deck + 17.0, yf + (D - yf) * 0.45
-        K.cyl("ironwork", x, my, deck - 2.0, mz, 0.45, 0.3, segs=10)
+        # posts lifting the roof off the block (the sketch's three behind the face)
+        for y in (yf + 1.0, (yf + D) / 2, D - 0.6):
+            K.box("white", x - 0.25, x + 0.25, y - 0.25, y + 0.25, zTop, trough(y))
+        # a lattice truss along the bay line: top chord under the roof, bottom chord dropping deeper towards the
+        # block (0.9 m at the tip, 3.2 m at the face), zig-zag webs; over the block it carries on 1.2 m deep
+        def bot(y):
+            if y >= yf:
+                return trough(y) - 1.2
+            return trough(y) - (0.9 + 2.3 * (y - y0c) / (yf - y0c))
+        ys = [y0c + 0.4 + i * 2.0 for i in range(int((y1c - 0.4 - y0c - 0.4) // 2.0) + 1)]
+        strut("white", (x, ys[0], trough(ys[0])), (x, ys[-1], trough(ys[-1])), 0.12)
+        for a_, b_ in zip(ys[:-1], ys[1:]):
+            strut("white", (x, a_, bot(a_)), (x, b_, bot(b_)), 0.1)
+        for i, y in enumerate(ys[:-1]):
+            yn = ys[i + 1]
+            if i % 2 == 0:
+                strut("white", (x, y, trough(y)), (x, yn, bot(yn)), 0.06)
+            else:
+                strut("white", (x, y, bot(y)), (x, yn, trough(yn)), 0.06)
+    # arched lattice ribs across each barrel, following its curve (the real stand's look), at the tip and the face
+    for k in range(n):
+        xc = -h + bay * (k + 0.5)
+        for y in (y0c + 0.8, (y0c + yf) / 2, yf + 0.5):
+            xs = [xc - bay / 2 + 0.4 + i * (bay - 0.8) / 16 for i in range(17)]
+            top = [(x_, y, fz(x_, y, xc) - 0.3) for x_ in xs]
+            low = [(x_, y, fz(x_, y, xc) - 1.3) for x_ in xs]
+            for i in range(16):
+                strut("white", top[i], top[i + 1], 0.08); strut("white", low[i], low[i + 1], 0.08)
+                strut("white", top[i] if i % 2 == 0 else low[i], low[i + 1] if i % 2 == 0 else top[i + 1], 0.05)
+    # the masts (dark green, gilt finials) and stays, standing on the block's roof
+    for j in range(n + 1):
+        x = -h + bay * j
+        mz, my = zS + 18.0, yf + (D - yf) * 0.45
+        K.cyl("ironwork", x, my, zTop, mz, 0.45, 0.3, segs=10)
         K.sphere("gilt", x, my, mz + 0.35, 0.55, sub=1)
         for s_ in (-1, 1):
             for f_ in (0.22, 0.42):
-                for ye in (y0c, D + 2.0):
+                for ye in (y0c, y1c):
                     xe = x + s_ * bay * f_
                     if not (-h <= xe <= h):
                         continue
                     xc = -h + bay * (math.floor((xe + h) / bay) + 0.5)
-                    v = Vector((xe - x, ye - my, fz(xe, ye, xc) + 0.2 - mz)); m = v.length
-                    rot = Vector((0, 0, 1)).rotation_difference(v.normalized()).to_matrix().to_4x4()
-                    K.push(Matrix.Translation((x, my, mz)) @ rot)
-                    K.cyl("ironwork", 0, 0, 0, m, 0.06, segs=4, smooth=False)
-                    K.pop()
-    return {"width": L + 1.0, "depth": D + 2.0, "height": deck + 17.6}
+                    strut("ironwork", (x, my, mz), (xe, ye, fz(xe, ye, xc) + 0.2), 0.06)
+    return {"width": L + 1.0, "depth": D + 2.0, "height": round(zS + 18.6, 2)}
 
 
 # ------------------------------------------------------------------------------------------ 1b: the Rowley stand
@@ -378,7 +449,24 @@ def ascot_end_pavilion(x0, x1, D, tiers):
     K.cyl("gilt", cx, cy, zc + 3.1, zc + 3.9, 0.04, 0.01, 6)
 
 
-def grand_pavilion_stand(bays, rows, tread, rise, end_pavilion=False):
+def stair_drum(cx, cy, r=3.4, top=19.0):
+    """A round stair shaft in light cream (owner's markup, 9 Nov): plain drum, small windows climbing round it with
+    the stair, a white band and a shallow cap."""
+    K.cyl("drum", cx, cy, -1.0, top, r, segs=28)
+    K.cyl("trim", cx, cy, top, top + 0.45, r + 0.25, segs=28)
+    K.cyl("drum", cx, cy, top + 0.45, top + 1.2, r - 0.4, r - 1.6, segs=28)
+    K.cyl("trim", cx, cy, 2.6, 2.85, r + 0.12, segs=28)
+    for i in range(int((top - 3.5) // 1.6)):                          # windows spiralling up with the stair
+        ang = math.radians(-120 + (i % 6) * 40)
+        z = 3.4 + i * 1.6
+        K.push(Matrix.Translation((cx, cy, 0)) @ Matrix.Rotation(ang, 4, "Z"))
+        K.box("glass", -0.35, 0.35, -r - 0.06, -r + 0.3, z, z + 1.1)
+        K.box("trim", -0.45, 0.45, -r - 0.12, -r + 0.3, z - 0.12, z)
+        K.pop()
+    K.door(cx, cy - r, 0.0, 1.4, 2.4)
+
+
+def grand_pavilion_stand(bays, rows, tread, rise, end_pavilion=False, drum=False):
     """The flanking stands (owner, 9 Nov): Ascot's grand pavilion, quite literally (the terrace profile under the
     grand canopy with its glazed ridge lantern), behind a lower tier of terrace that rises from the lawn at the Rowley
     Mile's shallow rake to just under the boxes' ledge (the podium). Origin: the middle of the lawn terrace's foot.
@@ -397,6 +485,8 @@ def grand_pavilion_stand(bays, rows, tread, rise, end_pavilion=False):
     t = canopy_terrace({"x0": 0.0, "x1": L, "depth": 18.0, "party": ()}, grand=True)
     if end_pavilion:
         ascot_end_pavilion(L, L + 4 * BAY - 1.6, 16.0, 2)
+    if drum:                                  # on the left as built: the cranked stand is mirrored, so it lands at the rail end
+        stair_drum(-3.0, 8.0, top=round(terrace_top(18.0) + 3.0, 2))
     K.pop()
     width = L + (4 * BAY if end_pavilion else 0.0)
     info = {"width": width, "depth": T + 19.0, "height": round(terrace_top(18.0) + 9.6, 2)}
@@ -413,7 +503,7 @@ PIECES = [
     # owner's sketch (8 Nov): the pavilion stand cranks round by the winning line: a wing in line with the Millennium,
     # then an end stand at right angles to the track, past the post, looking back up the course
     ("rowley_wing", lambda: grand_pavilion_stand(12, 14, 1.0, 0.2)),                  # 42 m
-    ("rowley_end", lambda: grand_pavilion_stand(24, 14, 1.0, 0.2)),                   # 84 m
+    ("rowley_end", lambda: grand_pavilion_stand(24, 14, 1.0, 0.2, drum=True)),        # 84 m, the stair drum at its rail end
     ("victorian_stand", lambda: grand_pavilion_stand(37, 10, 1.0, 0.28, end_pavilion=True)),   # 129.5 m + 14 m
     ("judges_kiosk", judges_kiosk),
     ("victorian_pavilion", victorian_pavilion),

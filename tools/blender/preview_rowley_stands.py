@@ -222,21 +222,17 @@ me = bpy.data.meshes.new("hedges"); hb.to_mesh(me); hb.free(); me.materials.appe
 ho = bpy.data.objects.new("hedges", me); scene.collection.objects.link(ho); soften(ho, 0.2)
 sp = load("assets/models/architecture/site_props.glb")
 for m in {sl.material for o in sp.values() for sl in o.material_slots if sl.material}: clayify(m)
-fx0, fx1 = R.FESTIVAL["x"]; x = max(fx0, 285.0) + 6
 fest = []
-while x < fx1 - 10:                                                    # festival pavilions in loose rows, facing the track
-    for piece, dz in ((rnd.choice(["terrace_deck", "kiosk_awning", "pagoda_kiosk", "pagoda_counter"]), 18.0),
-                      (rnd.choice(["kiosk_row_arched", "pergola_picnic", "pagoda_counter", "marquee_clearspan"]), 34.0),
-                      (rnd.choice(["marquee_peaks", "marquee_clearspan", "big_top"]), 54.0)):
-        if piece == "big_top" and rnd.random() < 0.6: continue
-        ob = place(sp[piece], x + rnd.uniform(-2, 2), W + dz, 180.0)
+for piece, px, pz, turn in R.festival_pieces(rnd):                     # every festival zone (owner's markups, 8 and 9 Nov)
+    ob = place(sp[piece], px, pz, turn)
+    if piece != "banner_flag":
         fest.append((ob.location.x, -ob.location.y, max(ob.dimensions.x, ob.dimensions.y) / 2 + 1.5))
-    place(sp["banner_flag"], x - 4, W + 9.0, 180.0)
-    x += rnd.uniform(24, 32)
-for _ in range(int((fx1 - fx0) * 50 * 0.12)):
-    x, z = rnd.uniform(fx0, fx1), rnd.uniform(W + 6, W + 64)
-    if not any((x - a) ** 2 + (z - b) ** 2 < r * r for a, b, r in fest):
-        people.append((x, z, 0.0, rnd.uniform(0, 360)))
+for fz in R.FESTIVAL_ZONES:                                            # a crowd through each zone
+    (fx0, fx1), (fz0, fz1) = fz["x"], fz["z"]
+    for _ in range(int((fx1 - fx0) * (fz1 - fz0) * 0.12)):
+        x, z = rnd.uniform(fx0, fx1), rnd.uniform(fz0 + 2, fz1 - 2)
+        if not any((x - a) ** 2 + (z - b) ** 2 < r * r for a, b, r in fest):
+            people.append((x, z, 0.0, 180.0 if fz["side"] == "stand" else 0.0))
 # the lawns in front of the stands, down to the rail walk (crowd on the aprons too, not on the hedges)
 for zr0, zr1, dens in ((W + 5, W + 14, 0.32), (W + 14, W + 75, 0.07)):   # packed along the rail, thinner on the lawns behind
     for _ in range(int(350 * (zr1 - zr0) * dens)):
@@ -271,13 +267,13 @@ for k in kinds:
 trunks = [bpy.data.objects.new(k + "_t", tr[k + "_trunk"].data) for k in kinds]
 bark = flat("bark", "#7a6650"); [o.data.materials.__setitem__(0, bark) for o in trunks]
 T = []
-for x_, z_ in small_trees:                                             # small trees in the hedge gaps
-    if rnd.random() < 0.5: T.append((x_, z_, rnd.randrange(5), rnd.uniform(0.55, 0.75)))
+# (no small trees in the hedge gaps any more: owner, 9 Nov, no trees in front of the stands)
 for x in np.arange(-130, 760, 11):                                    # behind the stands, clear of their backs
     back = 165.0 if x < 105 else (125.0 if x < 290 else 108.0)
     T.append((x + rnd.uniform(-3, 3), W + rnd.uniform(back, back + 16), rnd.randrange(5), rnd.uniform(1.9, 2.5)))
 for x in np.arange(-200, 900, 16):                                    # across the heath beyond the far rail
-    T.append((x + rnd.uniform(-5, 5), -rnd.uniform(70, 140), rnd.randrange(5), rnd.uniform(1.4, 2.2)))
+    tx, tz = x + rnd.uniform(-5, 5), -rnd.uniform(70, 140)
+    if not R.in_festival(tx, tz, 6.0): T.append((tx, tz, rnd.randrange(5), rnd.uniform(1.4, 2.2)))
 instances("crowns", crowns, [B(x, z, -0.2) for x, z, *_ in T], [k * 4 + rnd.randrange(4) for _, _, k, _ in T],
           [rnd.uniform(0, 6.28) for _ in T], [s for *_, s in T])
 instances("trunks", trunks, [B(x, z, -0.2) for x, z, *_ in T], [k for _, _, k, _ in T], [0.0] * len(T), [s for *_, s in T])

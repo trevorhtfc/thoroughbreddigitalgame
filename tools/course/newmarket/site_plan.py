@@ -86,13 +86,14 @@ def skips(d0, d1, pts_at, track, W):
 
 def main():
     # 1. the Rowley Mile's bank stops where the July Course runs through, inside its bend
-    R.BANK_SKIP = skips(R.BANK["from"], R.BANK["to"], lambda d: [R.behind(d, o) for o in (R.BANK["foot"], sum(R.BANK["crest"]) / 2, R.BANK["back"])],
-                        J_TRACK, J.TRACK_W)
+    R.BANK_SKIP = R.BANK_SKIP + skips(R.BANK["from"], R.BANK["to"], lambda d: [R.behind(d, o) for o in (R.BANK["foot"], sum(R.BANK["crest"]) / 2, R.BANK["back"])],
+                                      J_TRACK, J.TRACK_W)        # (on top of the course's own gaps: the far-side festival)
     # 2. the July Course's Dyke face stops where the Rowley Mile comes close
     J.BANK_SKIP = skips(J.BANK["from"], J.BANK["to"], lambda d: [j2s(*J.far(d, o)) for o in (J.bank_at(d)["foot"], sum(J.bank_at(d)["crest"]) / 2, J.bank_at(d)["back"])],
                         R_TRACK, R.TRACK_W)
     # 3. nothing of one course stands on the other's track
-    R.KEEP = lambda x, z: not near_track(J_TRACK, J.TRACK_W, x, z, MARGIN)
+    r_keep = R.KEEP or (lambda x, z: True)                     # the course's own rule too (no trees in its festival)
+    R.KEEP = lambda x, z: r_keep(x, z) and not near_track(J_TRACK, J.TRACK_W, x, z, MARGIN)
     J.KEEP = lambda x, z: not near_track(R_TRACK, R.TRACK_W, *j2s(x, z), MARGIN)
     rc, jc = R.main(), J.main()
 

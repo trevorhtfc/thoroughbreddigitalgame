@@ -189,27 +189,19 @@ def rowley_scenery(course):
     S.flat("#d9c9a8", [(-R.RUN_ON - 100, W + 0.6), (900, W + 0.6), (900, W + 4.6), (-R.RUN_ON - 100, W + 4.6)], 0.025)
     # the stand-side festival up the course: pavilions in loose rows facing the track, flags, a crowd through it
     rnd = S.rnd
-    fx0, fx1 = R.FESTIVAL["x"]; x = max(fx0, 285.0) + 6
-    fest = []
-    while x < fx1 - 10:
-        for piece, dz in ((rnd.choice(["terrace_deck", "kiosk_awning", "pagoda_kiosk", "pagoda_counter"]), 18.0),
-                          (rnd.choice(["kiosk_row_arched", "pergola_picnic", "pagoda_counter", "marquee_clearspan"]), 34.0),
-                          (rnd.choice(["marquee_peaks", "marquee_clearspan", "big_top"]), 54.0)):
-            if piece == "big_top" and rnd.random() < 0.6: continue
-            px = x + rnd.uniform(-2, 2)
-            S.piece("site_props", piece, px, W + dz, 180.0)
+    for piece, px, pz, turn in R.festival_pieces(rnd):                 # every festival zone (owner's markups, 8 and 9 Nov)
+        S.piece("site_props", piece, px, pz, turn)
+        if piece != "banner_flag":
             w, d = SP_SIZE[piece]
-            S.nogo.append([(px - w / 2 - 1, W + dz - d / 2 - 1), (px + w / 2 + 1, W + dz - d / 2 - 1), (px + w / 2 + 1, W + dz + d / 2 + 1), (px - w / 2 - 1, W + dz + d / 2 + 1)])
-        S.piece("site_props", "banner_flag", x - 4, W + 9.0, 180.0)
-        x += rnd.uniform(24, 32)
-    S.fill(fx0, fx1, W + 6, W + 64, 0.12)
+            S.nogo.append([(px - w / 2 - 1, pz - d / 2 - 1), (px + w / 2 + 1, pz - d / 2 - 1), (px + w / 2 + 1, pz + d / 2 + 1), (px - w / 2 - 1, pz + d / 2 + 1)])
+    for fz in R.FESTIVAL_ZONES:
+        S.fill(fz["x"][0], fz["x"][1], fz["z"][0] + 2, fz["z"][1] - 2, 0.12)
     # the lawns in front of the stands, down to the rail walk: packed along the rail, thinner on the lawns behind
     S.fill(-60, 290, W + 5, W + 14, 0.32, face(0, -1))
     S.fill(-60, 290, W + 14, W + 75, 0.07, face(0, -1))
     # trees: the course's own (tops beyond the far bank), small ones in the hedge gaps, a backdrop behind the stands
     trees = [list(t) for t in course["trees"]["list"]]
-    for x_, z_ in small:
-        if rnd.random() < 0.5: trees.append([r2(x_), r2(z_), rnd.choice(["oak_a", "oak_b", "wide_a", "wide_b"]), r2(rnd.uniform(0.55, 0.75)), rnd.randrange(360)])
+    # (no small trees in the hedge gaps: owner, 9 Nov, no trees in front of the stands)
     x = -130.0
     while x < 760:
         back = 165.0 if x < 105 else (125.0 if x < 290 else 108.0)
@@ -227,7 +219,7 @@ def rowley_scenery(course):
             gx, gz = int(x // 10), int(z // 10)
             if any((px - x) ** 2 + (pz - z) ** 2 < spacing ** 2 for i in (-1, 0, 1) for j in (-1, 0, 1) for px, pz in grid.get((gx + i, gz + j), [])):
                 continue
-            if not clear(x, z, margin): continue
+            if not clear(x, z, margin) or R.in_festival(x, z, 6.0): continue
             grid.setdefault((gx, gz), []).append((x, z))
             trees.append([r2(x), r2(z), rnd.choice(kinds), r2(rnd.uniform(*scale)), rnd.randrange(360), 1])
     # (from just behind the bank's crest, so the stand camera's long lens, looking down across the track, sees their tops
