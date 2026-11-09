@@ -1270,20 +1270,22 @@ const CROWD_FULL = [-110, 220];
 // The plasticine figures (assets/models/architecture/crowd_set_10.glb, owner's pick, 9 Nov 2026: the 1C people
 // remade as hand-made clay figures by tools/blender/build_crowd_clay.py) with a light version for far off
 // (crowd_set_10_far: no arms, fewer sides). Same ten people, order and tint slots as the skittle figures they
-// replace (crowd_set_8, "1C", still on ?crowd=1c). Colours as in the finish study (tools/blender/stand_clean_study.py):
-// the top-hat gents in near-black morning coats and black top hats, the odd grey; everyone else in muted heritage
-// tones and pastels; shoes take the dark 'hair' colour.
+// replace (crowd_set_8, "1C", still on ?crowd=1c). Colours below (SK); shoes take the dark 'hair' colour.
 let SKITTLES = false, CLAY_CROWD = false;
 const CROWD_PARTS = ["clothes", "skin", "hat", "trim", "hair"];
+// The model look's colours (owner, 9 Nov 2026: as in the clay comparison, tools/blender/crowd_clay_review.py):
+// navy, camel, mustard, cream, rust, teal and soft pastels, the top-hat gents in grey morning dress with grey or
+// black toppers; black only as an accent.
 const SK = {
-  clothes: ["#2c3140", "#3a3d44", "#4b4d52", "#2f3a33", "#59544c", "#c9a0a8", "#9fb6c8", "#ddd2b8", "#a8706a", "#88a383", "#d2b874", "#e8e2d6", "#9a88b4", "#cf9476"],
-  hats: ["#222226", "#222226", "#2a2a2e", "#efe6d2", "#d8c08a", "#c9a0a8", "#9fb6c8"],
+  clothes: ["#3f4c6e", "#c8a97e", "#d4b25e", "#e6dcc6", "#b45a4c", "#5f8a8c", "#8fa8c4", "#a8866a", "#46546e", "#d8b0a6", "#7d8a72", "#efe6d2", "#a796c0", "#c97a5a"],
+  hats: ["#efe6d2", "#d8c08a", "#c8a97e", "#3a3a40", "#9fb4c8", "#d9a0a8", "#e6dcc6"],
   skin: ["#efc6a4", "#e2b48e", "#c99572", "#9a6a4a"],
   accent: ["#e6998b", "#8db58c", "#eccd7c", "#8eb0d6", "#b49fd2", "#f2ece0", "#c0453a"],
   dark: ["#24262b", "#2f3036", "#3b352f"],
-  tophat: ["#1a1a1e", "#1f1f23", "#222226", "#1c1c20", "#26262a", "#1d1d21", "#55555c"],
-  tails: ["#1c1d22", "#202128", "#24262c", "#1e1f24", "#2a2c33", "#22232a", "#5c5e64", "#1b1c21"],
+  tophat: ["#2a2a2e", "#8e9096", "#a3a5aa", "#3a3c44", "#7a7c82", "#2a2b30", "#9a9ca2"],
+  tails: ["#3a3f52", "#8e9096", "#a3a5aa", "#2e3446", "#7a7c82", "#46546e", "#b4b2ac", "#2a2b30"],
 };
+// (until 9 Nov the game used the finish study's darker set: near-black morning coats and top hats, muted suits)
 const crowdKeep = (x, rnd) => (x >= CROWD_FULL[0] && x <= CROWD_FULL[1]) || rnd() < 0.12;
 function buildCrowd(gltf, data, pieceAt) {
   const rnd = seeded(21);
