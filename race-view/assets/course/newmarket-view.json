@@ -585,5 +585,15 @@
   "holdAfterOff": 4.0,
   "passAt": 8,
   "hideAfter": 350
+ },
+ "groundLight": {
+  "map": "newmarket-ground-light.jpg",
+  "area": [
+   -231,
+   -92,
+   744.9,
+   288.09999999999997
+  ],
+  "note": "the ground's light from the buildings (tools/blender/bake_newmarket_ground.py): ground colour x map, inside area [x0, z0, x1, z1] (image top = z0); 1 outside"
  }
 }

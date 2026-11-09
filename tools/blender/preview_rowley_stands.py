@@ -252,7 +252,7 @@ for _ in range(int((pa["x"][1] - pa["x"][0]) * (pa["z"][1] - pa["z"][0]) * 0.02)
     people.append((rnd.uniform(*pa["x"]), rnd.uniform(*pa["z"]), 0.0, rnd.uniform(0, 360)))
 # ---- the advertising boards between the Dyke and the course, angled a little towards the stands (owner, 9 Nov)
 BC = {k_: flat("board_" + k_, v_, 0.8) for k_, v_ in R.BOARD_C.items()}
-for bx, bz, bt, des in [b_ for b_ in R.boards() if (R.KEEP or (lambda x, z: True))(b_[0], b_[1])]:
+for bx, bz, bt, des, *_bs in [b_ for b_ in R.boards() if (R.KEEP or (lambda x, z: True))(b_[0], b_[1])]:   # (a scale may follow)
     me = bpy.data.meshes.new("board"); bm_ = bmesh.new()
     bmesh.ops.create_cube(bm_, size=1.0, matrix=Matrix.Translation((0, 0, 0.85)) @ Matrix.Diagonal((R.BOARD_LEN, 0.18, 1.1, 1)))
     for lx in (-R.BOARD_LEN / 2 + 0.4, R.BOARD_LEN / 2 - 0.4):
@@ -381,9 +381,9 @@ sun.rotation_euler = (-to_sun).to_track_quat("-Z", "Y").to_euler()
 # graded cream-peach, lilac, soft cornflower. Stills are written as model_<shot>.png with their depth (model_look_post.py).
 MODEL = os.environ.get("LOOK") == "model"
 if MODEL:
-    for e_ in list(el)[1:]: el.remove(e_)
-    el[0].position, el[0].color = 0.0, (1.0, 0.86, 0.76, 1)
-    el.new(0.07).color = (0.86, 0.84, 0.95, 1); el.new(0.5).color = (0.42, 0.56, 0.9, 1)
+    for e_, (pos, col) in zip(el, ((0.0, (1.0, 0.86, 0.76, 1)), (0.07, (0.86, 0.84, 0.95, 1)), (0.28, (0.6, 0.68, 0.92, 1)), (0.5, (0.42, 0.56, 0.9, 1)))):
+        e_.color = col
+    for e_, pos in zip(el, (0.0, 0.07, 0.28, 0.5)): e_.position = pos      # (the four stops, in order)
     wn["Background"].inputs["Strength"].default_value = 1.15
     sun.data.energy = 3.4; sun.data.angle = math.radians(24); sun.data.color = (1.0, 0.9, 0.8)
     sd = json.load(open(os.path.join(REPO, "race-view/assets/course/newmarket-view.json")))["light"]["sunDir"]
