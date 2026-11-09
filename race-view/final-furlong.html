@@ -346,6 +346,8 @@ import * as SkeletonUtils from "three/addons/utils/SkeletonUtils.js";
 import { RoomEnvironment } from "three/addons/environments/RoomEnvironment.js";
 import { mergeGeometries, mergeVertices } from "three/addons/utils/BufferGeometryUtils.js";
 import { SimplifyModifier } from "three/addons/modifiers/SimplifyModifier.js";
+import { TessellateModifier } from "three/addons/modifiers/TessellateModifier.js";
+const TESSELLATE = new TessellateModifier(8, 12);          // paving cut to 8 m pieces, so it can follow the ground
 import * as HorseV2 from "./horse-v2.js";
 // Graphic style options (?look=model|diorama|faceted); without ?look nothing changes. See looks.js.
 import * as LOOKS from "./looks.js";
@@ -435,6 +437,26 @@ function pathAt(d) {
   let tx = ta[0] + (tb[0] - ta[0]) * kk, tz = ta[1] + (tb[1] - ta[1]) * kk;
   const tl = Math.hypot(tx, tz) || 1;
   return { x: ax + (bx - ax) * k, z: az + (bz - az) * k, tx: tx / tl, tz: tz / tl };   // (past either end: straight on)
+}
+// The ground's height (owner, 9 Nov: model the Dip at Newmarket): courses/<id>.json -> ground, a grid of heights over
+// the site that tools/course/newmarket/to_race_view.py works out from the course's own height profile (the same the
+// race engine reads). The turf, rails, poles, stalls, horses, buildings, trees, crowd and cameras all stand on it.
+// Ascot's course has none: everything stays at 0 there.
+const GROUND = COURSE.ground || null;
+function groundY(x, z) {
+  if (!GROUND) return 0;
+  const g = GROUND, fx = (x - g.x0) / g.cell, fz = (z - g.z0) / g.cell;
+  const i = THREE.MathUtils.clamp(Math.floor(fx), 0, g.nx - 2), j = THREE.MathUtils.clamp(Math.floor(fz), 0, g.nz - 2);
+  const a = THREE.MathUtils.clamp(fx - i, 0, 1), b = THREE.MathUtils.clamp(fz - j, 0, 1), h = g.h, n = g.nx;
+  return (h[j * n + i] * (1 - a) + h[j * n + i + 1] * a) * (1 - b) + (h[(j + 1) * n + i] * (1 - a) + h[(j + 1) * n + i + 1] * a) * b;
+}
+// lay a geometry (in world axes) on the ground: each point raised by the ground's height under it
+function drape(geo) {
+  if (!GROUND) return geo;
+  const p = geo.attributes.position;
+  for (let i = 0; i < p.count; i++) p.setY(i, p.getY(i) + groundY(p.getX(i), p.getZ(i)));
+  p.needsUpdate = true; geo.computeVertexNormals(); geo.computeBoundingSphere();
+  return geo;
 }
 const LOOP = !COURSE.roundCourse ? null : (() => {
   const pts = COURSE.roundCourse.insideRail.points, n = pts.length, sp = COURSE.roundCourse.insideRail.spacing;
@@ -805,10 +827,21 @@ function groundDetail(mat, k = 0.3) {
   mat.customProgramCacheKey = () => (prevKey ? prevKey.call(mat) : "") + "+grain" + k;
   return mat;
 }
+function turfStrip() {                                   // the path's turf as a strip, inside rail to outer, every sample
+  const W = COURSE.trackWidth, pos = [], idx = [];
+  PATH.pts.forEach(([x, z], i) => {
+    const [tx, tz] = PATH.tan[i];
+    for (const w of [0, W / 3, 2 * W / 3, W]) { const px = x + tz * w, pz = z - tx * w; pos.push(px, groundY(px, pz), pz); }
+    if (i) for (let k = 0; k < 3; k++) { const a = (i - 1) * 4 + k, b = i * 4 + k; idx.push(a, a + 1, b, a + 1, b + 1, b); }   // facing up
+  });
+  const g = new THREE.BufferGeometry(); g.setAttribute("position", new THREE.Float32BufferAttribute(pos, 3)); g.setIndex(idx);
+  g.computeVertexNormals(); g.computeBoundingSphere();
+  return g;
+}
 function buildTurf(colour) {
   const shape = new THREE.Shape(SURF[0].map(([x, z]) => new THREE.Vector2(x, -z)));
   for (const h of SURF.slice(1)) shape.holes.push(new THREE.Path(h.map(([x, z]) => new THREE.Vector2(x, -z))));
-  const g = new THREE.ShapeGeometry(shape).rotateX(-Math.PI / 2);
+  const g = GROUND && PATH ? turfStrip() : new THREE.ShapeGeometry(shape).rotateX(-Math.PI / 2);
   const m = new THREE.Mesh(g, LOOKS.patchGround(groundDetail(lanesMaterial(new THREE.MeshBasicMaterial({ color: colour, ...GROUND_UNDER }))), "turf"));
   m.position.y = -0.03;
   m.renderOrder = -2;
@@ -826,7 +859,7 @@ function buildLineStrips() {
   const tex = new THREE.CanvasTexture(c);
   const W = COURSE.trackWidth;
   const strip = (x, width, opacity) => {
-    const geo = new THREE.PlaneGeometry(width, W + 0.6).rotateX(-Math.PI / 2).translate(x, 0.015, W / 2);
+    const geo = new THREE.PlaneGeometry(width, W + 0.6).rotateX(-Math.PI / 2).translate(x, 0.015 + groundY(x, W / 2), W / 2);
     const m = new THREE.Mesh(geo, new THREE.MeshBasicMaterial({ color: "#eef5d8", map: tex, transparent: true, opacity, depthWrite: false,
       polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -4 }));
     m.renderOrder = -1;                  // before the shadow catcher (which writes depth just above), so shadows fall on it
@@ -893,7 +926,7 @@ function placeProps(gltf) {
       const rails = new THREE.InstancedMesh(part.geometry, part.material, n);
       for (let i = 0; i < n; i++) {
         const [x, z, yaw] = spots[c0 + i];
-        rails.setMatrixAt(i, m.compose(p.set(x, 0, z), q.setFromAxisAngle(up, yaw), one));
+        rails.setMatrixAt(i, m.compose(p.set(x, groundY(x, z), z), q.setFromAxisAngle(up, yaw), one));
       }
       rails.computeBoundingSphere();
       rails.castShadow = rails.receiveShadow = true;
@@ -908,6 +941,7 @@ function placeProps(gltf) {
     const pole = node.clone();
     if (f.turn !== undefined) { pole.position.set(f.at[0], 0, f.at[1]); pole.rotation.y = f.turn * Math.PI / 180; }   // placed by the course file
     else pole.position.set(f.at[0], 0, f.at[1] - COURSE.rails.gap - 0.7);
+    pole.position.y = groundY(pole.position.x, pole.position.z);
     scene.add(pole);
   }
 }
@@ -978,6 +1012,7 @@ function buildStalls(gltf, kit) {
       STALL_GATES.push({ mesh, row, hinge: (k) => left(k) + kit.gateHinge[side], sign });
     });
   }
+  if (GROUND) { const [sx0, sz0] = startWorld(COURSE.trackWidth / 2, 0); stallsGroup.position.y = groundY(sx0, sz0); }
   scene.add(stallsGroup);
   LAYERS.stalls.push(stallsGroup);
   setGates(0);
@@ -1066,18 +1101,38 @@ function buildPlainGround(G) {
   far.renderOrder = LEGACY_GROUND ? -3 : -1;
   scene.add(far);
   LAYERS.ground.push(far);
+  if (GROUND) {                                   // the site's ground over the grid, drawn first: the flat far ground fills beyond it
+    const g = GROUND, w = g.cell * (g.nx - 1), d = g.cell * (g.nz - 1);
+    const geo = new THREE.PlaneGeometry(w, d, g.nx - 1, g.nz - 1).rotateX(-Math.PI / 2).translate(g.x0 + w / 2, -0.06, g.z0 + d / 2);
+    const site = new THREE.Mesh(drape(geo), far.material);
+    site.renderOrder = LEGACY_GROUND ? -3.5 : -1.5;
+    scene.add(site); LAYERS.ground.push(site);
+  }
   buildTurf(new THREE.Color(tf[0], tf[1], tf[2]));
   buildLineStrips();
   // Live shadows of the field, laid over the turf round the runners (pulled towards the camera in depth, so it never
   // flashes against the ground beneath it). It moves with the field, lined up with the course (see the frame loop):
   // only the ground the shadow map covers is shaded for shadows (it used to be a fixed strip the length of the home
   // straight, shaded wherever it was in shot), and the field now has its shadows on the round course's bends too.
-  const catcher = new THREE.Mesh(new THREE.PlaneGeometry(120, 44).rotateX(-Math.PI / 2), new THREE.ShadowMaterial({ color: "#1d2c14", opacity: 0.38, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -4 }));
+  const catcher = new THREE.Mesh(new THREE.PlaneGeometry(120, 44, GROUND ? 24 : 1, GROUND ? 6 : 1).rotateX(-Math.PI / 2), new THREE.ShadowMaterial({ color: "#1d2c14", opacity: 0.38, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -4 }));
   catcher.position.set(60, 0.03, MID_Z);
   catcher.receiveShadow = true;
   scene.add(catcher);
   LAYERS.decals.push(catcher);
   shadowCatcher = catcher;
+  if (GROUND) catcher.userData.flat = catcher.geometry.attributes.position.array.slice();   // its points flat, to lay on the ground
+}
+// Each frame the catcher moves with the field; on a course with a ground its points are laid on the ground there.
+function layCatcher(x, z, yaw) {
+  const c = shadowCatcher;
+  if (!GROUND) { c.position.set(x, 0.03, z); c.rotation.y = yaw; return; }
+  const f = c.userData.flat, p = c.geometry.attributes.position, cs = Math.cos(yaw), sn = Math.sin(yaw);
+  for (let i = 0; i < p.count; i++) {
+    const lx = f[i * 3], lz = f[i * 3 + 2], wx = x + lx * cs + lz * sn, wz = z - lx * sn + lz * cs;
+    p.setXYZ(i, lx, groundY(wx, wz) + 0.03, lz);
+  }
+  p.needsUpdate = true; c.geometry.computeBoundingSphere();
+  c.position.set(x, 0, z); c.rotation.y = yaw;
 }
 
 // The site components, instanced: the bake made one mesh per piece and quarter turn (bake.json -> site.kit,
@@ -1173,7 +1228,7 @@ function placeBelts(gltf, planting, treeLib, withHedge = true) {
       for (let i = 0; i < pos.count; i++) if (pos.getY(i) > 0.2) pos.setY(i, pos.getY(i) + BOARD_LIFT);
       geo.computeBoundingSphere(); geo.computeBoundingBox();
       const inst = new THREE.InstancedMesh(geo, mat, list.length);
-      list.forEach(([x, z, turn], i) => inst.setMatrixAt(i, m4.compose(p.set(x, 0, z), q.setFromAxisAngle(up, turn * Math.PI / 180), one)));
+      list.forEach(([x, z, turn], i) => inst.setMatrixAt(i, m4.compose(p.set(x, groundY(x, z), z), q.setFromAxisAngle(up, turn * Math.PI / 180), one)));
       inst.computeBoundingSphere();
       scene.add(inst);
       LAYERS.trees.push(inst);
@@ -1232,7 +1287,7 @@ function instanceTrees(gltf, list) {
     const near = !LITE_TREES && isNear(t.x, t.z);
     // belt trees also get an understorey: their light crown squashed low under the real one, so the belts read as
     // solid woodland down to the hedge instead of crowns floating over a strip of sky (owner, 7 Nov)
-    const parts = [near ? "_crown" : "_crown_far"].concat(near || !t.belt ? ["_trunk"] : []).concat(t.belt ? ["_under"] : []);
+    const parts = t.scrub ? ["_crown_far"] : [near ? "_crown" : "_crown_far"].concat(near || !t.belt ? ["_trunk"] : []).concat(t.belt ? ["_under"] : []);
     for (const part of parts) {
       const key = t.tree + part;
       if (!groups.has(key)) groups.set(key, []);
@@ -1251,7 +1306,7 @@ function instanceTrees(gltf, list) {
       ts.forEach((t, i) => {
         q.setFromAxisAngle(up, ((t.turn || 0) + (under ? 70 : 0)) * Math.PI / 180);
         if (under) sc.set(t.s, t.s, t.s); else sc.set(t.s, t.s * (t.sy || 1), t.s);
-        inst.setMatrixAt(i, m4.compose(p.set(t.x, under ? -0.6 : 0, t.z), q, sc));
+        inst.setMatrixAt(i, m4.compose(p.set(t.x, (under ? -0.6 : 0) + groundY(t.x, t.z) + (t.dy || 0), t.z), q, sc));
         const c = under ? underColour(t, UNDER_CROWN) : LOOKS.treeColour(key, t, i) || clayLeaf(key, t, i); if (c) inst.setColorAt(i, c);
       });
       inst.computeBoundingSphere();
@@ -1332,7 +1387,7 @@ function placeScenery(SC, models, treeLib, belts) {
     for (const mesh of meshesOf(node)) {
       const geo = mesh.geometry.clone().applyMatrix4(mesh.matrixWorld);
       const inst = new THREE.InstancedMesh(geo, clayOf(mesh.material), list.length);
-      list.forEach(([, , x, z, turn, sx, s], i) => inst.setMatrixAt(i, m4.compose(p.set(x, 0, z), q.setFromAxisAngle(up, turn * Math.PI / 180), sc.set(sx, s, s))));
+      list.forEach(([, , x, z, turn, sx, s], i) => inst.setMatrixAt(i, m4.compose(p.set(x, groundY(x, z), z), q.setFromAxisAngle(up, turn * Math.PI / 180), sc.set(sx, s, s))));
       inst.computeBoundingSphere();
       inst.castShadow = true; inst.receiveShadow = true;
       scene.add(inst); LAYERS.buildings.push(inst);
@@ -1344,20 +1399,23 @@ function placeScenery(SC, models, treeLib, belts) {
   if (fl) {
     const f = fl.clone();
     f.traverse((o) => { if (o.isMesh) { o.material = o.material.name.includes("digit") ? o.material : clayOf(o.material); o.castShadow = o.receiveShadow = true; } });
-    f.position.set(SC.finishLine.at[0], 0, SC.finishLine.at[1]); f.rotation.y = SC.finishLine.turn * Math.PI / 180;
+    f.position.set(SC.finishLine.at[0], groundY(SC.finishLine.at[0], SC.finishLine.at[1]), SC.finishLine.at[1]); f.rotation.y = SC.finishLine.turn * Math.PI / 180;
     scene.add(f); LAYERS.buildings.push(f);
   }
   // walls, hedges and copings: [x, z, length, depth, y from, y to, yaw]
   const unit = new THREE.BoxGeometry(1, 1, 1);
   for (const [colour, list] of Object.entries(SC.boxes || {})) {
     const inst = new THREE.InstancedMesh(unit, new THREE.MeshLambertMaterial({ color: colour }), list.length);
-    list.forEach(([x, z, L, D, y0, y1, yaw], i) => inst.setMatrixAt(i, m4.compose(p.set(x, (y0 + y1) / 2, z), q.setFromAxisAngle(up, yaw), sc.set(L, y1 - y0, D))));
+    list.forEach(([x, z, L, D, y0, y1, yaw], i) => inst.setMatrixAt(i, m4.compose(p.set(x, (y0 + y1) / 2 + groundY(x, z), z), q.setFromAxisAngle(up, yaw), sc.set(L, y1 - y0, D))));
     inst.computeBoundingSphere(); inst.castShadow = inst.receiveShadow = true;
     scene.add(inst); LAYERS.buildings.push(inst);
   }
   // paving and gravel, flat on the grass, in the ground's own unlit light
   for (const [colour, list] of Object.entries(SC.flats || {})) {
-    const geos = list.map(({ y, pts }) => new THREE.ShapeGeometry(new THREE.Shape(pts.map(([x, z]) => new THREE.Vector2(x, -z)))).rotateX(-Math.PI / 2).translate(0, y, 0));
+    const geos = list.map(({ y, pts }) => {
+      const g = new THREE.ShapeGeometry(new THREE.Shape(pts.map(([x, z]) => new THREE.Vector2(x, -z)))).rotateX(-Math.PI / 2).translate(0, y, 0);
+      return GROUND ? drape(TESSELLATE.modify(g.toNonIndexed())) : g;          // cut fine, so it follows the ground
+    });
     const m = new THREE.Mesh(mergeGeometries(geos), groundDetail(new THREE.MeshBasicMaterial({ color: colour, polygonOffset: true, polygonOffsetFactor: -1, polygonOffsetUnits: -2 }), 0.15));
     m.renderOrder = -1; scene.add(m); LAYERS.ground.push(m);
   }
@@ -1375,12 +1433,23 @@ function placeScenery(SC, models, treeLib, belts) {
     geo.setAttribute("position", new THREE.BufferAttribute(pos, 3)); geo.setIndex(idx); geo.computeVertexNormals();
     const nrm = geo.attributes.normal, col = new Float32Array(nr * nc * 3), flat = 0.72 + 0.4 * Math.max(0, sunDir.y);
     const foot = G.outside, top = G.bank || G.outside;                 // the lawn's colour at the foot, deeper up the bank
+    const ramp = G.bankRamp, mot = G.bankMottle || 0;                  // or a ramp by height (owner, 9 Nov late: the Dyke's depth)
+    const rampAt = (h) => {
+      let k = 0; while (k + 1 < ramp.length && ramp[k + 1][0] < h) k++;
+      if (k + 1 >= ramp.length) return ramp[k][1];
+      const [h0, c0] = ramp[k], [h1, c1] = ramp[k + 1], t = THREE.MathUtils.clamp((h - h0) / (h1 - h0), 0, 1);
+      return [0, 1, 2].map((c) => c0[c] + (c1[c] - c0[c]) * t);
+    };
     for (let i = 0; i < nr * nc; i++) {
       const ny = nrm.getY(i) < 0 ? -1 : 1;                           // either winding: the normal that points up
       const lit = 0.72 + 0.4 * Math.max(0, ny * (nrm.getX(i) * sunDir.x + nrm.getY(i) * sunDir.y + nrm.getZ(i) * sunDir.z));
-      const k = THREE.MathUtils.smoothstep(pos[i * 3 + 1], 0.05, 1.6);
+      const y = pos[i * 3 + 1];
+      const m = mot ? 1 + mot * (Math.sin(pos[i * 3] * 0.37 + pos[i * 3 + 2] * 0.21) * Math.sin(pos[i * 3] * 0.11 - pos[i * 3 + 2] * 0.43)) : 1;
+      if (ramp) { const c = rampAt(y); for (let k = 0; k < 3; k++) col[i * 3 + k] = c[k] * lit / flat * m; continue; }
+      const k = THREE.MathUtils.smoothstep(y, 0.05, 1.6);
       for (let c = 0; c < 3; c++) col[i * 3 + c] = (foot[c] + (top[c] - foot[c]) * k) * lit / flat;
     }
+    if (GROUND) { for (let i = 0; i < nr * nc; i++) pos[i * 3 + 1] += groundY(pos[i * 3], pos[i * 3 + 2]); geo.attributes.position.needsUpdate = true; geo.computeBoundingSphere(); }
     geo.setAttribute("color", new THREE.BufferAttribute(col, 3));
     const m = new THREE.Mesh(geo, LOOKS.patchGround(groundDetail(new THREE.MeshBasicMaterial({ vertexColors: true, side: THREE.DoubleSide }), 0.2), "far"));
     scene.add(m); LAYERS.ground.push(m);
@@ -1388,13 +1457,15 @@ function placeScenery(SC, models, treeLib, belts) {
   // the boards (as the planting belts'), then the trees
   if (belts && SC.boards) placeBelts(belts, { boards: SC.boards, trees: [] }, null, false);
   if (treeLib && SC.trees) {
-    const spots = SC.trees.map(([x, z, tree, s, turn, belt]) => ({ x, z, tree, s, turn: turn || 0, belt: !!belt }));
+    // (belt 2: scrub, e.g. along the Dyke's crest: light crowns only, no trunks, so hundreds of bushes stay cheap)
+    const spots = SC.trees.map(([x, z, tree, s, turn, belt, dy]) => ({ x, z, tree, s, turn: turn || 0, belt: belt === 1, scrub: belt === 2, dy: dy || 0 }));
     instanceTrees(treeLib, spots);
     const shadows = new THREE.InstancedMesh(new THREE.PlaneGeometry(1, 1), new THREE.MeshBasicMaterial({ map: shadowTex, color: "#1f3318", transparent: true, opacity: 0.45, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -4 }), spots.length);
     const sunFlat = new THREE.Vector2(-SUN_OFFSET.x, -SUN_OFFSET.z).normalize(), ang = Math.atan2(sunFlat.y, sunFlat.x);
     spots.forEach((t, i) => {
       const h = 11 * t.s;
-      shadows.setMatrixAt(i, m4.compose(p.set(t.x + sunFlat.x * h * 0.35, 0.04, t.z + sunFlat.y * h * 0.35), q.setFromEuler(new THREE.Euler(-Math.PI / 2, 0, -ang, "YXZ")), sc.set(h * 0.95, h * 0.6, 1)));
+      const sx_ = t.x + sunFlat.x * h * 0.35, sz_ = t.z + sunFlat.y * h * 0.35;
+      shadows.setMatrixAt(i, m4.compose(p.set(sx_, 0.04 + groundY(sx_, sz_), sz_), q.setFromEuler(new THREE.Euler(-Math.PI / 2, 0, -ang, "YXZ")), sc.set(t.dy ? 0 : h * 0.95, h * 0.6, 1)));   // (none under sunk trees or the Dyke's scrub)
     });
     shadows.frustumCulled = false; scene.add(shadows); LAYERS.trees.push(shadows);
   }
@@ -1570,7 +1641,9 @@ function buildCrowd(gltf, data, pieceAt) {
 // The crowd's gentle life, in the vertex shader (nothing per person is sent each frame): a very slight, slow sway,
 // never in step with the neighbours; as the leader comes by, those near the rail lean in towards the track and a few
 // of the gents slowly lift their hats. Kept minimal on purpose (owner, 7 Nov). Who does what comes from where they stand.
-const CROWD = { figs: [], share: 1, sig: "", uniforms: { uTime: { value: 0 }, uLeader: { value: new THREE.Vector2(0, MID_Z) } }, near: 90 };
+// (beyond thinFrom metres a person is a few pixels high: only 'thin' of them are drawn there; owner's Newmarket crowds,
+// 9 Nov, put 35,000 people in the racecard shot)
+const CROWD = { figs: [], share: 1, sig: "", uniforms: { uTime: { value: 0 }, uLeader: { value: new THREE.Vector2(0, MID_Z) } }, near: 90, thinFrom: 170, thin: 0.45 };
 function crowdMaterial() {
   const mat = new THREE.MeshLambertMaterial({ color: "#ffffff" });
   mat.onBeforeCompile = (sh) => {
@@ -1611,7 +1684,8 @@ function updateCrowd(cam) {
   _fr.setFromProjectionMatrix(_pm);
   const plan = CROWD.figs.map((F) => F.cells.map((c) => {
     if (!_fr.intersectsSphere(c.sphere)) return 0;
-    return c.sphere.center.distanceTo(cam.position) - c.sphere.radius < CROWD.near ? 1 : 2;
+    const dd = c.sphere.center.distanceTo(cam.position) - c.sphere.radius;
+    return dd < CROWD.near ? 1 : dd < CROWD.thinFrom ? 2 : 3;          // 3: far off, every few people only (9 Nov)
   }));
   const sig = CROWD.share + ":" + plan.map((p) => p.join("")).join("|");
   if (sig === CROWD.sig) return;
@@ -1621,12 +1695,12 @@ function updateCrowd(cam) {
     F.cells.forEach((c, ci) => {
       const lod = plan[fi][ci];
       if (!lod) return;
-      const take = Math.round(c.count * CROWD.share);
+      const take = Math.round(c.count * CROWD.share * (lod === 3 ? CROWD.thin : 1));
       if (!take) return;
-      const T = lod === 1 ? F.near : F.far, at = k[lod];
+      const L = lod === 3 ? 2 : lod, T = L === 1 ? F.near : F.far, at = k[L];
       T.inst.instanceMatrix.array.set(F.mats.subarray(16 * c.start, 16 * (c.start + take)), 16 * at);
       T.cs.forEach((a, j) => a.array.set(F.cols[j].subarray(3 * c.start, 3 * (c.start + take)), 3 * at));
-      k[lod] += take;
+      k[L] += take;
     });
     for (const [lod, T] of [[1, F.near], [2, F.far]]) {
       T.inst.count = k[lod];
@@ -2374,7 +2448,7 @@ function stepKick(dt, field) {
 function drawKick() {
   live.forEach((c, i) => {
     const fade = c.landed >= 0 ? Math.max(0, 1 - (c.age - c.landed) / 0.35) : 1;
-    const [wx, wz] = toWorld(c.x, c.z); _p.set(wx, c.y, wz); _q.setFromEuler(_e.set(c.rot, c.rot * 0.7, 0)); _s.setScalar(c.size * (0.4 + 0.6 * fade));
+    const [wx, wz] = toWorld(c.x, c.z); _p.set(wx, c.y + groundY(wx, wz), wz); _q.setFromEuler(_e.set(c.rot, c.rot * 0.7, 0)); _s.setScalar(c.size * (0.4 + 0.6 * fade));
     clods.setMatrixAt(i, _m.compose(_p, _q, _s));
     clods.setColorAt(i, c.col);
   });
@@ -2391,6 +2465,12 @@ function sample(t) {
 
 function updateCamera(now, dt) {
   const T = runners.length ? cameraTarget(now) : { eye: camera.position.clone(), look: focus.clone(), fov: camera.fov, id: "none" };
+  if (GROUND && runners.length && T.id !== "free") {
+    const lift = (v) => v.setY(v.y + groundY(v.x, v.z));
+    lift(T.eye); lift(T.look);
+    if (T.anchor && T.anchor !== T.look) lift(T.anchor);
+    if (T.guard) T.guard = T.guard.map((g) => lift(g.clone()));
+  }
   if (T.id !== lastShot) { snap = true; lastShot = T.id; }
   // Cuts are clean cuts. Within a shot the camera stands where it should (it's already moving smoothly with
   // the field); the look point rides with the leader and only its offset from the leader is smoothed; the
@@ -2757,9 +2837,10 @@ function frame() {
     const [x, z, v, eff, yaw] = now[i];
     const [wx, wz] = toWorld(x, z);                            // along the course -> world
     const head = headingAt(x, yaw);
-    r.obj.position.set(wx, 0, wz);
+    const gy = groundY(wx, wz);
+    r.obj.position.set(wx, gy, wz);
     r.obj.rotation.y = head;
-    _p.set(wx - Math.cos(head) * 0.15, 0.04, wz + Math.sin(head) * 0.15); _q.setFromEuler(_e.set(-Math.PI / 2, 0, head - Math.PI, "YXZ")); _s.set(3.0, 1.05, 1);
+    _p.set(wx - Math.cos(head) * 0.15, 0.04 + gy, wz + Math.sin(head) * 0.15); _q.setFromEuler(_e.set(-Math.PI / 2, 0, head - Math.PI, "YXZ")); _s.set(3.0, 1.05, 1);
     contact.setMatrixAt(i, _m.compose(_p, _q, _s));
     if (r.v2) {                                            // the v2 horse: its own riding, gallop and detail levels
       if (params.has("still") && !r.started) { r.v2.update(5, v, eff, null, 0); r.started = true; }   // stills: settle the riding first
@@ -2808,11 +2889,11 @@ function frame() {
     HorseV2.chooseLevels(runners.map((r) => r.v2), camera, { close: { high: 4, medium: 2, low: 0, lightest: 0 }[qLevel] ?? 0, far: { low: 0.09, lightest: 0.14 }[qLevel] ?? 0.06 });
   }
   const [sx, sz] = toWorld(packU, 0);
-  const sunAt = new THREE.Vector3(sx, 0, sz);
+  const sunAt = new THREE.Vector3(sx, groundY(sx, sz), sz);
   sun.position.copy(sunAt).add(SUN_OFFSET); sun.target.position.copy(sunAt);
   if (shadowCatcher) {
     const rr = railAt(Math.min(DIST, Math.max(0, DIST - packU)));
-    shadowCatcher.position.set(sx, 0.03, sz); shadowCatcher.rotation.y = Math.atan2(-rr.tz, rr.tx);
+    layCatcher(sx, sz, Math.atan2(-rr.tz, rr.tx));
   }
   scene.userData.sky.position.copy(camera.position);
   CROWD.uniforms.uTime.value = performance.now() / 1000;

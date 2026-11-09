@@ -237,7 +237,7 @@ def millennium_stand(n=4, bay=28.0, D=42.4):
     for x in (-h - 0.15, h + 0.15):
         K.balustrade(yB - 0.35, D, x, zC, h=1.05, mat="trim", spacing=0.3, axis="y", piers=True)
     yP = D - 9.0
-    area(-h + 0.6, h - 0.6, yB + 0.2, yP - 1.0, zC)
+    area(-h + 0.6, h - 0.6, yB + 0.2, yB + 2.6, zC)                    # about 3 rows along the balustrade (9 Nov late)
     px0, px1 = -h + 6.0, h - 6.0
     K.box("wall", px0, px1, yP, D - 0.3, zC, zC + 3.6)
     for k in range(int((px1 - px0) // 3.5)):
