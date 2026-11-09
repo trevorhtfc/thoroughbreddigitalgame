@@ -295,6 +295,8 @@ if ACCENT:
             x = (lo.x + hi.x) / 2
             if hi.y > -FRONT - 0.6 and hi.z < 3.4 and lo.z > 0.2 and hi.x - lo.x > 0.8 and module_at(x):
                 doors_front.append((lo, hi, stripe_at(x)))
+    # none where the standing terraces come down to the lawn (owner, 9 Nov 2026): those doors are under the steps
+    doors_front = [d for d in doors_front if not (module_at((d[0].x + d[1].x) / 2) or {}).get("groundTerrace")]
     # balusters: the clock block's balustrades in sage, the grand pavilions' in powder blue, the small pavilions' in blush
     BAL = {"clock_centre": "sage", "grand_pavilion": "powder", "pavilion": "blush"}     # by building, wherever it stands
     nb = 0
@@ -478,7 +480,9 @@ if ACCENT:
         d = z - near; dens = 0.8 if d < 4 else 0.35 if d < 8 else 0.08
         x = -108.0
         while x < 405:
-            if rnd.random() < dens: pts.append((x + (rnd.random() - 0.5) * 0.4, -(z + (rnd.random() - 0.5) * 0.4), 0.0))
+            gt = next((m["groundTerrace"] for m in COURSE["grandstand"]["modules"] if m.get("groundTerrace") and m["xWest"] - 0.6 <= x <= m["xEast"] + 0.6), None)
+            if rnd.random() < dens and not (gt and z > gt):       # nobody inside the ground terraces' footprint
+                pts.append((x + (rnd.random() - 0.5) * 0.4, -(z + (rnd.random() - 0.5) * 0.4), 0.0))
             x += 0.62
         z += 0.7
     me = bpy.data.meshes.new("crowd_pts"); me.from_pydata(pts, [], [])
@@ -795,6 +799,8 @@ SHOTS = {
     # and high over the far side looking across at the whole stand
     "concept": ((230, 9, 10), (40, 11, 56), 42, (110, 8, 46), 4.0),
     "above": ((150, 95, -150), (150, 0, 52), 36, (150, 10, 46), 4.0),
+    # the ground terraces at the clock tower (owner, 9 Nov 2026), from over the near rail
+    "terraces": ((42, 11, 22), (0, 4, 47), 44, (8, 3, 44), 4.0),
 }
 for name, (eye, at, fov, focus, fstop) in SHOTS.items():
     if CAMS and f"cam={name}" not in CAMS: continue

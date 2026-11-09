@@ -117,6 +117,35 @@ VER = {"porch": dict(tiers=1, depth=9.0, setback=0.0, roof="hip"),
        "link": dict(tiers=3, depth=18.0, setback=1.2, roof="flat")}
 
 
+def ground_terrace(x0, x1):
+    """Standing terraces stepping down from the stand's front to the lawn (owner, 9 Nov 2026), in front of the
+    traditional pieces only: rows of shallow steps, stepped parapets at the open ends, a low wall and a dark rail
+    along the lawn. The steps are the stand's 'steps' colour, the walls its stone; people stand on every row."""
+    n, tread, rise = TERR["rows"], TERR["tread"], TERR["rise"]
+    D = n * tread
+    for k in range(n):                                   # k = 0 the front row, by the lawn
+        ya, yb, zt = -D + k * tread, -D + (k + 1) * tread, rise * (k + 1)
+        K.box("steps", x0, x1, ya, yb if k < n - 1 else 0.0, 0.0, zt)
+        if not K.far:
+            K.box("trim", x0, x1, ya - 0.02, ya + 0.06, zt - 0.05, zt)      # a crisp nosing on each step
+        stand_area(x0 + 0.5, x1 - 0.5, ya + 0.12, yb - 0.12, round(zt, 2), "terrace")
+        for ex, sx in ((x0, -1), (x1, 1)):               # stepped parapets at the open ends
+            K.box("wall", min(ex, ex + sx * 0.45), max(ex, ex + sx * 0.45), ya, yb, 0.0, zt + 1.0)
+            K.box("trim", min(ex, ex + sx * 0.5) - 0.03, max(ex, ex + sx * 0.5) + 0.03, ya, yb, zt + 1.0, zt + 1.1)
+    # the low wall and rail along the lawn
+    K.box("wall", x0 - 0.45, x1 + 0.45, -D - 0.35, -D, 0.0, 0.75)
+    K.box("trim", x0 - 0.5, x1 + 0.5, -D - 0.4, -D + 0.05, 0.75, 0.84)
+    K.box("iron", x0, x1, -D - 0.22, -D - 0.14, 1.12, 1.18)
+    if not K.far:
+        npost = max(2, int((x1 - x0) / 2.4))
+        for i in range(npost + 1):
+            px = x0 + (x1 - x0) * i / npost
+            K.box("iron", px - 0.035, px + 0.035, -D - 0.22, -D - 0.14, 0.84, 1.12)
+
+
+TERR = ASM.get("groundTerraces", {"rows": 8, "tread": 0.95, "rise": 0.3})
+
+
 def build_module(name, x0, length, party=(), roof=False, join=()):
     """roof: the grand canopy's roof carried on over this stretch (owner's sketch); join: sides where the
     canopy roof carries on into the neighbour."""
@@ -188,16 +217,18 @@ runs = []                                   # merge back-to-back repeats of a re
 for item in ASM["order"]:                   # runs hold widths in bays; an item's own "bays" overrides the catalogue
     name = item["module"]; n = item.get("repeat", 1) * item.get("bays", MODS[name]["bays"]); mir = item.get("mirror", False)
     roof = bool(item.get("roof"))           # a long roof over this run (owner's sketch)
-    if runs and runs[-1][0] == name and MODS[name].get("repeatable") and not mir and not runs[-1][2] and runs[-1][3] == roof:
+    ground = bool(item.get("groundTerrace"))  # standing terraces down to the lawn in front (owner, 9 Nov 2026)
+    if runs and runs[-1][0] == name and MODS[name].get("repeatable") and not mir and not runs[-1][2] and runs[-1][3] == roof and runs[-1][4] == ground:
         runs[-1][1] += n
     else:
-        runs.append([name, n, mir, roof])
+        runs.append([name, n, mir, roof, ground])
 def assemble(far, coll_name, mesh_prefix):
     """Assemble Ascot's stand from the runs, in world axes, one mesh per material."""
     global CROWD
     K.far = far
     cum, tower_c = 0.0, None
-    for i, (name, n, mir, roof) in enumerate(runs):
+    spans = []                                     # the ground terraces, neighbouring ones joined into one
+    for i, (name, n, mir, roof, ground) in enumerate(runs):
         Lm = BAY * n
         if name == ASM["anchor"]["module"]:
             tower_c = cum + MODS[name]["towerFromLeft"]
@@ -207,7 +238,12 @@ def assemble(far, coll_name, mesh_prefix):
         join = tuple(sd for sd, j in (("left", i - 1), ("right", i + 1))
                      if (roof or name == "grand_pavilion") and roofish(j) and (roof or runs[j][3]))
         build_placed(name, cum, Lm, mir, party, roof, join)
+        if ground:
+            if spans and abs(spans[-1][1] - cum) < 0.01: spans[-1][1] = cum + Lm
+            else: spans.append([cum, cum + Lm])
         cum += Lm
+    for a, b in spans:
+        ground_terrace(a, b)
     assert abs(cum - COURSE["grandstand"]["length"]) < 0.01, (cum, COURSE["grandstand"]["length"])
     stand_area(0.3, cum - 0.3, 0.0, 0.0, 0, "lawn_front_line")
     coll = bpy.data.collections.new(coll_name)
