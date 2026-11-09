@@ -529,7 +529,12 @@ renderer.toneMapping = THREE.AgXToneMapping;
 // with the tone mapping (AgX alone, or AgX + grade); the haze colour is graded to match, as the filter graded it.
 // The fresh light (owner, 7 Nov): the grade, the sun's colour and the sky's horizon. Checking aids: ?grade=, ?suncol=r,g,b, ?skyh=r,g,b
 const numList = (k, n) => { const v = (params.get(k) || "").split(",").filter(Boolean).map(Number); return v.length === n && v.every(Number.isFinite) ? v : null; };
-const FRESH = { grade: [1.02, 0.07, -5, 1.04, 0.95], sun: numList("suncol", 3) || [1.0, 0.9, 0.8], horizon: numList("skyh", 3) || [0.95, 0.91, 0.86] };
+// The model look (owner's concept stills, 9 Nov 2026): a course's view file can carry its own light (ascot-view.json ->
+// light), matching the light its scenery was baked under (tools/blender/bake_static_world.py LOOK=model): sky, sun,
+// sky fill, haze, exposure, grade and the crowd's colours. ?light=before shows the light it had before.
+const LIGHT = params.get("light") === "before" ? null : VIEW.light || null;
+const FRESH = { grade: (LIGHT && LIGHT.grade) || [1.02, 0.07, -5, 1.04, 0.95], sun: numList("suncol", 3) || (LIGHT && LIGHT.sunColour) || [1.0, 0.9, 0.8],
+                horizon: numList("skyh", 3) || (LIGHT && LIGHT.sky[0]) || [0.95, 0.91, 0.86] };
 const GRADE = (() => {
   const mul = (A, B) => A.map((r) => [0, 1, 2].map((j) => r[0] * B[0][j] + r[1] * B[1][j] + r[2] * B[2][j]));
   // owner, 7 Nov: lighter and fresher, between the storybook and the "model maker" look: not over-saturated, not
@@ -543,6 +548,7 @@ const GRADE = (() => {
                [0.213 - c * 0.213 - n * 0.787, 0.715 - c * 0.715 + n * 0.715, 0.072 + c * 0.928 + n * 0.072]];
   const br = G[3], ct = G[4];
   const M = mul(hue, mul(sep, sat)).map((r) => r.map((v) => v * br * ct)), B = 0.5 - 0.5 * ct;
+  const LIFT = (LIGHT && LIGHT.lift) || [0, 0, 0];         // a tinted lift (the model look's lavender shadows)
   const f = (v) => v.toFixed(6);
   // The custom tone mapping is AgX itself, and flags the shader; the colour-space step just after it (which turns
   // the colour into screen values anyway) applies the matrix there, so the grade costs one small sum per pixel.
@@ -552,12 +558,12 @@ const GRADE = (() => {
     "vec3 CustomToneMapping( vec3 color ) { return color; }",
     "bool tbGrade = false;\nvec3 CustomToneMapping( vec3 color ) { tbGrade = true; return AgXToneMapping( color ); }");
   THREE.ShaderChunk.colorspace_fragment = THREE.ShaderChunk.colorspace_fragment +
-    `\n#ifdef TONE_MAPPING\nif ( tbGrade ) gl_FragColor.rgb = clamp( ${mat} * gl_FragColor.rgb + ${f(B)}, 0.0, 1.0 );\n#endif\n`;
+    `\n#ifdef TONE_MAPPING\nif ( tbGrade ) gl_FragColor.rgb = clamp( ${mat} * gl_FragColor.rgb + ${f(B)} + vec3(${LIFT.map(f).join(", ")}) * (1.0 - gl_FragColor.rgb), 0.0, 1.0 );\n#endif\n`;
   // the same grade in JS, for colours mixed in after the shaders' colour handling (the haze)
-  const apply = (rgb) => rgb.map((_, i) => Math.min(1, Math.max(0, M[i][0] * rgb[0] + M[i][1] * rgb[1] + M[i][2] * rgb[2] + B)));
+  const apply = (rgb) => rgb.map((_, i) => Math.min(1, Math.max(0, M[i][0] * rgb[0] + M[i][1] * rgb[1] + M[i][2] * rgb[2] + B + LIFT[i] * (1 - rgb[i]))));
   return { apply, on: false };
 })();
-renderer.toneMappingExposure = Math.pow(2, 0.12);
+renderer.toneMappingExposure = Math.pow(2, (LIGHT && LIGHT.exposure) ?? 0.12);
 
 
 renderer.shadowMap.type = QUALITY[qLevel].soft ? THREE.PCFSoftShadowMap : THREE.PCFShadowMap;
@@ -568,7 +574,7 @@ const scene = new THREE.Scene();
 // Haze into the distance: up to 30% towards a soft, faintly cool pale grey, starting 120 m out
 // (the finish study's softer light, owner 6 Nov 2026). Three.js mixes fog after its colour handling,
 // so the haze colour is given as it should look on screen.
-const HAZE = new THREE.Color().setRGB(0.8, 0.82, 0.86, THREE.LinearSRGBColorSpace);
+const HAZE = new THREE.Color().setRGB(...((LIGHT && LIGHT.haze) || [0.8, 0.82, 0.86]), THREE.LinearSRGBColorSpace);
 scene.fog = new THREE.Fog(HAZE, 120, 900);
 THREE.ShaderChunk.fog_fragment = `#ifdef USE_FOG
   float fogFactor = 0.3 * (1.0 - exp(-max(vFogDepth - fogNear, 0.0) / fogFar));
@@ -582,7 +588,8 @@ THREE.ShaderChunk.fog_fragment = `#ifdef USE_FOG
   const mat = new THREE.ShaderMaterial({
     side: THREE.BackSide, depthWrite: false, fog: false,
     stencilWrite: true, stencilRef: 0, stencilFunc: THREE.EqualStencilFunc, stencilZPass: THREE.KeepStencilOp,   // never over the ground
-    uniforms: { c0: { value: lin(...FRESH.horizon) }, c1: { value: lin(0.93, 0.87, 0.85) }, c2: { value: lin(0.56, 0.7, 0.9) }, c3: { value: lin(0.56, 0.7, 0.9) } },
+    uniforms: { c0: { value: lin(...FRESH.horizon) }, c1: { value: lin(...((LIGHT && LIGHT.sky[1]) || [0.93, 0.87, 0.85])) },
+                c2: { value: lin(...((LIGHT && LIGHT.sky[2]) || [0.56, 0.7, 0.9])) }, c3: { value: lin(...((LIGHT && LIGHT.sky[2]) || [0.56, 0.7, 0.9])) } },
     vertexShader: "varying vec3 vP; void main(){ vP = normalize(position); gl_Position = projectionMatrix * modelViewMatrix * vec4(position,1.0); }",
     fragmentShader: `uniform vec3 c0, c1, c2, c3; varying vec3 vP;
       void main(){
@@ -626,9 +633,9 @@ THREE.ShaderChunk.fog_fragment = `#ifdef USE_FOG
 // Light, as baked: a big soft warm sun (strength 4.6, peach) raking in from the west, a little in front of
 // the stand, and the pastel sky all round, with a warm neutral bounce from the ground (no green cast).
 // Static scenery has this light baked in by Blender; horses, jockeys, crowd and rails get it live.
-const sky = new THREE.HemisphereLight(new THREE.Color("#a9b8d0"), new THREE.Color("#a29680"), 2.2);
+const sky = new THREE.HemisphereLight(new THREE.Color((LIGHT && LIGHT.hemi[0]) || "#a9b8d0"), new THREE.Color((LIGHT && LIGHT.hemi[1]) || "#a29680"), (LIGHT && LIGHT.hemi[2]) || 2.2);
 scene.add(sky);
-const sun = new THREE.DirectionalLight(new THREE.Color().setRGB(...FRESH.sun, THREE.LinearSRGBColorSpace), 4.6);   // was 1, .8, .62 (owner, 7 Nov: fresher)
+const sun = new THREE.DirectionalLight(new THREE.Color().setRGB(...FRESH.sun, THREE.LinearSRGBColorSpace), (LIGHT && LIGHT.sun) || 4.6);   // was 1, .8, .62 (owner, 7 Nov: fresher)
 sun.castShadow = QUALITY[qLevel].shadow > 0;          // Lightest: no sun shadows (the horses keep their soft contact shadows)
 sun.shadow.mapSize.set(QUALITY[qLevel].shadow || 1024, QUALITY[qLevel].shadow || 1024);
 sun.shadow.radius = 4;
@@ -642,7 +649,7 @@ sun.shadow.bias = -0.0005;
 sun.shadow.normalBias = 0.03;
 scene.add(sun, sun.target);
 LOOKS.setupScene({ scene, hemi: sky, sun, cloudMat: scene.userData.cloudMat });
-const SUN_OFFSET = new THREE.Vector3(...(VIEW.sun || [-110, 49.5, -35.2]));   // (a course's view file may move it: the July Course's stands face the other way)   // the bake's sun direction (Blender (-1, 0.32, 0.45)), in the course's axes
+const SUN_OFFSET = new THREE.Vector3(...((LIGHT && LIGHT.sunDir) || VIEW.sun || [-110, 49.5, -35.2]));   // (a course's view file may move it: the July Course's stands face the other way)   // the bake's sun direction (Blender (-1, 0.32, 0.45)), in the course's axes
 
 let shadowCatcher = null;
 // ---------- Textures ----------
@@ -1427,6 +1434,7 @@ const SK = {
   tophat: ["#1a1a1e", "#1f1f23", "#222226", "#1c1c20", "#26262a", "#1d1d21", "#55555c"],
   tails: ["#1c1d22", "#202128", "#24262c", "#1e1f24", "#2a2c33", "#22232a", "#5c5e64", "#1b1c21"],
 };
+if (LIGHT && LIGHT.crowd) Object.assign(SK, LIGHT.crowd);      // the model look's crowd colours
 const crowdKeep = (x, rnd) => (x >= CROWD_FULL[0] && x <= CROWD_FULL[1]) || rnd() < 0.12;
 function buildCrowd(gltf, data, pieceAt) {
   const rnd = seeded(21);
@@ -1437,17 +1445,21 @@ function buildCrowd(gltf, data, pieceAt) {
   // a course that lists its crowd one person at a time ([x, y, z, facing], tools/course/newmarket/to_race_view.py)
   if (data.people) for (let i = 0; i < data.people.length; i += 4) spots.push({ x: data.people[i], y: data.people[i + 1], z: data.people[i + 2], face: data.people[i + 3] });
   const S0 = -101.5, S1 = 406;                                  // the stand's west and east ends
+  // the standing terraces down to the lawn (owner, 9 Nov 2026): their people stand on the steps (the crowd areas),
+  // so nobody on the lawn inside their footprint (grandstand.modules -> groundTerrace: the z each one reaches)
+  const TERR = (COURSE.grandstand?.modules || []).filter((m) => m.groundTerrace);
+  const onTerrace = (x, z) => TERR.some((m) => x >= m.xWest - 0.6 && x <= m.xEast + 0.6 && z > m.groundTerrace);
   // the lawn between the outer rail and the stand
   const nearRail = COURSE.trackWidth + COURSE.rails.gap;
   for (let z = nearRail + 1.6; z < FRONT - 1.5 && !data.people; z += 0.7) {
     const d = z - nearRail;
     const density = d < 4 ? 0.8 : d < 8 ? 0.35 : 0.08;
-    for (let x = S0 - 6; x < S1; x += 0.62) if (rnd() < density) add(x + (rnd() - 0.5) * 0.4, 0, z + (rnd() - 0.5) * 0.4);
+    for (let x = S0 - 6; x < S1; x += 0.62) if (rnd() < density && !onTerrace(x, z)) add(x + (rnd() - 0.5) * 0.4, 0, z + (rnd() - 0.5) * 0.4);
   }
   for (let g = 0; g < (data.people ? 0 : 40); g++) {
     const gx = S0 + rnd() * 360, gz = nearRail + 6 + rnd() * (FRONT - nearRail - 8);
     const n = 3 + Math.floor(rnd() * 6);
-    for (let k = 0; k < n; k++) add(gx + (rnd() - 0.5) * 2.4, 0, gz + (rnd() - 0.5) * 1.8);
+    for (let k = 0; k < n; k++) { const px = gx + (rnd() - 0.5) * 2.4, pz = gz + (rnd() - 0.5) * 1.8; if (!onTerrace(px, pz)) add(px, 0, pz); }
   }
   // the stand's verandas, balconies, galleries and steps (areas relative to the clock tower on the front line)
   for (const a of data.areas || []) {
