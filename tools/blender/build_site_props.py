@@ -36,6 +36,8 @@ Pieces
   flagpole             pole with a flag                                         7 m high
   banner_flag          pole with a hanging banner                               4.4 m high
   signpost             finger post with three arms                              2.7 m high
+  balloon_pod          hot air balloon dining pod: striped envelope on a dark   5 x 5 m, 8 m high
+                       frame over a deck, a wicker basket table and benches
 """
 import json, math, os, sys
 import bpy, bmesh
@@ -655,6 +657,43 @@ def signpost(k):
                   [(x0, z + 0.1), (x1, z + 0.1), (tip, z), (x1, z - 0.1), (x0, z - 0.1)])
 
 
+def balloon_pod(k):
+    """A hot air balloon dining pod (owner's photo, 9 Nov): a pink and white striped envelope with a deeper pink skirt,
+    held on a dark square frame over a timber deck; under it a wicker basket as the table's base, a table top, benches
+    either side, and ropes from the frame to the skirt."""
+    H = 0.25
+    k.box("timber", -2.5, 2.5, -2.5, 2.5, 0.0, H)                                         # the deck
+    for x in (-2.5, 2.5):
+        k.box("timber", x - 0.08, x + 0.08, -2.6, 2.6, 0.0, H + 0.04)
+    k.box("wicker", -0.7, 0.7, -0.55, 0.55, H, H + 0.68)                                  # the basket, as the table base
+    for z in (H + 0.15, H + 0.4):
+        k.box("timber", -0.72, 0.72, -0.57, 0.57, z, z + 0.05)
+    k.box("trim", -1.05, 1.05, -0.75, 0.75, H + 0.72, H + 0.78)                          # the table top
+    for sy in (-1, 1):                                                                    # benches with backs
+        y0 = sy * 1.25
+        k.box("seat", -1.0, 1.0, min(y0, y0 + sy * 0.45), max(y0, y0 + sy * 0.45), H + 0.42, H + 0.5)
+        k.box("seat", -1.0, 1.0, min(y0 + sy * 0.4, y0 + sy * 0.5), max(y0 + sy * 0.4, y0 + sy * 0.5), H + 0.5, H + 1.05)
+        for x in (-0.9, 0.9):
+            k.box("frame", x - 0.04, x + 0.04, min(y0, y0 + sy * 0.45), max(y0, y0 + sy * 0.45), H, H + 0.42)
+    zt = 3.55                                                                             # the frame
+    for x in (-2.1, 2.1):
+        for y in (-2.1, 2.1):
+            k.box("frame", x - 0.07, x + 0.07, y - 0.07, y + 0.07, H, zt)
+    for y in (-2.1, 2.1):
+        k.box("frame", -2.17, 2.17, y - 0.06, y + 0.06, zt - 0.12, zt)
+    for x in (-2.1, 2.1):
+        k.box("frame", x - 0.06, x + 0.06, -2.17, 2.17, zt - 0.12, zt)
+    zs = 3.75                                                                             # the skirt and the envelope
+    revolve(k, "balloon_skirt", 0, 0, [(0.95, zs), (1.1, zs + 0.55)], 20)
+    env = [(1.12, zs + 0.55), (1.55, zs + 0.95), (2.05, zs + 1.55), (2.38, zs + 2.25), (2.45, zs + 2.75),
+           (2.32, zs + 3.3), (1.9, zs + 3.8), (1.2, zs + 4.15), (0.0, zs + 4.3)]
+    revolve(k, ["balloon_pink", "balloon_white"], 0, 0, env, 20)
+    for x in (-2.1, 2.1):                                                                 # ropes, frame corners to the skirt
+        for y in (-2.1, 2.1):
+            rod(k, "trim", (x, y, zt), (x * 0.45, y * 0.45, zs + 0.1), 0.02, 4)
+    return {"seats": [[-0.6, -1.45, H + 0.5], [0.6, -1.45, H + 0.5], [-0.6, 1.45, H + 0.5], [0.6, 1.45, H + 0.5]]}
+
+
 PIECES = [("marquee_peaks", marquee_peaks), ("marquee_clearspan", marquee_clearspan), ("big_top", big_top),
           ("pagoda_counter", pagoda_counter), ("stand_open", stand_open), ("stand_covered", stand_covered),
           ("terrace_deck", terrace_deck), ("viewing_tower", viewing_tower), ("kiosk_awning", kiosk_awning),
@@ -662,7 +701,7 @@ PIECES = [("marquee_peaks", marquee_peaks), ("marquee_clearspan", marquee_clears
           ("pergola_picnic", pergola_picnic), ("picnic_table", picnic_table), ("planter_long", planter_long),
           ("planter_short", planter_short), ("fence_picket", fence_picket), ("fence_cross", fence_cross),
           ("barrier_rail", barrier_rail), ("signboard", signboard), ("flagpole", flagpole),
-          ("banner_flag", banner_flag), ("signpost", signpost)]
+          ("banner_flag", banner_flag), ("signpost", signpost), ("balloon_pod", balloon_pod)]
 OBJ = {}
 for name, fn in PIECES:
     spots = {}

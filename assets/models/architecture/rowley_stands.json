@@ -24,13 +24,17 @@
 "clock": "#fbf5ea",
 "clockdark": "#2a2c30",
 "steps": "#d3c6a6",
+"paddock_wall": "#f4eadb",
+"paddock_roof": "#e2a397",
+"paddock_path": "#a7a2ad",
+"paddock_lawn": "#9cc08a",
 "drum": "#f6efe0"
 },
 "pieces": {
 "millennium_stand": {
 "width": 113.0,
 "depth": 44.4,
-"height": 41.6,
+"height": 46.65,
 "crowd": [
 [
 -55.7,
@@ -304,9 +308,44 @@
 24.1,
 25.9,
 12.91
+],
+[
+-55.6,
+55.6,
+15.7,
+16.7,
+16.2
+],
+[
+-55.6,
+55.6,
+16.9,
+18.7,
+16.54
+],
+[
+-55.6,
+55.6,
+19.3,
+21.1,
+16.88
+],
+[
+-55.6,
+55.6,
+21.7,
+23.5,
+17.22
+],
+[
+-55.6,
+55.6,
+24.1,
+25.9,
+17.56
 ]
 ],
-"triangles": 30370
+"triangles": 36436
 },
 "rowley_stand": {
 "width": 108.5,
@@ -1207,7 +1246,7 @@
 6.5
 ]
 ],
-"triangles": 33283
+"triangles": 25471
 },
 "judges_kiosk": {
 "width": 3.4000000000000004,
@@ -1215,6 +1254,58 @@
 "height": 6.0,
 "crowd": [],
 "triangles": 224
+},
+"parade_ring": {
+"width": 69.0,
+"depth": 44.0,
+"height": 1.2,
+"crowd": [
+[
+-29.0,
+29.0,
+21.0,
+23.0,
+0.06
+]
+],
+"triangles": 3540
+},
+"ring_pavilion": {
+"width": 31.2,
+"depth": 13.2,
+"height": 8.0,
+"crowd": [
+[
+-14.5,
+14.5,
+0.2,
+2.2,
+0.25
+]
+],
+"triangles": 504
+},
+"ring_pavilion_small": {
+"width": 19.2,
+"depth": 11.2,
+"height": 8.0,
+"crowd": [
+[
+-8.5,
+8.5,
+0.2,
+2.2,
+0.25
+]
+],
+"triangles": 360
+},
+"stable_block": {
+"width": 49.4,
+"depth": 10.4,
+"height": 8.6,
+"crowd": [],
+"triangles": 994
 },
 "victorian_pavilion": {
 "width": 11.0,

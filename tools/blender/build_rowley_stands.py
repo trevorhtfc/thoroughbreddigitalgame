@@ -48,6 +48,7 @@ COL = {   # the pastel-street palette, as the July Course's pieces
 # grand pavilion"): the canopy roof, the cream iron lace and the steps
 ASCOT_COL = json.load(open(rp("assets/models/architecture/victorian_grandstand_layout.json")))["colours"]
 COL.update({k: ASCOT_COL[k] for k in ("roof", "iron", "steps")})
+COL.update({"paddock_wall": "#f4eadb", "paddock_roof": "#e2a397", "paddock_path": "#a7a2ad", "paddock_lawn": "#9cc08a"})
 COL["drum"] = "#f6efe0"          # the light cream stair drum at the cranked stand's rail end (owner, 9 Nov)
 MATS = {k: material("rm_" + k, v, rough=0.9) for k, v in COL.items()}
 K = Kit()
@@ -170,19 +171,20 @@ def millennium_stand(n=4, bay=28.0, D=42.4):
     K.box("trim", -h - 0.05, h + 0.05, -0.42, 0.07, 1.0, 1.12)
     yb, zt = steps("concrete", -h, h, 0.0, 0.3, rows, tread, rise)
     K.box("concrete", -h, h, yb, yf + 0.5, -1.0, zt)
-    # -- the block behind the tiers: cream, the full width, up to one storey above the balcony stand's slab
+    # -- the block behind the tiers: cream, the full width, up to a parapet just above the top balcony's roof slab
+    #    (owner, 9 Nov evening: the top row of windows becomes another balcony)
     zA, zB = 6.25, 11.55                                              # the wing's standing terrace and roof terrace
-    zC = 16.2                                                         # the balcony stand's slab (its roof)
-    zTop = zC + 3.8
+    BAL = [zB, 16.2, 20.85]                                           # balcony floors; the last is the top roof slab
+    zTop = BAL[-1] + 1.2
     K.box("wall", -h, h, yf, D, -1.0, zTop)
     for k in range(int(L // 4.0)):                                    # dark doors from the tiers into the block
         x = -h + 2.0 + k * 4.0
         K.door(x, yf, zA + 2.45, 1.3, 2.0)
-        K.door(x, yf, zB + 1.45, 1.3, 2.0)
-        win(x, yf, zC + 1.0, 1.6, 1.8)
+        for zb_ in BAL[:-1]:
+            K.door(x, yf, zb_ + 1.45, 1.3, 2.0)
     K.cornice(-h, h, yf - 0.1, D, zTop, ov=0.6, h=0.6)
     for x, f in ((-h, -1), (h, 1)):                                   # the ends: windows in the cream
-        for zz in (zA + 1.0, zB + 1.0, zC + 1.0):
+        for zz in [zA + 1.0] + [zb_ + 1.0 for zb_ in BAL[:-1]]:
             for y in (yf + 4.0, yf + 8.0, D - 4.0):
                 side_window(x, f, y, zz, 1.4, 2.0)
     span = bay / 4                                                    # posts every 7 m
@@ -208,36 +210,40 @@ def millennium_stand(n=4, bay=28.0, D=42.4):
         area(-h + 0.4, h - 0.4, y0 + 0.1, y0 + tA - 0.5, z)
     for x in (-h, h):
         K.balustrade(yA, yf, x, zA, h=1.0, mat="trim", spacing=0.3, axis="y", piers=False)
-    # -- tier B: the balcony stand, the old pavilion's way, from the wing's roof-terrace level
+    # -- the balcony stands, the old pavilion's way: the first level with the wing's roof terrace, then another above
     yB, nB = 15.6, 4
     tB = (yf - (yB + 1.2)) / nB
-    K.box("concrete", -h - 0.3, h + 0.3, yB - 0.3, yf, zB - 0.35, zB)                  # the balcony slab
-    prof = [(yB + 1.2, zB - 0.01)]
-    for i in range(nB):
-        z = zB + (i + 1) * 0.34
-        prof += [(yB + 1.2 + i * tB, z), (yB + 1.2 + (i + 1) * tB, z)]
-    prof += [(yf, zB - 0.01)]
-    K.prism_x("concrete", -h, h, prof)
-    K.balustrade(-h - 0.15, h + 0.15, yB - 0.15, zB, h=1.0, mat="trim", spacing=0.3, piers=False)
-    area(-h + 0.4, h - 0.4, yB + 0.1, yB + 1.1, zB)
-    for i in range(nB):
-        z = zB + (i + 1) * 0.34; y0 = yB + 1.2 + i * tB
-        K.box("seat", -h + 0.4, h - 0.4, y0 + tB - 0.45, y0 + tB - 0.08, z, z + 0.42)
-        area(-h + 0.4, h - 0.4, y0 + 0.1, y0 + tB - 0.5, z)
-    for x in (-h - 0.15, h + 0.15):
-        K.balustrade(yB - 0.15, yf, x, zB, h=1.0, mat="trim", spacing=0.3, axis="y", piers=False)
-    K.box("concrete", -h - 0.3, h + 0.3, yB - 0.5, yf, zC - 0.35, zC)                  # its roof slab
+    for zb_, zn_ in zip(BAL[:-1], BAL[1:]):
+        K.box("concrete", -h - 0.3, h + 0.3, yB - 0.3, yf, zb_ - 0.35, zb_)                # the balcony slab
+        prof = [(yB + 1.2, zb_ - 0.01)]
+        for i in range(nB):
+            z = zb_ + (i + 1) * 0.34
+            prof += [(yB + 1.2 + i * tB, z), (yB + 1.2 + (i + 1) * tB, z)]
+        prof += [(yf, zb_ - 0.01)]
+        K.prism_x("concrete", -h, h, prof)
+        K.balustrade(-h - 0.15, h + 0.15, yB - 0.15, zb_, h=1.0, mat="trim", spacing=0.3, piers=False)
+        area(-h + 0.4, h - 0.4, yB + 0.1, yB + 1.1, zb_)
+        for i in range(nB):
+            z = zb_ + (i + 1) * 0.34; y0 = yB + 1.2 + i * tB
+            K.box("seat", -h + 0.4, h - 0.4, y0 + tB - 0.45, y0 + tB - 0.08, z, z + 0.42)
+            area(-h + 0.4, h - 0.4, y0 + 0.1, y0 + tB - 0.5, z)
+        for x in (-h - 0.15, h + 0.15):
+            K.balustrade(yB - 0.15, yf, x, zb_, h=1.0, mat="trim", spacing=0.3, axis="y", piers=False)
+    zC = BAL[-1]
+    K.box("concrete", -h - 0.3, h + 0.3, yB - 0.5, yf, zC - 0.35, zC)                  # the top roof slab
     K.box("trim", -h - 0.35, h + 0.35, yB - 0.6, yB - 0.3, zC - 0.75, zC)              # a deep white fascia
-    # -- the posts (the sketch's orange): from the lawn terrace up through tier A to the balcony slab, and on up to
-    #    the roof slab, with brackets under each slab
+    # -- the posts (the sketch's orange): from the lawn terrace up through tier A and every balcony to the top slab,
+    #    with brackets under each slab
     yp = yB + 0.15
     for x in posts:
         xp = max(-h + 0.15, min(h - 0.15, x))
         K.box("trim", xp - 0.13, xp + 0.13, yp - 0.13, yp + 0.13, lawn(yp) - 0.2, zC - 0.75)
+        for zb_ in BAL[1:]:
+            brackets(xp, yp - 0.05, yp + 0.05, zb_ - 0.75)
         brackets(xp, yp - 0.05, yp + 0.05, zB - 0.35)
-        brackets(xp, yp - 0.05, yp + 0.05, zC - 0.75)
-    # -- the barrel canopies, lifted 3 m clear of the block on posts, reaching out over the terraces
-    zS = zTop + 3.0
+    # -- the barrel canopies, lifted clear of the block on posts (3 m, then another 3 m: owner, 9 Nov evening),
+    #    reaching out over the terraces
+    zS = zTop + 6.0
     y0c, y1c = 4.0, D + 2.0
     def fz(x, y, xc):
         t = min(max((x - (xc - bay / 2)) / bay, 0.0), 1.0)
@@ -466,7 +472,48 @@ def stair_drum(cx, cy, r=3.4, top=19.0):
     K.door(cx, cy - r, 0.0, 1.4, 2.4)
 
 
-def grand_pavilion_stand(bays, rows, tread, rise, end_pavilion=False, drum=False):
+def hipped_terrace(L, D=18.0):
+    """The old stand's roof (owner, 9 Nov evening, his picture of the earlier old stand): Ascot's terrace profile
+    under a long hipped slate roof on slender posts, with gablet dormers along the front slope, brick chimneys on the
+    ridge and a small cupola in the middle; the back filled in up to the roof, the ends left open as the canopies."""
+    t = terrace({"x0": 0.0, "x1": L, "depth": D, "party": (), "open_ends": True})
+    top, deck = t["top"], t["deck"]
+    ze, rise, y0, y1, ov = top + 3.3, 6.0, 0.6, D + 0.8, 0.7
+    nb = max(2, round(L / 6.0))
+    for k in range(nb + 1):                                                       # slender posts along the front
+        x = 0.25 + (L - 0.5) * k / nb
+        K.box("trim", x - 0.12, x + 0.12, 3.3, 3.54, deck, ze - 0.35)
+    K.box("wall", 0.0, L, D - 0.45, D, top + 1.25, ze)                            # the back, up to the roof
+    K.hip_roof(0.0, L, y0, y1, ze, rise, ov=ov, mat="slate")
+    Y0, Y1 = y0 - ov, y1 + ov
+    tn = rise / ((Y1 - Y0) / 2)
+    zr = lambda y: ze + (y - Y0) * tn                                            # the front slope's height at y
+    nd = max(3, round(L / 18.0))
+    for k in range(nd):                                                           # gablet dormers on the front slope
+        x = L * (k + 0.5) / nd
+        if abs(x - L / 2) < 4.0:
+            continue                                                              # the cupola sits in the middle
+        ya, yb2 = Y0 + 3.0, Y0 + 5.6
+        K.box("cream", x - 1.4, x + 1.4, ya, yb2, zr(ya) - 0.4, zr(ya) + 1.5)
+        gable_y(x - 1.4, x + 1.4, ya, yb2, zr(ya) + 1.5, 42, 0.25)
+        win(x, ya, zr(ya) + 0.0, 1.1, 1.2)
+    zt_ = ze + rise
+    yc = (Y0 + Y1) / 2
+    for f in (0.18, 0.36, 0.64, 0.82):                                            # chimneys on the ridge
+        x = L * f
+        K.box("brick", x - 0.6, x + 0.6, yc - 0.6, yc + 0.6, zt_ - 1.5, zt_ + 1.7)
+        K.box("trim", x - 0.72, x + 0.72, yc - 0.72, yc + 0.72, zt_ + 1.7, zt_ + 1.9)
+    cx = L / 2                                                                    # the cupola
+    K.box("cream", cx - 1.8, cx + 1.8, yc - 1.8, yc + 1.8, zt_ - 1.0, zt_ + 2.4)
+    for sgn in (-1, 1):
+        K.box("glass", cx - 1.2, cx + 1.2, yc + sgn * 1.8 - 0.05, yc + sgn * 1.8 + 0.05, zt_ + 0.4, zt_ + 1.9)
+    K.hip_roof(cx - 1.8, cx + 1.8, yc - 1.8, yc + 1.8, zt_ + 2.4, 1.7, ov=0.3, mat="slate")
+    K.cyl("iron", cx, yc, zt_ + 4.0, zt_ + 6.0, 0.05, segs=4, smooth=False)
+    K.box("gilt", cx - 0.45, cx + 0.45, yc - 0.02, yc + 0.02, zt_ + 5.5, zt_ + 5.75)
+    return {"top": top}
+
+
+def grand_pavilion_stand(bays, rows, tread, rise, end_pavilion=False, drum=False, roof="canopy"):
     """The flanking stands (owner, 9 Nov): Ascot's grand pavilion, quite literally (the terrace profile under the
     grand canopy with its glazed ridge lantern), behind a lower tier of terrace that rises from the lawn at the Rowley
     Mile's shallow rake to just under the boxes' ledge (the podium). Origin: the middle of the lawn terrace's foot.
@@ -482,7 +529,10 @@ def grand_pavilion_stand(bays, rows, tread, rise, end_pavilion=False, drum=False
     for xa, xb in ((-h - 0.3, -h), (h, h + 0.3)):                                  # low cheek walls at its ends
         K.box("podium", xa, xb, 0.0, T, -1.0, z0 + rows * rise + 0.6)
     K.push(Matrix.Translation((-h, T, 0.0)))
-    t = canopy_terrace({"x0": 0.0, "x1": L, "depth": 18.0, "party": ()}, grand=True)
+    if roof == "hipped":
+        hipped_terrace(L)
+    else:
+        canopy_terrace({"x0": 0.0, "x1": L, "depth": 18.0, "party": ()}, grand=True)
     if end_pavilion:
         ascot_end_pavilion(L, L + 4 * BAY - 1.6, 16.0, 2)
     if drum:                                  # on the left as built: the cranked stand is mirrored, so it lands at the rail end
@@ -495,6 +545,73 @@ def grand_pavilion_stand(bays, rows, tread, rise, end_pavilion=False, drum=False
     return info
 
 
+# ------------------------------------------------------------------------------------------ 9 Nov: the paddock
+# Behind the stands (owner, 9 Nov evening, with an aerial of the real paddock): the parade ring, pavilions round it and
+# the stables, in soft cream walls and pink roofs. Origin: the middle of the front on the ground, front facing -y.
+def ellipse_band(mat, a0, b0, a1, b1, cy, z, n=64):
+    """A flat band between two ellipses (half-axes a, b) centred at (0, cy), at height z; a0 = b0 = 0 fills it."""
+    bm = K.bm(mat)
+    pt = lambda a, b, i: bm.verts.new(K.M @ Vector((a * math.cos(2 * math.pi * i / n), cy + b * math.sin(2 * math.pi * i / n), z)))
+    if a0 <= 0:
+        c = bm.verts.new(K.M @ Vector((0.0, cy, z))); ring = [pt(a1, b1, i) for i in range(n)]
+        for i in range(n):
+            bm.faces.new((c, ring[i], ring[(i + 1) % n]))
+        return
+    inner = [pt(a0, b0, i) for i in range(n)]; outer = [pt(a1, b1, i) for i in range(n)]
+    for i in range(n):
+        j = (i + 1) % n
+        bm.faces.new((inner[i], outer[i], outer[j], inner[j]))
+
+
+def parade_ring(a=34.0, b=21.0):
+    """The parade ring: an oval lawn inside a walking path with white rails both sides, a gap for the horses."""
+    cy = b + 1.0
+    ellipse_band("paddock_lawn", 0, 0, a - 4.0, b - 4.0, cy, 0.06)
+    ellipse_band("paddock_path", a - 4.0, b - 4.0, a, b, cy, 0.04)
+    n = 48
+    for ra, rb in ((a - 4.0, b - 4.0), (a + 0.3, b + 0.3)):
+        pts = [(ra * math.cos(2 * math.pi * i / n), cy + rb * math.sin(2 * math.pi * i / n)) for i in range(n)]
+        for i in range(n):
+            if ra > a and 11 <= i <= 13:
+                continue                                                         # the gate out to the course
+            (x0, y0), (x1, y1) = pts[i], pts[(i + 1) % n]
+            for zz in (0.55, 1.05):
+                strut("trim", (x0, y0, zz), (x1, y1, zz), 0.05)
+            K.box("trim", x0 - 0.07, x0 + 0.07, y0 - 0.07, y0 + 0.07, 0.0, 1.15)
+    area(-a + 5, a - 5, cy - 1.0, cy + 1.0, 0.06)                                 # (a few figures: the connections)
+    return {"width": 2 * a + 1, "depth": 2 * b + 2, "height": 1.2}
+
+
+def ring_pavilion(L=30.0, D=12.0):
+    """A pavilion by the ring: cream walls, tall windows, a veranda on white posts, a pink hipped roof."""
+    h = L / 2
+    K.box("paddock_wall", -h, h, 2.4, D, -1.0, 4.6)
+    for k in range(int(L // 3.5)):
+        win(-h + 1.75 + k * 3.5, 2.4, 0.6, 1.6, 2.6)
+    K.box("concrete", -h - 0.4, h + 0.4, -0.2, 2.4, -1.0, 0.25)
+    for k in range(int(L // 3.5) + 1):
+        x = -h + k * L / int(L // 3.5)
+        K.box("trim", x - 0.1, x + 0.1, 0.0, 0.2, 0.25, 4.6)
+    K.hip_roof(-h, h, 0.0, D, 4.6, 3.4, ov=0.6, mat="paddock_roof")
+    area(-h + 0.5, h - 0.5, 0.2, 2.2, 0.25)
+    return {"width": L + 1.2, "depth": D + 1.2, "height": 8.0}
+
+
+def stable_block(L=48.0, D=9.0):
+    """A stable block: long and low, cream, a row of stable doors, a pink hipped roof, a small clock cupola."""
+    h = L / 2
+    K.box("paddock_wall", -h, h, 0.0, D, -1.0, 3.4)
+    for k in range(int(L // 3.6)):
+        x = -h + 1.8 + k * 3.6
+        K.door(x, 0.0, 0.0, 1.3, 2.3)
+        K.box("trim", x - 0.7, x + 0.7, -0.08, 0.0, 1.2, 1.28)                    # the half-door's line
+    K.hip_roof(-h, h, 0.0, D, 3.4, 2.8, ov=0.7, mat="paddock_roof")
+    K.box("paddock_wall", -1.3, 1.3, D / 2 - 1.3, D / 2 + 1.3, 5.2, 7.2)
+    K.disc_y("trim", 0.0, D / 2 - 1.36, D / 2 - 1.3, 6.3, 0.65, segs=16)
+    K.hip_roof(-1.3, 1.3, D / 2 - 1.3, D / 2 + 1.3, 7.2, 1.3, ov=0.25, mat="paddock_roof")
+    return {"width": L + 1.4, "depth": D + 1.4, "height": 8.6}
+
+
 PIECES = [
     ("millennium_stand", millennium_stand),
     # 9 Nov: the flanking stands become Ascot's grand pavilion behind a lawn terrace (same names, so the layout, the
@@ -504,8 +621,12 @@ PIECES = [
     # then an end stand at right angles to the track, past the post, looking back up the course
     ("rowley_wing", lambda: grand_pavilion_stand(12, 14, 1.0, 0.2)),                  # 42 m
     ("rowley_end", lambda: grand_pavilion_stand(24, 14, 1.0, 0.2, drum=True)),        # 84 m, the stair drum at its rail end
-    ("victorian_stand", lambda: grand_pavilion_stand(37, 10, 1.0, 0.28, end_pavilion=True)),   # 129.5 m + 14 m
+    ("victorian_stand", lambda: grand_pavilion_stand(37, 10, 1.0, 0.28, end_pavilion=True, roof="hipped")),   # 129.5 m + 14 m
     ("judges_kiosk", judges_kiosk),
+    ("parade_ring", parade_ring),
+    ("ring_pavilion", ring_pavilion),
+    ("ring_pavilion_small", lambda: ring_pavilion(18.0, 10.0)),
+    ("stable_block", stable_block),
     ("victorian_pavilion", victorian_pavilion),
 ]
 LIB = bpy.data.collections.new("rowley_stands")

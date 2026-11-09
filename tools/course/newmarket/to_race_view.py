@@ -173,6 +173,21 @@ def rowley_scenery(course):
         if st["piece"] != "judges_kiosk":
             aprons.append((to_c, -hw + o - 3.0, hw + o + 3.0, -10.0 if st["piece"] != "victorian_pavilion" else -5.0, pi["depth"] + 3.0))
         S.stand_people(pi, ox, oz, turn, dens=1.5)
+    # the paddock behind the Millennium (owner, 9 Nov evening): the parade ring, pavilions and stables, on paving
+    pa = R.PADDOCK_APRON
+    S.flat("#e4d8c2", [(pa["x"][0], pa["z"][0]), (pa["x"][1], pa["z"][0]), (pa["x"][1], pa["z"][1]), (pa["x"][0], pa["z"][1])], 0.028)
+    for pk in R.PADDOCK:
+        pi = info[pk["piece"]]; ox, oz, turn = pk["at"][0], pk["at"][1], pk["turn"]
+        S.piece("rowley_stands", pk["piece"], ox, oz, turn)
+        a = math.radians(turn); ca, sa = math.cos(a), math.sin(a)
+        to_c = (lambda ox, oz, ca, sa: lambda u, v: (ox + u * ca - v * sa, oz - (u * sa + v * ca)))(ox, oz, ca, sa)
+        hw = pi["width"] / 2
+        S.nogo.append([to_c(u, v) for u, v in ((-hw, -0.5), (hw, -0.5), (hw, pi["depth"] + 1), (-hw, pi["depth"] + 1))])
+    S.fill(pa["x"][0], pa["x"][1], pa["z"][0] + 2, pa["z"][1] - 2, 0.02)
+    # the flat green up the course on the stand side, in strips of subtle shades (owner, 9 Nov evening)
+    gx0, gx1 = R.GRASS_STRIPS["x"]
+    for z0, z1, col in R.grass_strips():
+        S.flat(col, [(gx0, z0), (gx1, z0), (gx1, z1), (gx0, z1)], 0.012)
     # the ground tied together (owner, 8 Nov): a paved apron round every stand, a gravel walk along the rail, low clipped
     # hedges along the aprons' fronts with gaps to walk through, and small trees in the gaps
     small = []
@@ -204,7 +219,7 @@ def rowley_scenery(course):
     # (no small trees in the hedge gaps: owner, 9 Nov, no trees in front of the stands)
     x = -130.0
     while x < 760:
-        back = 165.0 if x < 105 else (125.0 if x < 290 else 108.0)
+        back = 228.0 if x < 105 else (125.0 if x < 290 else 108.0)   # behind the paddock there (9 Nov)
         trees.append([r2(x + rnd.uniform(-3, 3)), r2(W + rnd.uniform(back, back + 16)), rnd.choice(["oak_a", "oak_b", "oak_c", "wide_a", "wide_b"]), r2(rnd.uniform(1.9, 2.5)), rnd.randrange(360)])
         x += 11
     # Owner (8 Nov): no gaps where the cameras look. The stand camera and the side-on replay look across to the far side:
@@ -230,10 +245,15 @@ def rowley_scenery(course):
                                                                  # (well back from the leg: the tracking car and the start camera)
     scatter(700, 2060, W + 70, W + 170, 420, 11.0, [1.6, 2.4])   # beyond the stand-side festival, up the straight
     scatter(-420, -160, -200, W + 200, 260, 10.0, [1.6, 2.4])   # beyond the run-on, behind the head-on camera's back
+    for tb in R.TREE_BELTS:                                       # the owner's belts (9 Nov evening): behind everything,
+        n = int((tb["x"][1] - tb["x"][0]) * (tb["z"][1] - tb["z"][0]) / tb["spacing"] ** 2 * 1.6)   # the run-out, the elbow
+        scatter(tb["x"][0], tb["x"][1], tb["z"][0], tb["z"][1], n, tb["spacing"], tb["scale"], margin=20.0)
     # the far bank (owner, 8 Nov: a gentle grassy bank behind the far rail the whole way round)
     fb = course["farBank"]
     prof = [[o, h] for o, h in fb["profileAcross"]] + [[fb["back"] + 30, 0.0]]
-    banks = [{"rows": bank_rows(R, fb["spans"], lambda d: prof, -1)}]
+    # opposite the stands the Dyke steps back behind the far-side festival (owner, 9 Nov evening): offsets grow by
+    # bank_shift(d), the ground flat in front of it
+    banks = [{"rows": bank_rows(R, fb["spans"], lambda d: [[0.0, 0.0]] + [[o + R.bank_shift(d), h] for o, h in prof[1:]], -1)}]
     return S, trees, banks
 
 

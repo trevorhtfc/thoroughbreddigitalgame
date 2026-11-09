@@ -34,7 +34,7 @@ PROFILE = [(-RUN_ON, 0.6), (0, 0.0), (201, -3.0), (402, 0.6), (520, 1.0), (700, 
 # way round", closer to the track than the real Devil's Dyke. It follows the inside (far) rail from behind the post,
 # along the straight, round the bend and up the Cesarewitch leg. Across it, in metres behind the inside rail: flat
 # heath to 'foot', a soft rise to the crest ('crest', a rounded top), and down again to 'back'. Height in metres.
-BANK = {"foot": 12.0, "crest": [28.0, 34.0], "back": 50.0, "height": 4.0, "from": -260.0, "to": 20 * F + 120.0,
+BANK = {"foot": 12.0, "crest": [28.0, 34.0], "back": 50.0, "height": 3.0, "from": -260.0, "to": 20 * F + 120.0,
         "note": "Owner, 8 Nov: a gentle grassy bank behind the far rail the whole way round, closer than real life "
                 "(the Devil's Dyke, interpretive). Offsets are metres behind the inside rail; it sits on the ground's "
                 "own height (the Dip runs through it). Low scrub along the crest; tree tops show beyond it."}
@@ -45,6 +45,7 @@ BOARD_LEN, BOARDS_BEHIND = 6.0, 3.0
 BOARD_RUNS = [(40, 6), (215, 4), (410, 5), (640, 3), (900, 4), (1180, 3), (1470, 4), (1780, 3), (2110, 5),
               (2520, 3), (2950, 4), (3450, 3), (4000, 3), (4500, 4)]
 BOARD_DESIGNS = ["green", "cream", "navy", "white"]
+BOARD_ANGLE = -20.0      # degrees off square to the track, turned to face a little towards the stands (owner, 9 Nov)
 # Tree tops beyond the bank (owner, 8 Nov): clumps and short tree lines on the heath behind it, far enough back that
 # from the tracking car only the crowns show over the crest. Seeded, so the same trees every time.
 TREES = {"from": 62.0, "to": 150.0, "start": -320.0, "end": 20 * F + 220.0, "spacing": 7.5, "seed": 8,
@@ -65,9 +66,10 @@ STAND_PIECES = [
     # 9 Nov (owner): the flanking stands are Ascot's grand pavilion behind a lawn terrace (build_rowley_stands.py), and
     # every stand moves 8 m closer to the rail at the same angle (the judge's kiosk stays by the rail); the cranked end
     # stand only 2 m, so the stair drum at its rail end (owner's markup, 9 Nov) clears the rail walk.
-    {"name": "Millennium Grandstand", "piece": "millennium_stand", "at": [35.05, 50.71], "turn": 167.0, "length": 113.0, "depth": 58.0,
+    # 9 Nov evening: the Millennium and the wing at 10 degrees to the track (was 13), pivoting about the wing.
+    {"name": "Millennium Grandstand", "piece": "millennium_stand", "at": [35.88, 46.74], "turn": 170.0, "length": 113.0, "depth": 58.0,
      "note": "at an angle to the track: its terrace foot 46 m beyond the near rail at the post end, the building 26 m behind it"},
-    {"name": "Rowley stand", "piece": "rowley_wing", "at": [-40.46, 33.28], "turn": 167.0, "length": 42.0, "depth": 38.0,
+    {"name": "Rowley stand", "piece": "rowley_wing", "at": [-40.46, 33.28], "turn": 170.0, "length": 42.0, "depth": 38.0,
      "note": "the pavilion stand's first wing, in line with the Millennium, its terrace running on from the Millennium's"},
     {"name": "Rowley end stand", "piece": "rowley_end", "at": [-42.92, 53.28], "turn": 90.0, "length": 82.6, "depth": 38.0,
      "note": "cranked round by the winning line: at right angles to the track, past the post, looking back up the course; the clock cupola, a brick end"},
@@ -89,13 +91,48 @@ FESTIVAL = {"x": [290.0, 3.5 * F], "z": [TRACK_W + 10, TRACK_W + 60],
 # side, negative = beyond the far rail), side "stand" or "far" (which way the pieces face: towards the track).
 W_ = TRACK_W
 FESTIVAL_ZONES = [
-    {"name": "up the course", "x": FESTIVAL["x"], "z": FESTIVAL["z"], "side": "stand"},
+    {"name": "up the course", "x": FESTIVAL["x"], "z": FESTIVAL["z"], "side": "stand",
+     "balloons": {"x": [296.0, 382.0], "every": 9.5, "dz": 6.0}},                            # a row of balloon pods
     {"name": "past the post", "x": [-175.0, -88.0], "z": [W_ + 10, W_ + 60], "side": "stand"},
-    {"name": "far side", "x": [-175.0, 330.0], "z": [-60.0, -14.0], "side": "far"},
-    {"name": "behind the Millennium and the cranked stand", "x": [-82.0, 100.0], "z": [W_ + 114, W_ + 150], "side": "stand"},
+    {"name": "far side", "x": [-175.0, 330.0], "z": [-48.0, -8.0], "side": "far",
+     "dotted": {"piece": "stand_covered", "x": [12.0, 200.0], "every": 31.0, "dz": 3.0}},   # the last furlong
     {"name": "between the Millennium and the old stand", "x": [94.0, 121.0], "z": [W_ + 58, W_ + 108], "side": "stand"},
     {"name": "behind the old stand", "x": [124.0, 290.0], "z": [W_ + 99, W_ + 121], "side": "stand"},
 ]
+
+
+PADDOCK = [
+    {"piece": "parade_ring", "at": [35.0, W_ + 112.0], "turn": 180.0},
+    {"piece": "ring_pavilion", "at": [16.0, W_ + 163.0], "turn": 180.0},
+    {"piece": "ring_pavilion", "at": [56.0, W_ + 163.0], "turn": 180.0},
+    {"piece": "stable_block", "at": [8.0, W_ + 192.0], "turn": 180.0},
+    {"piece": "stable_block", "at": [62.0, W_ + 192.0], "turn": 180.0},
+    {"piece": "stable_block", "at": [-30.0, W_ + 150.0], "turn": 90.0},
+    {"piece": "ring_pavilion_small", "at": [-12.0, W_ + 106.0], "turn": 180.0},
+]
+PADDOCK_APRON = {"x": [-50.0, 92.0], "z": [W_ + 103.0, W_ + 206.0]}
+# Trees (owner, 9 Nov evening): a belt behind everything and round past the cranked stand, rows at the end of the
+# run-out, and a belt at the top of the straight (the elbow) closing the view up the course from the stands.
+TREE_BELTS = [
+    {"x": [-120.0, 330.0], "z": [W_ + 222.0, W_ + 246.0], "spacing": 10.0, "scale": [1.9, 2.5]},
+    {"x": [-140.0, -112.0], "z": [W_ + 95.0, W_ + 246.0], "spacing": 10.0, "scale": [1.9, 2.5]},
+    {"x": [-250.0, -185.0], "z": [-120.0, W_ + 200.0], "spacing": 11.0, "scale": [1.7, 2.4]},
+    {"x": [2060.0, 2220.0], "z": [-180.0, W_ + 220.0], "spacing": 11.0, "scale": [2.0, 2.7]},
+]
+# The flat green on the stand side up the course, past the festival (owner, 9 Nov evening): strips in subtle shades.
+GRASS_STRIPS = {"x": [3.5 * F + 12.0, 2040.0], "z": [W_ + 8.0, W_ + 260.0], "widths": [18.0, 42.0],
+                "greens": ["#a9c07f", "#9fb875", "#b2c78b", "#a3bb7a"]}
+
+
+def grass_strips():
+    """Long strips parallel to the track, [z0, z1, colour], seeded."""
+    import random as _r
+    g = _r.Random(11); out = []; z = GRASS_STRIPS["z"][0]; k = 0
+    while z < GRASS_STRIPS["z"][1]:
+        w = g.uniform(*GRASS_STRIPS["widths"])
+        out.append([round(z, 1), round(min(z + w, GRASS_STRIPS["z"][1]), 1), GRASS_STRIPS["greens"][k % 4]])
+        z += w; k += 1 + g.randrange(2)
+    return out
 
 
 def in_festival(x, z, margin=0.0):
@@ -117,8 +154,17 @@ def festival_pieces(rnd):
         front, sgn = (z1, -1.0) if far else (z0, 1.0)              # the edge nearest the track, and which way is back
         depth = z1 - z0
         x = x0 + 8.0
+        if "balloons" in fz:                                       # a row of balloon dining pods, then the columns
+            bl = fz["balloons"]; bx = bl["x"][0]
+            while bx <= bl["x"][1]:
+                out.append(("balloon_pod", bx, front + sgn * bl["dz"], turn)); bx += bl["every"]
+            x = bl["x"][1] + 14.0
+        if "dotted" in fz:                                         # pieces dotted along the front of the zone
+            dt = fz["dotted"]; dx = dt["x"][0]
+            while dx <= dt["x"][1]:
+                out.append((dt["piece"], dx, front + sgn * dt["dz"], turn)); dx += dt["every"]
         while x < x1 - 6.0:
-            for dz, kinds in ((8.0, small), (24.0, mid), (42.0, big)):
+            for dz, kinds in (((12.0 if "dotted" in fz else 8.0), small), (24.0, mid), (42.0, big)):
                 if dz + 6.0 > depth:
                     break
                 piece = rnd.choice(kinds)
@@ -133,7 +179,19 @@ def festival_pieces(rnd):
 COMPASS = "owner's sketch, 8 Nov: north is at the bottom of the plans: +z is north, +x is west"
 # Set by site_plan.py, which builds both Newmarket courses together: stretches of the bank to leave out (where the July
 # Course runs through), and a test for trees and boards that would stand on the July Course.
-BANK_SKIP = [[-180.0, 335.0]]   # [[metres to go from, to], ...]: the far-side festival opposite the stands (9 Nov)
+BANK_SKIP = []          # [[metres to go from, to], ...]
+# Owner, 9 Nov evening: the Dyke (a mound about 3 m high) stays all the way along, but opposite the stands it steps
+# back behind the far-side festival, which comes close to the course: offsets there grow by "by" metres, easing in and
+# out over "ramp" metres either side.
+BANK_SHIFT = {"from": -180.0, "to": 335.0, "by": 40.0, "ramp": 90.0}
+
+
+def bank_shift(d):
+    S_ = BANK_SHIFT
+    if S_["from"] <= d <= S_["to"]:
+        return S_["by"]
+    t = (S_["from"] - d) / S_["ramp"] if d < S_["from"] else (d - S_["to"]) / S_["ramp"]
+    return S_["by"] * (0.5 + 0.5 * math.cos(math.pi * t)) if t < 1 else 0.0
 KEEP = lambda x, z: not in_festival(x, z, 4.0)   # no trees or boards inside the festival zones (9 Nov)
 
 
@@ -210,7 +268,7 @@ def boards():
             d = mid + (j - (count - 1) / 2) * BOARD_LEN
             x, z = behind(d, BOARDS_BEHIND)
             _, (tx, tz) = course_pt(d)
-            turn = math.degrees(math.atan2(tz, -tx))              # the board's face turned to the track (0 = facing south)
+            turn = math.degrees(math.atan2(tz, -tx)) + BOARD_ANGLE   # the board's face turned to the track (0 = facing south), angled to the stands
             out.append([round(x, 2), round(z, 2), round(turn, 1), BOARD_DESIGNS[k % len(BOARD_DESIGNS)]])
             k += 1
     return out
@@ -222,7 +280,7 @@ def trees(rail):
     T = TREES; g = np.random.default_rng(T["seed"])
     kinds = list(T["kinds"]); w = np.array([T["kinds"][k] for k in kinds], float); w /= w.sum()
     rail = np.array(rail)
-    keep_off = BANK["back"] + 8.0
+    keep_off = BANK["back"] + 8.0                                # (the rail check is a minimum; bank_shift moves trees on)
     out, grid = [], {}
     def free(x, z):
         gx, gz = int(x // T["spacing"]), int(z // T["spacing"])
@@ -241,7 +299,7 @@ def trees(rail):
         for _ in range(n):
             dd = d + (g.uniform(-45, 45) if line else g.normal(0, 14))
             off = depth + (g.normal(0, 4) if line else g.normal(0, 10))
-            off = min(max(off, T["from"]), T["to"])
+            off = min(max(off, T["from"]), T["to"]) + bank_shift(dd)          # beyond the Dyke, wherever it stands
             x, z = behind(dd, off)
             if np.min((rail[:, 0] - x) ** 2 + (rail[:, 1] - z) ** 2) < keep_off ** 2 or not free(x, z):
                 continue
@@ -286,7 +344,7 @@ def main():
                     "note": "The ground's height (m, against the post) every 'spacing' metres to go from 'from', along the inside "
                             "rail: what the race engine reads for the Dip (owner, 8 Nov: it counts). Straight lines between points."},
         "starts": starts, "furlongPoles": poles, "stands": STANDS, "standPieces": STAND_PIECES, "festival": FESTIVAL,
-        "farBank": {**BANK, "spans": bank_spans(), "profileAcross": [[o, round(bank_h(o), 2)] for o in range(0, int(BANK["back"]) + 3, 2)],
+        "farBank": {**BANK, "shift": BANK_SHIFT, "spans": bank_spans(), "profileAcross": [[o, round(bank_h(o), 2)] for o in range(0, int(BANK["back"]) + 3, 2)],
                     "spansNote": "the stretches (metres to go) where the bank stands: it stops where the July Course runs through, inside the bend"},
         "boards": {"length": BOARD_LEN, "behindRail": BOARDS_BEHIND, "runs": BOARD_RUNS,
                    "fields": "x, z, turn (degrees anticlockwise from above; 0 = facing south, as ascot-planting.json), design",

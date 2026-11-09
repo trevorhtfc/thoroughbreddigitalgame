@@ -147,8 +147,28 @@ def grass_mat(name, hexc, lanes=False, beige=False):
     return m
 
 
-plane("lawn", -900, 1400, -500, 700, grass_mat("lawn", "#bcc98c", beige=True), -0.02)
-plane("track", -R.RUN_ON - 200, 1400, 0, W, grass_mat("turf", "#7fa952", lanes=True), 0.0)
+plane("lawn", -900, 2400, -500, 700, grass_mat("lawn", "#bcc98c", beige=True), -0.02)
+plane("track", -R.RUN_ON - 200, 2100, 0, W, grass_mat("turf", "#7fa952", lanes=True), 0.0)
+# the flat green up the course on the stand side, in strips of subtle shades (owner, 9 Nov evening)
+for k_, (z0_, z1_, col_) in enumerate(R.grass_strips()):
+    plane("strip", R.GRASS_STRIPS["x"][0], R.GRASS_STRIPS["x"][1], z0_, z1_, grass_mat("strip%d" % k_, col_), 0.01)
+# the Dyke (owner, 8 and 9 Nov): a 3 m grassy mound behind the far rail, stepping back behind the far-side festival
+def dyke():
+    xs = np.arange(R.BANK["from"], 2050.0, 10.0)
+    offs = list(np.linspace(0, R.BANK["back"] + 25, 32))
+    verts, faces = [], []
+    for x in xs:
+        sh = R.bank_shift(x)
+        for o in offs:
+            verts.append(B(x, -(o + sh), R.bank_h(o) - 0.03))
+    n = len(offs)
+    for i in range(len(xs) - 1):
+        for j in range(n - 1):
+            a_ = i * n + j; faces.append((a_, a_ + 1, a_ + n + 1, a_ + n))
+    me = bpy.data.meshes.new("dyke"); me.from_pydata(verts, [], faces)
+    for p_ in me.polygons: p_.use_smooth = True
+    me.materials.append(grass_mat("dyke", "#a6be7b")); ob = bpy.data.objects.new("dyke", me); scene.collection.objects.link(ob)
+dyke()
 
 # ---- the Ascot rail on both sides
 rail_m = clayify(flat("rail", "#f4f2ec", 0.5), 0)
@@ -197,6 +217,22 @@ for st in R.STAND_PIECES:
     for x0, x1, y0, y1, fz in pi["crowd"]:
         for _ in range(int((x1 - x0) * (y1 - y0) * 1.5)):
             people.append(to_c(rnd.uniform(x0, x1), rnd.uniform(y0, y1)) + (fz, turn))
+# ---- the paddock behind the Millennium (owner, 9 Nov evening): parade ring, pavilions, stables, on paving
+pa = R.PADDOCK_APRON
+for pk in R.PADDOCK:
+    ob = place(jsp[pk["piece"]], pk["at"][0], pk["at"][1], pk["turn"], name=pk["piece"]); soften(ob)
+for _ in range(int((pa["x"][1] - pa["x"][0]) * (pa["z"][1] - pa["z"][0]) * 0.02)):
+    people.append((rnd.uniform(*pa["x"]), rnd.uniform(*pa["z"]), 0.0, rnd.uniform(0, 360)))
+# ---- the advertising boards between the Dyke and the course, angled a little towards the stands (owner, 9 Nov)
+BC = {k_: flat("board_" + k_, v_, 0.8) for k_, v_ in R.BOARD_C.items()}
+for bx, bz, bt, des in [b_ for b_ in R.boards() if (R.KEEP or (lambda x, z: True))(b_[0], b_[1])]:
+    me = bpy.data.meshes.new("board"); bm_ = bmesh.new()
+    bmesh.ops.create_cube(bm_, size=1.0, matrix=Matrix.Translation((0, 0, 0.85)) @ Matrix.Diagonal((R.BOARD_LEN, 0.18, 1.1, 1)))
+    for lx in (-R.BOARD_LEN / 2 + 0.4, R.BOARD_LEN / 2 - 0.4):
+        bmesh.ops.create_cube(bm_, size=1.0, matrix=Matrix.Translation((lx, 0.15, 0.3)) @ Matrix.Diagonal((0.1, 0.1, 0.6, 1)))
+    bm_.to_mesh(me); bm_.free(); me.materials.append(BC[des])
+    ob = bpy.data.objects.new("board", me); ob.location = B(bx, bz, 0.0); ob.rotation_euler = (0, 0, math.radians(bt))
+    scene.collection.objects.link(ob)
 # ---- the ground tied together (owner, 8 Nov: "items plonked on the ground... embed everything together"): a paved
 # apron round every stand, running under its terrace and out 10 m in front, so the stands stand on one continuous
 # forecourt; a gravel walk along the rail; low clipped hedges edging the lawns with gaps to walk through, and small
@@ -269,11 +305,17 @@ bark = flat("bark", "#7a6650"); [o.data.materials.__setitem__(0, bark) for o in 
 T = []
 # (no small trees in the hedge gaps any more: owner, 9 Nov, no trees in front of the stands)
 for x in np.arange(-130, 760, 11):                                    # behind the stands, clear of their backs
-    back = 165.0 if x < 105 else (125.0 if x < 290 else 108.0)
+    back = 228.0 if x < 105 else (125.0 if x < 290 else 108.0)   # behind the paddock there (9 Nov)
     T.append((x + rnd.uniform(-3, 3), W + rnd.uniform(back, back + 16), rnd.randrange(5), rnd.uniform(1.9, 2.5)))
 for x in np.arange(-200, 900, 16):                                    # across the heath beyond the far rail
-    tx, tz = x + rnd.uniform(-5, 5), -rnd.uniform(70, 140)
+    tx = x + rnd.uniform(-5, 5); tz = -rnd.uniform(70, 140) - R.bank_shift(tx)      # beyond the Dyke
     if not R.in_festival(tx, tz, 6.0): T.append((tx, tz, rnd.randrange(5), rnd.uniform(1.4, 2.2)))
+for tb in R.TREE_BELTS:                                                # the owner's belts (9 Nov evening)
+    n_ = int((tb["x"][1] - tb["x"][0]) * (tb["z"][1] - tb["z"][0]) / tb["spacing"] ** 2)
+    for _ in range(n_):
+        tx, tz = rnd.uniform(*tb["x"]), rnd.uniform(*tb["z"])
+        if -6 < tz < W + 6: continue                                     # never on the track
+        T.append((tx, tz, rnd.randrange(5), rnd.uniform(*tb["scale"])))
 instances("crowns", crowns, [B(x, z, -0.2) for x, z, *_ in T], [k * 4 + rnd.randrange(4) for _, _, k, _ in T],
           [rnd.uniform(0, 6.28) for _ in T], [s for *_, s in T])
 instances("trunks", trunks, [B(x, z, -0.2) for x, z, *_ in T], [k for _, _, k, _ in T], [0.0] * len(T), [s for *_, s in T])
@@ -299,6 +341,9 @@ CAMS = {   # course (x, z, height) from and to, lens
     "festival": ((470.0, -3.0, 6.0), (470.0, 70.0, 6.0), 22),        # the stand-side festival up the course
     "aerial": ((110.0, -230.0, 190.0), (110.0, 70.0, 0.0), 26),      # high over the far side
     "plan": ((110.0, 75.0, 500.0), (110.0, 75.0001, 0.0), 0),        # straight down (orthographic), to mark up
+    "upcourse": ((-55.0, 14.0, 24.0), (700.0, 0.0, 0.0), 30),          # from the cranked stand, up the course
+    "farside": ((60.0, 75.0, 22.0), (60.0, -45.0, 0.0), 24),           # from the Millennium across to the far side
+    "paddock": ((40.0, 330.0, 90.0), (40.0, 140.0, 0.0), 28),          # over the paddock behind the stands
 }
 scene.render.engine = "CYCLES"; scene.cycles.device = "CPU"; scene.cycles.samples = SAMPLES; scene.cycles.use_denoising = True
 scene.cycles.max_bounces = 4
