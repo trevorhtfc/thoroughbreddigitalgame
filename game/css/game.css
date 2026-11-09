@@ -457,3 +457,7 @@ body.card-open .guide{display:none}
 body.sheet-open .tb-toast{bottom:calc(var(--foot-h,0px) + 12px)}
 .deal.in-sheet .deal-deck{bottom:20px;width:64px;height:88px;margin-left:-32px}
 .deal.in-sheet .deal-foot{min-height:100px}
+/* the Race Lab link at the foot of the cover (lab.html: test the race engine) */
+.menu-lab{align-self:flex-start;font-family:Jost,sans-serif;font-size:12px;font-weight:500;letter-spacing:.14em;text-transform:uppercase;color:rgba(246,241,230,.72);text-decoration:none;border-bottom:1px solid rgba(207,169,85,.55);padding-bottom:2px}
+.menu-lab:hover{color:#f6f1e6}
+.menu-lab span{text-transform:none;letter-spacing:.02em;opacity:.8}

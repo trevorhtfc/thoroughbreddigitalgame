@@ -282,3 +282,30 @@ way). Published as version 7 of the live game.
 - **Trackside boards** stand 0.8 m higher on longer legs, so "Thoroughbred" reads over the rail; the understorey
   behind them (the fill between the hedge and the trees) is no longer one flat green but a mix of dark greens round the
   hedge's own colour.
+
+## The Race Lab (9 Nov 2026): `lab.html`
+
+A bench for testing and fine-tuning the race engine, linked from the foot of the cover ("Race Lab · test the race
+engine") and at `/lab.html`. It runs the game's own engine (`assets/engine/engine.js`) on the game's Ascot course files.
+
+- **Set up**: any mix of the 11 Ascot courses and distances and the 5 goings; level races or handicaps (marks); a list of
+  horses with every racecard field (rating, mark, running style, flexibility, temperament, best trip, goings it likes,
+  jockey level, riding instruction, colours), filled up with random opponents to a field size and rating range if wanted;
+  random draw or as listed. "Horses from my game" brings in the stable from the saved game on that device.
+- **Compare**: the starred horses run every riding instruction, running style, temperament, flexibility, jockey level or a
+  range of ratings. Race r of every combination uses the same seed, opponents and draw, so settings are compared on
+  identical races.
+- **Engine numbers**: about 20 of `settings.json`'s numbers in plain words (ground, trip, form, pace levels and what makes
+  them, run-of-the-race boost, final sprint, kick point, missing the break, slipstream, traffic). Tuned for the lab only;
+  each test keeps its numbers and a short "rules version" code (a fingerprint of the settings it ran with).
+- **Results**: headline figures (top-rated wins, lowest-rated wins, pace mix, margins, time against par, missed breaks,
+  traffic), a break-down table (any two of 20 ways to split: horse, compared setting, course & distance, going, pace,
+  style, ridden as, ground points, trip steps, draw third, rating rank, form on the day …; win %, wins against a fair share,
+  top 3 %, average place, lengths behind, traffic), and every race with its full result and events or **Watch in 3D**.
+- **Records**: every test kept in the browser (IndexedDB `tb-race-lab`), side-by-side comparison, and spreadsheets (CSV,
+  one row per runner per race with every figure; or of every test at once). "Copy summary" gives a text summary to paste.
+
+Files: `lab.html`, `css/lab.css`, `js/lab.js` (the page), `js/lab-worker.js` (runs the races in the background, several at
+once). Races are rebuilt from the test's seed when needed, so only the figures are stored. The race view takes two new
+optional fields from whoever opens it: `handicap` and `settings` (the lab's tuned numbers), so a lab race watched in 3D is
+exactly the race tested (checked: the view's order matched the lab's for level and handicap races, tuned and not).

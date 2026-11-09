@@ -1593,7 +1593,8 @@ function chooseHorseDetail() {
 // heading off the course direction (rad)]. Time 0 is the off: the gates opening. The view only plays it back.
 // Until the game hands over real race cards, the field is a random one like the test bench's (assets/engine/field.js),
 // drawn from the race's seed: the same race, going, field size and seed always run the same race.
-const ENGINE_SETTINGS = await fetch("assets/engine/settings.json").then((r) => r.json());
+// The Race Lab (game/lab.html) may send its own tuned numbers with a test race, so the 3D race is the race it tested.
+const ENGINE_SETTINGS = (GP && GP.settings) || await fetch("assets/engine/settings.json").then((r) => r.json());
 const RUNNERS = THREE.MathUtils.clamp(Number(params.get("runners") || 12), 1, STALLS.maxRunners);
 const SEED = /^\d+$/.test(params.get("seed") || "") ? params.get("seed") : "3";
 const CARD = GP ? GP.runners : randomField(RUNNERS, SEED, ENGINE_SETTINGS);
@@ -1612,7 +1613,7 @@ if (!GP) {
   w.forEach((x, i) => { const p = (x / sum) * 1.2, d = 1 / p - 1; ODDS[i] = LADDER.reduce((a, b) => (Math.abs(Math.log(b[1] / d)) < Math.abs(Math.log(a[1] / d)) ? b : a))[0]; });
 }
 const { timeline, result: RESULT } = runRace(
-  { course: RACE.course, distance: RACE.distance, start: RACE.start, going: GOING, seed: SEED }, CARD,
+  { course: RACE.course, distance: RACE.distance, start: RACE.start, going: GOING, seed: SEED, handicap: !!(GP && GP.handicap) }, CARD,
   { course: COURSE, stalls: STALLS, standards: STANDARDS, settings: ENGINE_SETTINGS });
 window.__result = RESULT;                                            // checking aid: the result and the race's events
 // The whole race, then the finish again side-on in slow motion, then round again (see the director below).

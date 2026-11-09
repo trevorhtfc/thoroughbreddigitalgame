@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="en-GB">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Race Lab · Thoroughbred Ascot</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Jost:wght@400;500;600&family=Nunito:wght@400;500;600;700;800&family=Crimson+Pro:ital,wght@0,600;0,700;1,600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/lab.css">
+<!-- The Race Lab: test the race engine on any course, distance, going, field and tactics, and keep the figures.
+     It runs the game's own race engine (assets/engine/engine.js) on the game's course files; js/lab.js is the page,
+     js/lab-worker.js runs the races in the background. Every test is kept in this browser (IndexedDB) and can be
+     exported as a spreadsheet (CSV). -->
+
+<header class="top"><div class="top-in">
+  <h1>Race Lab<small>Thoroughbred Ascot · test the race engine</small></h1>
+  <nav class="tabs" role="tablist">
+    <button class="tab" role="tab" data-tab="setup" aria-selected="true">Set up</button>
+    <button class="tab" role="tab" data-tab="results" aria-selected="false">Results</button>
+    <button class="tab" role="tab" data-tab="history" aria-selected="false">Records</button>
+  </nav>
+  <a class="back" href="index.html">← Back to the game</a>
+</div></header>
+
+<main>
+  <section id="tab-setup"></section>
+  <section id="tab-results" hidden></section>
+  <section id="tab-history" hidden></section>
+</main>
+
+<div class="runbar" id="runbar"><div class="runbar-in">
+  <div class="sum" id="runSum">Loading the race engine…</div>
+  <button class="btn ghost" id="runOne" disabled>Run one race &amp; watch</button>
+  <button class="btn gold" id="runAll" disabled>Run the test</button>
+</div></div>
+
+<script type="module" src="js/lab.js"></script>
+</html>
