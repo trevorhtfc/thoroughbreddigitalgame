@@ -294,18 +294,18 @@
    "label": "Side-on replay",
    "kind": "fixed",
    "at": [
-    0,
-    4.5,
-    45.0
+    -6,
+    9.0,
+    -13
    ],
    "look": [
     0,
-    1.4,
-    15.12
+    6.0,
+    21.599999999999998
    ],
    "fov": [
-    26,
-    26
+    44,
+    44
    ],
    "note": "square on to the winning line from the stand side: the finish again in slow motion"
   },
@@ -386,6 +386,7 @@
   ]
  },
  "raceDirector": {
+  "schedule": "On the Rowley Mile (owner, 9 Nov late) path.tracking is set: the tracking car down the course (on the leg and round the bend, then along the straight), cutting to the drone for flicks.length metres every flicks.every metres run (not in the first flicks.from), the drone from path.drone3f metres out, the stand camera from path.grandstand (down the Dip) to the line; no head-on.",
   "_about": "One path (owner, 8 Nov: tracking car, head-on, the stand camera, the drone). Round races: the tracking car down the leg and round the bend until path.drone metres into the straight; then the drone along the stand side; the head-on long lens from beyond the line for the stretch path.headon ([from, to] metres to go, only when the race is longer than path.headonMin); the stand camera from path.grandstand to the line and beyond. After the finish: the side-on replay, slowed to replaySpeed, from replayFrom metres before the line to replayTo after it.",
   "path": {
    "drone": 120,
@@ -394,7 +395,14 @@
     600
    ],
    "headonMin": 1150,
-   "grandstand": 600
+   "grandstand": 330,
+   "tracking": true,
+   "drone3f": 604,
+   "flicks": {
+    "from": 260,
+    "every": 520,
+    "length": 110
+   }
   },
   "straight": {
    "grandstand": 600,
@@ -412,33 +420,34 @@
    "seconds": 9,
    "eye": [
     [
-     -42,
-     29,
+     -40,
+     14,
      67.0
     ],
     [
-     -36,
-     28,
+     -30,
+     13,
      64.0
     ]
    ],
    "at": [
     [
      480,
-     0,
+     2,
      3.6
     ],
     [
      490,
-     0,
+     2,
      7.2
     ]
    ],
-   "fov": 44,
+   "fov": 42,
    "list": [
     7,
     0.6
-   ]
+   ],
+   "cardAfter": 3.5
   },
   "postlude": {
    "label": "After the race",

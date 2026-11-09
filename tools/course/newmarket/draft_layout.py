@@ -43,13 +43,15 @@ BANK = {"foot": 12.0, "crest": [21.0, 30.0], "back": 42.0, "height": 5.0, "from"
 # line, and only on the far side from the cameras (the rule at Ascot), on the strip of heath between the far rail and
 # the foot of the bank. Each run: metres to go at its middle, and how many 6 m boards. The house designs from Ascot.
 BOARD_LEN, BOARDS_BEHIND = 6.0, 3.0
-# Owner, 9 Nov late: boards only between 1m2f and 4f out (none in front of the festival), in pairs, well spread out
-BOARD_RUNS = [(d, 2) for d in range(860, 2000, 85)]
+# Owner, 9 Nov late: boards only between 1m2f and 4f out (none in front of the festival), one at a time, spread out,
+# a little bigger (BOARD_SCALE) and turned clearly towards the stands
+BOARD_RUNS = [(d, 1) for d in range(860, 2000, 70)]
+BOARD_SCALE = 1.4
 BOARD_DESIGNS = ["green", "cream", "navy", "white"]
-BOARD_ANGLE = -20.0      # degrees off square to the track, turned to face a little towards the stands (owner, 9 Nov)
+BOARD_ANGLE = -35.0      # degrees off square to the track, turned to face towards the stands (owner, 9 Nov; more on his markup)
 # Tree tops beyond the bank (owner, 8 Nov): clumps and short tree lines on the heath behind it, far enough back that
 # from the tracking car only the crowns show over the crest. Seeded, so the same trees every time.
-TREES = {"from": 46.0, "to": 150.0, "start": -320.0, "end": 20 * F + 220.0, "spacing": 7.5, "seed": 8,
+TREES = {"from": 60.0, "to": 150.0, "start": -320.0, "end": 20 * F + 220.0, "spacing": 7.5, "seed": 8,
          "kinds": {"oak_a": 3, "oak_b": 3, "oak_c": 3, "wide_a": 3, "wide_b": 3, "poplar_a": 1}, "scale": [1.0, 1.6]}
 # The stand side's buildings (owner, 8 Nov, his aerial marked 1-3 and photos: reference/newmarket/): the Millennium
 # Grandstand from about the post up the course, the lower Rowley stand with its clock cupola beyond it, then the old
@@ -157,11 +159,13 @@ def grass_strips():
 
 
 # The crowd packed right up against the rail (owner, 9 Nov late): x from, to; z from, to; density per square metre
-LAWN_CROWD = {"z": [W_ + 8.0, W_ + 90.0], "density": 0.2}           # filling back to the stands (owner, 9 Nov late)
+# the lawn between the track and the stands (owner, 9 Nov late: "way more dense"): bands of z (from, to, density)
+LAWN_CROWD = {"z": [W_ + 8.0, W_ + 90.0], "density": 0.2, "bands": [[W_ + 8.0, W_ + 45.0, 0.45], [W_ + 45.0, W_ + 90.0, 0.3]]}
 FESTIVAL_DENSITY = {"stand": 0.2, "far": 0.3}                          # denser through the festival (9 Nov late)
 RAIL_CROWD = [
-    {"x": [-60.0, 290.0], "z": [W_ + 1.2, W_ + 8.0], "density": 0.6, "face": 180.0},   # the stand side, in front of the stands
-    {"x": [-120.0, 470.0], "z": [-7.0, -1.2], "density": 0.5, "face": 0.0},            # the far side, in front of the festival
+    # (the front row stands 1.9 m back from the rail line, clear of the rail and its posts: owner, 9 Nov late)
+    {"x": [-60.0, 290.0], "z": [W_ + 1.9, W_ + 8.0], "density": 0.6, "face": 180.0},   # the stand side, in front of the stands
+    {"x": [-120.0, 470.0], "z": [-7.0, -1.9], "density": 0.5, "face": 0.0},            # the far side, in front of the festival
 ]
 
 
@@ -300,7 +304,7 @@ def boards():
             x, z = behind(d, BOARDS_BEHIND)
             _, (tx, tz) = course_pt(d)
             turn = math.degrees(math.atan2(tz, -tx)) + BOARD_ANGLE   # the board's face turned to the track (0 = facing south), angled to the stands
-            out.append([round(x, 2), round(z, 2), round(turn, 1), BOARD_DESIGNS[k % len(BOARD_DESIGNS)]])
+            out.append([round(x, 2), round(z, 2), round(turn, 1), BOARD_DESIGNS[k % len(BOARD_DESIGNS)], BOARD_SCALE])
             k += 1
     return out
 
@@ -323,7 +327,7 @@ def trees(rail):
         return True
     d = T["start"]
     while d < T["end"]:
-        d += g.uniform(110, 280)                                 # the gap to the next clump (9 Nov late: sporadic)
+        d += g.uniform(180, 420)                                 # the gap to the next clump (9 Nov late: sporadic, then sparser)
         line = g.random() < 0.35                                 # a tree line along the heath, or a round clump
         n = int(g.integers(4, 9) if line else g.integers(2, 6))
         depth = g.uniform(T["from"] + 6, T["to"] - 10)

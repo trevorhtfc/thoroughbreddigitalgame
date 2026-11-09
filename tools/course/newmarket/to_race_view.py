@@ -174,9 +174,7 @@ class Scene:
         f = face(math.sin(a), math.cos(a))
         g = s.G(ox, oz)                                                # the building stands at its origin's height
         for x0, x1, y0, y1, fz in info["crowd"]:
-            n = int((x1 - x0) * sx * sc * (y1 - y0) * sc * dens + s.rnd.random())
-            for _ in range(n):
-                u, v = s.rnd.uniform(x0, x1) * sx * sc, s.rnd.uniform(y0, y1) * sc
+            for u, v in s.spots(x0 * sx * sc, x1 * sx * sc, y0 * sc, y1 * sc, dens):
                 s.person(ox + u * ca - v * sa, fz * sc, oz - (u * sa + v * ca), f, g)
 
     def footprint(s, info, ox, oz, turn, sx=1.0, sc=1.0, pad=0.5):
@@ -192,9 +190,17 @@ class Scene:
             if inside: return True
         return False
 
+    def spots(s, x0, x1, z0, z1, density):
+        """Points spread over a rectangle at 'density' a square metre, one in each cell of a grid, jittered: never two
+        people in one place (owner, 9 Nov late: overlapping figures flickered against each other)."""
+        if density <= 0: return []
+        c = 1.0 / math.sqrt(density); nx, nz = max(1, int((x1 - x0) / c)), max(1, int((z1 - z0) / c))
+        cx, cz = (x1 - x0) / nx, (z1 - z0) / nz
+        return [(x0 + (i + 0.5 + s.rnd.uniform(-0.32, 0.32)) * cx, z0 + (j + 0.5 + s.rnd.uniform(-0.32, 0.32)) * cz)
+                for i in range(nx) for j in range(nz)]
+
     def fill(s, x0, x1, z0, z1, density, f=None):
-        for _ in range(int((x1 - x0) * (z1 - z0) * density)):
-            x, z = s.rnd.uniform(x0, x1), s.rnd.uniform(z0, z1)
+        for x, z in s.spots(x0, x1, z0, z1, density):
             if not s.blocked(x, z):
                 s.person(x, 0.0, z, f if f is not None else round(s.rnd.uniform(-3.14, 3.14), 2))
 
@@ -274,7 +280,8 @@ def rowley_scenery(course):
     # the lawns in front of the stands, down to the rail walk: packed along the rail, thinner on the lawns behind
     for rc in R.RAIL_CROWD:                                         # packed right up against the rail (owner, 9 Nov late)
         S.fill(rc["x"][0], rc["x"][1], rc["z"][0], rc["z"][1], rc["density"], face(0, -1) if rc["face"] == 180.0 else face(0, 1))
-    S.fill(-60, 290, R.LAWN_CROWD["z"][0], R.LAWN_CROWD["z"][1], R.LAWN_CROWD["density"], face(0, -1))   # back to the stands
+    for z0, z1, dn in R.LAWN_CROWD["bands"]:                       # back to the stands, densest by the rail
+        S.fill(-60, 290, z0, z1, dn, face(0, -1))
     # trees: the course's own (tops beyond the far bank), small ones in the hedge gaps, a backdrop behind the stands
     # (a 7th field on a tree: metres up or down from the ground: the heath's trees beyond the Dyke stand sunk, so from the
     # stands only their tops show over it; the scrub sits up on the Dyke's crest. Owner, 9 Nov late.)
@@ -306,17 +313,9 @@ def rowley_scenery(course):
     # (from just behind the bank's crest, so the stand camera's long lens, looking down across the track, sees their tops
     # rising over it: owner, "a gentle bank with tree tops beyond")
     # (owner, 9 Nov late: "lose some density of trees... sporadic behind the dyke and pretty thin lines elsewhere")
-    scatter(-260, 900, -128, -50, 200, 18.0, [1.5, 2.3], dy=SINK)   # tree tops beyond the Dyke, opposite the stands: sporadic
-    scatter(900, 2000, -125, -50, 110, 22.0, [1.4, 2.2], dy=SINK)   # and on up the straight, sparser still
-    # scrub along the Dyke's crest (owner, 9 Nov late): small round bushes in a near-continuous band, sat on the crest
-    fbk = course["farBank"]
-    for d in [k * 4.2 for k in range(int(fbk["from"] / 4.2), int(2040 / 4.2))]:     # (kept light for the race view)
-        if not any(a <= d <= b for a, b in fbk["spans"]): continue
-        for o in (fbk["crest"][0] + 2.0, fbk["crest"][1] - 2.0):
-            if rnd.random() < 0.8:
-                oo = o + rnd.uniform(-1.5, 1.5); sc_ = rnd.uniform(0.45, 0.7)
-                x, z = R.behind(d + rnd.uniform(-1.5, 1.5), oo + R.bank_shift(d))
-                trees.append([r2(x), r2(z), rnd.choice(["wide_a", "wide_b", "oak_a"]), r2(sc_), rnd.randrange(360), 2, r2(R.bank_h(oo) - 3.2 * sc_)])
+    scatter(-260, 900, -140, -70, 70, 26.0, [1.5, 2.3], dy=SINK)    # tree tops beyond the Dyke, opposite the stands: sporadic
+    scatter(900, 2000, -140, -70, 40, 30.0, [1.4, 2.2], dy=SINK)    # and on up the straight, sparser still
+    # (the crest's scrub is a band of its own: see the banks below)
     scatter(2060, 2600, -320, 280, 260, 15.0, [1.8, 2.5], margin=45.0)   # across the top of the straight, round the bend
                                                                  # (well back from the leg: the tracking car and the start camera)
     scatter(700, 2060, W + 70, W + 170, 130, 18.0, [1.6, 2.4])   # beyond the stand-side festival, up the straight
@@ -330,6 +329,20 @@ def rowley_scenery(course):
     # opposite the stands the Dyke steps back behind the far-side festival (owner, 9 Nov evening): offsets grow by
     # bank_shift(d), the ground flat in front of it
     banks = [{"rows": bank_rows(R, fb["spans"], lambda d: [[0.0, 0.0]] + [[o + R.bank_shift(d), h] for o, h in prof[1:]], -1)}]
+    # the scrub along the Dyke's crest (owner, 9 Nov late: the bushes were heavy in places with odd gaps between): one
+    # continuous, softly lumpy band of low scrub, its height rising and falling along the course, in its own darker greens
+    c0, c1 = fb["crest"][0] - 1.0, fb["crest"][1] + 1.0
+    def scrub(d):
+        lump = 1.15 + 0.35 * math.sin(d * 0.21) + 0.25 * math.sin(d * 0.077 + 1.3) + 0.18 * math.sin(d * 0.53 + 0.4)
+        out = []
+        for k in range(9):
+            t = k / 8; o = c0 + (c1 - c0) * t
+            cap = math.sin(math.pi * t) ** 0.6                         # a rounded top across the band
+            out.append([o + R.bank_shift(d), round(R.bank_h(o) + (lump * cap if 0 < k < 8 else -0.05), 2)])
+        return out
+    sp = [[max(a_, -250.0), min(b_, 2050.0)] for a_, b_ in fb["spans"] if b_ > -250 and a_ < 2050]
+    banks.append({"rows": bank_rows(R, sp, scrub, -1, step=2.5), "ramp": [[h, lin(c)] for h, c in
+                  ((0.0, "#62804a"), (4.0, "#55753f"), (5.6, "#4c6b39"), (6.8, "#5b7a42"))], "mottle": 0.14})
     return S, trees, banks
 
 
@@ -447,7 +460,7 @@ def july_scenery(course):
 
 
 # ------------------------------------------------------------------------------------------------ cameras and races
-def view_file(cid, L, course, stalls, stands_side, cams, prelude, postlude):
+def view_file(cid, L, course, stalls, stands_side, cams, prelude, postlude, director=None):
     W = L.TRACK_W
     races = {"_about": "The races the view can show, one for every start in %s-stalls.json. course: 'straight' (no bend) or 'round' "
                        "(down the leg and round the bend into the straight); distance in metres; start: the key in the stalls file." % cid}
@@ -473,12 +486,16 @@ def view_file(cid, L, course, stalls, stands_side, cams, prelude, postlude):
         "cameraMenu": {"straight": [["drone_straight", "Drone"], ["track_straight", "Tracking"], ["headon", "Head-on"], ["grandstand", "Stand"]],
                        "round": [["track_loop", "Tracking"], ["drone_straight", "Drone"], ["headon", "Head-on"], ["grandstand", "Stand"]]},
         "raceDirector": {
+            "schedule": "On the Rowley Mile (owner, 9 Nov late) path.tracking is set: the tracking car down the course (on the leg "
+                        "and round the bend, then along the straight), cutting to the drone for flicks.length metres every "
+                        "flicks.every metres run (not in the first flicks.from), the drone from path.drone3f metres out, the stand "
+                        "camera from path.grandstand (down the Dip) to the line; no head-on.",
             "_about": "One path (owner, 8 Nov: tracking car, head-on, the stand camera, the drone). Round races: the tracking car "
                       "down the leg and round the bend until path.drone metres into the straight; then the drone along the stand "
                       "side; the head-on long lens from beyond the line for the stretch path.headon ([from, to] metres to go, only "
                       "when the race is longer than path.headonMin); the stand camera from path.grandstand to the line and beyond. "
                       "After the finish: the side-on replay, slowed to replaySpeed, from replayFrom metres before the line to replayTo after it.",
-            "path": {"drone": 120, "headon": [1000, 600], "headonMin": 1150, "grandstand": 600},
+            "path": dict({"drone": 120, "headon": [1000, 600], "headonMin": 1150, "grandstand": 600}, **(director or {})),
             "straight": {"grandstand": 600, "camera": "drone_straight"},
             "afterFinish": 4, "replayFrom": 30, "replayTo": 14, "replaySpeed": 0.3},
         "setPieces": {"_about": "Before the off and after the race: eye and at go from the first to the second over 'seconds'.",
@@ -564,14 +581,20 @@ def main():
         c["straightMile"] = {"length": L.STRAIGHT, "furlongPoles": poles}
         if side > 0:
             S, trees, banks = rowley_scenery(course)
-            cams = cameras(W, side, [0, 14, W + 28], ([0, 4.5, W + 9], [0, 1.4, W * 0.42]), -L.RUN_ON + 12, [-110, 49.5, -35.2])
+            # the side-on replay (owner, 9 Nov late): from the festival side at the line, looking back across at the stands
+            cams = cameras(W, side, [0, 14, W + 28], ([-6, 9.0, -13], [0, 6.0, W * 0.6]), -L.RUN_ON + 12, [-110, 49.5, -35.2])
+            cams["sideon"]["fov"] = [44, 44]
+            # the director (owner, 9 Nov late): mainly the tracking car, flicks to the drone early on, the drone from 3f, the
+            # stand camera down the Dip to the line
+            director = {"tracking": True, "drone3f": round(3 * F), "grandstand": 330, "flicks": {"from": 260, "every": 520, "length": 110}}
             # the racecard / overview (owner, 9 Nov, with a photo from the stands): high at the cranked stand's rail end,
             # looking up the course, the Millennium's canopies on the right, a slow drift
-            prelude = {"label": "The runners", "seconds": 9, "eye": [[-42, 29, W + 31], [-36, 28, W + 28]], "at": [[480, 0, W * 0.1], [490, 0, W * 0.2]], "fov": 44, "list": [7, 0.6]}
+            prelude = {"label": "The runners", "seconds": 9, "eye": [[-40, 14, W + 31], [-30, 13, W + 28]], "at": [[480, 2, W * 0.1], [490, 2, W * 0.2]], "fov": 42, "list": [7, 0.6], "cardAfter": 3.5}
             postlude = {"label": "After the race", "seconds": 8, "eye": [[20, 3, W - 8], [60, 45, -60]], "at": [[0, 8, W + 60], [-10, 6, W + 70]], "fov": 42}
             models = ["rowley_stands", "site_props", "finish_line"]
         else:
             S, trees, banks = july_scenery(course)
+            director = None
             # the stand camera on the front of the judge's box roof (its own spectators kept clear: see july_scenery)
             cams = cameras(W, side, STAND_CAM_JULY, ([0, 4.5, -9], [0, 1.4, W * 0.58]), -L.RUN_ON + 40, [-110, 49.5, 35.2], drone=(10, 13))
             prelude = {"label": "The runners", "seconds": 9, "eye": [[200, 62, W + 190], [90, 58, W + 190]], "at": [[100, 8, -40], [20, 8, -40]], "fov": 40, "list": [7, 0.6]}
@@ -581,7 +604,7 @@ def main():
         write(f"{cid}.json", c)
         write(f"{cid}-stalls.json", stalls, 1)
         (OUT / f"{cid}-standards.json").write_text((REPO / f"courses/{src}-standards.json").read_text()); print("wrote", f"{cid}-standards.json")
-        write(f"{cid}-view.json", view_file(cid, L, course, stalls, side, cams, prelude, postlude), 1)
+        write(f"{cid}-view.json", view_file(cid, L, course, stalls, side, cams, prelude, postlude, director), 1)
         write(f"{cid}-scenery.json", scenery_file(S, trees, boards, banks, models, finish, poles))
         print("  ", len(S.pieces), "pieces,", len(S.people) // 4, "people,", len(trees), "trees,", len(boards), "boards")
 
