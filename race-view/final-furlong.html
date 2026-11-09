@@ -612,7 +612,8 @@ THREE.ShaderChunk.fog_fragment = `#ifdef USE_FOG
   const rc = (() => { let s = 77; return () => ((s = (s * 1664525 + 1013904223) >>> 0) / 4294967296); })();
   const cloudMat = new THREE.MeshLambertMaterial({ color: "#f6f0ea", emissive: new THREE.Color("#c8c4d4").multiplyScalar(0.3), fog: false });
   scene.userData.cloudMat = cloudMat;
-  for (let i = 0; i < 16; i++) {
+  const RING = LIGHT && LIGHT.clouds === "ring";            // the model look: soft clouds all round, not only over the far side
+  for (let i = 0; i < (RING ? 30 : 16); i++) {
     const W = 110 + rc() * 130, parts = [];
     for (let k = 0, n = 5 + Math.floor(rc() * 4); k < n; k++) {
       const r = W * (0.18 + rc() * 0.14);
@@ -624,8 +625,12 @@ THREE.ShaderChunk.fog_fragment = `#ifdef USE_FOG
     g.computeVertexNormals();
     const c = new THREE.Mesh(g, cloudMat);
     c.renderOrder = 1001;     // after the sky (drawn last): the farthest clouds lie beyond the sky sphere's 2,500 m
-    c.position.set(-1400 + rc() * 2800, 260 + rc() * 360, -(VIEW.homeStraight.standSide || 1) * (1700 + rc() * 900));   // over the far side
+    if (RING) {                                             // smaller, lower, round every side of the course
+      const a = rc() * Math.PI * 2, d = 1700 + rc() * 800;
+      c.scale.multiplyScalar(1.6); c.position.set(Math.cos(a) * d + 300, 190 + rc() * 330, Math.sin(a) * d);
+    } else c.position.set(-1400 + rc() * 2800, 260 + rc() * 360, -(VIEW.homeStraight.standSide || 1) * (1700 + rc() * 900));   // over the far side
     c.scale.z = 0.6;
+    if (RING) { c.scale.y *= 0.7; c.lookAt(300, c.position.y, 0); }      // broadside to the course, a little flatter
     scene.add(c);
   }
 }

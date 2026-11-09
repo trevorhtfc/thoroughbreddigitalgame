@@ -553,22 +553,22 @@
   "hideAfter": 350
  },
  "light": {
-  "_about": "The model look (owner's AI concept stills, 9 Nov 2026), matching the bake (tools/blender/bake_static_world.py LOOK=model) and the Blender study (stand_clean_study.py variant model, model_look_post.py): a bigger, gentler sun higher in the sky, a strong lilac-blue sky fill, a sky cream-peach at the horizon, lilac, then soft cornflower; pale lilac haze; a little brighter; lavender in the shadows; the crowd in navy, camel, mustard, cream, rust and teal with grey morning dress. sky: horizon, low and upper colours (linear); sunDir: from the field to the sun (course axes); hemi: sky colour, ground colour, strength; grade: saturation, sepia, hue (degrees), brightness, contrast (as the storybook grade); lift: tinted shadows. ?light=before shows the light before.",
+  "_about": "The model look (owner's AI concept stills, 9 Nov 2026), matching the bake (tools/blender/bake_static_world.py LOOK=model) and the Blender study (stand_clean_study.py variant model, model_look_post.py): a bigger, gentler sun higher in the sky, a strong lilac-blue sky fill, a sky cream-peach at the horizon, lilac, then soft cornflower; pale lilac haze; a little brighter; lavender in the shadows; the crowd in navy, camel, mustard, cream, rust and teal with grey morning dress. sky: horizon, low and upper colours (linear); sunDir: from the field to the sun (course axes); hemi: sky colour, ground colour, strength; grade: saturation, sepia, hue (degrees), brightness, contrast (as the storybook grade); lift: tinted shadows. clouds: \"ring\" puts soft clouds all round the sky. ?light=before shows the light before.",
   "sky": [
    [
     1.0,
-    0.86,
-    0.76
+    0.85,
+    0.74
    ],
    [
-    0.8,
-    0.8,
+    0.44,
+    0.56,
     0.95
    ],
    [
-    0.42,
-    0.56,
-    0.9
+    0.26,
+    0.4,
+    0.88
    ]
   ],
   "sunColour": [
@@ -592,13 +592,13 @@
    0.85,
    0.9
   ],
-  "exposure": 0.18,
+  "exposure": 0.26,
   "grade": [
-   0.97,
-   0.04,
+   1.0,
+   0.03,
    -4,
-   1.04,
-   0.95
+   1.03,
+   0.96
   ],
   "lift": [
    0.012,
@@ -650,6 +650,7 @@
     "#b4b2ac",
     "#2a2b30"
    ]
-  }
+  },
+  "clouds": "ring"
  }
 }
