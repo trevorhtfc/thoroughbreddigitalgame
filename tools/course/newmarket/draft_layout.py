@@ -34,7 +34,8 @@ PROFILE = [(-RUN_ON, 0.6), (0, 0.0), (201, -3.0), (402, 0.6), (520, 1.0), (700, 
 # way round", closer to the track than the real Devil's Dyke. It follows the inside (far) rail from behind the post,
 # along the straight, round the bend and up the Cesarewitch leg. Across it, in metres behind the inside rail: flat
 # heath to 'foot', a soft rise to the crest ('crest', a rounded top), and down again to 'back'. Height in metres.
-BANK = {"foot": 12.0, "crest": [28.0, 34.0], "back": 50.0, "height": 3.0, "from": -260.0, "to": 20 * F + 120.0,
+# (9 Nov late: a steeper face so the Dyke reads, and 5 m high so only tree tops show over it)
+BANK = {"foot": 12.0, "crest": [21.0, 30.0], "back": 42.0, "height": 5.0, "from": -260.0, "to": 20 * F + 120.0,
         "note": "Owner, 8 Nov: a gentle grassy bank behind the far rail the whole way round, closer than real life "
                 "(the Devil's Dyke, interpretive). Offsets are metres behind the inside rail; it sits on the ground's "
                 "own height (the Dip runs through it). Low scrub along the crest; tree tops show beyond it."}
@@ -42,13 +43,15 @@ BANK = {"foot": 12.0, "crest": [28.0, 34.0], "back": 50.0, "height": 3.0, "from"
 # line, and only on the far side from the cameras (the rule at Ascot), on the strip of heath between the far rail and
 # the foot of the bank. Each run: metres to go at its middle, and how many 6 m boards. The house designs from Ascot.
 BOARD_LEN, BOARDS_BEHIND = 6.0, 3.0
-BOARD_RUNS = [(40, 6), (215, 4), (410, 5), (640, 3), (900, 4), (1180, 3), (1470, 4), (1780, 3), (2110, 5),
-              (2520, 3), (2950, 4), (3450, 3), (4000, 3), (4500, 4)]
+# Owner, 9 Nov late: boards only between 1m2f and 4f out (none in front of the festival), one at a time, spread out,
+# a little bigger (BOARD_SCALE) and turned clearly towards the stands
+BOARD_RUNS = [(d, 1) for d in range(860, 2000, 70)]
+BOARD_SCALE = 1.4
 BOARD_DESIGNS = ["green", "cream", "navy", "white"]
-BOARD_ANGLE = -20.0      # degrees off square to the track, turned to face a little towards the stands (owner, 9 Nov)
+BOARD_ANGLE = -35.0      # degrees off square to the track, turned to face towards the stands (owner, 9 Nov; more on his markup)
 # Tree tops beyond the bank (owner, 8 Nov): clumps and short tree lines on the heath behind it, far enough back that
 # from the tracking car only the crowns show over the crest. Seeded, so the same trees every time.
-TREES = {"from": 62.0, "to": 150.0, "start": -320.0, "end": 20 * F + 220.0, "spacing": 7.5, "seed": 8,
+TREES = {"from": 60.0, "to": 150.0, "start": -320.0, "end": 20 * F + 220.0, "spacing": 7.5, "seed": 8,
          "kinds": {"oak_a": 3, "oak_b": 3, "oak_c": 3, "wide_a": 3, "wide_b": 3, "poplar_a": 1}, "scale": [1.0, 1.6]}
 # The stand side's buildings (owner, 8 Nov, his aerial marked 1-3 and photos: reference/newmarket/): the Millennium
 # Grandstand from about the post up the course, the lower Rowley stand with its clock cupola beyond it, then the old
@@ -91,11 +94,11 @@ FESTIVAL = {"x": [290.0, 3.5 * F], "z": [TRACK_W + 10, TRACK_W + 60],
 # side, negative = beyond the far rail), side "stand" or "far" (which way the pieces face: towards the track).
 W_ = TRACK_W
 FESTIVAL_ZONES = [
-    {"name": "up the course", "x": FESTIVAL["x"], "z": FESTIVAL["z"], "side": "stand",
-     "balloons": {"x": [296.0, 382.0], "every": 9.5, "dz": 6.0}},                            # a row of balloon pods
+    {"name": "up the course", "x": FESTIVAL["x"], "z": FESTIVAL["z"], "side": "stand"},
     {"name": "past the post", "x": [-175.0, -88.0], "z": [W_ + 10, W_ + 60], "side": "stand"},
-    {"name": "far side", "x": [-175.0, 330.0], "z": [-48.0, -8.0], "side": "far",
-     "dotted": {"piece": "stand_covered", "x": [12.0, 200.0], "every": 31.0, "dz": 3.0}},   # the last furlong
+    {"name": "far side", "x": [-175.0, 470.0], "z": [-48.0, -8.0], "side": "far",
+     "dotted": {"piece": "stand_covered", "x": [12.0, 200.0], "every": 31.0, "dz": 3.0},    # the last furlong
+     "balloons": {"x": [362.0, 448.0], "every": 9.5, "dz": 7.0}},                           # balloon pods at about 2f
     {"name": "between the Millennium and the old stand", "x": [94.0, 121.0], "z": [W_ + 58, W_ + 108], "side": "stand"},
     {"name": "behind the old stand", "x": [124.0, 290.0], "z": [W_ + 99, W_ + 121], "side": "stand"},
 ]
@@ -124,6 +127,26 @@ GRASS_STRIPS = {"x": [3.5 * F + 12.0, 2040.0], "z": [W_ + 8.0, W_ + 260.0], "wid
                 "greens": ["#a9c07f", "#9fb875", "#b2c78b", "#a3bb7a"]}
 
 
+def belt_trees(rnd):
+    """The belts as thin, broken lines (owner, 9 Nov late: "thin lines elsewhere"): one row down the middle of each
+    belt along its longer side, a tree every ~13 m with gaps. [(x, z, scale), ...]"""
+    out = []
+    for tb in TREE_BELTS:
+        (x0, x1), (z0, z1) = tb["x"], tb["z"]
+        along_x = (x1 - x0) >= (z1 - z0)
+        a0, a1 = (x0, x1) if along_x else (z0, z1)
+        mid = (z0 + z1) / 2 if along_x else (x0 + x1) / 2
+        a = a0 + rnd.uniform(0, 6)
+        while a < a1:
+            if rnd.random() > 0.25:
+                j = rnd.uniform(-2.5, 2.5)
+                x, z = (a, mid + j) if along_x else (mid + j, a)
+                if not (-6 < z < TRACK_W + 6):
+                    out.append((x, z, rnd.uniform(*tb["scale"])))
+            a += rnd.uniform(11, 16)
+    return out
+
+
 def grass_strips():
     """Long strips parallel to the track, [z0, z1, colour], seeded."""
     import random as _r
@@ -133,6 +156,17 @@ def grass_strips():
         out.append([round(z, 1), round(min(z + w, GRASS_STRIPS["z"][1]), 1), GRASS_STRIPS["greens"][k % 4]])
         z += w; k += 1 + g.randrange(2)
     return out
+
+
+# The crowd packed right up against the rail (owner, 9 Nov late): x from, to; z from, to; density per square metre
+# the lawn between the track and the stands (owner, 9 Nov late: "way more dense"): bands of z (from, to, density)
+LAWN_CROWD = {"z": [W_ + 8.0, W_ + 90.0], "density": 0.2, "bands": [[W_ + 8.0, W_ + 45.0, 0.8], [W_ + 45.0, W_ + 90.0, 0.55]]}
+FESTIVAL_DENSITY = {"stand": 0.35, "far": 0.5}                          # denser through the festival (9 Nov late)
+RAIL_CROWD = [
+    # (the front row stands 1.9 m back from the rail line, clear of the rail and its posts: owner, 9 Nov late)
+    {"x": [-60.0, 290.0], "z": [W_ + 1.9, W_ + 8.0], "density": 1.0, "face": 180.0},   # the stand side, in front of the stands
+    {"x": [-120.0, 470.0], "z": [-7.0, -1.9], "density": 0.85, "face": 0.0},            # the far side, in front of the festival
+]
 
 
 def in_festival(x, z, margin=0.0):
@@ -158,12 +192,13 @@ def festival_pieces(rnd):
             bl = fz["balloons"]; bx = bl["x"][0]
             while bx <= bl["x"][1]:
                 out.append(("balloon_pod", bx, front + sgn * bl["dz"], turn)); bx += bl["every"]
-            x = bl["x"][1] + 14.0
         if "dotted" in fz:                                         # pieces dotted along the front of the zone
             dt = fz["dotted"]; dx = dt["x"][0]
             while dx <= dt["x"][1]:
                 out.append((dt["piece"], dx, front + sgn * dt["dz"], turn)); dx += dt["every"]
         while x < x1 - 6.0:
+            if "balloons" in fz and fz["balloons"]["x"][0] - 14 < x < fz["balloons"]["x"][1] + 14:
+                x += 12.0; continue                                # the balloon row has this stretch to itself
             for dz, kinds in (((12.0 if "dotted" in fz else 8.0), small), (24.0, mid), (42.0, big)):
                 if dz + 6.0 > depth:
                     break
@@ -183,7 +218,7 @@ BANK_SKIP = []          # [[metres to go from, to], ...]
 # Owner, 9 Nov evening: the Dyke (a mound about 3 m high) stays all the way along, but opposite the stands it steps
 # back behind the far-side festival, which comes close to the course: offsets there grow by "by" metres, easing in and
 # out over "ramp" metres either side.
-BANK_SHIFT = {"from": -180.0, "to": 335.0, "by": 40.0, "ramp": 90.0}
+BANK_SHIFT = {"from": -180.0, "to": 475.0, "by": 40.0, "ramp": 90.0}
 
 
 def bank_shift(d):
@@ -269,7 +304,7 @@ def boards():
             x, z = behind(d, BOARDS_BEHIND)
             _, (tx, tz) = course_pt(d)
             turn = math.degrees(math.atan2(tz, -tx)) + BOARD_ANGLE   # the board's face turned to the track (0 = facing south), angled to the stands
-            out.append([round(x, 2), round(z, 2), round(turn, 1), BOARD_DESIGNS[k % len(BOARD_DESIGNS)]])
+            out.append([round(x, 2), round(z, 2), round(turn, 1), BOARD_DESIGNS[k % len(BOARD_DESIGNS)], BOARD_SCALE])
             k += 1
     return out
 
@@ -292,9 +327,9 @@ def trees(rail):
         return True
     d = T["start"]
     while d < T["end"]:
-        d += g.uniform(45, 150)                                  # the gap to the next clump
+        d += g.uniform(180, 420)                                 # the gap to the next clump (9 Nov late: sporadic, then sparser)
         line = g.random() < 0.35                                 # a tree line along the heath, or a round clump
-        n = int(g.integers(6, 16) if line else g.integers(3, 10))
+        n = int(g.integers(4, 9) if line else g.integers(2, 6))
         depth = g.uniform(T["from"] + 6, T["to"] - 10)
         for _ in range(n):
             dd = d + (g.uniform(-45, 45) if line else g.normal(0, 14))

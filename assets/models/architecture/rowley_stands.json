@@ -5,7 +5,7 @@
 "cream": "#efe3cd",
 "glass": "#3f3a4d",
 "trim": "#f7efe2",
-"seat": "#9dbfa6",
+"seat": "#e4d9c4",
 "concrete": "#e6d9c4",
 "fascia": "#e8b29b",
 "mast": "#f3f0ea",
@@ -343,9 +343,16 @@
 24.1,
 25.9,
 17.56
+],
+[
+-55.4,
+55.4,
+15.8,
+18.2,
+20.85
 ]
 ],
-"triangles": 36436
+"triangles": 44324
 },
 "rowley_stand": {
 "width": 108.5,

@@ -152,7 +152,27 @@ plane("track", -R.RUN_ON - 200, 2100, 0, W, grass_mat("turf", "#7fa952", lanes=T
 # the flat green up the course on the stand side, in strips of subtle shades (owner, 9 Nov evening)
 for k_, (z0_, z1_, col_) in enumerate(R.grass_strips()):
     plane("strip", R.GRASS_STRIPS["x"][0], R.GRASS_STRIPS["x"][1], z0_, z1_, grass_mat("strip%d" % k_, col_), 0.01)
-# the Dyke (owner, 8 and 9 Nov): a 3 m grassy mound behind the far rail, stepping back behind the far-side festival
+# the Dyke's colour (owner, 9 Nov late: "still the same colour... needs further depth"): lush green at the foot, a
+# darker face, rough olive and dry tawny grass on the crest, broken up by mottling and a rough surface
+def dyke_mat():
+    m = grass_mat("dyke", "#ffffff"); nt = m.node_tree; N, L = nt.nodes, nt.links
+    tc = N.new("ShaderNodeTexCoord"); sep = N.new("ShaderNodeSeparateXYZ"); L.new(tc.outputs["Object"], sep.inputs[0])
+    wob = N.new("ShaderNodeTexNoise"); wob.inputs["Scale"].default_value = 0.35; wob.inputs["Detail"].default_value = 4
+    L.new(tc.outputs["Object"], wob.inputs["Vector"])
+    wz = N.new("ShaderNodeMapRange"); L.new(wob.outputs["Fac"], wz.inputs["Value"]); wz.inputs["To Min"].default_value = -0.9; wz.inputs["To Max"].default_value = 0.9
+    hz = N.new("ShaderNodeMath"); hz.operation = "ADD"; L.new(sep.outputs["Z"], hz.inputs[0]); L.new(wz.outputs["Result"], hz.inputs[1])
+    hr = N.new("ShaderNodeMapRange"); L.new(hz.outputs[0], hr.inputs["Value"]); hr.inputs["From Min"].default_value = 0.0; hr.inputs["From Max"].default_value = R.BANK["height"]
+    ramp = N.new("ShaderNodeValToRGB"); L.new(hr.outputs["Result"], ramp.inputs["Fac"]); el = ramp.color_ramp.elements
+    el[0].position, el[0].color = 0.0, srgb("#7d9a55"); el[1].position, el[1].color = 1.0, srgb("#b5a66c")
+    for pos, hx in ((0.3, "#5f7a43"), (0.62, "#7b8a4c"), (0.85, "#a39a60")):
+        e = el.new(pos); e.color = srgb(hx)
+    b = N["Principled BSDF"]; mix = b.inputs["Base Color"].links[0].from_node      # grass_mat's multiply by its mottling
+    L.new(ramp.outputs["Color"], mix.inputs[6] if not mix.inputs[6].is_linked else mix.inputs[7])
+    tex = N.new("ShaderNodeTexNoise"); tex.inputs["Scale"].default_value = 3.5; tex.inputs["Detail"].default_value = 8
+    L.new(tc.outputs["Object"], tex.inputs["Vector"])
+    bp = N.new("ShaderNodeBump"); bp.inputs["Strength"].default_value = 0.6; L.new(tex.outputs["Fac"], bp.inputs["Height"]); L.new(bp.outputs["Normal"], b.inputs["Normal"])
+    return m
+# the Dyke (owner, 8 and 9 Nov): a 5 m grassy mound behind the far rail, stepping back behind the far-side festival
 def dyke():
     xs = np.arange(R.BANK["from"], 2050.0, 10.0)
     offs = list(np.linspace(0, R.BANK["back"] + 25, 32))
@@ -167,8 +187,15 @@ def dyke():
             a_ = i * n + j; faces.append((a_, a_ + 1, a_ + n + 1, a_ + n))
     me = bpy.data.meshes.new("dyke"); me.from_pydata(verts, [], faces)
     for p_ in me.polygons: p_.use_smooth = True
-    me.materials.append(grass_mat("dyke", "#a6be7b")); ob = bpy.data.objects.new("dyke", me); scene.collection.objects.link(ob)
+    me.materials.append(dyke_mat()); ob = bpy.data.objects.new("dyke", me); scene.collection.objects.link(ob)
 dyke()
+# scrub along the Dyke's crest (owner, 9 Nov late: it was too smooth and green to read): low dark bushes in clumps
+SCRUB, srnd = [], random.Random(9)
+for x in np.arange(R.BANK["from"] + 20, 2040.0, 3.2):                  # a dense, continuous band along the crest
+    for o in (R.BANK["crest"][0] + 1.0, (R.BANK["crest"][0] + R.BANK["crest"][1]) / 2, R.BANK["crest"][1] - 1.0):
+        if srnd.random() < 0.8:
+            oo = o + srnd.uniform(-1.5, 1.5)
+            SCRUB.append((x + srnd.uniform(-1.6, 1.6), -(oo + R.bank_shift(x)), R.bank_h(oo) - 1.0))
 
 # ---- the Ascot rail on both sides
 rail_m = clayify(flat("rail", "#f4f2ec", 0.5), 0)
@@ -259,18 +286,29 @@ ho = bpy.data.objects.new("hedges", me); scene.collection.objects.link(ho); soft
 sp = load("assets/models/architecture/site_props.glb")
 for m in {sl.material for o in sp.values() for sl in o.material_slots if sl.material}: clayify(m)
 fest = []
+SPOTS = json.load(open(os.path.join(REPO, "assets/models/architecture/site_props_spots.json")))["pieces"]
 for piece, px, pz, turn in R.festival_pieces(rnd):                     # every festival zone (owner's markups, 8 and 9 Nov)
     ob = place(sp[piece], px, pz, turn)
     if piece != "banner_flag":
         fest.append((ob.location.x, -ob.location.y, max(ob.dimensions.x, ob.dimensions.y) / 2 + 1.5))
+    ca_, sa_ = math.cos(math.radians(turn)), math.sin(math.radians(turn))
+    for kind in ("seats", "stand"):                                    # people in the seats and on the decks (9 Nov late)
+        for lx, ly, lz in SPOTS.get(piece, {}).get(kind, []):
+            if rnd.random() < 0.85:
+                people.append((px + lx * ca_ - ly * sa_, pz - (lx * sa_ + ly * ca_), lz, turn))
 for fz in R.FESTIVAL_ZONES:                                            # a crowd through each zone
     (fx0, fx1), (fz0, fz1) = fz["x"], fz["z"]
-    for _ in range(int((fx1 - fx0) * (fz1 - fz0) * 0.12)):
+    for _ in range(int((fx1 - fx0) * (fz1 - fz0) * R.FESTIVAL_DENSITY[fz["side"]])):
         x, z = rnd.uniform(fx0, fx1), rnd.uniform(fz0 + 2, fz1 - 2)
         if not any((x - a) ** 2 + (z - b) ** 2 < r * r for a, b, r in fest):
             people.append((x, z, 0.0, 180.0 if fz["side"] == "stand" else 0.0))
 # the lawns in front of the stands, down to the rail walk (crowd on the aprons too, not on the hedges)
-for zr0, zr1, dens in ((W + 5, W + 14, 0.32), (W + 14, W + 75, 0.07)):   # packed along the rail, thinner on the lawns behind
+for rc in R.RAIL_CROWD:                                                # packed right up against the rail (9 Nov late)
+    for _ in range(int((rc["x"][1] - rc["x"][0]) * (rc["z"][1] - rc["z"][0]) * rc["density"])):
+        x, z = rnd.uniform(*rc["x"]), rnd.uniform(*rc["z"])
+        if not any(q.contains_point((x, z)) for q in nogo):
+            people.append((x, z, 0.0, rc["face"]))
+for zr0, zr1, dens in ((R.LAWN_CROWD["z"][0], R.LAWN_CROWD["z"][1], R.LAWN_CROWD["density"]),):   # back to the stands
     for _ in range(int(350 * (zr1 - zr0) * dens)):
         x, z = rnd.uniform(-60, 290), rnd.uniform(zr0, zr1)
         if not any(q.contains_point((x, z)) for q in nogo):
@@ -304,21 +342,27 @@ trunks = [bpy.data.objects.new(k + "_t", tr[k + "_trunk"].data) for k in kinds]
 bark = flat("bark", "#7a6650"); [o.data.materials.__setitem__(0, bark) for o in trunks]
 T = []
 # (no small trees in the hedge gaps any more: owner, 9 Nov, no trees in front of the stands)
-for x in np.arange(-130, 760, 11):                                    # behind the stands, clear of their backs
+for x in np.arange(-130, 760, 13):                                    # behind the stands, clear of their backs: a thin line
+    if rnd.random() < 0.3: continue
     back = 228.0 if x < 105 else (125.0 if x < 290 else 108.0)   # behind the paddock there (9 Nov)
     T.append((x + rnd.uniform(-3, 3), W + rnd.uniform(back, back + 16), rnd.randrange(5), rnd.uniform(1.9, 2.5)))
-for x in np.arange(-200, 900, 16):                                    # across the heath beyond the far rail
-    tx = x + rnd.uniform(-5, 5); tz = -rnd.uniform(70, 140) - R.bank_shift(tx)      # beyond the Dyke
-    if not R.in_festival(tx, tz, 6.0): T.append((tx, tz, rnd.randrange(5), rnd.uniform(1.4, 2.2)))
-for tb in R.TREE_BELTS:                                                # the owner's belts (9 Nov evening)
-    n_ = int((tb["x"][1] - tb["x"][0]) * (tb["z"][1] - tb["z"][0]) / tb["spacing"] ** 2)
-    for _ in range(n_):
-        tx, tz = rnd.uniform(*tb["x"]), rnd.uniform(*tb["z"])
-        if -6 < tz < W + 6: continue                                     # never on the track
-        T.append((tx, tz, rnd.randrange(5), rnd.uniform(*tb["scale"])))
-instances("crowns", crowns, [B(x, z, -0.2) for x, z, *_ in T], [k * 4 + rnd.randrange(4) for _, _, k, _ in T],
-          [rnd.uniform(0, 6.28) for _ in T], [s for *_, s in T])
-instances("trunks", trunks, [B(x, z, -0.2) for x, z, *_ in T], [k for _, _, k, _ in T], [0.0] * len(T), [s for *_, s in T])
+FAR_T = []
+for x in np.arange(-200, 2000, 11):                                   # across the heath beyond the far rail: sporadic
+    if rnd.random() > 0.22: continue
+    tx = x + rnd.uniform(-5, 5); tz = -(R.BANK["back"] + rnd.uniform(2, 70)) - R.bank_shift(tx)   # just beyond the Dyke
+    if not R.in_festival(tx, tz, 6.0): FAR_T.append((tx, tz, rnd.randrange(5), rnd.uniform(1.6, 2.4)))
+scrub_v = sorted([c for c in crowns if c.name.endswith("_3") or c.name.endswith("_2")], key=lambda o: o.name)
+low = [min(v.co.z for v in o.data.vertices) for o in scrub_v]                     # each crown's height off the ground
+si = [rnd.randrange(len(scrub_v)) for _ in SCRUB]; ss = [rnd.uniform(0.45, 0.75) for _ in SCRUB]
+instances("scrub", scrub_v, [B(x, z, y + 1.0 - low[i] * s_ - 0.35) for (x, z, y), i, s_ in zip(SCRUB, si, ss)], si,
+          [rnd.uniform(0, 6.28) for _ in SCRUB], ss)
+for tx, tz, sc_ in R.belt_trees(rnd):                                  # the owner's belts, as thin broken lines (9 Nov late)
+    T.append((tx, tz, rnd.randrange(5), sc_))
+SINK = 4.0                     # the far trees stand sunk (as if in the Dyke's ditch): their tops show over the crest
+T = [(x, z, k, s_, 0.0) for x, z, k, s_ in T] + [(x, z, k, s_, SINK) for x, z, k, s_ in FAR_T]
+instances("crowns", crowns, [B(x, z, -0.2 - sk) for x, z, _, _, sk in T], [k * 4 + rnd.randrange(4) for _, _, k, _, _ in T],
+          [rnd.uniform(0, 6.28) for _ in T], [s for _, _, _, s, _ in T])
+instances("trunks", trunks, [B(x, z, -0.2 - sk) for x, z, _, _, sk in T], [k for _, _, k, _, _ in T], [0.0] * len(T), [s for _, _, _, s, _ in T])
 
 # ---- light: the July Course's pastel sky and warm sun
 world = bpy.data.worlds.new("sky"); scene.world = world; world.use_nodes = True
@@ -344,7 +388,7 @@ CAMS = {   # course (x, z, height) from and to, lens
     "upcourse": ((-55.0, 14.0, 24.0), (700.0, 0.0, 0.0), 30),          # from the cranked stand, up the course
     "farside": ((60.0, 75.0, 22.0), (60.0, -45.0, 0.0), 24),           # from the Millennium across to the far side
     "paddock": ((40.0, 330.0, 90.0), (40.0, 140.0, 0.0), 28),          # over the paddock behind the stands
-    "balloons": ((300.0, 8.0, 5.0), (345.0, 46.0, 5.5), 30),          # the row of balloon pods up the course
+    "balloons": ((375.0, 32.0, 5.0), (420.0, -12.0, 5.5), 30),        # the balloon pods on the far side at about 2f
 }
 scene.render.engine = "CYCLES"; scene.cycles.device = "CPU"; scene.cycles.samples = SAMPLES; scene.cycles.use_denoising = True
 scene.cycles.max_bounces = 4

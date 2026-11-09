@@ -211,7 +211,7 @@ for r, (name, bg, ink, acc) in enumerate(DESIGNS):
         d.ellipse([cx - R + 26, cy - R + 26, cx + R - 26, cy + R - 26], outline=acc, width=5)
         d.text((cx, cy + 6), "T", font=ImageFont.truetype(fontp, 170), fill=ink, anchor="mm")
         d.text((520, TH / 2 - 40), "THOROUGHBRED", font=ImageFont.truetype(fontp, 128), fill=ink, anchor="lm")
-        d.text((530, TH / 2 + 95), "R A C I N G   ·   A S C O T", font=ImageFont.truetype(fsans, 64), fill=acc, anchor="lm")
+        d.text((530, TH / 2 + 95), "R A C I N G   ·   C L U B", font=ImageFont.truetype(fsans, 64), fill=acc, anchor="lm")
     img.paste(tile, (0, r * TH))
 os.makedirs(rp("assets/models/course"), exist_ok=True)
 art_path = rp("assets/models/course/ad_boards.png")

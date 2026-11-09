@@ -25,6 +25,57 @@
    0.53,
    0.22
   ],
+  "bankRamp": [
+   [
+    0.0,
+    [
+     0.5029,
+     0.5841,
+     0.2623
+    ]
+   ],
+   [
+    0.7,
+    [
+     0.3467,
+     0.4678,
+     0.1812
+    ]
+   ],
+   [
+    1.7,
+    [
+     0.159,
+     0.2542,
+     0.0685
+    ]
+   ],
+   [
+    3.2,
+    [
+     0.2051,
+     0.2623,
+     0.0802
+    ]
+   ],
+   [
+    4.3,
+    [
+     0.3663,
+     0.3231,
+     0.117
+    ]
+   ],
+   [
+    5.2,
+    [
+     0.4621,
+     0.3813,
+     0.15
+    ]
+   ]
+  ],
+  "bankMottle": 0.08,
   "note": "Ascot's lawn and turf colours (the bake's), so the two courses read as one game"
  },
  "lanesStraight": {
@@ -323,6 +374,7 @@
   ]
  },
  "raceDirector": {
+  "schedule": "On the Rowley Mile (owner, 9 Nov late) path.tracking is set: the tracking car down the course (on the leg and round the bend, then along the straight), cutting to the drone for flicks.length metres every flicks.every metres run (not in the first flicks.from), the drone from path.drone3f metres out, the stand camera from path.grandstand (down the Dip) to the line; no head-on.",
   "_about": "One path (owner, 8 Nov: tracking car, head-on, the stand camera, the drone). Round races: the tracking car down the leg and round the bend until path.drone metres into the straight; then the drone along the stand side; the head-on long lens from beyond the line for the stretch path.headon ([from, to] metres to go, only when the race is longer than path.headonMin); the stand camera from path.grandstand to the line and beyond. After the finish: the side-on replay, slowed to replaySpeed, from replayFrom metres before the line to replayTo after it.",
   "path": {
    "drone": 120,

@@ -25,6 +25,57 @@
    0.53,
    0.22
   ],
+  "bankRamp": [
+   [
+    0.0,
+    [
+     0.5029,
+     0.5841,
+     0.2623
+    ]
+   ],
+   [
+    0.7,
+    [
+     0.3467,
+     0.4678,
+     0.1812
+    ]
+   ],
+   [
+    1.7,
+    [
+     0.159,
+     0.2542,
+     0.0685
+    ]
+   ],
+   [
+    3.2,
+    [
+     0.2051,
+     0.2623,
+     0.0802
+    ]
+   ],
+   [
+    4.3,
+    [
+     0.3663,
+     0.3231,
+     0.117
+    ]
+   ],
+   [
+    5.2,
+    [
+     0.4621,
+     0.3813,
+     0.15
+    ]
+   ]
+  ],
+  "bankMottle": 0.08,
   "note": "Ascot's lawn and turf colours (the bake's), so the two courses read as one game"
  },
  "lanesStraight": {
@@ -243,18 +294,18 @@
    "label": "Side-on replay",
    "kind": "fixed",
    "at": [
-    0,
-    4.5,
-    45.0
+    -8,
+    6.5,
+    0.8
    ],
    "look": [
     0,
-    1.4,
-    15.12
+    6.0,
+    23.400000000000002
    ],
    "fov": [
-    26,
-    26
+    46,
+    46
    ],
    "note": "square on to the winning line from the stand side: the finish again in slow motion"
   },
@@ -335,6 +386,7 @@
   ]
  },
  "raceDirector": {
+  "schedule": "On the Rowley Mile (owner, 9 Nov late) path.tracking is set: the tracking car down the course (on the leg and round the bend, then along the straight), cutting to the drone for flicks.length metres every flicks.every metres run (not in the first flicks.from), the drone from path.drone3f metres out, the stand camera from path.grandstand (down the Dip) to the line; no head-on.",
   "_about": "One path (owner, 8 Nov: tracking car, head-on, the stand camera, the drone). Round races: the tracking car down the leg and round the bend until path.drone metres into the straight; then the drone along the stand side; the head-on long lens from beyond the line for the stretch path.headon ([from, to] metres to go, only when the race is longer than path.headonMin); the stand camera from path.grandstand to the line and beyond. After the finish: the side-on replay, slowed to replaySpeed, from replayFrom metres before the line to replayTo after it.",
   "path": {
    "drone": 120,
@@ -343,7 +395,14 @@
     600
    ],
    "headonMin": 1150,
-   "grandstand": 600
+   "grandstand": 330,
+   "tracking": true,
+   "drone3f": 604,
+   "flicks": {
+    "from": 260,
+    "every": 520,
+    "length": 110
+   }
   },
   "straight": {
    "grandstand": 600,
@@ -361,33 +420,34 @@
    "seconds": 9,
    "eye": [
     [
-     200,
-     62,
-     -190
+     -40,
+     14,
+     67.0
     ],
     [
-     90,
-     58,
-     -190
+     -30,
+     13,
+     64.0
     ]
    ],
    "at": [
     [
-     100,
-     8,
-     96.0
+     480,
+     2,
+     3.6
     ],
     [
-     20,
-     8,
-     96.0
+     490,
+     2,
+     7.2
     ]
    ],
-   "fov": 40,
+   "fov": 42,
    "list": [
     7,
     0.6
-   ]
+   ],
+   "cardAfter": 3.5
   },
   "postlude": {
    "label": "After the race",
