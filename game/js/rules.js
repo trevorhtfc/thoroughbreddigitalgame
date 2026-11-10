@@ -332,14 +332,17 @@ function check(h, race) {
   if (race.sex && h.sex !== race.sex) return { hidden: true };
   if (race.grade === "Handicap" && ratingAt(h, h.age) > HCAP_MAX) return { why: `Rated ${ratingAt(h, h.age)}: too high for a handicap (max ${HCAP_MAX})` };
   const best = tripAt(h, h.age), lo = Math.min(...best), hi = Math.max(...best);
-  const steps = race.step < lo ? lo - race.step : race.step > hi ? race.step - hi : 0;
+  const steps0 = race.step < lo ? lo - race.step : race.step > hi ? race.step - hi : 0;
+  // your trainer cards (js/team.js): a race-day boost, and the best trip moved a step towards the race
+  const train = typeof trainFor === "function" ? trainFor(h, race, steps0) : { boost: 0, shift: 0, cards: [] };
+  const steps = Math.max(0, steps0 - train.shift);
   if (steps > 3) return { why: `More than 3 steps from its best trip (${tripText(best)})` };
-  const eff = ratingAt(h, h.age) - steps * 5;
-  if (eff < needFor(race)) return { eff, steps, why: `Rated ${eff} here: this race needs ${needFor(race)}+` };
+  const eff = ratingAt(h, h.age) + train.boost - steps * 5;
+  if (eff < needFor(race)) return { eff, steps, train, why: `Rated ${eff} here: this race needs ${needFor(race)}+` };
   // Before race week the going isn't known, so the race-day rating is the rating at this trip; then the ground counts too
   const going = goingKnown() ? CARD.going[race.day] : null, ground = groundPts(h.grounds, going), day = eff + ground;
   const rk = rankIn(race, day, going);
-  return { eff, steps, ok: true, ground, day, rank: rk.rank, of: rk.of, suits: ground > 0 };
+  return { eff, steps, ok: true, ground, day, rank: rk.rank, of: rk.of, suits: ground > 0, train };
 }
 // Where a race-day rating sits among the field's (the opposition race at their best trip)
 function oppDay(o, going) { return o.rating + groundPts(o.grounds, going); }
@@ -381,9 +384,16 @@ function fieldFor(i) {
   const me = S.entries[race.id] && horse(S.entries[race.id]);
   if (me) {
     const c = check(me, race), d = tripAt(me, me.age);
-    if (c.ok) list.splice(C.myStall, 0, { id: me.id, name: me.name, rating: ratingAt(me, me.age), trip: [DISTANCES[Math.min(...d)], DISTANCES[Math.max(...d)]],
+    // the trainer cards' boost and trip move (towards the race), and a booked jockey's skills (js/team.js)
+    let lo = Math.min(...d), hi = Math.max(...d);
+    const sh = c.ok && c.train ? c.train.shift : 0;
+    if (sh && race.step < lo) { const k = Math.min(sh, lo - race.step); lo -= k; hi -= k; }
+    else if (sh && race.step > hi) { const k = Math.min(sh, race.step - hi); lo += k; hi += k; }
+    const jc = typeof bookedFor === "function" ? bookedFor(race) : null;
+    if (c.ok) list.splice(C.myStall, 0, { id: me.id, name: me.name, rating: ratingAt(me, me.age) + (c.train ? c.train.boost : 0), trip: [DISTANCES[lo], DISTANCES[hi]],
       goings: me.grounds, style: me.style, flex: me.flex, temper: me.temper, sk: mk, a: me0.a, b: me0.b, silks: me0.img,
-      coat: me.coat, jockey: "Your jockey", trainer: "Your yard", owner: "You", mine: true });
+      coat: me.coat, jockey: jc ? `${jc.title} ${TIER_NUM[jc.tier]}` : "Your jockey", trainer: "Your yard", owner: "You", mine: true,
+      edge: typeof jockeyFields === "function" ? jockeyFields(race) : {} });
   }
   return list.map((h, k) => ({ ...h, stall: k + 1 }));
 }
@@ -427,7 +437,7 @@ function marketFor(i) {
 }
 // The race engine's course data for a race (index.html loads every course the season races on)
 const engineFor = race => (ENGINE.courses && ENGINE.courses[courseFile(race)]) || { data: ENGINE.data, view: ENGINE.view };
-const engineRunner = h => ({ id: h.id, name: h.name, rating: h.rating, trip: h.trip, goings: h.goings, style: h.style, flex: h.flex, temperament: h.temper });
+const engineRunner = h => ({ id: h.id, name: h.name, rating: h.rating, trip: h.trip, goings: h.goings, style: h.style, flex: h.flex, temperament: h.temper, ...(h.edge || {}) });
 // The race as the engine and the 3D view know it: the same five values in both, so both run the same race
 function engineRace(i) {
   const race = RACES[i], v = engineFor(race).view.races[viewKey(race)];
@@ -460,7 +470,8 @@ async function simAndRecord(i) { if (S.results[RACES[i].id]) return; const out =
 let S, CARD;
 function newCard(seed) {
   S = { seed: seed || Math.floor(Math.random() * 1e6) + 1, step: 1, tab: "stud", budget: START_BUDGET, stable: [], hand: [], usedMares: [], deckPos: 0,
-    selMare: null, foal: null, sale: [], lotN: 0, entries: {}, results: {}, open: null, silks: S ? S.silks : 0, sort: "fee", offer: null, book: 1, catDams: [], v: 6, dealt: false, tallied: false };
+    selMare: null, foal: null, sale: [], lotN: 0, entries: {}, results: {}, open: null, silks: S ? S.silks : 0, sort: "fee", offer: null, book: 1, catDams: [], v: 7, dealt: false, tallied: false,
+    team: { picks: [], offer: null, done: false, choice: {}, used: {}, trains: {}, book: {}, income: 0, incomeLog: [] } };
   CARD = makeCard(S.seed);
   // No starting mares: every mare is bought at the mares sale, choosing one of three
   S.selMare = null;
@@ -477,7 +488,8 @@ function load() {
 }
 // Saves from before the mares sale: only mares you bred from count as yours, and the ring is rebuilt into Books
 function migrate() {
-  if (S.v === 6) return;
+  if (S.v === 7) return;
+  if (S.v === 6) return migrate7();
   if (S.v === 5) return migrate6();
   if (S.v === 4) return migrate5();
   if (S.v !== 2 && S.v !== 3) {
@@ -503,10 +515,18 @@ function migrate5() {
 // v6: the race engine. Horses from before it get their running style, flexibility and temperament now (fixed by their id)
 function migrate6() {
   S.stable.forEach(h => { if (!h.style) Object.assign(h, rollRacecard(seeded(hashStr(h.id)))); });
-  S.v = 6; save();
+  S.v = 6; migrate7();
+}
+// v7: your team (js/team.js). A season that hasn't left the Jockey Club yet drafts one; one already under way goes on without
+function migrate7() {
+  if (!S.team) S.team = S.dealt ? { picks: [], offer: null, done: true, gone: true, skipped: true, choice: {}, used: {}, trains: {}, book: {}, income: 0, incomeLog: [] }
+    : { picks: [], offer: null, done: false, choice: {}, used: {}, trains: {}, book: {}, income: 0, incomeLog: [] };
+  S.v = 7; save();
 }
 // Mares in your stud: still to breed from, plus those already used this season
 const studCount = () => S.hand.length + S.usedMares.length;
+// mares you paid for (Elite Mares' free ones come on top of the ten: js/team.js)
+const paidMares = () => studCount() - ((S.team && S.team.used && S.team.used.elite) || 0);
 const ownMares = () => new Set([...S.usedMares, ...S.hand, ...(S.offer ? S.offer.mares : [])]);
 const maresOut = ownMares;
 // Breeding comes first, so the piles draw from the whole deck (Tattersalls is made later from what's left)
@@ -567,7 +587,7 @@ function newCatalogue() {
       const s = ok[Math.floor(Math.random() * ok.length)];
       let valid = MARES.filter(m => fits(s, m)); const q = valid.filter(mareTest); if (q.length) valid = q;
       const m = weightedMare(valid, s); used.add(m.name); perSire[s.name] = (perSire[s.name] || 0) + 1;
-      book.push({ book: b.n, sire: s.name, dam: m.name, reserve: RESERVES[s.shownStars + m.stars] || 10000 });
+      book.push({ book: b.n, sire: s.name, dam: m.name, reserve: RESERVES[s.shownStars + m.stars] || 10000, fs: 1 + Math.floor(Math.random() * 2e9) });
       return true;
     };
     addLot(s => optF(s) <= 6, m => optF(m) <= 7);
@@ -580,7 +600,7 @@ function newCatalogue() {
 // Mares sale: pay the pile's price, three of its mares are turned over, and you keep one
 const OFFER_SIZE = 3;
 function drawPile(id) {
-  const p = PILES.find(x => x.id === id); if (S.offer || !p || studCount() >= MARE_CAP || p.price > S.budget) return;
+  const p = PILES.find(x => x.id === id); if (S.offer || !p || paidMares() >= MARE_CAP || p.price > S.budget) return;
   const left = pileLeft(p).map(m => [Math.random(), m]).sort((a, b) => a[0] - b[0]).map(x => x[1]); if (!left.length) return;
   S.budget -= p.price; S.offer = { pile: p.id, mares: left.slice(0, OFFER_SIZE).map(m => m.name) };
 }
@@ -594,12 +614,16 @@ function newName() {
   for (let k = 0; k < 300; k++) { const n = (NAME_A[Math.floor(Math.random() * NAME_A.length)] + " " + NAME_B[Math.floor(Math.random() * NAME_B.length)]).toUpperCase(); if (!taken.has(n)) return n; }
   return "FOAL " + (S.stable.length + 1);
 }
-function breed(sireName, damName, how, cost, lotId) {
-  const s = stallion(sireName), m = byName(damName), f = breedPure(s, m);
-  const h = { id: "h" + Date.now().toString(36) + Math.floor(Math.random() * 1e4), name: newName(), sex: Math.random() < .5 ? "F" : "C", sire: s.name, dam: m.name,
+function breed(sireName, damName, how, cost, lotRef) {
+  // a Tattersalls lot's yearling was settled when the catalogue was made (lotFoal in js/team.js shows it to an Auction
+  // Insider); lotRef is the lot itself or its id
+  const lot = lotRef && typeof lotRef === "object" ? lotRef : lotRef && (S.sale || []).find(l => l.id === lotRef), lotId = lot ? lot.id : lotRef;
+  const R = lot && lot.fs != null ? seeded(lot.fs) : Math.random;
+  const s = stallion(sireName), m = byName(damName), f = breedPure(s, m, R);
+  const h = { id: "h" + Date.now().toString(36) + Math.floor(Math.random() * 1e4), name: newName(), sex: R() < .5 ? "F" : "C", sire: s.name, dam: m.name,
     peakAge: f.peakAge, r: f.r, d: f.d, grounds: f.grounds, age: 2, portrait: 1 + Math.floor(Math.random() * 12), coat: COATS[Math.floor(Math.random() * COATS.length)], how, cost };
   h.verdict = verdictFor(h);
-  Object.assign(h, rollRacecard(Math.random));
+  Object.assign(h, rollRacecard(R));
   S.foal = { h, how, cost, lotId, retried: S.foal && S.foal.h && S.foal.how === "bred" && S.foal.h.dam === damName && S.foal.h.sire === sireName ? true : false };
 }
 function keepFoal(name) {
@@ -608,6 +632,7 @@ function keepFoal(name) {
   if (nm && !S.stable.some(h => h.name === nm) && !CARD.oppNames.has(nm)) F.h.name = nm;
   if (F.how === "bred") {
     S.budget -= F.cost;
+    if (S.team && blackTypeStallion() === F.h.sire && F.cost < stallion(F.h.sire).fee) S.team.used.blacktype = (S.team.used.blacktype || 0) + 1;   // a half-price nomination
     S.usedMares.push(F.h.dam); S.hand = S.hand.filter(n => n !== F.h.dam); S.selMare = null; S.selStallion = null;
   }
   S.stable.push(F.h); S.foal = null; save();
