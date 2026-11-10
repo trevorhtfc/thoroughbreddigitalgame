@@ -1,0 +1,23 @@
+<!doctype html><meta charset="utf-8"><title>harness</title><div id="toast"></div>
+<!-- Team harness page: copy into a staged folder (python3 game/tools/stage.py <dir>) with tools/team-harness.js beside it, serve it, and call TEAMH.play(strategy, seed, cards) in the console. -->
+<script>window.MEETING_ID="royal-ascot";</script>
+<script src="js/meetings/royal-ascot.js"></script><script src="js/meetings/newmarket.js"></script>
+<script src="js/rules.js"></script><script src="js/team.js"></script>
+<script>const $=s=>document.querySelector(s); const esc2=esc; function toast(){} function render(){}</script>
+<script src="js/ui-team.js"></script>
+<script type="module">
+// The race engine (race-engine/engine.js in the repo) and the course data it reads. The 3D race view
+// (final-furlong.html) loads the very same files, so a race simmed here and the race watched there are the same race.
+// The courses are the season's (js/meetings/*.js -> course, or courses for a season on more than one, as Newmarket's Rowley
+// Mile and July Course): assets/course/<course>.json and its view, stalls and par times, for each.
+import { runRace, expectedPace } from "./assets/engine/engine.js";
+const M = window.MEETING, files = M.courses ? [...new Set(Object.values(M.courses).map((c) => c.file))] : [M.course];
+const get = (p) => fetch(p).then((r) => { if (!r.ok) throw new Error(p + " " + r.status); return r.json(); });
+const one = (C, settings) => Promise.all([`assets/course/${C}.json`, `assets/course/${C}-stalls.json`, `assets/course/${C}-standards.json`, `assets/course/${C}-view.json`].map(get))
+  .then(([course, stalls, standards, view]) => [C, { data: { course, stalls, standards, settings }, view }]);
+get("assets/engine/settings.json").then((settings) => Promise.all(files.map((C) => one(C, settings))))
+  .then((list) => { const courses = Object.fromEntries(list); window.ENGINE = { runRace, expectedPace, courses, data: list[0][1].data, view: list[0][1].view }; })
+  .catch((e) => { window.ENGINE_FAILED = String(e); })
+  .finally(() => dispatchEvent(new Event("engine-ready")));
+</script>
+<script src="team-harness.js"></script>

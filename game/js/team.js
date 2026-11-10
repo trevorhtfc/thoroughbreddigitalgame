@@ -27,11 +27,14 @@ const JOCKEY_RIDES = [0, 3, 4, 5];                       // how many of your rac
 const JOCKEY_LEVEL = [0, 3, 4, 5];                       // his skill in the race engine (1 to 5); your own yard's is random
 // What each jockey card does in the race engine, by tier (race-engine/engine.js: formBest, noFlop, paceTank, lateKick,
 // reader). Measured with race-engine/check/team-jockeys.mjs against rating points: see game/README.md, "Your team".
+// For a horse 2 below the best in a field of 14, in rating points: Champion II (best of two runs, no stinker) about +2,
+// III (best of three) about +3; Tempo Setter about +1.5 / +2.5 / +3.5 and Late Closer about +1.5 / +2.5 / +3.5 when
+// the horse is ridden the way they like (+0 otherwise); Race Reader about +1 / +1.5 / +2.5 whatever the style.
 const JOCKEY_EDGE = {
-  champion: [null, { noFlop: true }, { noFlop: true, formBest: 2 }, { noFlop: true, formBest: 3 }],
-  tempo:    [null, { paceTank: 0.04 }, { paceTank: 0.07 }, { paceTank: 0.10 }],
-  closer:   [null, { lateKick: 0.006 }, { lateKick: 0.011 }, { lateKick: 0.016 }],
-  reader:   [null, { reader: 0.5 }, { reader: 0.75 }, { reader: 1 }],
+  champion: [null, { formBest: 2 }, { noFlop: true, formBest: 2 }, { noFlop: true, formBest: 3 }],
+  tempo:    [null, { paceTank: 0.03 }, { paceTank: 0.055 }, { paceTank: 0.08 }],
+  closer:   [null, { lateKick: 0.008 }, { lateKick: 0.013 }, { lateKick: 0.019 }],
+  reader:   [null, { reader: 0.5, paceTank: 0.02, lateKick: 0.005 }, { reader: 0.75, paceTank: 0.035, lateKick: 0.008 }, { reader: 1, paceTank: 0.05, lateKick: 0.012 }],
 };
 
 // ---------- the cards ----------
@@ -45,10 +48,10 @@ const OWNER_KINDS = {
   insider: { title: "Auction Insider", when: "Tattersalls", text: t => t === 1 ? "Once: buy one lot from Book 2 or 3 at its reserve, without going to auction." : t === 2 ? "See the class of every yearling in the catalogue before you bid." : "See the class of every yearling before you bid, and once, buy any lot at its reserve without going to auction." },
 };
 const JOCKEY_KINDS = {
-  champion: { title: "Champion Jockey", style: null, text: t => t === 1 ? "Gets a tune out of his horse: it never runs a stinker." : t === 2 ? "Gets the best out of his horse: no stinkers, and it tends to run to its best." : "Rides his horse at its very best: no stinkers, and usually its best run of the season." },
+  champion: { title: "Champion Jockey", style: null, text: t => t === 1 ? "Gets a tune out of his horse: it tends to run to its best." : t === 2 ? "Gets the best out of his horse: it runs to its best, and never a stinker." : "Rides his horse at its very best: usually its best run of the season, never a stinker." },
   tempo: { title: "Tempo Setter", style: "front", text: t => `Judges the pace from the front: a front-runner or prominent horse saves ${["", "a little", "plenty of", "lots of"][t]} energy for the finish.` },
   closer: { title: "Late Closer", style: "back", text: t => `Times his run from behind: a midfield or hold-up horse finishes ${["", "a little", "much", "far"][t]} stronger.` },
-  reader: { title: "Race Reader", style: null, text: t => `Reads the race: finds the gaps${t >= 2 ? " sooner" : ""}, loses less switching${t === 3 ? ", and times his run to perfection" : ""}.` },
+  reader: { title: "Race Reader", style: null, text: t => `Reads the race, however the horse runs: ${["", "a little", "a good deal", "plenty"][t]} better judged in front or from behind, finds the gaps and loses less switching.` },
 };
 // The board's trainer cards (TeamCards, role Trainer). cond: "dist" (only in races at these trips), "age", "line" (by a
 // stallion of these sire lines) or "any". mode: "or" (adapt the trip OR the boost, whichever helps more in that race),
@@ -65,17 +68,21 @@ const TRAINER_KINDS = {
   master: { title: "Master Trainer", cond: "any", vals: [] },
   form: { title: "Stable Form", cond: "any", vals: [], boostOnly: true },
 };
+// On the board a card goes on one horse for three races; here there are ten, so each card reaches more horses
+// (TRAINER_HORSES), and Stable Form III is +2 on every horse rather than +3 (it would be worth far more than any other).
+const TRAINER_HORSES = [0, 2, 3, 3], FORM_HORSES = [0, 2, 4, 99], FORM_ALL_BOOST = 2;
 function trainerSpec(kind, t) {
   const K = TRAINER_KINDS[kind];
-  if (K.boostOnly) return { boost: 3, shift: 0, mode: "boost", horses: [0, 1, 2, 99][t] };
-  if (kind === "master") return { boost: 3, shift: 1, mode: t === 3 ? "and" : "or", horses: 1 };
-  return { boost: t === 3 ? 5 : 3, shift: 1, mode: t === 1 ? "or" : "and", horses: 1 };
+  if (K.boostOnly) return { boost: t === 3 ? FORM_ALL_BOOST : 3, shift: 0, mode: "boost", horses: FORM_HORSES[t] };
+  if (kind === "master") return { boost: 3, shift: 1, mode: t === 3 ? "and" : "or", horses: TRAINER_HORSES[t] };
+  return { boost: t === 3 ? 5 : 3, shift: 1, mode: t === 1 ? "or" : "and", horses: TRAINER_HORSES[t] };
 }
 function trainerText(kind, t) {
   const K = TRAINER_KINDS[kind], sp = trainerSpec(kind, t);
-  if (K.boostOnly) return t === 3 ? "Every horse in your stable runs 3 better." : `${t === 2 ? "Two horses" : "One horse"} of your choice run${t === 2 ? "" : "s"} 3 better.`;
-  const what = sp.mode === "or" ? `Moves one horse's best trip a step, or makes it ${sp.boost} better (whichever helps in that race)` : `Moves one horse's best trip a step and makes it ${sp.boost} better`;
-  const when = K.cond === "dist" ? `, in ${K.vals.join(", ").replace(/, ([^,]*)$/, " and $1")} races` : K.cond === "age" ? `, while it's a ${K.vals[0]}-year-old` : K.cond === "line" ? `, if it's by a ${K.vals.join(" or ")} stallion` : ", at any age";
+  if (K.boostOnly) return t === 3 ? `Every horse in your stable runs ${FORM_ALL_BOOST} better.` : `${["", "", "Two", "Three", "Four"][sp.horses]} horses of your choice run 3 better.`;
+  const n = ["", "one", "two", "three"][sp.horses] || sp.horses;
+  const what = sp.mode === "or" ? `Moves the best trip of ${n} horses a step, or makes them ${sp.boost} better (whichever helps in that race)` : `Moves the best trip of ${n} horses a step and makes them ${sp.boost} better`;
+  const when = K.cond === "dist" ? `, in ${K.vals.join(", ").replace(/, ([^,]*)$/, " and $1")} races` : K.cond === "age" ? `, while they're ${K.vals[0]}-year-olds` : K.cond === "line" ? `, if they're by a ${K.vals.join(" or ")} stallion` : ", at any age";
   return what + when + ".";
 }
 const TEAM_CARDS = [];

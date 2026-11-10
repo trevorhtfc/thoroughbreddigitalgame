@@ -336,3 +336,55 @@ the National Stud, Tattersalls, entries at the Jockey Club, the 3D race view):
   matches the sim on the Rowley Mile).
 - `js/meetings/newmarket-season.js` is the 8 Nov draft (all 36 races over the whole season), kept for the long game.
 - The Race Lab now tests all three courses (Ascot, Rowley Mile, July Course).
+
+## Your team: owner, trainer and jockey cards (10 Nov 2026, first go, branch `claude/team-draft`)
+
+Owner, 10 Nov: "integrate owner, jockey and trainers into your team, which you draft at the start ... a draft from
+bronze, silver, gold decks of each type, 6 points (gold is 3, bronze is 1); they have different skills that give you
+advantages." The cards are the board game's 60 (the Thoroughbred site's CMS collection `TeamCards`), turned into the
+digital game's terms where the board's rules can't work as they are.
+
+**The draft** (at the Jockey Club, straight after the ten races are dealt; `phase()` "team"): pick a deck (Owner,
+Trainer or Jockey; Gold, Silver or Bronze), three of its cards are turned over and you keep one, as at the mares sale.
+Exactly 6 points (Gold 3, Silver 2, Bronze 1), at least one card of each kind (the board's rule). A deck is greyed out
+when it would leave too few points for a kind you haven't got. Race-distance trainer cards only turn up if one of the
+ten races is at their trips (the board's "take another card"). Then "To the National Stud".
+
+| Kind | Bronze | Silver | Gold | Where it works |
+|---|---|---|---|---|
+| Powerhouse | +£150k budget | +£300k | +£450k | at once |
+| Elite Mares | 1 free Useful mare, picked from the whole pile, on top of the ten | 1 free Blue-blooded | 2 free Blue-blooded | the stud |
+| Black Type Stud | a 3★ stallion at half price, up to 3 nominations | 4★ | 5★ | the stud |
+| Stud Master | a secret stallion: £25k now, £25k stud income for each of his lots a rival buys (2 lots max) | £50k | £100k | before / at Tattersalls; stud income counts with prize money |
+| Bloodstock Agent | once, hand a yearling back after seeing it: 80% back | 90% | 100% | Tattersalls |
+| Auction Insider | once, buy a Book 2 or 3 lot at its reserve, no auction | see every yearling's class before bidding | both, any lot | Tattersalls |
+| Trainer (8 specialists) | the board's cards: a step on the trip or +3 (whichever helps that race), 2 horses | a step and +3, 3 horses | a step and +5, 3 horses | entries; only in races at their trips / ages / sire lines |
+| Master Trainer | a step or +3, 2 horses, any race | a step or +3, 3 horses | a step and +3, 3 horses | entries |
+| Stable Form | +3 on 2 horses | +3 on 4 horses | +2 on every horse | entries |
+| Champion Jockey | best of two runs on the day | best of two, never a stinker | best of three, never a stinker | the races he's booked for: 3 / 4 / 5 |
+| Tempo Setter | more energy left when ridden in front or prominent | more | more | 3 / 4 / 5 races |
+| Late Closer | stronger finish when ridden midfield or held up | stronger | stronger | 3 / 4 / 5 races |
+| Race Reader | a better-judged ride whatever the style, finds gaps | better | better | 3 / 4 / 5 races |
+
+Where the digital game differs from the board, and why:
+- **Trainer cards reach more horses** (2 / 3 / 3, Stable Form 2 / 4 / all) because the board's one horse for three
+  races becomes ten races here, where a horse runs once (at Ascot). Stable Form III is +2 on every horse, not +3: at +3
+  it was worth about twice any other card (see below).
+- **Stud Master** pays when rival buyers take his lots at Tattersalls (there are no other breeders). Lots you never
+  bring into the ring go through it among the rivals when you leave for the races (`closeSales`).
+- **Auction Insider**: the digital catalogue already shows every pedigree, so the "preview" shows each yearling's class
+  (its peak rating to the nearest 5, its trip and peak age). Each lot's yearling is settled (seeded) when the catalogue
+  is made (`fs` on the lot), so what the Insider sees is what you get.
+- **Jockey cards** become riding skills in the race engine (new optional runner fields in `race-engine/engine.js`:
+  `formBest`, `noFlop`, `paceTank`, `lateKick`, `reader`; a runner without them races exactly as before, checked
+  440 of 440 races identical, `race-engine/check/team-same.mjs`). A booked jockey also has skill 3 / 4 / 5 (the
+  engine's 1–5; your yard's own jockey is random, as before). What each is worth, measured against rating points
+  (`race-engine/check/team-jockeys.mjs`, a horse 2 below the best in 14, 500 races each): +1 rating ≈ 15→19% wins,
+  +3 ≈ 27%, +5 ≈ 41%; Champion II ≈ +2, III ≈ +3; Tempo Setter ≈ +1.5 / +2.5 / +3.5 for a front-runner or prominent
+  horse; Late Closer ≈ +1.5 / +2.5 / +3.5 for a midfield or hold-up horse; Race Reader ≈ +1 / +1.5 / +2.5 for any.
+  Jockey skill alone (1 to 5) barely matters (14.6% → 16.4%), so the skills carry the cards.
+
+Files: `js/team.js` (rules, numbers at the top), `js/ui-team.js` (the draft and the cards at each place), styles at
+the end of `css/game.css`. Save version 7 (`migrate7`: a season already past the draw goes on without a team).
+`tools/team-harness.js`: whole seasons with a team, played as a sensible player would use the cards (load
+`harness.html`-style: the rules, team.js, ui-team.js and the engine, without the board).

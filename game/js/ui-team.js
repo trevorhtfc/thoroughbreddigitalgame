@@ -120,7 +120,7 @@ function teamAtEntries() {
   const trRow = c => { const sp = trainerSpec(c.kind, c.tier), on = trainHorses(c);
     if (sp.horses >= 99) return tcard(c, { cls: "sm", extra: `<p class="tc-do">On every horse in your stable.</p>` });
     const opts = S.stable.filter(h => trainerCanGo(c, h)).sort((a, b) => a.name.localeCompare(b.name));
-    const slots = Array.from({ length: sp.horses }, (_, k) => `<select class="tm-sel" data-train="${c.code}" data-slot="${k}"><option value="">${k ? "And a second horse…" : "Give to a horse…"}</option>${opts.map(h => `<option value="${h.id}" ${on[k] === h.id ? "selected" : ""}>${esc2(h.name)} · ${h.age}YO · ${tripText(tripAt(h, h.age))}</option>`).join("")}</select>`).join("");
+    const slots = Array.from({ length: sp.horses }, (_, k) => `<select class="tm-sel" data-train="${c.code}" data-slot="${k}"><option value="">${k ? "And another horse…" : "Give to a horse…"}</option>${opts.map(h => `<option value="${h.id}" ${on[k] === h.id ? "selected" : ""}>${esc2(h.name)} · ${h.age}YO · ${tripText(tripAt(h, h.age))}</option>`).join("")}</select>`).join("");
     return tcard(c, { cls: "sm", extra: opts.length ? slots : `<p class="tc-hint">None of your horses can take it.</p>` }); };
   const jkRow = c => tcard(c, { cls: "sm", extra: `<p class="tc-do">Booked for <b>${ridesOf(c.code).length} of ${JOCKEY_RIDES[c.tier]}</b> rides${ridesOf(c.code).length ? ": " + ridesOf(c.code).map(r => r.name.replace(/ Stakes$/, "")).join(", ") : ". Book him in a race below."}</p>` });
   return `<details class="sect tm-at" ${S.team.openEntries === false ? "" : "open"}><summary class="sect-h"><h2 class="tb-h2">YOUR TRAINER AND JOCKEYS</h2><span>Trainer cards go on horses; jockeys are booked race by race</span></summary>
