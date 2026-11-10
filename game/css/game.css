@@ -533,3 +533,6 @@ details.tm-at>summary h2::after{content:" ▾";color:var(--tb-gold)}details.tm-a
 .lot-ins{min-width:0;overflow-wrap:anywhere}
 .lot{min-width:0}
 @media (prefers-reduced-motion:reduce){[data-season=newmarket] .menu{background-image:url("../img/newmarket-cover.jpg")}}
+.tm-own{display:grid;gap:6px;margin-top:6px}
+.tm-own .tb-btn{display:grid;justify-items:start;text-align:left;padding:7px 10px;line-height:1.25;white-space:normal}
+.tm-own .tb-btn small{font-weight:500;font-size:12px;color:var(--tb-muted)}

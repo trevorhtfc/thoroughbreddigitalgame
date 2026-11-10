@@ -51,67 +51,62 @@ function draftBody() {
 }
 
 // ---------- the team at work, place by place ----------
-function stallionSelect(kind, fits) {
-  const list = STALLIONS.map(s => stallion(s.name)).filter(fits).sort((a, b) => b.shownStars - a.shownStars || a.name.localeCompare(b.name));
-  return `<select class="tm-sel" data-choose="${kind}"><option value="">Choose a stallion…</option>${list.map(s => `<option value="${esc2(s.name)}">${esc2(s.name)} · ${s.shownStars}★ · ${s.optimumDistance} · ${money(s.fee)}</option>`).join("")}</select>`;
+const panel = out => out.length ? `<section class="sect tm-at"><div class="sect-h"><h2 class="tb-h2">YOUR OWNER'S CARDS</h2></div><div class="tm-hand sm">${out.join("")}</div></section>` : "";
+// Pedigree Expert: ask about an unproven stallion (Gold knows them all)
+function expertBit() {
+  const c = held("pedigree"); if (!c) return "";
+  const known = unprovenStallions().filter(x => knowsTrue(x.name)).map(x => `${esc2(x.name)} <b>${x.trueStars}★</b>`);
+  const ask = pedigreeLeft() > 0 ? `<select class="tm-sel" data-ask="1"><option value="">Ask about an unproven stallion (${pedigreeLeft()} left)…</option>${unprovenStallions().filter(x => !knowsTrue(x.name)).map(x => `<option value="${esc2(x.name)}">${esc2(x.name)} · shown ${x.shownStars}★</option>`).join("")}</select>` : "";
+  return tcard(c, { cls: "sm", extra: `${known.length ? `<p class="tc-do">Really: ${known.join(", ")}</p>` : ""}${ask}` });
 }
 function teamAtStud() {
   if (!teamOn() || teamSkipped()) return "";
   const out = [];
   const el = held("elite");
-  if (el) { const left = eliteLeft();
-    out.push(tcard(el, { cls: "sm", extra: left.length ? `<p class="tc-do"><b>${left.length} free mare${left.length === 1 ? "" : "s"} to choose</b> below the mares sale.</p>` : `<p class="tc-done">Used</p>` })); }
-  const bt = held("blacktype");
-  if (bt) { const ch = S.team.choice.blacktype, used = S.team.used.blacktype || 0;
-    out.push(tcard(bt, { cls: "sm", extra: ch ? `<p class="tc-do"><b>${esc2(ch)}</b>: half price · ${BLACK_TYPE_USES - used} of ${BLACK_TYPE_USES} left</p>` : stallionSelect("blacktype", blackTypeFits) })); }
-  const sm = held("studmaster");
-  if (sm) { const ch = S.team.choice.studmaster;
-    out.push(tcard(sm, { cls: "sm", extra: ch ? `<p class="tc-do">Your secret stallion: <b>${esc2(ch)}</b></p>` : stallionSelect("studmaster", () => true) + `<p class="tc-hint">Choose before you leave the stud, or one is picked for you.</p>` })); }
-  return out.length ? `<section class="sect tm-at"><div class="sect-h"><h2 class="tb-h2">YOUR OWNER'S CARDS</h2></div><div class="tm-hand sm">${out.join("")}</div></section>` : "";
-}
-function eliteMares() {
-  const left = eliteLeft(); if (!left.length || S.offer) return "";
-  const p = PILES.find(x => x.id === left[0]), ms = pileLeft(p).sort((a, b) => b.stars - a.stars || a.name.localeCompare(b.name));
-  return `<section class="sect msale tm-elite"><div class="sect-h"><h2 class="tb-h2">ELITE MARES · FREE</h2><span>Any ${p.name} (${p.stars.map(n => n + "★").join("–")}) mare you like, on top of your ${MARE_CAP}</span></div>
-    <div class="offers wide">${ms.map(m => `<div class="offer"><div class="hc m"><div class="hc-top"><span class="hc-l">M</span><span class="hc-n">${esc2(m.name)}</span></div>
-      <div class="hc-b"><div class="hc-r">${pips(m.stars)}<span class="hc-pk">Peaks <b>${m.peakAge}</b></span></div>${hcTrip(m)}<div class="hc-meta one"><span><b>${m.sireLine} | ${m.sireCode}</b></span></div><div class="hc-g">${m.groundPreference.join(", ")}</div></div></div>
-      <button class="tb-btn block" data-elite="${esc2(m.name)}">Take her free</button></div>`).join("")}</div></section>`;
+  if (el) out.push(tcard(el, { cls: "sm", extra: `<p class="tc-do">Each draw at the mares sale turns over <b>${offerSize()}</b> mares.</p>` }));
+  const so = held("stallion");
+  if (so) { const own = ownedStallion();
+    out.push(tcard(so, { cls: "sm", extra: own ? `<p class="tc-do">Your stallion: <b>${esc2(own)}</b> · ${ownedFreeLeft()} of ${OWNED_FREE} free nominations left</p>`
+      : `<p class="tc-do">Keep one as your own:</p><div class="tm-own">${ownerDraw().map(n => { const x = stallion(n); return `<button class="tb-btn ghost" data-own="${esc2(n)}"><b>${esc2(n)}</b><small>${x.shownStars}★${x.unproven ? " unproven" : ""} · best ${x.optimumDistance} · peaks ${x.peakAge}</small></button>`; }).join("")}</div>` })); }
+  const pe = expertBit(); if (pe) out.push(pe);
+  return panel(out);
 }
 function teamAtSales() {
   if (!teamOn() || teamSkipped()) return "";
-  const out = [];
-  const ins = held("insider");
-  if (ins) out.push(tcard(ins, { cls: "sm", extra: `<p class="tc-do">${ins.tier >= 2 ? "Each lot shows its yearling's class. " : ""}${ins.tier !== 2 ? (S.team.used.insider ? "Reserve buy used." : `<b>Buy at reserve</b> on ${ins.tier === 3 ? "any lot" : "a Book 2 or 3 lot"}.`) : ""}</p>` }));
-  const ag = held("agent");
-  if (ag) out.push(tcard(ag, { cls: "sm", extra: `<p class="tc-do">${S.team.used.agent ? "Used." : "Ready: offered when a yearling is knocked down to you."}</p>` }));
-  const sm = held("studmaster");
-  if (sm) out.push(tcard(sm, { cls: "sm", extra: `<p class="tc-do">Your stallion: <b>${esc2(S.team.choice.studmaster || "–")}</b> · stud income <b>${money(teamIncome())}</b> (${S.team.used.studmaster || 0} of ${STUD_MASTER_LOTS} lots)</p>` }));
-  return out.length ? `<section class="sect tm-at"><div class="sect-h"><h2 class="tb-h2">YOUR OWNER'S CARDS</h2></div><div class="tm-hand sm">${out.join("")}</div></section>` : "";
+  const out = [], tt = held("trade"), ag = held("agent"), vt = held("vet"), pv = held("private");
+  if (tt) out.push(tcard(tt, { cls: "sm", extra: `<p class="tc-do">Every yearling you buy costs ${Math.round(TRADE_OFF[tt.tier] * 100)}% less than the hammer price.</p>` }));
+  if (ag) out.push(tcard(ag, { cls: "sm", extra: `<p class="tc-do">His projection is on every lot.</p>` }));
+  if (vt) out.push(tcard(vt, { cls: "sm", extra: `<p class="tc-do">${vetLeft()} of ${VET_USES[vt.tier]} left: offered when a yearling is knocked down to you.</p>` }));
+  if (pv) out.push(tcard(pv, { cls: "sm", extra: `<p class="tc-do">${S.team.used.private ? "Used." : "Look for <b>Private sale</b> on the lots it can buy."}</p>` }));
+  const pe = expertBit(); if (pe) out.push(pe);
+  return panel(out);
 }
-// a lot as an Auction Insider sees it: the yearling's class and trip at its peak
+// a lot as your Bloodstock Agent sees it: his projected peak rating, a range with the truth somewhere in it
 function lotInsight(l) {
-  if (!insiderSees()) return "";
-  const f = lotFoal(l); if (!f) return "";
-  const peak = f.r[2], cls = peak >= 120 ? "gold" : peak >= 110 ? "silver" : peak >= 100 ? "bronze" : "basic";
-  return `<div class="lot-ins ${cls}"><b>Insider</b> peaks about <b>${Math.round(peak / 5) * 5}</b> · ${tripText(f.d[2])} · at ${f.peakAge}YO</div>`;
+  const r = agentRange(l); if (!r) return "";
+  const mid = (r.lo + r.hi) / 2, cls = mid >= 120 ? "gold" : mid >= 110 ? "silver" : mid >= 100 ? "bronze" : "basic";
+  return `<div class="lot-ins ${cls}"><b>Agent</b> projects a peak of <b>${r.lo}–${r.hi}</b></div>`;
 }
 function lotClaim(l) {
-  return insiderClaimOK(l) && l.reserve <= S.budget && !S.foal && !stableFull() ? `<button class="tb-btn ghost block tm-claim" data-claim="${l.id}">Insider: buy now at ${money(l.reserve)}</button>` : "";
+  if (!privateOK(l) || S.foal || stableFull()) return "";
+  const p = privatePrice(l), cost = payFor(p);
+  return cost <= S.budget ? `<button class="tb-btn ghost block tm-claim" data-claim="${l.id}">Private sale: ${money(p)}, no auction</button>` : "";
 }
 function claimLot(id) {
-  const l = S.sale.find(x => x.id === id); if (!l || !insiderClaimOK(l) || l.reserve > S.budget || S.foal || stableFull()) return;
-  S.team.used.insider = true; S.budget -= l.reserve; S.sale = S.sale.filter(x => x !== l);
-  breed(l.sire, l.dam, "bought", l.reserve, l); save();
+  const l = S.sale.find(x => x.id === id); if (!l || !privateOK(l) || S.foal || stableFull()) return;
+  const cost = payFor(privatePrice(l)); if (cost > S.budget) return;
+  S.team.used.private = true; S.budget -= cost; S.sale = S.sale.filter(x => x !== l);
+  breed(l.sire, l.dam, "bought", cost, l); save();
 }
 function agentButton(F) {
-  const a = F && F.how === "bought" && agentLeft(); if (!a) return "";
-  return `<button class="tb-btn ghost" data-agent="1">Hand back: ${money(Math.round(F.cost * AGENT_REFUND[a.tier]))} (agent)</button>`;
+  const v = F && F.how === "bought" && held("vet"); if (!v || vetLeft() <= 0) return "";
+  return `<button class="tb-btn ghost" data-agent="1">Send back (vet's report): ${money(Math.round(F.cost * VET_REFUND[v.tier]))} refunded</button>`;
 }
 function handBack() {
-  const F = S.foal, a = agentLeft(); if (!F || F.how !== "bought" || !a) return;
-  const back = Math.round(F.cost * AGENT_REFUND[a.tier]);
-  S.budget += back; S.team.used.agent = true; S.foal = null; save();
-  toast(`Handed back through your Bloodstock Agent: ${money(back)} returned`);
+  const F = S.foal, v = held("vet"); if (!F || F.how !== "bought" || !v || vetLeft() <= 0) return;
+  const back = Math.round(F.cost * VET_REFUND[v.tier]);
+  S.budget += back; S.team.used.vet = (S.team.used.vet || 0) + 1; S.foal = null; save();
+  toast(`Sent back on the vet's report: ${money(back)} refunded`);
 }
 // Entries: your trainer cards on horses, your jockeys booked for races
 function teamAtEntries() {

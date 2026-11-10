@@ -16,13 +16,16 @@ const TEAM_ROLES = ["Owner", "Trainer", "Jockey"];
 const TIER_NAME = ["", "Bronze", "Silver", "Gold"], TIER_NUM = ["", "I", "II", "III"];
 
 // ---------- the numbers (easy to change after playtesting) ----------
-const POWERHOUSE = [0, 150000, 300000, 450000];          // added to the budget
-const ELITE_MARES = [null, ["mid"], ["hi"], ["hi", "hi"]];   // free mares, chosen from the whole pile
-const BLACK_TYPE = [0, 3, 4, 5];                         // the stallion's stars (as shown in the stud book)
-const BLACK_TYPE_USES = 3;                               // half price for up to this many nominations
-const STUD_MASTER = [0, 25000, 50000, 100000];           // paid now, and again for each of his lots a rival buys
-const STUD_MASTER_LOTS = 2;                              // ... up to this many lots (three times the first payment in all)
-const AGENT_REFUND = [0, 0.8, 0.9, 1];
+// Owner cards (owner, 10 Nov, second round): each pushes you towards breeding or the sales. No card pays income
+// ("too computer sim luck based"); the mares sale turns over 2 mares for everyone.
+const POWERHOUSE = [0, 150000, 300000, 450000];          // added to the budget (to be levelled against the others)
+const ELITE_SEE = [2, 3, 4, 5];                          // mares turned over at the mares sale: 2 for everyone, more with Elite Mares
+const OWNED_STARS = [0, 3, 4, 5], OWNED_DRAW = 3, OWNED_FREE = 2;   // Stallion Owner: three of these stars drawn, keep one, two free nominations
+const PEDIGREE_LOOKS = [0, 2, 4, 99];                    // Pedigree Expert: unproven stallions whose true stars you learn
+const TRADE_OFF = [0, 0.10, 0.15, 0.20];                 // Trade Terms: off every yearling's price
+const AGENT_BAND = [0, 15, 10, 5];                       // Bloodstock Agent: his projection is within this many points either way
+const VET_USES = [0, 1, 2, 3], VET_REFUND = [0, 0.8, 0.9, 1];   // Vet's Report: send a yearling back once you've seen it
+const PRIVATE_BOOKS = [null, [3], [2, 3], [1, 2, 3]];    // Private Sale: one lot before the ring, at the middle of its guide
 const JOCKEY_RIDES = [0, 3, 4, 5];                       // how many of your races he can ride
 const JOCKEY_LEVEL = [0, 3, 4, 5];                       // his skill in the race engine (1 to 5); your own yard's is random
 // What each jockey card does in the race engine, by tier (race-engine/engine.js: formBest, noFlop, paceTank, lateKick,
@@ -40,12 +43,14 @@ const JOCKEY_EDGE = {
 // ---------- the cards ----------
 // Owner: 6 kinds × 3 tiers. Trainer: the board's 10 kinds × 3 tiers. Jockey: the board's 4 kinds × 3 tiers.
 const OWNER_KINDS = {
-  powerhouse: { title: "Powerhouse", when: "At once", text: t => `${money(POWERHOUSE[t])} more to spend on mares, stud fees and yearlings.` },
-  elite: { title: "Elite Mares", when: "The National Stud", text: t => t === 1 ? "One Useful (3★) mare free, picked from the whole pile, on top of your ten." : t === 2 ? "One Blue-blooded (4–5★) mare free, picked from the whole pile, on top of your ten." : "Two Blue-blooded (4–5★) mares free, picked from the whole pile, on top of your ten." },
-  blacktype: { title: "Black Type Stud", when: "The National Stud", text: t => `Choose one ${BLACK_TYPE[t]}★ stallion: half price on up to ${BLACK_TYPE_USES} nominations to him.` },
-  studmaster: { title: "Stud Master", when: "Before Tattersalls", text: t => `Choose a stallion in secret. ${money(STUD_MASTER[t])} now, and ${money(STUD_MASTER[t])} more in stud income each time a rival buys one of his yearlings (up to ${STUD_MASTER_LOTS} lots). Stud income counts with your prize money.` },
-  agent: { title: "Bloodstock Agent", when: "Tattersalls", text: t => `Once: when a yearling is knocked down to you and you see what it is, you may hand it back for ${Math.round(AGENT_REFUND[t] * 100)}% of the price.` },
-  insider: { title: "Auction Insider", when: "Tattersalls", text: t => t === 1 ? "Once: buy one lot from Book 2 or 3 at its reserve, without going to auction." : t === 2 ? "See the class of every yearling in the catalogue before you bid." : "See the class of every yearling before you bid, and once, buy any lot at its reserve without going to auction." },
+  powerhouse: { title: "Powerhouse", leans: "Either", when: "At once", text: t => `${money(POWERHOUSE[t])} more to spend on mares, stud fees and yearlings.` },
+  elite: { title: "Elite Mares", leans: "Breeding", when: "The National Stud", text: t => `At the mares sale you see ${ELITE_SEE[t]} mares from the pile instead of 2, and keep the one you want.` },
+  stallion: { title: "Stallion Owner", leans: "Breeding", when: "The National Stud", text: t => `Three ${OWNED_STARS[t]}★ stallions are drawn at the stud: keep one as your own, with ${OWNED_FREE} free nominations to him.` },
+  pedigree: { title: "Pedigree Expert", leans: "Breeding", when: "The stud and the sales", text: t => `An unproven stallion may be a star better or worse than the stud book says. Your expert tells you the truth about ${t === 3 ? "every one of them" : PEDIGREE_LOOKS[t] + " of them"}.` },
+  trade: { title: "Trade Terms", leans: "The sales", when: "Tattersalls", text: t => `${Math.round(TRADE_OFF[t] * 100)}% off the price of every yearling you buy at Tattersalls.` },
+  agent: { title: "Bloodstock Agent", leans: "The sales", when: "Tattersalls", text: t => `His projection of every yearling's peak rating, to within ${AGENT_BAND[t]} points either way: the true figure is somewhere in his range.` },
+  vet: { title: "Vet's Report", leans: "The sales", when: "Tattersalls", text: t => `When a yearling is knocked down to you and you see what it is, you can send it back: ${["", "once", "twice", "three times"][t]}, ${Math.round(VET_REFUND[t] * 100)}% of the price refunded.` },
+  private: { title: "Private Sale", leans: "The sales", when: "Tattersalls", text: t => `Once, buy one lot ${t === 1 ? "from Book 3" : t === 2 ? "from Book 2 or 3" : "from any Book"} before it reaches the ring, at the middle of its guide price, with no rival bidding.` },
 };
 const JOCKEY_KINDS = {
   champion: { title: "Champion Jockey", style: null, text: t => t === 1 ? "Gets a tune out of his horse: it tends to run to its best." : t === 2 ? "Gets the best out of his horse: it runs to its best, and never a stinker." : "Rides his horse at its very best: usually its best run of the season, never a stinker." },
@@ -146,66 +151,68 @@ function finishTeam() {
   const T = teamState(); if (T.done) return;
   T.done = true;
   const p = held("powerhouse"); if (p) S.budget += POWERHOUSE[p.tier];
-  const sm = held("studmaster"); if (sm) S.budget += STUD_MASTER[sm.tier];   // paid now; the stallion is chosen before Tattersalls
   // Stable Form III goes on every horse; the others wait for you to give them to a horse
 }
 // Older saves (before the team) carry on without one
 const teamSkipped = () => !!(S.team && S.team.skipped);
 
 // ---------- owner cards at the National Stud ----------
-const eliteLeft = () => { const c = held("elite"); if (!c) return []; const used = S.team.used.elite || 0; return ELITE_MARES[c.tier].slice(used); };
-const mareCap = () => MARE_CAP + (held("elite") ? ELITE_MARES[held("elite").tier].length : 0);
-function takeEliteMare(name) {
-  const left = eliteLeft(), m = byName(name); if (!left.length || !m) return false;
-  const p = PILES.find(x => x.id === left[0]); if (!p.stars.includes(m.stars) || ownMares().has(name)) return false;
-  S.hand.push(name); S.team.used.elite = (S.team.used.elite || 0) + 1; save();
-  return true;
-}
-const blackTypeStallion = () => held("blacktype") && S.team.choice.blacktype;
-function blackTypeFits(s) { const c = held("blacktype"); return c && s.shownStars === BLACK_TYPE[c.tier]; }
-// the fee you pay for a nomination: half to your Black Type stallion while the card's uses last
-function feeFor(s) {
-  if (blackTypeStallion() === s.name && (S.team.used.blacktype || 0) < BLACK_TYPE_USES) return Math.round(s.fee / 2);
-  return s.fee;
-}
-function chooseStallion(kind, name) {
-  if (!held(kind) || S.team.choice[kind]) return false;
-  const s = stallion(name); if (!s) return false;
-  if (kind === "blacktype" && !blackTypeFits(s)) return false;
-  if (kind === "studmaster" && S.step > 2) return false;
-  S.team.choice[kind] = name; save(); return true;
-}
-// Stud Master: a rival bought one of his lots
-function studMasterSale(l, rival) {
-  const c = held("studmaster"); if (!c || S.team.choice.studmaster !== l.sire) return 0;
-  const n = S.team.used.studmaster || 0; if (n >= STUD_MASTER_LOTS) return 0;
-  S.team.used.studmaster = n + 1; S.team.income += STUD_MASTER[c.tier];
-  S.team.incomeLog.push({ lot: l.n, sire: l.sire, rival, amount: STUD_MASTER[c.tier] });
-  return STUD_MASTER[c.tier];
-}
-// When the sales close (you leave for the races), the lots nobody brought into the ring go through it among the rivals
-function closeSales() {
-  if (!S.sale || !S.sale.length) return;
-  for (const l of S.sale) {
-    const ap = appeal(l), top = RIVALS.map(r => ({ r, c: Math.random() < r.keen(l) ? l.reserve * ap * r.want(l) * (.7 + Math.random() * .9) : 0 })).sort((a, b) => b.c - a.c)[0];
-    if (top && top.c >= l.reserve) studMasterSale(l, top.r.name);
+// how many mares the mares sale turns over (rules.js drawPile)
+const offerSize = () => ELITE_SEE[held("elite") ? held("elite").tier : 0];
+// Stallion Owner: three stallions of the card's stars drawn (once), one kept
+function ownerDraw() {
+  const c = held("stallion"); if (!c) return [];
+  if (!S.team.choice.draw) {
+    const fits = STALLIONS.map(x => stallion(x.name)).filter(x => x.shownStars === OWNED_STARS[c.tier]).map(x => [Math.random(), x.name]).sort((a, b) => a[0] - b[0]).map(x => x[1]);
+    S.team.choice.draw = fits.slice(0, OWNED_DRAW); save();
   }
-  S.sale = []; save();
+  return S.team.choice.draw;
 }
+const ownedStallion = () => held("stallion") && S.team.choice.stallion;
+function ownStallion(name) {
+  if (!held("stallion") || S.team.choice.stallion || !ownerDraw().includes(name)) return false;
+  S.team.choice.stallion = name; save(); return true;
+}
+const ownedFreeLeft = () => ownedStallion() ? OWNED_FREE - (S.team.used.stallion || 0) : 0;
+// the fee you pay for a nomination: nothing to your own stallion while the free ones last
+function feeFor(s) { return ownedStallion() === s.name && ownedFreeLeft() > 0 ? 0 : s.fee; }
+// Pedigree Expert: the unproven stallions you know the truth about (Gold: all of them)
+function knowsTrue(name) {
+  const c = held("pedigree"); if (!c) return false;
+  return PEDIGREE_LOOKS[c.tier] >= 99 || (S.team.used.revealed || []).includes(name);
+}
+const pedigreeLeft = () => { const c = held("pedigree"); return c && PEDIGREE_LOOKS[c.tier] < 99 ? PEDIGREE_LOOKS[c.tier] - (S.team.used.revealed || []).length : 0; };
+function askExpert(name) {
+  const s = stallion(name); if (!s || !s.unproven || knowsTrue(name) || pedigreeLeft() <= 0) return false;
+  S.team.used.revealed = (S.team.used.revealed || []).concat(name); save(); return true;
+}
+const unprovenStallions = () => STALLIONS.map(x => stallion(x.name)).filter(x => x.unproven);
+// (no card pays income any more; kept so older screens and saves still add up)
 const teamIncome = () => (S.team ? S.team.income || 0 : 0);
+function closeSales() {}
 
 // ---------- owner cards at Tattersalls ----------
-// Each lot's yearling is settled when the catalogue is made (seeded), so an Auction Insider can see its class first
+// Each lot's yearling is settled when the catalogue is made (seeded), so the agent's projection is of the real yearling
 function lotFoal(l) {
   if (l.fs == null) return null;
   return breedPure(stallion(l.sire), byName(l.dam), seeded(l.fs));
 }
-const insiderSees = () => { const c = held("insider"); return !!c && c.tier >= 2; };
-function insiderClaimOK(l) {
-  const c = held("insider"); if (!c || c.tier === 2 || S.team.used.insider) return false;
-  return c.tier === 3 || l.book >= 2;
+// what a yearling costs you: the hammer price less your Trade Terms
+const payFor = price => { const c = held("trade"); return c ? Math.round(price * (1 - TRADE_OFF[c.tier])) : price; };
+// the dearest hammer price your budget covers
+const canBidTo = () => { const c = held("trade"); return c ? Math.floor(S.budget / (1 - TRADE_OFF[c.tier])) : S.budget; };
+// Bloodstock Agent: a range of 2 × band points with the true peak somewhere inside it (the same range every time you look)
+function agentRange(l) {
+  const c = held("agent"); if (!c) return null;
+  const f = lotFoal(l); if (!f) return null;
+  const B = AGENT_BAND[c.tier], u = seeded((l.fs ^ 0x5bd1e995) >>> 0)(), lo = Math.round(f.r[2] - u * 2 * B);
+  return { lo, hi: lo + 2 * B };
 }
-const agentLeft = () => { const c = held("agent"); return c && !S.team.used.agent ? c : null; };
+// Vet's Report: yearlings you may still send back
+const vetLeft = () => { const c = held("vet"); return c ? VET_USES[c.tier] - (S.team.used.vet || 0) : 0; };
+// Private Sale: one lot before the ring, at the middle of its guide
+const privatePrice = l => round5k((guide(l)[0] + guide(l)[1]) / 2);
+function privateOK(l) { const c = held("private"); return !!c && !S.team.used.private && PRIVATE_BOOKS[c.tier].includes(l.book); }
 
 // ---------- trainer cards ----------
 // S.team.trains[code] = [horse ids]; Stable Form III is on every horse

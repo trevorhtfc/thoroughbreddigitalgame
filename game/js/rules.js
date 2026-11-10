@@ -525,8 +525,7 @@ function migrate7() {
 }
 // Mares in your stud: still to breed from, plus those already used this season
 const studCount = () => S.hand.length + S.usedMares.length;
-// mares you paid for (Elite Mares' free ones come on top of the ten: js/team.js)
-const paidMares = () => studCount() - ((S.team && S.team.used && S.team.used.elite) || 0);
+const paidMares = studCount;
 const ownMares = () => new Set([...S.usedMares, ...S.hand, ...(S.offer ? S.offer.mares : [])]);
 const maresOut = ownMares;
 // Breeding comes first, so the piles draw from the whole deck (Tattersalls is made later from what's left)
@@ -598,11 +597,12 @@ function newCatalogue() {
   S.sale = lots; S.catDams = [...used];
 }
 // Mares sale: pay the pile's price, three of its mares are turned over, and you keep one
-const OFFER_SIZE = 3;
+// (owner, 10 Nov: two mares turned over for everyone; Elite Mares shows more: js/team.js offerSize)
+const OFFER_SIZE = 2;
 function drawPile(id) {
   const p = PILES.find(x => x.id === id); if (S.offer || !p || paidMares() >= MARE_CAP || p.price > S.budget) return;
   const left = pileLeft(p).map(m => [Math.random(), m]).sort((a, b) => a[0] - b[0]).map(x => x[1]); if (!left.length) return;
-  S.budget -= p.price; S.offer = { pile: p.id, mares: left.slice(0, OFFER_SIZE).map(m => m.name) };
+  S.budget -= p.price; S.offer = { pile: p.id, mares: left.slice(0, typeof offerSize === "function" ? offerSize() : OFFER_SIZE).map(m => m.name) };
 }
 function keepOffer(name) {
   if (!S.offer || !S.offer.mares.includes(name)) return;
@@ -632,7 +632,7 @@ function keepFoal(name) {
   if (nm && !S.stable.some(h => h.name === nm) && !CARD.oppNames.has(nm)) F.h.name = nm;
   if (F.how === "bred") {
     S.budget -= F.cost;
-    if (S.team && blackTypeStallion() === F.h.sire && F.cost < stallion(F.h.sire).fee) S.team.used.blacktype = (S.team.used.blacktype || 0) + 1;   // a half-price nomination
+    if (S.team && typeof ownedStallion === "function" && ownedStallion() === F.h.sire && F.cost === 0) S.team.used.stallion = (S.team.used.stallion || 0) + 1;   // a free nomination to your own stallion
     S.usedMares.push(F.h.dam); S.hand = S.hand.filter(n => n !== F.h.dam); S.selMare = null; S.selStallion = null;
   }
   S.stable.push(F.h); S.foal = null; save();

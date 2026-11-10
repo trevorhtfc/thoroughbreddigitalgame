@@ -82,7 +82,7 @@ document.addEventListener("drop", e => {
 });
 function breedBody() {
   return `<div class="tb-head"><h1 class="tb-h">BREED</h1>
-    <p class="tb-lede" ${onJob() ? "" : "hidden"}>You have ${money(START_BUDGET)} to build a stable for this season's ${RACES.length} races, with room for ${STABLE_CAP - RACES.length} spares. Buy mares at the mares sale (pick a pile, then choose one of the three turned over; up to ${MARE_CAP}), then breed them. Keep some money back for Tattersalls, where the sale is made from the mares nobody bred. Every foal arrives as a 2-year-old, and it's a coin flip whether you get a colt or a filly.</p></div>
+    <p class="tb-lede" ${onJob() ? "" : "hidden"}>You have ${money(START_BUDGET)} to build a stable for this season's ${RACES.length} races, with room for ${STABLE_CAP - RACES.length} spares. Buy mares at the mares sale (pick a pile, then choose one of the ${offerSize()} turned over; up to ${MARE_CAP}), then breed them. Keep some money back for Tattersalls, where the sale is made from the mares nobody bred. Every foal arrives as a 2-year-old, and it's a coin flip whether you get a colt or a filly.</p></div>
     ${viewTabs("The stud")}
     ${refView(studView)}`;
 }
@@ -120,10 +120,10 @@ function stallionCard(s, m) {
   const prob = m ? pairProblem(s, m) : "", on = S.selStallion === s.name, ln = m && !prob ? lineNote(s, m) : null;
   return `<button class="hc s ${on ? "on" : ""}" data-stallion="${esc2(s.name)}" ${prob ? "disabled" : ""} aria-pressed="${on}"><span class="tick">✓</span>
     <div class="hc-top"><span class="hc-l">S</span><span class="hc-n">${esc2(s.name)}</span></div>
-    <div class="hc-b"><div class="hc-r">${pips(s.shownStars, s.unproven)}<span class="hc-fee">${feeFor(s) < s.fee ? `<s>${money(s.fee)}</s> ${money(feeFor(s))}` : money(s.fee)}</span></div>
+    <div class="hc-b"><div class="hc-r">${knowsTrue(s.name) ? pips(s.trueStars) : pips(s.shownStars, s.unproven)}<span class="hc-fee">${feeFor(s) < s.fee ? `<s>${money(s.fee)}</s> Free` : money(s.fee)}</span></div>
     ${hcTrip(s)}<div class="hc-meta"><span><b>${s.sireLine} | ${s.sireCode}</b></span><span>Peaks <b>${s.peakAge}</b></span></div>
     <div class="hc-g">${s.groundPreference.join(", ")}</div>
-    <div class="hc-foot">${s.unproven ? `<span class="warn">Unproven: one star either way</span>` : ""}${prob ? `<span class="why">${esc2(prob)}</span>` : ""}${ln ? `<span class="ln ${ln.cls}">${ln.text}</span>` : ""}</div></div></button>`;
+    <div class="hc-foot">${s.unproven ? (knowsTrue(s.name) ? `<span class="warn">Your expert: really ${s.trueStars}★</span>` : `<span class="warn">Unproven: one star either way</span>`) : ""}${prob ? `<span class="why">${esc2(prob)}</span>` : ""}${ln ? `<span class="ln ${ln.cls}">${ln.text}</span>` : ""}</div></div></button>`;
 }
 function studView() {
   const m = S.selMare && byName(S.selMare);
@@ -132,15 +132,15 @@ function studView() {
   if (m) rows = rows.filter(s => !pairProblem(s, m)).concat(rows.filter(s => pairProblem(s, m)));
   const st = S.selStallion && stallion(S.selStallion), ok = st && m && !pairProblem(st, m), fee = st ? feeFor(st) : 0, afford = st && fee <= S.budget, ln = ok ? lineNote(st, m) : null;
   const trips = [["all", "All"], ["sprint", "Sprint 5–6f"], ["mile", "Mile 7f–1m1f"], ["middle", "Middle 1m2f–1m4f"], ["staying", "Staying 1m6f+"]];
-  if (!m && !studCount()) return `${teamAtStud()}${maresSale()}${eliteMares()}<section class="sect"><div class="sect-h"><h2 class="tb-h2">YOUR MARES</h2><span>0 of ${MARE_CAP}</span></div>
-    <p class="tb-empty">No mares yet. Buy your first above: pick a pile, then choose one of the three mares turned over.</p></section>`;
+  if (!m && !studCount()) return `${teamAtStud()}${maresSale()}<section class="sect"><div class="sect-h"><h2 class="tb-h2">YOUR MARES</h2><span>0 of ${MARE_CAP}</span></div>
+    <p class="tb-empty">No mares yet. Buy your first above: pick a pile, then choose one of the ${offerSize()} mares turned over.</p></section>`;
   if (!m) return `${teamAtStud()}<section class="sect"><div class="sect-h"><h2 class="tb-h2">YOUR MARES</h2><span>${studCount()} of ${MARE_CAP} in your stud · ${S.usedMares.length} covered · tap a mare to breed her</span></div>
     <div class="grid">${S.hand.map(mareCard).join("") || `<p class="tb-empty">${S.usedMares.length ? "Every mare has been covered. Buy another below, or head to Tattersalls." : "No mares yet. Buy one below."}</p>`}</div></section>
-    ${maresSale()}${eliteMares()}`;
+    ${maresSale()}`;
   return `<section class="sect pick-mare"><div class="sect-h"><h2 class="tb-h2">BREEDING ${esc2(m.name).toUpperCase()}</h2><button class="tb-btn ghost sm" id="changeMare">‹ Choose a different mare</button></div>
     <div class="grid one">${mareCard(m.name)}</div></section>
     <div class="tb-bar sticky-bar"><div class="tb-bar-info ${ok && afford ? "ready" : ""}">${!m ? "Pick a mare." : !st ? `Tap a stallion for ${esc2(m.name)}.` : !ok ? esc2(pairProblem(st, m)) + "." :
-      `${esc2(st.name)} × ${esc2(m.name)}. Stud fee ${fee < st.fee ? `<s>${money(st.fee)}</s> ${money(fee)} (Black Type Stud)` : money(st.fee)}${ln ? ` · <span class="line ${ln.cls}">${ln.text}</span>` : ""}${afford ? "" : " · not enough budget"}${stableFull() ? ` · your stable is full (${STABLE_CAP})` : ""}`}</div>
+      `${esc2(st.name)} × ${esc2(m.name)}. Stud fee ${fee < st.fee ? `<s>${money(st.fee)}</s> free (your own stallion)` : money(st.fee)}${ln ? ` · <span class="line ${ln.cls}">${ln.text}</span>` : ""}${afford ? "" : " · not enough budget"}${stableFull() ? ` · your stable is full (${STABLE_CAP})` : ""}`}</div>
       <div class="tb-bar-btns"><button class="tb-btn" id="breedBtn" ${ok && afford && !S.foal && !stableFull() ? "" : "disabled"}>Breed</button></div></div>
     <section class="sect"><div class="sect-h"><h2 class="tb-h2">STALLIONS</h2>
       <label class="sortby">Sort by <select id="sort"><option value="fee" ${S.sort === "fee" ? "selected" : ""}>Fee</option><option value="stars" ${S.sort === "stars" ? "selected" : ""}>Stars</option><option value="trip" ${S.sort === "trip" ? "selected" : ""}>Trip</option></select></label></div>
@@ -168,7 +168,7 @@ function maresSale() {
     return `<section class="sect msale" id="offer"><div class="sect-h"><h2 class="tb-h2">MARES SALE · ${p.name.toUpperCase()}</h2><span>Paid ${money(p.price)}</span></div>
       <p class="offer-h">${S.offer.mares.length} mare${S.offer.mares.length === 1 ? "" : "s"} turned over from the ${p.stars.map(n => n + "★").join("–")} pile. Keep one; the others go back.</p>
       <div class="offers">${S.offer.mares.map(offerCard).join("")}</div></section>`; }
-  return `<section class="sect msale"><div class="sect-h"><h2 class="tb-h2">MARES SALE</h2><span>Pay the price, see three mares from that pile and keep the one you want</span></div>
+  return `<section class="sect msale"><div class="sect-h"><h2 class="tb-h2">MARES SALE</h2><span>Pay the price, see ${offerSize()} mares from that pile and keep the one you want</span></div>
     <div class="piles">${PILES.map(pile).join("")}</div>
     ${full ? `<p class="hint">Your stud is full at ${MARE_CAP} mares.</p>` : ""}</section>`;
 }
@@ -181,10 +181,10 @@ function saleView() {
     <div class="lots">${S.sale.filter(l => l.book === S.book).map(l => { const s = stallion(l.sire), m = byName(l.dam), line = lineNote(s, m);
       return `<article class="lot"><div class="lot-h"><span class="lot-n">LOT ${l.n}</span><span class="line ${line.cls}">${line.text}</span></div>
         <div class="ped">
-          <div class="pc s"><span class="pc-l">S</span><div><b>${esc2(s.name)}</b>${pips(s.shownStars, s.unproven)}<small>${s.optimumDistance} · peaks ${s.peakAge}</small></div></div>
+          <div class="pc s"><span class="pc-l">S</span><div><b>${esc2(s.name)}</b>${knowsTrue(s.name) ? pips(s.trueStars) : pips(s.shownStars, s.unproven)}<small>${s.optimumDistance} · peaks ${s.peakAge}</small></div></div>
           <div class="pc m"><span class="pc-l">M</span><div><b>${esc2(m.name)}</b>${pips(m.stars)}<small>${m.optimumDistance} · peaks ${m.peakAge}</small></div></div></div>
         ${lotInsight(l)}<div class="lot-foot"><span>Reserve ${money(l.reserve)} · guide ${money(guide(l)[0])}–${money(guide(l)[1])}</span></div>
-        <button class="tb-btn block" data-auction="${l.id}" ${openBid(l) <= S.budget && !S.foal && !stableFull() ? "" : "disabled"}>${openBid(l) <= S.budget ? "Bring into the ring" : "Can't afford the opening bid"}</button>${lotClaim(l)}</article>`; }).join("") || `<p class="tb-empty">Every lot in this Book has been sold.</p>`}</div>`;
+        <button class="tb-btn block" data-auction="${l.id}" ${openBid(l) <= canBidTo() && !S.foal && !stableFull() ? "" : "disabled"}>${openBid(l) <= canBidTo() ? "Bring into the ring" : "Can't afford the opening bid"}</button>${lotClaim(l)}</article>`; }).join("") || `<p class="tb-empty">Every lot in this Book has been sold.</p>`}</div>`;
 }
 function stableCard(h, developable) {
   const r = RACES.find(x => S.entries[x.id] === h.id), now = ratingAt(h, h.age), o = outlook(h);
@@ -568,7 +568,7 @@ function resultBody(wins, losses, prize) {
   const rows = RACES.map((r, k) => { const res = S.results[r.id], h = horse(S.entries[r.id]);
     return `<li class="tr" data-k="${k}"><span class="tr-d">${dayTag(r.day)}</span><span class="tr-p ${res && res.pos === 1 ? "win" : res && res.pos >= 2 && res.pos <= 4 ? "pl" : ""}">${res && res.pos ? ord(res.pos) : "–"}</span>
       <span class="tr-n"><b>${r.name}</b><small>${h ? esc2(h.name) : "No runner"}${bookedFor(r) ? ` · ${cardName(bookedFor(r))}` : ""}</small></span><span class="tr-m">${res && res.prize ? "+" + money(res.prize) : ""}</span></li>`; }).join("")
-    + (teamIncome() ? `<li class="tr" data-k="${RACES.length}"><span class="tr-d">Stud</span><span class="tr-p pl">£</span><span class="tr-n"><b>Stud Master income</b><small>${esc2(S.team.choice.studmaster || "")}: ${S.team.incomeLog.length} lot${S.team.incomeLog.length === 1 ? "" : "s"} sold to rivals</small></span><span class="tr-m">+${money(teamIncome())}</span></li>` : "");
+;
   const hist = pastWeeks().slice().sort((a, b) => b.prize - a.prize), counts = {}; hist.forEach(w => counts[w.title] = (counts[w.title] || 0) + 1);
   const rank = hist.findIndex(w => w.seed === S.seed && w.prize === prize) + 1;
   return `<div class="tb-head"><h1 class="tb-h">FINAL STANDINGS</h1>
@@ -692,7 +692,7 @@ function openAuction(id) {
   const ap = appeal(l);
   const rivals = RIVALS.map(r => ({ ...r, ceil: Math.random() < r.keen(l) ? l.reserve * ap * r.want(l) * (.7 + Math.random() * .9) : 0, wait: null }));
   A = { l, price: null, leader: null, start: performance.now(), last: performance.now(), rivals, log: [], call: -1, done: false, auto: 0, autoOn: false, ang: Math.random() * 6.28 };
-  A.auto = Math.min(S.budget, round5k(guide(l)[0]));
+  A.auto = Math.min(canBidTo(), round5k(guide(l)[0]));
   S.ring = l.id; save();   // the lot is in the ring: leave the page now and it has gone when you come back (no going back)
   const box = document.createElement("div"); box.className = "auc"; box.id = "auc"; box.setAttribute("role", "dialog"); box.setAttribute("aria-label", `Tattersalls, lot ${l.n}`);
   box.innerHTML = aucHTML(); document.body.appendChild(box); document.body.style.overflow = "hidden";
@@ -712,7 +712,7 @@ function aucHTML() {
     <div class="auc-panel">
       <div class="auc-top"><h2 class="auc-h">Lot ${l.n}</h2><div class="auc-k">TATTERSALLS · ${b.name.toUpperCase()}</div></div>
       <div class="auc-ped">
-        <div class="pc s"><span class="pc-l">S</span><div><b>${esc2(s.name)}</b>${pips(s.shownStars, s.unproven)}<small>${s.optimumDistance} · peaks ${s.peakAge}</small></div></div>
+        <div class="pc s"><span class="pc-l">S</span><div><b>${esc2(s.name)}</b>${knowsTrue(s.name) ? pips(s.trueStars) : pips(s.shownStars, s.unproven)}<small>${s.optimumDistance} · peaks ${s.peakAge}</small></div></div>
         <div class="pc m"><span class="pc-l">M</span><div><b>${esc2(m.name)}</b>${pips(m.stars)}<small>${m.optimumDistance} · peaks ${m.peakAge}</small></div></div></div>
       <div class="auc-facts"><span><span class="line ${ln.cls}">${ln.text}</span></span><span>Reserve <b>${money(l.reserve)}</b></span><span>Guide <b>${money(guide(l)[0])}–${money(guide(l)[1])}</b></span><span>Budget <b>${money(S.budget)}</b></span></div>
       <div class="auc-now" aria-live="polite"><div class="lbl" id="aucLbl">Opening bid</div><div class="big" id="aucBig">${money(openBid(l))}</div><div class="who" id="aucWho">No bids yet</div></div>
@@ -746,7 +746,7 @@ function aucTick() {
     if (e >= r.wait && (!who || r.wait < who.wait)) who = r;
   }
   if (who) return aucPlace(who.id);
-  if (A.autoOn && A.leader !== "me" && nx <= A.auto && nx <= S.budget && e >= .7) return aucPlace("me");
+  if (A.autoOn && A.leader !== "me" && nx <= A.auto && nx <= canBidTo() && e >= .7) return aucPlace("me");
   const T = aucTimes(), call = e >= T[2] ? 3 : e >= T[1] ? 2 : e >= T[0] ? 1 : 0;
   if (call !== A.call) { A.call = call; if (call === 3) return aucHammer(); aucCall(call); }
   const arc = aucEl("abArc"); if (arc) arc.setAttribute("stroke-dashoffset", (276.5 * (1 - Math.min(1, e / T[2]))).toFixed(1));
@@ -759,7 +759,7 @@ function aucCall(k) {
 function aucPlace(id) {
   if (!A || A.done) return;
   const nx = aucNext();
-  if (id === "me" && (nx > S.budget || A.leader === "me")) return;
+  if (id === "me" && (nx > canBidTo() || A.leader === "me")) return;
   A.price = nx; A.leader = id; A.last = performance.now(); A.call = -1; A.rivals.forEach(r => r.wait = null);
   const name = id === "me" ? "You" : A.rivals.find(r => r.id === id).name;
   A.log.unshift(`${money(nx)} · ${name}`); A.log = A.log.slice(0, 6);
@@ -778,8 +778,8 @@ function aucPaint() {
   const who = aucEl("aucWho");
   who.className = "who " + (me ? "me" : lead ? "them" : "");
   who.textContent = me ? "You're the top bidder" : lead ? `${lead.name} has it` : "No bids yet";
-  const bid = aucEl("aucBid"), can = !A.done && !me && nx <= S.budget;
-  bid.disabled = !can; bid.textContent = A.done ? "Hammer down" : me ? "You hold the bid" : nx > S.budget ? `Can't go to ${money(nx)}` : `Bid ${money(nx)}`;
+  const bid = aucEl("aucBid"), can = !A.done && !me && nx <= canBidTo();
+  bid.disabled = !can; bid.textContent = A.done ? "Hammer down" : me ? "You hold the bid" : nx > canBidTo() ? `Can't go to ${money(nx)}` : `Bid ${money(nx)}`;
   aucEl("autoAmt").textContent = money(A.auto);
   const on = aucEl("autoOn"); on.textContent = A.autoOn ? "On" : "Off"; on.classList.toggle("on", A.autoOn); on.setAttribute("aria-pressed", A.autoOn);
   aucEl("aucLeave").disabled = !A.done && me;
@@ -798,13 +798,13 @@ function aucHammer() {
   } else if (A.leader === "me") {
     // yours the moment the hammer falls (and saved), not when the ring is left
     msg = "SOLD!"; A.outcome = { kind: "won" };
-    S.budget -= A.price; S.sale = S.sale.filter(x => x !== l);
-    breed(l.sire, l.dam, "bought", A.price, l);
+    const cost = payFor(A.price);   // less your Trade Terms (js/team.js)
+    S.budget -= cost; S.sale = S.sale.filter(x => x !== l);
+    breed(l.sire, l.dam, "bought", cost, l);
   } else {
     const r = A.rivals.find(x => x.id === A.leader);
     msg = "Sold"; S.sale = S.sale.filter(x => x !== l);
-    const inc = studMasterSale(l, r.name);
-    A.outcome = { kind: "lost", text: `Lot ${l.n} sold to ${r.name} for ${money(A.price)}.${inc ? ` Stud Master: +${money(inc)} stud income.` : ""}` };
+    A.outcome = { kind: "lost", text: `Lot ${l.n} sold to ${r.name} for ${money(A.price)}.` };
   }
   S.ring = null;
   c.className = "auc-call sold"; c.textContent = msg; void c.offsetWidth; c.classList.add("pop");

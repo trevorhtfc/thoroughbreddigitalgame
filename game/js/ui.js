@@ -531,7 +531,6 @@ async function arriveNewmarket(withFilm = true) {
 // you, so it plays with its sound
 async function goToAscot() {
   closeSheet({ quiet: true }); BOARD.choose(null);
-  closeSales();   // the lots nobody brought into the ring go through it among the rivals (Stud Master income)
   S.step = 4; S.open = null; save();
   if (window.LIFE) { try { LIFE.procession("boxes"); } catch (e) {} }
   await arriveAscot(true);
@@ -626,7 +625,7 @@ document.addEventListener("change", e => {
   const t = e.target, d = t.dataset || {};
   if (t.id === "sort") { S.sort = t.value; save(); render(); return; }
   // your team (js/team.js): a stallion for an owner's card, a trainer card on a horse, a jockey booked for a race
-  if (d.choose) { if (t.value && chooseStallion(d.choose, t.value)) toast(d.choose === "blacktype" ? `${t.value} is your Black Type stallion: half price` : `${t.value} is your Stud Master stallion (kept secret)`); render(); return; }
+  if (d.ask) { if (t.value && askExpert(t.value)) { const x = stallion(t.value); toast(`Your expert: ${x.name} is really a ${x.trueStars}★ stallion`); } render(); return; }
   if (d.train) { const on = (S.team.trains[d.train] || []).slice(), k = +d.slot || 0;
     if (on[k]) takeTrainer(d.train, on[k]);
     if (t.value) { giveTrainer(d.train, t.value); const h = horse(t.value); toast(`${cardName(teamCard(d.train))} goes on ${h.name}`); }
@@ -641,7 +640,7 @@ document.addEventListener("click", e => {
   if (d.jtab) { UI.tab.jockey = d.jtab; render(); sheetTop(); return; }
   if (d.deck) { const [role, tier] = d.deck.split(":"); if (drawDeck(role, +tier)) { render(); sheetTop(); BOARD.Sound.chime && BOARD.Sound.chime(); } return; }
   if (d.keepcard) { const c = teamCard(d.keepcard); keepTeamCard(d.keepcard); toast(`${cardName(c)} joins your team`); render(); sheetTop(); return; }
-  if (d.elite) { if (takeEliteMare(d.elite)) toast(`${d.elite} joins your stud, free`); render(); return; }
+  if (d.own) { if (ownStallion(d.own)) toast(`${d.own} is your own stallion: ${OWNED_FREE} free nominations`); render(); return; }
   if (d.claim) { claimLot(d.claim); render(); return; }
   if (d.agent) { handBack(); render(); return; }
   if (d.stab) { UI.tab.stables = d.stab; render(); sheetTop(); return; }
@@ -690,7 +689,6 @@ document.addEventListener("click", e => {
     case "saleNo": S.confirmSale = false; render(); break;
     case "saleYes": if (S.step !== 1 || S.foal || S.offer) break;
       // a Stud Master who hasn't chosen gets a stallion picked for him
-      if (held("studmaster") && !S.team.choice.studmaster) { S.team.choice.studmaster = pick(STALLIONS).name; toast(`Stud Master: ${S.team.choice.studmaster} was picked for you`); }
       S.confirmSale = false; S.step = 2; S.book = 1; S.view = "job"; newCatalogue(); save();
       story("stud", "tatts", "sales", { procession: "yearlings" }); break;
     case "toEnter": if (S.step !== 2 || S.foal) break;
@@ -724,7 +722,7 @@ document.addEventListener("click", e => {
     case "aucBid": aucPlace("me"); break;
     case "aucLeave": aucLeave(); break;
     case "autoMinus": if (A) { A.auto = Math.max(openBid(A.l), A.auto - incFor(A.auto - 1)); aucPaint(); } break;
-    case "autoPlus": if (A) { A.auto = Math.min(S.budget, A.auto + incFor(A.auto)); aucPaint(); } break;
+    case "autoPlus": if (A) { A.auto = Math.min(canBidTo(), A.auto + incFor(A.auto)); aucPaint(); } break;
     case "autoOn": if (A) { A.autoOn = !A.autoOn; aucPaint(); } break;
     case "simInstead": { const i = watching.i; closeWatch(); simAndRecord(i).then(() => raceDone(i)).catch(err => toast(String(err.message || err))).finally(render); break; }
   }
