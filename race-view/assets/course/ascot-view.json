@@ -169,6 +169,63 @@
     1,
     3
    ]
+  },
+  {
+   "note": "Owner, 10 Nov ('a big blank patch' as they turn the corner): outside the home bend, beyond the straight mile's planting belt",
+   "area": [
+    790,
+    -45,
+    1350,
+    -720
+   ],
+   "spacing": 22,
+   "skip": 0.3,
+   "scale": [
+    1.0,
+    1.5
+   ],
+   "clump": [
+    1,
+    4
+   ]
+  },
+  {
+   "note": "Owner, 10 Nov: the infield inside the home bend, south of the carnival (kept clear of the grandstand camera's view of the turn)",
+   "area": [
+    470,
+    -150,
+    685,
+    -640
+   ],
+   "spacing": 24,
+   "skip": 0.35,
+   "scale": [
+    1.0,
+    1.45
+   ],
+   "clump": [
+    1,
+    4
+   ]
+  },
+  {
+   "note": "Owner, 10 Nov: north of the straight mile beyond the bend, behind the outer belt",
+   "area": [
+    700,
+    60,
+    1400,
+    200
+   ],
+   "spacing": 22,
+   "skip": 0.3,
+   "scale": [
+    1.0,
+    1.45
+   ],
+   "clump": [
+    1,
+    3
+   ]
   }
  ],
  "clearOf": {
@@ -485,13 +542,30 @@
     0,
     0.3
    ]
+  },
+  "bend": {
+   "label": "Bend",
+   "kind": "fixed",
+   "at": [
+    560,
+    24,
+    62
+   ],
+   "fov": [
+    3,
+    34
+   ],
+   "frame": "field",
+   "leadRoom": 3,
+   "note": "Owner, 10 Nov: 'a grandstand-esque drone that captures the swing around the corner': hovering high over the enclosures east of the stand, beyond the outer rail, with a long lens on the final bend: it picks the field up as they come up from Swinley Bottom, follows them round the turn towards it and into the straight, then the grandstand camera takes over (raceDirector.round.bend)."
   }
  },
  "raceDirector": {
-  "_about": "When the TV director cuts (distance to go of the leader, metres). Straight course: the drone along the grandstand side (owner, 8 Nov; was the tracking car) until straight.grandstand out, then the grandstand camera to the line and beyond (no cut at the finish). Round course: the grandstand camera from round.grandstand metres before each pass of the post; the look-back camera for round.lookback metres after a pass that isn't the finish (only while still ahead of the leader); tracking otherwise. After the finish: the side-on replay, slowed to replaySpeed, from replayFrom metres before the line to replayTo after it. Owner, 7 Nov: the grandstand camera picks the field up only once it is out of the home bend (round.grandstand 600: before that the carnival in the middle of the course stands between the stand and the bend); the round mile's chute is filmed by the drone (roundMile.drone: until the field is that many metres past the join), its tracking car would be in the hedge.",
+  "_about": "When the TV director cuts (distance to go of the leader, metres). Straight course: the drone along the grandstand side (owner, 8 Nov; was the tracking car) until straight.grandstand out, then the grandstand camera to the line and beyond (no cut at the finish). Round course: the grandstand camera from round.grandstand metres before each pass of the post; the look-back camera for round.lookback metres after a pass that isn't the finish (only while still ahead of the leader); tracking otherwise. After the finish: the side-on replay, slowed to replaySpeed, from replayFrom metres before the line to replayTo after it. Owner, 7 Nov: the grandstand camera picks the field up only once it is out of the home bend (round.grandstand 600: before that the carnival in the middle of the course stands between the stand and the bend); the round mile's chute is filmed by the drone (roundMile.drone: until the field is that many metres past the join), its tracking car would be in the hedge. Owner, 10 Nov: the last time round, the bend camera from round.bend metres out until round.grandstand (the swing into the straight).",
   "round": {
    "grandstand": 600,
-   "lookback": 380
+   "lookback": 380,
+   "bend": 1000
   },
   "straight": {
    "grandstand": 600,

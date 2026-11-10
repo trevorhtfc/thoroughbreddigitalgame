@@ -1403,7 +1403,7 @@ function placeTrees(gltf, dressing) {
   const m4 = new THREE.Matrix4(), q = new THREE.Quaternion(), sc = new THREE.Vector3(), p = new THREE.Vector3();
   // Soft shadows on the grass, falling away from the sun.
   console.log("trees:", spots.length);
-  const shadows = new THREE.InstancedMesh(new THREE.PlaneGeometry(1, 1), new THREE.MeshBasicMaterial({ map: shadowTex, color: "#1f3318", transparent: true, opacity: 0.45, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -4 }), spots.length);
+  const shadows = new THREE.InstancedMesh(new THREE.PlaneGeometry(1, 1), new THREE.MeshBasicMaterial({ map: shadowTex, color: "#1f3318", transparent: true, opacity: 0.45, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -4 }), spots.length * 2);
   const sunFlat = new THREE.Vector2(-SUN_OFFSET.x, -SUN_OFFSET.z).normalize();
   const ang = Math.atan2(sunFlat.y, sunFlat.x);
   spots.forEach((t, i) => {
@@ -1411,6 +1411,9 @@ function placeTrees(gltf, dressing) {
     p.set(t.x + sunFlat.x * h * 0.35, 0.04, t.z + sunFlat.y * h * 0.35);
     q.setFromEuler(new THREE.Euler(-Math.PI / 2, 0, -ang, "YXZ"));
     shadows.setMatrixAt(i, m4.compose(p, q, sc.set(h * 0.95, h * 0.6, 1)));
+    // and a darker patch right round the trunk, so every tree sits on the grass (owner, 10 Nov: "the trees are still a
+    // bit floating")
+    shadows.setMatrixAt(spots.length + i, m4.compose(p.set(t.x, 0.05, t.z), q, sc.set(h * 0.42, h * 0.42, 1)));
   });
   shadows.frustumCulled = false;
   scene.add(shadows);
@@ -1516,12 +1519,17 @@ function placeScenery(SC, models, treeLib, belts) {
     // (belt 2: scrub, e.g. along the Dyke's crest: light crowns only, no trunks, so hundreds of bushes stay cheap)
     const spots = SC.trees.map(([x, z, tree, s, turn, belt, dy]) => ({ x, z, tree, s, turn: turn || 0, belt: belt === 1, scrub: belt === 2, dy: dy || 0 }));
     instanceTrees(treeLib, spots);
-    const shadows = new THREE.InstancedMesh(new THREE.PlaneGeometry(1, 1), new THREE.MeshBasicMaterial({ map: shadowTex, color: "#1f3318", transparent: true, opacity: 0.45, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -4 }), spots.length);
+    const shadows = new THREE.InstancedMesh(new THREE.PlaneGeometry(1, 1), new THREE.MeshBasicMaterial({ map: shadowTex, color: "#1f3318", transparent: true, opacity: 0.45, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -4 }), spots.length * 2);
     const sunFlat = new THREE.Vector2(-SUN_OFFSET.x, -SUN_OFFSET.z).normalize(), ang = Math.atan2(sunFlat.y, sunFlat.x);
     spots.forEach((t, i) => {
       const h = 11 * t.s;
       const sx_ = t.x + sunFlat.x * h * 0.35, sz_ = t.z + sunFlat.y * h * 0.35;
-      shadows.setMatrixAt(i, m4.compose(p.set(sx_, 0.04 + groundY(sx_, sz_), sz_), q.setFromEuler(new THREE.Euler(-Math.PI / 2, 0, -ang, "YXZ")), sc.set(t.dy ? 0 : h * 0.95, h * 0.6, 1)));   // (none under sunk trees or the Dyke's scrub)
+      q.setFromEuler(new THREE.Euler(-Math.PI / 2, 0, -ang, "YXZ"));
+      shadows.setMatrixAt(i, m4.compose(p.set(sx_, 0.04 + groundY(sx_, sz_), sz_), q, sc.set(t.dy ? 0 : h * 0.95, h * 0.6, 1)));   // (none under sunk trees or the Dyke's scrub)
+      // a darker patch right round the trunk, so every tree sits on the ground (owner, 10 Nov: "the trees are still a bit
+      // floating"); trees raised onto a bank (dy > 0) get it on the bank, a little smaller
+      const k = t.scrub || t.dy < 0 ? 0 : t.dy > 0 ? 0.32 : 0.42;
+      shadows.setMatrixAt(spots.length + i, m4.compose(p.set(t.x, 0.06 + groundY(t.x, t.z) + Math.max(0, t.dy), t.z), q, sc.set(h * k, h * k, 1)));
     });
     shadows.frustumCulled = false; scene.add(shadows); LAYERS.trees.push(shadows);
   }
@@ -2031,6 +2039,9 @@ function directorShot(d, leadU) {
   if (ON_STRAIGHT && d > LOOP.length) return d - LOOP.length > DIR_.straight.grandstand ? STRAIGHT_CAM : "grandstand";
   const L = LOOP.length, q = ((d % L) + L) % L;                       // metres to the next pass of the post
   if (q <= DIR_.round.grandstand || d <= DIR_.round.grandstand) return "grandstand";
+  // the swing round the home bend (owner, 10 Nov): a camera high over the enclosures east of the stand, long lens,
+  // from round.bend metres out until the grandstand camera takes them up the straight (the last time round only)
+  if (DIR_.round.bend && RCAMS.bend && d <= DIR_.round.bend) return "bend";
   // just past a post that isn't the finish: the drone, ahead of the field round the bend with the stand behind them (owner,
   // 7 Nov: the fixed look-back camera had the field hidden behind the carnival's terraces and towers by the far rail)
   if (q > L - DIR_.round.lookback && d < DIST - 50 && RCAMS.drone) return "drone";
@@ -2241,7 +2252,8 @@ function button(parent, label, onClick, id) {
 const camsEl = document.getElementById("cams");
 const camChoices = VIEW.cameraMenu ? [["auto", "TV director"]].concat(VIEW.cameraMenu[RACE.course === "straight" ? "straight" : "round"].filter(([id]) => RCAMS[id]))
   : [["auto", "TV director"]].concat(RACE.course === "straight" ? [["drone_straight", "Drone"], ["track_straight", "Tracking"]] : [["track_loop", "Tracking"]], [["grandstand", "Grandstand"]])
-  .concat(RACE.course === "round" ? [["lookback", "Looking back"]] : [], RCAMS.terraces ? [["terraces", "Terraces"]] : []);
+  .concat(RACE.course === "round" ? [["lookback", "Looking back"]] : [], RACE.course !== "straight" && RCAMS.bend ? [["bend", "Bend"]] : [],
+    RCAMS.terraces ? [["terraces", "Terraces"]] : []);
 const camButtons = camChoices.map(([id, label]) => {
   const b = button(camsEl, label, () => { state.cam = id; snap = true; syncButtons(); }, "cam-" + id);
   b.dataset.cam = id; return b;
