@@ -456,6 +456,31 @@
    ],
    "frame": "all",
    "leadRoom": 4
+  },
+  "terraces": {
+   "label": "Terraces",
+   "kind": "terrace",
+   "note": "Owner, 10 Nov: watching from the terraces (\"I love the terrace view, add it to Ascot\"): a spectator's eye (1.62 m over the step) in the front row of the lower terrace east of the clock tower, 45 m before the post, with the TV director's picture in a corner. 'at' y is the height itself (absolute); the race view keeps 'clear' metres round the eye free of people, turns no more than 'pan' degrees either way from 'face' (straight out over the course) and keeps at least 'hfov' degrees across the screen. Floor and front from ascot_main_stand_crowd_areas.json (floor 6.25, z 0.15..1.05 back from the front line, 51.4).",
+   "at": [
+    45.0,
+    7.87,
+    52.0
+   ],
+   "absolute": true,
+   "face": [
+    0.0,
+    -1.0
+   ],
+   "pan": 70,
+   "fov": [
+    30,
+    50
+   ],
+   "hfov": 38,
+   "clear": 1.1,
+   "frame": "field",
+   "leadRoom": 2,
+   "tv": true
   }
  },
  "raceDirector": {

@@ -2193,7 +2193,7 @@ function button(parent, label, onClick, id) {
 const camsEl = document.getElementById("cams");
 const camChoices = VIEW.cameraMenu ? [["auto", "TV director"]].concat(VIEW.cameraMenu[RACE.course === "straight" ? "straight" : "round"].filter(([id]) => RCAMS[id]))
   : [["auto", "TV director"]].concat(RACE.course === "straight" ? [["drone_straight", "Drone"], ["track_straight", "Tracking"]] : [["track_loop", "Tracking"]], [["grandstand", "Grandstand"]])
-  .concat(RACE.course === "round" ? [["lookback", "Looking back"]] : []);
+  .concat(RACE.course === "round" ? [["lookback", "Looking back"]] : [], RCAMS.terraces ? [["terraces", "Terraces"]] : []);
 const camButtons = camChoices.map(([id, label]) => {
   const b = button(camsEl, label, () => { state.cam = id; snap = true; syncButtons(); }, "cam-" + id);
   b.dataset.cam = id; return b;
