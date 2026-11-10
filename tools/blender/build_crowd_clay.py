@@ -266,10 +266,10 @@ def hat(F, kind, z, n, s=1.0, tall=1.0, wide=1.0, brim=1.0, lite=False):
 # ---------------------------------------------------------------------------------------- the figure
 def clay_figure(var, style):
     """One of the ten 1C people. style 'smooth' keeps 1C's proportions; 'plasticine' pushes them to clay."""
-    P = style in ("plasticine", "plump")
+    P = style in ("plasticine", "plump", "plump18")
     # 'plump' (owner, 9 Nov 2026: "marginally plumper ... a bit less pin-like"): the plasticine people a little
     # wider and deeper in the body and limbs, same height and head, so they read stockier, like modelled figures
-    W = 1.12 if style == "plump" else 1.0
+    W = {"plump": 1.12, "plump18": 1.18}.get(style, 1.0)
     WL = 1 + (W - 1) * 0.6                       # limbs and the skirt's hem: a little less
     far = var.get("_far", False)
     # (plasticine trimmed for the game, 9 Nov 2026: 11 sides on the body, 7 on limbs, fewer rings)
@@ -407,7 +407,7 @@ PEOPLE = [
     dict(lady=L, hat="cloche", tilt=(0.08, -0.03), hem=0.28, arms=("bag", "down"), seed=9),
     dict(lady=L, hat="boater", tilt=(0.02, 0.07), arms=("down", "down"), seed=10),
 ]
-SETS = {9: "smooth", 10: "plasticine", 11: "plump"}
+SETS = {9: "smooth", 10: "plasticine", 11: "plump", 12: "plump18"}
 
 summary_path = os.path.join(OUT, "crowd_sets.json")
 summary = json.load(open(summary_path)) if os.path.exists(summary_path) else {"sets": {}}

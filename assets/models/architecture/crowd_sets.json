@@ -101,6 +101,40 @@
    },
    "mean": 472,
    "max": 574
+  },
+  "12": {
+   "style": "plump18",
+   "figures": {
+    "gent_00_top": 1526,
+    "gent_01_top": 1558,
+    "gent_02_boater": 1410,
+    "gent_03_bowler": 1430,
+    "gent_04_trilby": 1462,
+    "lady_05_wide": 1454,
+    "lady_06_picture": 1550,
+    "lady_07_fascinator": 1234,
+    "lady_08_cloche": 1406,
+    "lady_09_boater": 1334
+   },
+   "mean": 1436,
+   "max": 1558
+  },
+  "12_far": {
+   "style": "plump18 (far)",
+   "figures": {
+    "gent_00_top": 482,
+    "gent_01_top": 482,
+    "gent_02_boater": 418,
+    "gent_03_bowler": 418,
+    "gent_04_trilby": 418,
+    "lady_05_wide": 454,
+    "lady_06_picture": 550,
+    "lady_07_fascinator": 478,
+    "lady_08_cloche": 574,
+    "lady_09_boater": 442
+   },
+   "mean": 472,
+   "max": 574
   }
  },
  "_about": "Crowd figure options: triangles per figure (build_crowd_figure_sets.py; 9 and 10 from build_crowd_clay.py)."
