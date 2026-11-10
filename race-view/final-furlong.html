@@ -1267,9 +1267,10 @@ function placeTrees(gltf, dressing) {
 // floors on the site pieces, and the dressing's crowd areas. Full along the final furlong and round the
 // post; thinner up the straight, where it is only ever seen from afar.
 const CROWD_FULL = [-110, 220];
-// The plasticine figures (assets/models/architecture/crowd_set_10.glb, owner's pick, 9 Nov 2026: the 1C people
-// remade as hand-made clay figures by tools/blender/build_crowd_clay.py) with a light version for far off
-// (crowd_set_10_far: no arms, fewer sides). Same ten people, order and tint slots as the skittle figures they
+// The plasticine figures (owner's pick, 9 Nov 2026: the 1C people remade as hand-made clay figures by
+// tools/blender/build_crowd_clay.py), 18% plumper in body and limbs (owner, 10 Nov: "less pin-like"):
+// assets/models/architecture/crowd_set_12.glb, with a light version for far off (crowd_set_12_far: simple arms,
+// fewer sides). Same ten people, order and tint slots as the skittle figures they
 // replace (crowd_set_8, "1C", still on ?crowd=1c). Colours below (SK); shoes take the dark 'hair' colour.
 let SKITTLES = false, CLAY_CROWD = false;
 const CROWD_PARTS = ["clothes", "skin", "hat", "trim", "hair"];
@@ -2110,7 +2111,7 @@ try {
     optional(loadModel("assets/course", "planting_belts"), "Planting belts"),
     params.get("crowd") === "old" ? optional(loadModel(ARCH, "crowd_people"), "Crowd")
       : (params.get("crowd") === "1c" ? Promise.resolve([null, null])
-        : Promise.all([optional(loadModel(ARCH, "crowd_set_10"), "Crowd"), optional(loadModel(ARCH, "crowd_set_10_far"), "Crowd (far)")]))
+        : Promise.all([optional(loadModel(ARCH, "crowd_set_12"), "Crowd"), optional(loadModel(ARCH, "crowd_set_12_far"), "Crowd (far)")]))
         .then(([g, far]) => (g ? ((SKITTLES = true), (CLAY_CROWD = true), (g.far = far), g)
           : optional(loadModel(ARCH, "crowd_set_8"), "Crowd").then((g8) => (g8 ? ((SKITTLES = true), g8) : optional(loadModel(ARCH, "crowd_people"), "Crowd"))))),
     json("assets/baked/bake.json"),
