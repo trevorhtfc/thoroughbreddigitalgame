@@ -41,10 +41,10 @@
   };
   const realRandom = Math.random;
 
-  async function play(name, seed, team) {
+  async function play(name, seed, team, budget) {
     const P = STRATS[name];
     localStorage.clear(); Math.random = seeded(seed * 7919 + 13);
-    newCard(seed);
+    newCard(seed); if (budget) S.budget = budget;
     S.dealt = true;
     // the team, picked straight (the points rule is the draft's business; single cards can be tested on their own)
     S.team.picks = (team || []).slice(); finishTeam(); S.team.gone = true;
@@ -98,7 +98,9 @@
       if (tried >= P.lots && S.budget < payFor(l.reserve) * 1.2) continue;
       if (!S.sale.includes(l)) continue;
       if (sees && proj(l) < 100) continue;
-      const limit = Math.min(Math.round(l.reserve * P.bidUpTo * (sees && proj(l) >= 110 ? 1.25 : 1) / 5000) * 5000, canBidTo());
+      // spare money goes into bidding harder: never less than the strategy's own limit, more when the budget allows
+      const share = canBidTo() / Math.max(1, 12 - S.stable.length);
+      const limit = Math.min(Math.round(Math.max(l.reserve * P.bidUpTo * (sees && proj(l) >= 110 ? 1.25 : 1), Math.min(share, l.reserve * 4)) / 5000) * 5000, canBidTo());
       if (limit < l.reserve) continue;
       tried++;
       const ap = appeal(l), bids = RIVALS.map(r => ({ r, c: Math.random() < r.keen(l) ? l.reserve * ap * r.want(l) * (.7 + Math.random() * .9) : 0 })).sort((a, b) => b.c - a.c), top = bids[0].c;

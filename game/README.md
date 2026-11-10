@@ -353,11 +353,13 @@ ten races is at their trips (the board's "take another card"). Then "To the Nati
 | Kind | Bronze | Silver | Gold | Where it works |
 |---|---|---|---|---|
 | Powerhouse | +£150k budget | +£300k | +£450k | at once |
-| Elite Mares | 1 free Useful mare, picked from the whole pile, on top of the ten | 1 free Blue-blooded | 2 free Blue-blooded | the stud |
-| Black Type Stud | a 3★ stallion at half price, up to 3 nominations | 4★ | 5★ | the stud |
-| Stud Master | a secret stallion: £25k now, £25k stud income for each of his lots a rival buys (2 lots max) | £50k | £100k | before / at Tattersalls; stud income counts with prize money |
-| Bloodstock Agent | once, hand a yearling back after seeing it: 80% back | 90% | 100% | Tattersalls |
-| Auction Insider | once, buy a Book 2 or 3 lot at its reserve, no auction | see every yearling's class before bidding | both, any lot | Tattersalls |
+| Elite Mares | see 3 mares a draw at the mares sale (everyone else 2) | 4 | 5 | the stud |
+| Stallion Owner | three 3★ stallions drawn, keep one: 2 free nominations | 4★ | 5★ | the stud |
+| Pedigree Expert | the true stars of 2 unproven stallions you ask about | 4 | all | the stud and the sales |
+| Trade Terms | 10% off every yearling | 15% | 20% | Tattersalls |
+| Bloodstock Agent | each lot's projected peak, a 30-point range with the truth inside | 20 points | 10 points | Tattersalls |
+| Vet's Report | send a yearling back once you've seen it: once, 80% back | twice, 90% | three times, 100% | Tattersalls |
+| Private Sale | one Book 3 lot before the ring, at the middle of its guide | Books 2–3 | any Book | Tattersalls |
 | Trainer (8 specialists) | the board's cards: a step on the trip or +3 (whichever helps that race), 2 horses | a step and +3, 3 horses | a step and +5, 3 horses | entries; only in races at their trips / ages / sire lines |
 | Master Trainer | a step or +3, 2 horses, any race | a step or +3, 3 horses | a step and +3, 3 horses | entries |
 | Stable Form | +3 on 2 horses | +3 on 4 horses | +2 on every horse | entries |
@@ -370,11 +372,10 @@ Where the digital game differs from the board, and why:
 - **Trainer cards reach more horses** (2 / 3 / 3, Stable Form 2 / 4 / all) because the board's one horse for three
   races becomes ten races here, where a horse runs once (at Ascot). Stable Form III is +2 on every horse, not +3: at +3
   it was worth about twice any other card (see below).
-- **Stud Master** pays when rival buyers take his lots at Tattersalls (there are no other breeders). Lots you never
-  bring into the ring go through it among the rivals when you leave for the races (`closeSales`).
-- **Auction Insider**: the digital catalogue already shows every pedigree, so the "preview" shows each yearling's class
-  (its peak rating to the nearest 5, its trip and peak age). Each lot's yearling is settled (seeded) when the catalogue
-  is made (`fs` on the lot), so what the Insider sees is what you get.
+- **Owner cards, second round (owner, 10 Nov)**: each pushes you to breeding or the sales, and none pays income ("too
+  computer sim luck based"): Stud Master and Auction Insider are gone. The mares sale turns over 2 mares for everyone.
+  Each lot's yearling is settled (seeded) when the catalogue is made (`fs` on the lot), so the agent's projection is of
+  the real yearling.
 - **Jockey cards** become riding skills in the race engine (new optional runner fields in `race-engine/engine.js`:
   `formBest`, `noFlop`, `paceTank`, `lateKick`, `reader`; a runner without them races exactly as before, checked
   440 of 440 races identical, `race-engine/check/team-same.mjs`). A booked jockey also has skill 3 / 4 / 5 (the
@@ -415,3 +416,19 @@ would (`tools/team-harness.js`). Prize money per week against the same seasons w
 Tempo Setter II/III +£93k, Stable Form II/III +£83k, Black Type III +£79k, Race Reader III +£79k, Master Trainer III
 +£77k, Champion III +£74k; most trainer specialists +£20–95k depending on how many races suit them; Powerhouse only
 +£13k / +£31k / +£29k; Staying Specialist +£8–25k; Bloodstock Agent about −£5k (handing a yearling back rarely pays).
+
+### Owner cards, second round, and the starting budget (10 Nov)
+
+Single owner cards on the Planner and Breeder strategies (12 seasons each, ± about £20–50k, so rough), and the same
+seasons with no card, at three starting budgets. The simulated players now put spare money into bidding harder.
+
+| Starting budget | No team (Planner) | Gold Powerhouse | Gold Stallion Owner |
+|---|---|---|---|
+| £1.0m | £146k, about 6 horses | +£153k | +£85–104k |
+| £1.25m | £224k, 7–8 horses | +£86–97k | +£48–53k |
+| £1.5m | £276k, 8–9 horses | +£31–57k (Bronze +£15k, Silver +£36k) | +£7–26k (Silver +£43k) |
+| £1.75m (now) | £308k, 10–12 horses | +£8–63k | about nothing |
+
+At £1.5m: Private Sale III +£35k, Bloodstock Agent III +£26k, Elite Mares III +£13k, Pedigree Expert III +£10k (about
++£130k for a breeder at £1.75m, where it steers him to stallions better than their stars), Trade Terms III and Vet's
+Report III about nothing. Money only matters when it is short: at £1.75m any card that gives or saves money adds little.
