@@ -376,20 +376,20 @@
    "label": "Side-on replay",
    "kind": "fixed",
    "at": [
-    0,
-    4.5,
-    -9
+    -8,
+    6.5,
+    33.2
    ],
    "look": [
     0,
-    1.4,
-    19.72
+    6.0,
+    11.9
    ],
    "fov": [
-    26,
-    26
+    46,
+    46
    ],
-   "note": "square on to the winning line from the stand side: the finish again in slow motion"
+   "note": "from the far side at the line, on the track side of the finish-line kit, looking back across at the stands"
   },
   "start": {
    "label": "Start",
@@ -554,36 +554,37 @@
    "list": [
     7,
     0.6
-   ]
+   ],
+   "cardAfter": 3.5
   },
   "postlude": {
    "label": "After the race",
    "seconds": 8,
    "eye": [
     [
-     20,
-     3,
-     8
+     90,
+     58,
+     224.0
     ],
     [
-     60,
-     45,
-     94.0
+     200,
+     62,
+     224.0
     ]
    ],
    "at": [
     [
-     0,
+     20,
      8,
      -40
     ],
     [
-     -10,
-     6,
-     -50
+     100,
+     8,
+     -40
     ]
    ],
-   "fov": 42
+   "fov": 40
   }
  },
  "startSequence": {

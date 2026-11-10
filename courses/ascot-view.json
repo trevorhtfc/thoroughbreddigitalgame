@@ -381,20 +381,20 @@
    "label": "Side-on replay",
    "kind": "fixed",
    "at": [
-    0,
-    4.5,
-    41
+    -8,
+    6.5,
+    0.8
    ],
    "look": [
     0,
-    1.4,
-    12
+    6.0,
+    19.5
    ],
    "fov": [
-    26,
-    26
+    46,
+    46
    ],
-   "note": "square on to the winning line, from the stand side; the finish again in slow motion; pans a little with the leader either side of the line"
+   "note": "Owner, 10 Nov: the replay from the festival side, in front of the winning line kit (on the track side of it, so nothing of it is in the way), looking back across the finish at the grandstand: the finish again in slow motion, the stand behind (as the Rowley Mile's, owner 9 Nov). Pans a little with the leader either side of the line. (Was from the stand side, at [0, 4.5, 41] looking at [0, 1.4, 12], fov 26.)"
   },
   "start": {
    "label": "Start",
@@ -512,65 +512,66 @@
    "seconds": 9,
    "eye": [
     [
-     60,
-     30,
-     -75
+     84,
+     32,
+     -82
     ],
     [
-     60,
+     56,
      30,
-     -75
+     -74
     ]
    ],
    "at": [
     [
-     40,
+     52,
      4,
      45
     ],
     [
-     40,
+     38,
      4,
      45
     ]
    ],
    "fov": 50,
    "grab": "grab-11.png",
-   "note": "Owner, 7 Nov: one card of every runner (stall, colours, name, price) over a still aerial: high over the infield behind the carnival, looking across it and the track to the stand. It shows for list[0] seconds plus list[1] a runner ('To the start' goes now).",
+   "note": "Owner, 7 Nov: one card of every runner (stall, colours, name, price) over a still aerial: high over the infield behind the carnival, looking across it and the track to the stand. It shows for list[0] seconds plus list[1] a runner ('To the start' goes now). Owner, 10 Nov: a longer look at the course first ('cardAfter' seconds before the card comes up), the view drifting slowly along the stand.",
    "list": [
     7,
     0.6
-   ]
+   ],
+   "cardAfter": 5
   },
   "postlude": {
    "label": "After the race",
    "seconds": 8,
    "eye": [
     [
-     20,
-     3,
-     22
+     56,
+     30,
+     -74
     ],
     [
-     60,
-     45,
-     -60
+     84,
+     32,
+     -82
     ]
    ],
    "at": [
     [
-     0,
-     8,
-     60
+     38,
+     4,
+     45
     ],
     [
-     -10,
-     6,
-     65
+     52,
+     4,
+     45
     ]
    ],
-   "fov": 42,
-   "grab": "grab-10.png"
+   "fov": 50,
+   "note": "Owner, 10 Nov: the overview again behind the results (the racecard's aerial, drifting back the other way). Was a low pass by the line rising to a high view of the stand."
   }
  },
  "stalls": "courses/ascot-stalls.json",
@@ -682,5 +683,13 @@
   },
   "clouds": "ring",
   "trees": "clay"
+ },
+ "finishKit": {
+  "at": [
+   0,
+   -0.4
+  ],
+  "turn": 0,
+  "note": "Where the finish-line kit stands (it's in the bake: tools/blender/bake_static_world.py, on the inside rail at the post, facing the stand), so the race view keeps the crowd out of it and 3 m behind it (owner, 10 Nov)."
  }
 }

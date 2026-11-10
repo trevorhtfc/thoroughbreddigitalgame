@@ -1562,7 +1562,17 @@ function buildCrowd(gltf, data, pieceAt) {
   const spots = [];
   // nobody standing where a terrace camera's spectator stands (raceCameras, kind "terrace": 'clear' metres round its eye)
   const EYES = Object.values(VIEW.raceCameras || {}).filter((c) => c.kind === "terrace").map((c) => [c.at[0], c.at[2], c.clear || 1]);
-  const free = (x, z) => EYES.every(([ex, ez, r]) => (x - ex) ** 2 + (z - ez) ** 2 > r * r);
+  // and nobody inside or just behind the winning line kit (owner, 10 Nov: "the people in front of the winning line kit
+  // need moving back"): its 30 m of hedge, panels and judge's box on the far rail, and 3 m behind them, kept clear.
+  // Where it stands: the scenery's finishLine (Newmarket) or the view file's finishKit (Ascot, where it's in the bake).
+  const KIT = data.finishLine || VIEW.finishKit || null;
+  const kitTh = KIT ? KIT.turn * Math.PI / 180 : 0, kitC = Math.cos(kitTh), kitS = Math.sin(kitTh);
+  const inKit = (x, z) => {
+    if (!KIT) return false;
+    const dx = x - KIT.at[0], dz = z - KIT.at[1], lx = dx * kitC - dz * kitS, lz = dx * kitS + dz * kitC;
+    return lx > -17.5 && lx < 17.5 && lz > -5 && lz < 1.5;               // the kit's own frame: x along it, -z behind
+  };
+  const free = (x, z) => !inKit(x, z) && EYES.every(([ex, ez, r]) => (x - ex) ** 2 + (z - ez) ** 2 > r * r);
   const add = (x, y, z, seated = false) => { if (crowdKeep(x, rnd) && free(x, z)) spots.push({ x, y, z, seated }); };
   // a course that lists its crowd one person at a time ([x, y, z, facing], tools/course/newmarket/to_race_view.py)
   if (data.people) for (let i = 0; i < data.people.length; i += 4) if (free(data.people[i], data.people[i + 2])) spots.push({ x: data.people[i], y: data.people[i + 1], z: data.people[i + 2], face: data.people[i + 3] });
@@ -1622,6 +1632,7 @@ function buildCrowd(gltf, data, pieceAt) {
     }
   }
   // shuffle, so lowering the quality thins the crowd evenly instead of emptying whole areas
+  { let k = 0; for (const sp of spots) if (free(sp.x, sp.z)) spots[k++] = sp; spots.length = k; }   // (every source of people)
   for (let i = spots.length - 1; i > 0; i--) { const j = Math.floor(rnd() * (i + 1)); [spots[i], spots[j]] = [spots[j], spots[i]]; }
 
   // The plasticine or skittle figures (five gents, five ladies, each a different hat) or the old four.
@@ -1751,8 +1762,16 @@ function crowdMaterial() {
           transformed.y += hop * (1.0 + 0.35 * h);
           transformed.x += (sway + ex * 0.016 * sin(uTime * (1.8 + seed) + seed * 9.0)) * h;
           transformed.z -= ex * 0.035 * h;
-          if (aPart > 1.5 && aPart < 2.5 && seed > 0.75) transformed.y += ex * 0.12 * smoothstep(0.3, 0.9, 0.5 + 0.5 * sin(uTime * 1.6 + seed * 31.0));
-        }`);
+          // the hat lifts with its band (trim above the brow, 1.58 m up in the figure) and feather: the band was left
+          // hanging in the air (owner, 10 Nov: "little bits that are flashing")
+          bool hatPart = (aPart > 1.5 && aPart < 2.5) || (aPart > 2.5 && aPart < 3.5 && h > 1.58);
+          if (hatPart && seed > 0.75) transformed.y += ex * 0.12 * smoothstep(0.3, 0.9, 0.5 + 0.5 * sin(uTime * 1.6 + seed * 31.0));
+        }`)
+      // hat bands and trims sit right on the hat and clothes, so their faces fought the ones underneath for the same
+      // pixels and flickered as the camera moved: a tiny pull towards the camera settles which one is drawn (trims over
+      // hats, hats over hair and skin; in depth terms about 0.1 mm at 10 m, 1 cm at 100 m)
+      .replace("#include <project_vertex>", `#include <project_vertex>
+        gl_Position.z -= (aPart > 2.5 && aPart < 3.5 ? 1.5e-6 : aPart > 1.5 && aPart < 2.5 ? 0.7e-6 : 0.0) * gl_Position.w;`);
     sh.fragmentShader = sh.fragmentShader
       .replace("#include <common>", "#include <common>\nvarying vec3 vPartCol;")
       .replace("#include <color_fragment>", "#include <color_fragment>\ndiffuseColor.rgb *= vPartCol;");
@@ -2473,7 +2492,7 @@ try {
   if (trees && !SC) placeTrees(trees, dressing);
   if (crowd && palette) {
     const pieceAt = (p) => new THREE.Matrix4().makeTranslation(p.x, 0, p.z).multiply(new THREE.Matrix4().makeRotationY(Math.PI + (p.turn || 0) * Math.PI / 180));
-    buildCrowd(crowd, { dressing, areas: areas && areas.areas, spots: spots && spots.pieces, palette, people: SC && SC.people }, pieceAt);
+    buildCrowd(crowd, { dressing, areas: areas && areas.areas, spots: spots && spots.pieces, palette, people: SC && SC.people, finishLine: SC && SC.finishLine }, pieceAt);
   }
   const v2Tex = (url, srgb) => { const t = texLoader.load(url); t.flipY = false; if (srgb) t.colorSpace = THREE.SRGBColorSpace; return t; };
   for (let i = 0; i < RUNNERS && HORSE_V === "v2"; i++) {
