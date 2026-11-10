@@ -388,3 +388,30 @@ Files: `js/team.js` (rules, numbers at the top), `js/ui-team.js` (the draft and 
 the end of `css/game.css`. Save version 7 (`migrate7`: a season already past the draw goes on without a team).
 `tools/team-harness.js`: whole seasons with a team, played as a sensible player would use the cards (load
 `harness.html`-style: the rules, team.js, ui-team.js and the engine, without the board).
+
+### What the team is worth (team harness, 10 Nov)
+
+Whole Royal Ascot weeks with the real breeding, sale, rival buyers and race engine, cards used as a sensible player
+would (`tools/team-harness.js`). Prize money per week against the same seasons with no team; ± is the standard error.
+
+**Full six-point teams** (20 seasons each). Planner (the best of the old strategies) averages £310k without a team:
+
+| Team | Planner | Breeder | Buyer |
+|---|---|---|---|
+| Stud Master III, Stable Form II, Champion I | **+£238k** | +£206k | +£115k |
+| Auction Insider III, Stable Form II, Race Reader I | +£215k | +£170k | **+£168k** |
+| Elite Mares II, Black Type I, Master Trainer II, Champion I | +£190k | +£129k | +£46k |
+| Powerhouse I, Stable Form III, Champion II | +£173k | +£76k | +£39k |
+| Powerhouse II, Stable Form II, Champion II (all silver) | +£174k | +£82k | +£51k |
+| Two jockeys (Powerhouse II, Stable Form I, Champion II, Late Closer I) | +£170k | +£59k | +£43k |
+| All bronze (six Bronze cards) | +£167k | +£122k | +£65k |
+| Powerhouse III, Stable Form II, Champion I | +£165k | +£87k | +£43k |
+| Powerhouse I, Stable Form I, Champion III, Race Reader I | +£162k | +£87k | +£37k |
+| Elite Mares III, Master Trainer II, Tempo Setter I | +£151k | +£132k | +£29k |
+| Bloodstock Agent I, Miler Specialist III, Tempo Setter II | +£124k | +£54k | +£14k |
+| Auction Insider II, Miler Specialist II, Late Closer II | +£115k | +£83k | +£128k |
+
+**Single cards** on the Planner (12 seasons each, about ±£10–35k): Auction Insider III +£155k, Stud Master III +£146k,
+Tempo Setter II/III +£93k, Stable Form II/III +£83k, Black Type III +£79k, Race Reader III +£79k, Master Trainer III
++£77k, Champion III +£74k; most trainer specialists +£20–95k depending on how many races suit them; Powerhouse only
++£13k / +£31k / +£29k; Staying Specialist +£8–25k; Bloodstock Agent about −£5k (handing a yearling back rarely pays).
