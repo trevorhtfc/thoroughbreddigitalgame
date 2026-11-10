@@ -469,3 +469,4 @@ body.sheet-open .tb-toast{bottom:calc(var(--foot-h,0px) + 12px)}
 .menu-season button[aria-pressed=true]{background:#e8cf8e;color:#1f3a33}
 .menu-season button:not([aria-pressed=true]):hover{background:rgba(232,207,142,.14)}
 @media (max-width:560px){.menu-season{width:100%}.menu-season button{flex:1;padding:9px 12px;font-size:12px}}
+@media (prefers-reduced-motion:reduce){[data-season=newmarket] .menu{background-image:url("../img/newmarket-cover.jpg")}}

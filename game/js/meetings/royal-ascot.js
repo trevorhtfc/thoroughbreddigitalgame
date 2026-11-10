@@ -100,6 +100,7 @@ window.MEETINGS["royal-ascot"] = {
     lede: "Your ten races at Royal Ascot, two a day over five days",
     watchHere: "Watch a race to see it run at Ascot in 3D",
     weekWord: "race week", weekDone: "the week is run", weekHead: "RACE WEEK", bestWord: "week",
+    goingWhen: "The going is declared in race week, once your entries are in.", goingCounts: "in race week", backToRacing: "Back to race week",
     cardBack: "ROYAL ASCOT", dayWord: "day",
     entryRule: "One horse per race",
     film: "video/ascot-arrive.mp4", still: "img/ascot-still.jpg",
