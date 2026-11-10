@@ -2171,6 +2171,12 @@ function cameraTarget(now) {
   }
   // a terrace camera turns only so far either way from straight out over the course ('pan' degrees from 'face'): a
   // spectator watches the field come up the course, not the backs of the stand
+  // and the course sits a little above the middle of the picture, the crowd below it (on a phone held upright, the
+  // course in the top third: otherwise it's half sky)
+  if (c.kind === "terrace") {
+    const d = look.distanceTo(eye), k = camera.aspect < 1 ? 0.4 : 0.15;
+    look = look.clone(); look.y -= d * Math.tan(THREE.MathUtils.degToRad(fov) / 2 * k);
+  }
   if (c.kind === "terrace" && c.pan) {
     const dx = look.x - eye.x, dz = look.z - eye.z, [fx, fz] = c.face, lim = THREE.MathUtils.degToRad(c.pan);
     const a = Math.atan2(fx * dz - fz * dx, fx * dx + fz * dz);
