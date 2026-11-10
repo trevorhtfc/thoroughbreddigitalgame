@@ -43,7 +43,7 @@ for f in ["ascot.json", "ascot-view.json", "ascot-stalls.json", "ascot-standards
     add(A / "course" / f, "assets/course/" + f)
 for f in ["ascot_main_stand_crowd_areas.json", "crowd_palette.json", "crowd_people.json", "crowd_people-geometry.txt", "site_props_spots.json",
           "crowd_set_8.json", "crowd_set_8-geometry.txt",
-          "crowd_set_10.json", "crowd_set_10-geometry.txt", "crowd_set_10_far.json", "crowd_set_10_far-geometry.txt"]:
+          "crowd_set_12.json", "crowd_set_12-geometry.txt", "crowd_set_12_far.json", "crowd_set_12_far-geometry.txt"]:
     add(A / "architecture" / f, "assets/architecture/" + f)
 # Newmarket's two courses in the race view (final-furlong.html?course=newmarket or ?course=newmarket-july; the game doesn't
 # race there yet): each course's files (tools/course/newmarket/to_race_view.py) and the Blender pieces it places live

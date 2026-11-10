@@ -266,7 +266,11 @@ def hat(F, kind, z, n, s=1.0, tall=1.0, wide=1.0, brim=1.0, lite=False):
 # ---------------------------------------------------------------------------------------- the figure
 def clay_figure(var, style):
     """One of the ten 1C people. style 'smooth' keeps 1C's proportions; 'plasticine' pushes them to clay."""
-    P = style == "plasticine"
+    P = style in ("plasticine", "plump", "plump18")
+    # 'plump' (owner, 9 Nov 2026: "marginally plumper ... a bit less pin-like"): the plasticine people a little
+    # wider and deeper in the body and limbs, same height and head, so they read stockier, like modelled figures
+    W = {"plump": 1.12, "plump18": 1.18}.get(style, 1.0)
+    WL = 1 + (W - 1) * 0.6                       # limbs and the skirt's hem: a little less
     far = var.get("_far", False)
     # (plasticine trimmed for the game, 9 Nov 2026: 11 sides on the body, 7 on limbs, fewer rings)
     n = 6 if far else (12 if not P else 10)        # sides on the body and dress
@@ -281,9 +285,9 @@ def clay_figure(var, style):
     if not lady:
         # trousered legs, rolled from the shoe to the hip
         for sx in (-1, 1):
-            F.roll((sx * 0.078, 0.0, 0.07), (sx * 0.082, 0.0, 0.82), 0.064 * limb_k, 0.08 * limb_k, nl, "fig_trim", ends=1)
+            F.roll((sx * 0.078 * W, 0.0, 0.07), (sx * 0.082 * W, 0.0, 0.82), 0.064 * limb_k * WL, 0.08 * limb_k * W, nl, "fig_trim", ends=1)
             # a rounded shoe, its toe forwards
-            F.egg((sx * 0.08, 0.035, 0.04), 0.06 * limb_k, 0.1 * (1.1 if P else 1.0), 0.045, nl, 3 if not far else 2, "fig_hair")
+            F.egg((sx * 0.08 * W, 0.035, 0.04), 0.06 * limb_k * WL, 0.1 * (1.1 if P else 1.0), 0.045, nl, 3 if not far else 2, "fig_hair")
         coat = var.get("coat", 0.72)
         # the coat: the 1C outline, with a hem rolled under and round shoulders running into the collar
         ctrl = [(coat - 0.03, 0.15, 0.108), (coat, 0.178, 0.133), (0.98, 0.166, 0.116), (1.22, 0.19, 0.126),
@@ -291,6 +295,7 @@ def clay_figure(var, style):
         if P:   # softer, rounder: a fuller chest, shoulders that slope
             ctrl = [(coat - 0.03, 0.158, 0.118), (coat, 0.188, 0.145), (0.98, 0.178, 0.13), (1.2, 0.198, 0.138),
                     (1.34, 0.212, 0.138), (1.42, 0.18, 0.12), (1.475, 0.115, 0.09), (1.5, 0.06, 0.056)]
+        ctrl = [(z, rx * W, ry * W) if z < 1.49 else (z, rx, ry) for z, rx, ry in ctrl]
         body = spline(ctrl, per)
         F.lathe([(coat - 0.04, 0, 0)] + body, n, "fig_main", cap1=True)
         zs = [r[0] for r in body]
@@ -302,12 +307,12 @@ def clay_figure(var, style):
             return body[-1][1], body[-1][2]
         # the waistcoat: a soft pillow of clay pressed into the V of the coat (in place of 1C's flat tie)
         if not far:
-            F.pillow(surf, 1.25, 1.43, 0.068, "fig_trim", thick=0.007 if not P else 0.01)
+            F.pillow(surf, 1.25, 1.43, 0.068 * W, "fig_trim", thick=0.007 if not P else 0.01)
         # a rolled coat collar round the base of the neck: hides the join and softens the shoulders
         if not far: F.ring(1.5 if not P else 1.49, 0.058, 0.05, 0.024 if not P else 0.028, n, "fig_main", m=(5 if P else 6) if not far else 4, cy=-0.004)
         if var["hat"] == "top":                    # morning coat: two soft rolled tails behind, to the knee
             for sx in (-1, 1):
-                F.roll((sx * 0.07, -0.085, 0.95), (sx * 0.085, -0.11, 0.52), 0.052, 0.044, nl, "fig_main", flat=1.25, ends=1)
+                F.roll((sx * 0.07 * W, -0.085 * W, 0.95), (sx * 0.085 * W, -0.11 * W, 0.52), 0.052 * WL, 0.044 * WL, nl, "fig_main", flat=1.25, ends=1)
         top = 1.5
     else:
         hem = var.get("hem", 0.0)
@@ -318,6 +323,7 @@ def clay_figure(var, style):
             ctrl = [(hem, 0.275, 0.24), (hem + 0.02, 0.3, 0.26), (hem + 0.3, 0.265, 0.225), (0.74, 0.175, 0.15),
                     (0.94, 0.13, 0.105), (0.985, 0.128, 0.103), (1.03, 0.13, 0.104), (1.2, 0.162, 0.118),
                     (1.31, 0.18, 0.118), (1.38, 0.155, 0.104), (1.43, 0.1, 0.078), (1.455, 0.05, 0.046)]
+        ctrl = [(z, rx * (WL if z < 0.75 else W), ry * (WL if z < 0.75 else W)) if z < 1.45 else (z, rx, ry) for z, rx, ry in ctrl]
         body = spline(ctrl, per)
         # the belt: the bands between 0.95 and 1.02 in the trim colour (clean, level edges)
         mats = []
@@ -337,6 +343,7 @@ def clay_figure(var, style):
         k = 0.88 if lady else 1.0
         sh = (0.165 if lady else 0.185, 1.33 if lady else 1.375)
         if P: sh = (sh[0] - 0.018, sh[1] - 0.025)
+        sh = (sh[0] * W, sh[1])
         POSE = {   # right side: elbow, hand (as 1C)
             "down": [(0.235, 0.0, 1.1), (0.215, 0.04, 0.88)],
             "hip": [(0.32, -0.03, 1.13), (0.18, 0.03, 0.98)],
@@ -345,10 +352,10 @@ def clay_figure(var, style):
             "bag": [(0.22, 0.08, 1.1), (0.08, 0.18, 1.06)],
         }
         for side, pose in ((1, var.get("arms", ("down", "down"))[0]), (-1, var.get("arms", ("down", "down"))[1])):
-            pts = [(side * sh[0], 0.0, sh[1])] + [(side * x * k, y, z * (0.96 if lady else 1.0)) for x, y, z in POSE[pose]]
+            pts = [(side * sh[0], 0.0, sh[1])] + [(side * x * k * (W if x > 0.15 else 1.0), y * W, z * (0.96 if lady else 1.0)) for x, y, z in POSE[pose]]
             if pose == "clasp":
                 pts[-1] = (side * 0.04, pts[-1][1], pts[-1][2])
-            r = [0.056 * k * limb_k, 0.046 * k * limb_k, 0.04 * k * limb_k]
+            r = [0.056 * k * limb_k * WL, 0.046 * k * limb_k * WL, 0.04 * k * limb_k * WL]
             F.limb(pts, r, nl, "fig_main", ends=0 if far else (1 if P else 2))
             # the mitten hand, just past the cuff, along the forearm
             e, h = Vector(pts[-2]), Vector(pts[-1])
@@ -400,7 +407,7 @@ PEOPLE = [
     dict(lady=L, hat="cloche", tilt=(0.08, -0.03), hem=0.28, arms=("bag", "down"), seed=9),
     dict(lady=L, hat="boater", tilt=(0.02, 0.07), arms=("down", "down"), seed=10),
 ]
-SETS = {9: "smooth", 10: "plasticine"}
+SETS = {9: "smooth", 10: "plasticine", 11: "plump", 12: "plump18"}
 
 summary_path = os.path.join(OUT, "crowd_sets.json")
 summary = json.load(open(summary_path)) if os.path.exists(summary_path) else {"sets": {}}
