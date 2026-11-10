@@ -542,7 +542,7 @@ def terrace_cam(S, x, z, face, level=None, label="Terraces"):
     step = sorted(y for _, y in near)[len(near) // 2]
     f = math.hypot(*face)
     return {"label": label, "kind": "terrace", "at": [x, round(step + 1.62, 2), z], "absolute": True,
-            "face": [round(face[0] / f, 3), round(face[1] / f, 3)], "pan": 70, "fov": [30, 50], "hfov": 44, "clear": 1.1,
+            "face": [round(face[0] / f, 3), round(face[1] / f, 3)], "pan": 70, "fov": [30, 50], "hfov": 38, "clear": 1.1,
             "frame": "field", "leadRoom": 2, "tv": True,
             "note": "from among the crowd on the stand's terraces, a spectator's eye (1.62 m over the step; 'at' y is above sea "
                     "level, as the crowd), the TV director's picture in a corner"}
@@ -649,8 +649,9 @@ def main():
             director = None
             # the stand camera on the front of the judge's box roof (its own spectators kept clear: see july_scenery)
             cams = cameras(W, side, STAND_CAM_JULY, ([0, 4.5, -9], [0, 1.4, W * 0.58]), -L.RUN_ON + 40, [-110, 49.5, 35.2], drone=(10, 13))
-            # the terraces: on the grand terrace's steps, 46 m before the post
-            cams["terraces"] = terrace_cam(S, 46.0, -20.85, (0, 1))
+            # the terraces: the second row of the grand terrace's steps, 60 m before the post, in the middle of a bay
+            # between the roof's columns (they stand every 13 m)
+            cams["terraces"] = terrace_cam(S, 59.5, -17.6, (0, 1), level=1.25)
             menu = {k: v + [["terraces", "Terraces"]] for k, v in (
                 ("straight", [["drone_straight", "Drone"], ["track_straight", "Tracking"], ["headon", "Head-on"], ["grandstand", "Stand"]]),
                 ("round", [["track_loop", "Tracking"], ["drone_straight", "Drone"], ["headon", "Head-on"], ["grandstand", "Stand"]]))}
