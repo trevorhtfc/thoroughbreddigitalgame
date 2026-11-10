@@ -100,24 +100,37 @@
   <div class="menu-shade"></div>
   <div class="menu-in">
     <div class="menu-head">
-      <div class="menu-k">Newmarket · Royal Ascot · one season</div>
-      <h1 class="menu-t" id="menuTitle"><span>Thoroughbred</span><b>Ascot</b></h1>
-      <p class="menu-lede">Build a stable in Newmarket, breed and buy your string, then take them to Royal Ascot and win as much prize money as you can. Win enough and you're crowned <b>Royal Ascot Champion</b>.</p>
+      <!-- the two seasons (owner, 10 Nov): each has its own saved game, history, titles and (later) leaderboard -->
+      <div class="menu-season" role="group" aria-label="Choose your season"><button data-season="royal-ascot">Royal Ascot<small>One week in June</small></button><button data-season="newmarket">Newmarket<small>Five meetings, April to October</small></button></div>
+      <div class="menu-k" id="menuKick">Newmarket · Royal Ascot · one season</div>
+      <h1 class="menu-t" id="menuTitle"><span>Thoroughbred</span><b id="menuWord">Ascot</b></h1>
+      <p class="menu-lede" id="menuLede">Build a stable in Newmarket, breed and buy your string, then take them to Royal Ascot and win as much prize money as you can. Win enough and you're crowned <b>Royal Ascot Champion</b>.</p>
     </div>
     <ol class="menu-how">
       <li><b>The National Stud</b><span>Start with £1,750,000. Buy mares, one of three each time, and send them to the stallions.</span></li>
       <li><b>Tattersalls</b><span>Bid against rival buyers for yearlings out of the mares nobody bred. No going back.</span></li>
       <li><b>The Jockey Club</b><span>Enter one horse per race, bringing on any 2-year-olds who need it.</span></li>
-      <li><b>Royal Ascot</b><span>Ten races over five days, watched in 3D. Prize money is its own pot, apart from your budget.</span></li>
+      <li id="menuRaces"><b>Royal Ascot</b><span>Ten races over five days, watched in 3D. Prize money is its own pot, apart from your budget.</span></li>
     </ol>
     <section class="menu-ladder" aria-label="Titles by prize money"><div class="mc-h">The titles</div>
       <ol id="menuTitles"></ol><p class="ml-best" id="menuBest"></p></section>
     <section class="menu-col" id="menuCol"></section>
+    <a class="menu-lab" href="lab.html">Race Lab <span>· test the race engine</span></a>
     <div class="menu-go" id="menuGo"></div>
   </div>
 </div>
 
+<!-- Which season: Royal Ascot or the Newmarket season (owner, 10 Nov: the choice is on the cover). Remembered on the
+     device; ?season=newmarket or ?season=royal-ascot opens one. Each keeps its own saved game, history and titles. -->
+<script>(() => {
+  const q = new URLSearchParams(location.search).get("season"); let m = q || "";
+  try { if (q) localStorage.setItem("tb-season", q); m = m || localStorage.getItem("tb-season") || ""; } catch (e) {}
+  window.MEETING_ID = m === "newmarket" ? "newmarket" : "royal-ascot";
+  document.documentElement.dataset.season = window.MEETING_ID;
+  if (window.MEETING_ID === "newmarket") document.title = "Thoroughbred Newmarket";
+})();</script>
 <script src="js/meetings/royal-ascot.js"></script>
+<script src="js/meetings/newmarket.js"></script>
 <script src="js/rules.js"></script>
 <script>window.ICON = { %%ICONSET%% };</script>
 <script src="js/board.js"></script>
@@ -126,11 +139,15 @@
 <script type="module">
 // The race engine (race-engine/engine.js in the repo) and the course data it reads. The 3D race view
 // (final-furlong.html) loads the very same files, so a race simmed here and the race watched there are the same race.
-// The course is the meeting's (js/meetings/*.js -> course): assets/course/<course>.json and its view, stalls and par times.
+// The courses are the season's (js/meetings/*.js -> course, or courses for a season on more than one, as Newmarket's Rowley
+// Mile and July Course): assets/course/<course>.json and its view, stalls and par times, for each.
 import { runRace, expectedPace } from "./assets/engine/engine.js";
-const C = window.MEETING.course, get = (p) => fetch(p).then((r) => { if (!r.ok) throw new Error(p + " " + r.status); return r.json(); });
-Promise.all([`assets/course/${C}.json`, `assets/course/${C}-stalls.json`, `assets/course/${C}-standards.json`, "assets/engine/settings.json", `assets/course/${C}-view.json`].map(get))
-  .then(([course, stalls, standards, settings, view]) => { window.ENGINE = { runRace, expectedPace, data: { course, stalls, standards, settings }, view }; })
+const M = window.MEETING, files = M.courses ? [...new Set(Object.values(M.courses).map((c) => c.file))] : [M.course];
+const get = (p) => fetch(p).then((r) => { if (!r.ok) throw new Error(p + " " + r.status); return r.json(); });
+const one = (C, settings) => Promise.all([`assets/course/${C}.json`, `assets/course/${C}-stalls.json`, `assets/course/${C}-standards.json`, `assets/course/${C}-view.json`].map(get))
+  .then(([course, stalls, standards, view]) => [C, { data: { course, stalls, standards, settings }, view }]);
+get("assets/engine/settings.json").then((settings) => Promise.all(files.map((C) => one(C, settings))))
+  .then((list) => { const courses = Object.fromEntries(list); window.ENGINE = { runRace, expectedPace, courses, data: list[0][1].data, view: list[0][1].view }; })
   .catch((e) => { window.ENGINE_FAILED = String(e); })
   .finally(() => dispatchEvent(new Event("engine-ready")));
 </script>

@@ -526,13 +526,13 @@ const FRONT = COURSE.grandstand ? COURSE.grandstand.frontLine : 0;
 // high-resolution screens (High elsewhere) and steps down by itself if the frame rate drops.
 const DPR = window.devicePixelRatio || 1;
 const QUALITY = {
-  high:   { label: "High",   scale: Math.min(DPR, 2),    samples: 4, shadow: 4096, soft: true,  kick: 1,    edges: true, shadowEvery: 1, crowd: 0.7 },
-  medium: { label: "Medium", scale: Math.min(DPR, 1.25), samples: 2, shadow: 2048, soft: false, kick: 0.6,  edges: true, shadowEvery: 1, crowd: 0.5 },
-  low:    { label: "Low",    scale: Math.min(DPR, 1),    samples: 0, shadow: 1024, soft: false, kick: 0.35, edges: false, shadowEvery: 2, crowd: 0.15 },
+  high:   { label: "High",   scale: Math.min(DPR, 2),    samples: 4, shadow: 4096, soft: true,  kick: 1,    edges: true, shadowEvery: 1, crowd: 0.7, crowdNear: 30 },
+  medium: { label: "Medium", scale: Math.min(DPR, 1.25), samples: 2, shadow: 2048, soft: false, kick: 0.6,  edges: true, shadowEvery: 1, crowd: 0.5, crowdNear: 20 },
+  low:    { label: "Low",    scale: Math.min(DPR, 1),    samples: 0, shadow: 1024, soft: false, kick: 0.35, edges: false, shadowEvery: 2, crowd: 0.15, crowdNear: 0 },
   // only ever reached by Auto, for a machine that still can't keep up on Low (a laptop's built-in graphics on a big screen)
   // (owner's 2015 MacBook Pro, 7 Nov: 13-14 fps on Lightest with 2 million triangles: Lightest now has no sun shadows,
   // a thinner crowd, and the simple tree shapes with every other belt tree)
-  lightest: { label: "Lightest", scale: Math.min(DPR, 0.65), samples: 0, shadow: 0, soft: false, kick: 0.15, edges: false, shadowEvery: 3, crowd: 0.06 },
+  lightest: { label: "Lightest", scale: Math.min(DPR, 0.65), samples: 0, shadow: 0, soft: false, kick: 0.15, edges: false, shadowEvery: 3, crowd: 0.06, crowdNear: 0 },
 };
 const ORDER = ["high", "medium", "low", "lightest"];
 let qMode = params.get("quality") || (() => { try { return localStorage.getItem("tb-quality"); } catch { return null; } })() || "auto";
@@ -1533,20 +1533,26 @@ function placeScenery(SC, models, treeLib, belts) {
 // floors on the site pieces, and the dressing's crowd areas. Full along the final furlong and round the
 // post; thinner up the straight, where it is only ever seen from afar.
 const CROWD_FULL = [-110, 220];
-// The skittle figures (assets/models/architecture/crowd_set_8.glb, owner's pick "1C", 6 Nov 2026) and their
-// colours, as in the finish study (tools/blender/stand_clean_study.py): the top-hat gents in near-black
-// morning coats and black top hats, the odd grey; everyone else in muted heritage tones and pastels.
-let SKITTLES = false;
+// The plasticine figures (owner's pick, 9 Nov 2026: the 1C people remade as hand-made clay figures by
+// tools/blender/build_crowd_clay.py), 18% plumper in body and limbs (owner, 10 Nov: "less pin-like"):
+// assets/models/architecture/crowd_set_12.glb, with a light version for far off (crowd_set_12_far: simple arms,
+// fewer sides). Same ten people, order and tint slots as the skittle figures they
+// replace (crowd_set_8, "1C", still on ?crowd=1c). Colours below (SK); shoes take the dark 'hair' colour.
+let SKITTLES = false, CLAY_CROWD = false;
 const CROWD_PARTS = ["clothes", "skin", "hat", "trim", "hair"];
+// The model look's colours (owner, 9 Nov 2026: as in the clay comparison, tools/blender/crowd_clay_review.py):
+// navy, camel, mustard, cream, rust, teal and soft pastels, the top-hat gents in grey morning dress with grey or
+// black toppers; black only as an accent.
 const SK = {
-  clothes: ["#2c3140", "#3a3d44", "#4b4d52", "#2f3a33", "#59544c", "#c9a0a8", "#9fb6c8", "#ddd2b8", "#a8706a", "#88a383", "#d2b874", "#e8e2d6", "#9a88b4", "#cf9476"],
-  hats: ["#222226", "#222226", "#2a2a2e", "#efe6d2", "#d8c08a", "#c9a0a8", "#9fb6c8"],
+  clothes: ["#3f4c6e", "#c8a97e", "#d4b25e", "#e6dcc6", "#b45a4c", "#5f8a8c", "#8fa8c4", "#a8866a", "#46546e", "#d8b0a6", "#7d8a72", "#efe6d2", "#a796c0", "#c97a5a"],
+  hats: ["#efe6d2", "#d8c08a", "#c8a97e", "#3a3a40", "#9fb4c8", "#d9a0a8", "#e6dcc6"],
   skin: ["#efc6a4", "#e2b48e", "#c99572", "#9a6a4a"],
   accent: ["#e6998b", "#8db58c", "#eccd7c", "#8eb0d6", "#b49fd2", "#f2ece0", "#c0453a"],
   dark: ["#24262b", "#2f3036", "#3b352f"],
-  tophat: ["#1a1a1e", "#1f1f23", "#222226", "#1c1c20", "#26262a", "#1d1d21", "#55555c"],
-  tails: ["#1c1d22", "#202128", "#24262c", "#1e1f24", "#2a2c33", "#22232a", "#5c5e64", "#1b1c21"],
+  tophat: ["#2a2a2e", "#8e9096", "#a3a5aa", "#3a3c44", "#7a7c82", "#2a2b30", "#9a9ca2"],
+  tails: ["#3a3f52", "#8e9096", "#a3a5aa", "#2e3446", "#7a7c82", "#46546e", "#b4b2ac", "#2a2b30"],
 };
+// (until 9 Nov the game used the finish study's darker set: near-black morning coats and top hats, muted suits)
 if (LIGHT && LIGHT.crowd) Object.assign(SK, LIGHT.crowd);      // the model look's crowd colours
 const crowdKeep = (x, rnd) => (x >= CROWD_FULL[0] && x <= CROWD_FULL[1]) || rnd() < 0.12;
 function buildCrowd(gltf, data, pieceAt) {
@@ -1618,7 +1624,8 @@ function buildCrowd(gltf, data, pieceAt) {
   // shuffle, so lowering the quality thins the crowd evenly instead of emptying whole areas
   for (let i = spots.length - 1; i > 0; i--) { const j = Math.floor(rnd() * (i + 1)); [spots[i], spots[j]] = [spots[j], spots[i]]; }
 
-  // The skittle figures (crowd_set_8: five gents, five ladies, each a different hat) or the old four.
+  // The plasticine or skittle figures (five gents, five ladies, each a different hat) or the old four.
+  const farFigs = SKITTLES && gltf.far ? gltf.far.scene.children : [];
   const figures = SKITTLES ? gltf.scene.children.filter((o) => /^(gent|lady)_/.test(o.name))
                            : ["person_gent_tophat", "person_gent", "person_lady", "person_lady_b"].map((n) => gltf.scene.getObjectByName(n)).filter(Boolean);
   // about half the crowd are gentlemen in black top hats and tails (owner, 6 Nov 2026): the two top-hat
@@ -1670,7 +1677,7 @@ function buildCrowd(gltf, data, pieceAt) {
     }
     // One mesh per figure for each level of detail, its parts merged and told apart by aPart (0 clothes,
     // 1 skin, 2 hat, 3 trim, 4 hair); the light one, for far off, has about a third of the triangles.
-    const parts = meshesOf(fig).map((p) => {
+    const partsOf = (ob) => meshesOf(ob).map((p) => {
       const g = new THREE.BufferGeometry();
       g.setAttribute("position", p.geometry.attributes.position);
       g.setAttribute("normal", p.geometry.attributes.normal);
@@ -1678,11 +1685,15 @@ function buildCrowd(gltf, data, pieceAt) {
       const mn = p.material.name;
       return [g, [["clothes", "fig_main"], ["skin"], ["hat"], ["trim"], ["hair"]].findIndex((ks) => ks.some((k) => mn.includes(k)))];
     });
+    const parts = partsOf(fig);
+    const farFig = farFigs.find((o) => o.name.replace(/[._]\d+$/, "") === fig.name.replace(/[._]\d+$/, "") || o.name === fig.name);
     const tag = (g, k) => { g.setAttribute("aPart", new THREE.Float32BufferAttribute(new Float32Array(g.attributes.position.count).fill(Math.max(0, k)), 1)); return g; };
     const nearGeo = mergeGeometries(parts.map(([g, k]) => tag(g.clone(), k)));
     // (the skittle figures are already a few hundred points each: simplifying them further turned the hats into cones,
     // so far off they use the same shape)
-    const farGeo = SKITTLES ? nearGeo.clone() : mergeGeometries(parts.map(([g, k]) => {
+    // (the plasticine figures bring their own light version, made in Blender with the same parts)
+    const farGeo = farFig ? mergeGeometries(partsOf(farFig).map(([g, k]) => tag(g.clone(), k)))
+      : SKITTLES ? nearGeo.clone() : mergeGeometries(parts.map(([g, k]) => {
       const w0 = g.clone(); w0.deleteAttribute("normal");
       const w = mergeVertices(w0);
       const sg = new SimplifyModifier().modify(w, Math.floor(w.attributes.position.count * 0.65));
@@ -1705,7 +1716,7 @@ function buildCrowd(gltf, data, pieceAt) {
     CROWD.figs.push(F);
   });
   console.log("crowd:", spots.length, "people");
-  setCrowdShare(QUALITY[qLevel].crowd);
+  setCrowdShare(QUALITY[qLevel].crowd, QUALITY[qLevel].crowdNear);
 }
 
 // The crowd's gentle life, in the vertex shader (nothing per person is sent each frame): a very slight, slow sway,
@@ -1733,9 +1744,14 @@ function crowdMaterial() {
           // and only a few hats lifted, slowly.
           float sway = 0.006 * sin(uTime * (0.35 + 0.25 * seed) + seed * 6.2832);
           float ex = smoothstep(75.0, 15.0, abs(ip.x - uLeader.x)) * smoothstep(55.0, 18.0, abs(ip.z - uLeader.y)) * step(0.2, seed);
-          transformed.x += (sway + ex * 0.006 * sin(uTime * 1.1 + seed * 9.0)) * h;
-          transformed.z -= ex * 0.03 * h;
-          if (aPart > 1.5 && aPart < 2.5 && seed > 0.88) transformed.y += ex * 0.1 * smoothstep(0.4, 0.95, 0.5 + 0.5 * sin(uTime * 0.9 + seed * 31.0));
+          // (owner, 10 Nov: a bit more life as the runners go by) Still calm while the field is away; as the leaders
+          // come past, about two in three people bounce on their toes, each to their own rhythm, with a little
+          // clay-like stretch at the top of the hop, rock from side to side, and one gent in four waves his hat.
+          float hop = ex * step(0.35, seed) * 0.035 * pow(abs(sin(uTime * (5.0 + 2.5 * seed) + seed * 40.0)), 1.6);
+          transformed.y += hop * (1.0 + 0.35 * h);
+          transformed.x += (sway + ex * 0.016 * sin(uTime * (1.8 + seed) + seed * 9.0)) * h;
+          transformed.z -= ex * 0.035 * h;
+          if (aPart > 1.5 && aPart < 2.5 && seed > 0.75) transformed.y += ex * 0.12 * smoothstep(0.3, 0.9, 0.5 + 0.5 * sin(uTime * 1.6 + seed * 31.0));
         }`);
     sh.fragmentShader = sh.fragmentShader
       .replace("#include <common>", "#include <common>\nvarying vec3 vPartCol;")
@@ -1745,7 +1761,10 @@ function crowdMaterial() {
   mat.customProgramCacheKey = () => "crowd-life" + (LOOKS.lookId || "") + (MINI ? "-mini" : "");
   return mat;
 }
-function setCrowdShare(share) { CROWD.share = share; CROWD.sig = ""; }
+// The plasticine figures are heavier close up (about 1,600 triangles against about 500 far off), so how far out the
+// full figures reach (to the middle of a 25 m crowd cell) depends on the quality: 30 m on High, 20 on Medium; Low and
+// Lightest use the light ones throughout.
+function setCrowdShare(share, near) { CROWD.share = share; if (CLAY_CROWD && near !== undefined) CROWD.near = near; CROWD.sig = ""; }
 // Which cells are in shot and which are far: only when that changes are the visible people copied across.
 const _fr = new THREE.Frustum(), _pm = new THREE.Matrix4();
 const _fr2 = new THREE.Frustum();
@@ -1754,10 +1773,13 @@ function updateCrowd(cam, cam2) {                       // cam2: the TV picture 
   _pm.multiplyMatrices(cam.projectionMatrix, cam.matrixWorldInverse);
   _fr.setFromProjectionMatrix(_pm);
   if (cam2) { _pm.multiplyMatrices(cam2.projectionMatrix, cam2.matrixWorldInverse); _fr2.setFromProjectionMatrix(_pm); }
+  // the plasticine figures: full ones only in cells whose middle is within reach (0: light figures throughout);
+  // 3: far off, every few people only (9 Nov, the Newmarket crowds)
   const lod = (c, C, fr) => {
     if (!fr.intersectsSphere(c.sphere)) return 0;
-    const dd = c.sphere.center.distanceTo(C.position) - c.sphere.radius;
-    return dd < CROWD.near ? 1 : dd < CROWD.thinFrom ? 2 : 3;          // 3: far off, every few people only (9 Nov)
+    const dc = c.sphere.center.distanceTo(C.position), dd = dc - c.sphere.radius;
+    const near = CLAY_CROWD ? CROWD.near > 0 && dc < CROWD.near : dd < CROWD.near;
+    return near ? 1 : dd < CROWD.thinFrom ? 2 : 3;
   };
   const plan = CROWD.figs.map((F) => F.cells.map((c) => {
     const a = lod(c, cam, _fr), b = cam2 ? lod(c, cam2, _fr2) : 0;
@@ -1869,7 +1891,8 @@ function chooseHorseDetail() {
 // heading off the course direction (rad)]. Time 0 is the off: the gates opening. The view only plays it back.
 // Until the game hands over real race cards, the field is a random one like the test bench's (assets/engine/field.js),
 // drawn from the race's seed: the same race, going, field size and seed always run the same race.
-const ENGINE_SETTINGS = await fetch("assets/engine/settings.json").then((r) => r.json());
+// The Race Lab (game/lab.html) may send its own tuned numbers with a test race, so the 3D race is the race it tested.
+const ENGINE_SETTINGS = (GP && GP.settings) || await fetch("assets/engine/settings.json").then((r) => r.json());
 const RUNNERS = THREE.MathUtils.clamp(Number(params.get("runners") || 12), 1, STALLS.maxRunners);
 const SEED = /^\d+$/.test(params.get("seed") || "") ? params.get("seed") : "3";
 const CARD = GP ? GP.runners : randomField(RUNNERS, SEED, ENGINE_SETTINGS);
@@ -1888,7 +1911,7 @@ if (!GP) {
   w.forEach((x, i) => { const p = (x / sum) * 1.2, d = 1 / p - 1; ODDS[i] = LADDER.reduce((a, b) => (Math.abs(Math.log(b[1] / d)) < Math.abs(Math.log(a[1] / d)) ? b : a))[0]; });
 }
 const { timeline, result: RESULT } = runRace(
-  { course: RACE.course, distance: RACE.distance, start: RACE.start, going: GOING, seed: SEED }, CARD,
+  { course: RACE.course, distance: RACE.distance, start: RACE.start, going: GOING, seed: SEED, handicap: !!(GP && GP.handicap) }, CARD,
   { course: COURSE, stalls: STALLS, standards: STANDARDS, settings: ENGINE_SETTINGS });
 window.__result = RESULT;                                            // checking aid: the result and the race's events
 // The whole race, then the finish again side-on in slow motion, then round again (see the director below).
@@ -2337,7 +2360,7 @@ function applyQuality(level) {
     scene.traverse((o) => { if (o.material) [].concat(o.material).forEach((m) => (m.needsUpdate = true)); });
   }
   KICK.share = Q.kick;
-  setCrowdShare(Q.crowd);
+  setCrowdShare(Q.crowd, Q.crowdNear);
   sun.shadow.autoUpdate = true;
   resize();
   perf.reset();
@@ -2427,7 +2450,10 @@ try {
           .then(([g, info]) => (g && info ? ((CLAY_TREES = info), g) : optional(loadModel("assets/trees", "trees"), "Trees"))),
     optional(loadModel("assets/course", "planting_belts"), "Planting belts"),
     params.get("crowd") === "old" ? optional(loadModel(ARCH, "crowd_people"), "Crowd")
-      : optional(loadModel(ARCH, "crowd_set_8"), "Crowd").then((g) => (g ? ((SKITTLES = true), g) : optional(loadModel(ARCH, "crowd_people"), "Crowd"))),
+      : (params.get("crowd") === "1c" ? Promise.resolve([null, null])
+        : Promise.all([optional(loadModel(ARCH, "crowd_set_12"), "Crowd"), optional(loadModel(ARCH, "crowd_set_12_far"), "Crowd (far)")]))
+        .then(([g, far]) => (g ? ((SKITTLES = true), (CLAY_CROWD = true), (g.far = far), g)
+          : optional(loadModel(ARCH, "crowd_set_8"), "Crowd").then((g8) => (g8 ? ((SKITTLES = true), g8) : optional(loadModel(ARCH, "crowd_people"), "Crowd"))))),
     SC ? null : json("assets/baked/bake.json"),
     VIEW.dressing ? json(file(VIEW.dressing)) : null,
     VIEW.planting ? json(file(VIEW.planting)) : null,
@@ -3058,7 +3084,7 @@ function frame() {
   }
   if (MINI) MINI.afterSun(sunAt, camera, focus);
   scene.userData.sky.position.copy(camera.position);
-  CROWD.uniforms.uTime.value = performance.now() / 1000;
+  CROWD.uniforms.uTime.value = params.has("still") ? state.t : performance.now() / 1000;   // (?still=1: the race clock, so stepped frames make a true film)
   CROWD.uniforms.uLeader.value.set(leaderXw, leaderZ);
   camera.updateMatrixWorld();
   const tCrowd = performance.now();

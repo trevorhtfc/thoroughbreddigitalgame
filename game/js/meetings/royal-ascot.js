@@ -81,5 +81,31 @@ window.MEETINGS["royal-ascot"] = {
     { min: 250000, name: "Royal Ascot Winner", note: "A proper week at the royal meeting.", cls: "t2" },
     { min: 0, name: "Paying Guest", note: "You enjoyed the champagne. Next year.", cls: "t1" }
   ],
-  ladderTop: 1250000
+  ladderTop: 1250000,
+  // How the screens name things in this season (the Newmarket season has its own: js/meetings/newmarket.js)
+  words: {
+    where: "Royal Ascot", whereLong: "Royal Ascot", venue: "Ascot", gameTitle: "Ascot",
+    when: "June", whenRaces: "June",
+    programme: "The Royal Ascot programme",
+    drawLine: "The Jockey Club has drawn your ten races for Royal Ascot. Go and see what you're aiming at.",
+    drawText: "The programme for Royal Ascot is out: ten races over five days, two a day, drawn fresh for this season.",
+    entriesLine: "Enter one horse for each race at the Jockey Club, then load the horseboxes for Ascot.",
+    weekLine: "Five days, ten races. The horseboxes are loaded.",
+    lockedStatus: "Royal Ascot is in June, once your string is in training",
+    lockedText: "Five days, ten races, watched at Ascot in 3D.",
+    go: "Go to Royal Ascot", back: "Back to Royal Ascot", over: "Royal Ascot is over for this year",
+    weekTitle: "Royal Ascot", weekRunning: "Race week is under way",
+    standingsAt: "The final standings at Ascot",
+    titleFrom: "Your title from Royal Ascot", playedNoun: "Royal Ascot", playedPlural: "YOUR ROYAL ASCOTS",
+    lede: "Your ten races at Royal Ascot, two a day over five days",
+    watchHere: "Watch a race to see it run at Ascot in 3D",
+    weekWord: "race week", weekDone: "the week is run", weekHead: "RACE WEEK", bestWord: "week",
+    goingWhen: "The going is declared in race week, once your entries are in.", goingCounts: "in race week", backToRacing: "Back to race week",
+    cardBack: "ROYAL ASCOT", dayWord: "day",
+    entryRule: "One horse per race",
+    film: "video/ascot-arrive.mp4", still: "img/ascot-still.jpg",
+    coverKicker: "Newmarket · Royal Ascot · one season",
+    coverLede: "Build a stable in Newmarket, breed and buy your string, then take them to Royal Ascot and win as much prize money as you can. Win enough and you're crowned <b>Royal Ascot Champion</b>.",
+    coverRaces: ["Royal Ascot", "Ten races over five days, watched in 3D. Prize money is its own pot, apart from your budget."],
+  }
 };

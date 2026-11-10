@@ -17,7 +17,10 @@ def add(src, dst):
     if not src.exists(): raise SystemExit(f"missing {src}")
     take.append((src, out / dst))
 # the game
-for f in ["index.html", "card.html", "css/components.css", "css/game.css", "js/meetings/royal-ascot.js", "js/rules.js", "js/board.js", "js/ui-parts.js", "js/ui.js", "js/life.js"]:
+for f in ["index.html", "card.html", "css/components.css", "css/game.css", "js/meetings/royal-ascot.js", "js/meetings/newmarket.js", "js/rules.js", "js/board.js", "js/ui-parts.js", "js/ui.js", "js/life.js"]:
+    add(game / f, f)
+# the Race Lab (lab.html): test the race engine on any course, distance, going, field and tactics
+for f in ["lab.html", "css/lab.css", "js/lab.js", "js/lab-worker.js"]:
     add(game / f, f)
 for p in sorted((game / "img").rglob("*")):
     if p.is_file(): add(p, p.relative_to(game))
@@ -39,7 +42,8 @@ for f in ["ascot.json", "ascot-view.json", "ascot-stalls.json", "ascot-standards
           "starting_stalls.json", "starting_stalls-geometry.txt", "starting_stalls_kit.json", "turf_detail.png"]:
     add(A / "course" / f, "assets/course/" + f)
 for f in ["ascot_main_stand_crowd_areas.json", "crowd_palette.json", "crowd_people.json", "crowd_people-geometry.txt", "site_props_spots.json",
-          "crowd_set_8.json", "crowd_set_8-geometry.txt"]:
+          "crowd_set_8.json", "crowd_set_8-geometry.txt",
+          "crowd_set_12.json", "crowd_set_12-geometry.txt", "crowd_set_12_far.json", "crowd_set_12_far-geometry.txt"]:
     add(A / "architecture" / f, "assets/architecture/" + f)
 # Newmarket's two courses in the race view (final-furlong.html?course=newmarket or ?course=newmarket-july; the game doesn't
 # race there yet): each course's files (tools/course/newmarket/to_race_view.py) and the Blender pieces it places live
