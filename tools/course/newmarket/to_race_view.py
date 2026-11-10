@@ -531,14 +531,14 @@ def view_file(cid, L, course, stalls, stands_side, cams, prelude, postlude, dire
     return out
 
 
-def terrace_cam(S, x, z, face, label="Terraces"):
+def terrace_cam(S, x, z, face, level=None, label="Terraces"):
     """Watching from the terraces (owner, 10 Nov): a spectator's eye on the stand's step nearest (x, z), among its crowd
     (S.people), with the TV director's picture in a corner of the screen. The race view keeps 'clear' metres round the eye
     free of people, turns no more than 'pan' degrees either way from 'face' (straight out over the course), and keeps at
     least 'hfov' degrees across the screen."""
     P = S.people
     near = sorted((math.hypot(P[i] - x, P[i + 2] - z), P[i + 1]) for i in range(0, len(P), 4)
-                  if abs(P[i] - x) < 2.5 and abs(P[i + 2] - z) < 2.5)[:4]
+                  if abs(P[i] - x) < 2.5 and abs(P[i + 2] - z) < 2.5 and (level is None or abs(P[i + 1] - level) < 0.6))[:4]
     step = sorted(y for _, y in near)[len(near) // 2]
     f = math.hypot(*face)
     return {"label": label, "kind": "terrace", "at": [x, round(step + 1.62, 2), z], "absolute": True,
@@ -633,9 +633,10 @@ def main():
             # (owner, 10 Nov: "this raised image just creates issues when you see behind the dyke ... stick to tracking and then
             # the flatter grandstand shot"): the tracking car, then the stand camera; no drone, in the director or the menu
             director = {"tracking": True, "grandstand": 330}
-            # the terraces: on the Millennium Grandstand's standing steps, a few metres before the post (it faces 10 degrees
-            # round from straight across the course)
-            cams["terraces"] = terrace_cam(S, 8.0, 89.35, (0.174, -0.985))
+            # the terraces: in the front row of the Millennium Grandstand's first-floor terrace, a few metres before the post
+            # (it faces 10 degrees round from straight across the course). (Tried first on the standing steps down to the
+            # lawn: they rise so gently that the people in front filled the picture, and the course couldn't be seen.)
+            cams["terraces"] = terrace_cam(S, 8.0, 93.0, (0.174, -0.985), level=5.8)
             menu = {"straight": [["track_straight", "Tracking"], ["grandstand", "Stand"], ["terraces", "Terraces"], ["headon", "Head-on"]],
                     "round": [["track_loop", "Tracking"], ["grandstand", "Stand"], ["terraces", "Terraces"], ["headon", "Head-on"]]}
             # the racecard / overview (owner, 9 Nov, with a photo from the stands): high at the cranked stand's rail end,
