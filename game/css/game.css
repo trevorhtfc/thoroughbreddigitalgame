@@ -532,3 +532,4 @@ details.tm-at>summary h2::after{content:" ▾";color:var(--tb-gold)}details.tm-a
 .tm-claim{white-space:normal;font-size:14px;line-height:1.25;padding-top:8px;padding-bottom:8px}
 .lot-ins{min-width:0;overflow-wrap:anywhere}
 .lot{min-width:0}
+@media (prefers-reduced-motion:reduce){[data-season=newmarket] .menu{background-image:url("../img/newmarket-cover.jpg")}}

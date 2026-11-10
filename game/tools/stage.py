@@ -36,7 +36,7 @@ A = view / "assets"
 for f in ["silks-catalogue.json", "tint-mask.png"]: add(A / f, "assets/" + f)
 for d in ["engine", "model", "model-v2", "trees", "baked"]:   # model-v2: the v2 horse, the race view's horse since 7 Nov (it reuses two of v1's maps)
     for p in sorted((A / d).glob("*")):
-        if p.is_file() and not p.name.startswith("trees_clay"): add(p, p.relative_to(view))   # the leafy trees only (owner's choice, 7 Nov)
+        if p.is_file(): add(p, p.relative_to(view))   # leafy and clay trees (the model look uses the clay ones: owner, 9 Nov)
 for f in ["ascot.json", "ascot-view.json", "ascot-stalls.json", "ascot-standards.json", "ascot-planting.json", "ascot-site-dressing.json",
           "ad-boards.png", "lanes.png", "course-props.json", "course-props-geometry.txt", "planting_belts.json", "planting_belts-geometry.txt",
           "starting_stalls.json", "starting_stalls-geometry.txt", "starting_stalls_kit.json", "turf_detail.png"]:
@@ -50,6 +50,8 @@ for f in ["ascot_main_stand_crowd_areas.json", "crowd_palette.json", "crowd_peop
 for c in ["newmarket", "newmarket-july"]:
     for f in [f"{c}.json", f"{c}-view.json", f"{c}-stalls.json", f"{c}-standards.json", f"{c}-scenery.json"]:
         add(A / "course" / f, "assets/course/" + f)
+    gl = A / "course" / f"{c}-ground-light.jpg"            # the model look's baked ground light (bake_newmarket_ground.py)
+    if gl.exists(): add(gl, "assets/course/" + gl.name)
 for f in ["rowley_stands", "july_stands", "site_props", "finish_line"]:
     for g in [f + ".json", f + "-geometry.txt"]:
         add(A / "architecture" / g, "assets/architecture/" + g)

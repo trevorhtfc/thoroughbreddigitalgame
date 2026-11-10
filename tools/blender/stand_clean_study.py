@@ -19,9 +19,14 @@ REPO = os.path.abspath(".")
 def rp(*p): return os.path.join(REPO, *p)
 ARGS = [a for a in sys.argv[1:] if not a.startswith("-")]
 SAMPLES = int(ARGS[0]) if ARGS and ARGS[0].isdigit() else 64
-VARIANT = next((a for a in ARGS if a in ("clean", "today", "soft", "accent")), "clean")
-SOFT = VARIANT in ("soft", "accent")
-ACCENT = VARIANT == "accent"
+VARIANT = next((a for a in ARGS if a in ("clean", "today", "soft", "accent", "model")), "clean")
+SOFT = VARIANT in ("soft", "accent", "model")
+ACCENT = VARIANT in ("accent", "model")
+# model: the owner's AI concept stills (9 Nov 2026) worked out from first principles: a high-key soft light (a big
+# sun higher in the sky, a strong blue-lilac sky fill), a sky graded peach-cream to lilac to cornflower with soft
+# clouds, the crowd in muted model-railway colours. Each still is also saved with its depth (EXR), so haze, the
+# miniature focus and the grade are worked out afterwards by tools/blender/model_look_post.py.
+MODEL = VARIANT == "model"
 CAMS = [a for a in ARGS if a.startswith("cam=")]
 OUT = rp("reference/architecture/clean-study"); os.makedirs(OUT, exist_ok=True)
 COURSE = json.load(open(rp("courses/ascot.json")))
@@ -129,6 +134,28 @@ if SOFT:
     ramp.color_ramp.elements[1].position = 0.62
     mid = ramp.color_ramp.elements.new(0.16); mid.color = (0.93, 0.87, 0.85, 1)
     wn["Background"].inputs[1].default_value = 0.8
+if MODEL:
+    # the concept's sky: cream-peach right at the horizon, a lilac band, then a soft cornflower blue overhead
+    els = ramp.color_ramp.elements
+    els[0].position = 0.0; els[0].color = (1.0, 0.86, 0.76, 1)
+    mid.position = 0.07; mid.color = (0.86, 0.84, 0.95, 1)
+    els[-1].position = 0.5; els[-1].color = (0.42, 0.56, 0.9, 1)
+    # soft fair-weather clouds in a band above the horizon (noise on the view direction), warm white
+    cn = wn.new("ShaderNodeTexNoise"); cn.inputs["Scale"].default_value = 3.2; cn.inputs["Detail"].default_value = 5; cn.inputs["Roughness"].default_value = 0.55
+    mp = wn.new("ShaderNodeMapping"); mp.inputs["Scale"].default_value = (1.0, 1.0, 3.2)
+    wl.new(tc.outputs["Generated"], mp.inputs[0]); wl.new(mp.outputs[0], cn.inputs["Vector"])
+    cm = wn.new("ShaderNodeMapRange"); cm.inputs["From Min"].default_value = 0.58; cm.inputs["From Max"].default_value = 0.74
+    wl.new(cn.outputs["Fac"], cm.inputs["Value"])
+    band = wn.new("ShaderNodeMapRange"); band.inputs["From Min"].default_value = 0.02; band.inputs["From Max"].default_value = 0.1
+    band2 = wn.new("ShaderNodeMapRange"); band2.inputs["From Min"].default_value = 0.42; band2.inputs["From Max"].default_value = 0.22
+    wl.new(sep.outputs["Z"], band.inputs["Value"]); wl.new(sep.outputs["Z"], band2.inputs["Value"])
+    m1 = wn.new("ShaderNodeMath"); m1.operation = "MULTIPLY"; m2 = wn.new("ShaderNodeMath"); m2.operation = "MULTIPLY"
+    wl.new(cm.outputs["Result"], m1.inputs[0]); wl.new(band.outputs["Result"], m1.inputs[1])
+    wl.new(m1.outputs[0], m2.inputs[0]); wl.new(band2.outputs["Result"], m2.inputs[1])
+    cmix = wn.new("ShaderNodeMix"); cmix.data_type = "RGBA"
+    wl.new(m2.outputs[0], cmix.inputs["Factor"]); wl.new(ramp.outputs[0], cmix.inputs[6]); cmix.inputs[7].default_value = (1.0, 0.95, 0.93, 1)
+    wl.new(cmix.outputs[2], wn["Background"].inputs[0])
+    wn["Background"].inputs[1].default_value = 1.15          # a stronger fill from the sky: soft, high-key shade
 bpy.ops.object.light_add(type="SUN")
 sun = bpy.context.object; sun.data.energy = 6.0; sun.data.angle = math.radians(3); sun.data.color = (1.0, 0.86, 0.68)
 if SOFT:   # a big soft sun: shadows with feathered edges, warm peach light
@@ -136,6 +163,9 @@ if SOFT:   # a big soft sun: shadows with feathered edges, warm peach light
 # a raking afternoon sun from the west, a little in front of the stand, so every veranda, cornice and
 # balcony throws a long soft shadow along the front (course axes (-1, 0.62, -0.42) -> Blender)
 d = Vector((-1.0, 0.32, 0.45)).normalized()
+if MODEL:   # a bigger, gentler sun, higher in the sky: short soft shadows, light falling all round the forms
+    sun.data.energy = 3.4; sun.data.angle = math.radians(24); sun.data.color = (1.0, 0.9, 0.8)
+    d = Vector((-1.0, 0.45, 0.95)).normalized()
 sun.rotation_euler = (-d).to_track_quat("-Z", "Y").to_euler()
 
 grass = principled("grass", "#7d9f52", 0.95); turf = principled("turf", "#8fb75f", 0.95)
@@ -150,7 +180,7 @@ for o in parts:
     if o.parent is None: o.parent = root
 root.location = (0, -FRONT, 0)
 
-if VARIANT in ("clean", "soft", "accent"):
+if VARIANT in ("clean", "soft", "accent", "model"):
     # Ascot's own palette, cleaned up: warm cream stone, white paintwork, slate, and the ironwork, doors and
     # glass dark so they read as crisp drawn detail against the pale stone (the street's dark railings and windows)
     MAT = {
@@ -265,6 +295,8 @@ if ACCENT:
             x = (lo.x + hi.x) / 2
             if hi.y > -FRONT - 0.6 and hi.z < 3.4 and lo.z > 0.2 and hi.x - lo.x > 0.8 and module_at(x):
                 doors_front.append((lo, hi, stripe_at(x)))
+    # none where the standing terraces come down to the lawn (owner, 9 Nov 2026): those doors are under the steps
+    doors_front = [d for d in doors_front if not (module_at((d[0].x + d[1].x) / 2) or {}).get("groundTerrace")]
     # balusters: the clock block's balustrades in sage, the grand pavilions' in powder blue, the small pavilions' in blush
     BAL = {"clock_centre": "sage", "grand_pavilion": "powder", "pavilion": "blush"}     # by building, wherever it stands
     nb = 0
@@ -387,6 +419,9 @@ if ACCENT:
         crowd_coll.objects.link(o); o.parent = None; o.location = (0, 0, 0); o.rotation_euler = (0, 0, 0); o.scale = (1, 1, 1)
     pal_clothes = ["#2c3140", "#3a3d44", "#4b4d52", "#2f3a33", "#59544c", "#c9a0a8", "#9fb6c8", "#ddd2b8", "#a8706a", "#88a383", "#d2b874", "#e8e2d6", "#9a88b4", "#cf9476"]
     pal_hats = ["#222226", "#222226", "#2a2a2e", "#efe6d2", "#d8c08a", "#c9a0a8", "#9fb6c8"]
+    if MODEL:   # the concept's crowd: navy, camel, mustard, cream, rust, teal; black only as an accent
+        pal_clothes = ["#3f4c6e", "#c8a97e", "#d4b25e", "#e6dcc6", "#b45a4c", "#5f8a8c", "#8fa8c4", "#a8866a", "#46546e", "#d8b0a6", "#7d8a72", "#efe6d2", "#a796c0", "#c97a5a"]
+        pal_hats = ["#efe6d2", "#d8c08a", "#c8a97e", "#3a3a40", "#9fb4c8", "#d9a0a8", "#e6dcc6"]
     def palette_mat(name, cols, rough=0.9):
         m = bpy.data.materials.new(name); m.use_nodes = True; nt = m.node_tree; b = nt.nodes["Principled BSDF"]
         b.inputs["Roughness"].default_value = rough; b.inputs["Specular IOR Level"].default_value = 0.1
@@ -410,9 +445,11 @@ if ACCENT:
     # picked twice as often, so about two people in five wear one
     tops = [o for o in list(crowd_coll.objects) if "_top" in o.name]
     if tops:
-        top_mat = palette_mat("c_tophat", ["#1a1a1e", "#1f1f23", "#222226", "#1c1c20", "#26262a", "#1d1d21", "#55555c"], rough=0.8)
+        top_mat = palette_mat("c_tophat", ["#1a1a1e", "#1f1f23", "#222226", "#1c1c20", "#26262a", "#1d1d21", "#55555c"] if not MODEL
+                              else ["#2a2a2e", "#8e9096", "#a3a5aa", "#3a3c44", "#7a7c82", "#2a2b30", "#9a9ca2"], rough=0.8)
         # ...in black tops and tails (owner): their coats near-black morning coats, the odd grey morning suit
-        tails_mat = palette_mat("c_tails", ["#1c1d22", "#202128", "#24262c", "#1e1f24", "#2a2c33", "#22232a", "#5c5e64", "#1b1c21"], rough=0.85)
+        tails_mat = palette_mat("c_tails", ["#1c1d22", "#202128", "#24262c", "#1e1f24", "#2a2c33", "#22232a", "#5c5e64", "#1b1c21"] if not MODEL
+                                else ["#3a3f52", "#8e9096", "#a3a5aa", "#2e3446", "#7a7c82", "#46546e", "#b4b2ac", "#2a2b30"], rough=0.85)
         for o in tops:
             for i, sl in enumerate(o.material_slots):
                 if sl.material is CM.get("fig_hat") or sl.material is CM.get("crowd_hat"):
@@ -443,7 +480,9 @@ if ACCENT:
         d = z - near; dens = 0.8 if d < 4 else 0.35 if d < 8 else 0.08
         x = -108.0
         while x < 405:
-            if rnd.random() < dens: pts.append((x + (rnd.random() - 0.5) * 0.4, -(z + (rnd.random() - 0.5) * 0.4), 0.0))
+            gt = next((m["groundTerrace"] for m in COURSE["grandstand"]["modules"] if m.get("groundTerrace") and m["xWest"] - 0.6 <= x <= m["xEast"] + 0.6), None)
+            if rnd.random() < dens and not (gt and z > gt):       # nobody inside the ground terraces' footprint
+                pts.append((x + (rnd.random() - 0.5) * 0.4, -(z + (rnd.random() - 0.5) * 0.4), 0.0))
             x += 0.62
         z += 0.7
     me = bpy.data.meshes.new("crowd_pts"); me.from_pydata(pts, [], [])
@@ -706,6 +745,8 @@ except Exception: pass
 scene.render.resolution_x, scene.render.resolution_y = RES
 scene.render.film_transparent = False
 scene.view_settings.exposure = -0.25 if not SOFT else 0.12
+if os.environ.get("DEPTH") or MODEL:
+    scene.view_layers[0].use_pass_z = True
 
 
 def course(p):                                       # course axes (x east, z south, y up) -> Blender
@@ -719,12 +760,21 @@ def camera(name, eye, at, fov, focus=None, fstop=None):
     e, a = course(eye), course(at)
     cam.location = e; cam.rotation_euler = (a - e).to_track_quat("-Z", "Y").to_euler()
     # a shallow model-like focus on the subject (the street's miniature look), kept gentle
-    cam.data.dof.use_dof = fstop is not None and VARIANT in ("clean", "soft", "accent")
+    cam.data.dof.use_dof = fstop is not None and VARIANT in ("clean", "soft", "accent", "model")
     if cam.data.dof.use_dof:
         cam.data.dof.focus_distance = (course(focus or at) - e).length; cam.data.dof.aperture_fstop = fstop
     scene.camera = cam
     scene.render.filepath = os.path.join(OUT, f"{OUT_TAG or VARIANT}_{name}.png")
+    if MODEL:   # the miniature focus is put on afterwards from the depth (model_look_post.py), so it can be tuned
+        cam.data.dof.use_dof = False
     bpy.ops.render.render(write_still=True); print("rendered", scene.render.filepath, flush=True)
+    if os.environ.get("DEPTH") or MODEL:      # the same frame with its depth, for the finishing pass
+        st = scene.render.image_settings; keep = (st.media_type, st.file_format, st.color_depth)
+        st.media_type = "MULTI_LAYER_IMAGE"; st.file_format = "OPEN_EXR_MULTILAYER"; st.color_depth = "32"
+        bpy.data.images["Render Result"].save_render(scene.render.filepath[:-4] + ".exr", scene=scene)
+        st.media_type = keep[0]; st.file_format = keep[1]; st.color_depth = keep[2] if keep[1] != "PNG" or keep[2] in ("8", "16") else "8"
+        json.dump({"eye": list(eye), "at": list(at), "focus": list(focus or at), "fov": fov,
+                   "focusDist": (course(focus or at) - e).length}, open(scene.render.filepath[:-4] + ".json", "w"))
 
 
 # the race view's own camera places (stand-styles comparison): course axes
@@ -745,6 +795,12 @@ SHOTS = {
     "turfhigh": ((80, 60, 10), (40, 0, 30), 40, (40, 0, 30), None),
     # close along the near rail
     "rail": ((95, 1.7, 27.3), (55, 1.0, 31), 40, (85, 1.1, 30), 2.2),
+    # the owner's concept stills (9 Nov 2026), at Ascot: over the track before the line looking along the stand,
+    # and high over the far side looking across at the whole stand
+    "concept": ((230, 9, 10), (40, 11, 56), 42, (110, 8, 46), 4.0),
+    "above": ((150, 95, -150), (150, 0, 52), 36, (150, 10, 46), 4.0),
+    # the ground terraces at the clock tower (owner, 9 Nov 2026), from over the near rail
+    "terraces": ((42, 11, 22), (0, 4, 47), 44, (8, 3, 44), 4.0),
 }
 for name, (eye, at, fov, focus, fstop) in SHOTS.items():
     if CAMS and f"cam={name}" not in CAMS: continue

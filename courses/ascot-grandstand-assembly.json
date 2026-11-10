@@ -6,7 +6,7 @@
   "point": "tower",
   "alignTo": "winningPost"
  },
- "setback": 15.4,
+ "setback": 21.4,
  "order": [
   {
    "module": "end_pavilion",
@@ -39,11 +39,13 @@
    "bays": 5
   },
   {
-   "module": "ironwork_bay"
+   "module": "ironwork_bay",
+   "groundTerrace": true
   },
   {
    "module": "grand_pavilion",
-   "bays": 6
+   "bays": 6,
+   "groundTerrace": true
   },
   {
    "module": "terrace_stand",
@@ -72,7 +74,8 @@
    "bays": 6
   },
   {
-   "module": "clock_centre"
+   "module": "clock_centre",
+   "groundTerrace": true
   },
   {
    "module": "stair_bay",
@@ -80,11 +83,13 @@
   },
   {
    "module": "grand_pavilion",
-   "bays": 6
+   "bays": 6,
+   "groundTerrace": true
   },
   {
    "module": "ironwork_bay",
-   "roof": true
+   "roof": true,
+   "groundTerrace": true
   },
   {
    "module": "terrace_stand",
@@ -186,5 +191,11 @@
   {
    "module": "end_pavilion"
   }
- ]
+ ],
+ "groundTerraces": {
+  "rows": 8,
+  "tread": 0.95,
+  "rise": 0.3,
+  "_about": "Owner, 9 Nov 2026: the stand moved back 6 m (setback 15.4 -> 21.4) and standing terraces stepping down to the lawn in front of the traditional pieces only (items with groundTerrace: the clock tower centre, and each iron lace bay with its grand canopy). rows x tread metres deep (7.6 m), each row rise higher, people on every row."
+ }
 }

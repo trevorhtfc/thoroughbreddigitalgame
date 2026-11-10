@@ -109,7 +109,9 @@ window.MEETINGS["newmarket"] = {
     titleFrom: "Your title from the Newmarket season", playedNoun: "Newmarket season", playedPlural: "YOUR NEWMARKET SEASONS",
     lede: "Your ten races in the Newmarket season, two at each of five meetings from April to October, on the Rowley Mile and the July Course: Classics, Group races, Listed races and the big heritage handicaps.",
     watchHere: "Watch a race to see it run on the Rowley Mile or the July Course in 3D",
-    weekWord: "race days", weekDone: "the season is run", weekHead: "THE RACING", bestWord: "season",
+    weekWord: "the racing", weekDone: "the season is run", weekHead: "THE RACING", bestWord: "season",
+    goingWhen: "The going for each meeting is declared when you go to the races, after your entries are in.", goingCounts: "on the day", backToRacing: "Back to the races",
+    coverPicture: "img/newmarket-cover.jpg",          // the cover shows the Rowley Mile, not the Ascot film
     cardBack: "NEWMARKET", dayWord: "meeting",
     entryRule: "One horse per race, and a horse can run at every meeting it qualifies for, once at each",
     film: null, still: "img/newmarket-still.jpg",

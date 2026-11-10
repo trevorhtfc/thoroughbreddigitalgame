@@ -11,14 +11,14 @@
  "scenery": "newmarket-scenery.json",
  "ground": {
   "outside": [
-   0.5194,
-   0.5856,
-   0.2693
+   0.5988,
+   0.7357,
+   0.4041
   ],
   "turf": [
-   0.199,
-   0.3713,
-   0.0748
+   0.2387,
+   0.4813,
+   0.1158
   ],
   "bank": [
    0.44,
@@ -35,47 +35,39 @@
     ]
    ],
    [
-    0.7,
+    1.2,
     [
-     0.3467,
-     0.4678,
-     0.1812
+     0.4179,
+     0.5149,
+     0.2016
     ]
    ],
    [
-    1.7,
-    [
-     0.159,
-     0.2542,
-     0.0685
-    ]
-   ],
-   [
-    3.2,
-    [
-     0.2051,
-     0.2623,
-     0.0802
-    ]
-   ],
-   [
-    4.3,
+    2.8,
     [
      0.3663,
-     0.3231,
-     0.117
+     0.4678,
+     0.1683
+    ]
+   ],
+   [
+    4.2,
+    [
+     0.4179,
+     0.4452,
+     0.1746
     ]
    ],
    [
     5.2,
     [
-     0.4621,
-     0.3813,
-     0.15
+     0.4851,
+     0.4452,
+     0.2016
     ]
    ]
   ],
-  "bankMottle": 0.08,
+  "bankMottle": 0.03,
   "note": "Ascot's lawn and turf colours (the bake's), so the two courses read as one game"
  },
  "lanesStraight": {
@@ -100,6 +92,108 @@
   49.5,
   -35.2
  ],
+ "light": {
+  "_about": "As Ascot's (courses/ascot-view.json -> light), with this course's sun raised. The model look (owner's AI concept stills, 9 Nov 2026), matching the bake (tools/blender/bake_static_world.py LOOK=model) and the Blender study (stand_clean_study.py variant model, model_look_post.py): a bigger, gentler sun higher in the sky, a strong lilac-blue sky fill, a sky cream-peach at the horizon, lilac, then soft cornflower; pale lilac haze; a little brighter; lavender in the shadows; the crowd in navy, camel, mustard, cream, rust and teal with grey morning dress. sky: horizon, low and upper colours (linear); sunDir: from the field to the sun (course axes); hemi: sky colour, ground colour, strength; grade: saturation, sepia, hue (degrees), brightness, contrast (as the storybook grade); lift: tinted shadows. clouds: \"ring\" puts soft clouds all round the sky. trees: \"clay\" uses the clay trees (rounded clustered crowns on trunks). ?light=before shows the light before.",
+  "sky": [
+   [
+    1.0,
+    0.85,
+    0.74
+   ],
+   [
+    0.44,
+    0.56,
+    0.95
+   ],
+   [
+    0.26,
+    0.4,
+    0.88
+   ]
+  ],
+  "sunColour": [
+   1.0,
+   0.9,
+   0.8
+  ],
+  "sun": 3.4,
+  "sunDir": [
+   -110,
+   104.0,
+   -35.2
+  ],
+  "hemi": [
+   "#b9c0e2",
+   "#a29680",
+   3.1
+  ],
+  "haze": [
+   0.84,
+   0.85,
+   0.9
+  ],
+  "exposure": 0.26,
+  "grade": [
+   1.0,
+   0.03,
+   -4,
+   1.03,
+   0.96
+  ],
+  "lift": [
+   0.012,
+   0.004,
+   0.03
+  ],
+  "crowd": {
+   "clothes": [
+    "#3f4c6e",
+    "#c8a97e",
+    "#d4b25e",
+    "#e6dcc6",
+    "#b45a4c",
+    "#5f8a8c",
+    "#8fa8c4",
+    "#a8866a",
+    "#46546e",
+    "#d8b0a6",
+    "#7d8a72",
+    "#efe6d2",
+    "#a796c0",
+    "#c97a5a"
+   ],
+   "hats": [
+    "#efe6d2",
+    "#d8c08a",
+    "#c8a97e",
+    "#3a3a40",
+    "#9fb4c8",
+    "#d9a0a8",
+    "#e6dcc6"
+   ],
+   "tophat": [
+    "#2a2a2e",
+    "#8e9096",
+    "#a3a5aa",
+    "#3a3c44",
+    "#7a7c82",
+    "#2a2b30",
+    "#9a9ca2"
+   ],
+   "tails": [
+    "#3a3f52",
+    "#8e9096",
+    "#a3a5aa",
+    "#2e3446",
+    "#7a7c82",
+    "#46546e",
+    "#b4b2ac",
+    "#2a2b30"
+   ]
+  },
+  "clouds": "ring",
+  "trees": "clay"
+ },
  "races": {
   "_about": "The races the view can show, one for every start in newmarket-stalls.json. course: 'straight' (no bend) or 'round' (down the leg and round the bend into the straight); distance in metres; start: the key in the stalls file.",
   "5f": {
@@ -345,25 +439,50 @@
    ],
    "frame": "field",
    "leadRoom": 2
+  },
+  "terraces": {
+   "label": "Terraces",
+   "kind": "terrace",
+   "at": [
+    8.0,
+    7.44,
+    93.0
+   ],
+   "absolute": true,
+   "face": [
+    0.174,
+    -0.985
+   ],
+   "pan": 70,
+   "fov": [
+    30,
+    50
+   ],
+   "hfov": 38,
+   "clear": 1.1,
+   "frame": "field",
+   "leadRoom": 2,
+   "tv": true,
+   "note": "from among the crowd on the stand's terraces, a spectator's eye (1.62 m over the step; 'at' y is above sea level, as the crowd), the TV director's picture in a corner"
   }
  },
  "cameraMenu": {
   "straight": [
    [
-    "drone_straight",
-    "Drone"
-   ],
-   [
     "track_straight",
     "Tracking"
    ],
    [
-    "headon",
-    "Head-on"
-   ],
-   [
     "grandstand",
     "Stand"
+   ],
+   [
+    "terraces",
+    "Terraces"
+   ],
+   [
+    "headon",
+    "Head-on"
    ]
   ],
   "round": [
@@ -372,21 +491,21 @@
     "Tracking"
    ],
    [
-    "drone_straight",
-    "Drone"
+    "grandstand",
+    "Stand"
+   ],
+   [
+    "terraces",
+    "Terraces"
    ],
    [
     "headon",
     "Head-on"
-   ],
-   [
-    "grandstand",
-    "Stand"
    ]
   ]
  },
  "raceDirector": {
-  "schedule": "On the Rowley Mile (owner, 9 Nov late) path.tracking is set: the tracking car down the course (on the leg and round the bend, then along the straight), cutting to the drone for flicks.length metres every flicks.every metres run (not in the first flicks.from), the drone from path.drone3f metres out, the stand camera from path.grandstand (down the Dip) to the line; no head-on.",
+  "schedule": "On the Rowley Mile (owner, 10 Nov) path.tracking is set: the tracking car all the way down the course (on the leg and round the bend, then along the straight), then the stand camera from path.grandstand (down the Dip) to the line; no drone (from up there the picture showed what lies behind the Dyke) and no head-on. (path.drone3f and path.flicks, if set, cut to the drone from 3f out and for short flicks on the way.)",
   "_about": "One path (owner, 8 Nov: tracking car, head-on, the stand camera, the drone). Round races: the tracking car down the leg and round the bend until path.drone metres into the straight; then the drone along the stand side; the head-on long lens from beyond the line for the stretch path.headon ([from, to] metres to go, only when the race is longer than path.headonMin); the stand camera from path.grandstand to the line and beyond. After the finish: the side-on replay, slowed to replaySpeed, from replayFrom metres before the line to replayTo after it.",
   "path": {
    "drone": 120,
@@ -396,13 +515,7 @@
    ],
    "headonMin": 1150,
    "grandstand": 330,
-   "tracking": true,
-   "drone3f": 604,
-   "flicks": {
-    "from": 260,
-    "every": 520,
-    "length": 110
-   }
+   "tracking": true
   },
   "straight": {
    "grandstand": 600,
@@ -484,5 +597,15 @@
   "holdAfterOff": 4.0,
   "passAt": 8,
   "hideAfter": 350
+ },
+ "groundLight": {
+  "map": "newmarket-ground-light.jpg",
+  "area": [
+   -231,
+   -92,
+   744.9,
+   288.09999999999997
+  ],
+  "note": "the ground's light from the buildings (tools/blender/bake_newmarket_ground.py): ground colour x map, inside area [x0, z0, x1, z1] (image top = z0); 1 outside"
  }
 }

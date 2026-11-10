@@ -25,6 +25,7 @@ import site_plan as SP            # the two courses together (keeps either's tre
 
 REPO = HERE.parents[2]
 OUT = REPO / "race-view/assets/course"
+SCRUB = False          # the scrub band along the Dyke's crest (left off since 9 Nov late)
 F = 201.168
 GAP = 0.4                         # the rails stand this far off the turf's edge (Ascot's)
 STEP = 5.0                        # the path's sample spacing, metres
@@ -343,8 +344,11 @@ def rowley_scenery(course):
             out.append([o + R.bank_shift(d), round(R.bank_h(o) + (lump * cap if 0 < k < 8 else -0.05), 2)])
         return out
     sp = [[max(a_, -250.0), min(b_, 2050.0)] for a_, b_ in fb["spans"] if b_ > -250 and a_ < 2050]
-    banks.append({"rows": bank_rows(R, sp, scrub, -1, step=2.5), "ramp": [[h, lin(c)] for h, c in
-                  ((0.0, "#62804a"), (4.0, "#55753f"), (5.6, "#4c6b39"), (6.8, "#5b7a42"))], "mottle": 0.14})
+    # (owner, 9 Nov late, the model look: the green band along the Dyke's top "isn't doing anything": left off; the
+    # Dyke ends in its own dry, sunlit grassy crest. SCRUB = True brings it back.)
+    if SCRUB:
+        banks.append({"rows": bank_rows(R, sp, scrub, -1, step=2.5), "ramp": [[h, lin(c)] for h, c in
+                      ((0.0, "#62804a"), (4.0, "#55753f"), (5.6, "#4c6b39"), (6.8, "#5b7a42"))], "mottle": 0.14})
     return S, trees, banks
 
 
@@ -462,8 +466,25 @@ def july_scenery(course):
 
 
 # ------------------------------------------------------------------------------------------------ cameras and races
-def view_file(cid, L, course, stalls, stands_side, cams, prelude, postlude, director=None):
+def model_light(sun):
+    """The model look (owner's concept stills, 9 Nov 2026; owner: "start applying this to Newmarket as well"): Ascot's light
+    (ascot-view.json -> light, the one its scenery is baked under), with this course's own sun direction raised to the
+    look's higher sun (twice the height, so shadows half as long)."""
+    light = dict(json.load(open(OUT / "ascot-view.json"))["light"])
+    light["sunDir"] = [sun[0], round(sun[1] * 2.1, 1), sun[2]]
+    light["_about"] = "As Ascot's (courses/ascot-view.json -> light), with this course's sun raised. " + light.get("_about", "")
+    return light
+
+
+def ascot_ground():
+    """Ascot's lawn and turf colours as baked (race-view/assets/baked/bake.json), so the courses read as one game."""
+    g = json.load(open(REPO / "race-view/assets/baked/bake.json"))["ground"]
+    return g["outside"], g["turf"]
+
+
+def view_file(cid, L, course, stalls, stands_side, cams, prelude, postlude, director=None, menu=None):
     W = L.TRACK_W
+    sun = cams["_sun"]
     races = {"_about": "The races the view can show, one for every start in %s-stalls.json. course: 'straight' (no bend) or 'round' "
                        "(down the leg and round the bend into the straight); distance in metres; start: the key in the stalls file." % cid}
     for k, st in stalls["starts"].items():
@@ -474,24 +495,27 @@ def view_file(cid, L, course, stalls, stands_side, cams, prelude, postlude, dire
                   "(change the script). World axes as %s.json." % (course["name"], cid),
         "homeStraight": {"runTowards": [-1, 0], "centreZ": W / 2, "standSide": stands_side},
         "scenery": "%s-scenery.json" % cid,
-        "ground": {"outside": [0.5194, 0.5856, 0.2693], "turf": [0.199, 0.3713, 0.0748], "bank": [0.44, 0.53, 0.22],
-                   "bankRamp": [[h, lin(c)] for h, c in ((0.0, "#bcc98c"), (0.7, "#9fb676"), (1.7, "#6f8a4a"), (3.2, "#7d8c50"),
-                                                          (4.3, "#a39a60"), (5.2, "#b5a66c"))],
-                   "bankMottle": 0.08,
+        "ground": {"outside": ascot_ground()[0], "turf": ascot_ground()[1], "bank": [0.44, 0.53, 0.22],
+                   # (owner, 9 Nov late, the model look: the dark green band along the Dyke's top "isn't doing anything": an
+                   # even grassy bank now, the lawn's green deepening a touch up the slope to a dry, sunlit crest)
+                   "bankRamp": [[h, lin(c)] for h, c in ((0.0, "#bcc98c"), (1.2, "#adbe7c"), (2.8, "#a3b672"), (4.2, "#adb274"),
+                                                          (5.2, "#b9b27c"))],
+                   "bankMottle": 0.03,
                    "note": "Ascot's lawn and turf colours (the bake's), so the two courses read as one game"},
         "lanesStraight": {"x": [-L.RUN_ON, L.STRAIGHT], "width": W, "lanes": round(W / 3.75), "strength": 0.12,
                           "note": "soft mown lanes along the straight, 3.75 m wide, as Ascot's"},
         "treeDetail": {"centre": [150, W / 2], "nearRadius": 420},
         "sun": cams.pop("_sun"),
+        "light": model_light(sun),
         "races": races,
         "raceCameras": cams,
-        "cameraMenu": {"straight": [["drone_straight", "Drone"], ["track_straight", "Tracking"], ["headon", "Head-on"], ["grandstand", "Stand"]],
-                       "round": [["track_loop", "Tracking"], ["drone_straight", "Drone"], ["headon", "Head-on"], ["grandstand", "Stand"]]},
+        "cameraMenu": menu or {"straight": [["drone_straight", "Drone"], ["track_straight", "Tracking"], ["headon", "Head-on"], ["grandstand", "Stand"]],
+                               "round": [["track_loop", "Tracking"], ["drone_straight", "Drone"], ["headon", "Head-on"], ["grandstand", "Stand"]]},
         "raceDirector": {
-            "schedule": "On the Rowley Mile (owner, 9 Nov late) path.tracking is set: the tracking car down the course (on the leg "
-                        "and round the bend, then along the straight), cutting to the drone for flicks.length metres every "
-                        "flicks.every metres run (not in the first flicks.from), the drone from path.drone3f metres out, the stand "
-                        "camera from path.grandstand (down the Dip) to the line; no head-on.",
+            "schedule": "On the Rowley Mile (owner, 10 Nov) path.tracking is set: the tracking car all the way down the course (on "
+                        "the leg and round the bend, then along the straight), then the stand camera from path.grandstand (down the "
+                        "Dip) to the line; no drone (from up there the picture showed what lies behind the Dyke) and no head-on. "
+                        "(path.drone3f and path.flicks, if set, cut to the drone from 3f out and for short flicks on the way.)",
             "_about": "One path (owner, 8 Nov: tracking car, head-on, the stand camera, the drone). Round races: the tracking car "
                       "down the leg and round the bend until path.drone metres into the straight; then the drone along the stand "
                       "side; the head-on long lens from beyond the line for the stretch path.headon ([from, to] metres to go, only "
@@ -505,6 +529,23 @@ def view_file(cid, L, course, stalls, stands_side, cams, prelude, postlude, dire
         "startSequence": {"standSeconds": 3.0, "holdAfterOff": 4.0, "passAt": 8, "hideAfter": 350},
     }
     return out
+
+
+def terrace_cam(S, x, z, face, level=None, label="Terraces"):
+    """Watching from the terraces (owner, 10 Nov): a spectator's eye on the stand's step nearest (x, z), among its crowd
+    (S.people), with the TV director's picture in a corner of the screen. The race view keeps 'clear' metres round the eye
+    free of people, turns no more than 'pan' degrees either way from 'face' (straight out over the course), and keeps at
+    least 'hfov' degrees across the screen."""
+    P = S.people
+    near = sorted((math.hypot(P[i] - x, P[i + 2] - z), P[i + 1]) for i in range(0, len(P), 4)
+                  if abs(P[i] - x) < 2.5 and abs(P[i + 2] - z) < 2.5 and (level is None or abs(P[i + 1] - level) < 0.6))[:4]
+    step = sorted(y for _, y in near)[len(near) // 2]
+    f = math.hypot(*face)
+    return {"label": label, "kind": "terrace", "at": [x, round(step + 1.62, 2), z], "absolute": True,
+            "face": [round(face[0] / f, 3), round(face[1] / f, 3)], "pan": 70, "fov": [30, 50], "hfov": 38, "clear": 1.1,
+            "frame": "field", "leadRoom": 2, "tv": True,
+            "note": "from among the crowd on the stand's terraces, a spectator's eye (1.62 m over the step; 'at' y is above sea "
+                    "level, as the crowd), the TV director's picture in a corner"}
 
 
 def cameras(W, side, stand_cam, sideon, headon_x, sun, drone=(20, 15)):
@@ -589,7 +630,15 @@ def main():
             cams["sideon"]["fov"] = [46, 46]
             # the director (owner, 9 Nov late): mainly the tracking car, flicks to the drone early on, the drone from 3f, the
             # stand camera down the Dip to the line
-            director = {"tracking": True, "drone3f": round(3 * F), "grandstand": 330, "flicks": {"from": 260, "every": 520, "length": 110}}
+            # (owner, 10 Nov: "this raised image just creates issues when you see behind the dyke ... stick to tracking and then
+            # the flatter grandstand shot"): the tracking car, then the stand camera; no drone, in the director or the menu
+            director = {"tracking": True, "grandstand": 330}
+            # the terraces: in the front row of the Millennium Grandstand's first-floor terrace, a few metres before the post
+            # (it faces 10 degrees round from straight across the course). (Tried first on the standing steps down to the
+            # lawn: they rise so gently that the people in front filled the picture, and the course couldn't be seen.)
+            cams["terraces"] = terrace_cam(S, 8.0, 93.0, (0.174, -0.985), level=5.8)
+            menu = {"straight": [["track_straight", "Tracking"], ["grandstand", "Stand"], ["terraces", "Terraces"], ["headon", "Head-on"]],
+                    "round": [["track_loop", "Tracking"], ["grandstand", "Stand"], ["terraces", "Terraces"], ["headon", "Head-on"]]}
             # the racecard / overview (owner, 9 Nov, with a photo from the stands): high at the cranked stand's rail end,
             # looking up the course, the Millennium's canopies on the right, a slow drift
             prelude = {"label": "The runners", "seconds": 9, "eye": [[-40, 14, W + 31], [-30, 13, W + 28]], "at": [[480, 2, W * 0.1], [490, 2, W * 0.2]], "fov": 42, "list": [7, 0.6], "cardAfter": 3.5}
@@ -600,6 +649,12 @@ def main():
             director = None
             # the stand camera on the front of the judge's box roof (its own spectators kept clear: see july_scenery)
             cams = cameras(W, side, STAND_CAM_JULY, ([0, 4.5, -9], [0, 1.4, W * 0.58]), -L.RUN_ON + 40, [-110, 49.5, 35.2], drone=(10, 13))
+            # the terraces: the second row of the grand terrace's steps, 60 m before the post, in the middle of a bay
+            # between the roof's columns (they stand every 13 m)
+            cams["terraces"] = terrace_cam(S, 59.5, -17.6, (0, 1), level=1.25)
+            menu = {k: v + [["terraces", "Terraces"]] for k, v in (
+                ("straight", [["drone_straight", "Drone"], ["track_straight", "Tracking"], ["headon", "Head-on"], ["grandstand", "Stand"]]),
+                ("round", [["track_loop", "Tracking"], ["drone_straight", "Drone"], ["headon", "Head-on"], ["grandstand", "Stand"]]))}
             prelude = {"label": "The runners", "seconds": 9, "eye": [[200, 62, W + 190], [90, 58, W + 190]], "at": [[100, 8, -40], [20, 8, -40]], "fov": 40, "list": [7, 0.6]}
             postlude = {"label": "After the race", "seconds": 8, "eye": [[20, 3, 8], [60, 45, W + 60]], "at": [[0, 8, -40], [-10, 6, -50]], "fov": 42}
             models = ["july_stands", "site_props", "finish_line"]
@@ -607,7 +662,7 @@ def main():
         write(f"{cid}.json", c)
         write(f"{cid}-stalls.json", stalls, 1)
         (OUT / f"{cid}-standards.json").write_text((REPO / f"courses/{src}-standards.json").read_text()); print("wrote", f"{cid}-standards.json")
-        write(f"{cid}-view.json", view_file(cid, L, course, stalls, side, cams, prelude, postlude, director), 1)
+        write(f"{cid}-view.json", view_file(cid, L, course, stalls, side, cams, prelude, postlude, director, menu), 1)
         write(f"{cid}-scenery.json", scenery_file(S, trees, boards, banks, models, finish, poles))
         print("  ", len(S.pieces), "pieces,", len(S.people) // 4, "people,", len(trees), "trees,", len(boards), "boards")
 

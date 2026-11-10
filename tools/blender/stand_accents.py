@@ -205,6 +205,8 @@ def dress(src, dst, far):
             a, b = 3 * i, 3 * (i + 1)
             fs += [(a, b, b + 1, a + 1), (a + 1, b + 1, b + 2, a + 2)]; fm += [i % 2, i % 2]
         add_mesh("awning", vs, fs, [canvas, AM[col]], fm, 0.03)
+    # none where the standing terraces come down to the lawn in front (owner, 9 Nov 2026): those doors are under the steps
+    openings = [d for d in openings if not (module_at((d[0].x + d[1].x) / 2) or {}).get("groundTerrace")]
     openings.sort(key=lambda d: d[0].x)
     placed = []
     for lo, hi, col in openings:

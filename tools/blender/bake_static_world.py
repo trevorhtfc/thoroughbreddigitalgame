@@ -88,6 +88,17 @@ bpy.ops.object.light_add(type="SUN")
 sun = bpy.context.object
 sun.data.energy = 4.6; sun.data.angle = math.radians(14); sun.data.color = (1.0, 0.8, 0.62)
 SUN_DIR = Vector((-1.0, 0.32, 0.45)).normalized()             # towards the sun, Blender axes (world x, -z, y)
+# LOOK=model (owner's concept stills, 9 Nov 2026; tools/blender/stand_clean_study.py variant "model"): a high-key soft
+# light: a bigger, gentler sun higher in the sky (short soft shadows), a strong lilac-blue fill from a sky graded
+# cream-peach at the horizon, lilac, then soft cornflower. The race view's live sun matches (ascot-view.json -> sun).
+MODEL = os.environ.get("LOOK") == "model"
+if MODEL:
+    el[0].position, el[0].color = 0.0, (1.0, 0.86, 0.76, 1)
+    el[1].position, el[1].color = 0.07, (0.86, 0.84, 0.95, 1)        # (the elements sort by position: 0, 0.16, 0.62)
+    el[2].position, el[2].color = 0.5, (0.42, 0.56, 0.9, 1)
+    wn["Background"].inputs["Strength"].default_value = 1.15
+    sun.data.energy = 3.4; sun.data.angle = math.radians(24); sun.data.color = (1.0, 0.9, 0.8)
+    SUN_DIR = Vector((-1.0, 0.45, 0.95)).normalized()
 sun.rotation_euler = (-SUN_DIR).to_track_quat("-Z", "Y").to_euler()
 
 # ---------------- ground: the stills' turf, lanes, grass and paths ----------------

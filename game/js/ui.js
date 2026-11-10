@@ -288,7 +288,7 @@ const FOOTS = {
     if (phase() === "team") { const T = teamState();
       return T.done ? `<span class="f-info ready">Your team is picked.</span>${goBtn("teamDone", "To the National Stud")}`
         : `<span class="f-info">${T.offer ? "Keep one of the three cards." : `${teamPoints()} of ${TEAM_POINTS} points picked. Choose a deck.`}</span>`; }
-    if (atAscot()) return `<span class="f-info">Change your runners before the first race. The going is declared again when you go back.</span>${goBtn("toWeek", `Back to ${W.weekWord}`)}`;
+    if (atAscot()) return `<span class="f-info">Change your runners before the first race. The going is declared again when you go back.</span>${goBtn("toWeek", W.backToRacing)}`;
     const ph = phase();
     if (ph === "gallops" || ph === "entries") { const left = RACES.length - entered();
       return `<span class="f-info ${left ? "" : "ready"}">${left ? `${left} race${left === 1 ? "" : "s"} still without a runner.` : `All ${RACES.length} races have a runner.`}</span>${goBtn("toRaces", W.go)}`; }
@@ -321,7 +321,7 @@ const FOOTS = {
 /* ----- The Jockey Club: the draw, the programme ----- */
 function programmeBody() {
   const going = goingKnown();
-  return `<div class="tb-head"><p class="tb-lede">${W.lede === "Your ten races at Royal Ascot, two a day over five days" ? W.lede + ": Group races, Listed races and big handicaps." : W.lede} Each needs a minimum rating to run, and handicaps take horses rated ${HCAP_MAX} or less. ${going ? "The going has been declared." : `The going is declared in ${W.weekWord}, once your entries are in.`}</p></div>
+  return `<div class="tb-head"><p class="tb-lede">${W.lede === "Your ten races at Royal Ascot, two a day over five days" ? W.lede + ": Group races, Listed races and big handicaps." : W.lede} Each needs a minimum rating to run, and handicaps take horses rated ${HCAP_MAX} or less. ${going ? "The going has been declared." : W.goingWhen}</p></div>
     <div class="prog">${DAYS.map((d, k) => `<section class="prog-day"><h3>${d}${going ? ` <span class="gday g-${CARD.going[k]}">${CARD.going[k]}</span>` : ""}</h3>
       ${RACES.filter(r => r.day === k).map(r => { const res = S.results[r.id], h = horse(S.entries[r.id]), t = (S.targets || {})[r.id] && horse(S.targets[r.id]);
         return `<div class="prog-r">${raceFace(r)}<div class="prog-who">${h ? `${silkImg(mySilkN())}<b>${esc2(h.name)}</b>` : t ? `<span class="plan">Planned: ${esc2(t.name)}</span>` : `<span class="none">No runner yet</span>`}
@@ -440,7 +440,7 @@ function museumBody() {
       <li><b>The National Stud</b>: buy mares (choose one of three each time) and send them to the stallions. A mare can be at most one star above her stallion; outcrosses breed best, the same family worst. Unproven stallions may be a star better or worse than they look.</li>
       <li><b>Tattersalls</b>: the yearlings out of the mares nobody bred are sold in three Books. Bid against five rival buyers; you see the pedigree, not the yearling, until it's yours.</li>
       <li><b>Warren Hill</b>: develop horses to 3 or 4. Their rating and best trip change; you only see how once it's done.</li>
-      <li><b>The Jockey Club</b>: enter ${W.entryRule.toLowerCase()}. Each step from its best trip costs 5; the going counts in ${W.weekWord} (+5 on a going it likes, down to −10 three steps off).</li>
+      <li><b>The Jockey Club</b>: enter ${W.entryRule.toLowerCase()}. Each step from its best trip costs 5; the going counts ${W.goingCounts} (+5 on a going it likes, down to −10 three steps off).</li>
       <li>${W.howRaces ? W.howRaces : "<b>Royal Ascot</b>: watch each race in 3D or sim it."} Rating, trip, going and pace decide it, and a horse's running style meets the pace of the race. Prize money is its own pot; the money you spent doesn't count against it.</li>
     </ol></section>`;
 }
@@ -562,12 +562,18 @@ let menuOpen = false, newArmed = false;
 const hasProgress = () => S.dealt || S.step > 1 || S.stable.length > 0 || S.budget !== START_BUDGET;
 function openMenu() {
   menuOpen = true; newArmed = false; const m = $("#menu"); m.hidden = false;
-  paintMenu(); const v = $("#menuVid"); try { v && v.play && v.play().catch(() => {}); } catch (e) {}
+  paintMenu(); const v = $("#menuVid"); try { if (v && v.play && !v.dataset.still) v.play().catch(() => {}); } catch (e) {}
   const on = m.querySelector(".sw.on"), st = on && on.parentNode; if (st) st.scrollLeft = Math.max(0, on.offsetLeft - (st.clientWidth - on.offsetWidth) / 2);
 }
 function closeMenu() { menuOpen = false; $("#menu").hidden = true; const v = $("#menuVid"); try { v && v.pause(); } catch (e) {} }
 function paintMenu(keepScroll) {
   const strip = $("#menu .swatches"), x = strip ? strip.scrollLeft : 0;
+  // the Newmarket season's cover is a still of the Rowley Mile instead of the Ascot film
+  const vid = $("#menuVid");
+  if (W.coverPicture && vid && !vid.dataset.still) {
+    vid.dataset.still = "1"; try { vid.pause(); } catch (e) {}
+    vid.removeAttribute("autoplay"); vid.querySelectorAll("source").forEach(s => s.remove()); vid.poster = W.coverPicture; vid.load();
+  }
   // the season on show (Royal Ascot or Newmarket), its words, and the switch between them
   document.querySelectorAll("#menu [data-season]").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.season === MEETING.id)));
   if (W.coverKicker) $("#menuKick").textContent = W.coverKicker;

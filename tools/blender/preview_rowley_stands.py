@@ -252,7 +252,7 @@ for _ in range(int((pa["x"][1] - pa["x"][0]) * (pa["z"][1] - pa["z"][0]) * 0.02)
     people.append((rnd.uniform(*pa["x"]), rnd.uniform(*pa["z"]), 0.0, rnd.uniform(0, 360)))
 # ---- the advertising boards between the Dyke and the course, angled a little towards the stands (owner, 9 Nov)
 BC = {k_: flat("board_" + k_, v_, 0.8) for k_, v_ in R.BOARD_C.items()}
-for bx, bz, bt, des in [b_ for b_ in R.boards() if (R.KEEP or (lambda x, z: True))(b_[0], b_[1])]:
+for bx, bz, bt, des, *_bs in [b_ for b_ in R.boards() if (R.KEEP or (lambda x, z: True))(b_[0], b_[1])]:   # (a scale may follow)
     me = bpy.data.meshes.new("board"); bm_ = bmesh.new()
     bmesh.ops.create_cube(bm_, size=1.0, matrix=Matrix.Translation((0, 0, 0.85)) @ Matrix.Diagonal((R.BOARD_LEN, 0.18, 1.1, 1)))
     for lx in (-R.BOARD_LEN / 2 + 0.4, R.BOARD_LEN / 2 - 0.4):
@@ -376,6 +376,20 @@ bpy.ops.object.light_add(type="SUN"); sun = bpy.context.object
 sun.data.energy = 4.6; sun.data.angle = math.radians(14); sun.data.color = (1.0, 0.8, 0.62)
 to_sun = Vector((0.55, -0.8, 0.0)).normalized() * math.cos(math.radians(32)) + Vector((0, 0, math.sin(math.radians(32))))
 sun.rotation_euler = (-to_sun).to_track_quat("-Z", "Y").to_euler()
+# LOOK=model (owner's concept stills, 9 Nov 2026; as Ascot's study and bake): a bigger, gentler sun from where the race view
+# has it, raised (race-view/assets/course/newmarket-view.json -> light.sunDir), a strong lilac-blue sky fill over a sky
+# graded cream-peach, lilac, soft cornflower. Stills are written as model_<shot>.png with their depth (model_look_post.py).
+MODEL = os.environ.get("LOOK") == "model"
+if MODEL:
+    for e_, (pos, col) in zip(el, ((0.0, (1.0, 0.86, 0.76, 1)), (0.07, (0.86, 0.84, 0.95, 1)), (0.28, (0.6, 0.68, 0.92, 1)), (0.5, (0.42, 0.56, 0.9, 1)))):
+        e_.color = col
+    for e_, pos in zip(el, (0.0, 0.07, 0.28, 0.5)): e_.position = pos      # (the four stops, in order)
+    wn["Background"].inputs["Strength"].default_value = 1.15
+    sun.data.energy = 3.4; sun.data.angle = math.radians(24); sun.data.color = (1.0, 0.9, 0.8)
+    sd = json.load(open(os.path.join(REPO, "race-view/assets/course/newmarket-view.json")))["light"]["sunDir"]
+    to_sun = Vector((sd[0], -sd[2], sd[1])).normalized()
+    sun.rotation_euler = (-to_sun).to_track_quat("-Z", "Y").to_euler()
+    scene.view_layers[0].use_pass_z = True
 
 CAMS = {   # course (x, z, height) from and to, lens
     "across": ((30.0, -3.0, 6.0), (30.0, 125.0, 22.0), 20),           # from the far rail, at the Millennium
@@ -409,5 +423,12 @@ for s in SHOTS:
     scene.collection.objects.link(cam)
     frm, to = Vector(B(fx, fz, fy)), Vector(B(tx, tz, ty)); cam.location = frm
     cam.rotation_euler = (to - frm).to_track_quat("-Z", "Y").to_euler(); scene.camera = cam
-    scene.render.filepath = os.path.join(OUT, s + ".png"); t0 = time.time()
+    scene.render.filepath = os.path.join(OUT, ("model_" if MODEL else "") + s + ".png"); t0 = time.time()
     bpy.ops.render.render(write_still=True); print("rendered", s, round(time.time() - t0), "s", flush=True)
+    if MODEL:     # the frame's depth and camera, for tools/blender/model_look_post.py
+        st = scene.render.image_settings; keep = (st.media_type, st.file_format, st.color_depth)
+        st.media_type = "MULTI_LAYER_IMAGE"; st.file_format = "OPEN_EXR_MULTILAYER"; st.color_depth = "32"
+        bpy.data.images["Render Result"].save_render(scene.render.filepath[:-4] + ".exr", scene=scene)
+        st.media_type, st.file_format = keep[0], keep[1]; st.color_depth = keep[2] if keep[1] != "PNG" or keep[2] in ("8", "16") else "8"
+        json.dump({"eye": [fx, fz, fy], "at": [tx, tz, ty], "lens": lens, "focusDist": (to - frm).length},
+                  open(scene.render.filepath[:-4] + ".json", "w"))
