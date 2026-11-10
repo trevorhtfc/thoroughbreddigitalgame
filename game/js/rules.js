@@ -4,8 +4,12 @@
 // companion app code (trevorhtfc/horseracinggame) exactly, as the Ascot game did; the race itself is run by the race
 // engine (assets/engine/engine.js). The meeting (which races, which course, the prizes) is data: js/meetings/*.js.
 // =====================================================================================================================
-const MEETING = window.MEETINGS[window.MEETING_ID || "royal-ascot"];
+const MEETING = window.MEETINGS[window.MEETING_ID || "royal-ascot"] || window.MEETINGS["royal-ascot"];
 window.MEETING = MEETING;
+// How the screens name things in this season (Royal Ascot or the Newmarket season): js/meetings/*.js -> words
+const W = MEETING.words || {};
+// A race day's short label ("Tue" … at Ascot; the month of each Newmarket meeting)
+const dayTag = k => (MEETING.dayTag ? MEETING.dayTag[k] : DAYS[k].slice(0, 3));
 
 const engineReady = new Promise(res => { if (window.ENGINE || window.ENGINE_FAILED) res(); else addEventListener("engine-ready", () => res(), { once: true }); });
 addEventListener("engine-ready", () => { if (S && S.step === 4 && typeof render === "function") render(); });
@@ -209,7 +213,7 @@ const isOpenRace = r => r.grade === "Handicap" || r.grade === "Conditions";
 // straight course, 18-20 round the bend; Group races 10-18 on the straight, 8-14 round the bend; Listed and
 // Conditions races 10-16. The round mile (starting in the chute) counts as round the bend.
 const FIELD_SIZE = MEETING.fieldSize;
-const onStraight = r => r.f < MEETING.straightUpTo || (r.f === MEETING.straightUpTo && !r.round);
+const onStraight = r => (MEETING.courses ? r.f <= courseOf(r).straightUpTo : r.f < MEETING.straightUpTo || (r.f === MEETING.straightUpTo && !r.round));
 function fieldSize(r) {
   if (r.ages[1] === 2) return FIELD_SIZE.twoYO;
   if (r.grade === "Handicap") return onStraight(r) ? FIELD_SIZE.hcapStraight : FIELD_SIZE.hcapRound;
@@ -234,9 +238,14 @@ function drawRaces(R) {
 function setRaces(list) {
   RACES = list.map((r, i) => ({ ...r, i, step: STEP_OF[r.f], bands: GRADE[r.grade].bands, prizes: GRADE[r.grade].prizes }));
 }
-const STEP_OF = { 5: 0, 6: 1, 7: 2, 8: 3, 9: 4, 10: 5, 12: 6, 14: 7, 16: 8, 20: 8, 22: 8 };
+const STEP_OF = { 5: 0, 6: 1, 7: 2, 8: 3, 9: 4, 10: 5, 12: 6, 13: 6, 14: 7, 16: 8, 18: 8, 20: 8, 22: 8 };   // 13 (1m5f) and 18 (2m2f): Newmarket, as the engine rounds them
 // The race in the race engine and the 3D view (courses/ascot-view.json -> races)
-const viewKey = r => (r.round && MEETING.viewRaces[r.f + "r"]) || MEETING.viewRaces[r.f];
+// A season may race on more than one course (Newmarket: the Rowley Mile and the July Course): each race's course gives its
+// files (assets/course/<file>.json …), how far its straight goes and its races in the view file. Royal Ascot has one.
+const courseOf = r => (MEETING.courses ? MEETING.courses[r.course] : { name: MEETING.name, file: MEETING.course, straightUpTo: MEETING.straightUpTo, views: MEETING.viewRaces });
+const courseFile = r => courseOf(r).file;
+const courseName = r => (MEETING.courses ? courseOf(r).name : "");
+const viewKey = r => (MEETING.courses ? courseOf(r).views[r.f] : (r.round && MEETING.viewRaces[r.f + "r"]) || MEETING.viewRaces[r.f]);
 
 
 // The four rating bands of each race (the board game's decks): the field is drawn across them, and the lowest is the
@@ -353,6 +362,12 @@ const starStr = n => "★".repeat(n) + "☆".repeat(Math.max(0, 5 - n));
 
 /* ================= Running a race ================= */
 function horse(id) { return S.stable.find(h => h.id === id); }
+// Which of a horse's other entries a race rules out. At Royal Ascot a horse runs once; in the Newmarket season it may run
+// at every meeting it qualifies for, once at each (MEETING.runsPerMeeting; owner, 10 Nov: "the same horse can be used
+// multiple times if applicable").
+const clashes = (x, r) => x.id !== r.id && (!MEETING.runsPerMeeting || x.day === r.day);
+const clashFor = (h, r) => RACES.find(x => clashes(x, r) && S.entries[x.id] === h.id);
+const runsOf = h => RACES.filter(x => S.entries[x.id] === h.id);
 // The field in stall order, as racecards for the race engine (it applies the trip and the ground itself)
 function fieldFor(i) {
   const race = RACES[i], C = CARD.races[i], mk = mySilkN(), me0 = mySilks();
@@ -410,16 +425,18 @@ function marketFor(i) {
     return { fig: figs[k], odds: n === d ? "Evens" : `${n}/${d}`, card: card[k] };
   });
 }
+// The race engine's course data for a race (index.html loads every course the season races on)
+const engineFor = race => (ENGINE.courses && ENGINE.courses[courseFile(race)]) || { data: ENGINE.data, view: ENGINE.view };
 const engineRunner = h => ({ id: h.id, name: h.name, rating: h.rating, trip: h.trip, goings: h.goings, style: h.style, flex: h.flex, temperament: h.temper });
 // The race as the engine and the 3D view know it: the same five values in both, so both run the same race
 function engineRace(i) {
-  const race = RACES[i], v = ENGINE.view.races[viewKey(race)];
+  const race = RACES[i], v = engineFor(race).view.races[viewKey(race)];
   return { course: v.course, distance: v.distance, start: v.start, going: CARD.going[race.day], seed: String(CARD.races[i].seed) };
 }
 async function simRace(i) {
   await engineReady;
   if (!window.ENGINE) throw new Error("The race engine didn't load" + (window.ENGINE_FAILED ? ": " + window.ENGINE_FAILED : ""));
-  const field = fieldFor(i), { result } = ENGINE.runRace(engineRace(i), field.map(engineRunner), ENGINE.data, { timeline: false });
+  const field = fieldFor(i), { result } = ENGINE.runRace(engineRace(i), field.map(engineRunner), engineFor(RACES[i]).data, { timeline: false });
   return { field, result, order: result.placed.map(p => field[p.runner].id) };
 }
 // The pace the racecard promises (the jockeys read it the same way before the off)

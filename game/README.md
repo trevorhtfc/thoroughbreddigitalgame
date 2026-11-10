@@ -309,3 +309,30 @@ Files: `lab.html`, `css/lab.css`, `js/lab.js` (the page), `js/lab-worker.js` (ru
 once). Races are rebuilt from the test's seed when needed, so only the figures are stored. The race view takes two new
 optional fields from whoever opens it: `handicap` and `settings` (the lab's tuned numbers), so a lab race watched in 3D is
 exactly the race tested (checked: the view's order matched the lab's for level and handicap races, tuned and not).
+
+## Two seasons: Royal Ascot or Newmarket (10 Nov 2026)
+
+The cover now offers two seasons (owner, 10 Nov). Both are 10 races and share everything before the racing (the draw,
+the National Stud, Tattersalls, entries at the Jockey Club, the 3D race view):
+
+| | Royal Ascot (`js/meetings/royal-ascot.js`) | Newmarket (`js/meetings/newmarket.js`) |
+|---|---|---|
+| Races | 2 a day over 5 days, from the Royal Ascot programme | 2 at each of 5 meetings: Craven (Apr), Guineas (May), July Festival (Jul), Cambridgeshire (Sep), Future Champions (Oct), from the 36-race Newmarket list |
+| Courses | Ascot | Rowley Mile and July Course (each race names its course) |
+| Runs per horse | Once | Once per meeting, at every meeting it qualifies for (`runsPerMeeting: 1`) |
+| Going | One per day | One per meeting |
+| Titles | Royal Ascot Champion … Paying Guest | Newmarket Champion, Leading Owner, Classic Force, Newmarket Winner, Heath Walker |
+| To the races | The Ascot film | No film: the racecourse is on the board; race days sit over a Rowley Mile still (`img/newmarket-still.jpg`) |
+
+- **Choosing**: the switch at the top of the cover; the choice is remembered (`localStorage` `tb-season`) and
+  `?season=newmarket` or `?season=royal-ascot` opens one. Switching reloads the page into the other season.
+- **Each season is its own game**: its own save (`tb-game-<id>`), history, best week/season, roll of honour and titles,
+  so the leaderboard (still to come, with Firebase) will be one table per season.
+- **The words** each season uses on screen are in its meeting file (`words`); the rules read courses per race
+  (`courseOf`, `courseFile`, `viewKey`, `onStraight` in `js/rules.js`) and the clash rule (`clashes`, `clashFor`). The page
+  loads the engine data for every course the season races on (`ENGINE.courses`).
+- **Checked**: Royal Ascot plays exactly as before (same cards, results and wording); Newmarket seasons played through by
+  the strategy harness and in the browser (a horse runs at up to every meeting, never twice at one; the 3D view's result
+  matches the sim on the Rowley Mile).
+- `js/meetings/newmarket-season.js` is the 8 Nov draft (all 36 races over the whole season), kept for the long game.
+- The Race Lab now tests all three courses (Ascot, Rowley Mile, July Course).

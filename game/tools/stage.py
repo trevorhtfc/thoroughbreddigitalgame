@@ -17,7 +17,7 @@ def add(src, dst):
     if not src.exists(): raise SystemExit(f"missing {src}")
     take.append((src, out / dst))
 # the game
-for f in ["index.html", "card.html", "css/components.css", "css/game.css", "js/meetings/royal-ascot.js", "js/rules.js", "js/board.js", "js/ui-parts.js", "js/ui.js", "js/life.js"]:
+for f in ["index.html", "card.html", "css/components.css", "css/game.css", "js/meetings/royal-ascot.js", "js/meetings/newmarket.js", "js/rules.js", "js/board.js", "js/ui-parts.js", "js/ui.js", "js/life.js"]:
     add(game / f, f)
 # the Race Lab (lab.html): test the race engine on any course, distance, going, field and tactics
 for f in ["lab.html", "css/lab.css", "js/lab.js", "js/lab-worker.js"]:

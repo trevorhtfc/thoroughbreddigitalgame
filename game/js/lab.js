@@ -11,7 +11,8 @@
 // =====================================================================================================================
 import { runRace, makeRandom, raceDayRating, flatSettings } from "../assets/engine/engine.js";
 
-const COURSE_ID = "ascot";
+// The three courses the game races on: Ascot (Royal Ascot) and Newmarket's Rowley Mile and July Course (the Newmarket season)
+const RACECOURSES = [{ id: "ascot", name: "Ascot", short: "Ascot" }, { id: "newmarket", name: "Rowley Mile", short: "Rowley" }, { id: "newmarket-july", name: "July Course", short: "July" }];
 const SETUP_KEY = "tb-lab-setup-v1", GAME_KEY = "tb-game-royal-ascot";
 const $ = (s, el = document) => el.querySelector(s);
 const esc = (v) => String(v == null ? "" : v).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
@@ -46,18 +47,23 @@ const VARY_DIM = { none: "Setting", tactic: "Riding instruction", style: "Runnin
 
 // ---------------------------------------------------------------------------------------------- the engine's data
 const get = (p) => fetch(p).then((r) => { if (!r.ok) throw new Error(p + " " + r.status); return r.json(); });
-let COURSE, STALLS, STANDARDS, BASE, VIEW;
+let BASE, CDATA = {};       // CDATA[course id] = { course, stalls, standards, view }
 try {
-  [COURSE, STALLS, STANDARDS, BASE, VIEW] = await Promise.all([`assets/course/${COURSE_ID}.json`, `assets/course/${COURSE_ID}-stalls.json`,
-    `assets/course/${COURSE_ID}-standards.json`, "assets/engine/settings.json", `assets/course/${COURSE_ID}-view.json`].map(get));
+  BASE = await get("assets/engine/settings.json");
+  await Promise.all(RACECOURSES.map((rc) => Promise.all([`assets/course/${rc.id}.json`, `assets/course/${rc.id}-stalls.json`, `assets/course/${rc.id}-standards.json`, `assets/course/${rc.id}-view.json`].map(get))
+    .then(([course, stalls, standards, view]) => { CDATA[rc.id] = { course, stalls, standards, view }; })));
 } catch (e) {
   document.querySelector("main").innerHTML = `<div class="card empty"><h2>The race engine didn't load</h2><p>${esc(e.message)}</p></div>`;
   throw e;
 }
-const LADDER = BASE.horse.TRIP_LADDER, LADDER_F = BASE.horse.TRIP_LADDER_FURLONGS, MAX_RUNNERS = STALLS.maxRunners;
-const TRIPS = Object.entries(VIEW.races).filter(([, v]) => v && typeof v === "object" && v.course)
-  .map(([key, v]) => ({ key, label: v.label, course: v.course, distance: v.distance, start: v.start, straight: v.course === "straight" }));
-const TRIP_BY = Object.fromEntries(TRIPS.map((t) => [t.key, t]));
+const LADDER = BASE.horse.TRIP_LADDER, LADDER_F = BASE.horse.TRIP_LADDER_FURLONGS, MAX_RUNNERS = Math.min(...RACECOURSES.map((rc) => CDATA[rc.id].stalls.maxRunners));
+// Every race set-up on every course: key "<course id>:<race in its view file>" (older tests and set-ups, from before
+// Newmarket was added, name Ascot's races alone: "mile" is "ascot:mile")
+const TRIPS = [].concat(...RACECOURSES.map((rc) => Object.entries(CDATA[rc.id].view.races).filter(([, v]) => v && typeof v === "object" && v.course)
+  .map(([key, v]) => ({ key: rc.id + ":" + key, view: key, cid: rc.id, rc, label: `${rc.short} · ${v.label}`, trip: v.label, course: v.course, distance: v.distance, start: v.start, straight: v.course === "straight" }))));
+const TRIP_BY0 = Object.fromEntries(TRIPS.map((t) => [t.key, t]));
+const tripKey = (k) => (String(k).includes(":") ? k : "ascot:" + k);
+const TRIP_BY = new Proxy(TRIP_BY0, { get: (o, k) => (typeof k === "string" ? o[tripKey(k)] : undefined) });
 const rungOf = (metres) => { const f = metres / 201.168; let b = 0; LADDER_F.forEach((r, i) => { if (Math.abs(r - f) < Math.abs(LADDER_F[b] - f)) b = i; }); return b; };
 const pairLabel = (t) => (t == null || t < 0 ? "Any" : `${LADDER[t]}–${LADDER[t + 1]}`);
 
@@ -103,14 +109,14 @@ function settingsWith(tune) {
 function hashStr(t) { let h = 2166136261; for (let i = 0; i < t.length; i++) { h ^= t.charCodeAt(i); h = Math.imul(h, 16777619); } return (h >>> 0).toString(36).slice(-6).padStart(6, "0"); }
 const settingsTag = (tune) => hashStr(JSON.stringify(settingsWith(tune)));
 const GAME_TAG = settingsTag({});
-const dataWith = (tune) => ({ course: COURSE, stalls: STALLS, standards: STANDARDS, settings: settingsWith(tune) });
+const dataWith = (tune, cid = "ascot") => ({ course: CDATA[cid].course, stalls: CDATA[cid].stalls, standards: CDATA[cid].standards, settings: settingsWith(tune) });
 
 // ---------------------------------------------------------------------------------------------- the set-up
 function newRunner(o = {}) {
   return { id: uid(), star: false, name: "NEW HORSE", rating: 100, mark: 100, style: "midfield", flex: "adaptable", temperament: "calm", trip: 3, goings: ["Good"], jockey: 0, instruction: "jockey", silk: Math.floor(Math.random() * SILK3D.length), coat: 0, ...o };
 }
 const DEFAULT = () => ({
-  trips: ["mile"], goings: ["Good"], fill: true, size: 14, lo: 95, hi: 106, oppTrip: true, oppGoing: true, draw: "random", handicap: false,
+  trips: ["ascot:mile"], goings: ["Good"], fill: true, size: 14, lo: 95, hi: 106, oppTrip: true, oppGoing: true, draw: "random", handicap: false,
   vary: { kind: "none", from: 95, to: 110, step: 5 }, runs: 200, name: "", notes: "", tune: {},
   field: [newRunner({ star: true, name: "TEST HORSE", rating: 104, silk: 27 })],
   view: null,
@@ -118,6 +124,7 @@ const DEFAULT = () => ({
 let U;
 try { U = { ...DEFAULT(), ...JSON.parse(localStorage.getItem(SETUP_KEY) || "{}") }; } catch (e) { U = DEFAULT(); }
 if (!Array.isArray(U.field)) U.field = DEFAULT().field;
+U.trips = (U.trips || []).map(tripKey).filter((k) => TRIP_BY0[k]);
 const saveU = () => { try { localStorage.setItem(SETUP_KEY, JSON.stringify(U)); } catch (e) {} };
 
 function variantsOf(v) {
@@ -137,7 +144,8 @@ function variantsOf(v) {
 }
 function combosOf(st) {
   const out = [], V = variantsOf(st.vary);
-  for (const t of TRIPS) if (st.trips.includes(t.key)) for (const g of GOINGS) if (st.goings.includes(g)) V.forEach((_, vi) => out.push({ trip: t.key, going: g, vi }));
+  const want = new Set(st.trips.map(tripKey));
+  for (const t of TRIPS) if (want.has(t.key)) for (const g of GOINGS) if (st.goings.includes(g)) V.forEach((_, vi) => out.push({ trip: t.key, going: g, vi }));
   return out;
 }
 const fieldCount = (st) => (st.fill ? Math.max(st.field.length, Math.min(MAX_RUNNERS, st.size)) : st.field.length);
@@ -179,6 +187,7 @@ function buildJob(T, k) {
   if (st.draw === "random") for (let i = list.length - 1; i > 0; i--) { const j = Math.floor(rnd.next() * (i + 1)); [list[i], list[j]] = [list[j], list[i]]; }
   return {
     k, ci, r, c, V: vv, trip,
+    cid: trip.cid,
     race: { course: trip.course, distance: trip.distance, start: trip.start, going: c.going, seed: String(T.seedBase * 100000 + r), handicap: !!st.handicap },
     meta: list, runners: list.map(engineRunner),
   };
@@ -228,7 +237,7 @@ function analyse(T) {
     races.push({ k, J, res });
     J.meta.forEach((h, i) => {
       const w = res.rows[i], rank = 1 + dr.filter((x) => x > dr[i]).length;
-      recs.push({ k, trip: J.trip.key, course: J.trip.straight ? "Straight" : "Round", going: J.c.going, v: J.V.label, pace: res.paceRun, n,
+      recs.push({ k, trip: J.trip.key, rc: J.trip.rc.name, course: J.trip.straight ? "Straight" : "Round", going: J.c.going, v: J.V.label, pace: res.paceRun, n,
         star: !!h.star, src: h.src, horse: h.src === "field" ? h.name : "Random opponents", name: h.name, draw: i + 1,
         rating: +h.rating, mark: J.runners[i].mark, style: h.style, flex: h.flex, temper: h.temperament, jockey: +h.jockey || 0, instr: h.instruction || "jockey",
         tripPair: pairLabel(h.trip), liked: (h.goings || []).join("/"),
@@ -261,6 +270,7 @@ const DIMS = {
   horse: { label: "Horse", get: (r) => r.horse },
   v: { label: "Compared setting", get: (r) => r.v },
   trip: { label: "Course & distance", get: (r) => TRIP_BY[r.trip].label, order: TRIPS.map((t) => t.label) },
+  rc: { label: "Racecourse", get: (r) => r.rc, order: RACECOURSES.map((x) => x.name) },
   course: { label: "Straight or round", get: (r) => r.course, order: ["Straight", "Round"] },
   going: { label: "Going", get: (r) => r.going, order: GOINGS },
   pace: { label: "Pace as run", get: (r) => cap(r.pace), order: PACES.map(cap) },
@@ -338,15 +348,13 @@ const chip = (on, act, v, text, sm = "") => `<button class="chip" aria-pressed="
 const radio = (k, opts) => `<span class="radio">${opts.map(([v, t]) => `<button data-act="set" data-k="${k}" data-v="${v}" aria-pressed="${String(U[k]) === String(v)}">${t}</button>`).join("")}</span>`;
 const opt = (list, cur, name = (x) => x) => list.map((x) => `<option value="${esc(x)}"${String(x) === String(cur) ? " selected" : ""}>${esc(name(x))}</option>`).join("");
 function renderSetup() {
-  const straight = TRIPS.filter((t) => t.straight), round = TRIPS.filter((t) => !t.straight);
   const vs = variantsOf(U.vary), tuned = Object.keys(U.tune || {}).length;
   $("#tab-setup").innerHTML = `
   <div class="grid2">
     <div class="card">
-      <h2>Courses and distances</h2><p class="lede">Every one you pick is tested. Ascot, as in the game.</p>
-      <div class="chip-h">Straight course</div><div class="chips">${straight.map((t) => chip(U.trips.includes(t.key), "trip", t.key, esc(t.label))).join("")}</div>
-      <div class="chip-h">Round course</div><div class="chips">${round.map((t) => chip(U.trips.includes(t.key), "trip", t.key, esc(t.label))).join("")}</div>
-      <div class="row" style="margin-top:10px"><button class="btn ghost sm" data-act="trips" data-v="all">All</button><button class="btn ghost sm" data-act="trips" data-v="straight">Straight</button><button class="btn ghost sm" data-act="trips" data-v="round">Round</button><button class="btn ghost sm" data-act="trips" data-v="none">None</button></div>
+      <h2>Courses and distances</h2><p class="lede">Every one you pick is tested: Ascot (Royal Ascot) and Newmarket's Rowley Mile and July Course (the Newmarket season).</p>
+      ${RACECOURSES.map((rc) => `<div class="chip-h">${rc.name}</div><div class="chips">${TRIPS.filter((t) => t.cid === rc.id).map((t) => chip(U.trips.includes(t.key), "trip", t.key, esc(t.trip))).join("")}</div>`).join("")}
+      <div class="row" style="margin-top:10px">${RACECOURSES.map((rc) => `<button class="btn ghost sm" data-act="trips" data-v="${rc.id}">${rc.name}</button>`).join("")}<button class="btn ghost sm" data-act="trips" data-v="straight">Straight</button><button class="btn ghost sm" data-act="trips" data-v="round">Round</button><button class="btn ghost sm" data-act="trips" data-v="all">All</button><button class="btn ghost sm" data-act="trips" data-v="none">None</button></div>
     </div>
     <div class="card">
       <h2>Going</h2><p class="lede">Every going you pick is tested.</p>
@@ -463,7 +471,7 @@ $("#tab-setup").addEventListener("click", (e) => {
   const tog = (list, x) => (list.includes(x) ? list.filter((y) => y !== x) : list.concat(x));
   switch (a) {
     case "trip": U.trips = tog(U.trips, v); break;
-    case "trips": U.trips = v === "all" ? TRIPS.map((t) => t.key) : v === "none" ? [] : TRIPS.filter((t) => t.straight === (v === "straight")).map((t) => t.key); break;
+    case "trips": U.trips = v === "all" ? TRIPS.map((t) => t.key) : v === "none" ? [] : v === "straight" || v === "round" ? TRIPS.filter((t) => t.straight === (v === "straight")).map((t) => t.key) : TRIPS.filter((t) => t.cid === v).map((t) => t.key); break;
     case "going": U.goings = tog(U.goings, v); break;
     case "goings": U.goings = v === "all" ? GOINGS.slice() : [v]; break;
     case "set": U[b.dataset.k] = v === "true" ? true : v === "false" ? false : v; break;
@@ -553,7 +561,7 @@ function makeWorker(data) {
 const STYLE_IX = { front: 0, prominent: 1, midfield: 2, holdup: 3 };
 function runHere(job, data) {
   try {
-    const P = flatSettings(data.settings), { result: R } = runRace(job.race, job.runners, data, { timeline: false });
+    const C = data.courses[job.cid || "ascot"], P = flatSettings(data.settings), { result: R } = runRace(job.race, job.runners, { ...C, settings: data.settings }, { timeline: false });
     const missed = new Set(R.events.filter((e) => e.kind === "missed the break").map((e) => e.runner)), rows = [];
     for (const p of R.placed) {
       const d = raceDayRating(P, job.runners[p.runner], { ...job.race, going: R.race.going });
@@ -569,7 +577,7 @@ async function runTest() {
   if (!total) return;
   const T = { id: uid() + Date.now().toString(36), name: U.name.trim() || autoName(U), notes: U.notes, created: Date.now(), seedBase: 1 + Math.floor(Math.random() * 89999),
     setup: st, tune: clone(U.tune), tag: settingsTag(U.tune), total, results: new Array(total).fill(null) };
-  const data = { course: COURSE, stalls: STALLS, standards: STANDARDS, settings: settingsWith(T.tune) };
+  const data = { courses: Object.fromEntries(RACECOURSES.map((rc) => [rc.id, { course: CDATA[rc.id].course, stalls: CDATA[rc.id].stalls, standards: CDATA[rc.id].standards }])), settings: settingsWith(T.tune) };
   const box = document.createElement("div"); box.className = "prog";
   box.innerHTML = `<div class="prog-box"><div class="k">Race Lab</div><h2 style="margin:4px 0 0">${esc(T.name)}</h2><div class="bar"><i id="pbar"></i></div><div class="row sp small"><span id="ptext">Starting…</span><span id="peta"></span></div><div class="row" style="margin-top:14px"><button class="btn ghost" id="pstop">Stop and keep what's run</button></div></div>`;
   document.body.appendChild(box);
@@ -583,7 +591,7 @@ async function runTest() {
       if (RUN.stop || next >= total) { if (busy === 0) resolve(); return; }
       const ks = []; for (let j = 0; j < CHUNK && next < total; j++) ks.push(next++);
       busy++;
-      w.postMessage({ type: "jobs", batch: ks[0], jobs: ks.map((k) => { const J = buildJob(T, k); return { k, race: J.race, runners: J.runners }; }) });
+      w.postMessage({ type: "jobs", batch: ks[0], jobs: ks.map((k) => { const J = buildJob(T, k); return { k, cid: J.cid, race: J.race, runners: J.runners }; }) });
     };
     for (const w of ws) {
       w.onmessage = (e) => {
@@ -748,7 +756,7 @@ $("#tab-results").addEventListener("click", (e) => {
   }
 });
 function openRace(T, k) {
-  const J = buildJob(T, k), { result: R } = runRace(J.race, J.runners, dataWith(T.tune), { timeline: false });
+  const J = buildJob(T, k), { result: R } = runRace(J.race, J.runners, dataWith(T.tune, J.cid), { timeline: false });
   const P = flatSettings(settingsWith(T.tune));
   const d = document.createElement("div"); d.className = "drawer";
   d.innerHTML = `<div class="drawer-in"><div class="row sp"><div class="k">${esc(T.name)} · race ${k + 1}</div><button class="btn ghost sm" data-x>Close</button></div>
@@ -784,10 +792,10 @@ function watch(T, k) {
   box.innerHTML = `<iframe src="final-furlong.html?game=1" title="Race Lab race" allow="fullscreen"></iframe><button class="btn ghost x" style="background:rgba(255,255,255,.9)">Back to the lab</button>`;
   document.body.appendChild(box); document.body.style.overflow = "hidden";
   WATCH = { box, frame: box.querySelector("iframe"), payload: {
-    type: "race", course: COURSE_ID, race: J.trip.key, going: J.race.going, seed: J.race.seed, handicap: J.race.handicap,
+    type: "race", course: J.cid, race: J.trip.view, going: J.race.going, seed: J.race.seed, handicap: J.race.handicap,
     settings: Object.keys(T.tune || {}).length ? S : undefined,
     title: J.trip.label, kicker: `Race Lab · ${T.name}${T.total > 1 ? ` · race ${k + 1}` : ""}`,
-    card: { dist: J.trip.label, meeting: "Race Lab", conditions: [J.race.handicap ? "Handicap" : "", J.V.label !== "As set" ? J.V.label : ""].filter(Boolean).join(" · "), next: "" },
+    card: { dist: J.trip.trip, meeting: `Race Lab · ${J.trip.rc.name}`, conditions: [J.race.handicap ? "Handicap" : "", J.V.label !== "As set" ? J.V.label : ""].filter(Boolean).join(" · "), next: "" },
     runners,
   } };
   window.__labWatch = WATCH.payload;      // checking aid: what the 3D view is handed
@@ -819,7 +827,7 @@ function csvLines(T) {
   const { recs } = analyse(T), date = new Date(T.created).toISOString().slice(0, 16).replace("T", " ");
   return recs.map((r) => {
     const res = T.results[r.k], J = TRIP_BY[r.trip];
-    return [T.name, date, T.tag, r.k + 1, J.label, J.straight ? "straight" : J.course === "roundMile" ? "round mile" : "round", J.distance, r.going, T.setup.handicap ? "yes" : "no", r.v, r.n, T.seedBase * 100000 + (r.k % T.setup.runs),
+    return [T.name, date, T.tag, r.k + 1, J.label, J.rc.name + " " + (J.straight ? "straight" : J.course === "roundMile" ? "round mile" : "round"), J.distance, r.going, T.setup.handicap ? "yes" : "no", r.v, r.n, T.seedBase * 100000 + (r.k % T.setup.runs),
       res.paceExp, res.paceRun, res.groups, res.time, res.par, r.name, r.star ? "yes" : "", r.src === "opp" ? "yes" : "", r.draw, r.rating, T.setup.handicap ? r.mark : "", r.style, r.ridden, r.flex, r.temper,
       r.tripPair, r.liked, r.jockey || "random", r.instr, r.ground, r.steps, r.day, +r.form.toFixed(2), r.rank, r.gap, r.place, r.place === 1 ? 1 : 0, r.place <= 3 ? 1 : 0, r.behind, r.lost, r.missed];
   });

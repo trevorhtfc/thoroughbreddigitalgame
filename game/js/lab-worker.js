@@ -21,7 +21,8 @@ onmessage = (e) => {
 
 function runOne(job) {
   try {
-    const { result: R } = runRace(job.race, job.runners, DATA, { timeline: false });
+    const C = DATA.courses[job.cid || "ascot"];          // the race's course (Ascot, the Rowley Mile or the July Course)
+    const { result: R } = runRace(job.race, job.runners, { ...C, settings: DATA.settings }, { timeline: false });
     const n = job.runners.length;
     const rows = new Array(n);
     const missed = new Set(R.events.filter((e) => e.kind === "missed the break").map((e) => e.runner));

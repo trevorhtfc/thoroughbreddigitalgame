@@ -24,7 +24,7 @@ function viewTabs(job) {
   return `<div class="vtabs" role="tablist"><button class="vtab ${v === "job" ? "on" : ""}" id="vjob" role="tab" aria-selected="${v === "job"}">${job}</button><button class="vtab ${v === "plan" ? "on" : ""}" id="vplan" role="tab" aria-selected="${v === "plan"}">Race planner<i>${planned}/${RACES.length}</i></button></div>`;
 }
 function goingStrip() {
-  return `<div class="going"><b>THE GOING</b>${DAYS.map((d, k) => `<span class="gday g-${CARD.going[k]}"><small>${d.slice(0, 3)}</small>${CARD.going[k]}</span>`).join("")}
+  return `<div class="going"><b>THE GOING</b>${DAYS.map((d, k) => `<span class="gday g-${CARD.going[k]}"><small>${dayTag(k)}</small>${CARD.going[k]}</span>`).join("")}
     <p>Set when the card is dealt, so you can breed and buy for it. A horse that likes the day's going runs better.</p></div>`;
 }
 function refCard(r) {
@@ -58,7 +58,7 @@ function fitFor(h, r) {
 function plannerView() {
   const sel = RACES.find(r => r.id === S.planSel);
   return `<section class="planner">
-    <div class="pl-grid">${DAYS.map((d, k) => `<div class="pl-day"><h4>${d.slice(0, 3)}</h4>${RACES.filter(r => r.day === k).map(raceChip).join("")}</div>`).join("")}</div>
+    <div class="pl-grid">${DAYS.map((d, k) => `<div class="pl-day"><h4>${dayTag(k)}</h4>${RACES.filter(r => r.day === k).map(raceChip).join("")}</div>`).join("")}</div>
     <p class="pl-help">${sel ? `<b>${sel.name}</b> selected: the cards show how each horse fits it. Tap <b>+</b> on a horse to target it, or tap the race again to let go.` : "Drag a race onto a horse's Race targets box, or tap a race to see how every horse fits it."}</p>
     ${S.stable.length ? horseCols(S.stable, sel || null, false, { plan: true }, false) : `<p class="tb-empty">No horses yet. Breed or buy some, then plan their races here.</p>`}
   </section>`;
@@ -335,8 +335,18 @@ function groundMeter(h, today) {
     <span class="gm-l"><b>Q</b><b>G</b><b>S</b></span>
     <span class="gm-bar">${scale.map(g => `<i class="g-${g} ${h.grounds.includes(g) ? "on" : ""} ${g === today ? "today" : ""}"></i>`).join("")}</span></div>`;
 }
+// Where else a horse is entered: the race it would have to come out of to run here, and (in the Newmarket season, where
+// a horse runs at every meeting it qualifies for) its runs at the other meetings
+function entryNote(h, race, inRace, here) {
+  let s = inRace && !here ? `<div class="hk-in">Entered in the ${esc2(inRace.name)}${MEETING.runsPerMeeting ? " at this meeting" : ""}</div>` : "";
+  if (MEETING.runsPerMeeting) {
+    const also = runsOf(h).filter(x => (!race || x.id !== race.id) && (!inRace || x.id !== inRace.id));
+    if (also.length) s += `<div class="hk-in">${race ? "Also runs in" : "Runs in"} the ${also.map(x => esc2(x.name)).join(", the ")}</div>`;
+  }
+  return s;
+}
 function hcard(h, race, canAct, opts) {
-  const now = ratingAt(h, h.age), inRace = RACES.find(x => S.entries[x.id] === h.id), here = race && inRace && inRace.id === race.id;
+  const now = ratingAt(h, h.age), here = !!race && S.entries[race.id] === h.id, inRace = race ? clashFor(h, race) : runsOf(h)[0];
   let verdict = "", acts = "", cant = false;
   if (race) {
     const why = whyNot(h, race), c = why ? null : check(h, race);
@@ -360,7 +370,7 @@ function hcard(h, race, canAct, opts) {
       <div class="hk-ground" aria-label="Going it likes">${GROUND_ORDER.map(g => `<span class="${h.grounds.includes(g) ? "on g-" + g : ""} ${g === today ? "today" : ""}" ${g === today ? 'title="The going on race day"' : ""}>${g}</span>`).join("")}</div>
       ${verdict}
       ${opts && opts.plan ? targetBox(h, race) : ""}
-      ${inRace && !here ? `<div class="hk-in">Entered in the ${esc2(inRace.name)}</div>` : ""}
+      ${entryNote(h, race, inRace, here)}
       ${acts ? `<div class="hk-acts">${acts}</div>` : ""}
     </div></article>`;
 }
@@ -386,7 +396,7 @@ function showHorseCard(h) {
 // Horses grouped by age (youngest first), best current rating first within each age
 /* Compact horse card (after the Wix stables card): about half the screen wide */
 function hcardC(h, race, canAct, opts) {
-  const now = ratingAt(h, h.age), inRace = RACES.find(x => S.entries[x.id] === h.id), here = race && inRace && inRace.id === race.id;
+  const now = ratingAt(h, h.age), here = !!race && S.entries[race.id] === h.id, inRace = race ? clashFor(h, race) : runsOf(h)[0];
   let verdict = "", acts = "", cant = false;
   if (race) {
     const why = whyNot(h, race), c = why ? null : check(h, race);
@@ -413,15 +423,17 @@ function hcardC(h, race, canAct, opts) {
     <div class="hc2-foot">
       ${planned ? `<div class="hk-plan">★ Your planned runner for this race</div>` : ""}
       ${verdict}
-      ${inRace && !here && !(opts && opts.plan) ? `<div class="hk-in">Entered in the ${esc2(inRace.name)}</div>` : ""}
+      ${opts && opts.plan ? "" : entryNote(h, race, inRace, here)}
       ${acts ? `<div class="hc2-acts">${acts}</div>` : ""}
       <div class="hc2-end">${opts && opts.plan ? targetBox(h, race) : "<span></span>"}<button class="hc2-card" data-card="${h.id}">Card</button></div>
     </div></article>`;
 }
 // Two columns, colts and fillies; youngest first, best first within each age; a race's planned runner leads its age
 function horseCols(list, race, canAct, opts, splitEntered) {
-  const entered = new Set(Object.values(S.entries)), rest = splitEntered ? list.filter(h => entered.has(h.id)) : [];
-  if (splitEntered) list = list.filter(h => !entered.has(h.id));
+  // "Already entered": entered here, or in a race that rules this one out (any other race at Royal Ascot; the same meeting at Newmarket)
+  const taken = h => (race ? S.entries[race.id] === h.id || !!clashFor(h, race) : Object.values(S.entries).includes(h.id));
+  const rest = splitEntered ? list.filter(taken) : [];
+  if (splitEntered) list = list.filter(h => !taken(h));
   const planned = h => race && (S.targets || {})[race.id] === h.id ? 1 : 0;
   const order = a => a.slice().sort((x, y) => x.age - y.age || planned(y) - planned(x) || ratingAt(y, y.age) - ratingAt(x, x.age) || x.name.localeCompare(y.name));
   const col = (hs, sx) => { let lastAge = 0; const items = order(hs.filter(h => h.sex === sx)).map(h => { const sub = h.age !== lastAge ? `<div class="hk-sub">${h.age}-year-old${h.sex === "F" ? " fillies" : " colts"}</div>` : ""; lastAge = h.age; return sub + hcardC(h, race, canAct, opts); }).join("");
@@ -430,9 +442,9 @@ function horseCols(list, race, canAct, opts, splitEntered) {
     (rest.length ? `<div class="hk-group-entered"><h3 class="hk-age">Already entered<span>${rest.length}</span></h3><div class="hk-cols">${col(rest, "C")}${col(rest, "F")}</div></div>` : "");
 }
 function cardGroups(list, race, canAct, splitEntered, opts) {
-  const entered = new Set(Object.values(S.entries));
-  const rest = splitEntered ? list.filter(h => entered.has(h.id)) : [];
-  if (splitEntered) list = list.filter(h => !entered.has(h.id));
+  const taken = h => (race ? S.entries[race.id] === h.id || !!clashFor(h, race) : Object.values(S.entries).includes(h.id));
+  const rest = splitEntered ? list.filter(taken) : [];
+  if (splitEntered) list = list.filter(h => !taken(h));
   const sortAb = a => a.slice().sort((x, y) => ratingAt(y, y.age) - ratingAt(x, x.age) || x.name.localeCompare(y.name));
   return [2, 3, 4].map(a => {
     const planned = h => race && (S.targets || {})[race.id] === h.id ? 1 : 0;
@@ -446,12 +458,12 @@ function entriesBody(entered) {
   const score = h => { const c = whyNot(h, sel) ? null : check(h, sel); return c && c.ok ? 1000 + c.day : ratingAt(h, h.age); };
   const hs = S.stable.slice().sort((a, b) => (S.entries[sel.id] === b.id) - (S.entries[sel.id] === a.id) || score(b) - score(a));
   return `<div class="tb-head"><h1 class="tb-h">DEVELOP AND ENTER</h1>
-    <p class="tb-lede">Pick a race, then enter a horse. Every horse starts as a 2-year-old: develop it to 3 or 4 to change its rating and best trip, though you only see how once it's done, and there's no going back. One horse per race; each step from its best trip costs 5 points, and every race has a minimum rating. Each horse shows where its rating sits in the field.</p></div>
+    <p class="tb-lede">Pick a race, then enter a horse. Every horse starts as a 2-year-old: develop it to 3 or 4 to change its rating and best trip, though you only see how once it's done, and there's no going back. ${W.entryRule}; each step from its best trip costs 5 points, and every race has a minimum rating. Each horse shows where its rating sits in the field.</p></div>
     <div class="tb-bar"><div class="tb-bar-info ${entered === RACES.length ? "ready" : ""}">${entered === RACES.length ? `All ${RACES.length} races have a runner.` : `${RACES.length - entered} race${RACES.length - entered === 1 ? "" : "s"} still without a runner. An empty race counts as a loss.`}</div>
     <div class="tb-bar-btns"><button class="tb-btn ghost" id="fill">Fill empty races</button><button class="tb-btn ghost" id="clear">Clear</button></div></div>
     ${raceBoard(sel)}
     <div class="rsel">${gradeBox(sel)}<div class="rsel-in" style="min-width:0;flex:1 1 auto"><h3>${sel.name}</h3>
-      <div class="facts"><span><b>${DAYS[sel.day]}</b></span><span><b>${ageOnly(sel)}</b></span>${sexTag(sel)}<span>1st <b>${money(sel.prizes[0])}</b></span>${sel.grade === "Handicap" ? `<span>Max rating <b>${HCAP_MAX}</b></span>` : ""}</div>
+      <div class="facts"><span><b>${DAYS[sel.day]}</b></span>${courseName(sel) ? `<span>${courseName(sel)}</span>` : ""}<span><b>${ageOnly(sel)}</b></span>${sexTag(sel)}<span>1st <b>${money(sel.prizes[0])}</b></span>${sel.grade === "Handicap" ? `<span>Max rating <b>${HCAP_MAX}</b></span>` : ""}</div>
       ${bandsLine(sel)}
       ${(() => { const h = horse(S.entries[sel.id]), c = h && check(h, sel); return h ? `<div class="rsel-run">Your runner: ${silkImg(mySilkN())}<b>${esc2(h.name)}</b>${c && c.ok ? rkChip(c) + `<small class="rk-t">${rankText(c)}</small>` : ""}<button class="tb-btn ghost sm" data-unpick="${sel.id}">Take out</button></div>` : `<div class="rsel-run" style="color:var(--tb-muted)">No runner yet: pick one below.</div>`; })()}</div></div>
     ${hs.length ? horseCols(hs, sel, true, null, true) : `<p class="tb-empty">No horses yet.</p>`}`;
@@ -472,7 +484,7 @@ function picker(r) {
   const rows = S.stable.map(h => ({ h, c: check(h, r) })).filter(x => !x.c.hidden)
     .sort((a, b) => (b.c.ok ? 1 : 0) - (a.c.ok ? 1 : 0) || (b.c.day || b.c.eff || 0) - (a.c.day || a.c.eff || 0));
   if (!rows.length) return `<div class="picker"><p>None of your horses can run in this race (${r.ageLabel}). Develop a horse to the right age, or breed more.</p></div>`;
-  const usedIn = h => RACES.find(x => x.id !== r.id && S.entries[x.id] === h.id);
+  const usedIn = h => clashFor(h, r);
   return `<div class="picker"><p>${r.ageLabel}, ${r.dist}.</p><div class="opts">
     ${rows.map(({ h, c }) => { const u = usedIn(h), sel = S.entries[r.id] === h.id;
       return `<button class="opt ${sel ? "sel" : ""}" data-pick="${h.id}" data-race="${r.id}" ${c.ok ? "" : "disabled"}>
@@ -485,14 +497,15 @@ function picker(r) {
   </div></div>`;
 }
 function setEntry(raceId, horseId) {
-  RACES.forEach(x => { if (S.entries[x.id] === horseId) delete S.entries[x.id]; });
+  const race = RACES.find(x => x.id === raceId);
+  RACES.forEach(x => { if (S.entries[x.id] === horseId && (!race || x.id === raceId || clashes(x, race))) delete S.entries[x.id]; });
   if (horseId) S.entries[raceId] = horseId; else delete S.entries[raceId];
   save();
 }
 function fillEmpty() {
-  const free = () => S.stable.filter(h => !Object.values(S.entries).includes(h.id));
-  const options = r => free().filter(h => check(h, r).ok);
-  RACES.filter(r => !S.entries[r.id]).forEach(r => { const t = (S.targets || {})[r.id]; if (t && free().some(h => h.id === t) && check(horse(t), r).ok) S.entries[r.id] = t; });
+  // a horse is free for a race if it isn't entered in one that rules it out (any other race at Royal Ascot; the same meeting at Newmarket)
+  const options = r => S.stable.filter(h => !clashFor(h, r) && check(h, r).ok);
+  RACES.filter(r => !S.entries[r.id]).forEach(r => { const t = (S.targets || {})[r.id], ht = t && horse(t); if (ht && !clashFor(ht, r) && check(ht, r).ok) S.entries[r.id] = t; });
   RACES.filter(r => !S.entries[r.id]).sort((a, b) => options(a).length - options(b).length).forEach(r => {
     const best = options(r).sort((a, b) => check(b, r).day - check(a, r).day)[0]; if (best) S.entries[r.id] = best.id;
   });
@@ -504,9 +517,9 @@ function fillEmpty() {
 /* ----- Step 3: race week ----- */
 function weekBody(done) {
   setTimeout(() => { if (!S.goingShown) { S.goingShown = true; save(); } }, 50);
-  return `<div class="tb-head"><h1 class="tb-h">RACE WEEK</h1>
-    <p class="tb-lede">Watch a race to see it run at Ascot in 3D, or sim it for the result straight away. Both run the very same race. The pace forecast comes from the runners' racecards: lots of front-runners make a fast race that suits horses held up, and a race with none will be slow and tactical.</p></div>
-    <div class="going-dec ${S.goingShown ? "" : "fresh"}"><b>THE GOING IS DECLARED</b><div class="gd-days">${DAYS.map((d, k) => `<div class="gd" style="--d:${k * 260}ms"><small>${d.slice(0, 3)}</small><span class="gday g-${CARD.going[k]}">${CARD.going[k]}</span></div>`).join("")}</div>
+  return `<div class="tb-head"><h1 class="tb-h">${W.weekHead}</h1>
+    <p class="tb-lede">${W.watchHere}, or sim it for the result straight away. Both run the very same race. The pace forecast comes from the runners' racecards: lots of front-runners make a fast race that suits horses held up, and a race with none will be slow and tactical.</p></div>
+    <div class="going-dec ${S.goingShown ? "" : "fresh"}"><b>THE GOING IS DECLARED</b><div class="gd-days">${DAYS.map((d, k) => `<div class="gd" style="--d:${k * 260}ms"><small>${dayTag(k)}</small><span class="gday g-${CARD.going[k]}">${CARD.going[k]}</span></div>`).join("")}</div>
       <p>${(() => { const mine = RACES.filter(r => S.entries[r.id]), liked = mine.filter(r => horse(S.entries[r.id]).grounds.includes(CARD.going[r.day])).length; return mine.length ? `${liked} of your ${mine.length} runners like the ground they'll get.` : ""; })()}</p></div>
     <div class="tb-bar"><div class="tb-bar-info ${done === RACES.length ? "ready" : ""}">${done === RACES.length ? `All ${RACES.length} races run.` : `${done} of ${RACES.length} races run.`}</div>
     <div class="tb-bar-btns"><button class="tb-btn ghost" id="backEntries" ${done ? "disabled" : ""} title="${done ? "Entries are closed once the first race is run" : "Change your runners before the first race"}">Change entries</button></div></div>
@@ -533,7 +546,7 @@ function weekCard(r) {
       : res.pos === 1 ? `Won by ${lengthsText(res.by)}` : res.pos ? `Beaten ${lengthsText(res.beaten)} by ${esc2(res.winner)}` : `Won by ${esc2(res.winner)}`;
     right = `<div class="res"><div class="prize">${res.pos ? (res.prize ? money(res.prize) : "No prize") : "No runner"}<br>${how}</div>
       <div class="pos ${cls}">${res.pos ? ord(res.pos) : "–"}</div><button class="tb-btn ghost sm" data-watch="${r.i}">Replay</button></div>`;
-  } else right = `<div class="res"><button class="tb-btn sm" data-watch="${r.i}" ${next === r && !simBusy ? "" : "disabled"} title="Watch it run at Ascot in 3D">Watch in 3D</button><button class="tb-btn ghost sm" data-sim="${r.i}" ${next === r && !simBusy ? "" : "disabled"} title="The result straight away: the very same race">Sim</button></div>`;
+  } else right = `<div class="res"><button class="tb-btn sm" data-watch="${r.i}" ${next === r && !simBusy ? "" : "disabled"} title="Watch it run in 3D">Watch in 3D</button><button class="tb-btn ghost sm" data-sim="${r.i}" ${next === r && !simBusy ? "" : "disabled"} title="The result straight away: the very same race">Sim</button></div>`;
   const pf = paceFor(r.i), note = pf && paceNote(pf.pace, h);
   const forecast = pf ? `<div class="pacef pf-${pf.pace}"><b>Pace forecast: ${PACE_WORD[pf.pace]}</b><span>${pf.front} front-runner${pf.front === 1 ? "" : "s"} in ${pf.n}${note ? ` · ${note}` : ""}</span></div>` : "";
   const report = res && res.report ? `<details class="rep"><summary>Race report · ${res.time.toFixed(2)}s · ${PACE_WORD[res.pace] || ""} pace</summary><ul>${res.report.map(t => `<li>${esc2(t)}</li>`).join("")}</ul></details>` : "";
@@ -552,7 +565,7 @@ function resultBody(wins, losses, prize) {
   const spent = START_BUDGET - S.budget, T = titleFor(prize), rungs = TITLES.slice().reverse();
   const pct = v => Math.min(100, v / LADDER_TOP * 100);
   const rows = RACES.map((r, k) => { const res = S.results[r.id], h = horse(S.entries[r.id]);
-    return `<li class="tr" data-k="${k}"><span class="tr-d">${DAYS[r.day].slice(0, 3)}</span><span class="tr-p ${res && res.pos === 1 ? "win" : res && res.pos >= 2 && res.pos <= 4 ? "pl" : ""}">${res && res.pos ? ord(res.pos) : "–"}</span>
+    return `<li class="tr" data-k="${k}"><span class="tr-d">${dayTag(r.day)}</span><span class="tr-p ${res && res.pos === 1 ? "win" : res && res.pos >= 2 && res.pos <= 4 ? "pl" : ""}">${res && res.pos ? ord(res.pos) : "–"}</span>
       <span class="tr-n"><b>${r.name}</b><small>${h ? esc2(h.name) : "No runner"}</small></span><span class="tr-m">${res && res.prize ? "+" + money(res.prize) : ""}</span></li>`; }).join("");
   const hist = pastWeeks().slice().sort((a, b) => b.prize - a.prize), counts = {}; hist.forEach(w => counts[w.title] = (counts[w.title] || 0) + 1);
   const rank = hist.findIndex(w => w.seed === S.seed && w.prize === prize) + 1;
@@ -570,11 +583,11 @@ function resultBody(wins, losses, prize) {
         <pre class="share" id="shareText" hidden>${shareText(wins, losses)}</pre>
       </div>
     </div>
-    <section class="rec"><h2 class="tb-h2">YOUR ROYAL ASCOTS</h2>
+    <section class="rec"><h2 class="tb-h2">${W.playedPlural}</h2>
       <div class="rec-titles">${TITLES.map(t => `<div class="rt ${t.cls} ${counts[t.name] ? "got" : ""}"><b>${counts[t.name] ? "×" + counts[t.name] : "?"}</b><span>${t.name}</span></div>`).join("")}</div>
       ${hist.length ? `<table class="rec-t"><thead><tr><th>#</th><th>Card</th><th>Prize money</th><th>Wins</th><th>Title</th></tr></thead><tbody>${hist.slice(0, 10).map((w, k) =>
         `<tr class="${w.seed === S.seed && w.prize === prize ? "me" : ""}"><td>${k + 1}</td><td>${w.seed}</td><td><b>${money(w.prize)}</b></td><td>${w.wins}/${w.races}</td><td>${w.title}</td></tr>`).join("")}</tbody></table>
-      <p class="rec-n">${hist.length} week${hist.length === 1 ? "" : "s"} played${rank ? ` · this one ranks <b>${ord(rank)}</b>` : ""}. Collect every title.</p>` : ""}
+      <p class="rec-n">${hist.length} ${MEETING.id === "royal-ascot" ? "week" : "season"}${hist.length === 1 ? "" : "s"} played${rank ? ` · this one ranks <b>${ord(rank)}</b>` : ""}. Collect every title.</p>` : ""}
     </section>`;
 }
 function resultAfter(prize) {
@@ -618,7 +631,7 @@ function playTally() {
 function shareText(wins, losses) {
   const grid = DAYS.map((d, k) => RACES.filter(r => r.day === k).map(r => { const p = S.results[r.id] ? S.results[r.id].pos : 0; return p === 1 ? "🟩" : p >= 2 && p <= 3 ? "🟨" : "⬜"; }).join("")).join("\n");
   const prize = RACES.reduce((a, r) => a + (S.results[r.id] ? S.results[r.id].prize : 0), 0);
-  return `Thoroughbred Ascot · season ${S.seed}\n${titleFor(prize).name}\n${grid}\nPrize money ${money(prize)} · ${wins}–${losses}`;
+  return `Thoroughbred ${W.gameTitle} · season ${S.seed}\n${titleFor(prize).name}\n${grid}\nPrize money ${money(prize)} · ${wins}–${losses}`;
 }
 
 /* ================= Watching a race: the 3D race view (Final Furlong) ================= */
@@ -641,10 +654,12 @@ function watch(i) {
     m.innerHTML = `<p style="margin:0 0 12px">The race view didn't load here. You can sim the race instead.</p><button class="tb-btn" id="simInstead">Sim the race</button>`;
     box.appendChild(m); } }, 15000);
   const er = engineRace(i), mkt = marketFor(i);
-  watching.payload = { type: "race", course: MEETING.course, race: viewKey(race), going: er.going, seed: er.seed, title: race.name,
-    kicker: `${DAYS[race.day]} · Race ${i + 1} of ${RACES.length} · ${race.grade}`,
+  // the race's own course (the Newmarket season races on the Rowley Mile and the July Course); at Newmarket the panels
+  // name the meeting and the course rather than a day
+  watching.payload = { type: "race", course: courseFile(race), race: viewKey(race), going: er.going, seed: er.seed, title: race.name,
+    kicker: MEETING.courses ? `${DAYS[race.day]} · ${courseName(race)} · Race ${i + 1} of ${RACES.length}` : `${DAYS[race.day]} · Race ${i + 1} of ${RACES.length} · ${race.grade}`,
     // for the view's own racecard and result panels (game mode): the race's conditions and prizes, your colours
-    card: { grade: race.grade, dist: race.dist, day: DAYS[race.day], meeting: MEETING.name, prizes: race.prizes, conditions: race.ageLabel, next: i + 1 < RACES.length && !S.results[RACES[i + 1].id] ? RACES[i + 1].name : "", silkImg: mySilks().img },
+    card: { grade: race.grade, dist: race.dist, day: DAYS[race.day], meeting: MEETING.courses ? `${DAYS[race.day]}, ${courseName(race)}` : MEETING.name, prizes: race.prizes, conditions: race.ageLabel, next: i + 1 < RACES.length && !S.results[RACES[i + 1].id] ? RACES[i + 1].name : "", silkImg: mySilks().img },
     // and, for the dock and the racecard: the owner's own graphic silks, the price and the race-day colour card
     runners: field.map((h, k) => ({ ...engineRunner(h), silk: SILK3D[h.sk], silk2d: SILKS[h.sk].img, odds: mkt[k].odds, card: mkt[k].card, coat: { body: h.coat[0], points: h.coat[1] }, mine: !!h.mine })) };
 }
