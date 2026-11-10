@@ -25,6 +25,7 @@ import site_plan as SP            # the two courses together (keeps either's tre
 
 REPO = HERE.parents[2]
 OUT = REPO / "race-view/assets/course"
+SCRUB = False          # the scrub band along the Dyke's crest (left off since 9 Nov late)
 F = 201.168
 GAP = 0.4                         # the rails stand this far off the turf's edge (Ascot's)
 STEP = 5.0                        # the path's sample spacing, metres
@@ -343,8 +344,11 @@ def rowley_scenery(course):
             out.append([o + R.bank_shift(d), round(R.bank_h(o) + (lump * cap if 0 < k < 8 else -0.05), 2)])
         return out
     sp = [[max(a_, -250.0), min(b_, 2050.0)] for a_, b_ in fb["spans"] if b_ > -250 and a_ < 2050]
-    banks.append({"rows": bank_rows(R, sp, scrub, -1, step=2.5), "ramp": [[h, lin(c)] for h, c in
-                  ((0.0, "#62804a"), (4.0, "#55753f"), (5.6, "#4c6b39"), (6.8, "#5b7a42"))], "mottle": 0.14})
+    # (owner, 9 Nov late, the model look: the green band along the Dyke's top "isn't doing anything": left off; the
+    # Dyke ends in its own dry, sunlit grassy crest. SCRUB = True brings it back.)
+    if SCRUB:
+        banks.append({"rows": bank_rows(R, sp, scrub, -1, step=2.5), "ramp": [[h, lin(c)] for h, c in
+                      ((0.0, "#62804a"), (4.0, "#55753f"), (5.6, "#4c6b39"), (6.8, "#5b7a42"))], "mottle": 0.14})
     return S, trees, banks
 
 
@@ -492,9 +496,11 @@ def view_file(cid, L, course, stalls, stands_side, cams, prelude, postlude, dire
         "homeStraight": {"runTowards": [-1, 0], "centreZ": W / 2, "standSide": stands_side},
         "scenery": "%s-scenery.json" % cid,
         "ground": {"outside": ascot_ground()[0], "turf": ascot_ground()[1], "bank": [0.44, 0.53, 0.22],
-                   "bankRamp": [[h, lin(c)] for h, c in ((0.0, "#bcc98c"), (0.7, "#9fb676"), (1.7, "#6f8a4a"), (3.2, "#7d8c50"),
-                                                          (4.3, "#a39a60"), (5.2, "#b5a66c"))],
-                   "bankMottle": 0.08,
+                   # (owner, 9 Nov late, the model look: the dark green band along the Dyke's top "isn't doing anything": an
+                   # even grassy bank now, the lawn's green deepening a touch up the slope to a dry, sunlit crest)
+                   "bankRamp": [[h, lin(c)] for h, c in ((0.0, "#bcc98c"), (1.2, "#adbe7c"), (2.8, "#a3b672"), (4.2, "#adb274"),
+                                                          (5.2, "#b9b27c"))],
+                   "bankMottle": 0.03,
                    "note": "Ascot's lawn and turf colours (the bake's), so the two courses read as one game"},
         "lanesStraight": {"x": [-L.RUN_ON, L.STRAIGHT], "width": W, "lanes": round(W / 3.75), "strength": 0.12,
                           "note": "soft mown lanes along the straight, 3.75 m wide, as Ascot's"},

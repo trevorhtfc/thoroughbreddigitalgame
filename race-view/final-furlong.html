@@ -1354,7 +1354,8 @@ function instanceTrees(gltf, list) {
         q.setFromAxisAngle(up, ((t.turn || 0) + (under ? 70 : 0)) * Math.PI / 180);
         if (under) sc.set(t.s, t.s, t.s); else sc.set(t.s, t.s * (t.sy || 1), t.s);
         inst.setMatrixAt(i, m4.compose(p.set(t.x, (under ? -0.6 : 0) + groundY(t.x, t.z) + (t.dy || 0), t.z), q, sc));
-        const c = under ? underColour(t, UNDER_CROWN) : LOOKS.treeColour(key, t, i) || clayLeaf(key, t, i); if (c) inst.setColorAt(i, c);
+        // (the clay crowns carry only light and shade: their understorey takes the tree's own leaf colour, darker)
+        const c = under ? (CLAY_TREES ? clayLeaf(base, t, i).clone().multiplyScalar(0.7) : underColour(t, UNDER_CROWN)) : LOOKS.treeColour(key, t, i) || clayLeaf(key, t, i); if (c) inst.setColorAt(i, c);
       });
       inst.computeBoundingSphere();
       scene.add(inst);
@@ -2381,8 +2382,10 @@ try {
     HORSE_V === "v2" ? HorseV2.loadHorse(loadModel, "assets/model-v2", (url, srgb) => { const t = texLoader.load(url); t.flipY = false; if (srgb) t.colorSpace = THREE.SRGBColorSpace; return t; })
                      : loadModel("assets/model", "racehorse"),
     SC ? null : optional(loadModel("assets/baked", "static_world"), "Baked scenery"),
-    // the leafy trees (owner, 7 Nov: preferred to the clay ones, which stay on ?trees=clay)
-    params.get("trees") !== "clay" ? optional(loadModel("assets/trees", "trees"), "Trees")
+    // the leafy trees (owner, 7 Nov: preferred to the clay ones, which stay on ?trees=clay); in the model look the clay
+    // trees, rounded clustered crowns on trunks as in the concept (owner, 9 Nov: the leafy ones read as "big puddings";
+    // view file light.trees; ?trees=leafy for the leafy ones)
+    !(params.get("trees") === "clay" || (params.get("trees") !== "leafy" && LIGHT && LIGHT.trees === "clay")) ? optional(loadModel("assets/trees", "trees"), "Trees")
       : Promise.all([optional(loadModel("assets/trees", "trees_clay"), "Trees"), json("assets/trees/trees_clay_info.json")])
           .then(([g, info]) => (g && info ? ((CLAY_TREES = info), g) : optional(loadModel("assets/trees", "trees"), "Trees"))),
     optional(loadModel("assets/course", "planting_belts"), "Planting belts"),

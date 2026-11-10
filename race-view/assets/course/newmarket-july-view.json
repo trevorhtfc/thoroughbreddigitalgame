@@ -35,47 +35,39 @@
     ]
    ],
    [
-    0.7,
+    1.2,
     [
-     0.3467,
-     0.4678,
-     0.1812
+     0.4179,
+     0.5149,
+     0.2016
     ]
    ],
    [
-    1.7,
-    [
-     0.159,
-     0.2542,
-     0.0685
-    ]
-   ],
-   [
-    3.2,
-    [
-     0.2051,
-     0.2623,
-     0.0802
-    ]
-   ],
-   [
-    4.3,
+    2.8,
     [
      0.3663,
-     0.3231,
-     0.117
+     0.4678,
+     0.1683
+    ]
+   ],
+   [
+    4.2,
+    [
+     0.4179,
+     0.4452,
+     0.1746
     ]
    ],
    [
     5.2,
     [
-     0.4621,
-     0.3813,
-     0.15
+     0.4851,
+     0.4452,
+     0.2016
     ]
    ]
   ],
-  "bankMottle": 0.08,
+  "bankMottle": 0.03,
   "note": "Ascot's lawn and turf colours (the bake's), so the two courses read as one game"
  },
  "lanesStraight": {
@@ -101,7 +93,7 @@
   35.2
  ],
  "light": {
-  "_about": "As Ascot's (courses/ascot-view.json -> light), with this course's sun raised. The model look (owner's AI concept stills, 9 Nov 2026), matching the bake (tools/blender/bake_static_world.py LOOK=model) and the Blender study (stand_clean_study.py variant model, model_look_post.py): a bigger, gentler sun higher in the sky, a strong lilac-blue sky fill, a sky cream-peach at the horizon, lilac, then soft cornflower; pale lilac haze; a little brighter; lavender in the shadows; the crowd in navy, camel, mustard, cream, rust and teal with grey morning dress. sky: horizon, low and upper colours (linear); sunDir: from the field to the sun (course axes); hemi: sky colour, ground colour, strength; grade: saturation, sepia, hue (degrees), brightness, contrast (as the storybook grade); lift: tinted shadows. clouds: \"ring\" puts soft clouds all round the sky. ?light=before shows the light before.",
+  "_about": "As Ascot's (courses/ascot-view.json -> light), with this course's sun raised. The model look (owner's AI concept stills, 9 Nov 2026), matching the bake (tools/blender/bake_static_world.py LOOK=model) and the Blender study (stand_clean_study.py variant model, model_look_post.py): a bigger, gentler sun higher in the sky, a strong lilac-blue sky fill, a sky cream-peach at the horizon, lilac, then soft cornflower; pale lilac haze; a little brighter; lavender in the shadows; the crowd in navy, camel, mustard, cream, rust and teal with grey morning dress. sky: horizon, low and upper colours (linear); sunDir: from the field to the sun (course axes); hemi: sky colour, ground colour, strength; grade: saturation, sepia, hue (degrees), brightness, contrast (as the storybook grade); lift: tinted shadows. clouds: \"ring\" puts soft clouds all round the sky. trees: \"clay\" uses the clay trees (rounded clustered crowns on trunks). ?light=before shows the light before.",
   "sky": [
    [
     1.0,
@@ -199,7 +191,8 @@
     "#2a2b30"
    ]
   },
-  "clouds": "ring"
+  "clouds": "ring",
+  "trees": "clay"
  },
  "races": {
   "_about": "The races the view can show, one for every start in newmarket-july-stalls.json. course: 'straight' (no bend) or 'round' (down the leg and round the bend into the straight); distance in metres; start: the key in the stalls file.",
