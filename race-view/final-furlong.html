@@ -23,6 +23,13 @@
 html, body { height: 100%; margin: 0; }
 body { background: #5f8a44; color: var(--green-ink); font-family: var(--body); overflow: hidden; }
 #scene { position: fixed; inset: 0; display: block; width: 100%; height: 100%; }
+/* The TV picture in a corner when watching from the terraces (owner, 10 Nov): the race view draws it into this box;
+   the box is just its frame and label (and tapping it goes back to the TV director). */
+.tvbox { position: fixed; z-index: 3; padding: 0; margin: 0; background: transparent; cursor: pointer; border-radius: 3px;
+  border: 2px solid var(--cream); box-shadow: 0 0 0 1px var(--cream-edge), 0 6px 18px rgba(30, 30, 20, 0.35); box-sizing: border-box; }
+.tvbox span { position: absolute; left: 6px; top: 6px; font: 600 0.62rem var(--body); letter-spacing: 0.14em; color: var(--cream);
+  background: var(--green); border-radius: 2px; padding: 2px 6px 1px; }
+.tvbox:focus-visible { outline: 2px solid var(--cream-edge); outline-offset: 2px; }
 
 .plate {
   position: fixed;
@@ -264,6 +271,7 @@ body.pre .dock { display: none; }
 </style>
 
 <canvas id="scene"></canvas>
+<button id="tvBox" class="tvbox" type="button" hidden title="Back to the TV picture" aria-label="The TV picture: tap to watch it full screen"><span>TV</span></button>
 <button id="showBar" class="showbar" type="button" hidden>Controls</button>
 <div class="loading" id="loading">Setting up the course…</div>
 
@@ -1546,9 +1554,12 @@ function buildCrowd(gltf, data, pieceAt) {
   const pick = (a) => a[Math.floor(rnd() * a.length)];
   const P = LOOKS.crowdPalette(data.palette);
   const spots = [];
-  const add = (x, y, z, seated = false) => { if (crowdKeep(x, rnd)) spots.push({ x, y, z, seated }); };
+  // nobody standing where a terrace camera's spectator stands (raceCameras, kind "terrace": 'clear' metres round its eye)
+  const EYES = Object.values(VIEW.raceCameras || {}).filter((c) => c.kind === "terrace").map((c) => [c.at[0], c.at[2], c.clear || 1]);
+  const free = (x, z) => EYES.every(([ex, ez, r]) => (x - ex) ** 2 + (z - ez) ** 2 > r * r);
+  const add = (x, y, z, seated = false) => { if (crowdKeep(x, rnd) && free(x, z)) spots.push({ x, y, z, seated }); };
   // a course that lists its crowd one person at a time ([x, y, z, facing], tools/course/newmarket/to_race_view.py)
-  if (data.people) for (let i = 0; i < data.people.length; i += 4) spots.push({ x: data.people[i], y: data.people[i + 1], z: data.people[i + 2], face: data.people[i + 3] });
+  if (data.people) for (let i = 0; i < data.people.length; i += 4) if (free(data.people[i], data.people[i + 2])) spots.push({ x: data.people[i], y: data.people[i + 1], z: data.people[i + 2], face: data.people[i + 3] });
   const S0 = -101.5, S1 = 406;                                  // the stand's west and east ends
   // the standing terraces down to the lawn (owner, 9 Nov 2026): their people stand on the steps (the crowd areas),
   // so nobody on the lawn inside their footprint (grandstand.modules -> groundTerrace: the z each one reaches)
@@ -1737,14 +1748,20 @@ function crowdMaterial() {
 function setCrowdShare(share) { CROWD.share = share; CROWD.sig = ""; }
 // Which cells are in shot and which are far: only when that changes are the visible people copied across.
 const _fr = new THREE.Frustum(), _pm = new THREE.Matrix4();
-function updateCrowd(cam) {
+const _fr2 = new THREE.Frustum();
+function updateCrowd(cam, cam2) {                       // cam2: the TV picture in the corner, when it's showing
   if (!CROWD.figs.length) return;
   _pm.multiplyMatrices(cam.projectionMatrix, cam.matrixWorldInverse);
   _fr.setFromProjectionMatrix(_pm);
-  const plan = CROWD.figs.map((F) => F.cells.map((c) => {
-    if (!_fr.intersectsSphere(c.sphere)) return 0;
-    const dd = c.sphere.center.distanceTo(cam.position) - c.sphere.radius;
+  if (cam2) { _pm.multiplyMatrices(cam2.projectionMatrix, cam2.matrixWorldInverse); _fr2.setFromProjectionMatrix(_pm); }
+  const lod = (c, C, fr) => {
+    if (!fr.intersectsSphere(c.sphere)) return 0;
+    const dd = c.sphere.center.distanceTo(C.position) - c.sphere.radius;
     return dd < CROWD.near ? 1 : dd < CROWD.thinFrom ? 2 : 3;          // 3: far off, every few people only (9 Nov)
+  };
+  const plan = CROWD.figs.map((F) => F.cells.map((c) => {
+    const a = lod(c, cam, _fr), b = cam2 ? lod(c, cam2, _fr2) : 0;
+    return a && b ? Math.min(a, b) : a || b;
   }));
   const sig = CROWD.share + ":" + plan.map((p) => p.join("")).join("|");
   if (sig === CROWD.sig) return;
@@ -2058,7 +2075,7 @@ function cameraTarget(now) {
     const fx = Math.cos(hd), fz = -Math.sin(hd), rx = Math.sin(hd), rz = Math.cos(hd);
     return still(new THREE.Vector3(wx + fx * a + rx * s, h, wz + fz * a + rz * s), new THREE.Vector3(wx + fx * 0.3, 1.75, wz + fz * 0.3), f, "near");
   }
-  if (state.phase === "stalls" || (state.phase === "race" && startShot(now))) return startTarget(now);
+  if ((state.phase === "stalls" && !isTerrace(state.cam)) || (state.phase === "race" && startShot(now))) return startTarget(now);
   if (state.phase === "prelude" || state.phase === "postlude") {
     const S = SET[state.phase], k = THREE.MathUtils.smoothstep(state.pt / S.seconds, 0, 1);
     return still(lerp3(S.eye[0], S.eye[1], k), lerp3(S.at[0], S.at[1], k), S.fov, state.phase);
@@ -2073,6 +2090,8 @@ function cameraTarget(now) {
   const leadU = leaderAt(now);
   const id = directorShot(DIST - leadU, leadU);
   const c = RCAMS[id], R = rangeFor(c.fov);
+  // a terrace camera keeps at least 'hfov' degrees across the screen (on a phone held upright, more of the stand and sky)
+  if (c.hfov) R[0] = Math.min(Math.max(R[0], 2 * THREE.MathUtils.radToDeg(Math.atan(Math.tan(THREE.MathUtils.degToRad(c.hfov) / 2) / camera.aspect))), R[1]);
   // The finish (owner, 7 Nov): once the winner is past the post the grandstand camera stops following it and holds on
   // the winning line, so the placings are seen crossing it. It pans across to the line (the look point eases over, no
   // cut) and frames the line and every runner still to finish within 30 m of it, plus any just over it.
@@ -2150,8 +2169,20 @@ function cameraTarget(now) {
     const [from, to, f] = c.widen, k = 1 - THREE.MathUtils.smoothstep(DIST - leadU, to, from);
     fov = Math.min(fov * (1 + (f - 1) * k), R[1]);
   }
+  // a terrace camera turns only so far either way from straight out over the course ('pan' degrees from 'face'): a
+  // spectator watches the field come up the course, not the backs of the stand
+  if (c.kind === "terrace" && c.pan) {
+    const dx = look.x - eye.x, dz = look.z - eye.z, [fx, fz] = c.face, lim = THREE.MathUtils.degToRad(c.pan);
+    const a = Math.atan2(fx * dz - fz * dx, fx * dx + fz * dz);
+    if (Math.abs(a) > lim) {
+      const b = Math.sign(a) * lim, d = Math.hypot(dx, dz), cs = Math.cos(b), sn = Math.sin(b);
+      look = new THREE.Vector3(eye.x + d * (fx * cs - fz * sn), look.y, eye.z + d * (fz * cs + fx * sn));
+      const [ax, az] = toWorld(leadU, 0);
+      return { eye, look, fov: R[0], id, abs: c.absolute, anchor: new THREE.Vector3(ax, 1.3, az), guard: [], range: R };
+    }
+  }
   const [ax, az] = toWorld(leadU, 0);
-  return { eye, look, fov, id, anchor: new THREE.Vector3(ax, 1.3, az), guard: field.slice(0, 2), range: R };
+  return { eye, look, fov, id, abs: c.absolute, anchor: new THREE.Vector3(ax, 1.3, az), guard: field.slice(0, 2), range: R };
 }
 
 // ---------- Controls ----------
@@ -2537,7 +2568,8 @@ function updateCamera(now, dt) {
   const T = runners.length ? cameraTarget(now) : { eye: camera.position.clone(), look: focus.clone(), fov: camera.fov, id: "none" };
   if (GROUND && runners.length && T.id !== "free") {
     const lift = (v) => v.setY(v.y + groundY(v.x, v.z));
-    lift(T.eye); lift(T.look);
+    if (!T.abs) lift(T.eye);                                         // (a terrace camera's eye is given as heights above sea level, as its crowd)
+    lift(T.look);
     if (T.anchor && T.anchor !== T.look) lift(T.anchor);
     if (T.guard) T.guard = T.guard.map((g) => lift(g.clone()));
   }
@@ -2560,6 +2592,56 @@ function updateCamera(now, dt) {
   camera.lookAt(focus);
   snap = false;
 }
+// The terraces (owner, 10 Nov): watching from among the crowd on a stand's terraces (raceCameras, kind "terrace"), with
+// the TV director's picture in a corner, as the big screens at the course. The director runs twice a frame: once for the
+// TV picture (its own running state kept here, swapped in and out), once for the terrace.
+function isTerrace(id) { return !!(RCAMS[id] && RCAMS[id].kind === "terrace"); }
+const TV = { cam: new THREE.PerspectiveCamera(30, 16 / 9, 0.5, 4000), focus: new THREE.Vector3(), snap: true, lastShot: null,
+  lookOff: null, ahead: 0, aheadFor: null, on: false, rect: null, el: document.getElementById("tvBox") };
+function updateTV(now, dt) {
+  TV.on = isTerrace(state.cam) && (state.phase === "stalls" || state.phase === "race");
+  if (TV.el.hidden === TV.on) TV.el.hidden = !TV.on;
+  if (!TV.on) { TV.snap = true; return; }
+  if (!TV.rect || framesDrawn % 30 === 0) placeTV();                 // (the name plate can change size)
+  const keep = { cam: state.cam, snap, lastShot, lookOff: state.lookOff, ahead: state.ahead, aheadFor: state.aheadFor,
+    aspect: camera.aspect, fov: camera.fov, pos: camera.position.clone(), q: camera.quaternion.clone(), focus: focus.clone() };
+  state.cam = "auto"; snap = TV.snap; lastShot = TV.lastShot; state.lookOff = TV.lookOff; state.ahead = TV.ahead; state.aheadFor = TV.aheadFor;
+  camera.aspect = TV.cam.aspect; camera.fov = TV.cam.fov; focus.copy(TV.focus);
+  updateCamera(now, dt);
+  TV.cam.position.copy(camera.position); TV.cam.quaternion.copy(camera.quaternion); TV.cam.fov = camera.fov;
+  TV.cam.updateProjectionMatrix(); TV.cam.updateMatrixWorld(); TV.focus.copy(focus);
+  TV.snap = snap; TV.lastShot = lastShot; TV.lookOff = state.lookOff; TV.ahead = state.ahead; TV.aheadFor = state.aheadFor;
+  state.cam = keep.cam; snap = keep.snap; lastShot = keep.lastShot; state.lookOff = keep.lookOff; state.ahead = keep.ahead; state.aheadFor = keep.aheadFor;
+  camera.aspect = keep.aspect; camera.fov = keep.fov; camera.position.copy(keep.pos); camera.quaternion.copy(keep.q); focus.copy(keep.focus);
+  camera.updateProjectionMatrix();
+}
+// where the picture goes: top right, 16:9; on a phone held upright, wider and under the name plate
+function placeTV() {
+  const W = window.innerWidth, H = window.innerHeight, portrait = W < H;
+  const w = Math.round(Math.min(portrait ? W * 0.5 : W * 0.27, 440)), h = Math.round(w * 9 / 16);
+  const pl = document.querySelector(".plate"), pr = pl && !pl.hidden ? pl.getBoundingClientRect() : null;
+  const right = Math.max(16, W - document.documentElement.clientWidth + 16);
+  let x = W - w - right, y = pr && pr.height ? pr.top : 14;
+  if (pr && pr.height && pr.right > x - 10) y = pr.bottom + 14;
+  TV.rect = { x, y, w, h };
+  TV.cam.aspect = w / h; TV.cam.updateProjectionMatrix();
+  Object.assign(TV.el.style, { left: x + "px", top: y + "px", width: w + "px", height: h + "px" });
+}
+function drawTV() {
+  if (!TV.on) return;
+  const { x, y, w, h } = TV.rect, H = window.innerHeight;
+  const au = sun.shadow.autoUpdate; sun.shadow.autoUpdate = false;           // the sun's shadows are already drawn this frame
+  scene.userData.sky.position.copy(TV.cam.position);
+  renderer.setScissorTest(true);
+  renderer.setScissor(x, H - y - h, w, h); renderer.setViewport(x, H - y - h, w, h);
+  renderer.render(scene, TV.cam);
+  renderer.setScissorTest(false); renderer.setViewport(0, 0, window.innerWidth, H);
+  sun.shadow.autoUpdate = au;
+  scene.userData.sky.position.copy(camera.position);
+}
+window.addEventListener("resize", () => { TV.rect = null; });
+TV.el.onclick = () => { state.cam = "auto"; snap = true; syncButtons(); };       // tap the picture: back to the TV director
+
 // Checking aid: run the director over a stretch of race and report each step's shot, zoom and how far the
 // view turned (degrees), to find jumps without watching it: window.__camTrace(t0, t1, dt).
 window.__camTrace = (t0, t1, step = 1 / 30) => {
@@ -2951,6 +3033,7 @@ function frame() {
   }
 
   const tCam = performance.now(); diag.sec.race += tCam - tRace;
+  updateTV(now, dt);
   updateCamera(now, dt);
   if (MINI) MINI.camera(camera, focus);
   chooseHorseDetail();
@@ -2972,7 +3055,7 @@ function frame() {
   CROWD.uniforms.uLeader.value.set(leaderXw, leaderZ);
   camera.updateMatrixWorld();
   const tCrowd = performance.now();
-  updateCrowd(camera);
+  updateCrowd(camera, TV.on ? TV.cam : null);
   const tPanels = performance.now(); diag.sec.crowd += tPanels - tCrowd;
 
   const left = (DIST - leader) / FURLONG;
@@ -2994,6 +3077,7 @@ function frame() {
   renderer.info.reset();
   if (MINI) MINI.render(renderer, scene, camera);
   else LOOKS.render(renderer, scene, camera, focus, state.phase === "prelude" || state.phase === "postlude");
+  drawTV();
   framesDrawn++;
   diag.js += t1 - t0; diag.draw += performance.now() - t1; diag.n++;
   // ?still=1 (used for checking screenshots): draw a few frames once loaded, then stop.
@@ -3021,7 +3105,7 @@ requestAnimationFrame(frame);
 // Checking aid (?still=1): play on by exactly dt seconds and draw (the whole show, phases and all), for recording a
 // film frame by frame: window.__advance(1 / 25).
 if (params.has("still")) window.__advance = (dt) => { FIXED_DT = dt; state.paused = false; stillFrames = 99; frame(); state.paused = true; FIXED_DT = 0; };
-if (params.has("still")) window.__seek = (t) => { state.phase = "race"; state.t = t; snap = true; stillFrames = 0; window.__ready = false; requestAnimationFrame(frame); };
+if (params.has("still")) window.__seek = (t) => { state.phase = "race"; state.t = t; snap = true; TV.snap = true; stillFrames = 0; window.__ready = false; requestAnimationFrame(frame); };
 // Checking aid (?bench=1): the scene's parts, for timing each one on its own (see the rig's bench script).
 if (params.has("bench")) window.__dbg = { THREE, renderer, scene, camera, LAYERS, sun, QUALITY, runners, get qLevel() { return qLevel; } };
 </script>
