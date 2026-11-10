@@ -9,6 +9,10 @@
 //   import { runRace } from "./engine.js";
 //   const { timeline, result } = runRace(race, runners, { course, stalls, standards, settings });
 //
+// Newmarket (8 Nov, draft): courses/newmarket-draft.json, newmarket-stalls.json and newmarket-standards.json, handed over
+// the same way. A course that is one path (not Ascot's loop) lists its bends in 'path', and its ground's height in
+// 'heights' (the Dip): see bendsFor and gradeAt.
+//
 // race:    { course: "straight" | "roundMile" | "round", distance (m), start (a key in the stalls file's starts),
 //            going: "Heavy" | "Softer" | "Good" | "Quicker" | "Quick", seed, handicap?: true }
 // runners: in draw order (runners[0] is in stall 1). Each: { rating, style, flex, temperament, trip, goings,
@@ -124,6 +128,17 @@ export function standardFor(standards, course, distance) {
 // (the stalls file's start has onStraight: the 2m4f) meets no bend until it has passed the post and joined the loop.
 export function bendsFor(course, kind, distance, onStraight = false) {
   if (kind === "straight") return { bends: [], home: 0 };
+  if (course.path) {                                         // one path (Newmarket): its bends as [from, to, degrees]
+    const bends = [];
+    for (const [a, b, deg] of course.path.bends) {
+      if (b >= distance) continue;
+      let A = a, ang = deg * PI / 180;
+      if (A > distance) { ang *= (distance - b) / (A - b); A = distance; }   // starts part-way round a bend
+      bends.push([A, b, ang]);
+    }
+    bends.sort((p, q) => q[0] - p[0]);
+    return { bends, home: course.path.home };
+  }
   const rc = course.roundCourse, pts = rc.insideRail.points, sp = rc.insideRail.spacing, n = pts.length, L = n * sp;
   const heading = (d) => {                                  // running direction at d metres to go on the loop
     const s = (((-d) % L) + L) % L, i = Math.round(s / sp) % n;
@@ -152,6 +167,22 @@ export function bendsFor(course, kind, distance, onStraight = false) {
   }
   bends.sort((p, q) => q[0] - p[0]);
   return { bends, home: Math.min(...rc.bends.map((b) => b.to)) };   // the home straight starts where the last bend ends
+}
+
+// Hills (owner, 8 Nov: Newmarket's Dip counts): the ground's rise per metre ahead of a horse at 'toGo' metres to go,
+// from the course's heights (every 'spacing' metres to go from 'from'; straight lines between). None at Ascot: 0.
+export function gradeAt(course) {
+  const H = course.heights;
+  if (!H || !H.h || !H.h.length) return null;
+  const h = H.h, last = h.length - 1;
+  const at = (d) => {
+    const u = (d - H.from) / H.spacing;
+    if (u <= 0) return h[0];
+    if (u >= last) return h[last];
+    const i = Math.floor(u), f = u - i;
+    return h[i] + (h[i + 1] - h[i]) * f;
+  };
+  return (toGo) => (at(toGo - 1) - at(toGo + 1)) / 2;
 }
 
 // ---------------------------------------------------------------------------------------------- the runners
@@ -217,6 +248,7 @@ export function runRace(race, runners, data, options = {}) {
   const straight = kind === "straight";
   const W = data.course.trackWidth, MID = W / 2, Z0 = P.RAIL_CLEAR, Z1 = W - P.RAIL_CLEAR;
   const { bends, home } = bendsFor(data.course, kind, D, !!start.onStraight);
+  const grade = gradeAt(data.course), gr = new Float64Array(n);
   const join = bends.length ? bends[0][0] : D;
   const std = standardFor(data.standards, race.course, D);
   const goingName = data.standards.going[race.going] ? race.going : "Good";
@@ -362,6 +394,8 @@ export function runRace(race, runners, data, options = {}) {
       kick[i] = toGo <= kickAt[i] ? 1 : 0;
       inB[i] = kick[i] && toGo <= P.BURST_DIST && E[i] > P.BURST_NEEDS ? 1 : 0;
       if (kick[i]) w = Math.min(vK0[i], hold) + (inB[i] ? burst[i] : 0);
+      gr[i] = grade ? grade(toGo) : 0;
+      w *= 1 - P.HILL_SLOW * Math.max(gr[i], 0);
       if (t < card[i].react) w = 0;
       want[i] = w;
     }
@@ -433,6 +467,8 @@ export function runRace(race, runners, data, options = {}) {
       vNew[i] = v[i] + clip(want[i] - v[i], -P.DECEL * dt, acc * dt);    // applied after every horse has looked round
       const over = Math.max(vNew[i] - (inB[i] ? burst[i] : 0) - vC[i], 0), q = over / ref[i];
       E[i] -= ref[i] * q * q * dt * (covered ? 1 - P.DRAFT : 1) + (card[i].keen && vp[i] < own[i] && !kick[i] ? P.KEEN_BURN : 0) * dt;
+      // uphill costs energy; downhill is no free pass (balance): a smaller cost (owner, 8 Nov)
+      E[i] -= (P.HILL_UP * Math.max(gr[i], 0) + P.HILL_DOWN * Math.max(-gr[i], 0)) * vNew[i] * dt;
       let k = 0;
       for (const [a, b, ang] of bends) if (toGo <= a && toGo > b) k = ang / (a - b);
       kap[i] = k;

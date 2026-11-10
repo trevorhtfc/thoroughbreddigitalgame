@@ -1,0 +1,2646 @@
+{
+ "_about": "Newmarket \u00b7 July Course's starting stalls (courses/newmarket-july-stalls.json, tools/course/newmarket/) with Ascot's stall kit and gates. Written by tools/course/newmarket/to_race_view.py.",
+ "horseStandsBehind": 1.55,
+ "gates": {
+  "swingSeconds": 0.22,
+  "openDegrees": 100,
+  "note": "Both half-gates of every stall spring open together at the off and swing out through openDegrees in swingSeconds."
+ },
+ "kit": {
+  "file": "assets/models/course/starting_stalls.glb",
+  "sizes": "assets/models/course/starting_stalls_kit.json",
+  "unitBays": 99,
+  "plaqueEvery": 5,
+  "railGap": 0.2,
+  "pitch": 1.05,
+  "towerWidth": 0.9,
+  "depth": 3.2
+ },
+ "maxRunners": 26,
+ "unitsForField": {
+  "1": [
+   [
+    1,
+    1
+   ]
+  ],
+  "2": [
+   [
+    1,
+    2
+   ]
+  ],
+  "3": [
+   [
+    1,
+    3
+   ]
+  ],
+  "4": [
+   [
+    1,
+    4
+   ]
+  ],
+  "5": [
+   [
+    1,
+    5
+   ]
+  ],
+  "6": [
+   [
+    1,
+    6
+   ]
+  ],
+  "7": [
+   [
+    1,
+    7
+   ]
+  ],
+  "8": [
+   [
+    1,
+    8
+   ]
+  ],
+  "9": [
+   [
+    1,
+    9
+   ]
+  ],
+  "10": [
+   [
+    1,
+    10
+   ]
+  ],
+  "11": [
+   [
+    1,
+    11
+   ]
+  ],
+  "12": [
+   [
+    1,
+    12
+   ]
+  ],
+  "13": [
+   [
+    1,
+    13
+   ]
+  ],
+  "14": [
+   [
+    1,
+    14
+   ]
+  ],
+  "15": [
+   [
+    1,
+    15
+   ]
+  ],
+  "16": [
+   [
+    1,
+    16
+   ]
+  ],
+  "17": [
+   [
+    1,
+    17
+   ]
+  ],
+  "18": [
+   [
+    1,
+    18
+   ]
+  ],
+  "19": [
+   [
+    1,
+    19
+   ]
+  ],
+  "20": [
+   [
+    1,
+    20
+   ]
+  ],
+  "21": [
+   [
+    1,
+    21
+   ]
+  ],
+  "22": [
+   [
+    1,
+    22
+   ]
+  ],
+  "23": [
+   [
+    1,
+    23
+   ]
+  ],
+  "24": [
+   [
+    1,
+    24
+   ]
+  ],
+  "25": [
+   [
+    1,
+    25
+   ]
+  ],
+  "26": [
+   [
+    1,
+    26
+   ]
+  ]
+ },
+ "starts": {
+  "5f": {
+   "label": "5f (straight)",
+   "course": "straight",
+   "key": "jc5f",
+   "distance": 1005.8,
+   "insideRailAt": [
+    1005.84,
+    0.0
+   ],
+   "runningDirection": [
+    -1.0,
+    0.0
+   ],
+   "towardsOuterRail": [
+    0.0,
+    1.0
+   ],
+   "stall1": "inside rail (the stand side)",
+   "onStraight": true,
+   "stalls": [
+    {
+     "draw": 1,
+     "fromInsideRail": 1.625,
+     "across": -15.375,
+     "at": [
+      1005.8,
+      1.62
+     ]
+    },
+    {
+     "draw": 2,
+     "fromInsideRail": 2.675,
+     "across": -14.325,
+     "at": [
+      1005.8,
+      2.67
+     ]
+    },
+    {
+     "draw": 3,
+     "fromInsideRail": 3.725,
+     "across": -13.275,
+     "at": [
+      1005.8,
+      3.73
+     ]
+    },
+    {
+     "draw": 4,
+     "fromInsideRail": 4.775,
+     "across": -12.225,
+     "at": [
+      1005.8,
+      4.78
+     ]
+    },
+    {
+     "draw": 5,
+     "fromInsideRail": 5.825,
+     "across": -11.175,
+     "at": [
+      1005.8,
+      5.83
+     ]
+    },
+    {
+     "draw": 6,
+     "fromInsideRail": 6.875,
+     "across": -10.125,
+     "at": [
+      1005.8,
+      6.88
+     ]
+    },
+    {
+     "draw": 7,
+     "fromInsideRail": 7.925,
+     "across": -9.075,
+     "at": [
+      1005.8,
+      7.93
+     ]
+    },
+    {
+     "draw": 8,
+     "fromInsideRail": 8.975,
+     "across": -8.025,
+     "at": [
+      1005.8,
+      8.98
+     ]
+    },
+    {
+     "draw": 9,
+     "fromInsideRail": 10.025,
+     "across": -6.975,
+     "at": [
+      1005.8,
+      10.03
+     ]
+    },
+    {
+     "draw": 10,
+     "fromInsideRail": 11.075,
+     "across": -5.925,
+     "at": [
+      1005.8,
+      11.08
+     ]
+    },
+    {
+     "draw": 11,
+     "fromInsideRail": 12.125,
+     "across": -4.875,
+     "at": [
+      1005.8,
+      12.12
+     ]
+    },
+    {
+     "draw": 12,
+     "fromInsideRail": 13.175,
+     "across": -3.825,
+     "at": [
+      1005.8,
+      13.18
+     ]
+    },
+    {
+     "draw": 13,
+     "fromInsideRail": 14.225,
+     "across": -2.775,
+     "at": [
+      1005.8,
+      14.23
+     ]
+    },
+    {
+     "draw": 14,
+     "fromInsideRail": 15.275,
+     "across": -1.725,
+     "at": [
+      1005.8,
+      15.28
+     ]
+    },
+    {
+     "draw": 15,
+     "fromInsideRail": 16.325,
+     "across": -0.675,
+     "at": [
+      1005.8,
+      16.33
+     ]
+    },
+    {
+     "draw": 16,
+     "fromInsideRail": 17.375,
+     "across": 0.375,
+     "at": [
+      1005.8,
+      17.38
+     ]
+    },
+    {
+     "draw": 17,
+     "fromInsideRail": 18.425,
+     "across": 1.425,
+     "at": [
+      1005.8,
+      18.43
+     ]
+    },
+    {
+     "draw": 18,
+     "fromInsideRail": 19.475,
+     "across": 2.475,
+     "at": [
+      1005.8,
+      19.48
+     ]
+    },
+    {
+     "draw": 19,
+     "fromInsideRail": 20.525,
+     "across": 3.525,
+     "at": [
+      1005.8,
+      20.53
+     ]
+    },
+    {
+     "draw": 20,
+     "fromInsideRail": 21.575,
+     "across": 4.575,
+     "at": [
+      1005.8,
+      21.57
+     ]
+    },
+    {
+     "draw": 21,
+     "fromInsideRail": 22.625,
+     "across": 5.625,
+     "at": [
+      1005.8,
+      22.62
+     ]
+    },
+    {
+     "draw": 22,
+     "fromInsideRail": 23.675,
+     "across": 6.675,
+     "at": [
+      1005.8,
+      23.68
+     ]
+    },
+    {
+     "draw": 23,
+     "fromInsideRail": 24.725,
+     "across": 7.725,
+     "at": [
+      1005.8,
+      24.73
+     ]
+    },
+    {
+     "draw": 24,
+     "fromInsideRail": 25.775,
+     "across": 8.775,
+     "at": [
+      1005.8,
+      25.78
+     ]
+    },
+    {
+     "draw": 25,
+     "fromInsideRail": 26.825,
+     "across": 9.825,
+     "at": [
+      1005.8,
+      26.83
+     ]
+    },
+    {
+     "draw": 26,
+     "fromInsideRail": 27.875,
+     "across": 10.875,
+     "at": [
+      1005.8,
+      27.88
+     ]
+    },
+    {
+     "draw": 27,
+     "fromInsideRail": 28.925,
+     "across": 11.925,
+     "at": [
+      1005.8,
+      28.93
+     ]
+    },
+    {
+     "draw": 28,
+     "fromInsideRail": 29.975,
+     "across": 12.975,
+     "at": [
+      1005.8,
+      29.98
+     ]
+    }
+   ]
+  },
+  "6f": {
+   "label": "6f (straight)",
+   "course": "straight",
+   "key": "jc6f",
+   "distance": 1207.0,
+   "insideRailAt": [
+    1207.01,
+    0.0
+   ],
+   "runningDirection": [
+    -1.0,
+    0.0
+   ],
+   "towardsOuterRail": [
+    0.0,
+    1.0
+   ],
+   "stall1": "inside rail (the stand side)",
+   "onStraight": true,
+   "stalls": [
+    {
+     "draw": 1,
+     "fromInsideRail": 1.625,
+     "across": -15.375,
+     "at": [
+      1207.0,
+      1.62
+     ]
+    },
+    {
+     "draw": 2,
+     "fromInsideRail": 2.675,
+     "across": -14.325,
+     "at": [
+      1207.0,
+      2.67
+     ]
+    },
+    {
+     "draw": 3,
+     "fromInsideRail": 3.725,
+     "across": -13.275,
+     "at": [
+      1207.0,
+      3.73
+     ]
+    },
+    {
+     "draw": 4,
+     "fromInsideRail": 4.775,
+     "across": -12.225,
+     "at": [
+      1207.0,
+      4.78
+     ]
+    },
+    {
+     "draw": 5,
+     "fromInsideRail": 5.825,
+     "across": -11.175,
+     "at": [
+      1207.0,
+      5.83
+     ]
+    },
+    {
+     "draw": 6,
+     "fromInsideRail": 6.875,
+     "across": -10.125,
+     "at": [
+      1207.0,
+      6.88
+     ]
+    },
+    {
+     "draw": 7,
+     "fromInsideRail": 7.925,
+     "across": -9.075,
+     "at": [
+      1207.0,
+      7.93
+     ]
+    },
+    {
+     "draw": 8,
+     "fromInsideRail": 8.975,
+     "across": -8.025,
+     "at": [
+      1207.0,
+      8.98
+     ]
+    },
+    {
+     "draw": 9,
+     "fromInsideRail": 10.025,
+     "across": -6.975,
+     "at": [
+      1207.0,
+      10.03
+     ]
+    },
+    {
+     "draw": 10,
+     "fromInsideRail": 11.075,
+     "across": -5.925,
+     "at": [
+      1207.0,
+      11.08
+     ]
+    },
+    {
+     "draw": 11,
+     "fromInsideRail": 12.125,
+     "across": -4.875,
+     "at": [
+      1207.0,
+      12.12
+     ]
+    },
+    {
+     "draw": 12,
+     "fromInsideRail": 13.175,
+     "across": -3.825,
+     "at": [
+      1207.0,
+      13.18
+     ]
+    },
+    {
+     "draw": 13,
+     "fromInsideRail": 14.225,
+     "across": -2.775,
+     "at": [
+      1207.0,
+      14.23
+     ]
+    },
+    {
+     "draw": 14,
+     "fromInsideRail": 15.275,
+     "across": -1.725,
+     "at": [
+      1207.0,
+      15.28
+     ]
+    },
+    {
+     "draw": 15,
+     "fromInsideRail": 16.325,
+     "across": -0.675,
+     "at": [
+      1207.0,
+      16.33
+     ]
+    },
+    {
+     "draw": 16,
+     "fromInsideRail": 17.375,
+     "across": 0.375,
+     "at": [
+      1207.0,
+      17.38
+     ]
+    },
+    {
+     "draw": 17,
+     "fromInsideRail": 18.425,
+     "across": 1.425,
+     "at": [
+      1207.0,
+      18.43
+     ]
+    },
+    {
+     "draw": 18,
+     "fromInsideRail": 19.475,
+     "across": 2.475,
+     "at": [
+      1207.0,
+      19.48
+     ]
+    },
+    {
+     "draw": 19,
+     "fromInsideRail": 20.525,
+     "across": 3.525,
+     "at": [
+      1207.0,
+      20.53
+     ]
+    },
+    {
+     "draw": 20,
+     "fromInsideRail": 21.575,
+     "across": 4.575,
+     "at": [
+      1207.0,
+      21.57
+     ]
+    },
+    {
+     "draw": 21,
+     "fromInsideRail": 22.625,
+     "across": 5.625,
+     "at": [
+      1207.0,
+      22.62
+     ]
+    },
+    {
+     "draw": 22,
+     "fromInsideRail": 23.675,
+     "across": 6.675,
+     "at": [
+      1207.0,
+      23.68
+     ]
+    },
+    {
+     "draw": 23,
+     "fromInsideRail": 24.725,
+     "across": 7.725,
+     "at": [
+      1207.0,
+      24.73
+     ]
+    },
+    {
+     "draw": 24,
+     "fromInsideRail": 25.775,
+     "across": 8.775,
+     "at": [
+      1207.0,
+      25.78
+     ]
+    },
+    {
+     "draw": 25,
+     "fromInsideRail": 26.825,
+     "across": 9.825,
+     "at": [
+      1207.0,
+      26.83
+     ]
+    },
+    {
+     "draw": 26,
+     "fromInsideRail": 27.875,
+     "across": 10.875,
+     "at": [
+      1207.0,
+      27.88
+     ]
+    },
+    {
+     "draw": 27,
+     "fromInsideRail": 28.925,
+     "across": 11.925,
+     "at": [
+      1207.0,
+      28.93
+     ]
+    },
+    {
+     "draw": 28,
+     "fromInsideRail": 29.975,
+     "across": 12.975,
+     "at": [
+      1207.0,
+      29.98
+     ]
+    }
+   ]
+  },
+  "7f": {
+   "label": "7f (straight)",
+   "course": "straight",
+   "key": "jc7f",
+   "distance": 1408.2,
+   "insideRailAt": [
+    1408.18,
+    0.0
+   ],
+   "runningDirection": [
+    -1.0,
+    0.0
+   ],
+   "towardsOuterRail": [
+    0.0,
+    1.0
+   ],
+   "stall1": "inside rail (the stand side)",
+   "onStraight": true,
+   "stalls": [
+    {
+     "draw": 1,
+     "fromInsideRail": 1.625,
+     "across": -15.375,
+     "at": [
+      1408.2,
+      1.62
+     ]
+    },
+    {
+     "draw": 2,
+     "fromInsideRail": 2.675,
+     "across": -14.325,
+     "at": [
+      1408.2,
+      2.67
+     ]
+    },
+    {
+     "draw": 3,
+     "fromInsideRail": 3.725,
+     "across": -13.275,
+     "at": [
+      1408.2,
+      3.73
+     ]
+    },
+    {
+     "draw": 4,
+     "fromInsideRail": 4.775,
+     "across": -12.225,
+     "at": [
+      1408.2,
+      4.78
+     ]
+    },
+    {
+     "draw": 5,
+     "fromInsideRail": 5.825,
+     "across": -11.175,
+     "at": [
+      1408.2,
+      5.83
+     ]
+    },
+    {
+     "draw": 6,
+     "fromInsideRail": 6.875,
+     "across": -10.125,
+     "at": [
+      1408.2,
+      6.88
+     ]
+    },
+    {
+     "draw": 7,
+     "fromInsideRail": 7.925,
+     "across": -9.075,
+     "at": [
+      1408.2,
+      7.93
+     ]
+    },
+    {
+     "draw": 8,
+     "fromInsideRail": 8.975,
+     "across": -8.025,
+     "at": [
+      1408.2,
+      8.98
+     ]
+    },
+    {
+     "draw": 9,
+     "fromInsideRail": 10.025,
+     "across": -6.975,
+     "at": [
+      1408.2,
+      10.03
+     ]
+    },
+    {
+     "draw": 10,
+     "fromInsideRail": 11.075,
+     "across": -5.925,
+     "at": [
+      1408.2,
+      11.08
+     ]
+    },
+    {
+     "draw": 11,
+     "fromInsideRail": 12.125,
+     "across": -4.875,
+     "at": [
+      1408.2,
+      12.12
+     ]
+    },
+    {
+     "draw": 12,
+     "fromInsideRail": 13.175,
+     "across": -3.825,
+     "at": [
+      1408.2,
+      13.18
+     ]
+    },
+    {
+     "draw": 13,
+     "fromInsideRail": 14.225,
+     "across": -2.775,
+     "at": [
+      1408.2,
+      14.23
+     ]
+    },
+    {
+     "draw": 14,
+     "fromInsideRail": 15.275,
+     "across": -1.725,
+     "at": [
+      1408.2,
+      15.28
+     ]
+    },
+    {
+     "draw": 15,
+     "fromInsideRail": 16.325,
+     "across": -0.675,
+     "at": [
+      1408.2,
+      16.33
+     ]
+    },
+    {
+     "draw": 16,
+     "fromInsideRail": 17.375,
+     "across": 0.375,
+     "at": [
+      1408.2,
+      17.38
+     ]
+    },
+    {
+     "draw": 17,
+     "fromInsideRail": 18.425,
+     "across": 1.425,
+     "at": [
+      1408.2,
+      18.43
+     ]
+    },
+    {
+     "draw": 18,
+     "fromInsideRail": 19.475,
+     "across": 2.475,
+     "at": [
+      1408.2,
+      19.48
+     ]
+    },
+    {
+     "draw": 19,
+     "fromInsideRail": 20.525,
+     "across": 3.525,
+     "at": [
+      1408.2,
+      20.53
+     ]
+    },
+    {
+     "draw": 20,
+     "fromInsideRail": 21.575,
+     "across": 4.575,
+     "at": [
+      1408.2,
+      21.57
+     ]
+    },
+    {
+     "draw": 21,
+     "fromInsideRail": 22.625,
+     "across": 5.625,
+     "at": [
+      1408.2,
+      22.62
+     ]
+    },
+    {
+     "draw": 22,
+     "fromInsideRail": 23.675,
+     "across": 6.675,
+     "at": [
+      1408.2,
+      23.68
+     ]
+    },
+    {
+     "draw": 23,
+     "fromInsideRail": 24.725,
+     "across": 7.725,
+     "at": [
+      1408.2,
+      24.73
+     ]
+    },
+    {
+     "draw": 24,
+     "fromInsideRail": 25.775,
+     "across": 8.775,
+     "at": [
+      1408.2,
+      25.78
+     ]
+    },
+    {
+     "draw": 25,
+     "fromInsideRail": 26.825,
+     "across": 9.825,
+     "at": [
+      1408.2,
+      26.83
+     ]
+    },
+    {
+     "draw": 26,
+     "fromInsideRail": 27.875,
+     "across": 10.875,
+     "at": [
+      1408.2,
+      27.88
+     ]
+    },
+    {
+     "draw": 27,
+     "fromInsideRail": 28.925,
+     "across": 11.925,
+     "at": [
+      1408.2,
+      28.93
+     ]
+    },
+    {
+     "draw": 28,
+     "fromInsideRail": 29.975,
+     "across": 12.975,
+     "at": [
+      1408.2,
+      29.98
+     ]
+    }
+   ]
+  },
+  "1m": {
+   "label": "1m (straight)",
+   "course": "straight",
+   "key": "jc1m",
+   "distance": 1609.3,
+   "insideRailAt": [
+    1609.34,
+    0.0
+   ],
+   "runningDirection": [
+    -1.0,
+    0.0
+   ],
+   "towardsOuterRail": [
+    0.0,
+    1.0
+   ],
+   "stall1": "inside rail (the stand side)",
+   "onStraight": true,
+   "stalls": [
+    {
+     "draw": 1,
+     "fromInsideRail": 1.625,
+     "across": -15.375,
+     "at": [
+      1609.3,
+      1.62
+     ]
+    },
+    {
+     "draw": 2,
+     "fromInsideRail": 2.675,
+     "across": -14.325,
+     "at": [
+      1609.3,
+      2.67
+     ]
+    },
+    {
+     "draw": 3,
+     "fromInsideRail": 3.725,
+     "across": -13.275,
+     "at": [
+      1609.3,
+      3.73
+     ]
+    },
+    {
+     "draw": 4,
+     "fromInsideRail": 4.775,
+     "across": -12.225,
+     "at": [
+      1609.3,
+      4.78
+     ]
+    },
+    {
+     "draw": 5,
+     "fromInsideRail": 5.825,
+     "across": -11.175,
+     "at": [
+      1609.3,
+      5.83
+     ]
+    },
+    {
+     "draw": 6,
+     "fromInsideRail": 6.875,
+     "across": -10.125,
+     "at": [
+      1609.3,
+      6.88
+     ]
+    },
+    {
+     "draw": 7,
+     "fromInsideRail": 7.925,
+     "across": -9.075,
+     "at": [
+      1609.3,
+      7.93
+     ]
+    },
+    {
+     "draw": 8,
+     "fromInsideRail": 8.975,
+     "across": -8.025,
+     "at": [
+      1609.3,
+      8.98
+     ]
+    },
+    {
+     "draw": 9,
+     "fromInsideRail": 10.025,
+     "across": -6.975,
+     "at": [
+      1609.3,
+      10.03
+     ]
+    },
+    {
+     "draw": 10,
+     "fromInsideRail": 11.075,
+     "across": -5.925,
+     "at": [
+      1609.3,
+      11.08
+     ]
+    },
+    {
+     "draw": 11,
+     "fromInsideRail": 12.125,
+     "across": -4.875,
+     "at": [
+      1609.3,
+      12.12
+     ]
+    },
+    {
+     "draw": 12,
+     "fromInsideRail": 13.175,
+     "across": -3.825,
+     "at": [
+      1609.3,
+      13.18
+     ]
+    },
+    {
+     "draw": 13,
+     "fromInsideRail": 14.225,
+     "across": -2.775,
+     "at": [
+      1609.3,
+      14.23
+     ]
+    },
+    {
+     "draw": 14,
+     "fromInsideRail": 15.275,
+     "across": -1.725,
+     "at": [
+      1609.3,
+      15.28
+     ]
+    },
+    {
+     "draw": 15,
+     "fromInsideRail": 16.325,
+     "across": -0.675,
+     "at": [
+      1609.3,
+      16.33
+     ]
+    },
+    {
+     "draw": 16,
+     "fromInsideRail": 17.375,
+     "across": 0.375,
+     "at": [
+      1609.3,
+      17.38
+     ]
+    },
+    {
+     "draw": 17,
+     "fromInsideRail": 18.425,
+     "across": 1.425,
+     "at": [
+      1609.3,
+      18.43
+     ]
+    },
+    {
+     "draw": 18,
+     "fromInsideRail": 19.475,
+     "across": 2.475,
+     "at": [
+      1609.3,
+      19.48
+     ]
+    },
+    {
+     "draw": 19,
+     "fromInsideRail": 20.525,
+     "across": 3.525,
+     "at": [
+      1609.3,
+      20.53
+     ]
+    },
+    {
+     "draw": 20,
+     "fromInsideRail": 21.575,
+     "across": 4.575,
+     "at": [
+      1609.3,
+      21.57
+     ]
+    },
+    {
+     "draw": 21,
+     "fromInsideRail": 22.625,
+     "across": 5.625,
+     "at": [
+      1609.3,
+      22.62
+     ]
+    },
+    {
+     "draw": 22,
+     "fromInsideRail": 23.675,
+     "across": 6.675,
+     "at": [
+      1609.3,
+      23.68
+     ]
+    },
+    {
+     "draw": 23,
+     "fromInsideRail": 24.725,
+     "across": 7.725,
+     "at": [
+      1609.3,
+      24.73
+     ]
+    },
+    {
+     "draw": 24,
+     "fromInsideRail": 25.775,
+     "across": 8.775,
+     "at": [
+      1609.3,
+      25.78
+     ]
+    },
+    {
+     "draw": 25,
+     "fromInsideRail": 26.825,
+     "across": 9.825,
+     "at": [
+      1609.3,
+      26.83
+     ]
+    },
+    {
+     "draw": 26,
+     "fromInsideRail": 27.875,
+     "across": 10.875,
+     "at": [
+      1609.3,
+      27.88
+     ]
+    },
+    {
+     "draw": 27,
+     "fromInsideRail": 28.925,
+     "across": 11.925,
+     "at": [
+      1609.3,
+      28.93
+     ]
+    },
+    {
+     "draw": 28,
+     "fromInsideRail": 29.975,
+     "across": 12.975,
+     "at": [
+      1609.3,
+      29.98
+     ]
+    }
+   ]
+  },
+  "1m2f": {
+   "label": "1m2f (round)",
+   "course": "round",
+   "key": "jc1m2f",
+   "distance": 2011.7,
+   "insideRailAt": [
+    1795.85,
+    -299.42
+   ],
+   "runningDirection": [
+    -0.0523,
+    0.9986
+   ],
+   "towardsOuterRail": [
+    0.9986,
+    0.0523
+   ],
+   "stall1": "inside rail (the stand side)",
+   "onStraight": false,
+   "stalls": [
+    {
+     "draw": 1,
+     "fromInsideRail": 1.625,
+     "across": -15.375,
+     "at": [
+      1797.47,
+      -299.36
+     ]
+    },
+    {
+     "draw": 2,
+     "fromInsideRail": 2.675,
+     "across": -14.325,
+     "at": [
+      1798.52,
+      -299.3
+     ]
+    },
+    {
+     "draw": 3,
+     "fromInsideRail": 3.725,
+     "across": -13.275,
+     "at": [
+      1799.57,
+      -299.25
+     ]
+    },
+    {
+     "draw": 4,
+     "fromInsideRail": 4.775,
+     "across": -12.225,
+     "at": [
+      1800.62,
+      -299.19
+     ]
+    },
+    {
+     "draw": 5,
+     "fromInsideRail": 5.825,
+     "across": -11.175,
+     "at": [
+      1801.67,
+      -299.14
+     ]
+    },
+    {
+     "draw": 6,
+     "fromInsideRail": 6.875,
+     "across": -10.125,
+     "at": [
+      1802.72,
+      -299.08
+     ]
+    },
+    {
+     "draw": 7,
+     "fromInsideRail": 7.925,
+     "across": -9.075,
+     "at": [
+      1803.76,
+      -299.03
+     ]
+    },
+    {
+     "draw": 8,
+     "fromInsideRail": 8.975,
+     "across": -8.025,
+     "at": [
+      1804.81,
+      -298.97
+     ]
+    },
+    {
+     "draw": 9,
+     "fromInsideRail": 10.025,
+     "across": -6.975,
+     "at": [
+      1805.86,
+      -298.92
+     ]
+    },
+    {
+     "draw": 10,
+     "fromInsideRail": 11.075,
+     "across": -5.925,
+     "at": [
+      1806.91,
+      -298.86
+     ]
+    },
+    {
+     "draw": 11,
+     "fromInsideRail": 12.125,
+     "across": -4.875,
+     "at": [
+      1807.96,
+      -298.81
+     ]
+    },
+    {
+     "draw": 12,
+     "fromInsideRail": 13.175,
+     "across": -3.825,
+     "at": [
+      1809.01,
+      -298.75
+     ]
+    },
+    {
+     "draw": 13,
+     "fromInsideRail": 14.225,
+     "across": -2.775,
+     "at": [
+      1810.06,
+      -298.7
+     ]
+    },
+    {
+     "draw": 14,
+     "fromInsideRail": 15.275,
+     "across": -1.725,
+     "at": [
+      1811.1,
+      -298.64
+     ]
+    },
+    {
+     "draw": 15,
+     "fromInsideRail": 16.325,
+     "across": -0.675,
+     "at": [
+      1812.15,
+      -298.59
+     ]
+    },
+    {
+     "draw": 16,
+     "fromInsideRail": 17.375,
+     "across": 0.375,
+     "at": [
+      1813.2,
+      -298.53
+     ]
+    },
+    {
+     "draw": 17,
+     "fromInsideRail": 18.425,
+     "across": 1.425,
+     "at": [
+      1814.25,
+      -298.48
+     ]
+    },
+    {
+     "draw": 18,
+     "fromInsideRail": 19.475,
+     "across": 2.475,
+     "at": [
+      1815.3,
+      -298.42
+     ]
+    },
+    {
+     "draw": 19,
+     "fromInsideRail": 20.525,
+     "across": 3.525,
+     "at": [
+      1816.35,
+      -298.37
+     ]
+    },
+    {
+     "draw": 20,
+     "fromInsideRail": 21.575,
+     "across": 4.575,
+     "at": [
+      1817.4,
+      -298.31
+     ]
+    },
+    {
+     "draw": 21,
+     "fromInsideRail": 22.625,
+     "across": 5.625,
+     "at": [
+      1818.44,
+      -298.26
+     ]
+    },
+    {
+     "draw": 22,
+     "fromInsideRail": 23.675,
+     "across": 6.675,
+     "at": [
+      1819.49,
+      -298.2
+     ]
+    },
+    {
+     "draw": 23,
+     "fromInsideRail": 24.725,
+     "across": 7.725,
+     "at": [
+      1820.54,
+      -298.15
+     ]
+    },
+    {
+     "draw": 24,
+     "fromInsideRail": 25.775,
+     "across": 8.775,
+     "at": [
+      1821.59,
+      -298.09
+     ]
+    },
+    {
+     "draw": 25,
+     "fromInsideRail": 26.825,
+     "across": 9.825,
+     "at": [
+      1822.64,
+      -298.04
+     ]
+    },
+    {
+     "draw": 26,
+     "fromInsideRail": 27.875,
+     "across": 10.875,
+     "at": [
+      1823.69,
+      -297.98
+     ]
+    },
+    {
+     "draw": 27,
+     "fromInsideRail": 28.925,
+     "across": 11.925,
+     "at": [
+      1824.74,
+      -297.93
+     ]
+    },
+    {
+     "draw": 28,
+     "fromInsideRail": 29.975,
+     "across": 12.975,
+     "at": [
+      1825.78,
+      -297.87
+     ]
+    }
+   ]
+  },
+  "1m4f": {
+   "label": "1m4f (round)",
+   "course": "round",
+   "key": "jc1m4f",
+   "distance": 2414.0,
+   "insideRailAt": [
+    1816.91,
+    -701.2
+   ],
+   "runningDirection": [
+    -0.0523,
+    0.9986
+   ],
+   "towardsOuterRail": [
+    0.9986,
+    0.0523
+   ],
+   "stall1": "inside rail (the stand side)",
+   "onStraight": false,
+   "stalls": [
+    {
+     "draw": 1,
+     "fromInsideRail": 1.625,
+     "across": -15.375,
+     "at": [
+      1818.53,
+      -701.1
+     ]
+    },
+    {
+     "draw": 2,
+     "fromInsideRail": 2.675,
+     "across": -14.325,
+     "at": [
+      1819.58,
+      -701.05
+     ]
+    },
+    {
+     "draw": 3,
+     "fromInsideRail": 3.725,
+     "across": -13.275,
+     "at": [
+      1820.63,
+      -700.99
+     ]
+    },
+    {
+     "draw": 4,
+     "fromInsideRail": 4.775,
+     "across": -12.225,
+     "at": [
+      1821.67,
+      -700.94
+     ]
+    },
+    {
+     "draw": 5,
+     "fromInsideRail": 5.825,
+     "across": -11.175,
+     "at": [
+      1822.72,
+      -700.88
+     ]
+    },
+    {
+     "draw": 6,
+     "fromInsideRail": 6.875,
+     "across": -10.125,
+     "at": [
+      1823.77,
+      -700.83
+     ]
+    },
+    {
+     "draw": 7,
+     "fromInsideRail": 7.925,
+     "across": -9.075,
+     "at": [
+      1824.82,
+      -700.77
+     ]
+    },
+    {
+     "draw": 8,
+     "fromInsideRail": 8.975,
+     "across": -8.025,
+     "at": [
+      1825.87,
+      -700.72
+     ]
+    },
+    {
+     "draw": 9,
+     "fromInsideRail": 10.025,
+     "across": -6.975,
+     "at": [
+      1826.92,
+      -700.66
+     ]
+    },
+    {
+     "draw": 10,
+     "fromInsideRail": 11.075,
+     "across": -5.925,
+     "at": [
+      1827.97,
+      -700.61
+     ]
+    },
+    {
+     "draw": 11,
+     "fromInsideRail": 12.125,
+     "across": -4.875,
+     "at": [
+      1829.01,
+      -700.55
+     ]
+    },
+    {
+     "draw": 12,
+     "fromInsideRail": 13.175,
+     "across": -3.825,
+     "at": [
+      1830.06,
+      -700.5
+     ]
+    },
+    {
+     "draw": 13,
+     "fromInsideRail": 14.225,
+     "across": -2.775,
+     "at": [
+      1831.11,
+      -700.44
+     ]
+    },
+    {
+     "draw": 14,
+     "fromInsideRail": 15.275,
+     "across": -1.725,
+     "at": [
+      1832.16,
+      -700.39
+     ]
+    },
+    {
+     "draw": 15,
+     "fromInsideRail": 16.325,
+     "across": -0.675,
+     "at": [
+      1833.21,
+      -700.33
+     ]
+    },
+    {
+     "draw": 16,
+     "fromInsideRail": 17.375,
+     "across": 0.375,
+     "at": [
+      1834.26,
+      -700.28
+     ]
+    },
+    {
+     "draw": 17,
+     "fromInsideRail": 18.425,
+     "across": 1.425,
+     "at": [
+      1835.31,
+      -700.22
+     ]
+    },
+    {
+     "draw": 18,
+     "fromInsideRail": 19.475,
+     "across": 2.475,
+     "at": [
+      1836.35,
+      -700.17
+     ]
+    },
+    {
+     "draw": 19,
+     "fromInsideRail": 20.525,
+     "across": 3.525,
+     "at": [
+      1837.4,
+      -700.11
+     ]
+    },
+    {
+     "draw": 20,
+     "fromInsideRail": 21.575,
+     "across": 4.575,
+     "at": [
+      1838.45,
+      -700.06
+     ]
+    },
+    {
+     "draw": 21,
+     "fromInsideRail": 22.625,
+     "across": 5.625,
+     "at": [
+      1839.5,
+      -700.0
+     ]
+    },
+    {
+     "draw": 22,
+     "fromInsideRail": 23.675,
+     "across": 6.675,
+     "at": [
+      1840.55,
+      -699.95
+     ]
+    },
+    {
+     "draw": 23,
+     "fromInsideRail": 24.725,
+     "across": 7.725,
+     "at": [
+      1841.6,
+      -699.89
+     ]
+    },
+    {
+     "draw": 24,
+     "fromInsideRail": 25.775,
+     "across": 8.775,
+     "at": [
+      1842.65,
+      -699.84
+     ]
+    },
+    {
+     "draw": 25,
+     "fromInsideRail": 26.825,
+     "across": 9.825,
+     "at": [
+      1843.69,
+      -699.78
+     ]
+    },
+    {
+     "draw": 26,
+     "fromInsideRail": 27.875,
+     "across": 10.875,
+     "at": [
+      1844.74,
+      -699.73
+     ]
+    },
+    {
+     "draw": 27,
+     "fromInsideRail": 28.925,
+     "across": 11.925,
+     "at": [
+      1845.79,
+      -699.67
+     ]
+    },
+    {
+     "draw": 28,
+     "fromInsideRail": 29.975,
+     "across": 12.975,
+     "at": [
+      1846.84,
+      -699.62
+     ]
+    }
+   ]
+  },
+  "1m5f": {
+   "label": "1m5f (round)",
+   "course": "round",
+   "key": "jc1m5f",
+   "distance": 2615.2,
+   "insideRailAt": [
+    1827.43,
+    -902.1
+   ],
+   "runningDirection": [
+    -0.0523,
+    0.9986
+   ],
+   "towardsOuterRail": [
+    0.9986,
+    0.0523
+   ],
+   "stall1": "inside rail (the stand side)",
+   "onStraight": false,
+   "stalls": [
+    {
+     "draw": 1,
+     "fromInsideRail": 1.625,
+     "across": -15.375,
+     "at": [
+      1829.06,
+      -902.03
+     ]
+    },
+    {
+     "draw": 2,
+     "fromInsideRail": 2.675,
+     "across": -14.325,
+     "at": [
+      1830.11,
+      -901.97
+     ]
+    },
+    {
+     "draw": 3,
+     "fromInsideRail": 3.725,
+     "across": -13.275,
+     "at": [
+      1831.16,
+      -901.92
+     ]
+    },
+    {
+     "draw": 4,
+     "fromInsideRail": 4.775,
+     "across": -12.225,
+     "at": [
+      1832.2,
+      -901.86
+     ]
+    },
+    {
+     "draw": 5,
+     "fromInsideRail": 5.825,
+     "across": -11.175,
+     "at": [
+      1833.25,
+      -901.81
+     ]
+    },
+    {
+     "draw": 6,
+     "fromInsideRail": 6.875,
+     "across": -10.125,
+     "at": [
+      1834.3,
+      -901.75
+     ]
+    },
+    {
+     "draw": 7,
+     "fromInsideRail": 7.925,
+     "across": -9.075,
+     "at": [
+      1835.35,
+      -901.7
+     ]
+    },
+    {
+     "draw": 8,
+     "fromInsideRail": 8.975,
+     "across": -8.025,
+     "at": [
+      1836.4,
+      -901.64
+     ]
+    },
+    {
+     "draw": 9,
+     "fromInsideRail": 10.025,
+     "across": -6.975,
+     "at": [
+      1837.45,
+      -901.59
+     ]
+    },
+    {
+     "draw": 10,
+     "fromInsideRail": 11.075,
+     "across": -5.925,
+     "at": [
+      1838.5,
+      -901.53
+     ]
+    },
+    {
+     "draw": 11,
+     "fromInsideRail": 12.125,
+     "across": -4.875,
+     "at": [
+      1839.54,
+      -901.48
+     ]
+    },
+    {
+     "draw": 12,
+     "fromInsideRail": 13.175,
+     "across": -3.825,
+     "at": [
+      1840.59,
+      -901.42
+     ]
+    },
+    {
+     "draw": 13,
+     "fromInsideRail": 14.225,
+     "across": -2.775,
+     "at": [
+      1841.64,
+      -901.37
+     ]
+    },
+    {
+     "draw": 14,
+     "fromInsideRail": 15.275,
+     "across": -1.725,
+     "at": [
+      1842.69,
+      -901.31
+     ]
+    },
+    {
+     "draw": 15,
+     "fromInsideRail": 16.325,
+     "across": -0.675,
+     "at": [
+      1843.74,
+      -901.26
+     ]
+    },
+    {
+     "draw": 16,
+     "fromInsideRail": 17.375,
+     "across": 0.375,
+     "at": [
+      1844.79,
+      -901.2
+     ]
+    },
+    {
+     "draw": 17,
+     "fromInsideRail": 18.425,
+     "across": 1.425,
+     "at": [
+      1845.84,
+      -901.15
+     ]
+    },
+    {
+     "draw": 18,
+     "fromInsideRail": 19.475,
+     "across": 2.475,
+     "at": [
+      1846.88,
+      -901.09
+     ]
+    },
+    {
+     "draw": 19,
+     "fromInsideRail": 20.525,
+     "across": 3.525,
+     "at": [
+      1847.93,
+      -901.04
+     ]
+    },
+    {
+     "draw": 20,
+     "fromInsideRail": 21.575,
+     "across": 4.575,
+     "at": [
+      1848.98,
+      -900.98
+     ]
+    },
+    {
+     "draw": 21,
+     "fromInsideRail": 22.625,
+     "across": 5.625,
+     "at": [
+      1850.03,
+      -900.93
+     ]
+    },
+    {
+     "draw": 22,
+     "fromInsideRail": 23.675,
+     "across": 6.675,
+     "at": [
+      1851.08,
+      -900.87
+     ]
+    },
+    {
+     "draw": 23,
+     "fromInsideRail": 24.725,
+     "across": 7.725,
+     "at": [
+      1852.13,
+      -900.82
+     ]
+    },
+    {
+     "draw": 24,
+     "fromInsideRail": 25.775,
+     "across": 8.775,
+     "at": [
+      1853.18,
+      -900.76
+     ]
+    },
+    {
+     "draw": 25,
+     "fromInsideRail": 26.825,
+     "across": 9.825,
+     "at": [
+      1854.22,
+      -900.71
+     ]
+    },
+    {
+     "draw": 26,
+     "fromInsideRail": 27.875,
+     "across": 10.875,
+     "at": [
+      1855.27,
+      -900.65
+     ]
+    },
+    {
+     "draw": 27,
+     "fromInsideRail": 28.925,
+     "across": 11.925,
+     "at": [
+      1856.32,
+      -900.6
+     ]
+    },
+    {
+     "draw": 28,
+     "fromInsideRail": 29.975,
+     "across": 12.975,
+     "at": [
+      1857.37,
+      -900.54
+     ]
+    }
+   ]
+  },
+  "1m6f": {
+   "label": "1m6f (round)",
+   "course": "round",
+   "key": "jc1m6f",
+   "distance": 2816.4,
+   "insideRailAt": [
+    1837.96,
+    -1102.99
+   ],
+   "runningDirection": [
+    -0.0523,
+    0.9986
+   ],
+   "towardsOuterRail": [
+    0.9986,
+    0.0523
+   ],
+   "stall1": "inside rail (the stand side)",
+   "onStraight": false,
+   "stalls": [
+    {
+     "draw": 1,
+     "fromInsideRail": 1.625,
+     "across": -15.375,
+     "at": [
+      1839.59,
+      -1102.95
+     ]
+    },
+    {
+     "draw": 2,
+     "fromInsideRail": 2.675,
+     "across": -14.325,
+     "at": [
+      1840.64,
+      -1102.9
+     ]
+    },
+    {
+     "draw": 3,
+     "fromInsideRail": 3.725,
+     "across": -13.275,
+     "at": [
+      1841.69,
+      -1102.84
+     ]
+    },
+    {
+     "draw": 4,
+     "fromInsideRail": 4.775,
+     "across": -12.225,
+     "at": [
+      1842.73,
+      -1102.79
+     ]
+    },
+    {
+     "draw": 5,
+     "fromInsideRail": 5.825,
+     "across": -11.175,
+     "at": [
+      1843.78,
+      -1102.73
+     ]
+    },
+    {
+     "draw": 6,
+     "fromInsideRail": 6.875,
+     "across": -10.125,
+     "at": [
+      1844.83,
+      -1102.68
+     ]
+    },
+    {
+     "draw": 7,
+     "fromInsideRail": 7.925,
+     "across": -9.075,
+     "at": [
+      1845.88,
+      -1102.62
+     ]
+    },
+    {
+     "draw": 8,
+     "fromInsideRail": 8.975,
+     "across": -8.025,
+     "at": [
+      1846.93,
+      -1102.57
+     ]
+    },
+    {
+     "draw": 9,
+     "fromInsideRail": 10.025,
+     "across": -6.975,
+     "at": [
+      1847.98,
+      -1102.51
+     ]
+    },
+    {
+     "draw": 10,
+     "fromInsideRail": 11.075,
+     "across": -5.925,
+     "at": [
+      1849.03,
+      -1102.46
+     ]
+    },
+    {
+     "draw": 11,
+     "fromInsideRail": 12.125,
+     "across": -4.875,
+     "at": [
+      1850.07,
+      -1102.4
+     ]
+    },
+    {
+     "draw": 12,
+     "fromInsideRail": 13.175,
+     "across": -3.825,
+     "at": [
+      1851.12,
+      -1102.35
+     ]
+    },
+    {
+     "draw": 13,
+     "fromInsideRail": 14.225,
+     "across": -2.775,
+     "at": [
+      1852.17,
+      -1102.29
+     ]
+    },
+    {
+     "draw": 14,
+     "fromInsideRail": 15.275,
+     "across": -1.725,
+     "at": [
+      1853.22,
+      -1102.24
+     ]
+    },
+    {
+     "draw": 15,
+     "fromInsideRail": 16.325,
+     "across": -0.675,
+     "at": [
+      1854.27,
+      -1102.18
+     ]
+    },
+    {
+     "draw": 16,
+     "fromInsideRail": 17.375,
+     "across": 0.375,
+     "at": [
+      1855.32,
+      -1102.13
+     ]
+    },
+    {
+     "draw": 17,
+     "fromInsideRail": 18.425,
+     "across": 1.425,
+     "at": [
+      1856.37,
+      -1102.07
+     ]
+    },
+    {
+     "draw": 18,
+     "fromInsideRail": 19.475,
+     "across": 2.475,
+     "at": [
+      1857.41,
+      -1102.02
+     ]
+    },
+    {
+     "draw": 19,
+     "fromInsideRail": 20.525,
+     "across": 3.525,
+     "at": [
+      1858.46,
+      -1101.96
+     ]
+    },
+    {
+     "draw": 20,
+     "fromInsideRail": 21.575,
+     "across": 4.575,
+     "at": [
+      1859.51,
+      -1101.91
+     ]
+    },
+    {
+     "draw": 21,
+     "fromInsideRail": 22.625,
+     "across": 5.625,
+     "at": [
+      1860.56,
+      -1101.85
+     ]
+    },
+    {
+     "draw": 22,
+     "fromInsideRail": 23.675,
+     "across": 6.675,
+     "at": [
+      1861.61,
+      -1101.8
+     ]
+    },
+    {
+     "draw": 23,
+     "fromInsideRail": 24.725,
+     "across": 7.725,
+     "at": [
+      1862.66,
+      -1101.74
+     ]
+    },
+    {
+     "draw": 24,
+     "fromInsideRail": 25.775,
+     "across": 8.775,
+     "at": [
+      1863.71,
+      -1101.69
+     ]
+    },
+    {
+     "draw": 25,
+     "fromInsideRail": 26.825,
+     "across": 9.825,
+     "at": [
+      1864.75,
+      -1101.63
+     ]
+    },
+    {
+     "draw": 26,
+     "fromInsideRail": 27.875,
+     "across": 10.875,
+     "at": [
+      1865.8,
+      -1101.58
+     ]
+    },
+    {
+     "draw": 27,
+     "fromInsideRail": 28.925,
+     "across": 11.925,
+     "at": [
+      1866.85,
+      -1101.52
+     ]
+    },
+    {
+     "draw": 28,
+     "fromInsideRail": 29.975,
+     "across": 12.975,
+     "at": [
+      1867.9,
+      -1101.47
+     ]
+    }
+   ]
+  },
+  "2m": {
+   "label": "2m (round)",
+   "course": "round",
+   "key": "jc2m",
+   "distance": 3218.7,
+   "insideRailAt": [
+    1859.02,
+    -1504.77
+   ],
+   "runningDirection": [
+    -0.0523,
+    0.9986
+   ],
+   "towardsOuterRail": [
+    0.9986,
+    0.0523
+   ],
+   "stall1": "inside rail (the stand side)",
+   "onStraight": false,
+   "stalls": [
+    {
+     "draw": 1,
+     "fromInsideRail": 1.625,
+     "across": -15.375,
+     "at": [
+      1860.64,
+      -1504.7
+     ]
+    },
+    {
+     "draw": 2,
+     "fromInsideRail": 2.675,
+     "across": -14.325,
+     "at": [
+      1861.69,
+      -1504.65
+     ]
+    },
+    {
+     "draw": 3,
+     "fromInsideRail": 3.725,
+     "across": -13.275,
+     "at": [
+      1862.74,
+      -1504.59
+     ]
+    },
+    {
+     "draw": 4,
+     "fromInsideRail": 4.775,
+     "across": -12.225,
+     "at": [
+      1863.79,
+      -1504.54
+     ]
+    },
+    {
+     "draw": 5,
+     "fromInsideRail": 5.825,
+     "across": -11.175,
+     "at": [
+      1864.84,
+      -1504.48
+     ]
+    },
+    {
+     "draw": 6,
+     "fromInsideRail": 6.875,
+     "across": -10.125,
+     "at": [
+      1865.89,
+      -1504.43
+     ]
+    },
+    {
+     "draw": 7,
+     "fromInsideRail": 7.925,
+     "across": -9.075,
+     "at": [
+      1866.93,
+      -1504.37
+     ]
+    },
+    {
+     "draw": 8,
+     "fromInsideRail": 8.975,
+     "across": -8.025,
+     "at": [
+      1867.98,
+      -1504.32
+     ]
+    },
+    {
+     "draw": 9,
+     "fromInsideRail": 10.025,
+     "across": -6.975,
+     "at": [
+      1869.03,
+      -1504.26
+     ]
+    },
+    {
+     "draw": 10,
+     "fromInsideRail": 11.075,
+     "across": -5.925,
+     "at": [
+      1870.08,
+      -1504.21
+     ]
+    },
+    {
+     "draw": 11,
+     "fromInsideRail": 12.125,
+     "across": -4.875,
+     "at": [
+      1871.13,
+      -1504.15
+     ]
+    },
+    {
+     "draw": 12,
+     "fromInsideRail": 13.175,
+     "across": -3.825,
+     "at": [
+      1872.18,
+      -1504.1
+     ]
+    },
+    {
+     "draw": 13,
+     "fromInsideRail": 14.225,
+     "across": -2.775,
+     "at": [
+      1873.23,
+      -1504.04
+     ]
+    },
+    {
+     "draw": 14,
+     "fromInsideRail": 15.275,
+     "across": -1.725,
+     "at": [
+      1874.27,
+      -1503.99
+     ]
+    },
+    {
+     "draw": 15,
+     "fromInsideRail": 16.325,
+     "across": -0.675,
+     "at": [
+      1875.32,
+      -1503.93
+     ]
+    },
+    {
+     "draw": 16,
+     "fromInsideRail": 17.375,
+     "across": 0.375,
+     "at": [
+      1876.37,
+      -1503.88
+     ]
+    },
+    {
+     "draw": 17,
+     "fromInsideRail": 18.425,
+     "across": 1.425,
+     "at": [
+      1877.42,
+      -1503.82
+     ]
+    },
+    {
+     "draw": 18,
+     "fromInsideRail": 19.475,
+     "across": 2.475,
+     "at": [
+      1878.47,
+      -1503.77
+     ]
+    },
+    {
+     "draw": 19,
+     "fromInsideRail": 20.525,
+     "across": 3.525,
+     "at": [
+      1879.52,
+      -1503.71
+     ]
+    },
+    {
+     "draw": 20,
+     "fromInsideRail": 21.575,
+     "across": 4.575,
+     "at": [
+      1880.57,
+      -1503.66
+     ]
+    },
+    {
+     "draw": 21,
+     "fromInsideRail": 22.625,
+     "across": 5.625,
+     "at": [
+      1881.61,
+      -1503.6
+     ]
+    },
+    {
+     "draw": 22,
+     "fromInsideRail": 23.675,
+     "across": 6.675,
+     "at": [
+      1882.66,
+      -1503.55
+     ]
+    },
+    {
+     "draw": 23,
+     "fromInsideRail": 24.725,
+     "across": 7.725,
+     "at": [
+      1883.71,
+      -1503.49
+     ]
+    },
+    {
+     "draw": 24,
+     "fromInsideRail": 25.775,
+     "across": 8.775,
+     "at": [
+      1884.76,
+      -1503.44
+     ]
+    },
+    {
+     "draw": 25,
+     "fromInsideRail": 26.825,
+     "across": 9.825,
+     "at": [
+      1885.81,
+      -1503.38
+     ]
+    },
+    {
+     "draw": 26,
+     "fromInsideRail": 27.875,
+     "across": 10.875,
+     "at": [
+      1886.86,
+      -1503.33
+     ]
+    },
+    {
+     "draw": 27,
+     "fromInsideRail": 28.925,
+     "across": 11.925,
+     "at": [
+      1887.91,
+      -1503.27
+     ]
+    },
+    {
+     "draw": 28,
+     "fromInsideRail": 29.975,
+     "across": 12.975,
+     "at": [
+      1888.95,
+      -1503.22
+     ]
+    }
+   ]
+  }
+ }
+}

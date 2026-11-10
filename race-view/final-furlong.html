@@ -346,6 +346,8 @@ import * as SkeletonUtils from "three/addons/utils/SkeletonUtils.js";
 import { RoomEnvironment } from "three/addons/environments/RoomEnvironment.js";
 import { mergeGeometries, mergeVertices } from "three/addons/utils/BufferGeometryUtils.js";
 import { SimplifyModifier } from "three/addons/modifiers/SimplifyModifier.js";
+import { TessellateModifier } from "three/addons/modifiers/TessellateModifier.js";
+const TESSELLATE = new TessellateModifier(8, 12);          // paving cut to 8 m pieces, so it can follow the ground
 import * as HorseV2 from "./horse-v2.js";
 // Graphic style options (?look=model|diorama|faceted); without ?look nothing changes. See looks.js.
 import * as LOOKS from "./looks.js";
@@ -391,7 +393,7 @@ const COATS = [
   { name: "Grey",     body: "#a8a6a0", points: "#6d6b66" },
 ];
 const coatFor = (i) => (GP && GP.runners[i].coat) || COATS[(i * 3 + 1) % COATS.length];
-const RACE_ID = VIEW.races[params.get("race")] ? params.get("race") : "long";
+const RACE_ID = VIEW.races[params.get("race")] && !String(params.get("race")).startsWith("_") ? params.get("race") : (VIEW.races._default || "long");
 const RACE = VIEW.races[RACE_ID];
 const ROUND = RACE.course !== "straight";            // round course or round mile: the TV director's round-course rules
 // Where the stalls stand and each stall's draw (courses/ascot-stalls.json, tools/course/place_stalls.py); the race
@@ -418,7 +420,45 @@ const HORSE_SCALE = 3;
 const HALF_W = COURSE.trackWidth / 2;
 const MID_Z = VIEW.homeStraight.centreZ;
 const DIST = RACE.distance;                          // u at the winning line
-const LOOP = (() => {
+// A course that is one path (Newmarket's two: a straight with a bend at its top and a long leg beyond; courses/<id>.json
+// -> pathRail, the inside rail every few metres from the end of the run-on up to beyond the furthest start) has no loop,
+// no chute and no straight course of its own: every race runs along the path. Ascot's loop and chute are below.
+const PATH = COURSE.pathRail ? (() => {
+  const P = COURSE.pathRail, pts = P.points, n = pts.length;
+  const tan = pts.map((_, i) => {                                     // the running direction (towards fewer metres to go)
+    const [px, pz] = pts[Math.max(0, i - 1)], [qx, qz] = pts[Math.min(n - 1, i + 1)], l = Math.hypot(px - qx, pz - qz) || 1;
+    return [(px - qx) / l, (pz - qz) / l];
+  });
+  return { pts, n, sp: P.spacing, d0: P.d0, tan, home: COURSE.path.home };
+})() : null;
+function pathAt(d) {
+  const f = (d - PATH.d0) / PATH.sp, i = THREE.MathUtils.clamp(Math.floor(f), 0, PATH.n - 2), k = f - i, kk = THREE.MathUtils.clamp(k, 0, 1);
+  const [ax, az] = PATH.pts[i], [bx, bz] = PATH.pts[i + 1], ta = PATH.tan[i], tb = PATH.tan[i + 1];
+  let tx = ta[0] + (tb[0] - ta[0]) * kk, tz = ta[1] + (tb[1] - ta[1]) * kk;
+  const tl = Math.hypot(tx, tz) || 1;
+  return { x: ax + (bx - ax) * k, z: az + (bz - az) * k, tx: tx / tl, tz: tz / tl };   // (past either end: straight on)
+}
+// The ground's height (owner, 9 Nov: model the Dip at Newmarket): courses/<id>.json -> ground, a grid of heights over
+// the site that tools/course/newmarket/to_race_view.py works out from the course's own height profile (the same the
+// race engine reads). The turf, rails, poles, stalls, horses, buildings, trees, crowd and cameras all stand on it.
+// Ascot's course has none: everything stays at 0 there.
+const GROUND = COURSE.ground || null;
+function groundY(x, z) {
+  if (!GROUND) return 0;
+  const g = GROUND, fx = (x - g.x0) / g.cell, fz = (z - g.z0) / g.cell;
+  const i = THREE.MathUtils.clamp(Math.floor(fx), 0, g.nx - 2), j = THREE.MathUtils.clamp(Math.floor(fz), 0, g.nz - 2);
+  const a = THREE.MathUtils.clamp(fx - i, 0, 1), b = THREE.MathUtils.clamp(fz - j, 0, 1), h = g.h, n = g.nx;
+  return (h[j * n + i] * (1 - a) + h[j * n + i + 1] * a) * (1 - b) + (h[(j + 1) * n + i] * (1 - a) + h[(j + 1) * n + i + 1] * a) * b;
+}
+// lay a geometry (in world axes) on the ground: each point raised by the ground's height under it
+function drape(geo) {
+  if (!GROUND) return geo;
+  const p = geo.attributes.position;
+  for (let i = 0; i < p.count; i++) p.setY(i, p.getY(i) + groundY(p.getX(i), p.getZ(i)));
+  p.needsUpdate = true; geo.computeVertexNormals(); geo.computeBoundingSphere();
+  return geo;
+}
+const LOOP = !COURSE.roundCourse ? null : (() => {
   const pts = COURSE.roundCourse.insideRail.points, n = pts.length, sp = COURSE.roundCourse.insideRail.spacing;
   const tan = pts.map((_, i) => {                                     // direction at each sample: across its neighbours
     const [px, pz] = pts[(i - 1 + n) % n], [qx, qz] = pts[(i + 1) % n], l = Math.hypot(qx - px, qz - pz) || 1;
@@ -427,18 +467,19 @@ const LOOP = (() => {
   return { pts, n, sp, length: n * sp, tan };
 })();
 // The round mile starts up the chute (roundMileSpur), a straight run that joins the loop.
-const SPUR = (() => {
+const SPUR = !COURSE.roundMileSpur ? null : (() => {
   const s = COURSE.roundMileSpur, [fx, fz] = s.from, [tx, tz] = s.to, l = Math.hypot(tx - fx, tz - fz);
   return { join: s.distanceToGoAtJoin, len: l, to: s.to, dir: [(tx - fx) / l, (tz - fz) / l] };
 })();
 // The 2m4f (the Gold Cup) starts on the straight course (the stalls file's start has onStraight): it runs down the
 // straight course to the post, past the stand, and then once round the loop (owner, 7 Nov). The straight course and
 // the loop meet at the post, both on z 0 heading -x, so the one line runs straight into the other.
-const ON_STRAIGHT = RACE.course === "round" && !!START.onStraight;
+const ON_STRAIGHT = !PATH && RACE.course === "round" && !!START.onStraight;
 // A race longer than the loop passes its own start again (2 miles): its stalls are towed away after the off.
-const STALLS_COME_BACK = RACE.course === "round" && !ON_STRAIGHT && DIST > LOOP.length - 50;
+const STALLS_COME_BACK = !PATH && RACE.course === "round" && !ON_STRAIGHT && DIST > LOOP.length - 50;
 // Point on the race's inside rail with d metres still to run, and the running direction there.
 function railAt(d) {
+  if (PATH) return pathAt(d);
   if (RACE.course === "straight" || (ON_STRAIGHT && d > LOOP.length)) return { x: d - (ON_STRAIGHT ? LOOP.length : 0), z: 0, tx: -1, tz: 0 };
   if (RACE.course === "roundMile" && d > SPUR.join - 15) {
     const [dx, dz] = SPUR.dir, k = d - SPUR.join;
@@ -467,7 +508,7 @@ function toWorld(u, v) {
 }
 // the model faces +x; turned to run along the course, plus its own drift across (yaw)
 const headingAt = (u, yaw) => { const r = railAt(DIST - u); return Math.atan2(-r.tz, r.tx) + yaw; };
-const FRONT = COURSE.grandstand.frontLine;
+const FRONT = COURSE.grandstand ? COURSE.grandstand.frontLine : 0;
 
 // ---------- Renderer ----------
 // Quality presets. Most of the cost is filling pixels: a Retina Mac at full resolution draws four
@@ -596,7 +637,7 @@ THREE.ShaderChunk.fog_fragment = `#ifdef USE_FOG
     g.computeVertexNormals();
     const c = new THREE.Mesh(g, cloudMat);
     c.renderOrder = 1001;     // after the sky (drawn last): the farthest clouds lie beyond the sky sphere's 2,500 m
-    c.position.set(-1400 + rc() * 2800, 260 + rc() * 360, -(1700 + rc() * 900));
+    c.position.set(-1400 + rc() * 2800, 260 + rc() * 360, -(VIEW.homeStraight.standSide || 1) * (1700 + rc() * 900));   // over the far side
     c.scale.z = 0.6;
     scene.add(c);
   }
@@ -621,7 +662,7 @@ sun.shadow.bias = -0.0005;
 sun.shadow.normalBias = 0.03;
 scene.add(sun, sun.target);
 LOOKS.setupScene({ scene, hemi: sky, sun, cloudMat: scene.userData.cloudMat });
-const SUN_OFFSET = new THREE.Vector3(-110, 49.5, -35.2);   // the bake's sun direction (Blender (-1, 0.32, 0.45)), in the course's axes
+const SUN_OFFSET = new THREE.Vector3(...(VIEW.sun || [-110, 49.5, -35.2]));   // (a course's view file may move it: the July Course's stands face the other way)   // the bake's sun direction (Blender (-1, 0.32, 0.45)), in the course's axes
 
 let shadowCatcher = null;
 // ---------- Textures ----------
@@ -718,6 +759,7 @@ const GROUND_FIRST = LEGACY_GROUND ? {} : { stencilWrite: true, stencilRef: 1, s
 const GROUND_UNDER = LEGACY_GROUND ? { depthWrite: false } : { stencilWrite: true, stencilRef: 1, stencilFunc: THREE.NotEqualStencilFunc, stencilZPass: THREE.ReplaceStencilOp };
 function lanesMaterial(mat) {
   const L = VIEW.lanes;
+  if (!L && VIEW.lanesStraight) return lanesStraight(mat);
   if (!L) return mat;
   const lt = texLoader.load("assets/course/" + L.map);
   lt.flipY = false; lt.colorSpace = THREE.NoColorSpace; lt.minFilter = THREE.LinearFilter; lt.generateMipmaps = false;
@@ -736,6 +778,25 @@ function lanesMaterial(mat) {
           diffuseColor.rgb *= mix(vec3(1.0 - k, 1.0 - k * 0.8, 1.0 - k * 1.2), vec3(1.0 + k * 0.8, 1.0 + k * 0.8, 1.0 + k * 0.3), b); }`);   // crisp mown bands, as the study's
   };
   mat.customProgramCacheKey = () => "turf-lanes";
+  return mat;
+}
+// A course without a lanes map (Newmarket): the same soft mown lanes, worked out from the world position along the straight
+// (z = metres from the inside rail), faded out past either end of it (courses/<id>-view.json -> lanesStraight).
+function lanesStraight(mat) {
+  const L = VIEW.lanesStraight;
+  mat.onBeforeCompile = (sh) => {
+    sh.uniforms.lanesS = { value: new THREE.Vector4(L.x[0], L.x[1], Math.PI * L.lanes / L.width, L.strength) };
+    sh.vertexShader = sh.vertexShader
+      .replace("#include <common>", "#include <common>\nvarying vec2 vLaneW;")
+      .replace("#include <fog_vertex>", "#include <fog_vertex>\n{ vLaneW = (modelMatrix * vec4(transformed, 1.0)).xz; }");
+    sh.fragmentShader = sh.fragmentShader
+      .replace("#include <common>", "#include <common>\nuniform vec4 lanesS; varying vec2 vLaneW;")
+      .replace("#include <color_fragment>", `#include <color_fragment>
+        { float on = smoothstep(lanesS.x - 30.0, lanesS.x, vLaneW.x) * (1.0 - smoothstep(lanesS.y, lanesS.y + 30.0, vLaneW.x));
+          float b = clamp((cos(lanesS.z * vLaneW.y) + 0.3) / 0.6, 0.0, 1.0), k = lanesS.w * on;
+          diffuseColor.rgb *= mix(vec3(1.0 - k, 1.0 - k * 0.8, 1.0 - k * 1.2), vec3(1.0 + k * 0.8, 1.0 + k * 0.8, 1.0 + k * 0.3), b); }`);
+  };
+  mat.customProgramCacheKey = () => "turf-lanes-straight";
   return mat;
 }
 // The turf's fine grain, laid live over the ground (owner, 7 Nov 2026: texture, so the turf feels 3D under
@@ -766,10 +827,21 @@ function groundDetail(mat, k = 0.3) {
   mat.customProgramCacheKey = () => (prevKey ? prevKey.call(mat) : "") + "+grain" + k;
   return mat;
 }
+function turfStrip() {                                   // the path's turf as a strip, inside rail to outer, every sample
+  const W = COURSE.trackWidth, pos = [], idx = [];
+  PATH.pts.forEach(([x, z], i) => {
+    const [tx, tz] = PATH.tan[i];
+    for (const w of [0, W / 3, 2 * W / 3, W]) { const px = x + tz * w, pz = z - tx * w; pos.push(px, groundY(px, pz), pz); }
+    if (i) for (let k = 0; k < 3; k++) { const a = (i - 1) * 4 + k, b = i * 4 + k; idx.push(a, a + 1, b, a + 1, b + 1, b); }   // facing up
+  });
+  const g = new THREE.BufferGeometry(); g.setAttribute("position", new THREE.Float32BufferAttribute(pos, 3)); g.setIndex(idx);
+  g.computeVertexNormals(); g.computeBoundingSphere();
+  return g;
+}
 function buildTurf(colour) {
   const shape = new THREE.Shape(SURF[0].map(([x, z]) => new THREE.Vector2(x, -z)));
   for (const h of SURF.slice(1)) shape.holes.push(new THREE.Path(h.map(([x, z]) => new THREE.Vector2(x, -z))));
-  const g = new THREE.ShapeGeometry(shape).rotateX(-Math.PI / 2);
+  const g = GROUND && PATH ? turfStrip() : new THREE.ShapeGeometry(shape).rotateX(-Math.PI / 2);
   const m = new THREE.Mesh(g, LOOKS.patchGround(groundDetail(lanesMaterial(new THREE.MeshBasicMaterial({ color: colour, ...GROUND_UNDER }))), "turf"));
   m.position.y = -0.03;
   m.renderOrder = -2;
@@ -787,7 +859,7 @@ function buildLineStrips() {
   const tex = new THREE.CanvasTexture(c);
   const W = COURSE.trackWidth;
   const strip = (x, width, opacity) => {
-    const geo = new THREE.PlaneGeometry(width, W + 0.6).rotateX(-Math.PI / 2).translate(x, 0.015, W / 2);
+    const geo = new THREE.PlaneGeometry(width, W + 0.6).rotateX(-Math.PI / 2).translate(x, 0.015 + groundY(x, W / 2), W / 2);
     const m = new THREE.Mesh(geo, new THREE.MeshBasicMaterial({ color: "#eef5d8", map: tex, transparent: true, opacity, depthWrite: false,
       polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -4 }));
     m.renderOrder = -1;                  // before the shadow catcher (which writes depth just above), so shadows fall on it
@@ -821,7 +893,8 @@ function placeProps(gltf) {
   if (ASCOT_RAIL) parts.push(ascotRail(SPACING));
   else byName("rail_module").traverse((o) => { if (o.isMesh) parts.push(o); });
   // The finish-line assembly brings its own 30 m of rail on the far side at the post.
-  const gap = (x, z) => Math.abs(z + COURSE.rails.gap) < 1.5 && x > -16.7 && x < 16.3;
+  const SKIP = COURSE.rails.skip || [[-16.7, 16.3, -COURSE.rails.gap]];          // [x from, x to, z]
+  const gap = (x, z) => SKIP.some(([x0, x1, zz]) => Math.abs(z - zz) < 1.5 && x > x0 && x < x1);
   const spots = [];
   for (const line of COURSE.rails.lines) {
     // walk the line in 3 m steps
@@ -853,7 +926,7 @@ function placeProps(gltf) {
       const rails = new THREE.InstancedMesh(part.geometry, part.material, n);
       for (let i = 0; i < n; i++) {
         const [x, z, yaw] = spots[c0 + i];
-        rails.setMatrixAt(i, m.compose(p.set(x, 0, z), q.setFromAxisAngle(up, yaw), one));
+        rails.setMatrixAt(i, m.compose(p.set(x, groundY(x, z), z), q.setFromAxisAngle(up, yaw), one));
       }
       rails.computeBoundingSphere();
       rails.castShadow = rails.receiveShadow = true;
@@ -866,7 +939,9 @@ function placeProps(gltf) {
     const node = byName("furlong_" + f.furlongs);
     if (!node) continue;
     const pole = node.clone();
-    pole.position.set(f.at[0], 0, f.at[1] - COURSE.rails.gap - 0.7);
+    if (f.turn !== undefined) { pole.position.set(f.at[0], 0, f.at[1]); pole.rotation.y = f.turn * Math.PI / 180; }   // placed by the course file
+    else pole.position.set(f.at[0], 0, f.at[1] - COURSE.rails.gap - 0.7);
+    pole.position.y = groundY(pole.position.x, pole.position.z);
     scene.add(pole);
   }
 }
@@ -937,6 +1012,7 @@ function buildStalls(gltf, kit) {
       STALL_GATES.push({ mesh, row, hinge: (k) => left(k) + kit.gateHinge[side], sign });
     });
   }
+  if (GROUND) { const [sx0, sz0] = startWorld(COURSE.trackWidth / 2, 0); stallsGroup.position.y = groundY(sx0, sz0); }
   scene.add(stallsGroup);
   LAYERS.stalls.push(stallsGroup);
   setGates(0);
@@ -1014,26 +1090,49 @@ function placeBaked(gltf, B, dressing) {
     if (key === "stand") STANDS.addStandLines(scene, meshesOf(node));
   }
   if (B.site && B.site.kit && dressing) placeSiteKit(gltf, B.site, dressing.pieces);
-  // Beyond the baked ground: plain grass, and the turf right round the course, in the same light
-  // (both drawn first, writing no depth: see buildTurf).
-  const o = B.ground.outside, tf = B.ground.turf || [0.12, 0.3, 0.06];
+  buildPlainGround(B.ground);
+}
+// Beyond the baked ground (or all of it, on a course with nothing baked yet): plain grass, and the turf right round the
+// course, in the same light (see buildTurf); the paler strips at the line and the furlongs; the field's shadows.
+function buildPlainGround(G) {
+  const o = G.outside, tf = G.turf || [0.12, 0.3, 0.06];
   const far = new THREE.Mesh(new THREE.PlaneGeometry(9000, 9000), LOOKS.patchGround(groundDetail(new THREE.MeshBasicMaterial({ color: new THREE.Color(o[0], o[1], o[2]), ...GROUND_UNDER }), 0.2), "far"));
   far.rotation.x = -Math.PI / 2; far.position.set(700, -0.06, -400);
   far.renderOrder = LEGACY_GROUND ? -3 : -1;
   scene.add(far);
   LAYERS.ground.push(far);
+  if (GROUND) {                                   // the site's ground over the grid, drawn first: the flat far ground fills beyond it
+    const g = GROUND, w = g.cell * (g.nx - 1), d = g.cell * (g.nz - 1);
+    const geo = new THREE.PlaneGeometry(w, d, g.nx - 1, g.nz - 1).rotateX(-Math.PI / 2).translate(g.x0 + w / 2, -0.06, g.z0 + d / 2);
+    const site = new THREE.Mesh(drape(geo), far.material);
+    site.renderOrder = LEGACY_GROUND ? -3.5 : -1.5;
+    scene.add(site); LAYERS.ground.push(site);
+  }
   buildTurf(new THREE.Color(tf[0], tf[1], tf[2]));
   buildLineStrips();
   // Live shadows of the field, laid over the turf round the runners (pulled towards the camera in depth, so it never
   // flashes against the ground beneath it). It moves with the field, lined up with the course (see the frame loop):
   // only the ground the shadow map covers is shaded for shadows (it used to be a fixed strip the length of the home
   // straight, shaded wherever it was in shot), and the field now has its shadows on the round course's bends too.
-  const catcher = new THREE.Mesh(new THREE.PlaneGeometry(120, 44).rotateX(-Math.PI / 2), new THREE.ShadowMaterial({ color: "#1d2c14", opacity: 0.38, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -4 }));
+  const catcher = new THREE.Mesh(new THREE.PlaneGeometry(120, 44, GROUND ? 24 : 1, GROUND ? 6 : 1).rotateX(-Math.PI / 2), new THREE.ShadowMaterial({ color: "#1d2c14", opacity: 0.38, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -4 }));
   catcher.position.set(60, 0.03, MID_Z);
   catcher.receiveShadow = true;
   scene.add(catcher);
   LAYERS.decals.push(catcher);
   shadowCatcher = catcher;
+  if (GROUND) catcher.userData.flat = catcher.geometry.attributes.position.array.slice();   // its points flat, to lay on the ground
+}
+// Each frame the catcher moves with the field; on a course with a ground its points are laid on the ground there.
+function layCatcher(x, z, yaw) {
+  const c = shadowCatcher;
+  if (!GROUND) { c.position.set(x, 0.03, z); c.rotation.y = yaw; return; }
+  const f = c.userData.flat, p = c.geometry.attributes.position, cs = Math.cos(yaw), sn = Math.sin(yaw);
+  for (let i = 0; i < p.count; i++) {
+    const lx = f[i * 3], lz = f[i * 3 + 2], wx = x + lx * cs + lz * sn, wz = z - lx * sn + lz * cs;
+    p.setXYZ(i, lx, groundY(wx, wz) + 0.03, lz);
+  }
+  p.needsUpdate = true; c.geometry.computeBoundingSphere();
+  c.position.set(x, 0, z); c.rotation.y = yaw;
 }
 
 // The site components, instanced: the bake made one mesh per piece and quarter turn (bake.json -> site.kit,
@@ -1102,8 +1201,8 @@ function clayHedge(g) {
   }
   g.setAttribute("color", out);
 }
-function placeBelts(gltf, planting, treeLib) {
-  const hedge = gltf.scene.getObjectByName("planting_hedge");
+function placeBelts(gltf, planting, treeLib, withHedge = true) {
+  const hedge = withHedge && gltf.scene.getObjectByName("planting_hedge");
   if (hedge) {
     for (const m of meshesOf(hedge)) {
       if (CLAY_TREES) clayHedge(m.geometry);
@@ -1129,7 +1228,7 @@ function placeBelts(gltf, planting, treeLib) {
       for (let i = 0; i < pos.count; i++) if (pos.getY(i) > 0.2) pos.setY(i, pos.getY(i) + BOARD_LIFT);
       geo.computeBoundingSphere(); geo.computeBoundingBox();
       const inst = new THREE.InstancedMesh(geo, mat, list.length);
-      list.forEach(([x, z, turn], i) => inst.setMatrixAt(i, m4.compose(p.set(x, 0, z), q.setFromAxisAngle(up, turn * Math.PI / 180), one)));
+      list.forEach(([x, z, turn, , s], i) => inst.setMatrixAt(i, m4.compose(p.set(x, groundY(x, z), z), q.setFromAxisAngle(up, turn * Math.PI / 180), s ? sc.set(s, s, s) : one)));
       inst.computeBoundingSphere();
       scene.add(inst);
       LAYERS.trees.push(inst);
@@ -1188,7 +1287,7 @@ function instanceTrees(gltf, list) {
     const near = !LITE_TREES && isNear(t.x, t.z);
     // belt trees also get an understorey: their light crown squashed low under the real one, so the belts read as
     // solid woodland down to the hedge instead of crowns floating over a strip of sky (owner, 7 Nov)
-    const parts = [near ? "_crown" : "_crown_far"].concat(near || !t.belt ? ["_trunk"] : []).concat(t.belt ? ["_under"] : []);
+    const parts = t.scrub ? ["_crown_far"] : [near ? "_crown" : "_crown_far"].concat(near || !t.belt ? ["_trunk"] : []).concat(t.belt ? ["_under"] : []);
     for (const part of parts) {
       const key = t.tree + part;
       if (!groups.has(key)) groups.set(key, []);
@@ -1207,7 +1306,7 @@ function instanceTrees(gltf, list) {
       ts.forEach((t, i) => {
         q.setFromAxisAngle(up, ((t.turn || 0) + (under ? 70 : 0)) * Math.PI / 180);
         if (under) sc.set(t.s, t.s, t.s); else sc.set(t.s, t.s * (t.sy || 1), t.s);
-        inst.setMatrixAt(i, m4.compose(p.set(t.x, under ? -0.6 : 0, t.z), q, sc));
+        inst.setMatrixAt(i, m4.compose(p.set(t.x, (under ? -0.6 : 0) + groundY(t.x, t.z) + (t.dy || 0), t.z), q, sc));
         const c = under ? underColour(t, UNDER_CROWN) : LOOKS.treeColour(key, t, i) || clayLeaf(key, t, i); if (c) inst.setColorAt(i, c);
       });
       inst.computeBoundingSphere();
@@ -1262,6 +1361,117 @@ function placeTrees(gltf, dressing) {
   LAYERS.trees.push(shadows);
 }
 
+// A course drawn live, with nothing baked yet (Newmarket: courses/<id>-scenery.json, tools/course/newmarket/to_race_view.py):
+// the stands and site pieces from Blender in their own matte clay colours, lit live like the horses; the finish-line
+// assembly; walls and hedges as boxes; paving and gravel; the grassy banks; the trees, with soft shadows; the boards.
+function placeScenery(SC, models, treeLib, belts) {
+  const lib = {};
+  (SC.models || []).forEach((name, k) => { if (models[k]) lib[name] = models[k]; });
+  const m4 = new THREE.Matrix4(), q = new THREE.Quaternion(), p = new THREE.Vector3(), sc = new THREE.Vector3(), up = new THREE.Vector3(0, 1, 0);
+  const clay = new Map();
+  const clayOf = (mat) => {                         // matte painted clay: no shine, the colour as modelled
+    if (!clay.has(mat)) {
+      const c = new THREE.MeshLambertMaterial({ color: mat.color ? mat.color.clone() : new THREE.Color("#ddd"), map: mat.map || null, side: mat.side });
+      c.name = mat.name; clay.set(mat, c);
+    }
+    return clay.get(mat);
+  };
+  // the pieces, one instanced mesh per part of each piece
+  const groups = new Map();
+  for (const it of SC.pieces) { const k = it[0] + "/" + it[1]; if (!groups.has(k)) groups.set(k, []); groups.get(k).push(it); }
+  let nPieces = 0;
+  for (const [k, list] of groups) {
+    const [model, piece] = k.split("/"), g = lib[model];
+    const node = g && g.scene.getObjectByName(piece);
+    if (!node) { console.warn("Scenery piece missing:", k); continue; }
+    for (const mesh of meshesOf(node)) {
+      const geo = mesh.geometry.clone().applyMatrix4(mesh.matrixWorld);
+      const inst = new THREE.InstancedMesh(geo, clayOf(mesh.material), list.length);
+      list.forEach(([, , x, z, turn, sx, s], i) => inst.setMatrixAt(i, m4.compose(p.set(x, groundY(x, z), z), q.setFromAxisAngle(up, turn * Math.PI / 180), sc.set(sx, s, s))));
+      inst.computeBoundingSphere();
+      inst.castShadow = true; inst.receiveShadow = true;
+      scene.add(inst); LAYERS.buildings.push(inst);
+    }
+    nPieces += list.length;
+  }
+  // the finish-line assembly on the far rail at the line (it brings its own stretch of rail)
+  const fl = SC.finishLine && lib.finish_line && lib.finish_line.scene.getObjectByName("finish_line");
+  if (fl) {
+    const f = fl.clone();
+    f.traverse((o) => { if (o.isMesh) { o.material = o.material.name.includes("digit") ? o.material : clayOf(o.material); o.castShadow = o.receiveShadow = true; } });
+    f.position.set(SC.finishLine.at[0], groundY(SC.finishLine.at[0], SC.finishLine.at[1]), SC.finishLine.at[1]); f.rotation.y = SC.finishLine.turn * Math.PI / 180;
+    scene.add(f); LAYERS.buildings.push(f);
+  }
+  // walls, hedges and copings: [x, z, length, depth, y from, y to, yaw]
+  const unit = new THREE.BoxGeometry(1, 1, 1);
+  for (const [colour, list] of Object.entries(SC.boxes || {})) {
+    const inst = new THREE.InstancedMesh(unit, new THREE.MeshLambertMaterial({ color: colour }), list.length);
+    list.forEach(([x, z, L, D, y0, y1, yaw], i) => inst.setMatrixAt(i, m4.compose(p.set(x, (y0 + y1) / 2 + groundY(x, z), z), q.setFromAxisAngle(up, yaw), sc.set(L, y1 - y0, D))));
+    inst.computeBoundingSphere(); inst.castShadow = inst.receiveShadow = true;
+    scene.add(inst); LAYERS.buildings.push(inst);
+  }
+  // paving and gravel, flat on the grass, in the ground's own unlit light
+  for (const [colour, list] of Object.entries(SC.flats || {})) {
+    const geos = list.map(({ y, pts }) => {
+      const g = new THREE.ShapeGeometry(new THREE.Shape(pts.map(([x, z]) => new THREE.Vector2(x, -z)))).rotateX(-Math.PI / 2).translate(0, y, 0);
+      return GROUND ? drape(TESSELLATE.modify(g.toNonIndexed())) : g;          // cut fine, so it follows the ground
+    });
+    const m = new THREE.Mesh(mergeGeometries(geos), groundDetail(new THREE.MeshBasicMaterial({ color: colour, polygonOffset: true, polygonOffsetFactor: -1, polygonOffsetUnits: -2 }), 0.15));
+    m.renderOrder = -1; scene.add(m); LAYERS.ground.push(m);
+  }
+  // grassy banks: rows of points across each bank, shaded by their slope towards the sun (the flat matches the grass)
+  const G = VIEW.ground, sunDir = SUN_OFFSET.clone().normalize();
+  for (const b of SC.banks || []) {
+    const rows = b.rows, nr = rows.length, nc = rows[0].length / 3;
+    const pos = new Float32Array(nr * nc * 3), idx = [];
+    rows.forEach((r, i) => pos.set(r, i * nc * 3));
+    for (let i = 0; i + 1 < nr; i++) for (let j = 0; j + 1 < nc; j++) {
+      const a = i * nc + j, b2 = a + nc;
+      idx.push(a, b2, a + 1, a + 1, b2, b2 + 1);
+    }
+    const geo = new THREE.BufferGeometry();
+    geo.setAttribute("position", new THREE.BufferAttribute(pos, 3)); geo.setIndex(idx); geo.computeVertexNormals();
+    const nrm = geo.attributes.normal, col = new Float32Array(nr * nc * 3), flat = 0.72 + 0.4 * Math.max(0, sunDir.y);
+    const foot = G.outside, top = G.bank || G.outside;                 // the lawn's colour at the foot, deeper up the bank
+    const ramp = b.ramp || G.bankRamp, mot = b.mottle ?? (G.bankMottle || 0);   // or a ramp by height (owner, 9 Nov late: the Dyke's depth)
+    const rampAt = (h) => {
+      let k = 0; while (k + 1 < ramp.length && ramp[k + 1][0] < h) k++;
+      if (k + 1 >= ramp.length) return ramp[k][1];
+      const [h0, c0] = ramp[k], [h1, c1] = ramp[k + 1], t = THREE.MathUtils.clamp((h - h0) / (h1 - h0), 0, 1);
+      return [0, 1, 2].map((c) => c0[c] + (c1[c] - c0[c]) * t);
+    };
+    for (let i = 0; i < nr * nc; i++) {
+      const ny = nrm.getY(i) < 0 ? -1 : 1;                           // either winding: the normal that points up
+      const lit = 0.72 + 0.4 * Math.max(0, ny * (nrm.getX(i) * sunDir.x + nrm.getY(i) * sunDir.y + nrm.getZ(i) * sunDir.z));
+      const y = pos[i * 3 + 1];
+      const m = mot ? 1 + mot * (Math.sin(pos[i * 3] * 0.37 + pos[i * 3 + 2] * 0.21) * Math.sin(pos[i * 3] * 0.11 - pos[i * 3 + 2] * 0.43)) : 1;
+      if (ramp) { const c = rampAt(y); for (let k = 0; k < 3; k++) col[i * 3 + k] = c[k] * lit / flat * m; continue; }
+      const k = THREE.MathUtils.smoothstep(y, 0.05, 1.6);
+      for (let c = 0; c < 3; c++) col[i * 3 + c] = (foot[c] + (top[c] - foot[c]) * k) * lit / flat;
+    }
+    if (GROUND) { for (let i = 0; i < nr * nc; i++) pos[i * 3 + 1] += groundY(pos[i * 3], pos[i * 3 + 2]); geo.attributes.position.needsUpdate = true; geo.computeBoundingSphere(); }
+    geo.setAttribute("color", new THREE.BufferAttribute(col, 3));
+    const m = new THREE.Mesh(geo, LOOKS.patchGround(groundDetail(new THREE.MeshBasicMaterial({ vertexColors: true, side: THREE.DoubleSide }), 0.2), "far"));
+    scene.add(m); LAYERS.ground.push(m);
+  }
+  // the boards (as the planting belts'), then the trees
+  if (belts && SC.boards) placeBelts(belts, { boards: SC.boards, trees: [] }, null, false);
+  if (treeLib && SC.trees) {
+    // (belt 2: scrub, e.g. along the Dyke's crest: light crowns only, no trunks, so hundreds of bushes stay cheap)
+    const spots = SC.trees.map(([x, z, tree, s, turn, belt, dy]) => ({ x, z, tree, s, turn: turn || 0, belt: belt === 1, scrub: belt === 2, dy: dy || 0 }));
+    instanceTrees(treeLib, spots);
+    const shadows = new THREE.InstancedMesh(new THREE.PlaneGeometry(1, 1), new THREE.MeshBasicMaterial({ map: shadowTex, color: "#1f3318", transparent: true, opacity: 0.45, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -4 }), spots.length);
+    const sunFlat = new THREE.Vector2(-SUN_OFFSET.x, -SUN_OFFSET.z).normalize(), ang = Math.atan2(sunFlat.y, sunFlat.x);
+    spots.forEach((t, i) => {
+      const h = 11 * t.s;
+      const sx_ = t.x + sunFlat.x * h * 0.35, sz_ = t.z + sunFlat.y * h * 0.35;
+      shadows.setMatrixAt(i, m4.compose(p.set(sx_, 0.04 + groundY(sx_, sz_), sz_), q.setFromEuler(new THREE.Euler(-Math.PI / 2, 0, -ang, "YXZ")), sc.set(t.dy ? 0 : h * 0.95, h * 0.6, 1)));   // (none under sunk trees or the Dyke's scrub)
+    });
+    shadows.frustumCulled = false; scene.add(shadows); LAYERS.trees.push(shadows);
+  }
+  console.log("scenery:", nPieces, "pieces,", (SC.trees || []).length, "trees,", (SC.boards || []).length, "boards");
+}
+
 // Crowd: four simple figures, instanced (one draw call per figure part), tinted per person. Packed along
 // the near rail and thinning back to the stand, the stand's balconies, verandas and steps, the seats and
 // floors on the site pieces, and the dressing's crowd areas. Full along the final furlong and round the
@@ -1293,15 +1503,17 @@ function buildCrowd(gltf, data, pieceAt) {
   const P = LOOKS.crowdPalette(data.palette);
   const spots = [];
   const add = (x, y, z, seated = false) => { if (crowdKeep(x, rnd)) spots.push({ x, y, z, seated }); };
+  // a course that lists its crowd one person at a time ([x, y, z, facing], tools/course/newmarket/to_race_view.py)
+  if (data.people) for (let i = 0; i < data.people.length; i += 4) spots.push({ x: data.people[i], y: data.people[i + 1], z: data.people[i + 2], face: data.people[i + 3] });
   const S0 = -101.5, S1 = 406;                                  // the stand's west and east ends
   // the lawn between the outer rail and the stand
   const nearRail = COURSE.trackWidth + COURSE.rails.gap;
-  for (let z = nearRail + 1.6; z < FRONT - 1.5; z += 0.7) {
+  for (let z = nearRail + 1.6; z < FRONT - 1.5 && !data.people; z += 0.7) {
     const d = z - nearRail;
     const density = d < 4 ? 0.8 : d < 8 ? 0.35 : 0.08;
     for (let x = S0 - 6; x < S1; x += 0.62) if (rnd() < density) add(x + (rnd() - 0.5) * 0.4, 0, z + (rnd() - 0.5) * 0.4);
   }
-  for (let g = 0; g < 40; g++) {
+  for (let g = 0; g < (data.people ? 0 : 40); g++) {
     const gx = S0 + rnd() * 360, gz = nearRail + 6 + rnd() * (FRONT - nearRail - 8);
     const n = 3 + Math.floor(rnd() * 6);
     for (let k = 0; k < n; k++) add(gx + (rnd() - 0.5) * 2.4, 0, gz + (rnd() - 0.5) * 1.8);
@@ -1383,7 +1595,7 @@ function buildCrowd(gltf, data, pieceAt) {
       const box = new THREE.Box3();
       const start = i;
       for (const { s, L } of list) {
-        pos.set(s.x, s.y, s.z); q.setFromAxisAngle(up, s.z < 0 ? L.yaw + Math.PI : L.yaw); sc.set(L.s, L.s * (s.seated ? 0.7 : 1), L.s);
+        pos.set(s.x, s.y, s.z); q.setFromAxisAngle(up, s.face !== undefined ? s.face + L.yaw : s.z < 0 ? L.yaw + Math.PI : L.yaw); sc.set(L.s, L.s * (s.seated ? 0.7 : 1), L.s);
         m.compose(pos, q, sc).toArray(F.mats, 16 * i);
         CROWD_PARTS.forEach((k, j) => col.set(L[k]).toArray(F.cols[j], 3 * i));
         box.expandByPoint(pos);
@@ -1439,7 +1651,9 @@ function buildCrowd(gltf, data, pieceAt) {
 // The crowd's gentle life, in the vertex shader (nothing per person is sent each frame): a very slight, slow sway,
 // never in step with the neighbours; as the leader comes by, those near the rail lean in towards the track and a few
 // of the gents slowly lift their hats. Kept minimal on purpose (owner, 7 Nov). Who does what comes from where they stand.
-const CROWD = { figs: [], share: 1, sig: "", uniforms: { uTime: { value: 0 }, uLeader: { value: new THREE.Vector2(0, MID_Z) } }, near: 90 };
+// (beyond thinFrom metres a person is a few pixels high: only 'thin' of them are drawn there; owner's Newmarket crowds,
+// 9 Nov, put 35,000 people in the racecard shot)
+const CROWD = { figs: [], share: 1, sig: "", uniforms: { uTime: { value: 0 }, uLeader: { value: new THREE.Vector2(0, MID_Z) } }, near: 90, thinFrom: 200, thin: 0.32 };
 function crowdMaterial() {
   const mat = new THREE.MeshLambertMaterial({ color: "#ffffff" });
   mat.onBeforeCompile = (sh) => {
@@ -1483,9 +1697,11 @@ function updateCrowd(cam) {
   _fr.setFromProjectionMatrix(_pm);
   const plan = CROWD.figs.map((F) => F.cells.map((c) => {
     if (!_fr.intersectsSphere(c.sphere)) return 0;
-    if (!CLAY_CROWD) return c.sphere.center.distanceTo(cam.position) - c.sphere.radius < CROWD.near ? 1 : 2;
-    // the plasticine figures: full ones only in cells whose middle is within reach (0: light figures throughout)
-    return CROWD.near > 0 && c.sphere.center.distanceTo(cam.position) < CROWD.near ? 1 : 2;
+    // the plasticine figures: full ones only in cells whose middle is within reach (0: light figures throughout);
+    // 3: far off, every few people only (9 Nov, the Newmarket crowds)
+    const dc = c.sphere.center.distanceTo(cam.position), dd = dc - c.sphere.radius;
+    const near = CLAY_CROWD ? CROWD.near > 0 && dc < CROWD.near : dd < CROWD.near;
+    return near ? 1 : dd < CROWD.thinFrom ? 2 : 3;
   }));
   const sig = CROWD.share + ":" + plan.map((p) => p.join("")).join("|");
   if (sig === CROWD.sig) return;
@@ -1495,12 +1711,12 @@ function updateCrowd(cam) {
     F.cells.forEach((c, ci) => {
       const lod = plan[fi][ci];
       if (!lod) return;
-      const take = Math.round(c.count * CROWD.share);
+      const take = Math.round(c.count * CROWD.share * (lod === 3 ? CROWD.thin : 1));
       if (!take) return;
-      const T = lod === 1 ? F.near : F.far, at = k[lod];
+      const L = lod === 3 ? 2 : lod, T = L === 1 ? F.near : F.far, at = k[L];
       T.inst.instanceMatrix.array.set(F.mats.subarray(16 * c.start, 16 * (c.start + take)), 16 * at);
       T.cs.forEach((a, j) => a.array.set(F.cols[j].subarray(3 * c.start, 3 * (c.start + take)), 3 * at));
-      k[lod] += take;
+      k[L] += take;
     });
     for (const [lod, T] of [[1, F.near], [2, F.far]]) {
       T.inst.count = k[lod];
@@ -1666,7 +1882,8 @@ const camera = new THREE.PerspectiveCamera(30, 1, 0.5, 4000);   // near 0.5 (was
 const focus = new THREE.Vector3();
 const RCAMS = VIEW.raceCameras, SET = VIEW.setPieces;
 // The runners' card shows for the prelude: long enough to read (setPieces.prelude.list: seconds, plus so many a runner).
-if (SET.prelude.list) SET.prelude.seconds = SET.prelude.list[0] + SET.prelude.list[1] * RUNNERS_N();
+if (SET.prelude.list) SET.prelude.seconds = (SET.prelude.cardAfter || 0) + SET.prelude.list[0] + SET.prelude.list[1] * RUNNERS_N();
+// (setPieces.prelude.cardAfter: seconds of the view on its own before the runners' card comes up; owner, 9 Nov late)
 function RUNNERS_N() { return GP ? GP.runners.length : THREE.MathUtils.clamp(Number(params.get("runners") || 12), 1, STALLS.maxRunners); }
 // The show runs in phases: the grandstand set piece before the off, the horses standing in the stalls (the
 // view's own pre-roll: courses/ascot-view.json -> startSequence), the race from the off (cut by the TV director, or
@@ -1687,6 +1904,22 @@ function aheadOf(eye, u) {                                           // is a poi
 function directorShot(d, leadU) {
   if (state.cam !== "auto" && RCAMS[state.cam] && state.cam !== "sideon") return state.cam;
   if (d < 0) return "grandstand";                                    // past the line: stay on the grandstand camera
+  // one path (Newmarket): the tracking car down the leg and round the bend, the drone along the stand side up the straight,
+  // the head-on long lens from beyond the line for a stretch, then the stand camera to the line (raceDirector.path)
+  if (PATH) {
+    const P = DIR_.path;
+    if (d <= P.grandstand) return "grandstand";
+    if (P.tracking) {                                // (owner, 9 Nov late) mainly tracking, drone flicks, drone from 3f
+      if (d <= P.drone3f) return "drone_straight";
+      const F = P.flicks, run = DIST - d;
+      if (F && run > F.from && (run - F.from) % F.every < F.length && d > P.drone3f + 220) return "drone_straight";
+      if (RACE.course === "straight" || d < PATH.home - P.drone || !RCAMS.track_loop) return RCAMS.track_straight ? "track_straight" : "drone_straight";
+      return "track_loop";
+    }
+    if (RCAMS.headon && DIST > P.headonMin && d <= P.headon[0] && d > P.headon[1]) return "headon";
+    if (RACE.course === "straight" || d < PATH.home - P.drone || !RCAMS.track_loop) return "drone_straight";
+    return "track_loop";
+  }
   // down the round mile's chute the tracking car would be in the hedge: the drone, over the turf (owner, 7 Nov)
   if (RACE.course === "roundMile" && RCAMS.drone && d > SPUR.join - ((DIR_.roundMile || {}).drone ?? 40)) return "drone";
   // the straight course (owner, 8 Nov): the drone along the grandstand side, then the grandstand camera
@@ -1791,7 +2024,7 @@ function cameraTarget(now) {
     const c = RCAMS.sideon, look = new THREE.Vector3(...c.look);
     const [lx] = toWorld(leaderAt(now), 0);
     look.x += THREE.MathUtils.clamp(lx - look.x, -12, 18) * 0.8;          // pans a little with the leader
-    return still(new THREE.Vector3(...c.at), look, R[0], "sideon");
+    return still(new THREE.Vector3(...c.at), look, c.fov[0], "sideon");   // (was R[0]: R isn't set yet here, and the replay stopped the picture)
   }
   const field = fieldInShot(now);
   const leadU = leaderAt(now);
@@ -1815,7 +2048,7 @@ function cameraTarget(now) {
   // whole field across a narrow screen is a picture of crowd and sky with the horses as specks)
   // On the straight course the grandstand camera keeps the whole field until it closes in (owner, 8 Nov: the groups
   // spread across the track; framing only the leaders lost the rest), and frame 'all' never narrows.
-  const straightNow = RACE.course === "straight" || (ON_STRAIGHT && DIST - leadU > LOOP.length);
+  const straightNow = RACE.course === "straight" || (ON_STRAIGHT && DIST - leadU > LOOP.length) || (PATH && DIST - leadU < PATH.home);
   const span = c.frame === "all" ? Infinity : moving ? THREE.MathUtils.clamp(4 + 9 * camera.aspect, 12, 26) : camera.aspect < 1 && !straightNow ? 6 : Infinity;
   const pts = c.frame === "leaders" ? field.filter((p, i) => i < 2 || leadU - p.u <= (c.window || 12))
     : field.filter((p, i) => i < 3 || leadU - p.u <= span);
@@ -1884,7 +2117,8 @@ function button(parent, label, onClick, id) {
   parent.append(b); return b;
 }
 const camsEl = document.getElementById("cams");
-const camChoices = [["auto", "TV director"]].concat(RACE.course === "straight" ? [["drone_straight", "Drone"], ["track_straight", "Tracking"]] : [["track_loop", "Tracking"]], [["grandstand", "Grandstand"]])
+const camChoices = VIEW.cameraMenu ? [["auto", "TV director"]].concat(VIEW.cameraMenu[RACE.course === "straight" ? "straight" : "round"].filter(([id]) => RCAMS[id]))
+  : [["auto", "TV director"]].concat(RACE.course === "straight" ? [["drone_straight", "Drone"], ["track_straight", "Tracking"]] : [["track_loop", "Tracking"]], [["grandstand", "Grandstand"]])
   .concat(RACE.course === "round" ? [["lookback", "Looking back"]] : []);
 const camButtons = camChoices.map(([id, label]) => {
   const b = button(camsEl, label, () => { state.cam = id; snap = true; syncButtons(); }, "cam-" + id);
@@ -2098,11 +2332,13 @@ try {
   const optional = (p, what) => p.catch((e) => { console.warn(what + " missing:", e.message); return null; });
   const json = (url) => optional(fetch(url).then((r) => { if (!r.ok) throw new Error(url + " " + r.status); return r.json(); }), url);
   const file = (path) => "assets/course/" + path.split("/").pop();
-  const [props, horse, world, trees, belts, crowd, bakeInfo, dressing, planting, areas, spots, palette, stalls, stallKit, horseLight] = await Promise.all([
+  // a course drawn live (Newmarket) lists its scenery and the Blender pieces it uses; Ascot's is baked
+  const SC = VIEW.scenery ? await json(file(VIEW.scenery)) : null;
+  const [props, horse, world, trees, belts, crowd, bakeInfo, dressing, planting, areas, spots, palette, stalls, stallKit, horseLight, scModels] = await Promise.all([
     optional(loadModel("assets/course", "course-props"), "Course furniture"),
     HORSE_V === "v2" ? HorseV2.loadHorse(loadModel, "assets/model-v2", (url, srgb) => { const t = texLoader.load(url); t.flipY = false; if (srgb) t.colorSpace = THREE.SRGBColorSpace; return t; })
                      : loadModel("assets/model", "racehorse"),
-    optional(loadModel("assets/baked", "static_world"), "Baked scenery"),
+    SC ? null : optional(loadModel("assets/baked", "static_world"), "Baked scenery"),
     // the leafy trees (owner, 7 Nov: preferred to the clay ones, which stay on ?trees=clay)
     params.get("trees") !== "clay" ? optional(loadModel("assets/trees", "trees"), "Trees")
       : Promise.all([optional(loadModel("assets/trees", "trees_clay"), "Trees"), json("assets/trees/trees_clay_info.json")])
@@ -2113,24 +2349,26 @@ try {
         : Promise.all([optional(loadModel(ARCH, "crowd_set_10"), "Crowd"), optional(loadModel(ARCH, "crowd_set_10_far"), "Crowd (far)")]))
         .then(([g, far]) => (g ? ((SKITTLES = true), (CLAY_CROWD = true), (g.far = far), g)
           : optional(loadModel(ARCH, "crowd_set_8"), "Crowd").then((g8) => (g8 ? ((SKITTLES = true), g8) : optional(loadModel(ARCH, "crowd_people"), "Crowd"))))),
-    json("assets/baked/bake.json"),
-    json(file(VIEW.dressing)),
-    json(file(VIEW.planting)),
-    json(ARCH + "/ascot_main_stand_crowd_areas.json"),
-    json(ARCH + "/site_props_spots.json"),
+    SC ? null : json("assets/baked/bake.json"),
+    VIEW.dressing ? json(file(VIEW.dressing)) : null,
+    VIEW.planting ? json(file(VIEW.planting)) : null,
+    SC ? null : json(ARCH + "/ascot_main_stand_crowd_areas.json"),
+    SC ? null : json(ARCH + "/site_props_spots.json"),
     json(ARCH + "/crowd_palette.json"),
     optional(loadModel("assets/course", "starting_stalls"), "Starting stalls"),
     json("assets/course/starting_stalls_kit.json"),
     HORSE_V === "v1" && !params.has("nolod") ? optional(loadModel("assets/model", "racehorse_lod"), "Light horse") : null,
+    SC ? Promise.all((SC.models || []).map((m) => optional(loadModel(ARCH, m), m))) : null,
   ]);
   if (stalls && stallKit) buildStalls(stalls, stallKit);
   if (props) placeProps(props);
   if (world && bakeInfo) placeBaked(world, bakeInfo, dressing);
-  if (belts) placeBelts(belts, planting, trees);
-  if (trees) placeTrees(trees, dressing);
+  if (SC) { buildPlainGround(VIEW.ground); placeScenery(SC, scModels || [], trees, belts); }
+  if (belts && !SC) placeBelts(belts, planting, trees);
+  if (trees && !SC) placeTrees(trees, dressing);
   if (crowd && palette) {
     const pieceAt = (p) => new THREE.Matrix4().makeTranslation(p.x, 0, p.z).multiply(new THREE.Matrix4().makeRotationY(Math.PI + (p.turn || 0) * Math.PI / 180));
-    buildCrowd(crowd, { dressing, areas: areas && areas.areas, spots: spots && spots.pieces, palette }, pieceAt);
+    buildCrowd(crowd, { dressing, areas: areas && areas.areas, spots: spots && spots.pieces, palette, people: SC && SC.people }, pieceAt);
   }
   const v2Tex = (url, srgb) => { const t = texLoader.load(url); t.flipY = false; if (srgb) t.colorSpace = THREE.SRGBColorSpace; return t; };
   for (let i = 0; i < RUNNERS && HORSE_V === "v2"; i++) {
@@ -2238,7 +2476,7 @@ function stepKick(dt, field) {
 function drawKick() {
   live.forEach((c, i) => {
     const fade = c.landed >= 0 ? Math.max(0, 1 - (c.age - c.landed) / 0.35) : 1;
-    const [wx, wz] = toWorld(c.x, c.z); _p.set(wx, c.y, wz); _q.setFromEuler(_e.set(c.rot, c.rot * 0.7, 0)); _s.setScalar(c.size * (0.4 + 0.6 * fade));
+    const [wx, wz] = toWorld(c.x, c.z); _p.set(wx, c.y + groundY(wx, wz), wz); _q.setFromEuler(_e.set(c.rot, c.rot * 0.7, 0)); _s.setScalar(c.size * (0.4 + 0.6 * fade));
     clods.setMatrixAt(i, _m.compose(_p, _q, _s));
     clods.setColorAt(i, c.col);
   });
@@ -2255,6 +2493,12 @@ function sample(t) {
 
 function updateCamera(now, dt) {
   const T = runners.length ? cameraTarget(now) : { eye: camera.position.clone(), look: focus.clone(), fov: camera.fov, id: "none" };
+  if (GROUND && runners.length && T.id !== "free") {
+    const lift = (v) => v.setY(v.y + groundY(v.x, v.z));
+    lift(T.eye); lift(T.look);
+    if (T.anchor && T.anchor !== T.look) lift(T.anchor);
+    if (T.guard) T.guard = T.guard.map((g) => lift(g.clone()));
+  }
   if (T.id !== lastShot) { snap = true; lastShot = T.id; }
   // Cuts are clean cuts. Within a shot the camera stands where it should (it's already moving smoothly with
   // the field); the look point rides with the leader and only its offset from the leader is smoothed; the
@@ -2309,7 +2553,7 @@ const DOCK = (() => {
   try { if (localStorage.getItem("tb-dock") === "0" || params.get("dock") === "0") show(false); } catch {}
 
   // --- course map: the whole layout in grey, the race's own route in green, a dot per runner in its colours
-  const lines = [LOOP.pts.concat([LOOP.pts[0]]), [[0, 0], [COURSE.straightMile.length || 1609.3, 0]], [COURSE.roundMileSpur.from, COURSE.roundMileSpur.to]];
+  const lines = PATH ? [PATH.pts] : [LOOP.pts.concat([LOOP.pts[0]]), [[0, 0], [COURSE.straightMile.length || 1609.3, 0]], [COURSE.roundMileSpur.from, COURSE.roundMileSpur.to]];
   const route = [];
   for (let u = 0; u <= DIST; u += 12) route.push(toWorld(u, 0));
   const all = lines.flat().concat(route);
@@ -2503,10 +2747,10 @@ const INTRO = (() => {
   };
   addEventListener("resize", fit); fit();
   return { update() {
-    const on = state.phase === "prelude";
+    const pre = state.phase === "prelude", after = SET.prelude.cardAfter || 0, on = pre && state.pt >= after;
     box.classList.toggle("gone", !on);
-    document.body.classList.toggle("pre", on);
-    if (on) $("inBar").style.width = Math.min(100, (state.pt / SET.prelude.seconds) * 100).toFixed(1) + "%";
+    document.body.classList.toggle("pre", pre);
+    if (on) $("inBar").style.width = Math.min(100, ((state.pt - after) / (SET.prelude.seconds - after)) * 100).toFixed(1) + "%";
   } };
 })();
 
@@ -2519,7 +2763,7 @@ const CALLER = (() => {
   const esc = (v) => String(v == null ? "" : v).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
   const MINE = CARD.findIndex((h) => h.mine);
   const name = (i) => `<b${i === MINE ? ' class="mine"' : ""}>${esc(CARD[i].name || "No. " + (i + 1))}</b>`;
-  const F = timeline.frames, dt = timeline.dt, LEN = 2.4, L = LOOP.length;
+  const F = timeline.frames, dt = timeline.dt, LEN = 2.4, L = LOOP ? LOOP.length : Infinity;
   const frameAt = (t) => F[Math.min(F.length - 1, Math.max(0, Math.round(t / dt)))];
   const order = (f) => f.map((h, i) => [h[0], i]).sort((a, b) => b[0] - a[0]);
   const when = (u) => { for (let k = 0; k < F.length; k++) if (leaderAt(F[k]) >= u) return k * dt; return Infinity; };
@@ -2560,7 +2804,11 @@ const CALLER = (() => {
     add(t, text, 2);
   }
   // the course: past the stand with a circuit to go, round the home turn, into the straight, the last two furlongs
-  if (RACE.course !== "straight") {
+  if (PATH && RACE.course !== "straight") {                // one path: round the bend at its top, into the straight
+    const [b0, b1] = COURSE.path.bends[0];
+    add(when(DIST - (b0 + b1) / 2), `Round the turn, ${name(order(frameAt(when(DIST - (b0 + b1) / 2)))[0][1])} in front.`, 8);
+    add(when(DIST - b1), `Into the straight! ${furl(b1)} to run.`, 8);
+  } else if (RACE.course !== "straight") {
     for (let d = L; d < DIST - 100; d += L) add(when(DIST - d), `Past the stands, and ${name(order(frameAt(when(DIST - d)))[0][1])} leads them out on to the final circuit.`, 8);
     add(when(DIST - 820), `Round the home turn, ${name(order(frameAt(when(DIST - 820)))[0][1])} in front.`, 8);
     add(when(DIST - 560), `Into the straight! ${furl(560)} to run.`, 8);
@@ -2592,10 +2840,10 @@ const CALLER = (() => {
 // ---------- Loop ----------
 const toRunEl = document.getElementById("toRun"), toRunLabel = document.querySelector(".togo span");
 const clock = new THREE.Clock();
-let framesDrawn = 0, stillFrames = 0, kickWarm = false;
+let framesDrawn = 0, stillFrames = 0, kickWarm = false, FIXED_DT = 0;
 function frame() {
   const t0 = performance.now();
-  const rawDt = clock.getDelta();
+  const rawDt = FIXED_DT || clock.getDelta();
   const dt = Math.min(rawDt, 0.05);
   if (runners.length && !params.has("still")) perf.tick(rawDt);
   // phases: before the off -> the race -> the finish again, slowed -> after the race -> round again
@@ -2617,9 +2865,10 @@ function frame() {
     const [x, z, v, eff, yaw] = now[i];
     const [wx, wz] = toWorld(x, z);                            // along the course -> world
     const head = headingAt(x, yaw);
-    r.obj.position.set(wx, 0, wz);
+    const gy = groundY(wx, wz);
+    r.obj.position.set(wx, gy, wz);
     r.obj.rotation.y = head;
-    _p.set(wx - Math.cos(head) * 0.15, 0.04, wz + Math.sin(head) * 0.15); _q.setFromEuler(_e.set(-Math.PI / 2, 0, head - Math.PI, "YXZ")); _s.set(3.0, 1.05, 1);
+    _p.set(wx - Math.cos(head) * 0.15, 0.04 + gy, wz + Math.sin(head) * 0.15); _q.setFromEuler(_e.set(-Math.PI / 2, 0, head - Math.PI, "YXZ")); _s.set(3.0, 1.05, 1);
     contact.setMatrixAt(i, _m.compose(_p, _q, _s));
     if (r.v2) {                                            // the v2 horse: its own riding, gallop and detail levels
       if (params.has("still") && !r.started) { r.v2.update(5, v, eff, null, 0); r.started = true; }   // stills: settle the riding first
@@ -2668,11 +2917,11 @@ function frame() {
     HorseV2.chooseLevels(runners.map((r) => r.v2), camera, { close: { high: 4, medium: 2, low: 0, lightest: 0 }[qLevel] ?? 0, far: { low: 0.09, lightest: 0.14 }[qLevel] ?? 0.06 });
   }
   const [sx, sz] = toWorld(packU, 0);
-  const sunAt = new THREE.Vector3(sx, 0, sz);
+  const sunAt = new THREE.Vector3(sx, groundY(sx, sz), sz);
   sun.position.copy(sunAt).add(SUN_OFFSET); sun.target.position.copy(sunAt);
   if (shadowCatcher) {
     const rr = railAt(Math.min(DIST, Math.max(0, DIST - packU)));
-    shadowCatcher.position.set(sx, 0.03, sz); shadowCatcher.rotation.y = Math.atan2(-rr.tz, rr.tx);
+    layCatcher(sx, sz, Math.atan2(-rr.tz, rr.tx));
   }
   scene.userData.sky.position.copy(camera.position);
   CROWD.uniforms.uTime.value = performance.now() / 1000;
@@ -2715,6 +2964,9 @@ function frame() {
 }
 requestAnimationFrame(frame);
 // Checking aid (?still=1): jump to another moment of the race and draw it again: window.__seek(t), then wait for __ready.
+// Checking aid (?still=1): play on by exactly dt seconds and draw (the whole show, phases and all), for recording a
+// film frame by frame: window.__advance(1 / 25).
+if (params.has("still")) window.__advance = (dt) => { FIXED_DT = dt; state.paused = false; stillFrames = 99; frame(); state.paused = true; FIXED_DT = 0; };
 if (params.has("still")) window.__seek = (t) => { state.phase = "race"; state.t = t; snap = true; stillFrames = 0; window.__ready = false; requestAnimationFrame(frame); };
 // Checking aid (?bench=1): the scene's parts, for timing each one on its own (see the rig's bench script).
 if (params.has("bench")) window.__dbg = { THREE, renderer, scene, camera, LAYERS, sun, QUALITY, runners, get qLevel() { return qLevel; } };

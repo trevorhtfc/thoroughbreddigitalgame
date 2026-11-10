@@ -1,0 +1,112 @@
+{
+ "_about": "Par (standard) times on Newmarket's July Course, DRAFT, for the race engine and the race view's dock. 'winningTime' is a rough winning time for a good horse on good ground, the climb included (from memory: check against real results). 'seconds' is the par the engine uses, set so its winning times come out at those. The going as at Ascot.",
+ "parTimes": [
+  {
+   "key": "jc5f",
+   "course": "straight",
+   "distance": 1005.8,
+   "seconds": 57.23,
+   "winningTime": 58.5
+  },
+  {
+   "key": "jc6f",
+   "course": "straight",
+   "distance": 1207.0,
+   "seconds": 69.72,
+   "winningTime": 70.8
+  },
+  {
+   "key": "jc7f",
+   "course": "straight",
+   "distance": 1408.2,
+   "seconds": 83.51,
+   "winningTime": 84.3
+  },
+  {
+   "key": "jc1m",
+   "course": "straight",
+   "distance": 1609.3,
+   "seconds": 97.4,
+   "winningTime": 97.8
+  },
+  {
+   "key": "jc1m2f",
+   "course": "round",
+   "distance": 2011.7,
+   "seconds": 123.8,
+   "winningTime": 124.0
+  },
+  {
+   "key": "jc1m4f",
+   "course": "round",
+   "distance": 2414.0,
+   "seconds": 150.8,
+   "winningTime": 150.5
+  },
+  {
+   "key": "jc1m5f",
+   "course": "round",
+   "distance": 2615.2,
+   "seconds": 164.1,
+   "winningTime": 163.5
+  },
+  {
+   "key": "jc1m6f",
+   "course": "round",
+   "distance": 2816.4,
+   "seconds": 177.9,
+   "winningTime": 177.0
+  },
+  {
+   "key": "jc2m",
+   "course": "round",
+   "distance": 3218.7,
+   "seconds": 206.51,
+   "winningTime": 205.0
+  }
+ ],
+ "going": {
+  "Heavy": {
+   "speed": 0.95,
+   "sapping": 1.25
+  },
+  "Softer": {
+   "speed": 0.975,
+   "sapping": 1.1
+  },
+  "Good": {
+   "speed": 1.0,
+   "sapping": 1.0
+  },
+  "Quicker": {
+   "speed": 1.006,
+   "sapping": 0.97
+  },
+  "Quick": {
+   "speed": 1.012,
+   "sapping": 0.95
+  }
+ },
+ "pace": {
+  "_about": "How the dock judges the pace. Each section the leader runs is compared with par for its length at the race's average par speed; the first section (from a standing start) gets firstSectionExtra seconds of allowance. Ratio = actual time / par time.",
+  "firstSectionExtra": 1.3,
+  "bands": [
+   {
+    "label": "Fast",
+    "below": 0.98
+   },
+   {
+    "label": "Strong",
+    "below": 0.993
+   },
+   {
+    "label": "Even",
+    "below": 1.012
+   },
+   {
+    "label": "Slow",
+    "below": 99
+   }
+  ]
+ }
+}

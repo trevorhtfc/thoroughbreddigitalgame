@@ -3,17 +3,17 @@
 # Same figures as distcheck.py (and the same way of working them out), plus wins by style for each pace.
 import json, sys, time, warnings, numpy as np
 warnings.filterwarnings('ignore')
-from racebench import run, PAR_TIME
+from racebench import run, PAR_TIME, kind_of
 P = json.load(open('settings.json'))
 N = int(sys.argv[1]) if len(sys.argv) > 1 else 2000
 n = int(sys.argv[2]) if len(sys.argv) > 2 else 12
 out = sys.argv[3] if len(sys.argv) > 3 else 'benchstats.json'
 seed = int(sys.argv[4]) if len(sys.argv) > 4 else 8
-only = sys.argv[5].split(',') if len(sys.argv) > 5 else list(PAR_TIME)
+only = sys.argv[5].split(',') if len(sys.argv) > 5 else [k for k in PAR_TIME if not k.startswith('nm')]   # Ascot's; Newmarket's by name
 res = {}
 for key in only:
     t0 = time.time()
-    Q = dict(P); Q['CHECK_DV'] = P['CHECK_DV_BY_COURSE']['straight' if key[0] == 's' else 'round']
+    Q = dict(P); Q['CHECK_DV'] = P['CHECK_DV_BY_COURSE'][kind_of(key)]
     r = run(Q, key, N=N, n=n, seed=seed)
     raw = r['raw']; Rd = np.asarray(raw['Rday']); pos = np.asarray(raw['pos']); sty = np.asarray(raw['sty']); lvl = np.asarray(raw['lvl']); L = np.asarray(raw['lost'])
     ix = np.arange(N); w = np.argmax(pos == 1, 1)

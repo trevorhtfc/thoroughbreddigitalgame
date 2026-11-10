@@ -45,6 +45,14 @@ for f in ["ascot_main_stand_crowd_areas.json", "crowd_palette.json", "crowd_peop
           "crowd_set_8.json", "crowd_set_8-geometry.txt",
           "crowd_set_10.json", "crowd_set_10-geometry.txt", "crowd_set_10_far.json", "crowd_set_10_far-geometry.txt"]:
     add(A / "architecture" / f, "assets/architecture/" + f)
+# Newmarket's two courses in the race view (final-furlong.html?course=newmarket or ?course=newmarket-july; the game doesn't
+# race there yet): each course's files (tools/course/newmarket/to_race_view.py) and the Blender pieces it places live
+for c in ["newmarket", "newmarket-july"]:
+    for f in [f"{c}.json", f"{c}-view.json", f"{c}-stalls.json", f"{c}-standards.json", f"{c}-scenery.json"]:
+        add(A / "course" / f, "assets/course/" + f)
+for f in ["rowley_stands", "july_stands", "site_props", "finish_line"]:
+    for g in [f + ".json", f + "-geometry.txt"]:
+        add(A / "architecture" / g, "assets/architecture/" + g)
 # the 3D silks and their icons: every set but the pattern catalogue's test swatches
 for d in ["silks-3d", "silks-3d-v2", "silks-icons"]:
     for p in sorted((A / d).glob("*.png")):

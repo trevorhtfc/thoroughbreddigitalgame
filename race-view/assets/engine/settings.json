@@ -51,7 +51,10 @@
   "MISS_P_CALM": 0.004,
   "MISS_MIN": 0.5,
   "MISS_MAX": 1.0,
-  "HOLDUP_SLOW": 0.0
+  "HOLDUP_SLOW": 0.0,
+  "HILL_UP": 0.5,
+  "HILL_DOWN": 0.15,
+  "HILL_SLOW": 0.0
  },
 
  "benchDefaults": {
@@ -131,7 +134,9 @@
 
  "pointsPerLength": {
   "_about": "Rating points per length at each distance (by courses/ascot-standards.json key).",
-  "s5f": 3.0, "s6f": 2.6, "s7f": 2.3, "s1m": 2.0, "r1m": 2.0, "r1m2f": 1.75, "r1m4f": 1.5, "r1m6f": 1.35, "r2m": 1.2, "r2m4f": 1.0, "r2m6f": 0.9
+  "s5f": 3.0, "s6f": 2.6, "s7f": 2.3, "s1m": 2.0, "r1m": 2.0, "r1m2f": 1.75, "r1m4f": 1.5, "r1m6f": 1.35, "r2m": 1.2, "r2m4f": 1.0, "r2m6f": 0.9,
+  "nm5f": 3.0, "nm6f": 2.6, "nm7f": 2.3, "nm1m": 2.0, "nm1m1f": 1.85, "nm1m2f": 1.75, "nm1m4f": 1.5, "nm1m6f": 1.35, "nm2m": 1.2, "nm2m2f": 1.1, "nm2m4f": 1.0,
+  "jc5f": 3.0, "jc6f": 2.6, "jc7f": 2.3, "jc1m": 2.0, "jc1m2f": 1.75, "jc1m4f": 1.5, "jc1m5f": 1.42, "jc1m6f": 1.35, "jc2m": 1.2
  },
 
  "horse": {

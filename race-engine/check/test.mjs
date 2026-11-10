@@ -1,5 +1,7 @@
 // Checks on the engine: the same seed replays exactly; the timeline has the shape the race view plays; horses never
 // share the same space; effort stays 0-3; the result agrees with the timeline.   node check/test.mjs
+// (COURSE=newmarket node check/test.mjs: the same at the Rowley Mile, draft, with fields up to 30; COURSE=july: the July
+// Course, draft, up to 28)
 import { createHash } from "node:crypto";
 import { runRace } from "../engine.js";
 import { randomField } from "../field.js";
@@ -7,7 +9,7 @@ import { data, RACES } from "./data.mjs";
 let fails = 0;
 const ok = (cond, msg) => { if (!cond) { fails++; console.log("FAIL", msg); } };
 const hash = (o) => createHash("sha1").update(JSON.stringify(o)).digest("hex").slice(0, 12);
-for (const [key, r] of Object.entries(RACES)) for (const n of [8, 16, 26]) for (const going of ["Good", "Heavy"]) {
+for (const [key, r] of Object.entries(RACES)) for (const n of (process.env.COURSE === "newmarket" ? [8, 16, 30] : process.env.COURSE === "july" ? [8, 16, 28] : [8, 16, 26])) for (const going of ["Good", "Heavy"]) {
   const seed = `test-${key}-${n}`;
   const race = { ...r, going, seed };
   const a = runRace(race, randomField(n, seed, data.settings), data), b = runRace(race, randomField(n, seed, data.settings), data);
@@ -18,7 +20,7 @@ for (const [key, r] of Object.entries(RACES)) for (const n of [8, 16, 26]) for (
   ok(T.dt === 0.1 && T.frames.every((f) => f.length === n && f.every((h) => h.length === 5)), `${key} ${n}: timeline shape`);
   ok(T.frames[0].every((h, i) => h[0] === -data.stalls.horseStandsBehind && Math.abs(h[1] - st[i].across) < 1e-3 && h[2] === 0 && h[3] === 0), `${key} ${n}: frame 0 isn't the horses standing in their stalls`);
   ok(T.frames.every((f) => f.every((h) => h[3] >= 0 && h[3] <= 3 && Number.isInteger(h[3]))), `${key} ${n}: effort outside 0-3`);
-  ok(T.frames.every((f) => f.every((h) => Math.abs(h[1]) <= 15)), `${key} ${n}: a horse off the track`);
+  ok(T.frames.every((f) => f.every((h) => Math.abs(h[1]) <= data.course.trackWidth / 2)), `${key} ${n}: a horse off the track`);
   // overlaps: two horses closer than the bench's measure (2.6 m along, 0.85 m across), before either has finished
   let over = 0, secs = 0;
   T.frames.forEach((f, k) => { const t = k * T.dt; secs++; for (let i = 0; i < n; i++) for (let j = i + 1; j < n; j++) {
