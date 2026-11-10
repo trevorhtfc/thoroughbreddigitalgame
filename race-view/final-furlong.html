@@ -2174,7 +2174,7 @@ function cameraTarget(now) {
   // and the course sits a little above the middle of the picture, the crowd below it (on a phone held upright, the
   // course in the top third: otherwise it's half sky)
   if (c.kind === "terrace") {
-    const d = look.distanceTo(eye), k = camera.aspect < 1 ? 0.4 : 0.15;
+    const d = look.distanceTo(eye), [kl, kp] = c.tilt || [0.15, 0.4], k = camera.aspect < 1 ? kp : kl;
     look = look.clone(); look.y -= d * Math.tan(THREE.MathUtils.degToRad(fov) / 2 * k);
   }
   if (c.kind === "terrace" && c.pan) {
