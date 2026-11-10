@@ -2174,7 +2174,7 @@ function cameraTarget(now) {
   // and the course sits a little above the middle of the picture, the crowd below it (on a phone held upright, the
   // course in the top third: otherwise it's half sky)
   if (c.kind === "terrace") {
-    const d = look.distanceTo(eye), [kl, kp] = c.tilt || [0.15, 0.4], k = camera.aspect < 1 ? kp : kl;
+    const d = look.distanceTo(eye), [kl, kp] = c.tilt || [0.15, 0.3], k = camera.aspect < 1 ? kp : kl;
     look = look.clone(); look.y -= d * Math.tan(THREE.MathUtils.degToRad(fov) / 2 * k);
   }
   if (c.kind === "terrace" && c.pan) {
@@ -2646,6 +2646,7 @@ function drawTV() {
   scene.userData.sky.position.copy(camera.position);
 }
 window.addEventListener("resize", () => { TV.rect = null; });
+{ const pl = document.querySelector(".plate"); if (pl) new ResizeObserver(() => { TV.rect = null; }).observe(pl); }   // the plate grows with its text
 TV.el.onclick = () => { state.cam = "auto"; snap = true; syncButtons(); };       // tap the picture: back to the TV director
 
 // Checking aid: run the director over a stretch of race and report each step's shot, zoom and how far the
