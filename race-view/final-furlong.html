@@ -1674,9 +1674,14 @@ function crowdMaterial() {
           // and only a few hats lifted, slowly.
           float sway = 0.006 * sin(uTime * (0.35 + 0.25 * seed) + seed * 6.2832);
           float ex = smoothstep(75.0, 15.0, abs(ip.x - uLeader.x)) * smoothstep(55.0, 18.0, abs(ip.z - uLeader.y)) * step(0.2, seed);
-          transformed.x += (sway + ex * 0.006 * sin(uTime * 1.1 + seed * 9.0)) * h;
-          transformed.z -= ex * 0.03 * h;
-          if (aPart > 1.5 && aPart < 2.5 && seed > 0.88) transformed.y += ex * 0.1 * smoothstep(0.4, 0.95, 0.5 + 0.5 * sin(uTime * 0.9 + seed * 31.0));
+          // (owner, 10 Nov: a bit more life as the runners go by) Still calm while the field is away; as the leaders
+          // come past, about two in three people bounce on their toes, each to their own rhythm, with a little
+          // clay-like stretch at the top of the hop, rock from side to side, and one gent in four waves his hat.
+          float hop = ex * step(0.35, seed) * 0.035 * pow(abs(sin(uTime * (5.0 + 2.5 * seed) + seed * 40.0)), 1.6);
+          transformed.y += hop * (1.0 + 0.35 * h);
+          transformed.x += (sway + ex * 0.016 * sin(uTime * (1.8 + seed) + seed * 9.0)) * h;
+          transformed.z -= ex * 0.035 * h;
+          if (aPart > 1.5 && aPart < 2.5 && seed > 0.75) transformed.y += ex * 0.12 * smoothstep(0.3, 0.9, 0.5 + 0.5 * sin(uTime * 1.6 + seed * 31.0));
         }`);
     sh.fragmentShader = sh.fragmentShader
       .replace("#include <common>", "#include <common>\nvarying vec3 vPartCol;")
@@ -2925,7 +2930,7 @@ function frame() {
     layCatcher(sx, sz, Math.atan2(-rr.tz, rr.tx));
   }
   scene.userData.sky.position.copy(camera.position);
-  CROWD.uniforms.uTime.value = performance.now() / 1000;
+  CROWD.uniforms.uTime.value = params.has("still") ? state.t : performance.now() / 1000;   // (?still=1: the race clock, so stepped frames make a true film)
   CROWD.uniforms.uLeader.value.set(leaderXw, leaderZ);
   camera.updateMatrixWorld();
   const tCrowd = performance.now();
