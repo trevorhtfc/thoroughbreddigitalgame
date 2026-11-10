@@ -171,29 +171,10 @@
    ]
   },
   {
-   "note": "Owner, 10 Nov ('a big blank patch' as they turn the corner): outside the home bend, beyond the straight mile's planting belt",
-   "area": [
-    790,
-    -45,
-    1350,
-    -720
-   ],
-   "spacing": 22,
-   "skip": 0.3,
-   "scale": [
-    1.0,
-    1.5
-   ],
-   "clump": [
-    1,
-    4
-   ]
-  },
-  {
    "note": "Owner, 10 Nov: the infield inside the home bend, south of the carnival (kept clear of the grandstand camera's view of the turn)",
    "area": [
     470,
-    -150,
+    -105,
     685,
     -640
    ],
@@ -209,12 +190,12 @@
    ]
   },
   {
-   "note": "Owner, 10 Nov: north of the straight mile beyond the bend, behind the outer belt",
+   "note": "Owner, 10 Nov: north of the straight mile beyond the bend, well behind the outer belt (and behind the bend camera)",
    "area": [
     700,
-    60,
+    110,
     1400,
-    200
+    230
    ],
    "spacing": 22,
    "skip": 0.3,
@@ -226,6 +207,64 @@
     1,
     3
    ]
+  },
+  {
+   "note": "Owner, 10 Nov ('a big blank patch' as they turn the corner): outside the home bend, beyond the straight mile's planting belt; kept out of the bend camera's view of the turn (x 760 to 960 north of z -420)",
+   "area": [
+    960,
+    -45,
+    1400,
+    -720
+   ],
+   "spacing": 22,
+   "skip": 0.3,
+   "scale": [
+    1.0,
+    1.5
+   ],
+   "clump": [
+    1,
+    4
+   ]
+  },
+  {
+   "note": "Owner, 10 Nov: outside the home bend, further south (below the bend camera's view)",
+   "area": [
+    790,
+    -430,
+    960,
+    -720
+   ],
+   "spacing": 22,
+   "skip": 0.3,
+   "scale": [
+    1.0,
+    1.5
+   ],
+   "clump": [
+    1,
+    4
+   ]
+  },
+  {
+   "note": "Owner, 10 Nov ('a big blank patch' as they turn the corner): along the inside of the home bend, closer to the rail than the other loose trees ('trackClear' 20 m: the tracking car runs 12 m inside the rail)",
+   "area": [
+    540,
+    -40,
+    720,
+    -330
+   ],
+   "spacing": 15,
+   "skip": 0.2,
+   "scale": [
+    1.0,
+    1.45
+   ],
+   "clump": [
+    1,
+    3
+   ],
+   "trackClear": 20
   }
  ],
  "clearOf": {
@@ -237,7 +276,7 @@
    72
   ],
   "pieces": 9,
-  "note": "Loose trees stay this far (metres) from every rail, the stand box and each site piece. Track clearance 30 m (was 9) so no tree stands between the tracking car (12 m inside the rail) and the field."
+  "note": "Loose trees stay this far (metres) from every rail, the stand box and each site piece. Track clearance 30 m (was 9) so no tree stands between the tracking car (12 m inside the rail) and the field. A tree area's own 'trackClear' overrides the track clearance there."
  },
  "treeDetail": {
   "centre": [
@@ -545,19 +584,22 @@
   },
   "bend": {
    "label": "Bend",
-   "kind": "fixed",
-   "at": [
-    560,
-    24,
-    62
+   "kind": "drone",
+   "across": 6,
+   "height": 14,
+   "ahead": [
+    60,
+    80,
+    100,
+    130
    ],
    "fov": [
-    3,
-    34
+    12,
+    46
    ],
    "frame": "field",
    "leadRoom": 3,
-   "note": "Owner, 10 Nov: 'a grandstand-esque drone that captures the swing around the corner': hovering high over the enclosures east of the stand, beyond the outer rail, with a long lens on the final bend: it picks the field up as they come up from Swinley Bottom, follows them round the turn towards it and into the straight, then the grandstand camera takes over (raceDirector.round.bend)."
+   "note": "Owner, 10 Nov: 'a grandstand-esque drone that captures the swing around the corner': a drone high over the turf (grandstand height, 'height' up, 'across' metres from the middle towards the outside), well ahead of the leaders, looking back at the field as they come up from Swinley Bottom and swing round the home turn; then the grandstand camera takes them up the straight (raceDirector.round.bend metres out to round.grandstand). Over the turf so no tree or belt can come between it and the field (a fixed camera beyond the turn was blocked by the outer planting belt)."
   }
  },
  "raceDirector": {

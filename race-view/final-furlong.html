@@ -1380,8 +1380,8 @@ function placeTrees(gltf, dressing) {
   const rnd = seeded(11);
   const CL = VIEW.clearOf, S = CL.stand;
   const pieces = (dressing && dressing.pieces) || [];
-  const clear = (x, z) => (x > S[0] && x < S[2] && z > S[1] && z < S[3])
-    || onTrack(x, z) || distToRails(x, z) < CL.track
+  const clear = (x, z, track = CL.track) => (x > S[0] && x < S[2] && z > S[1] && z < S[3])
+    || onTrack(x, z) || distToRails(x, z) < track
     || pieces.some((p) => Math.abs(p.x - x) < CL.pieces && Math.abs(p.z - z) < CL.pieces);
   const spots = [];
   for (const a of VIEW.trees) {
@@ -1393,7 +1393,7 @@ function placeTrees(gltf, dressing) {
         const n = a.clump ? a.clump[0] + Math.floor(rnd() * (a.clump[1] - a.clump[0] + 1)) : 1;
         for (let k = 0; k < n; k++) {
           const tx = x + (rnd() - 0.5) * (n > 1 ? 14 : a.spacing * 0.6), tz = z + (rnd() - 0.5) * (n > 1 ? 10 : a.spacing * 0.6);
-          if (!clear(tx, tz)) spots.push({ x: tx, z: tz, s: a.scale[0] + rnd() * (a.scale[1] - a.scale[0]) });
+          if (!clear(tx, tz, a.trackClear ?? CL.track)) spots.push({ x: tx, z: tz, s: a.scale[0] + rnd() * (a.scale[1] - a.scale[0]) });
         }
       }
     }
