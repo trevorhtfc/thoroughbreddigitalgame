@@ -69,6 +69,10 @@ for (x, y, s) in [(-52, 12, 1.3), (-60, 22, 1.6), (-70, 10, 1.15), (-88, 16, 1.5
                   (-150, 26, 1.7), (-168, 12, 1.4), (-182, 22, 1.6), (-200, 10, 1.3), (-44, 30, 1.5), (-116, 36, 1.6), (-162, 38, 1.5)]:
     spot(x, y, s)
 for (x, y, s) in [(-78, 34, 1.9), (-142, 40, 2.0), (-205, -46, 1.8), (-190, 36, 1.9)]: spot(x, y, s, "poplar_a")
+for row in range(2):                                   # behind the stand, showing over its lower roofs and at its ends
+    x = 330
+    while x > -128:
+        spot(x + rnd.uniform(-3, 3), -FRONT - 52 - row * 16 + rnd.uniform(-4, 4), rnd.uniform(1.5, 2.0)); x -= rnd.uniform(11, 16)
 print("tree places:", len(SPOTS), flush=True)
 
 
@@ -125,6 +129,10 @@ def height(nt):
     t = N_(nt, "ShaderNodeTexCoord"); s = N_(nt, "ShaderNodeSeparateXYZ"); nt.links.new(t.outputs["Object"], s.inputs[0]); return s.outputs["Z"], t
 
 
+def share(nt):
+    t = N_(nt, "ShaderNodeTexCoord"); s = N_(nt, "ShaderNodeSeparateXYZ"); nt.links.new(t.outputs["Generated"], s.inputs[0]); return s.outputs["Z"]
+
+
 BARK_M, _nt = mat("ws_bark"); base(BARK_M).inputs["Base Color"].default_value = lin("#7a6656")
 GREENS = ["#6f9a4e", "#7da85a", "#628c46", "#8bb265", "#5c8546", "#86ad5c", "#73a052", "#79a456", "#668f4a", "#8ab062", "#5f8946", "#9a6a52"]
 SOFT_GREENS = ["#7fa46c", "#8bb078", "#74996a", "#96b880", "#6c9264", "#88ac74", "#a8765c"]
@@ -138,13 +146,28 @@ def tree_material(kind, me):
     elif kind == "B":     # the clay trees: their own shading, a leaf green for each tree
         nt.links.new(mul(nt, pick_ramp(nt, GREENS), mul(nt, vc.outputs["Color"], (1.12, 1.12, 1.12, 1))), b.inputs["Base Color"])
     elif kind == "C":     # leafy, graded: deep and cool at the skirt, warm and light at the crown; a tint for each tree
-        z, _ = height(nt); r = N_(nt, "ShaderNodeValToRGB"); mr = N_(nt, "ShaderNodeMapRange")
-        mr.inputs["From Min"].default_value = 2.0; mr.inputs["From Max"].default_value = 11.5; nt.links.new(z, mr.inputs["Value"]); nt.links.new(mr.outputs["Result"], r.inputs[0])
+        r = N_(nt, "ShaderNodeValToRGB"); mr = N_(nt, "ShaderNodeMapRange")
+        mr.inputs["From Min"].default_value = 0.05; mr.inputs["From Max"].default_value = 0.95; nt.links.new(share(nt), mr.inputs["Value"]); nt.links.new(mr.outputs["Result"], r.inputs[0])
         e = r.color_ramp.elements; e[0].position = 0.0; e[0].color = lin("#3f6b58"); e[1].position = 1.0; e[1].color = lin("#bfd08a"); e.new(0.5).color = lin("#739f66")
         lum = N_(nt, "ShaderNodeRGBToBW"); nt.links.new(vc.outputs["Color"], lum.inputs[0])
         col = mul(nt, r.outputs[0], grey(nt, lum.outputs[0], 0.72, 1.2, 0.05, 0.35))
         col = mul(nt, col, pick_ramp(nt, ["#ffffff", "#f2f6e4", "#e6f0e6", "#fff6dc", "#eef2d6", "#f6e0c8", "#ffffff", "#e9f2dc", "#f0c8a8"]))
         nt.links.new(col, b.inputs["Base Color"])
+    elif kind == "G":     # C and F together: graded dark to light, and each tree paler, cooler and flatter the further back it stands
+        r = N_(nt, "ShaderNodeValToRGB"); mr = N_(nt, "ShaderNodeMapRange")
+        mr.inputs["From Min"].default_value = 0.05; mr.inputs["From Max"].default_value = 0.95; nt.links.new(share(nt), mr.inputs["Value"]); nt.links.new(mr.outputs["Result"], r.inputs[0])
+        e = r.color_ramp.elements; e[0].position = 0.0; e[0].color = lin("#3c6a55"); e[1].position = 1.0; e[1].color = lin("#bccf8c"); e.new(0.5).color = lin("#709d66")
+        lum = N_(nt, "ShaderNodeRGBToBW"); nt.links.new(vc.outputs["Color"], lum.inputs[0])
+        col = mul(nt, r.outputs[0], grey(nt, lum.outputs[0], 0.76, 1.17, 0.05, 0.35))
+        col = mul(nt, col, pick_ramp(nt, ["#ffffff", "#f2f6e4", "#e6f0e6", "#fff6dc", "#eef2d6", "#f6e0c8", "#ffffff", "#e9f2dc", "#f0c8a8"]))
+        oi = N_(nt, "ShaderNodeObjectInfo"); far = N_(nt, "ShaderNodeSeparateColor"); nt.links.new(oi.outputs["Color"], far.inputs[0])
+        k = N_(nt, "ShaderNodeMath"); k.operation = "MULTIPLY"; k.inputs[1].default_value = float(os.environ.get("LAYER", "0.62")); nt.links.new(far.outputs["Red"], k.inputs[0])
+        col = mixc(nt, col, lin("#bfd0b4"), k.outputs[0])
+        nt.links.new(col, b.inputs["Base Color"])
+        em = N_(nt, "ShaderNodeEmission"); nt.links.new(col, em.inputs["Color"]); em.inputs["Strength"].default_value = 0.85
+        k2 = N_(nt, "ShaderNodeMath"); k2.operation = "MULTIPLY"; k2.inputs[1].default_value = 0.5; nt.links.new(far.outputs["Red"], k2.inputs[0])
+        mx = N_(nt, "ShaderNodeMixShader"); nt.links.new(k2.outputs[0], mx.inputs["Fac"])
+        out = nt.nodes["Material Output"]; nt.links.new(b.outputs[0], mx.inputs[1]); nt.links.new(em.outputs[0], mx.inputs[2]); nt.links.new(mx.outputs[0], out.inputs["Surface"])
     elif kind == "D":     # flocked, like model-railway foliage: a fine two-tone speckle, a soft tooth, a velvet edge
         _, t = height(nt); vor = N_(nt, "ShaderNodeTexVoronoi"); vor.inputs["Scale"].default_value = 9.0; nt.links.new(t.outputs["Object"], vor.inputs["Vector"])
         z, _ = height(nt)
@@ -176,6 +199,7 @@ TREE_KINDS = {
     "D": ("Flocked, like model foliage", KIT_CLAY, "_crown", True),
     "E": ("Faceted", KIT_CLAY, "_crown_far", False),
     "F": ("Layered flat tones", KIT_LEAFY, "_crown", True),
+    "G": ("C and F together", KIT_LEAFY, "_crown", True),
 }
 TREE_COLL = {}
 CAMPOS = None      # set with the camera (for the layered kind)
@@ -197,8 +221,9 @@ def build_trees(kind):
                 for p in me2.polygons: p.use_smooth = smooth or suffix == "_trunk"
                 me2.materials.clear(); me2.materials.append(BARK_M if suffix == "_trunk" else tree_material(kind, me2)); mats[(kind, key)] = me2
             o = bpy.data.objects.new("t", mats[(kind, key)]); c.objects.link(o); o.matrix_world = T @ M0
-            if kind == "F":      # depth as the object's colour: 0 near the camera, 1 far
-                k = max(0.0, min(1.0, ((Vector((x, y, 0)) - CAMPOS).length - 40) / 230)); o.color = (k, k, k, 1)
+            if kind in ("F", "G"):      # depth as the object's colour: 0 near the camera, 1 far
+                dd = sorted((Vector((sx, sy, 0)) - CAMPOS).length for (sx, sy, *_r) in SPOTS); d0, d1 = dd[len(dd) // 20], dd[-len(dd) // 8]
+                k = max(0.0, min(1.0, ((Vector((x, y, 0)) - CAMPOS).length - d0) / max(1.0, d1 - d0))); o.color = (k, k, k, 1)
     return c
 
 
@@ -347,6 +372,8 @@ mr.inputs["From Max"].default_value = 800; nt.links.new(cd.outputs["View Distanc
 
 CAMS = {   # course axes (x east, y up, z south): eye, look-at, field of view
     "west": ((-22, 7.5, 21), (-140, 6.5, 5), 46),
+    "wide": ((86, 15, -34), (-34, 13, 50), 38),          # over the inside of the course: the stand, its trees, the wooded end
+    "lawn": ((-150, 4.5, 14), (-40, 9, 44), 46),         # from beyond the post, looking back up the straight at the stand
 }
 eye, at, fov = CAMS[os.environ.get("CAM", "west")]
 cam = bpy.data.objects.new("cam", bpy.data.cameras.new("cam")); scene.collection.objects.link(cam)
@@ -382,11 +409,11 @@ want = lambda k: not ONLY or k in ONLY
 for kind in TREE_KINDS:
     if want("trees:" + kind) or (kind == "A" and any(o.startswith("turf:") for o in ONLY)) or not ONLY: build_trees(kind)
 # the trees, one kind at a time, on the soft sage turf
-set_turf("2")
+set_turf(os.environ.get("TURF", "2"))
 for kind in TREE_KINDS:
     if not want("trees:" + kind): continue
     for k, c in TREE_COLL.items(): c.hide_render = k != kind
-    shoot("trees_" + kind)
+    shoot(os.environ.get("TAG", "trees_") + kind)
 # the turf, one kind at a time, with the original trees
 for k, c in TREE_COLL.items(): c.hide_render = k != "A"
 for k in TURFS:
