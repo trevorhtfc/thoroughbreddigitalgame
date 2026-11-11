@@ -61,6 +61,18 @@ const LOOKSET = {
     crowdShade: [0.62, 0.63, 0.74],
   },
 };
+// The soft look (owner's choices in the landscape workshop, 11 Nov 2026; see claude/landscape-workshop-handover.md):
+// a low warm sun and a lot of soft sky light, a clear sky graded from straw at the horizon to pale teal overhead, a light
+// straw haze; the ground one soft brushed surface (a fine grain, and a nap of soft light and dark clouds like brushed
+// suede); the trees graded dark at the foot to light at the crown, paler and flatter with distance. No bushes.
+LOOKSET.soft = {
+  label: "Soft afternoon", brushed: 0.32, trees: true, sun: [-0.25, 0.55, -0.85],
+  sunCol: [1.2, 1.08, 0.82], ambSky: [0.52, 0.56, 0.5], ambGnd: [0.44, 0.41, 0.31],
+  gndSun: [1.04, 1.02, 0.94], gndShade: [0.6, 0.67, 0.64], litTint: [1.04, 1.02, 0.96], shadeTint: [0.92, 0.96, 0.98], rim: 0.12,
+  sky: { horizon: "#efecc6", mid: "#dde5cb", top: "#b4d4cc", glow: [0.5, 0.45, 0.3], cover: 2, edge: "#ffffff", base: "#ffffff", thick: 0 },
+  haze: [0.6, 70, 520, 0.15], hazeTop: 0.8, hazeCol: "#efecc6", hazeSun: "#f3edc6", exposure: 1.0, clouds: 0.0, catcher: ["#3a4a40", 0.36],
+  crowdShade: [0.6, 0.64, 0.62],
+};
 // The course as a model on a table: the same world under a warm lamp, cut to a board with a painted edge, standing on
 // a wooden table with the game's own cards beside it. For the moments either side of a race (the board comes alive,
 // the camera dives in; afterwards it lifts back out to the table and the cards).
@@ -345,7 +357,8 @@ const lin = (hex) => { const c = new THREE.Color(hex); return [c.r, c.g, c.b]; }
 // The ground. which: "turf" (the course's turf beyond the baked ground), "far" (plain grass), "baked" (the baked ground).
 // The ground is drawn in its own colours (no lamp on it), so here it is told where the sun reaches it.
 export function patchGround(mat, which) {
-  const heath = has("heath") && which !== "turf", turf = has("turf") && which !== "far", crowd = has("crowd"), relight = has("relight");
+  const nap = LOOK.brushed || 0;
+  const heath = has("heath") && which !== "turf" && !nap, turf = has("turf") && which !== "far" && !nap, crowd = has("crowd"), relight = has("relight");
   const lawn = (CTX.lawn || [0.5988, 0.7357, 0.4041]);
   const body = `
   { vec2 w = vUpP.xz;
@@ -388,6 +401,27 @@ export function patchGround(mat, which) {
       vec3 V = normalize(vec3(cameraPosition.x - w.x, cameraPosition.y, cameraPosition.z - w.y));
       float back = dot(normalize(-V.xz + 1e-5), normalize(upSun.xz)) * 0.5 + 0.5, graze = pow(1.0 - clamp(V.y, 0.0, 1.0), 2.0);
       diffuseColor.rgb *= mix(vec3(1.0), mix(vec3(0.93, 0.965, 1.0), vec3(1.10, 1.07, 0.90), back) * (1.0 + 0.12 * graze), onT * 0.85); }` : ""}
+    ${nap ? `{ // the brushed ground: one soft surface. A fine grain; and a nap, the pile lying this way and that after a hand has
+      // brushed it: broad soft clouds with wispy edges, finer clouds inside them, faint strokes along the brushing.
+      // On the mown turf the same, much quieter, so the lanes still show.
+      float onT = ${which === "turf" ? "1.0" : which === "far" ? "0.0" : "sm.b"};
+      // its colours: the turf a soft sage (keeping its mown lanes and the bake's shading); the rough ground inside the
+      // course a paler sage drifting to straw
+      float lum0 = dot(diffuseColor.rgb, UPLUM);
+      diffuseColor.rgb = mix(diffuseColor.rgb, ${f3(lin("#8fad79"))} * (lum0 / 0.33), 0.8 * onT);
+      ${which === "turf" ? "" : `float hm = sm.g * step(0.5, off);
+      vec3 rough = mix(${f3(lin("#a3bb8a"))}, ${f3(lin("#b9c694"))}, smoothstep(0.3, 0.7, n1));
+      diffuseColor.rgb = mix(diffuseColor.rgb, rough * clamp(lum0 / ${which === "baked" ? "0.5" : "0.33"}, 0.6, 1.12), hm);`}
+      vec2 wv = w + (texture2D(upNoise, w / 400.0).rg - 0.5) * 28.0;
+      float a = texture2D(upNoise, wv / 42.0).r, b = texture2D(upNoise, wv / 13.0 + 0.3).g;
+      float st = texture2D(upNoise, vec2(wv.x * 0.25, wv.y * 1.5) / 9.0).a;
+      float g1 = texture2D(upNoise, w / 11.0).b, g2 = texture2D(upNoise, w / 3.6 + 0.6).b;
+      float k = ${nap.toFixed(3)} * mix(0.8, 0.45, onT), gk = mix(1.0, 0.5, onT);
+      float tone = mix(1.0 - k, 1.0 + k * 0.8, smoothstep(0.34, 0.66, a));
+      tone *= 1.0 + k * 0.45 * (smoothstep(0.3, 0.7, b) * 2.0 - 1.0);
+      tone *= 1.0 + k * 0.25 * (smoothstep(0.3, 0.7, st) * 2.0 - 1.0);
+      tone *= 1.0 + gk * (0.08 * (smoothstep(0.3, 0.7, g1) * 2.0 - 1.0) + 0.06 * (smoothstep(0.3, 0.7, g2) * 2.0 - 1.0));
+      diffuseColor.rgb *= tone; }` : ""}
     ${relight ? `float upV = upVis(vec3(w.x, vUpP.y, w.y), vec3(0.0, 1.0, 0.0));` : `float upV = 1.0 - upCloud(w);`}
     ${crowd ? `{ vec2 cu = (w - upCrowdArea.xy) / (upCrowdArea.zw - upCrowdArea.xy);        // the people's shadows
       if (cu.x > 0.0 && cu.x < 1.0 && cu.y > 0.0 && cu.y < 1.0) { vec4 cs = texture2D(upCrowd, cu);
@@ -436,9 +470,21 @@ const TONE_CROWD = `
     outgoingLight = mix(outgoingLight, vec3(dot(outgoingLight, UPLUM)) * vec3(1.0, 0.985, 0.97), 0.4 * upFar);
     #endif
   }`;
+// The trees of the soft look ("C and F" in the workshop): each graded up its height, dark at the foot of the crown to
+// light at the top, keeping a little of its own leaf-to-leaf tone; then, further off, paler and flatter, in layers.
+const TREE_COL = `
+  { if (diffuseColor.g > diffuseColor.r * 1.02) {                                  // leaves, not bark
+      float upT = smoothstep(2.4, 10.6, vUpH);
+      vec3 upG = mix(${f3(lin("#3d6e58"))}, ${f3(lin("#62996a"))}, smoothstep(0.0, 0.5, upT)); upG = mix(upG, ${f3(lin("#a6cb92"))}, smoothstep(0.5, 1.0, upT));
+      diffuseColor.rgb = upG * 0.8 * clamp(dot(diffuseColor.rgb, UPLUM) / 0.27, 0.78, 1.22); } }`;
+const TREE_FAR = `
+  #ifdef USE_FOG
+  { float upFarT = smoothstep(140.0, 700.0, vFogDepth);
+    outgoingLight = mix(outgoingLight, ${f3(lin("#bfd0b4"))} * (0.62 + 0.38 * smoothstep(2.4, 10.6, vUpH)), 0.5 * upFarT); }
+  #endif`;
 export function patchLit(mat, kind = "") {
   if (mat.userData.up) return mat;
-  const relight = has("relight"), crowd = kind === "crowd" && has("crowd");
+  const relight = has("relight"), crowd = kind === "crowd" && has("crowd"), tree = kind === "tree" && LOOK.trees;
   const baked = mat.isMeshBasicMaterial;                       // baked scenery: unlit colour x Blender's light
   return chain(mat, "lit" + kind + LOOK_ID + OFF.join(""), (sh) => {
     Object.assign(sh.uniforms, U);
@@ -455,7 +501,8 @@ export function patchLit(mat, kind = "") {
         vUpN = mat3(modelMatrix) * upn; }`);
     let f = sh.fragmentShader.replace("#include <common>", "#include <common>\n" + COMMON).replace("#include <fog_fragment>", HAZE);
     if (relight && baked && mat.lightMap) f = f.replace("reflectedLight.indirectDiffuse *= diffuseColor.rgb;", TONE_BAKED + "\n reflectedLight.indirectDiffuse *= diffuseColor.rgb;");
-    if (!baked) f = f.replace("#include <opaque_fragment>", (relight ? TONE_LIT : "") + (crowd ? TONE_CROWD : "") + "\n#include <opaque_fragment>");
+    if (!baked && tree) f = f.replace("#include <color_fragment>", "#include <color_fragment>\n" + TREE_COL);
+    if (!baked) f = f.replace("#include <opaque_fragment>", (relight ? TONE_LIT : "") + (crowd ? TONE_CROWD : "") + (tree ? TREE_FAR : "") + "\n#include <opaque_fragment>");
     sh.fragmentShader = f;
   });
 }
@@ -534,7 +581,7 @@ function clump(seed, base, tip, squash = 0.85) {
 }
 export function plant({ scene, LAYERS, instanceTrees, sunOffset, dressing }) {
   site(dressing);
-  if (!has("plants") || !has("heath")) return;
+  if (!has("plants") || !has("heath") || LOOK.brushed) return;
   let s = 20261111; const rnd = () => ((s = (s * 1664525 + 1013904223) >>> 0) / 4294967296);
   // sizes in metres: w = across (a radius of about half that), h = how tall against its width
   const kinds = {
@@ -688,7 +735,7 @@ export function afterBuild({ scene, LAYERS, shadowCatcher, crowd, crowdShare = 1
       patchLit(m, kind); m.needsUpdate = true;
     }
   };
-  for (const key of ["trees", "rails", "buildings", "crowd", "stalls", "horses"]) for (const root of LAYERS[key]) root.traverse((o) => { if (o.isMesh) visit(o, key === "crowd" ? "crowd" : ""); });
+  for (const key of ["trees", "rails", "buildings", "crowd", "stalls", "horses"]) for (const root of LAYERS[key]) root.traverse((o) => { if (o.isMesh) visit(o, key === "crowd" ? "crowd" : key === "trees" ? "tree" : ""); });
 }
 
 // ---------- The board on the table ----------
