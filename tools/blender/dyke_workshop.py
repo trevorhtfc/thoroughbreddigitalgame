@@ -175,6 +175,11 @@ col = mixc(nt, col, lin("#e6dfc4"), rng(nt, chalk.outputs[0], 0, 0.75))         
 nt.links.new(col, b.inputs["Base Color"])
 bp = N_(nt, "ShaderNodeBump"); bp.inputs["Strength"].default_value = 0.6; bp.inputs["Distance"].default_value = 0.25; nt.links.new(streak, bp.inputs["Height"]); nt.links.new(bp.outputs["Normal"], b.inputs["Normal"])
 M["tex_bank"] = warm_bounce(m)
+m, nt, b = mat("soft_bank"); p, s = pos(nt); h = attr(nt, "bank_h")
+col = ramp(nt, rng(nt, h, 0, 1, 0, 5.4), [(0.0, "#8fa878"), (0.16, "#5f8562"), (0.5, "#7e9860"), (0.8, "#b1ab70"), (1.0, "#d2c68c")])
+col = mul(nt, col, grey(nt, noise(nt, p, 0.3, 2, stretch=(0.3, 1.3, 1.0)), 0.92, 1.08, 0.3, 0.7))
+col = mixc(nt, col, lin("#557c5a"), rng(nt, noise(nt, p, 0.05, 2), 0, 0.55, 0.5, 0.72))
+nt.links.new(col, b.inputs["Base Color"]); M["soft_bank"] = warm_bounce(m)
 m, nt, b = mat("rail"); b.inputs["Base Color"].default_value = lin("#f4f2ea"); M["rail"] = m
 m, nt, b = mat("bark"); b.inputs["Base Color"].default_value = lin("#7a6656"); M["bark"] = m
 
@@ -373,8 +378,51 @@ FLOWER_M = blade_material("flowers", "#7f9a6a", "#e8c85a", ["#ffffff", "#ffe9d8"
 tufts = [small("tuft_a", tuft_mesh("tuft_a", 9, 0.55, 0.035, 0.22), GRASS_M), small("tuft_b", tuft_mesh("tuft_b", 13, 0.8, 0.04, 0.3), GRASS_M),
          small("tuft_c", tuft_mesh("tuft_c", 7, 0.4, 0.03, 0.16), GRASS_M)]
 blooms = [small("bloom_a", tuft_mesh("bloom_a", 6, 0.75, 0.055, 0.12), PARSLEY_M), small("bloom_b", tuft_mesh("bloom_b", 5, 0.45, 0.05, 0.1), FLOWER_M)]
-SCATTERS = [scatter(bank, tufts, 1.7, 0.8, 1.7, 3, "bank_grass"), scatter(bank, blooms, 0.16, 0.8, 1.5, 9, "bank_bloom"),
-            scatter(verge, tufts, 2.6, 0.7, 1.4, 5, "verge_grass"), scatter(verge, blooms, 0.3, 0.8, 1.4, 11, "verge_bloom")]
+SCATTERS = {"3": [scatter(bank, tufts, 1.7, 0.8, 1.7, 3, "bank_grass"), scatter(bank, blooms, 0.16, 0.8, 1.5, 9, "bank_bloom"),
+                  scatter(verge, tufts, 2.6, 0.7, 1.4, 5, "verge_grass"), scatter(verge, blooms, 0.3, 0.8, 1.4, 11, "verge_bloom")]}
+
+
+def soften(m):
+    """Shade it as if it faced straight up, like the ground under it: no bright and dark sides to each blade or lump."""
+    nt = m.node_tree; b = nt.nodes["Principled BSDF"]; up = N_(nt, "ShaderNodeCombineXYZ"); up.inputs["Z"].default_value = 1.0
+    nrm = N_(nt, "ShaderNodeNewGeometry"); mixn = N_(nt, "ShaderNodeMix"); mixn.data_type = "VECTOR"; mixn.inputs["Factor"].default_value = 0.8
+    nt.links.new(nrm.outputs["Normal"], mixn.inputs[4]); nt.links.new(up.outputs[0], mixn.inputs[5]); nt.links.new(mixn.outputs[1], b.inputs["Normal"])
+    b.inputs["Subsurface Weight"].default_value = 0.0
+    return m
+
+
+def tussock_mesh(name, seed):
+    r = random.Random(seed); bm = bmesh.new()
+    for k in range(r.choice([2, 3, 3])):
+        rad = r.uniform(0.3, 0.5); g = bmesh.ops.create_icosphere(bm, subdivisions=2, radius=rad, matrix=Matrix.Translation((r.uniform(-0.3, 0.3), r.uniform(-0.3, 0.3), rad * 0.25)) @ Matrix.Diagonal((1.15, 1.15, 0.7, 1)))
+    for v in bm.verts: v.co.z = max(v.co.z, -0.05)
+    me = bpy.data.meshes.new(name); bm.to_mesh(me); bm.free()
+    for p_ in me.polygons: p_.use_smooth = True
+    return me
+
+
+def dots_mesh(name, seed, n, height):
+    r = random.Random(seed); bm = bmesh.new()
+    for k in range(n):
+        x, y, z = r.uniform(-0.25, 0.25), r.uniform(-0.25, 0.25), height * r.uniform(0.7, 1.1)
+        bmesh.ops.create_icosphere(bm, subdivisions=1, radius=r.uniform(0.07, 0.11), matrix=Matrix.Translation((x, y, z)))
+    me = bpy.data.meshes.new(name); bm.to_mesh(me); bm.free()
+    for p_ in me.polygons: p_.use_smooth = True
+    return me
+
+
+SOFT_GRASS = soften(blade_material("soft_grass", "#84a070", "#b6bd8a", ["#ffffff", "#f4f6e6", "#fff8e0", "#ecf2e2", "#f8eed6"]))
+SOFT_MOUND = soften(blade_material("soft_mound", "#7c9a6c", "#b3bd88", ["#ffffff", "#f2f5e2", "#fff6da", "#e8f0e0", "#f6ead2", "#eef0d0"]))
+DOT_W = soften(blade_material("dot_white", "#f4f0e4", "#f8f4ea", ["#ffffff", "#fbf6e8"])); DOT_Y = soften(blade_material("dot_colour", "#e6cc6c", "#ecd47a", ["#ffffff", "#ffe6dc", "#f0c0b0", "#ffffff"]))
+soft_tufts = [small("stuft_a", tuft_mesh("stuft_a", 6, 0.34, 0.085, 0.2), SOFT_GRASS), small("stuft_b", tuft_mesh("stuft_b", 8, 0.46, 0.1, 0.28), SOFT_GRASS)]
+mounds = [small("mound_%d" % k, tussock_mesh("mound_%d" % k, 30 + k), SOFT_MOUND) for k in range(3)]
+dots = [small("dots_w", dots_mesh("dots_w", 5, 5, 0.6), DOT_W), small("dots_y", dots_mesh("dots_y", 6, 4, 0.4), DOT_Y)]
+# (broad blades shaded like the ground came out dark and spiky where they shade each other: not used)
+# 4: mostly tussocks, with a light scatter of the fine grass between them
+SCATTERS["4"] = [scatter(bank, mounds, 0.3, 0.7, 1.5, 3, "bank_mound4"), scatter(bank, tufts, 0.4, 0.8, 1.5, 4, "bank_fine4"), scatter(bank, dots, 0.08, 0.8, 1.4, 9, "bank_dots4"),
+                 scatter(verge, mounds, 0.42, 0.6, 1.2, 5, "verge_mound4"), scatter(verge, tufts, 0.6, 0.7, 1.3, 6, "verge_fine4"), scatter(verge, dots, 0.14, 0.8, 1.3, 11, "verge_dots4")]
+SCATTERS["5"] = [scatter(bank, mounds, 0.42, 0.7, 1.5, 3, "bank_mound"), scatter(bank, dots, 0.1, 0.8, 1.4, 9, "bank_dots5"),
+                 scatter(verge, mounds, 0.6, 0.6, 1.2, 5, "verge_mound"), scatter(verge, dots, 0.18, 0.8, 1.3, 11, "verge_dots5")]
 
 # thorn scrub on the Dyke: clumps on its face and along the crest, thinner at its foot; the odd small thorn tree on top
 def patch(x, z, f): return 0.5 + 0.5 * math.sin(x * f + 1.3) * math.cos(z * f * 1.7 + x * f * 0.31)
@@ -465,11 +513,13 @@ def treat(k):
     textured = k != "1"
     land.data.materials[0] = M["tex_lawn"] if textured else M["now_lawn"]
     track.data.materials[0] = M["tex_turf"] if textured else M["now_turf"]
-    for o in BANKS: o.data.materials[0] = M["tex_bank"] if textured else M["now_bank"]
+    for o in BANKS: o.data.materials[0] = M["soft_bank"] if k in ("4", "5") else M["tex_bank"] if textured else M["now_bank"]
     verge.hide_render = not textured
     for md in (sub, dsp, dsp2): md.show_render = textured
-    for md in SCATTERS: md.show_render = k == "3"
-    FOLIAGE.hide_render = k != "3"
+    for key, mds in SCATTERS.items():
+        for md in mds: md.show_render = key == k
+    FOLIAGE.hide_render = k not in ("3", "4", "5")
+    dsp2.strength = 0.12 if k in ("4", "5") else 0.28
     TREES["now"].hide_render = textured; TREES["graded"].hide_render = not textured
 
 
@@ -490,7 +540,7 @@ def shoot(tag):
     print("tile", tag, round(time.time() - t), "s", flush=True)
 
 
-NAMES = {"1": "As it is now", "2": "Tone and texture", "3": "With low foliage"}
+NAMES = {"1": "As it is now", "2": "Tone and texture", "3": "With low foliage", "4": "Softer: tussocks with a little fine grass", "5": "Softest: rounded tussocks"}
 labels = {}
 for cname in os.environ.get("CAMS", "across,track").split(","):
     eye, at, fov = CAMS[cname]; e, a = B(eye[0], eye[2], eye[1] + ground_y(eye[0], eye[2])), B(at[0], at[2], at[1] + ground_y(at[0], at[2]))
