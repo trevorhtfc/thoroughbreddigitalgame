@@ -258,6 +258,27 @@ def side_dir(dn, r, lo=40, hi=65, lift=0.15):
     v = dn * math.cos(a) + perp * math.sin(a); v.z = v.z * 0.6 + lift; return v.normalized()
 
 
+def tube_mesh(parts):
+    """Plain wood for the game: each branch a tube of a few sides and a few rings (owner, 11 Nov: "we rarely see trunks so
+    they could become much more simple"). parts: [(points, radii, sides)]."""
+    verts, faces = [], []
+    for pts, rad, sides in parts:
+        u = None; base = len(verts)
+        for i, p_ in enumerate(pts):
+            dn = (pts[min(i + 1, len(pts) - 1)] - pts[max(i - 1, 0)]).normalized()
+            u = dn.cross(Vector((0, 0, 1)) if abs(dn.z) < 0.9 else Vector((1, 0, 0))).normalized() if u is None else (u - dn * u.dot(dn)).normalized()
+            v = dn.cross(u)
+            for k in range(sides): a = k * 6.283185 / sides; verts.append(p_ + (u * math.cos(a) + v * math.sin(a)) * rad[i])
+        for i in range(len(pts) - 1):
+            for k in range(sides):
+                a0, a1 = base + i * sides + k, base + i * sides + (k + 1) % sides; faces.append((a0, a1, a1 + sides, a0 + sides))
+    me = bpy.data.meshes.new("wood"); me.from_pydata(verts, [], faces); me.validate()
+    return me
+
+
+def tris(me): me.calc_loop_triangles(); return len(me.loop_triangles)
+
+
 _real = {}
 def real_tree(seed, mode="leaves"):
     if (seed, mode) in _real: return _real[(seed, mode)]
@@ -287,12 +308,21 @@ def real_tree(seed, mode="leaves"):
     for m in range(10): spray(trunk[-1] + Vector((0, 0, r.uniform(-0.6, 0.5))), r.uniform(0.7, 1.0))
     ends.append((trunk[-1], 1.8))
     # the wood: one curve, a spline for every branch (the simpler foliage hides no twigs, so they are left off)
-    cu = bpy.data.curves.new("wood", "CURVE"); cu.dimensions = "3D"; cu.bevel_depth = 1.0; cu.bevel_resolution = 1; cu.use_fill_caps = True
-    for pts, rad, level in splines:
-        if level == 3 and mode in ("fluffy", "masses"): continue
-        sp = cu.splines.new("POLY"); sp.points.add(len(pts) - 1)
-        for pt, p_, rd in zip(sp.points, pts, rad): pt.co = (p_.x, p_.y, p_.z, 1.0); pt.radius = rd
-    wood_me = baked(bpy.data.objects.new("wood", cu)); wood_me.materials.append(BARK)
+    light = mode in ("fluffy_l", "fluffy_xl")
+    if light:       # plain wood: the trunk and boughs as a few-sided tubes, the smaller branches as three-sided sticks (or left out)
+        pick = lambda seq, idx: [seq[i] for i in idx]; parts = []
+        for pts, rad, level in splines:
+            if level == 0: parts.append((pts, rad, 6) if mode == "fluffy_l" else (pick(pts, (0, 2, 4, 6, 8, 10)), pick(rad, (0, 2, 4, 6, 8, 10)), 5))
+            elif level == 1: parts.append((pick(pts, (0, 2, 5, 7)), pick(rad, (0, 2, 5, 7)), 4) if mode == "fluffy_l" else (pick(pts, (0, 3, 7)), pick(rad, (0, 3, 7)), 3))
+            elif level == 2 and mode == "fluffy_l": parts.append((pick(pts, (0, 3, 5)), pick(rad, (0, 3, 5)), 3))
+        wood_me = tube_mesh(parts); wood_me.materials.append(BARK)
+    else:
+        cu = bpy.data.curves.new("wood", "CURVE"); cu.dimensions = "3D"; cu.bevel_depth = 1.0; cu.bevel_resolution = 1; cu.use_fill_caps = True
+        for pts, rad, level in splines:
+            if level == 3 and mode in ("fluffy", "masses"): continue
+            sp = cu.splines.new("POLY"); sp.points.add(len(pts) - 1)
+            for pt, p_, rd in zip(sp.points, pts, rad): pt.co = (p_.x, p_.y, p_.z, 1.0); pt.radius = rd
+        wood_me = baked(bpy.data.objects.new("wood", cu)); wood_me.materials.append(BARK)
     for pl in wood_me.polygons: pl.use_smooth = True
     if mode == "masses":
         masses = [(c + Vector((r.uniform(-1, 1), r.uniform(-1, 1), r.uniform(-0.3, 0.6))) * 0.25, min(max(0.42 + 0.2 * L2 * r.uniform(0.8, 1.2), 0.5), 1.05), r.uniform(0.6, 0.8)) for c, L2 in ends]
@@ -300,16 +330,17 @@ def real_tree(seed, mode="leaves"):
         print("real tree", seed, mode, "masses", len(masses), "crown tris", len(crown_me.polygons), flush=True)
         _real[(seed, mode)] = (bpy.data.objects.new("crown", crown_me), bpy.data.objects.new("wood", wood_me)); return _real[(seed, mode)]
     if mode == "bold": cards = [(c, sz * 1.9) for c, sz in cards if r.random() < 0.3]
-    if mode == "fluffy":
-        cards = []
+    if mode.startswith("fluffy"):
+        # lighter still: fewer clumps, each larger, so the crown keeps its cover (half as many, then a quarter)
+        per, grow_k = {"fluffy": (3.0, 1.0), "fluffy_l": (1.5, 1.3), "fluffy_xl": (0.75, 1.7)}[mode]; cards = []
         for c, L2 in ends:
-            for k in range(3): cards.append((c + Vector((r.uniform(-1, 1), r.uniform(-1, 1), r.uniform(-0.6, 0.8))) * 0.45, min(1.05 + 0.3 * L2, 1.9) * r.uniform(0.85, 1.15)))
+            for k in range(int(per) + (1 if r.random() < per - int(per) else 0)): cards.append((c + Vector((r.uniform(-1, 1), r.uniform(-1, 1), r.uniform(-0.6, 0.8))) * 0.45, min(1.05 + 0.3 * L2, 1.9) * r.uniform(0.85, 1.15) * grow_k))
     # the leaves: a card for every spray, facing mostly up and out, lit as part of a rounded crown (so the tree shades as
     # a whole, soft, and does not glitter)
     verts, faces, uvs, tones, nrm = [], [], [], [], []
     for ci, (c, size) in enumerate(cards):
         out = Vector((c.x, c.y, (c.z - H * 0.55) * 0.5)); out = out.normalized() if out.length > 1e-3 else Vector((0, 0, 1))
-        if mode == "fluffy":        # clumps: one in three turned out towards whoever looks at the tree, the rest lying every way
+        if mode.startswith("fluffy"):        # clumps: one in three turned out towards whoever looks at the tree, the rest lying every way
             n = ((Vector((out.x, out.y, 0.25)) if ci % 3 == 0 else Vector((r.uniform(-1, 1), r.uniform(-1, 1), abs(r.uniform(-1, 1)) + 0.3))) + Vector((r.uniform(-1, 1), r.uniform(-1, 1), r.uniform(-1, 1))) * 0.3).normalized()
         else: n = Vector((r.uniform(-1, 1), r.uniform(-1, 1), abs(r.uniform(-1, 1)) + 0.35)).normalized()
         tg = n.cross(Vector((r.uniform(-1, 1), r.uniform(-1, 1), r.uniform(-1, 1)))).normalized(); bt = n.cross(tg)
@@ -322,8 +353,8 @@ def real_tree(seed, mode="leaves"):
     for li, loop in enumerate(me.loops): uvl.data[li].uv = uvs[loop.vertex_index]
     at_ = me.attributes.new("tone", "FLOAT", "POINT"); at_.data.foreach_set("value", tones)
     for pl in me.polygons: pl.use_smooth = True
-    me.normals_split_custom_set_from_vertices([tuple(v) for v in nrm]); me.materials.append(CARDS[mode])
-    print("real tree", seed, mode, "cards", len(cards), "wood tris", len(wood_me.polygons), flush=True)
+    me.normals_split_custom_set_from_vertices([tuple(v) for v in nrm]); me.materials.append(CARDS[mode.split("_")[0]])
+    print("real tree", seed, mode, "cards", len(cards), "leaf tris", len(cards) * 2, "wood tris", tris(wood_me), "total", len(cards) * 2 + tris(wood_me), flush=True)
     _real[(seed, mode)] = (bpy.data.objects.new("crown", me), bpy.data.objects.new("wood", wood_me)); return _real[(seed, mode)]
 
 
@@ -353,6 +384,8 @@ KINDS = {
     "H": ("Halfway 1: fewer, bolder leaves", "real:bold"),
     "I": ("Halfway 2: loose clumps of foliage", "real:fluffy"),
     "J": ("Halfway 3: small solid masses", "real:masses"),
+    "K": ("Loose clumps, lighter", "real:fluffy_l"),
+    "L": ("Loose clumps, lightest", "real:fluffy_xl"),
     "A": ("As now: one merged crown", "kit"),
     "B": ("Full boughs: big masses of leaf on limbs", "full"),
     "C": ("Open boughs: separate masses, more sky", "open"),
