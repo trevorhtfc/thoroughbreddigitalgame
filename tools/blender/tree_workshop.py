@@ -280,9 +280,11 @@ def tris(me): me.calc_loop_triangles(); return len(me.loop_triangles)
 
 
 _real = {}
-def real_tree(seed, mode="leaves"):
-    if (seed, mode) in _real: return _real[(seed, mode)]
-    r = random.Random(seed * 977 + 13); H = r.uniform(15.5, 18.5); splines = []; cards = []; ends = []
+SHAPES = {"std": (1.0, 1.0, 0.0), "wide": (0.86, 1.4, -5.0), "tall": (1.14, 0.48, 24.0)}      # height, reach of the boughs, how steeply they rise (degrees more)
+def real_tree(seed, mode="leaves", shape="std"):
+    if (seed, mode, shape) in _real: return _real[(seed, mode, shape)]
+    kH, kL, kE = SHAPES[shape]
+    r = random.Random(seed * 977 + 13); H = r.uniform(15.5, 18.5) * kH; splines = []; cards = []; ends = []
     wx, wy = r.uniform(-0.5, 0.5), r.uniform(-0.5, 0.5)
     trunk = [Vector((wx * math.sin(t * 2.6), wy * math.sin(t * 3.4 + 1), H * t - 0.3)) for t in [i / 10 for i in range(11)]]
     splines.append((trunk, [0.44 * (1 - t) ** 0.85 + 0.035 for t in [i / 10 for i in range(11)]], 0))
@@ -291,8 +293,8 @@ def real_tree(seed, mode="leaves"):
     nb = r.choice((17, 19, 21)); a = r.uniform(0, 6.283)
     for i in range(nb):
         f = i / (nb - 1); t = 0.27 + 0.71 * f ** 0.92 + r.uniform(-0.012, 0.012); base, _ = along(trunk, min(t, 0.985)); a += 2.39996 + r.uniform(-0.45, 0.45)
-        L = H * 0.34 * (0.5 + 0.5 * math.sin(math.pi * (0.12 + 0.8 * f))) * (1 - 0.5 * f ** 2) * r.uniform(0.7, 1.2) + 0.9
-        el = math.radians(r.uniform(6, 26) + 34 * f); d = Vector((math.cos(a) * math.cos(el), math.sin(a) * math.cos(el), math.sin(el)))
+        L = (H / kH * 0.34 * (0.5 + 0.5 * math.sin(math.pi * (0.12 + 0.8 * f))) * (1 - 0.5 * f ** 2) * r.uniform(0.7, 1.2) + 0.9) * kL
+        el = math.radians(r.uniform(6, 26) + 34 * f + kE); d = Vector((math.cos(a) * math.cos(el), math.sin(a) * math.cos(el), math.sin(el)))
         P, R1 = grow(base, d, L, 0.05 + 0.1 * (1 - f), 0.022, 7, r.uniform(0.07, 0.17), r); splines.append((P, R1, 1))
         for j in range(int(L * 1.15) + 2):                                     # boughs divide
             u = r.uniform(0.28, 1.0); q, dn = along(P, u); L2 = L * r.uniform(0.3, 0.5) * (1.15 - 0.5 * u) + 0.5
@@ -308,7 +310,7 @@ def real_tree(seed, mode="leaves"):
     for m in range(10): spray(trunk[-1] + Vector((0, 0, r.uniform(-0.6, 0.5))), r.uniform(0.7, 1.0))
     ends.append((trunk[-1], 1.8))
     # the wood: one curve, a spline for every branch (the simpler foliage hides no twigs, so they are left off)
-    light = mode in ("fluffy_l", "fluffy_xl")
+    light = mode in ("fluffy_l", "fluffy_xl", "fluffy_far")
     if light:       # plain wood: the trunk and boughs as a few-sided tubes, the smaller branches as three-sided sticks (or left out)
         pick = lambda seq, idx: [seq[i] for i in idx]; parts = []
         for pts, rad, level in splines:
@@ -328,11 +330,11 @@ def real_tree(seed, mode="leaves"):
         masses = [(c + Vector((r.uniform(-1, 1), r.uniform(-1, 1), r.uniform(-0.3, 0.6))) * 0.25, min(max(0.42 + 0.2 * L2 * r.uniform(0.8, 1.2), 0.5), 1.05), r.uniform(0.6, 0.8)) for c, L2 in ends]
         crown_me = joined("crown", [leaf_mass(c, R, fl, r, cell=0.42) for c, R, fl in masses], LEAF, [r.random() for _ in masses])
         print("real tree", seed, mode, "masses", len(masses), "crown tris", len(crown_me.polygons), flush=True)
-        _real[(seed, mode)] = (bpy.data.objects.new("crown", crown_me), bpy.data.objects.new("wood", wood_me)); return _real[(seed, mode)]
+        _real[(seed, mode, shape)] = (bpy.data.objects.new("crown", crown_me), bpy.data.objects.new("wood", wood_me)); return _real[(seed, mode, shape)]
     if mode == "bold": cards = [(c, sz * 1.9) for c, sz in cards if r.random() < 0.3]
     if mode.startswith("fluffy"):
         # lighter still: fewer clumps, each larger, so the crown keeps its cover (half as many, then a quarter)
-        per, grow_k = {"fluffy": (3.0, 1.0), "fluffy_l": (1.5, 1.3), "fluffy_xl": (0.75, 1.7)}[mode]; cards = []
+        per, grow_k = {"fluffy": (3.0, 1.0), "fluffy_l": (1.5, 1.3), "fluffy_xl": (0.75, 1.7), "fluffy_far": (0.36, 2.3)}[mode]; cards = []
         for c, L2 in ends:
             for k in range(int(per) + (1 if r.random() < per - int(per) else 0)): cards.append((c + Vector((r.uniform(-1, 1), r.uniform(-1, 1), r.uniform(-0.6, 0.8))) * 0.45, min(1.05 + 0.3 * L2, 1.9) * r.uniform(0.85, 1.15) * grow_k))
     # the leaves: a card for every spray, facing mostly up and out, lit as part of a rounded crown (so the tree shades as
@@ -355,7 +357,7 @@ def real_tree(seed, mode="leaves"):
     for pl in me.polygons: pl.use_smooth = True
     me.normals_split_custom_set_from_vertices([tuple(v) for v in nrm]); me.materials.append(CARDS[mode.split("_")[0]])
     print("real tree", seed, mode, "cards", len(cards), "leaf tris", len(cards) * 2, "wood tris", tris(wood_me), "total", len(cards) * 2 + tris(wood_me), flush=True)
-    _real[(seed, mode)] = (bpy.data.objects.new("crown", me), bpy.data.objects.new("wood", wood_me)); return _real[(seed, mode)]
+    _real[(seed, mode, shape)] = (bpy.data.objects.new("crown", me), bpy.data.objects.new("wood", wood_me)); return _real[(seed, mode, shape)]
 
 
 def card_material(name, image_path):

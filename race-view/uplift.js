@@ -517,6 +517,23 @@ export function patchLit(mat, kind = "") {
   });
 }
 
+// ---------- The soft look's trees ----------
+// Trees built as trees (tools/blender/tree_workshop.py, export_soft_trees.py): the crown is a couple of hundred flat
+// cards, each carrying a cut-out picture of a clump of leaves, hung along the boughs. They are drawn with that picture
+// (anything clearer than its edge is left out), and are otherwise the trees' usual material, so the grading by
+// height, the form and the haze all apply.
+let CARD_MAT = null;
+export function treeMaterial(geo, base, treeMat, under) {
+  if (!LOOK.trees || under || !/_crown/.test(base) || !geo.attributes.uv || !geo.attributes.color || geo.attributes.position.count % 8 !== 0 || !geo.userData.cards && !isCards(geo)) return null;
+  if (!CARD_MAT) {
+    const tex = new THREE.TextureLoader().load("assets/trees/leaf_clumps.png"); tex.colorSpace = THREE.SRGBColorSpace; tex.anisotropy = 4; tex.flipY = false;
+    CARD_MAT = new THREE.MeshLambertMaterial({ vertexColors: true, map: tex, alphaTest: 0.4 }); CARD_MAT.userData.leafCards = true;
+  }
+  return CARD_MAT;
+}
+// the card crowns are told from the old solid ones by their vertex colours: a card's are grey
+function isCards(geo) { const c = geo.attributes.color; geo.userData.cards = Math.abs(c.getX(0) - c.getY(0)) < 0.01 && Math.abs(c.getY(0) - c.getZ(0)) < 0.01; return geo.userData.cards; }
+
 // ---------- Thinning the belts ----------
 // Owner, 11 Nov, with a television still of Ascot's real trees: "thin them out a bit at upper levels... they're so
 // flumpy at the moment... keep a visual block beyond the track... at upper levels more fragmented and varied to allow
@@ -530,7 +547,7 @@ export function thinBelt(t) {
   if (!LOOK.trees || !has("thin") || !t.belt || t.scrub) return true;
   const h = (k) => { const x = Math.sin(t.x * 12.9898 * k + t.z * 78.233) * 43758.5453; return x - Math.floor(x); };
   const group = noiseAt(0, t.x / 170 + 0.3, t.z / 170 + 0.7) * 0.65 + h(1.3) * 0.35;      // groups about 40 m across
-  if (group < Number(q.get("thin") || 0.5)) return false;
+  if (group < Number(q.get("thin") || 0.3)) return false;      // (0.5 for the old solid crowns; the new trees are airy in themselves)
   t.s *= 0.82 + 0.5 * h(2.7); t.sy = (t.sy || 1) * (0.9 + 0.4 * h(4.1));
   return true;
 }
@@ -756,7 +773,7 @@ export function afterBuild({ scene, LAYERS, shadowCatcher, crowd, crowdShare = 1
   }
   const seen = new Set();
   // the trees themselves, not the boards and hedge that share their layer
-  const isTree = (o) => { const m = Array.isArray(o.material) ? o.material[0] : o.material; return !!(o.isInstancedMesh && m && m.vertexColors && !m.map); };
+  const isTree = (o) => { const m = Array.isArray(o.material) ? o.material[0] : o.material; return !!(o.isInstancedMesh && m && m.vertexColors && (!m.map || m.userData.leafCards)); };
   const visit = (o, kind) => {
     const mats = Array.isArray(o.material) ? o.material : [o.material];
     for (const m of mats) {
