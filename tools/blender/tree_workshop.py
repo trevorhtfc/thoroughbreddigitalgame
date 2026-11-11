@@ -178,7 +178,119 @@ def tree_column(r):
     return wood, masses
 
 
+# ---------------- G: built like a real tree (owner, 11 Nov, with a picture of a tall, fine-leaved tree: "what we really
+# want is this but I don't know if this is possible"). A trunk; a score of boughs spiralling up it, long low down and
+# short at the top; each bough branching twice more into twigs; and on the twigs thousands of small sprays of leaves,
+# each a flat card carrying a cut-out picture of a dozen leaves (how games draw foliage: the card is two triangles, the
+# picture does the work). The sprays follow the branches, so the crown has the tree's own ragged shape and the sky
+# shows through it. Colours grade up the crown as before.
+def leaf_atlas(path):
+    from PIL import Image, ImageDraw
+    r = random.Random(3); T = 256; im = Image.new("RGBA", (T * 2, T * 2), (150, 170, 120, 0)); dr = ImageDraw.Draw(im)
+    def leaf(cx, cy, ang, L, Wd, tone):
+        pts = []
+        for k in range(13):
+            t = k / 12; w = math.sin(math.pi * t) ** 0.8 * (1 - 0.35 * t) * Wd; pts.append((t * L, w))
+        pts += [(x, -y) for x, y in reversed(pts)]
+        ca, sa = math.cos(ang), math.sin(ang); poly = [(cx + x * ca - y * sa, cy + x * sa + y * ca) for x, y in pts]
+        g = int(205 * tone); dr.polygon(poly, fill=(int(g * 0.93), g, int(g * 0.86), 255))
+        dr.line([(cx, cy), (cx + L * 0.9 * ca, cy + L * 0.9 * sa)], fill=(int(g * 0.8), int(g * 0.86), int(g * 0.72), 255), width=2)
+    for ty in range(2):
+        for tx in range(2):
+            ox, oy = tx * T, ty * T; n = r.choice((9, 10, 12)); bendk = r.uniform(-0.35, 0.35)
+            stem = [(ox + T * 0.5 + bendk * T * 0.3 * (k / n) ** 2 * (1 if tx else -1), oy + T * 0.94 - (k / n) * T * 0.8) for k in range(n + 1)]
+            dr.line(stem, fill=(120, 112, 92, 255), width=3)
+            for k in range(1, n + 1):
+                x, y = stem[k]; side = 1 if k % 2 else -1; ang = -math.pi / 2 + side * r.uniform(0.6, 1.25) + r.uniform(-0.15, 0.15)
+                if k == n: ang = -math.pi / 2 + r.uniform(-0.3, 0.3)
+                leaf(x, y, ang, r.uniform(62, 88) * (1.0 - 0.25 * k / n), r.uniform(17, 24), r.uniform(0.8, 1.12))
+    im.save(path); return path
+
+
+def grow(start, d, L, r0, r1, segs, curl, r, wander=0.16):
+    pts, rad = [start.copy()], [r0]; p = start.copy(); dn = d.normalized()
+    for i in range(1, segs + 1):
+        t = i / segs; dn = (dn + Vector((r.uniform(-1, 1), r.uniform(-1, 1), r.uniform(-1, 1))) * wander + Vector((0, 0, curl * t ** 1.5))).normalized()
+        p = p + dn * (L / segs); pts.append(p.copy()); rad.append(r0 + (r1 - r0) * t)
+    return pts, rad
+
+
+def along(pts, t):
+    x = t * (len(pts) - 1); i = min(int(x), len(pts) - 2); return pts[i].lerp(pts[i + 1], x - i), (pts[i + 1] - pts[i]).normalized()
+
+
+def side_dir(dn, r, lo=40, hi=65, lift=0.15):
+    perp = dn.cross(Vector((r.uniform(-1, 1), r.uniform(-1, 1), r.uniform(-1, 1)))).normalized(); a = math.radians(r.uniform(lo, hi))
+    v = dn * math.cos(a) + perp * math.sin(a); v.z = v.z * 0.6 + lift; return v.normalized()
+
+
+_real = {}
+def real_tree(seed):
+    if seed in _real: return _real[seed]
+    r = random.Random(seed * 977 + 13); H = r.uniform(15.5, 18.5); splines = []; cards = []
+    wx, wy = r.uniform(-0.5, 0.5), r.uniform(-0.5, 0.5)
+    trunk = [Vector((wx * math.sin(t * 2.6), wy * math.sin(t * 3.4 + 1), H * t - 0.3)) for t in [i / 10 for i in range(11)]]
+    splines.append((trunk, [0.44 * (1 - t) ** 0.85 + 0.035 for t in [i / 10 for i in range(11)]]))
+    def spray(p, size=None):
+        cards.append((p + Vector((r.uniform(-1, 1), r.uniform(-1, 1), r.uniform(-0.7, 0.7))) * 0.24, size or r.uniform(0.6, 1.0)))
+    nb = r.choice((17, 19, 21)); a = r.uniform(0, 6.283)
+    for i in range(nb):
+        f = i / (nb - 1); t = 0.27 + 0.71 * f ** 0.92 + r.uniform(-0.012, 0.012); base, _ = along(trunk, min(t, 0.985)); a += 2.39996 + r.uniform(-0.45, 0.45)
+        L = H * 0.34 * (0.5 + 0.5 * math.sin(math.pi * (0.12 + 0.8 * f))) * (1 - 0.5 * f ** 2) * r.uniform(0.7, 1.2) + 0.9
+        el = math.radians(r.uniform(6, 26) + 34 * f); d = Vector((math.cos(a) * math.cos(el), math.sin(a) * math.cos(el), math.sin(el)))
+        P, R1 = grow(base, d, L, 0.05 + 0.1 * (1 - f), 0.022, 7, r.uniform(0.07, 0.17), r); splines.append((P, R1))
+        for j in range(int(L * 1.15) + 2):                                     # boughs divide
+            u = r.uniform(0.28, 1.0); q, dn = along(P, u); L2 = L * r.uniform(0.3, 0.5) * (1.15 - 0.5 * u) + 0.5
+            S, R2 = grow(q, side_dir(dn, r), L2, 0.04, 0.014, 5, r.uniform(0.05, 0.12), r); splines.append((S, R2))
+            for k in range(r.choice((4, 5, 5))):                                # and again, into twigs that carry the leaves
+                v = r.uniform(0.25, 1.0); q2, dn2 = along(S, v); L3 = r.uniform(0.7, 1.4)
+                Tw, R3 = grow(q2, side_dir(dn2, r, 30, 70, 0.1), L3, 0.016, 0.008, 3, 0.05, r, 0.22); splines.append((Tw, R3))
+                for m in range(int(L3 / 0.15)): spray(along(Tw, r.uniform(0.15, 1.0))[0])
+            for m in range(int(L2 / 0.32)): spray(along(S, r.uniform(0.45, 1.0))[0])
+        spray(P[-1], 1.0)
+    for m in range(10): spray(trunk[-1] + Vector((0, 0, r.uniform(-0.6, 0.5))), r.uniform(0.7, 1.0))
+    # the wood: one curve, a spline for every branch
+    cu = bpy.data.curves.new("wood", "CURVE"); cu.dimensions = "3D"; cu.bevel_depth = 1.0; cu.bevel_resolution = 1; cu.use_fill_caps = True
+    for pts, rad in splines:
+        sp = cu.splines.new("POLY"); sp.points.add(len(pts) - 1)
+        for pt, p_, rd in zip(sp.points, pts, rad): pt.co = (p_.x, p_.y, p_.z, 1.0); pt.radius = rd
+    wood_me = baked(bpy.data.objects.new("wood", cu)); wood_me.materials.append(BARK)
+    for pl in wood_me.polygons: pl.use_smooth = True
+    # the leaves: a card for every spray, facing mostly up and out, lit as part of a rounded crown (so the tree shades as
+    # a whole, soft, and does not glitter)
+    verts, faces, uvs, tones, nrm = [], [], [], [], []
+    for c, size in cards:
+        n = Vector((r.uniform(-1, 1), r.uniform(-1, 1), abs(r.uniform(-1, 1)) + 0.35)).normalized(); tg = n.cross(Vector((r.uniform(-1, 1), r.uniform(-1, 1), r.uniform(-1, 1)))).normalized(); bt = n.cross(tg)
+        i0 = len(verts); h = size * 0.5; verts += [c - tg * h - bt * h, c + tg * h - bt * h, c + tg * h + bt * h, c - tg * h + bt * h]; faces.append((i0, i0 + 1, i0 + 2, i0 + 3))
+        tx, ty = r.choice((0, 1)), r.choice((0, 1)); uvs += [(tx * 0.5, ty * 0.5), (tx * 0.5 + 0.5, ty * 0.5), (tx * 0.5 + 0.5, ty * 0.5 + 0.5), (tx * 0.5, ty * 0.5 + 0.5)]
+        tone = r.random(); tones += [tone] * 4
+        out = Vector((c.x, c.y, (c.z - H * 0.55) * 0.5)); out = out.normalized() if out.length > 1e-3 else Vector((0, 0, 1)); nn = (out * 0.6 + Vector((0, 0, 0.3)) + n * 0.25).normalized(); nrm += [nn] * 4
+    me = bpy.data.meshes.new("leaves"); me.from_pydata(verts, [], faces)
+    uvl = me.uv_layers.new(name="UVMap")
+    for li, loop in enumerate(me.loops): uvl.data[li].uv = uvs[loop.vertex_index]
+    at_ = me.attributes.new("tone", "FLOAT", "POINT"); at_.data.foreach_set("value", tones)
+    for pl in me.polygons: pl.use_smooth = True
+    me.normals_split_custom_set_from_vertices([tuple(v) for v in nrm]); me.materials.append(CARD)
+    print("real tree", seed, "cards", len(cards), "branches", len(splines), "wood tris", len(wood_me.polygons), flush=True)
+    _real[seed] = (bpy.data.objects.new("crown", me), bpy.data.objects.new("wood", wood_me)); return _real[seed]
+
+
+m, nt, b = mat("leafcard"); CARD = m
+img = bpy.data.images.load(leaf_atlas(os.path.join(OUTDIR, "leaf_atlas.png"))); tex = N_(nt, "ShaderNodeTexImage"); tex.image = img
+tc = N_(nt, "ShaderNodeTexCoord"); sz = N_(nt, "ShaderNodeSeparateXYZ"); nt.links.new(tc.outputs["Generated"], sz.inputs[0])
+rampn = N_(nt, "ShaderNodeValToRGB"); els = rampn.color_ramp.elements
+els[0].position = 0.0; els[0].color = lin("#35604a"); els[1].position = 1.0; els[1].color = lin("#b4cc88"); e = els.new(0.5); e.color = lin("#6a9862")
+nt.links.new(sz.outputs["Z"], rampn.inputs[0])
+col = mul(nt, rampn.outputs[0], tex.outputs["Color"]); col = mul(nt, col, (1.35, 1.35, 1.35, 1.0))
+at = N_(nt, "ShaderNodeAttribute"); at.attribute_name = "tone"; col = mul(nt, col, grey(nt, at.outputs["Fac"], 0.8, 1.2))
+nt.links.new(col, b.inputs["Base Color"])
+tr = N_(nt, "ShaderNodeBsdfTranslucent"); nt.links.new(col, tr.inputs["Color"]); mx = N_(nt, "ShaderNodeMixShader"); mx.inputs["Fac"].default_value = 0.3
+tp = N_(nt, "ShaderNodeBsdfTransparent"); mx2 = N_(nt, "ShaderNodeMixShader"); outn = nt.nodes["Material Output"]
+nt.links.new(b.outputs[0], mx.inputs[1]); nt.links.new(tr.outputs[0], mx.inputs[2]); nt.links.new(tex.outputs["Alpha"], mx2.inputs["Fac"]); nt.links.new(tp.outputs[0], mx2.inputs[1]); nt.links.new(mx.outputs[0], mx2.inputs[2])
+nt.links.new(mx2.outputs[0], outn.inputs["Surface"])
+
 KINDS = {
+    "G": ("Built like a real tree: branches, twigs, sprays of leaves", "real"),
     "A": ("As now: one merged crown", "kit"),
     "B": ("Full boughs: big masses of leaf on limbs", "full"),
     "C": ("Open boughs: separate masses, more sky", "open"),
@@ -191,6 +303,7 @@ _made = {}
 def build(kind, seed):
     """One tree model (two objects: crown, wood), made once per kind and seed."""
     key = (kind, seed)
+    if kind == "real": return real_tree(seed)
     if key in _made: return _made[key]
     r = random.Random(seed * 131 + 7); wood, masses = BUILD[kind](r)
     masses = [(Vector((c.x, c.y, max(c.z, 3.4))), R, fl) for c, R, fl in masses]              # no foliage down at the foot of the trunk
@@ -242,6 +355,7 @@ wl.new(wr.outputs[0], wn["Background"].inputs[0]); wn["Background"].inputs[1].de
 sun_d = bpy.data.lights.new("sun", "SUN"); sun_d.energy = 7.0; sun_d.angle = math.radians(9); sun_d.color = (1.0, 0.92, 0.7); sun = link(bpy.data.objects.new("sun", sun_d))
 d = Vector((-0.55, -0.6, 0.55)).normalized(); sun.rotation_euler = (-d).to_track_quat("-Z", "Y").to_euler()
 
+scene.cycles.transparent_max_bounces = 24
 scene.render.engine = "CYCLES"; scene.cycles.samples = SAMPLES; scene.cycles.use_denoising = True; scene.cycles.max_bounces = 6; scene.cycles.device = "CPU"
 scene.view_settings.view_transform = "AgX"
 try: scene.view_settings.look = "AgX - Base Contrast"
@@ -258,7 +372,9 @@ HAZE = os.environ.get("HAZEARGS", "70 520 0.6 #efecc6 #b4d4cc").split()
 
 def shoot(tag):
     base_path = os.path.join(OUTDIR, tag); scene.render.filepath = base_path + "_raw.png"; scene.render.image_settings.color_depth = "8"
+    scene.render.film_transparent = True; scene.render.image_settings.color_mode = "RGBA"          # its own outline, leaf by leaf: the sky goes in behind afterwards
     t = time.time(); bpy.ops.render.render(write_still=True)
+    scene.render.film_transparent = False; scene.render.image_settings.color_mode = "RGB"
     vl = scene.view_layers[0]; keep = (scene.cycles.samples, scene.view_settings.view_transform, scene.view_settings.look, wn["Background"].inputs[1].default_value)
     vl.material_override = dm; scene.cycles.samples = 6; scene.cycles.use_denoising = False; scene.view_settings.view_transform = "Raw"; scene.view_settings.look = "None"
     links = [(l.from_socket, l.to_socket) for l in wl if l.to_socket == wn["Background"].inputs[0]]
@@ -277,12 +393,15 @@ def shoot(tag):
 r0 = random.Random(5)
 NEAR = [(-21, 2, 1.05), (-9, 7, 0.9), (4, 1, 1.12), (17, 6, 0.95), (29, 3, 1.0)]
 FAR = [(-150 + i * 13 + r0.uniform(-3, 3), 95 + r0.uniform(-8, 14), r0.uniform(0.85, 1.2)) for i in range(26) if r0.random() < 0.78]
+if os.environ.get("PORTRAIT"):
+    NEAR, FAR = [(0, 0, 1.0)], []
+    e, a = Vector((2, -30, 2.0)), Vector((0, 0, 8.6)); cam.location = e; cam.rotation_euler = (a - e).to_track_quat("-Z", "Y").to_euler(); cam.data.angle_y = math.radians(40)
 labels = {}
 for k, (label, _) in KINDS.items():
     if ONLY and k not in ONLY: continue
     coll = bpy.data.collections.new("trees_" + k); scene.collection.children.link(coll); rk = random.Random(11)
-    for i, (x, y, s) in enumerate(NEAR + FAR): place(coll, k, i, x, y, s, rk.uniform(0, 6.283))
-    shoot("tree_" + k); labels["tree_" + k] = label
+    for i, (x, y, s) in enumerate(NEAR + FAR): place(coll, k, i + int(os.environ.get("SEED", "0")), x, y, s, rk.uniform(0, 6.283))
+    shoot(("portrait_" if os.environ.get("PORTRAIT") else "tree_") + k); labels["tree_" + k] = label
     coll.hide_render = True
 json.dump(labels, open(os.path.join(OUTDIR, "labels.json"), "w"))
 print("TOTAL", round(time.time() - T0), "s", flush=True)
