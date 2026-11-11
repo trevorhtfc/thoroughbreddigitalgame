@@ -42,7 +42,9 @@ button{font:inherit;cursor:pointer;color:inherit}
 .steps .st.current{color:#fff}
 .steps .st.current b{background:var(--tb-gold);border-color:var(--tb-gold-lt);color:#2a210b;box-shadow:0 0 0 3px rgba(232,207,142,.25)}
 .stats{display:flex;align-items:center;gap:4px;font-size:14.5px;white-space:nowrap}
-.stats > span{display:flex;align-items:center;gap:7px;padding:0 12px;border-left:1px solid rgba(242,238,231,.26)}
+.stats > span,.stats > .t-money{display:flex;align-items:center;gap:7px;padding:0 12px;border-left:1px solid rgba(242,238,231,.26)}
+.stats > .t-money{background:none;border-top:0;border-right:0;border-bottom:0;color:inherit;font:inherit;cursor:pointer;height:100%}
+.stats > .t-money:hover em,.stats > .t-money:focus-visible em{text-decoration:underline;text-underline-offset:3px}
 .stats > span:first-child{border-left:0;padding-left:0}
 .stats svg{width:17px;height:17px;fill:var(--tb-on-dark);opacity:.78;flex:none}
 .stats em{font-style:normal;font-weight:700;font-variant-numeric:tabular-nums}
@@ -65,7 +67,7 @@ button{font:inherit;cursor:pointer;color:inherit}
   .bar{gap:8px}
   .brand .mark{width:32px;height:22px} .brand-t b{font-size:13px;letter-spacing:.12em} .brand-t i{font-size:9.5px;letter-spacing:.22em}
   .steps .st{padding:4px 3px} .steps .st span{display:none!important} .steps .st + .st::before{display:none} .steps .st b{width:20px;height:20px;font-size:11px}
-  .stats{font-size:13px} .stats > span{padding:0 7px} .stats > span:not(.t-money):not(.t-silk){display:none}
+  .stats{font-size:13px} .stats > span,.stats > .t-money{padding:0 7px} .stats > span:not(.t-money):not(.t-silk){display:none}
   .snd span{display:none} .snd{padding:6px 8px}
 }
 @media (max-width:480px){ .brand-t{display:none} .brand .mark{width:36px;height:24px} }
@@ -536,3 +538,34 @@ details.tm-at>summary h2::after{content:" ▾";color:var(--tb-gold)}details.tm-a
 .tm-own{display:grid;gap:6px;margin-top:6px}
 .tm-own .tb-btn{display:grid;justify-items:start;text-align:left;padding:7px 10px;line-height:1.25;white-space:normal}
 .tm-own .tb-btn small{font-weight:500;font-size:12px;color:var(--tb-muted)}
+/* Sales Scout (11 Nov): the races you brief him for, and his marks on the lots */
+.tcard.wide{grid-column:1/-1}
+.sc-races{display:grid;grid-template-columns:repeat(auto-fill,minmax(148px,1fr));gap:6px;margin:8px 0}
+.sc-race{display:grid;justify-items:start;text-align:left;gap:1px;padding:6px 9px;border:1px solid var(--tb-line);border-radius:3px;background:#fff;font:inherit;cursor:pointer;line-height:1.25}
+.sc-race b{font-size:13px}.sc-race small{font-size:11.5px;color:var(--tb-muted)}
+.sc-race.on{border-color:#6b2226;background:#f7e9e4;box-shadow:inset 3px 0 0 #6b2226}
+.sc-race:disabled{opacity:.45;cursor:default}
+.lot-sc{font-size:12.5px;padding:5px 8px;border-radius:3px;border-left:4px solid var(--tb-line);background:#f6f2e8;min-width:0;overflow-wrap:anywhere}
+.lot-sc.on{border-color:#2d6a4c;background:#e8f1ea}
+.lot-sc.find{border-color:#c99a3c;background:#fbf1d9}
+.lot-sc.find b:first-child{font-family:var(--tb-display);letter-spacing:.12em;text-transform:uppercase;font-size:11px;color:#8a5a12;margin-right:4px}
+.lot-sc.off{color:var(--tb-muted);font-style:italic}
+.lot.sc-off{opacity:.55}
+.lot.sc-find{box-shadow:0 0 0 2px #c99a3c}
+/* Your accounts (11 Nov): opened from the money in the top bar */
+.acct{position:fixed;top:58px;right:10px;z-index:80;width:min(330px,calc(100vw - 20px));max-height:calc(100vh - 80px);overflow:auto;background:var(--tb-paper,#fbf8f1);color:var(--tb-ink,#1d2b22);border-radius:3px;box-shadow:0 10px 30px rgba(0,0,0,.28);padding:12px 14px;font-size:13.5px}
+.ac-h{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
+.ac-h b{font-family:var(--tb-display);letter-spacing:.14em;font-size:13px}
+.ac-bar{display:flex;height:12px;border-radius:2px;overflow:hidden;background:#e6e0d2;margin-bottom:8px}
+.ac-bar i{display:block;height:100%}
+.ac-mares{background:#6b2226}.ac-fees{background:#2b5e74}.ac-yearlings{background:#c99a3c}.ac-left{background:#2d6a4c}
+.ac-rows,.ac-can{list-style:none;margin:0;padding:0}
+.ac-rows li,.ac-can li{display:flex;justify-content:space-between;gap:10px;padding:3px 0;border-bottom:1px solid rgba(0,0,0,.07)}
+.ac-rows li span::before{content:"";display:inline-block;width:9px;height:9px;border-radius:2px;margin-right:7px;vertical-align:0}
+.ac-rows .k-mares span::before{background:#6b2226}.ac-rows .k-fees span::before{background:#2b5e74}.ac-rows .k-yearlings span::before{background:#c99a3c}.ac-rows .tot span::before{background:#2d6a4c}
+.ac-rows .in b{color:#2d6a4c}.ac-rows .tot{font-weight:700;border-bottom:0}
+.ac-rows b,.ac-can b{font-variant-numeric:tabular-nums}
+.ac-sub{margin:10px 0 4px;font-family:var(--tb-display);letter-spacing:.12em;font-size:11.5px;text-transform:uppercase;color:var(--tb-muted)}
+.ac-can .no{color:var(--tb-muted)}.ac-can .no span{text-decoration:line-through;text-decoration-color:rgba(0,0,0,.3)}.ac-can .ok span{color:#2d6a4c}
+.ac-note{margin:8px 0 0;font-size:12px;color:var(--tb-muted);line-height:1.35}
+.f-acct{background:none;border:0;padding:0;font:inherit;color:inherit;text-decoration:underline;text-underline-offset:3px;cursor:pointer}

@@ -176,14 +176,15 @@ function saleView() {
   return `${teamAtSales()}<section class="ring"><div class="ring-in"><div class="ring-k">TATTERSALLS</div><div class="ring-t">The sale ring</div>
     <p>Each lot is a foal by a stallion out of a mare. You see the pedigree, not the foal, until it's knocked down to you. Bring a lot into the ring and bid against rival buyers: when the auctioneer's count runs out, the hammer falls.</p></div></section>
     <div class="books" role="tablist">${BOOKS.map(b => { const n = S.sale.filter(l => l.book === b.n).length;
-      return `<button class="book ${S.book === b.n ? "on" : ""}" data-book="${b.n}" role="tab" aria-selected="${S.book === b.n}"><b>${b.name}</b><span>${b.note} · ${n} lot${n === 1 ? "" : "s"}</span></button>`; }).join("")}</div>
+      const f = S.sale.filter(l => l.book === b.n && l.scout).length;
+      return `<button class="book ${S.book === b.n ? "on" : ""}" data-book="${b.n}" role="tab" aria-selected="${S.book === b.n}"><b>${b.name}</b><span>${b.note} · ${n} lot${n === 1 ? "" : "s"}${f ? ` · ${f} scout's find${f === 1 ? "" : "s"}` : ""}</span></button>`; }).join("")}</div>
     ${stableFull() ? `<p class="hint">Your stable is full (${STABLE_CAP} horses), so you can't buy any more.</p>` : ""}
-    <div class="lots">${S.sale.filter(l => l.book === S.book).map(l => { const s = stallion(l.sire), m = byName(l.dam), line = lineNote(s, m);
-      return `<article class="lot"><div class="lot-h"><span class="lot-n">LOT ${l.n}</span><span class="line ${line.cls}">${line.text}</span></div>
+    <div class="lots">${scoutOrder(S.sale.filter(l => l.book === S.book)).map(l => { const s = stallion(l.sire), m = byName(l.dam), line = lineNote(s, m), sc = lotScout(l);
+      return `<article class="lot ${sc.cls}"><div class="lot-h"><span class="lot-n">LOT ${l.n}</span><span class="line ${line.cls}">${line.text}</span></div>
         <div class="ped">
           <div class="pc s"><span class="pc-l">S</span><div><b>${esc2(s.name)}</b>${knowsTrue(s.name) ? pips(s.trueStars) : pips(s.shownStars, s.unproven)}<small>${s.optimumDistance} · peaks ${s.peakAge}</small></div></div>
           <div class="pc m"><span class="pc-l">M</span><div><b>${esc2(m.name)}</b>${pips(m.stars)}<small>${m.optimumDistance} · peaks ${m.peakAge}</small></div></div></div>
-        ${lotInsight(l)}<div class="lot-foot"><span>Reserve ${money(l.reserve)} · guide ${money(guide(l)[0])}–${money(guide(l)[1])}</span></div>
+        ${sc.html}${lotInsight(l)}<div class="lot-foot"><span>Reserve ${money(l.reserve)} · guide ${money(guide(l)[0])}–${money(guide(l)[1])}</span></div>
         <button class="tb-btn block" data-auction="${l.id}" ${openBid(l) <= canBidTo() && !S.foal && !stableFull() ? "" : "disabled"}>${openBid(l) <= canBidTo() ? "Bring into the ring" : "Can't afford the opening bid"}</button>${lotClaim(l)}</article>`; }).join("") || `<p class="tb-empty">Every lot in this Book has been sold.</p>`}</div>`;
 }
 function stableCard(h, developable) {
@@ -799,7 +800,7 @@ function aucHammer() {
     // yours the moment the hammer falls (and saved), not when the ring is left
     msg = "SOLD!"; A.outcome = { kind: "won" };
     const cost = payFor(A.price);   // less your Trade Terms (js/team.js)
-    S.budget -= cost; S.sale = S.sale.filter(x => x !== l);
+    S.budget -= cost; if (typeof ledger === "function") ledger("yearlings", cost); S.sale = S.sale.filter(x => x !== l);
     breed(l.sire, l.dam, "bought", cost, l);
   } else {
     const r = A.rivals.find(x => x.id === A.leader);

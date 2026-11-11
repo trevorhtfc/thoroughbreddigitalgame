@@ -85,6 +85,15 @@
     const sees = !!held("agent");
     let lots = S.sale.slice().sort((a, b) => sees ? proj(b) - proj(a) : b.reserve - a.reserve);
     if (P.plan && !sees) { const left = targets.filter(r => !taken.has(r.id)); lots = lots.map(l => { const c = centre(stallion(l.sire), byName(l.dam)); const best = Math.min(9, ...left.map(r => Math.abs(c - r.step))); return { l, sc: l.reserve - best * 40000 }; }).sort((a, b) => b.sc - a.sc).map(x => x.l); }
+    // Sales Scout: briefed for the richest races none of his horses can run in yet; his finds first, then the lots
+    // he says suit them; the rest only once those are gone
+    if (held("scout")) {
+      const open = targets.filter(r => !S.stable.some(h => bestAt(h, r).w > 0));
+      for (const r of open.slice(0, SCOUT_RACES[held("scout").tier])) scoutPick(r.id);
+      if (scoutRaces().length) briefScout();
+      const w = l => l.scout ? 3 : (lotSuits(l) || { best: 0 }).best * 2 + (sees ? proj(l) / 200 : l.reserve / 1e6);
+      lots = S.sale.slice().sort((a, b) => w(b) - w(a));
+    }
     const priv = lots.filter(l => privateOK(l) && payFor(privatePrice(l)) <= S.budget);
     if (priv.length && S.stable.length < STABLE_CAP) {
       const l = priv.sort((a, b) => sees ? proj(b) - proj(a) : b.reserve - a.reserve)[0], c = payFor(privatePrice(l));
@@ -100,7 +109,8 @@
       if (sees && proj(l) < 100) continue;
       // spare money goes into bidding harder: never less than the strategy's own limit, more when the budget allows
       const share = canBidTo() / Math.max(1, 12 - S.stable.length);
-      const limit = Math.min(Math.round(Math.max(l.reserve * P.bidUpTo * (sees && proj(l) >= 110 ? 1.25 : 1), Math.min(share, l.reserve * 4)) / 5000) * 5000, canBidTo());
+      const keen = (sees && proj(l) >= 110) || l.scout ? 1.25 : 1;
+      const limit = Math.min(Math.round(Math.max(l.reserve * P.bidUpTo * keen, Math.min(share, l.reserve * 4)) / 5000) * 5000, canBidTo());
       if (limit < l.reserve) continue;
       tried++;
       const ap = appeal(l), bids = RIVALS.map(r => ({ r, c: Math.random() < r.keen(l) ? l.reserve * ap * r.want(l) * (.7 + Math.random() * .9) : 0 })).sort((a, b) => b.c - a.c), top = bids[0].c;

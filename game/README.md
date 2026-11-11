@@ -356,7 +356,7 @@ ten races is at their trips (the board's "take another card"). Then "To the Nati
 | Elite Mares | see 3 mares a draw at the mares sale (everyone else 2) | 4 | 5 | the stud |
 | Stallion Owner | three 3★ stallions drawn, keep one: 2 free nominations | 4★ | 5★ | the stud |
 | Pedigree Expert | the true stars of 2 unproven stallions you ask about | 4 | all | the stud and the sales |
-| Trade Terms | 10% off every yearling | 15% | 20% | Tattersalls |
+| Sales Scout (was Trade Terms) | brief him for 2 of your races: lots marked by how well they suit them, the rest greyed; 1 lot of his own bred for them | 3 races, 2 lots | 4 races, 3 lots | Tattersalls |
 | Bloodstock Agent | each lot's projected peak, a 30-point range with the truth inside | 20 points | 10 points | Tattersalls |
 | Vet's Report | send a yearling back once you've seen it: once, 80% back | twice, 90% | three times, 100% | Tattersalls |
 | Private Sale | one Book 3 lot before the ring, at the middle of its guide | Books 2–3 | any Book | Tattersalls |

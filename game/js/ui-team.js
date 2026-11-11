@@ -73,13 +73,39 @@ function teamAtStud() {
 }
 function teamAtSales() {
   if (!teamOn() || teamSkipped()) return "";
-  const out = [], tt = held("trade"), ag = held("agent"), vt = held("vet"), pv = held("private");
-  if (tt) out.push(tcard(tt, { cls: "sm", extra: `<p class="tc-do">Every yearling you buy costs ${Math.round(TRADE_OFF[tt.tier] * 100)}% less than the hammer price.</p>` }));
+  const out = [], sc = held("scout"), ag = held("agent"), vt = held("vet"), pv = held("private");
+  if (sc) out.push(scoutCard(sc));
   if (ag) out.push(tcard(ag, { cls: "sm", extra: `<p class="tc-do">His projection is on every lot.</p>` }));
   if (vt) out.push(tcard(vt, { cls: "sm", extra: `<p class="tc-do">${vetLeft()} of ${VET_USES[vt.tier]} left: offered when a yearling is knocked down to you.</p>` }));
   if (pv) out.push(tcard(pv, { cls: "sm", extra: `<p class="tc-do">${S.team.used.private ? "Used." : "Look for <b>Private sale</b> on the lots it can buy."}</p>` }));
   const pe = expertBit(); if (pe) out.push(pe);
   return panel(out);
+}
+// Sales Scout: tick the races you still need a horse for, then brief him (his finds join the Books)
+const shortRace = r => r.name.replace(/ Stakes$| Handicap$/, "");
+function scoutCard(c) {
+  const T = scoutState(), max = SCOUT_RACES[c.tier];
+  if (T.briefed) return tcard(c, { cls: "sm wide", extra: `<p class="tc-do">Shopping for: <b>${scoutRaces().map(shortRace).join(", ")}</b>. ${T.found && T.found.length ? `His ${T.found.length === 1 ? "find is" : T.found.length + " finds are"} marked <b>Scout's find</b> in the Books.` : ""} Lots that don't suit them are greyed out.</p>` });
+  // a race you already have a runner for (as your horses are now)
+  const have = r => S.stable.some(h => { const k = check(h, r); return k.ok; });
+  const chips = RACES.map(r => { const on = T.races.includes(r.id), full = !on && T.races.length >= max;
+    return `<button class="sc-race ${on ? "on" : ""}" data-scoutrace="${r.id}" ${full ? "disabled" : ""} aria-pressed="${on}"><b>${esc2(shortRace(r))}</b><small>${r.ageLabel || r.ages[0] + "YO"} · ${DISTANCES[r.step]} · ${scoutBar(r)}+ to place${have(r) ? " · you have a runner" : ""}</small></button>`; }).join("");
+  return tcard(c, { cls: "sm wide", extra: `<p class="tc-do">Pick up to <b>${max}</b> races you still need a horse for (${T.races.length} picked). The Books show which lots suit them as you pick.</p>
+    <div class="sc-races">${chips}</div>
+    <button class="tb-btn block" data-scout="go" ${T.races.length ? "" : "disabled"}>Brief your scout${SCOUT_LOTS[c.tier] ? `: he adds ${SCOUT_LOTS[c.tier] === 1 ? "a lot" : SCOUT_LOTS[c.tier] + " lots"} of his own` : ""}</button>` });
+}
+// what the scout says on a lot: his find, the races it suits, or greyed out
+function lotScout(l) {
+  if (l.scout) { const r = RACES.find(x => x.id === l.scout); return { cls: "sc-find", html: `<div class="lot-sc find"><b>Scout's find</b> bred for the ${esc2(r ? r.name : "race")}</div>` }; }
+  const v = lotSuits(l); if (!v) return { cls: "", html: "" };
+  if (!v.list.length) return { cls: "sc-off", html: `<div class="lot-sc off">Not for your races</div>` };
+  return { cls: "sc-on", html: `<div class="lot-sc on">Suits ${v.list.map(x => `<b>${esc2(shortRace(x.r))}</b>${x.p >= SCOUT_LIKELY ? "" : " (maybe)"}`).join(", ")}</div>` };
+}
+// the Books in the scout's order: his finds, then the lots for your races, the rest last
+function scoutOrder(list) {
+  if (!held("scout") || !scoutRaces().length) return list;
+  const w = l => l.scout ? 2 : (lotSuits(l) || { best: 0 }).best;
+  return list.slice().sort((a, b) => w(b) - w(a));
 }
 // a lot as your Bloodstock Agent sees it: his projected peak rating, a range with the truth somewhere in it
 function lotInsight(l) {
@@ -95,7 +121,7 @@ function lotClaim(l) {
 function claimLot(id) {
   const l = S.sale.find(x => x.id === id); if (!l || !privateOK(l) || S.foal || stableFull()) return;
   const cost = payFor(privatePrice(l)); if (cost > S.budget) return;
-  S.team.used.private = true; S.budget -= cost; S.sale = S.sale.filter(x => x !== l);
+  S.team.used.private = true; S.budget -= cost; ledger("yearlings", cost); S.sale = S.sale.filter(x => x !== l);
   breed(l.sire, l.dam, "bought", cost, l); save();
 }
 function agentButton(F) {
@@ -105,7 +131,7 @@ function agentButton(F) {
 function handBack() {
   const F = S.foal, v = held("vet"); if (!F || F.how !== "bought" || !v || vetLeft() <= 0) return;
   const back = Math.round(F.cost * VET_REFUND[v.tier]);
-  S.budget += back; S.team.used.vet = (S.team.used.vet || 0) + 1; S.foal = null; save();
+  S.budget += back; ledger("yearlings", -back); S.team.used.vet = (S.team.used.vet || 0) + 1; S.foal = null; save();
   toast(`Sent back on the vet's report: ${money(back)} refunded`);
 }
 // Entries: your trainer cards on horses, your jockeys booked for races

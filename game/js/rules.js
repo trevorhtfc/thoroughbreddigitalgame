@@ -183,7 +183,7 @@ function lineNote(s, m) {
 
 
 /* ================= The card ================= */
-const START_BUDGET = 1750000, MARE_CAP = 10, STABLE_CAP = 15, LOTS_PER_BOOK = 9;
+const START_BUDGET = 1250000, MARE_CAP = 10, STABLE_CAP = 15, LOTS_PER_BOOK = 9;
 // From the site's Tattersalls page code (src/pages/Tattersalls.hju2p.js)
 const TRIP_WEIGHTS = { close: 3, near: 2, mid: 1, far: 0.35, sprinterVsMiddle: 0.1 };
 // CMS newStallion = "Yes" (standard set): a mare one star above gets a slightly better chance in their lots
@@ -602,7 +602,7 @@ const OFFER_SIZE = 2;
 function drawPile(id) {
   const p = PILES.find(x => x.id === id); if (S.offer || !p || paidMares() >= MARE_CAP || p.price > S.budget) return;
   const left = pileLeft(p).map(m => [Math.random(), m]).sort((a, b) => a[0] - b[0]).map(x => x[1]); if (!left.length) return;
-  S.budget -= p.price; S.offer = { pile: p.id, mares: left.slice(0, typeof offerSize === "function" ? offerSize() : OFFER_SIZE).map(m => m.name) };
+  S.budget -= p.price; if (typeof ledger === "function") ledger("mares", p.price); S.offer = { pile: p.id, mares: left.slice(0, typeof offerSize === "function" ? offerSize() : OFFER_SIZE).map(m => m.name) };
 }
 function keepOffer(name) {
   if (!S.offer || !S.offer.mares.includes(name)) return;
@@ -631,7 +631,7 @@ function keepFoal(name) {
   const nm = name && String(name).trim().toUpperCase();
   if (nm && !S.stable.some(h => h.name === nm) && !CARD.oppNames.has(nm)) F.h.name = nm;
   if (F.how === "bred") {
-    S.budget -= F.cost;
+    S.budget -= F.cost; if (typeof ledger === "function") ledger("fees", F.cost);
     if (S.team && typeof ownedStallion === "function" && ownedStallion() === F.h.sire && F.cost === 0) S.team.used.stallion = (S.team.used.stallion || 0) + 1;   // a free nomination to your own stallion
     S.usedMares.push(F.h.dam); S.hand = S.hand.filter(n => n !== F.h.dam); S.selMare = null; S.selStallion = null;
   }

@@ -142,9 +142,9 @@ function paintBar() {
   }).join("");
   const n = S.stable.length;
   $("#tally").innerHTML = S.step <= 3
-    ? `<span class="t-silk">${silkImg(mySilkN())}</span><span title="Horses in your stable"><svg viewBox="0 0 512 512">${ICON.stable}</svg><em>${n}</em><i>/${STABLE_CAP}</i></span><span class="t-money" title="Your budget"><svg viewBox="0 0 512 512">${ICON["two-coins"]}</svg><em>${money(S.budget)}</em></span>`
+    ? `<span class="t-silk">${silkImg(mySilkN())}</span><span title="Horses in your stable"><svg viewBox="0 0 512 512">${ICON.stable}</svg><em>${n}</em><i>/${STABLE_CAP}</i></span><button type="button" class="t-money" data-accounts="1" title="Your budget: open your accounts"><svg viewBox="0 0 512 512">${ICON["two-coins"]}</svg><em>${money(S.budget)}</em></button>`
     : `<span class="t-silk">${silkImg(mySilkN())}</span><span title="Wins: ${winsNow()} from ${racesRun()} of ${RACES.length} races run"><svg viewBox="0 0 512 512">${ICON["laurels-trophy"]}</svg><em>${winsNow()}</em><i> win${winsNow() === 1 ? "" : "s"}</i></span><span class="t-money prize" title="Prize money won (a separate pot from your budget)"><svg viewBox="0 0 512 512">${ICON["trophy-cup"]}</svg><em>${money(prizeWon())}</em></span>`;
-  fitBar();
+  fitBar(); refreshAccounts();
 }
 // if the five steps' names don't fit beside the tally (a narrow window, or the fonts still loading), only the
 // current step keeps its name
@@ -298,10 +298,10 @@ const FOOTS = {
     if (S.step !== 1) return "";
     return S.confirmSale
       ? `<span class="f-info"><b>Close the stud?</b> Once you go to Tattersalls you can't come back to breed.${S.hand.length ? ` Your ${S.hand.length} unused mare${S.hand.length === 1 ? "" : "s"} may turn up in the sale.` : ""}</span>${goBtn("saleNo", "Stay at the stud", { ghost: true })}${goBtn("saleYes", "Go to Tattersalls", { off: S.foal || S.offer })}`
-      : `<span class="f-info">${studCount()} mare${studCount() === 1 ? "" : "s"} · ${S.stable.length} horse${S.stable.length === 1 ? "" : "s"} · ${money(S.budget)} left</span>${goBtn("toSale", "Close the stud and go to the sales", { off: S.foal || S.offer })}`;  },
+      : `<span class="f-info">${studCount()} mare${studCount() === 1 ? "" : "s"} · ${S.stable.length} horse${S.stable.length === 1 ? "" : "s"} · <button type="button" class="f-acct" data-accounts="1">${money(S.budget)} left</button></span>${goBtn("toSale", "Close the stud and go to the sales", { off: S.foal || S.offer })}`;  },
   tatts() {
     // never a dead end: with no horse bought or bred you can still leave (and race nothing, or start again)
-    if (S.step === 2) return `<span class="f-info">${S.stable.length} horse${S.stable.length === 1 ? "" : "s"} in your string · ${money(S.budget)} left</span>${goBtn("toEnter", S.stable.length ? "Leave the sales: on to entries" : "Leave the sales without a horse", { off: S.foal })}`;
+    if (S.step === 2) return `<span class="f-info">${S.stable.length} horse${S.stable.length === 1 ? "" : "s"} in your string · <button type="button" class="f-acct" data-accounts="1">${money(S.budget)} left</button></span>${goBtn("toEnter", S.stable.length ? "Leave the sales: on to entries" : "Leave the sales without a horse", { off: S.foal })}`;
     return "";
   },
   warren() {
@@ -642,6 +642,9 @@ document.addEventListener("click", e => {
   if (d.keepcard) { const c = teamCard(d.keepcard); keepTeamCard(d.keepcard); toast(`${cardName(c)} joins your team`); render(); sheetTop(); return; }
   if (d.own) { if (ownStallion(d.own)) toast(`${d.own} is your own stallion: ${OWNED_FREE} free nominations`); render(); return; }
   if (d.claim) { claimLot(d.claim); render(); return; }
+  if (d.accounts) { toggleAccounts(); return; }
+  if (d.scoutrace) { scoutPick(d.scoutrace); render(); return; }
+  if (d.scout) { if (briefScout()) { const n = (S.team.scout.found || []).length; toast(n ? `Your scout has found ${n === 1 ? "a lot" : n + " lots"} for your races` : "Your scout has your races"); } render(); return; }
   if (d.agent) { handBack(); render(); return; }
   if (d.stab) { UI.tab.stables = d.stab; render(); sheetTop(); return; }
   if (d.tab) { S.tab = d.tab; save(); render(); return; }
