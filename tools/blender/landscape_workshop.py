@@ -307,7 +307,127 @@ for o in [o for o in bpy.data.objects if o not in _before and o.name in ("ws_bla
     for c in o.users_collection: c.objects.unlink(o)
     BLADES.objects.link(o)
 
+# ---------------- the brushed flock and the soft rough (from the Dyke workshop, 11 Nov; the owner's pick there, "D").
+# One soft surface for all the ground, its light and dark coming from the way the pile lies, like brushed suede: a fine
+# grain, soft clouds of tone with wispy edges, the lighter clouds standing a little proud. On the mown turf the same,
+# much quieter, so the lanes still show. Beyond the far rail a real short pile of soft grass, which grows up out of
+# the turf from nothing at the rail (started in a line it looked like the edge of a rug), is lit exactly as the ground
+# beneath it and casts no shadows.
+def rngv(nt, sock, lo, hi, f0=0.0, f1=1.0):
+    mr = N_(nt, "ShaderNodeMapRange"); mr.inputs["From Min"].default_value = f0; mr.inputs["From Max"].default_value = f1
+    mr.inputs["To Min"].default_value = lo; mr.inputs["To Max"].default_value = hi; nt.links.new(sock, mr.inputs["Value"]); return mr.outputs["Result"]
+
+
+def snoise(nt, vec, scale, detail=2, stretch=None):
+    if stretch:
+        mp = N_(nt, "ShaderNodeMapping"); mp.inputs["Scale"].default_value = stretch; nt.links.new(vec, mp.inputs[0]); vec = mp.outputs[0]
+    return noise(nt, vec, scale, detail)
+
+
+def nap_field(nt, vec):
+    w = N_(nt, "ShaderNodeTexNoise"); w.inputs["Scale"].default_value = 0.04; w.inputs["Detail"].default_value = 2; nt.links.new(vec, w.inputs["Vector"])
+    sb = N_(nt, "ShaderNodeVectorMath"); sb.operation = "SUBTRACT"; sb.inputs[1].default_value = (0.5, 0.5, 0.5); nt.links.new(w.outputs["Color"], sb.inputs[0])
+    sc = N_(nt, "ShaderNodeVectorMath"); sc.operation = "SCALE"; sc.inputs["Scale"].default_value = 14.0; nt.links.new(sb.outputs[0], sc.inputs[0])
+    ad = N_(nt, "ShaderNodeVectorMath"); ad.operation = "ADD"; nt.links.new(vec, ad.inputs[0]); nt.links.new(sc.outputs[0], ad.inputs[1]); wv = ad.outputs[0]
+    return snoise(nt, wv, 0.11, 3), snoise(nt, wv, 0.33, 2), snoise(nt, wv, 1.4, 2, stretch=(0.25, 1.5, 1.0))
+
+
+def nap_tone(nt, col, field, nap):
+    a, b_, st = field
+    col = mul(nt, col, grey(nt, a, 1 - nap, 1 + nap * 0.8, 0.36, 0.64)); col = mul(nt, col, grey(nt, b_, 1 - nap * 0.45, 1 + nap * 0.45, 0.3, 0.7))
+    return mul(nt, col, grey(nt, st, 1 - nap * 0.25, 1 + nap * 0.25, 0.3, 0.7))
+
+
+NAP = float(os.environ.get("NAP", "0.32"))
+def brushed(name, where, under=1.0):
+    """where: 'turf' (the track), 'lawn' (the ground round it), 'rough' (the ground under the pile beyond the far rail)."""
+    m, nt = mat(name); bs = base(m, 1.0, 0.0); g, s = geo_xyz(nt); p = g.outputs["Position"]
+    ay = N_(nt, "ShaderNodeMath"); ay.operation = "ADD"; ay.inputs[1].default_value = W / 2; nt.links.new(s.outputs["Y"], ay.inputs[0])
+    ab = N_(nt, "ShaderNodeMath"); ab.operation = "ABSOLUTE"; nt.links.new(ay.outputs[0], ab.inputs[0])
+    if where == "turf":
+        col = mixc(nt, lin("#88a873"), lin("#93b17c"), bands(nt, s.outputs["Y"], 3.75))
+        col = mul(nt, col, grey(nt, ab.outputs[0], 1.07, 0.9, 0.0, W / 2))
+    else:
+        col = mixc(nt, lin("#d3cc9e"), lin("#b3c592"), rngv(nt, ab.outputs[0], 0, 1, W / 2 + 4, W / 2 + 40))
+        col = mixc(nt, col, lin("#9fb886"), rngv(nt, snoise(nt, p, 0.017, 3), 0, 0.7, 0.48, 0.7))
+    col = mul(nt, col, grey(nt, snoise(nt, p, 0.012, 2), 0.92, 1.08, 0.3, 0.7))
+    k = 0.5 if where == "turf" else 1.0
+    g1 = snoise(nt, p, 1.3, 2); g2 = snoise(nt, p, 4.5, 2)
+    col = mul(nt, col, grey(nt, g1, 1 - 0.08 * k, 1 + 0.08 * k, 0.3, 0.7)); col = mul(nt, col, grey(nt, g2, 1 - 0.06 * k, 1 + 0.06 * k, 0.3, 0.7))
+    if under != 1.0: col = mul(nt, col, grey(nt, s.outputs["Y"], 1.0, under, 0.3, 6.0))
+    add = N_(nt, "ShaderNodeMath"); add.operation = "ADD"; nt.links.new(g1, add.inputs[0]); nt.links.new(g2, add.inputs[1])
+    bp = N_(nt, "ShaderNodeBump"); bp.inputs["Strength"].default_value = 0.5 * k; bp.inputs["Distance"].default_value = 0.12; nt.links.new(add.outputs[0], bp.inputs["Height"]); nt.links.new(bp.outputs["Normal"], bs.inputs["Normal"])
+    field = nap_field(nt, p); col = nap_tone(nt, col, field, NAP * (0.45 if where == "turf" else 1.0))
+    if where != "turf":
+        b2 = N_(nt, "ShaderNodeBump"); b2.inputs["Strength"].default_value = 0.7; b2.inputs["Distance"].default_value = 0.6
+        nt.links.new(field[0], b2.inputs["Height"]); nt.links.new(b2.outputs["Normal"], bp.inputs["Normal"])
+        bs.inputs["Sheen Roughness"].default_value = 0.5; bs.inputs["Sheen Tint"].default_value = lin("#dfe6b8"); nt.links.new(rngv(nt, field[0], 0, 0.3, 0.45, 0.7), bs.inputs["Sheen Weight"])
+    nt.links.new(col, bs.inputs["Base Color"])
+    return no_green_bounce(m, "#b3ab8a")
+
+
+def pile_mesh(name, blades, radius, height_, width, lean, seed):
+    r = random.Random(seed); bm = bmesh.new()
+    for i in range(blades):
+        pa = r.uniform(0, 6.283); d = radius * math.sqrt(r.uniform(0, 1)); a = r.uniform(0, 6.283)
+        h = height_ * r.uniform(0.82, 1.1); l = lean * r.uniform(0.4, 1.2); w = width * r.uniform(0.8, 1.2)
+        c, s_ = math.cos(a), math.sin(a); base_ = Vector((math.cos(pa) * d, math.sin(pa) * d, 0)); side = Vector((-s_, c, 0)) * w
+        vs = [(bm.verts.new(base_ + Vector((c * l * t * t, s_ * l * t * t, h * t)) - side * k), bm.verts.new(base_ + Vector((c * l * t * t, s_ * l * t * t, h * t)) + side * k)) for t, k in ((0.0, 1.0), (0.5, 0.95), (0.82, 0.62))]
+        tip = bm.verts.new(base_ + Vector((c * l, s_ * l, h)))
+        for (a0, b0), (a1, b1) in zip(vs, vs[1:]): bm.faces.new((a0, b0, b1, a1))
+        bm.faces.new((vs[-1][0], vs[-1][1], tip))
+    me = bpy.data.meshes.new(name); bm.to_mesh(me); bm.free(); return me
+
+
+def pile_material(name):
+    m, nt = mat(name); oi = N_(nt, "ShaderNodeObjectInfo"); ip = oi.outputs["Location"]
+    col = mixc(nt, lin("#a6b986"), lin("#c9c590"), rngv(nt, snoise(nt, ip, 0.05, 2), 0, 1, 0.4, 0.66))
+    col = mul(nt, col, grey(nt, snoise(nt, ip, 0.02, 2), 0.93, 1.07, 0.3, 0.7))
+    col = nap_tone(nt, col, nap_field(nt, ip), NAP)
+    tcn = N_(nt, "ShaderNodeTexCoord"); sz = N_(nt, "ShaderNodeSeparateXYZ"); nt.links.new(tcn.outputs["Generated"], sz.inputs[0])
+    col = mul(nt, col, grey(nt, sz.outputs["Z"], 0.7, 1.04, 0.0, 0.9)); col = mixc(nt, col, lin("#dedaa6"), rngv(nt, sz.outputs["Z"], 0, 0.1, 0.5, 1.0))
+    col = mul(nt, col, grey(nt, oi.outputs["Random"], 0.955, 1.045))
+    gn = N_(nt, "ShaderNodeAttribute"); gn.attribute_type = "INSTANCER"; gn.attribute_name = "gn"
+    neg = N_(nt, "ShaderNodeVectorMath"); neg.operation = "SCALE"; neg.inputs["Scale"].default_value = -1.0; nt.links.new(gn.outputs["Vector"], neg.inputs[0])
+    df = N_(nt, "ShaderNodeBsdfDiffuse"); tr = N_(nt, "ShaderNodeBsdfTranslucent"); ad = N_(nt, "ShaderNodeAddShader")
+    nt.links.new(col, df.inputs["Color"]); nt.links.new(col, tr.inputs["Color"]); nt.links.new(gn.outputs["Vector"], df.inputs["Normal"]); nt.links.new(neg.outputs[0], tr.inputs["Normal"])
+    nt.links.new(df.outputs[0], ad.inputs[0]); nt.links.new(tr.outputs[0], ad.inputs[1]); nt.links.new(ad.outputs[0], nt.nodes["Material Output"].inputs["Surface"])
+    m.use_backface_culling = False
+    return m
+
+
+def soft_rough(x0, x1, y0, y1, density, smin, smax, grow):
+    """The ground beyond the far rail, and its pile: copies of three small patches of broad soft blades."""
+    me = bpy.data.meshes.new("rough"); me.from_pydata([(x0, y0, -0.005), (x1, y0, -0.005), (x1, y1, -0.005), (x0, y1, -0.005)], [], [(0, 1, 2, 3)]); me.materials.append(brushed("rough_under", "rough", 0.8))
+    under = bpy.data.objects.new("rough_under", me); ROUGH.objects.link(under); under.visible_shadow = False
+    top = bpy.data.objects.new("rough_pile", me); ROUGH.objects.link(top); top.visible_shadow = False
+    pm = pile_material("rough_pile_m"); kit = bpy.data.collections.new("rough_kit")
+    for i in range(3):
+        km = pile_mesh("rough_%d" % i, 40, 0.38, 0.36, 0.042, 0.17, 30 + i); km.materials.append(pm); kit.objects.link(bpy.data.objects.new("rough_%d" % i, km))
+    ng = bpy.data.node_groups.new("rough_pile", "GeometryNodeTree")
+    ng.interface.new_socket("Geometry", in_out="INPUT", socket_type="NodeSocketGeometry"); ng.interface.new_socket("Geometry", in_out="OUTPUT", socket_type="NodeSocketGeometry")
+    Gn, GL = ng.nodes, ng.links
+    gi = Gn.new("NodeGroupInput"); go = Gn.new("NodeGroupOutput"); dist = Gn.new("GeometryNodeDistributePointsOnFaces"); dist.inputs["Density"].default_value = density; dist.inputs["Seed"].default_value = 3
+    ci = Gn.new("GeometryNodeCollectionInfo"); ci.inputs["Collection"].default_value = kit; ci.inputs["Separate Children"].default_value = True; ci.inputs["Reset Children"].default_value = True
+    inst = Gn.new("GeometryNodeInstanceOnPoints"); inst.inputs["Pick Instance"].default_value = True
+    rr = Gn.new("FunctionNodeRandomValue"); rr.data_type = "FLOAT_VECTOR"; rr.inputs["Min"].default_value = (-0.12, -0.12, 0.0); rr.inputs["Max"].default_value = (0.12, 0.12, 6.283)
+    rs = Gn.new("FunctionNodeRandomValue"); rs.data_type = "FLOAT"; rs.inputs["Min"].default_value = smin; rs.inputs["Max"].default_value = smax
+    st = Gn.new("GeometryNodeStoreNamedAttribute"); st.data_type = "FLOAT_VECTOR"; st.domain = "POINT"; st.inputs["Name"].default_value = "gn"
+    ps = Gn.new("GeometryNodeInputPosition"); sp = Gn.new("ShaderNodeSeparateXYZ"); mr = Gn.new("ShaderNodeMapRange"); mr.interpolation_type = "SMOOTHSTEP"
+    mr.inputs["From Min"].default_value = grow[0]; mr.inputs["From Max"].default_value = grow[1]; mr.inputs["To Min"].default_value = 0.12; mr.inputs["To Max"].default_value = 1.0
+    mu = Gn.new("ShaderNodeMath"); mu.operation = "MULTIPLY"
+    GL.new(gi.outputs[0], dist.inputs["Mesh"]); GL.new(ci.outputs[0], inst.inputs["Instance"]); GL.new(dist.outputs["Points"], st.inputs["Geometry"]); GL.new(dist.outputs["Normal"], st.inputs["Value"])
+    GL.new(st.outputs[0], inst.inputs["Points"]); GL.new(rr.outputs[0], inst.inputs["Rotation"])
+    GL.new(ps.outputs[0], sp.inputs[0]); GL.new(sp.outputs["Y"], mr.inputs["Value"]); GL.new(mr.outputs["Result"], mu.inputs[0]); GL.new(rs.outputs[0], mu.inputs[1]); GL.new(mu.outputs[0], inst.inputs["Scale"])
+    GL.new(inst.outputs[0], go.inputs[0])
+    md = top.modifiers.new("pile", "NODES"); md.node_group = ng
+
+
+ROUGH = coll("rough")
+soft_rough(-300.0, 160.0, 0.12, 52.0, 10.0, 0.5, 0.7, (0.4, 6.0))
+
 TURFS = {
+    "7": ("Brushed flock, a soft rough beyond the far rail", brushed("t7", "turf"), brushed("l7", "lawn"), False),
     "1": ("Original turf", OG_TURF, OG_LAWN, False),
     "2": ("Soft sage, mown in lanes", soft_turf("t2", "#88a873", "#96b47f"), soft_lawn("l2", "#bccb98", "#d9cfa6"), False),
     "3": ("Soft sage, graded", soft_turf("t3", "#88a873", "#93b17c", gradient=True), soft_lawn("l3", "#b3c592", "#d3cc9e"), False),
@@ -319,7 +439,7 @@ TURFS = {
 
 def set_turf(k):
     _, t, l, blades = TURFS[k]
-    TRACK.data.materials[0] = t; GROUND.data.materials[0] = l; BLADES.hide_render = not blades
+    TRACK.data.materials[0] = t; GROUND.data.materials[0] = l; BLADES.hide_render = not blades; ROUGH.hide_render = k != "7"
 
 
 # ---------------- a few runners, for scale
