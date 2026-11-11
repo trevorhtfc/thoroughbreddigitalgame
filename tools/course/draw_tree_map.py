@@ -72,9 +72,8 @@ lab = dict(fontsize=8.5, color="#1f2a1c", zorder=10, bbox=dict(boxstyle="round,p
 ax.text(150, -112, "Main stand", ha="center", **lab)
 ax.text(300, 90, "Festival side: small trees and low planting only", ha="center", **lab)
 ax.text(330, 420, "Infield: small clumps and low planting, no tall trees", ha="center", **lab)
-ax.text(905, -190, "Open ground south of the straight mile,\naround 4f: no belt here (the blank patch)", ha="center", fontsize=9, color="#b8434e", fontweight="bold", zorder=10,
-        bbox=dict(boxstyle="round,pad=0.35", fc="#fff3f3", ec="#b8434e", lw=1.2))
-ax.add_patch(Rectangle((690, -120), 360, 92, fc="#b8434e", ec="#b8434e", alpha=0.12, lw=1.4, ls=":", zorder=4.5))
+ax.text(905, -190, "Belt on the stand side of the straight mile now runs\nfrom 5f on to the enclosures at about 3f (11 Nov)", ha="center", fontsize=9, color="#1f5a38",
+        fontweight="bold", zorder=10, bbox=dict(boxstyle="round,pad=0.35", fc="#f3fbef", ec="#1f5a38", lw=1.2))
 for x in range(-500, 1701, 100):
     ax.axvline(x, color="white", lw=0.4, alpha=0.6, zorder=2.5)
 for z in range(-1000, 301, 100):

@@ -84,18 +84,18 @@
    ]
   },
   {
-   "note": "open ground beyond the bend, outside the planting belt",
+   "note": "Owner, 11 Nov: the block beyond the far turn cut back to a band just outside the planting belt round the corner, only to fill the gaps seen past the festival and the stand's west end",
    "area": [
-    -520,
-    -300,
+    -330,
+    -120,
     -205,
     260
    ],
-   "spacing": 30,
-   "skip": 0.45,
+   "spacing": 26,
+   "skip": 0.35,
    "scale": [
     1.0,
-    1.5
+    1.4
    ],
    "clump": [
     1,
@@ -119,44 +119,6 @@
    "clump": [
     1,
     3
-   ]
-  },
-  {
-   "note": "Owner, 10 Nov ('a big blank patch' as they turn the corner): outside the home bend, beyond the straight mile's planting belt; kept out of the bend camera's view of the turn (x 760 to 960 north of z -420)",
-   "area": [
-    960,
-    -45,
-    1400,
-    -720
-   ],
-   "spacing": 22,
-   "skip": 0.3,
-   "scale": [
-    1.0,
-    1.5
-   ],
-   "clump": [
-    1,
-    4
-   ]
-  },
-  {
-   "note": "Owner, 10 Nov: outside the home bend, further south (below the bend camera's view)",
-   "area": [
-    790,
-    -430,
-    960,
-    -720
-   ],
-   "spacing": 22,
-   "skip": 0.3,
-   "scale": [
-    1.0,
-    1.5
-   ],
-   "clump": [
-    1,
-    4
    ]
   }
  ],

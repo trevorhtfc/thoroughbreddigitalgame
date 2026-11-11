@@ -27,7 +27,7 @@ the number of copies. Copies keep their soft shadows on the ground, which still 
 
 A viewer draws these unlit: colour x light x scale, then the same AgX colour handling as Blender.
 """
-import sys, os, json, math
+import sys, os, json, math, time
 import numpy as np
 import bpy, bmesh
 from mathutils import Vector, Matrix
@@ -46,6 +46,10 @@ RAIL_GAP = COURSE["rails"]["gap"]
 FRONT = COURSE["grandstand"]["frontLine"]
 # Ground area to bake (world x, z): the last 2 furlongs and the post, both sides of the track.
 GROUND = {"x0": -260.0, "x1": 700.0, "z0": -150.0, "z1": 140.0, "w": 5120, "h": 1548}
+# GROUND_ONLY=1: re-bake only the ground (e.g. after a change to the planting belts or the loose pieces' places that
+# leaves the stand, the finish line and the site kit as they were). Keeps the last bake's stand, site and finish light
+# and static_world.glb as they are; writes ground.jpg and the ground's entry in bake.json only.
+GROUND_ONLY = bool(os.environ.get("GROUND_ONLY"))
 SMOKE = bool(os.environ.get("SMOKE"))          # SMOKE=1: tiny images, 1 sample, to check the script runs end to end
 if SMOKE:
     SAMPLES = 1; GROUND.update(w=640, h=194)
@@ -367,7 +371,7 @@ def lightmap_uv(o, margin=0.0012):
     bpy.ops.object.mode_set(mode="OBJECT")
 
 
-for o, margin in ((stand, 0.0012), (site, 0.0012), (finish, 0.0012)):   # bigger margins collapse the islands (thousands of them)
+for o, margin in (() if GROUND_ONLY else ((stand, 0.0012), (site, 0.0012), (finish, 0.0012))):   # bigger margins collapse the islands (thousands of them)
     lightmap_uv(o, margin)
 print("lightmap UVs done", flush=True)
 
@@ -422,7 +426,9 @@ bounce = bpy.data.materials.new("bounce_neutral"); bounce.use_nodes = True
 bounce.node_tree.nodes["Principled BSDF"].inputs["Base Color"].default_value = srgb("#a29680")
 bounce.node_tree.nodes["Principled BSDF"].inputs["Roughness"].default_value = 1.0
 ground.data.materials[0] = bounce
-for o, name, size in ((finish, "finish", 2048), (site, "site", 2048), (stand, "stand", 4096)):
+if GROUND_ONLY:
+    INFO = json.load(open(os.path.join(OUT, "bake.json")))
+for o, name, size in (() if GROUND_ONLY else ((finish, "finish", 2048), (site, "site", 2048), (stand, "stand", 4096))):
     import time; t0 = time.time()
     px = bake(o, name, size // 8 if SMOKE else size, size // 8 if SMOKE else size, "light")
     lum = px[..., :3].max(axis=2)[px[..., 3] > 0.5]
@@ -452,6 +458,12 @@ if px is not None:
                       "turf": [round(float(c), 4) for c in np.median(turf[::20], axis=0)]}
     print("baked ground in %.0fs, scale %.3f" % (time.time() - t0, scale), flush=True)
 
+if GROUND_ONLY:
+    json.dump(INFO, open(os.path.join(OUT, "bake.json"), "w"), indent=1)
+    for f in ("_ground_mask.png", "_ground_near.png"):
+        if os.path.exists(os.path.join(OUT, f)): os.remove(os.path.join(OUT, f))
+    print("ground only: wrote ground.jpg and bake.json", flush=True)
+    raise SystemExit(0)
 # ---------------- the site kit back into one mesh per piece and facing, in the piece's own axes ----------------
 kit_objs = []
 vals = np.empty(len(site.data.polygons), dtype=np.int32)
