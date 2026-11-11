@@ -474,7 +474,7 @@ const TONE_CROWD = `
 // light at the top, keeping a little of its own leaf-to-leaf tone; then, further off, paler and flatter, in layers.
 const TREE_COL = `
   { if (diffuseColor.g > diffuseColor.r * 0.75) {                                  // leaves (the poplars' yellow tips too), not bark
-      float upT = smoothstep(2.4, 12.6, vUpH);
+      float upT = smoothstep(2.4, 10.6, vUpH);
       vec3 upG = mix(${f3(lin("#3d6e58"))}, ${f3(lin("#62996a"))}, smoothstep(0.0, 0.5, upT)); upG = mix(upG, ${f3(lin("#a6cb92"))}, smoothstep(0.5, 1.0, upT));
       diffuseColor.rgb = upG * 0.97 * clamp(dot(diffuseColor.rgb, UPLUM) / 0.27, 0.6, 1.35); } }`;
 // Their form (owner, 11 Nov: "the trees in the 3d look flat again"): under this look's soft light every side of a crown
@@ -498,13 +498,7 @@ export function patchLit(mat, kind = "") {
   const baked = mat.isMeshBasicMaterial;                       // baked scenery: unlit colour x Blender's light
   return chain(mat, "lit" + kind + LOOK_ID + OFF.join(""), (sh) => {
     Object.assign(sh.uniforms, U);
-    sh.vertexShader = sh.vertexShader.replace("#include <common>", "#include <common>\nvarying vec3 vUpP; varying vec3 vUpN; varying float vUpH; varying float vUpR;")
-      .replace("#include <begin_vertex>", `#include <begin_vertex>
-      vUpR = 0.5;
-      ${tree ? `#ifdef USE_INSTANCING
-        vUpR = fract(sin(dot(instanceMatrix[3].xz, vec2(12.9898, 78.233))) * 43758.5453);
-        transformed.y *= mix(0.8, 1.3, fract(vUpR * 7.31 + 0.17));
-      #endif` : ""}`)
+    sh.vertexShader = sh.vertexShader.replace("#include <common>", "#include <common>\nvarying vec3 vUpP; varying vec3 vUpN; varying float vUpH;")
       .replace("#include <fog_vertex>", `#include <fog_vertex>
       { vUpP = transpose(mat3(viewMatrix)) * (mvPosition.xyz - viewMatrix[3].xyz); vUpH = position.y;
         vec3 upn = normal;
@@ -517,77 +511,9 @@ export function patchLit(mat, kind = "") {
         vUpN = mat3(modelMatrix) * upn; }`);
     let f = sh.fragmentShader.replace("#include <common>", "#include <common>\n" + COMMON).replace("#include <fog_fragment>", HAZE);
     if (relight && baked && mat.lightMap) f = f.replace("reflectedLight.indirectDiffuse *= diffuseColor.rgb;", TONE_BAKED + "\n reflectedLight.indirectDiffuse *= diffuseColor.rgb;");
-    if (!baked && tree) f = f.replace("#include <common>", "#include <common>\nvarying float vUpR;").replace("#include <color_fragment>", "#include <color_fragment>\n" + TREE_COL);
+    if (!baked && tree) f = f.replace("#include <color_fragment>", "#include <color_fragment>\n" + TREE_COL);
     if (!baked) f = f.replace("#include <opaque_fragment>", (relight ? TONE_LIT : "") + (crowd ? TONE_CROWD : "") + (tree ? TREE_FAR : "") + "\n#include <opaque_fragment>");
     sh.fragmentShader = f;
-  });
-}
-
-// ---------- The trees' broken tops ----------
-// Owner, 11 Nov, with a television still of Ascot's real trees: "thin them out a bit at upper levels... they're so
-// flumpy at the moment... keep a visual block beyond the track... at upper levels more fragmented and varied to allow
-// sky in". So in this look a tree is built in two storeys. Its own crown is pressed down into a broad low mass (with
-// the belts' understorey, the solid block). Above it stands a "top" of separate boughs with air between them. There
-// are a dozen tops, made here once; each tree takes one, turned its own way, and the trees also differ in height (in
-// the shader), so the top line of a belt is broken and the sky comes through it.
-export function treeShape(t) { if (LOOK.trees && !t.scrub && !t.topped) { t.topped = true; t.sy = (t.sy || 1) * 0.68; } }
-let TOPS = null;
-// A top: six to nine boughs, each a loose bunch of flat sprays of leaf (a spray is a small lens-shaped piece, eight
-// faces, lying nearly level and tilted its own way). Boughs are large and spread out low down, small and gathered
-// in towards the leader; sprays overlap raggedly, so a bough has a broken edge and chinks of sky inside it.
-// (Two earlier tries: holes cut in the big crowns in the shader read as torn paper; whole small bush crowns floated
-// like balloons.)
-function makeTops(light) {                       // light: for trees far from the action, half as many sprays, each a little larger
-  let seed = 4711; const rnd = (a = 0, b = 1) => a + (b - a) * ((seed = (seed * 1664525 + 1013904223) >>> 0) / 4294967296);
-  const tops = [], F = [[0, 2, 4], [2, 1, 4], [1, 3, 4], [3, 0, 4], [2, 0, 5], [1, 2, 5], [3, 1, 5], [0, 3, 5]];
-  for (let v = 0; v < 12; v++) {
-    const pos = [], nor = [], col = [];
-    const n = 6 + Math.floor(rnd(0, 3.99)), tall = rnd() < 0.35 ? rnd(1.1, 1.35) : rnd(0.8, 1.05), ring = 5;
-    for (let k = -ring; k < n; k++) {
-      // the first few boughs sit round the shoulder of the low mass and break its rounded outline; the rest climb
-      const f = k < 0 ? 0 : k / (n - 1), a = k * 2.39996 + rnd(-0.5, 0.5);
-      const h = k < 0 ? rnd(4.6, 6.2) : 5.9 + 5.6 * Math.pow(f, 0.85) * tall + rnd(-0.4, 0.4), r = k < 0 ? rnd(2.8, 4.4) : Math.pow(1 - f, 0.7) * rnd(1.2, 3.6);
-      const bx = Math.cos(a) * r, bz = Math.sin(a) * r, size = (k < 0 ? 0.8 : 1.0 - 0.5 * f) * rnd(0.85, 1.2) * (light ? 1.3 : 1), sprays = Math.round((k < 0 ? 6 : 11 - 5 * f) * rnd(0.8, 1.2) * (light ? 0.5 : 1));
-      for (let j = 0; j < sprays; j++) {
-        // a spray: where in the bough, how big, which way it lies
-        const sa = rnd(0, 6.283), sr = Math.sqrt(rnd()) * 1.9 * size, cx = bx + Math.cos(sa) * sr, cz = bz + Math.sin(sa) * sr, cy = h + rnd(-0.9, 0.9) * size - 0.12 * sr * sr;
-        const L = rnd(0.65, 1.45) * size, Wd = L * rnd(0.5, 0.8), T = rnd(0.16, 0.34) * size, yaw = rnd(0, 6.283), tilt = rnd(-0.55, 0.55), roll = rnd(-0.4, 0.4), tone = rnd(0.82, 1.16);
-        const cyw = Math.cos(yaw), syw = Math.sin(yaw), ct = Math.cos(tilt), st = Math.sin(tilt), cr = Math.cos(roll), sr2 = Math.sin(roll);
-        const turn = (x, y, z) => { const y1 = y * ct - z * st, z1 = y * st + z * ct; const x2 = x * cr - y1 * sr2, y2 = x * sr2 + y1 * cr; return [cx + x2 * cyw + z1 * syw, cy + y2, cz - x2 * syw + z1 * cyw]; };
-        const j_ = () => rnd(0.75, 1.25);
-        const V = [turn(-L * j_(), rnd(-0.1, 0.1), rnd(-0.2, 0.2)), turn(L * j_(), rnd(-0.1, 0.1), rnd(-0.2, 0.2)), turn(rnd(-0.2, 0.2), rnd(-0.1, 0.1), -Wd * j_()), turn(rnd(-0.2, 0.2), rnd(-0.1, 0.1), Wd * j_()), turn(0, T, 0), turn(0, -T * 0.7, 0)];
-        for (const [i0, i1, i2] of F) {
-          const A = V[i0], B = V[i1], C = V[i2];
-          let nx = (B[1] - A[1]) * (C[2] - A[2]) - (B[2] - A[2]) * (C[1] - A[1]), ny = (B[2] - A[2]) * (C[0] - A[0]) - (B[0] - A[0]) * (C[2] - A[2]), nz = (B[0] - A[0]) * (C[1] - A[1]) - (B[1] - A[1]) * (C[0] - A[0]);
-          const nl = Math.hypot(nx, ny, nz) || 1; nx /= nl; ny /= nl; nz /= nl;
-          for (const P of [A, B, C]) {
-            // its light and shade: half its own facet, half as if it lay on a rounded bough (soft, not glittery)
-            let ox = P[0] - bx, oy = P[1] - (h - 1.2 * size), oz = P[2] - bz; const ol = Math.hypot(ox, oy, oz) || 1;
-            let mx = nx * 0.5 + ox / ol * 0.5, my = ny * 0.5 + oy / ol * 0.5, mz = nz * 0.5 + oz / ol * 0.5; const ml = Math.hypot(mx, my, mz) || 1;
-            pos.push(P[0], P[1], P[2]); nor.push(mx / ml, my / ml, mz / ml);
-            const under = P === V[5] ? 0.72 : 1.0, t = tone * under; col.push(0.17 * t, 0.34 * t, 0.12 * t);
-          }
-        }
-      }
-    }
-    const geo = new THREE.BufferGeometry();
-    geo.setAttribute("position", new THREE.Float32BufferAttribute(pos, 3)); geo.setAttribute("normal", new THREE.Float32BufferAttribute(nor, 3)); geo.setAttribute("color", new THREE.Float32BufferAttribute(col, 3));
-    tops.push(geo);
-  }
-  return tops;
-}
-export function treeTops({ trees, scene, LAYERS, groundY, material, isNear }) {
-  if (!LOOK.trees || !has("tops") || !trees.length) return;
-  TOPS = TOPS || [makeTops(false), makeTops(true)];
-  const hash = (t, k) => { const x = Math.sin(t.x * 12.9898 * k + t.z * 78.233) * 43758.5453; return x - Math.floor(x); };
-  const K = TOPS[0].length, by = [...TOPS[0], ...TOPS[1]].map(() => []);
-  for (const t of trees) by[(isNear && isNear(t.x, t.z) ? 0 : K) + Math.floor(hash(t, 1.7) * K) % K].push(t);
-  const m4 = new THREE.Matrix4(), qt = new THREE.Quaternion(), sc = new THREE.Vector3(), p = new THREE.Vector3(), up = new THREE.Vector3(0, 1, 0);
-  by.forEach((ts, v) => {
-    if (!ts.length) return;
-    const inst = new THREE.InstancedMesh(TOPS[v < K ? 0 : 1][v % K], material, ts.length);
-    ts.forEach((t, i) => { qt.setFromAxisAngle(up, hash(t, 3.1) * 6.283); const s = t.s * (0.92 + 0.2 * hash(t, 5.3)); inst.setMatrixAt(i, m4.compose(p.set(t.x, groundY(t.x, t.z) + (t.dy || 0), t.z), qt, sc.set(s, s, s))); });
-    inst.computeBoundingSphere(); scene.add(inst); LAYERS.trees.push(inst);
   });
 }
 

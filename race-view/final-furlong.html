@@ -1340,10 +1340,9 @@ function underGeometry(crown) {
   return (UNDER_GEO = g);
 }
 function instanceTrees(gltf, list) {
-  const groups = new Map(), kept = [];
+  const groups = new Map();
   for (const t of list) {
     if (THIN_BELTS && (t.belt || !isNear(t.x, t.z))) { if ((Math.round(t.x * 7 + t.z * 13) & 1) === 1) continue; t.s *= 1.12; }
-    if (UPLIFT && !t.scrub) { UPLIFT.treeShape(t); kept.push(t); }     // the soft look: a low mass, and a broken top above it
     const near = !LITE_TREES && isNear(t.x, t.z);
     // belt trees also get an understorey: their light crown squashed low under the real one, so the belts read as
     // solid woodland down to the hedge instead of crowns floating over a strip of sky (owner, 7 Nov)
@@ -1375,7 +1374,6 @@ function instanceTrees(gltf, list) {
       LAYERS.trees.push(inst);
     }
   }
-  if (UPLIFT) UPLIFT.treeTops({ trees: kept, scene, LAYERS, groundY, material: treeMat, isNear: (x, z) => !LITE_TREES && isNear(x, z) });
 }
 
 // The stills' leafy trees (tools/blender/export_trees.py), scattered where courses/ascot-view.json says:
