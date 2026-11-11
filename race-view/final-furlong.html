@@ -363,6 +363,9 @@ import * as LOOKS from "./looks.js";
 import * as STANDS from "./stand-styles.js";
 // The miniature look test (?mini=1, miniature.js): loaded only when asked for, so the game never fetches it.
 const MINI = new URLSearchParams(location.search).has("mini") ? await import("./miniature.js") : null;
+// The graphics uplift test (?uplift=1, uplift.js; 11 Nov 2026): the ground, planting, sky and light, all in the 3D scene.
+// Loaded only when asked for; without it nothing changes.
+const UPLIFT = new URLSearchParams(location.search).has("uplift") ? await import("./uplift.js") : null;
 // The race engine (race-engine/ in the repo; a copy lives in assets/engine/): it decides the race, the view plays it back.
 import { runRace } from "./assets/engine/engine.js";
 import { randomField } from "./assets/engine/field.js";
@@ -685,6 +688,7 @@ sun.shadow.normalBias = 0.03;
 scene.add(sun, sun.target);
 LOOKS.setupScene({ scene, hemi: sky, sun, cloudMat: scene.userData.cloudMat });
 const SUN_OFFSET = new THREE.Vector3(...((LIGHT && LIGHT.sunDir) || VIEW.sun || [-110, 49.5, -35.2]));   // (a course's view file may move it: the July Course's stands face the other way)   // the bake's sun direction (Blender (-1, 0.32, 0.45)), in the course's axes
+if (UPLIFT) UPLIFT.init({ COURSE, VIEW, scene, sun, hemi: sky, sunOffset: SUN_OFFSET, renderer });
 
 let shadowCatcher = null;
 // ---------- Textures ----------
@@ -780,7 +784,7 @@ function distToRails(x, z) {
 const GROUND_FIRST = LEGACY_GROUND ? {} : { stencilWrite: true, stencilRef: 1, stencilFunc: THREE.AlwaysStencilFunc, stencilZPass: THREE.ReplaceStencilOp };
 const GROUND_UNDER = LEGACY_GROUND ? { depthWrite: false } : { stencilWrite: true, stencilRef: 1, stencilFunc: THREE.NotEqualStencilFunc, stencilZPass: THREE.ReplaceStencilOp };
 // the ground's look: the graphic style tests (looks.js) and the miniature test (miniature.js), when asked for
-const turfLook = (m, which) => { m = groundLight(LOOKS.patchGround(m, which)); return MINI && which === "turf" ? MINI.patchTurf(m) : m; };
+const turfLook = (m, which) => { m = groundLight(LOOKS.patchGround(m, which)); if (UPLIFT) m = UPLIFT.patchGround(m, which); return MINI && which === "turf" ? MINI.patchTurf(m) : m; };
 // The ground's light from the buildings, baked once in Blender for a course drawn live (Newmarket: the view file's
 // groundLight, tools/blender/bake_newmarket_ground.py): the soft shadows of the stands, marquees and walls on the lawns
 // and the shade at their feet, in the model look's light. The ground colour is multiplied by it inside its area.
@@ -1114,7 +1118,7 @@ function bakedTex(file) {
 function bakedMaterial(m, info, tex, key) {
   const name = m.material.name || "";
   let mat;
-  if (key === "ground") mat = groundDetail(new THREE.MeshBasicMaterial({ map: tex, color: new THREE.Color(info.scale, info.scale, info.scale), ...GROUND_FIRST }));
+  if (key === "ground") { mat = groundDetail(new THREE.MeshBasicMaterial({ map: tex, color: new THREE.Color(info.scale, info.scale, info.scale), ...GROUND_FIRST })); if (UPLIFT) mat = UPLIFT.patchGround(mat, "baked"); }
   // the baked ground is drawn first of all and marks its pixels; the plain turf and grass under it skip every pixel
   // it covers (they used to be painted in full, then painted over: two extra screens of work every frame)
   else if (name.includes("digit")) mat = new THREE.MeshBasicMaterial({ color: m.material.color.clone().multiplyScalar(2.2) });
@@ -2506,6 +2510,9 @@ try {
     const pieceAt = (p) => new THREE.Matrix4().makeTranslation(p.x, 0, p.z).multiply(new THREE.Matrix4().makeRotationY(Math.PI + (p.turn || 0) * Math.PI / 180));
     buildCrowd(crowd, { dressing, areas: areas && areas.areas, spots: spots && spots.pieces, palette, people: SC && SC.people, finishLine: SC && SC.finishLine }, pieceAt);
   }
+  if (UPLIFT) {                       // the uplift test: planting on the heath
+    if (!SC) UPLIFT.plant({ scene, LAYERS, sunOffset: SUN_OFFSET, dressing, instanceTrees: trees ? (list) => instanceTrees(trees, list) : null });
+  }
   const v2Tex = (url, srgb) => { const t = texLoader.load(url); t.flipY = false; if (srgb) t.colorSpace = THREE.SRGBColorSpace; return t; };
   for (let i = 0; i < RUNNERS && HORSE_V === "v2"; i++) {
     const coat = coatFor(i);
@@ -2555,6 +2562,8 @@ try {
   }
   // Compile every shader now, while the loading note is up (in parallel where the browser can), instead of the first
   // time each thing comes into shot, which stalled a frame or two mid-race and could tip Auto into dropping a level.
+  // the uplift test, once everything stands in the scene (the horses too): the sun's shadow pictures, and its light on everything
+  if (UPLIFT) UPLIFT.afterBuild({ scene, LAYERS, shadowCatcher, crowd: CROWD.figs, crowdShare: QUALITY[qLevel].crowd, sunOffset: SUN_OFFSET, renderer, quality: qLevel });
   setGrade(GRADE.on);
   try { await renderer.compileAsync(scene, camera); } catch (e) { console.warn("compile", e); }
   document.getElementById("loading").hidden = true;
@@ -3056,6 +3065,10 @@ function frame() {
     const gy = groundY(wx, wz);
     r.obj.position.set(wx, gy, wz);
     r.obj.rotation.y = head;
+    if (UPLIFT) {            // the uplift test: a horse leans into a bend, by its speed and how tightly the course turns here
+      let turn = headingAt(x + 4, yaw) - headingAt(x - 4, yaw); turn = Math.atan2(Math.sin(turn), Math.cos(turn));
+      r.obj.rotation.order = "YXZ"; r.obj.rotation.x = UPLIFT.lean(turn / 8, v);
+    }
     _p.set(wx - Math.cos(head) * 0.15, 0.04 + gy, wz + Math.sin(head) * 0.15); _q.setFromEuler(_e.set(-Math.PI / 2, 0, head - Math.PI, "YXZ")); _s.set(3.0, 1.05, 1);
     contact.setMatrixAt(i, _m.compose(_p, _q, _s));
     if (r.v2) {                                            // the v2 horse: its own riding, gallop and detail levels
@@ -3115,6 +3128,7 @@ function frame() {
   }
   if (MINI) MINI.afterSun(sunAt, camera, focus);
   scene.userData.sky.position.copy(camera.position);
+  if (UPLIFT) UPLIFT.update(params.has("still") ? state.t : performance.now() / 1000, camera);
   CROWD.uniforms.uTime.value = params.has("still") ? state.t : performance.now() / 1000;   // (?still=1: the race clock, so stepped frames make a true film)
   CROWD.uniforms.uLeader.value.set(leaderXw, leaderZ);
   camera.updateMatrixWorld();
