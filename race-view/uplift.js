@@ -476,12 +476,22 @@ const TREE_COL = `
   { if (diffuseColor.g > diffuseColor.r * 1.02) {                                  // leaves, not bark
       float upT = smoothstep(2.4, 10.6, vUpH);
       vec3 upG = mix(${f3(lin("#3d6e58"))}, ${f3(lin("#62996a"))}, smoothstep(0.0, 0.5, upT)); upG = mix(upG, ${f3(lin("#a6cb92"))}, smoothstep(0.5, 1.0, upT));
-      diffuseColor.rgb = upG * 0.8 * clamp(dot(diffuseColor.rgb, UPLUM) / 0.27, 0.78, 1.22); } }`;
+      diffuseColor.rgb = upG * 0.84 * clamp(dot(diffuseColor.rgb, UPLUM) / 0.27, 0.6, 1.35); } }`;
+// Their form (owner, 11 Nov: "the trees in the 3d look flat again"): under this look's soft light every side of a crown
+// was nearly the same tone. Each lobe is modelled again: fuller and warmer on the side towards the sun, deeper and
+// cooler away from it, darker underneath where it hangs over the lobe below. Only far off do they ease into flat tones.
 const TREE_FAR = `
-  #ifdef USE_FOG
-  { float upFarT = smoothstep(140.0, 700.0, vFogDepth);
-    outgoingLight = mix(outgoingLight, ${f3(lin("#bfd0b4"))} * (0.62 + 0.38 * smoothstep(2.4, 10.6, vUpH)), 0.5 * upFarT); }
-  #endif`;
+  { vec3 upTn = normalize(transpose(mat3(viewMatrix)) * normalize(normal));
+    float upSide = smoothstep(-0.5, 0.8, dot(upTn, upSun)), upUnder = smoothstep(-0.95, 0.45, upTn.y);
+    vec3 upForm = mix(vec3(0.5, 0.58, 0.62), vec3(1.14, 1.1, 0.98), upSide) * mix(0.62, 1.0, upUnder);
+    #ifdef USE_FOG
+    float upFarT = smoothstep(260.0, 900.0, vFogDepth);
+    outgoingLight *= mix(upForm, vec3(0.92), 0.55 * upFarT);
+    outgoingLight = mix(outgoingLight, ${f3(lin("#bfd0b4"))} * (0.62 + 0.38 * smoothstep(2.4, 10.6, vUpH)), 0.4 * upFarT);
+    #else
+    outgoingLight *= upForm;
+    #endif
+  }`;
 export function patchLit(mat, kind = "") {
   if (mat.userData.up) return mat;
   const relight = has("relight"), crowd = kind === "crowd" && has("crowd"), tree = kind === "tree" && LOOK.trees;
