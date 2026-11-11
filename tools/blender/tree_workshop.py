@@ -207,6 +207,40 @@ def leaf_atlas(path):
     im.save(path); return path
 
 
+# Halfway houses (owner, 11 Nov: "if you can design a halfway house I'd be open to that"): the real tree's skeleton and
+# ragged outline kept, the foliage drawn more simply. "bold": fewer, larger sprays of a few big plain leaves, like cut
+# paper. "fluffy": soft ragged clumps of foliage, no separate leaves, hung along the boughs (a painted tree). "masses":
+# no cut-outs at all, small solid leafy masses at the ends of the branches (a model-maker's tree).
+def bold_atlas(path):
+    from PIL import Image, ImageDraw
+    r = random.Random(5); T = 256; im = Image.new("RGBA", (T * 2, T * 2), (150, 170, 120, 0)); dr = ImageDraw.Draw(im)
+    for ty in range(2):
+        for tx in range(2):
+            cx, cy = tx * T + T * 0.5, ty * T + T * 0.56; n = r.choice((5, 6, 7)); a0 = r.uniform(0, 6.283)
+            for k in range(n):
+                ang = a0 + k * 6.283 / n + r.uniform(-0.25, 0.25); L = r.uniform(92, 116); Wd = r.uniform(30, 40); pts = []
+                for q in range(13):
+                    t = q / 12; pts.append((t * L, math.sin(math.pi * t) ** 0.75 * (1 - 0.3 * t) * Wd))
+                pts += [(x, -y) for x, y in reversed(pts)]; ca, sa = math.cos(ang), math.sin(ang); g = int(205 * r.uniform(0.86, 1.08))
+                dr.polygon([(cx + x * ca - y * sa, cy + x * sa + y * ca) for x, y in pts], fill=(int(g * 0.93), g, int(g * 0.86), 255))
+    im.save(path); return path
+
+
+def fluffy_atlas(path):
+    from PIL import Image, ImageDraw
+    r = random.Random(9); T = 256; im = Image.new("RGBA", (T * 2, T * 2), (150, 170, 120, 0)); dr = ImageDraw.Draw(im)
+    for ty in range(2):
+        for tx in range(2):
+            cx, cy = tx * T + T * 0.5, ty * T + T * 0.5; holes = [(cx + r.uniform(-75, 75), cy + r.uniform(-75, 75), r.uniform(15, 27)) for _ in range(7)]
+            for k in range(105):
+                a = r.uniform(0, 6.283); d = (r.random() ** 0.6) * T * 0.36 * (1 + 0.18 * math.sin(a * 3 + tx + ty * 2)); x, y = cx + math.cos(a) * d, cy + math.sin(a) * d
+                if any(math.hypot(x - hx, y - hy) < hr for hx, hy, hr in holes): continue
+                ang = r.uniform(0, 6.283); L = r.uniform(20, 34) * (1.15 - 0.45 * d / (T * 0.4)); Wd = L * r.uniform(0.34, 0.48); ca, sa = math.cos(ang), math.sin(ang)
+                pts = [(-L, 0), (-L * 0.3, Wd), (L * 0.5, Wd * 0.8), (L, 0), (L * 0.5, -Wd * 0.8), (-L * 0.3, -Wd)]; g = int(205 * (0.84 + 0.26 * (1 - (y - (cy - T * 0.4)) / (T * 0.8)) * r.uniform(0.85, 1.1)))
+                dr.polygon([(x + px * ca - py * sa, y + px * sa + py * ca) for px, py in pts], fill=(int(g * 0.93), g, int(g * 0.86), 255))
+    im.save(path); return path
+
+
 def grow(start, d, L, r0, r1, segs, curl, r, wander=0.16):
     pts, rad = [start.copy()], [r0]; p = start.copy(); dn = d.normalized()
     for i in range(1, segs + 1):
@@ -225,12 +259,12 @@ def side_dir(dn, r, lo=40, hi=65, lift=0.15):
 
 
 _real = {}
-def real_tree(seed):
-    if seed in _real: return _real[seed]
-    r = random.Random(seed * 977 + 13); H = r.uniform(15.5, 18.5); splines = []; cards = []
+def real_tree(seed, mode="leaves"):
+    if (seed, mode) in _real: return _real[(seed, mode)]
+    r = random.Random(seed * 977 + 13); H = r.uniform(15.5, 18.5); splines = []; cards = []; ends = []
     wx, wy = r.uniform(-0.5, 0.5), r.uniform(-0.5, 0.5)
     trunk = [Vector((wx * math.sin(t * 2.6), wy * math.sin(t * 3.4 + 1), H * t - 0.3)) for t in [i / 10 for i in range(11)]]
-    splines.append((trunk, [0.44 * (1 - t) ** 0.85 + 0.035 for t in [i / 10 for i in range(11)]]))
+    splines.append((trunk, [0.44 * (1 - t) ** 0.85 + 0.035 for t in [i / 10 for i in range(11)]], 0))
     def spray(p, size=None):
         cards.append((p + Vector((r.uniform(-1, 1), r.uniform(-1, 1), r.uniform(-0.7, 0.7))) * 0.24, size or r.uniform(0.6, 1.0)))
     nb = r.choice((17, 19, 21)); a = r.uniform(0, 6.283)
@@ -238,59 +272,87 @@ def real_tree(seed):
         f = i / (nb - 1); t = 0.27 + 0.71 * f ** 0.92 + r.uniform(-0.012, 0.012); base, _ = along(trunk, min(t, 0.985)); a += 2.39996 + r.uniform(-0.45, 0.45)
         L = H * 0.34 * (0.5 + 0.5 * math.sin(math.pi * (0.12 + 0.8 * f))) * (1 - 0.5 * f ** 2) * r.uniform(0.7, 1.2) + 0.9
         el = math.radians(r.uniform(6, 26) + 34 * f); d = Vector((math.cos(a) * math.cos(el), math.sin(a) * math.cos(el), math.sin(el)))
-        P, R1 = grow(base, d, L, 0.05 + 0.1 * (1 - f), 0.022, 7, r.uniform(0.07, 0.17), r); splines.append((P, R1))
+        P, R1 = grow(base, d, L, 0.05 + 0.1 * (1 - f), 0.022, 7, r.uniform(0.07, 0.17), r); splines.append((P, R1, 1))
         for j in range(int(L * 1.15) + 2):                                     # boughs divide
             u = r.uniform(0.28, 1.0); q, dn = along(P, u); L2 = L * r.uniform(0.3, 0.5) * (1.15 - 0.5 * u) + 0.5
-            S, R2 = grow(q, side_dir(dn, r), L2, 0.04, 0.014, 5, r.uniform(0.05, 0.12), r); splines.append((S, R2))
+            S, R2 = grow(q, side_dir(dn, r), L2, 0.04, 0.014, 5, r.uniform(0.05, 0.12), r); splines.append((S, R2, 2))
+            ends.append((S[-1], L2)); 
+            if L2 > 1.5: ends.append((along(S, 0.55)[0], L2 * 0.8))
             for k in range(r.choice((4, 5, 5))):                                # and again, into twigs that carry the leaves
                 v = r.uniform(0.25, 1.0); q2, dn2 = along(S, v); L3 = r.uniform(0.7, 1.4)
-                Tw, R3 = grow(q2, side_dir(dn2, r, 30, 70, 0.1), L3, 0.016, 0.008, 3, 0.05, r, 0.22); splines.append((Tw, R3))
+                Tw, R3 = grow(q2, side_dir(dn2, r, 30, 70, 0.1), L3, 0.016, 0.008, 3, 0.05, r, 0.22); splines.append((Tw, R3, 3))
                 for m in range(int(L3 / 0.15)): spray(along(Tw, r.uniform(0.15, 1.0))[0])
             for m in range(int(L2 / 0.32)): spray(along(S, r.uniform(0.45, 1.0))[0])
-        spray(P[-1], 1.0)
+        spray(P[-1], 1.0); ends.append((P[-1], 1.6))
     for m in range(10): spray(trunk[-1] + Vector((0, 0, r.uniform(-0.6, 0.5))), r.uniform(0.7, 1.0))
-    # the wood: one curve, a spline for every branch
+    ends.append((trunk[-1], 1.8))
+    # the wood: one curve, a spline for every branch (the simpler foliage hides no twigs, so they are left off)
     cu = bpy.data.curves.new("wood", "CURVE"); cu.dimensions = "3D"; cu.bevel_depth = 1.0; cu.bevel_resolution = 1; cu.use_fill_caps = True
-    for pts, rad in splines:
+    for pts, rad, level in splines:
+        if level == 3 and mode in ("fluffy", "masses"): continue
         sp = cu.splines.new("POLY"); sp.points.add(len(pts) - 1)
         for pt, p_, rd in zip(sp.points, pts, rad): pt.co = (p_.x, p_.y, p_.z, 1.0); pt.radius = rd
     wood_me = baked(bpy.data.objects.new("wood", cu)); wood_me.materials.append(BARK)
     for pl in wood_me.polygons: pl.use_smooth = True
+    if mode == "masses":
+        masses = [(c + Vector((r.uniform(-1, 1), r.uniform(-1, 1), r.uniform(-0.3, 0.6))) * 0.25, min(max(0.42 + 0.2 * L2 * r.uniform(0.8, 1.2), 0.5), 1.05), r.uniform(0.6, 0.8)) for c, L2 in ends]
+        crown_me = joined("crown", [leaf_mass(c, R, fl, r, cell=0.42) for c, R, fl in masses], LEAF, [r.random() for _ in masses])
+        print("real tree", seed, mode, "masses", len(masses), "crown tris", len(crown_me.polygons), flush=True)
+        _real[(seed, mode)] = (bpy.data.objects.new("crown", crown_me), bpy.data.objects.new("wood", wood_me)); return _real[(seed, mode)]
+    if mode == "bold": cards = [(c, sz * 1.9) for c, sz in cards if r.random() < 0.3]
+    if mode == "fluffy":
+        cards = []
+        for c, L2 in ends:
+            for k in range(3): cards.append((c + Vector((r.uniform(-1, 1), r.uniform(-1, 1), r.uniform(-0.6, 0.8))) * 0.45, min(1.05 + 0.3 * L2, 1.9) * r.uniform(0.85, 1.15)))
     # the leaves: a card for every spray, facing mostly up and out, lit as part of a rounded crown (so the tree shades as
     # a whole, soft, and does not glitter)
     verts, faces, uvs, tones, nrm = [], [], [], [], []
-    for c, size in cards:
-        n = Vector((r.uniform(-1, 1), r.uniform(-1, 1), abs(r.uniform(-1, 1)) + 0.35)).normalized(); tg = n.cross(Vector((r.uniform(-1, 1), r.uniform(-1, 1), r.uniform(-1, 1)))).normalized(); bt = n.cross(tg)
+    for ci, (c, size) in enumerate(cards):
+        out = Vector((c.x, c.y, (c.z - H * 0.55) * 0.5)); out = out.normalized() if out.length > 1e-3 else Vector((0, 0, 1))
+        if mode == "fluffy":        # clumps: one in three turned out towards whoever looks at the tree, the rest lying every way
+            n = ((Vector((out.x, out.y, 0.25)) if ci % 3 == 0 else Vector((r.uniform(-1, 1), r.uniform(-1, 1), abs(r.uniform(-1, 1)) + 0.3))) + Vector((r.uniform(-1, 1), r.uniform(-1, 1), r.uniform(-1, 1))) * 0.3).normalized()
+        else: n = Vector((r.uniform(-1, 1), r.uniform(-1, 1), abs(r.uniform(-1, 1)) + 0.35)).normalized()
+        tg = n.cross(Vector((r.uniform(-1, 1), r.uniform(-1, 1), r.uniform(-1, 1)))).normalized(); bt = n.cross(tg)
         i0 = len(verts); h = size * 0.5; verts += [c - tg * h - bt * h, c + tg * h - bt * h, c + tg * h + bt * h, c - tg * h + bt * h]; faces.append((i0, i0 + 1, i0 + 2, i0 + 3))
         tx, ty = r.choice((0, 1)), r.choice((0, 1)); uvs += [(tx * 0.5, ty * 0.5), (tx * 0.5 + 0.5, ty * 0.5), (tx * 0.5 + 0.5, ty * 0.5 + 0.5), (tx * 0.5, ty * 0.5 + 0.5)]
         tone = r.random(); tones += [tone] * 4
-        out = Vector((c.x, c.y, (c.z - H * 0.55) * 0.5)); out = out.normalized() if out.length > 1e-3 else Vector((0, 0, 1)); nn = (out * 0.6 + Vector((0, 0, 0.3)) + n * 0.25).normalized(); nrm += [nn] * 4
+        nn = (out * 0.6 + Vector((0, 0, 0.3)) + n * 0.25).normalized(); nrm += [nn] * 4
     me = bpy.data.meshes.new("leaves"); me.from_pydata(verts, [], faces)
     uvl = me.uv_layers.new(name="UVMap")
     for li, loop in enumerate(me.loops): uvl.data[li].uv = uvs[loop.vertex_index]
     at_ = me.attributes.new("tone", "FLOAT", "POINT"); at_.data.foreach_set("value", tones)
     for pl in me.polygons: pl.use_smooth = True
-    me.normals_split_custom_set_from_vertices([tuple(v) for v in nrm]); me.materials.append(CARD)
-    print("real tree", seed, "cards", len(cards), "branches", len(splines), "wood tris", len(wood_me.polygons), flush=True)
-    _real[seed] = (bpy.data.objects.new("crown", me), bpy.data.objects.new("wood", wood_me)); return _real[seed]
+    me.normals_split_custom_set_from_vertices([tuple(v) for v in nrm]); me.materials.append(CARDS[mode])
+    print("real tree", seed, mode, "cards", len(cards), "wood tris", len(wood_me.polygons), flush=True)
+    _real[(seed, mode)] = (bpy.data.objects.new("crown", me), bpy.data.objects.new("wood", wood_me)); return _real[(seed, mode)]
 
 
-m, nt, b = mat("leafcard"); CARD = m
-img = bpy.data.images.load(leaf_atlas(os.path.join(OUTDIR, "leaf_atlas.png"))); tex = N_(nt, "ShaderNodeTexImage"); tex.image = img
-tc = N_(nt, "ShaderNodeTexCoord"); sz = N_(nt, "ShaderNodeSeparateXYZ"); nt.links.new(tc.outputs["Generated"], sz.inputs[0])
-rampn = N_(nt, "ShaderNodeValToRGB"); els = rampn.color_ramp.elements
-els[0].position = 0.0; els[0].color = lin("#35604a"); els[1].position = 1.0; els[1].color = lin("#b4cc88"); e = els.new(0.5); e.color = lin("#6a9862")
-nt.links.new(sz.outputs["Z"], rampn.inputs[0])
-col = mul(nt, rampn.outputs[0], tex.outputs["Color"]); col = mul(nt, col, (1.35, 1.35, 1.35, 1.0))
-at = N_(nt, "ShaderNodeAttribute"); at.attribute_name = "tone"; col = mul(nt, col, grey(nt, at.outputs["Fac"], 0.8, 1.2))
-nt.links.new(col, b.inputs["Base Color"])
-tr = N_(nt, "ShaderNodeBsdfTranslucent"); nt.links.new(col, tr.inputs["Color"]); mx = N_(nt, "ShaderNodeMixShader"); mx.inputs["Fac"].default_value = 0.3
-tp = N_(nt, "ShaderNodeBsdfTransparent"); mx2 = N_(nt, "ShaderNodeMixShader"); outn = nt.nodes["Material Output"]
-nt.links.new(b.outputs[0], mx.inputs[1]); nt.links.new(tr.outputs[0], mx.inputs[2]); nt.links.new(tex.outputs["Alpha"], mx2.inputs["Fac"]); nt.links.new(tp.outputs[0], mx2.inputs[1]); nt.links.new(mx.outputs[0], mx2.inputs[2])
-nt.links.new(mx2.outputs[0], outn.inputs["Surface"])
+def card_material(name, image_path):
+    m, nt, b = mat(name)
+    img = bpy.data.images.load(image_path); tex = N_(nt, "ShaderNodeTexImage"); tex.image = img
+    tc = N_(nt, "ShaderNodeTexCoord"); sz = N_(nt, "ShaderNodeSeparateXYZ"); nt.links.new(tc.outputs["Generated"], sz.inputs[0])
+    rampn = N_(nt, "ShaderNodeValToRGB"); els = rampn.color_ramp.elements
+    els[0].position = 0.0; els[0].color = lin("#35604a"); els[1].position = 1.0; els[1].color = lin("#b4cc88"); e = els.new(0.5); e.color = lin("#6a9862")
+    nt.links.new(sz.outputs["Z"], rampn.inputs[0])
+    col = mul(nt, rampn.outputs[0], tex.outputs["Color"]); col = mul(nt, col, (1.35, 1.35, 1.35, 1.0))
+    at = N_(nt, "ShaderNodeAttribute"); at.attribute_name = "tone"; col = mul(nt, col, grey(nt, at.outputs["Fac"], 0.8, 1.2))
+    nt.links.new(col, b.inputs["Base Color"])
+    tr = N_(nt, "ShaderNodeBsdfTranslucent"); nt.links.new(col, tr.inputs["Color"]); mx = N_(nt, "ShaderNodeMixShader"); mx.inputs["Fac"].default_value = 0.3
+    tp = N_(nt, "ShaderNodeBsdfTransparent"); mx2 = N_(nt, "ShaderNodeMixShader"); outn = nt.nodes["Material Output"]
+    nt.links.new(b.outputs[0], mx.inputs[1]); nt.links.new(tr.outputs[0], mx.inputs[2]); nt.links.new(tex.outputs["Alpha"], mx2.inputs["Fac"]); nt.links.new(tp.outputs[0], mx2.inputs[1]); nt.links.new(mx.outputs[0], mx2.inputs[2])
+    nt.links.new(mx2.outputs[0], outn.inputs["Surface"])
+    return m
+
+
+CARDS = {"leaves": card_material("card_leaves", leaf_atlas(os.path.join(OUTDIR, "leaf_atlas.png"))),
+         "bold": card_material("card_bold", bold_atlas(os.path.join(OUTDIR, "bold_atlas.png"))),
+         "fluffy": card_material("card_fluffy", fluffy_atlas(os.path.join(OUTDIR, "fluffy_atlas.png")))}
 
 KINDS = {
-    "G": ("Built like a real tree: branches, twigs, sprays of leaves", "real"),
+    "G": ("Real: sprays of small leaves", "real:leaves"),
+    "H": ("Halfway 1: fewer, bolder leaves", "real:bold"),
+    "I": ("Halfway 2: loose clumps of foliage", "real:fluffy"),
+    "J": ("Halfway 3: small solid masses", "real:masses"),
     "A": ("As now: one merged crown", "kit"),
     "B": ("Full boughs: big masses of leaf on limbs", "full"),
     "C": ("Open boughs: separate masses, more sky", "open"),
@@ -303,7 +365,7 @@ _made = {}
 def build(kind, seed):
     """One tree model (two objects: crown, wood), made once per kind and seed."""
     key = (kind, seed)
-    if kind == "real": return real_tree(seed)
+    if kind.startswith("real:"): return real_tree(seed, kind.split(":")[1])
     if key in _made: return _made[key]
     r = random.Random(seed * 131 + 7); wood, masses = BUILD[kind](r)
     masses = [(Vector((c.x, c.y, max(c.z, 3.4))), R, fl) for c, R, fl in masses]              # no foliage down at the foot of the trunk
