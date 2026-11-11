@@ -517,6 +517,24 @@ export function patchLit(mat, kind = "") {
   });
 }
 
+// ---------- Thinning the belts ----------
+// Owner, 11 Nov, with a television still of Ascot's real trees: "thin them out a bit at upper levels... they're so
+// flumpy at the moment... keep a visual block beyond the track... at upper levels more fragmented and varied to allow
+// sky in". The belts were planted solid, crown against crown. In this look the low understorey stays everywhere (the
+// block), but only about half the trees keep their crowns, in groups with gaps between, and those that do differ
+// more in size and height: separate trees standing out of a hedge of woodland, with sky between them.
+// (Tried first and thrown out, the owner's word "horrendous": tops built of loose leaf sprays. No new shapes: the
+// same leafy crowns he chose, fewer of them.)
+// Returns false where a belt tree should be understorey only.
+export function thinBelt(t) {
+  if (!LOOK.trees || !has("thin") || !t.belt || t.scrub) return true;
+  const h = (k) => { const x = Math.sin(t.x * 12.9898 * k + t.z * 78.233) * 43758.5453; return x - Math.floor(x); };
+  const group = noiseAt(0, t.x / 170 + 0.3, t.z / 170 + 0.7) * 0.65 + h(1.3) * 0.35;      // groups about 40 m across
+  if (group < Number(q.get("thin") || 0.5)) return false;
+  t.s *= 0.82 + 0.5 * h(2.7); t.sy = (t.sy || 1) * (0.9 + 0.4 * h(4.1));
+  return true;
+}
+
 // ---------- Sky and clouds ----------
 // One dome. The sky's colours run from the horizon up; a soft glow and a small bright disc where the sun is; and a
 // layer of cloud painted on it in perspective, so the clouds get smaller and closer together towards the horizon and

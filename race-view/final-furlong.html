@@ -1346,7 +1346,8 @@ function instanceTrees(gltf, list) {
     const near = !LITE_TREES && isNear(t.x, t.z);
     // belt trees also get an understorey: their light crown squashed low under the real one, so the belts read as
     // solid woodland down to the hedge instead of crowns floating over a strip of sky (owner, 7 Nov)
-    const parts = t.scrub ? ["_crown_far"] : [near ? "_crown" : "_crown_far"].concat(near || !t.belt ? ["_trunk"] : []).concat(t.belt ? ["_under"] : []);
+    // (the soft look thins the belts: about half their trees are understorey only, so the sky comes between the crowns)
+    const parts = UPLIFT && !UPLIFT.thinBelt(t) ? ["_under"] : t.scrub ? ["_crown_far"] : [near ? "_crown" : "_crown_far"].concat(near || !t.belt ? ["_trunk"] : []).concat(t.belt ? ["_under"] : []);
     for (const part of parts) {
       const key = t.tree + part;
       if (!groups.has(key)) groups.set(key, []);
