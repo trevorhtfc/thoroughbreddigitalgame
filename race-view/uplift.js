@@ -473,17 +473,17 @@ const TONE_CROWD = `
 // The trees of the soft look ("C and F" in the workshop): each graded up its height, dark at the foot of the crown to
 // light at the top, keeping a little of its own leaf-to-leaf tone; then, further off, paler and flatter, in layers.
 const TREE_COL = `
-  { if (diffuseColor.g > diffuseColor.r * 1.02) {                                  // leaves, not bark
+  { if (diffuseColor.g > diffuseColor.r * 0.75) {                                  // leaves (the poplars' yellow tips too), not bark
       float upT = smoothstep(2.4, 10.6, vUpH);
       vec3 upG = mix(${f3(lin("#3d6e58"))}, ${f3(lin("#62996a"))}, smoothstep(0.0, 0.5, upT)); upG = mix(upG, ${f3(lin("#a6cb92"))}, smoothstep(0.5, 1.0, upT));
-      diffuseColor.rgb = upG * 0.84 * clamp(dot(diffuseColor.rgb, UPLUM) / 0.27, 0.6, 1.35); } }`;
+      diffuseColor.rgb = upG * 0.97 * clamp(dot(diffuseColor.rgb, UPLUM) / 0.27, 0.6, 1.35); } }`;
 // Their form (owner, 11 Nov: "the trees in the 3d look flat again"): under this look's soft light every side of a crown
 // was nearly the same tone. Each lobe is modelled again: fuller and warmer on the side towards the sun, deeper and
 // cooler away from it, darker underneath where it hangs over the lobe below. Only far off do they ease into flat tones.
 const TREE_FAR = `
   { vec3 upTn = normalize(transpose(mat3(viewMatrix)) * normalize(normal));
     float upSide = smoothstep(-0.5, 0.8, dot(upTn, upSun)), upUnder = smoothstep(-0.95, 0.45, upTn.y);
-    vec3 upForm = mix(vec3(0.5, 0.58, 0.62), vec3(1.14, 1.1, 0.98), upSide) * mix(0.62, 1.0, upUnder);
+    vec3 upForm = mix(vec3(0.6, 0.67, 0.7), vec3(1.12, 1.08, 0.98), upSide) * mix(0.72, 1.0, upUnder);
     #ifdef USE_FOG
     float upFarT = smoothstep(260.0, 900.0, vFogDepth);
     outgoingLight *= mix(upForm, vec3(0.92), 0.55 * upFarT);
@@ -737,6 +737,8 @@ export function afterBuild({ scene, LAYERS, shadowCatcher, crowd, crowdShare = 1
     shadowPictures({ renderer, scene, LAYERS, quality });
   }
   const seen = new Set();
+  // the trees themselves, not the boards and hedge that share their layer
+  const isTree = (o) => { const m = Array.isArray(o.material) ? o.material[0] : o.material; return !!(o.isInstancedMesh && m && m.vertexColors && !m.map); };
   const visit = (o, kind) => {
     const mats = Array.isArray(o.material) ? o.material : [o.material];
     for (const m of mats) {
@@ -745,7 +747,7 @@ export function afterBuild({ scene, LAYERS, shadowCatcher, crowd, crowdShare = 1
       patchLit(m, kind); m.needsUpdate = true;
     }
   };
-  for (const key of ["trees", "rails", "buildings", "crowd", "stalls", "horses"]) for (const root of LAYERS[key]) root.traverse((o) => { if (o.isMesh) visit(o, key === "crowd" ? "crowd" : key === "trees" ? "tree" : ""); });
+  for (const key of ["trees", "rails", "buildings", "crowd", "stalls", "horses"]) for (const root of LAYERS[key]) root.traverse((o) => { if (o.isMesh) visit(o, key === "crowd" ? "crowd" : key === "trees" && isTree(o) ? "tree" : ""); });
 }
 
 // ---------- The board on the table ----------

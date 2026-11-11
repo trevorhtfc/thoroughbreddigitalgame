@@ -2479,8 +2479,9 @@ try {
     SC ? null : optional(loadModel("assets/baked", "static_world"), "Baked scenery"),
     // the leafy trees (owner, 7 Nov: preferred to the clay ones, which stay on ?trees=clay); in the model look the clay
     // trees, rounded clustered crowns on trunks as in the concept (owner, 9 Nov: the leafy ones read as "big puddings";
-    // view file light.trees; ?trees=leafy for the leafy ones)
-    !(params.get("trees") === "clay" || (params.get("trees") !== "leafy" && LIGHT && LIGHT.trees === "clay")) ? optional(loadModel("assets/trees", "trees"), "Trees")
+    // view file light.trees; ?trees=leafy for the leafy ones). The soft look (?uplift=soft) takes the leafy ones: the
+    // owner's pick in the landscape workshop, 11 Nov, was the leafy trees graded ("leafier... rather than bulbous")
+    !(params.get("trees") === "clay" || (params.get("trees") !== "leafy" && params.get("uplift") !== "soft" && LIGHT && LIGHT.trees === "clay")) ? optional(loadModel("assets/trees", "trees"), "Trees")
       : Promise.all([optional(loadModel("assets/trees", "trees_clay"), "Trees"), json("assets/trees/trees_clay_info.json")])
           .then(([g, info]) => (g && info ? ((CLAY_TREES = info), g) : optional(loadModel("assets/trees", "trees"), "Trees"))),
     optional(loadModel("assets/course", "planting_belts"), "Planting belts"),
