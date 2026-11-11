@@ -180,6 +180,68 @@ col = ramp(nt, rng(nt, h, 0, 1, 0, 5.4), [(0.0, "#8fa878"), (0.16, "#5f8562"), (
 col = mul(nt, col, grey(nt, noise(nt, p, 0.3, 2, stretch=(0.3, 1.3, 1.0)), 0.92, 1.08, 0.3, 0.7))
 col = mixc(nt, col, lin("#557c5a"), rng(nt, noise(nt, p, 0.05, 2), 0, 0.55, 0.5, 0.72))
 nt.links.new(col, b.inputs["Base Color"]); M["soft_bank"] = warm_bounce(m)
+# ---- one soft surface for all the ground (owner, 11 Nov: "a consistent softer texture"; the tussocks and bushes read
+# as clumpy). No separate plants: one even, finely mottled surface on the turf, the land, the verge and the Dyke, only
+# its colour changing. (A first try used a strong pale sheen: it washed every colour out to grey. No sheen now.)
+# The nap (owner, 11 Nov, with a picture of brushed suede: "a soft flock with some depth, shadow and shape to it rather
+# than lumps of round masses"). Suede's light and dark is its pile lying this way and that after a hand has brushed it:
+# broad soft clouds with wispy edges, finer clouds inside them, and faint strokes along the brushing.
+def nap_field(nt, vec, squeeze=None):
+    if squeeze:                                                                                      # on the Dyke's face: smaller clouds, longer along the bank than up it
+        mp = N_(nt, "ShaderNodeMapping"); mp.inputs["Scale"].default_value = squeeze; nt.links.new(vec, mp.inputs[0]); vec = mp.outputs[0]
+    w = N_(nt, "ShaderNodeTexNoise"); w.inputs["Scale"].default_value = 0.04; w.inputs["Detail"].default_value = 2; nt.links.new(vec, w.inputs["Vector"])
+    sb = N_(nt, "ShaderNodeVectorMath"); sb.operation = "SUBTRACT"; sb.inputs[1].default_value = (0.5, 0.5, 0.5); nt.links.new(w.outputs["Color"], sb.inputs[0])
+    sc = N_(nt, "ShaderNodeVectorMath"); sc.operation = "SCALE"; sc.inputs["Scale"].default_value = 14.0; nt.links.new(sb.outputs[0], sc.inputs[0])
+    ad = N_(nt, "ShaderNodeVectorMath"); ad.operation = "ADD"; nt.links.new(vec, ad.inputs[0]); nt.links.new(sc.outputs[0], ad.inputs[1]); wv = ad.outputs[0]
+    return noise(nt, wv, 0.11, 3), noise(nt, wv, 0.33, 2), noise(nt, wv, 1.4, 2, stretch=(0.25, 1.5, 1.0))
+
+
+def nap_tone(nt, col, field, nap):
+    a, b_, st = field
+    col = mul(nt, col, grey(nt, a, 1 - nap, 1 + nap * 0.8, 0.36, 0.64)); col = mul(nt, col, grey(nt, b_, 1 - nap * 0.45, 1 + nap * 0.45, 0.3, 0.7))
+    return mul(nt, col, grey(nt, st, 1 - nap * 0.25, 1 + nap * 0.25, 0.3, 0.7))
+
+
+BANK_STOPS = [(0.0, "#8fa878"), (0.16, "#5f8562"), (0.5, "#7e9860"), (0.8, "#b1ab70"), (1.0, "#d2c68c")]
+def flock(name, where, under=1.0, nap=0.0, relief=False):
+    m, nt, b = mat(name); p, s = pos(nt); b.inputs["Roughness"].default_value = 1.0; b.inputs["Specular IOR Level"].default_value = 0.0
+    if where == "bank":
+        col = ramp(nt, rng(nt, attr(nt, "bank_h"), 0, 1, 0, 5.4), BANK_STOPS)
+    elif where == "turf":
+        col = mul(nt, lin("#86a872"), lanes(nt, s, 0.075))
+        ay = N_(nt, "ShaderNodeMath"); ay.operation = "ADD"; ay.inputs[1].default_value = W / 2; nt.links.new(s.outputs["Y"], ay.inputs[0])
+        ab = N_(nt, "ShaderNodeMath"); ab.operation = "ABSOLUTE"; nt.links.new(ay.outputs[0], ab.inputs[0]); col = mul(nt, col, grey(nt, ab.outputs[0], 1.06, 0.9, 0.0, W / 2))
+    elif where == "verge":
+        col = mixc(nt, lin("#98aa72"), lin("#bdb97e"), rng(nt, noise(nt, p, 0.05, 2), 0, 1, 0.4, 0.66))
+    else:
+        col = mixc(nt, lin("#a3b884"), lin("#c9c68c"), rng(nt, noise(nt, p, 0.006, 3), 0, 1, 0.38, 0.66))
+        col = mixc(nt, col, lin("#86a274"), rng(nt, noise(nt, p, 0.017, 3), 0, 0.8, 0.48, 0.7))
+        sw = N_(nt, "ShaderNodeMath"); sw.operation = "MULTIPLY"; sw.inputs[1].default_value = math.pi / 9.0; nt.links.new(s.outputs["Y"], sw.inputs[0])
+        sn = N_(nt, "ShaderNodeMath"); sn.operation = "SINE"; nt.links.new(sw.outputs[0], sn.inputs[0]); col = mul(nt, col, grey(nt, sn.outputs[0], 0.95, 1.05, -0.3, 0.3))
+    col = mul(nt, col, grey(nt, noise(nt, p, 0.02, 2), 0.93, 1.07, 0.3, 0.7))                       # broad, quiet drifts of tone
+    k = 0.5 if where == "turf" else 1.0                                                              # the mown turf: the same grain, quieter
+    g1 = noise(nt, p, 1.3, 2); g2 = noise(nt, p, 4.5, 2)                                             # the flock: a soft mottle, and a finer grain in it
+    col = mul(nt, col, grey(nt, g1, 1 - 0.08 * k, 1 + 0.08 * k, 0.3, 0.7)); col = mul(nt, col, grey(nt, g2, 1 - 0.06 * k, 1 + 0.06 * k, 0.3, 0.7))
+    if under != 1.0: col = mul(nt, col, (under, under, under, 1.0))
+    add = N_(nt, "ShaderNodeMath"); add.operation = "ADD"; nt.links.new(g1, add.inputs[0]); nt.links.new(g2, add.inputs[1])
+    bp = N_(nt, "ShaderNodeBump"); bp.inputs["Strength"].default_value = 0.5 * k; bp.inputs["Distance"].default_value = 0.12; nt.links.new(add.outputs[0], bp.inputs["Height"]); nt.links.new(bp.outputs["Normal"], b.inputs["Normal"])
+    if nap:
+        nk = nap * (0.45 if where == "turf" else 1.0); field = nap_field(nt, p, (0.9, 2.2, 2.2) if where == "bank" else None); col = nap_tone(nt, col, field, nk)
+        if relief and where != "turf":                                                             # the light clouds stand a little proud, and catch the light
+            b2 = N_(nt, "ShaderNodeBump"); b2.inputs["Strength"].default_value = 0.7; b2.inputs["Distance"].default_value = 0.6
+            nt.links.new(field[0], b2.inputs["Height"]); nt.links.new(b2.outputs["Normal"], bp.inputs["Normal"])
+            b.inputs["Sheen Roughness"].default_value = 0.5; b.inputs["Sheen Tint"].default_value = lin("#dfe6b8"); nt.links.new(rng(nt, field[0], 0, 0.3, 0.45, 0.7), b.inputs["Sheen Weight"])
+    nt.links.new(col, b.inputs["Base Color"])
+    return warm_bounce(m)
+
+
+FLOCK = {w: flock("flock_" + w, w) for w in ("bank", "turf", "verge", "land")}
+UNDER = {w: flock("under_" + w, w, 0.8) for w in ("bank", "verge")}                                # the ground under a pile: a little deeper
+NAP1 = {w: flock("nap1_" + w, w, nap=0.18) for w in ("bank", "turf", "verge", "land")}
+NAP2 = {w: flock("nap2_" + w, w, nap=0.32, relief=True) for w in ("bank", "turf", "verge", "land")}
+UNDER2 = {w: flock("under2_" + w, w, 0.8, nap=0.32, relief=True) for w in ("bank", "verge")}
+SURF = {"6": FLOCK, "7": FLOCK, "8": FLOCK, "9": FLOCK, "10": NAP1, "11": NAP2, "12": NAP2}
+UNDERS = {"7": UNDER, "8": UNDER, "9": UNDER, "12": UNDER2}
 m, nt, b = mat("rail"); b.inputs["Base Color"].default_value = lin("#f4f2ea"); M["rail"] = m
 m, nt, b = mat("bark"); b.inputs["Base Color"].default_value = lin("#7a6656"); M["bark"] = m
 
@@ -349,7 +411,7 @@ def blade_material(name, root, tip, tints):
     return m
 
 
-def scatter(target, inst_objs, density, smin, smax, seed, name):
+def scatter(target, inst_objs, density, smin, smax, seed, name, keep=True, slope=False):
     """Stand copies of a few small things all over a surface (geometry nodes), keeping the surface itself."""
     pick = bpy.data.collections.new(name + "_kit")
     for o in inst_objs: pick.objects.link(o)
@@ -362,9 +424,14 @@ def scatter(target, inst_objs, density, smin, smax, seed, name):
     rr = Gn.new("FunctionNodeRandomValue"); rr.data_type = "FLOAT_VECTOR"; rr.inputs["Min"].default_value = (-0.12, -0.12, 0.0); rr.inputs["Max"].default_value = (0.12, 0.12, 6.283)
     rs = Gn.new("FunctionNodeRandomValue"); rs.data_type = "FLOAT"; rs.inputs["Min"].default_value = smin; rs.inputs["Max"].default_value = smax
     join = Gn.new("GeometryNodeJoinGeometry")
-    GL.new(gi.outputs[0], dist.inputs["Mesh"]); GL.new(dist.outputs["Points"], inst.inputs["Points"]); GL.new(ci.outputs[0], inst.inputs["Instance"])
+    GL.new(gi.outputs[0], dist.inputs["Mesh"]); GL.new(ci.outputs[0], inst.inputs["Instance"])
+    if slope:
+        st = Gn.new("GeometryNodeStoreNamedAttribute"); st.data_type = "FLOAT_VECTOR"; st.domain = "POINT"; st.inputs["Name"].default_value = "gn"
+        GL.new(dist.outputs["Points"], st.inputs["Geometry"]); GL.new(dist.outputs["Normal"], st.inputs["Value"]); GL.new(st.outputs[0], inst.inputs["Points"])
+    else: GL.new(dist.outputs["Points"], inst.inputs["Points"])
     GL.new(rr.outputs[0], inst.inputs["Rotation"]); GL.new(rs.outputs[0], inst.inputs["Scale"])
-    GL.new(gi.outputs[0], join.inputs[0]); GL.new(inst.outputs[0], join.inputs[0]); GL.new(join.outputs[0], go.inputs[0])
+    if keep: GL.new(gi.outputs[0], join.inputs[0])
+    GL.new(inst.outputs[0], join.inputs[0]); GL.new(join.outputs[0], go.inputs[0])
     md = target.modifiers.new(name, "NODES"); md.node_group = ng; return md
 
 
@@ -425,6 +492,77 @@ SCATTERS["5"] = [scatter(bank, mounds, 0.42, 0.7, 1.5, 3, "bank_mound"), scatter
                  scatter(verge, mounds, 0.6, 0.6, 1.2, 5, "verge_mound"), scatter(verge, dots, 0.18, 0.8, 1.3, 11, "verge_dots5")]
 
 # thorn scrub on the Dyke: clumps on its face and along the crest, thinner at its foot; the odd small thorn tree on top
+# ---------------- the soft pile (treatments 7 to 9): one even coat of soft grass over the Dyke and the verge.
+# What made the fine grass scratchy was thin blades standing apart, each with a bright and a dark side and a hard little
+# shadow. Here the blades are broad and close, cover the ground completely, are lit exactly as the ground under them is
+# (each copy is handed the slope it stands on) and cast no shadows; only root-to-tip tone and a little copy-to-copy tone
+# are left. It reads as a nap, like the pile of a rug.
+PILE = collection("pile")
+def pile_mesh(name, blades, radius, height, width, lean, seed):
+    r = random.Random(seed); bm = bmesh.new()
+    for i in range(blades):
+        pa = r.uniform(0, 6.283); d = radius * math.sqrt(r.uniform(0, 1)); a = r.uniform(0, 6.283)
+        h = height * r.uniform(0.82, 1.1); l = lean * r.uniform(0.4, 1.2); w = width * r.uniform(0.8, 1.2)
+        c, s_ = math.cos(a), math.sin(a); base = Vector((math.cos(pa) * d, math.sin(pa) * d, 0)); side = Vector((-s_, c, 0)) * w
+        rows = [(0.0, 1.0), (0.5, 0.95), (0.82, 0.62)]
+        vs = [(bm.verts.new(base + Vector((c * l * t * t, s_ * l * t * t, h * t)) - side * k), bm.verts.new(base + Vector((c * l * t * t, s_ * l * t * t, h * t)) + side * k)) for t, k in rows]
+        tip = bm.verts.new(base + Vector((c * l, s_ * l, h)))
+        for (a0, b0), (a1, b1) in zip(vs, vs[1:]): bm.faces.new((a0, b0, b1, a1))
+        bm.faces.new((vs[-1][0], vs[-1][1], tip))
+    me = bpy.data.meshes.new(name); bm.to_mesh(me); bm.free(); return me
+
+
+def pile_material(name, where, wash, nap=0.0):
+    m, nt, b = mat(name); b.inputs["Roughness"].default_value = 1.0; b.inputs["Specular IOR Level"].default_value = 0.0
+    oi = N_(nt, "ShaderNodeObjectInfo"); ip = oi.outputs["Location"]                                 # where this copy stands
+    if where == "bank":
+        ia = N_(nt, "ShaderNodeAttribute"); ia.attribute_type = "INSTANCER"; ia.attribute_name = "bank_h"
+        col = ramp(nt, rng(nt, ia.outputs["Fac"], 0, 1, 0, 5.4), BANK_STOPS)
+    else:
+        col = mixc(nt, lin("#98aa72"), lin("#bdb97e"), rng(nt, noise(nt, ip, 0.05, 2), 0, 1, 0.4, 0.66))
+    col = mul(nt, col, grey(nt, noise(nt, ip, 0.02, 2), 0.93, 1.07, 0.3, 0.7))
+    if nap: col = nap_tone(nt, col, nap_field(nt, ip, (0.9, 2.2, 2.2) if where == "bank" else None), nap)
+    if wash:
+        col = mixc(nt, col, lin("#d3c688"), rng(nt, noise(nt, ip, 0.035, 2), 0, 0.6, 0.5, 0.68))        # straw
+        col = mixc(nt, col, lin("#5f8562"), rng(nt, noise(nt, ip, 0.05, 2), 0, 0.5, 0.56, 0.72))        # deeper green
+        for hexc, sc, off in (("#e6d684", 0.07, 3.1), ("#d9b0aa", 0.055, 7.7), ("#e6e8d2", 0.09, 12.3)):   # buttercup, clover, ox-eye: drifts, not dots
+            mp = N_(nt, "ShaderNodeMapping"); mp.inputs["Location"].default_value = (off * 40, off * 23, 0); nt.links.new(ip, mp.inputs[0])
+            col = mixc(nt, col, lin(hexc), rng(nt, noise(nt, mp.outputs[0], sc, 2), 0, 0.32, 0.58, 0.74))
+    tcn = N_(nt, "ShaderNodeTexCoord"); sz = N_(nt, "ShaderNodeSeparateXYZ"); nt.links.new(tcn.outputs["Generated"], sz.inputs[0])
+    col = mul(nt, col, grey(nt, sz.outputs["Z"], 0.7, 1.04, 0.0, 0.9))                               # deeper at the root, paler at the tip
+    col = mixc(nt, col, lin("#dedaa6"), rng(nt, sz.outputs["Z"], 0, 0.1, 0.5, 1.0))
+    col = mul(nt, col, grey(nt, oi.outputs["Random"], 0.955, 1.045))
+    # lit as the ground is, whichever way the blade faces: one layer answers light arriving on the side we see, the
+    # other light arriving on the far side and coming through, both measured against the slope of the ground beneath
+    gn = N_(nt, "ShaderNodeAttribute"); gn.attribute_type = "INSTANCER"; gn.attribute_name = "gn"
+    neg = N_(nt, "ShaderNodeVectorMath"); neg.operation = "SCALE"; neg.inputs["Scale"].default_value = -1.0; nt.links.new(gn.outputs["Vector"], neg.inputs[0])
+    df = N_(nt, "ShaderNodeBsdfDiffuse"); tr = N_(nt, "ShaderNodeBsdfTranslucent"); ad = N_(nt, "ShaderNodeAddShader")
+    nt.links.new(col, df.inputs["Color"]); nt.links.new(col, tr.inputs["Color"]); nt.links.new(gn.outputs["Vector"], df.inputs["Normal"]); nt.links.new(neg.outputs[0], tr.inputs["Normal"])
+    nt.links.new(df.outputs[0], ad.inputs[0]); nt.links.new(tr.outputs[0], ad.inputs[1]); nt.links.new(ad.outputs[0], nt.nodes["Material Output"].inputs["Surface"])
+    m.use_backface_culling = False
+    return m
+
+
+def pile(target, where, wash, density, smin, smax, seed, name, lean=0.17, nap=0.0):
+    o = target.copy(); o.name = name; PILE.objects.link(o)
+    for md in [md for md in o.modifiers if md.type == "NODES"]: o.modifiers.remove(md)
+    for md in o.modifiers:
+        md.show_render = True
+        if md.name == "lumps": md.strength = 0.9
+        if md.name == "ripple": md.strength = 0.0
+    mat_ = pile_material(name + "_m", where, wash, nap)
+    kit = [small("%s_%d" % (name, i), pile_mesh("%s_%d" % (name, i), 40, 0.38, 0.36, 0.042, lean, seed * 10 + i), mat_) for i in range(3)]
+    scatter(o, kit, density, smin, smax, seed, name, keep=False, slope=True)
+    o.visible_shadow = False
+    return o
+
+
+PILES = {"7": [pile(bank, "bank", False, 10.0, 0.5, 0.7, 3, "pile_short_bank"), pile(verge, "verge", False, 12.0, 0.4, 0.58, 5, "pile_short_verge")],
+         "8": [pile(bank, "bank", False, 5.0, 0.95, 1.3, 3, "pile_long_bank", 0.3), pile(verge, "verge", False, 9.0, 0.5, 0.78, 5, "pile_long_verge")],
+         "9": [pile(bank, "bank", True, 5.0, 0.95, 1.3, 3, "pile_wash_bank", 0.3), pile(verge, "verge", True, 9.0, 0.5, 0.78, 5, "pile_wash_verge")],
+         "12": [pile(bank, "bank", False, 10.0, 0.5, 0.7, 3, "pile_nap_bank", nap=0.32), pile(verge, "verge", False, 12.0, 0.4, 0.58, 5, "pile_nap_verge", nap=0.32)]}
+
+
 def patch(x, z, f): return 0.5 + 0.5 * math.sin(x * f + 1.3) * math.cos(z * f * 1.7 + x * f * 0.31)
 n_bush = 0
 x = X0 - 40
@@ -505,21 +643,27 @@ cam.data.sensor_fit = "VERTICAL"; cam.data.clip_end = 8000
 HAZE = os.environ.get("HAZEARGS", "90 620 0.5 #efecc6 #b4d4cc").split()
 CAMS = {   # race-view axes: eye, look-at, field of view
     "across": ((722, 9, 41), (862, 1.0, -30), 37),      # the stand-side TV camera, looking up the course and across to the Dyke
-    "track": ((772, 2.6, 41), (814, 2.6, -6), 38),       # the tracking car on the stand-side rail: the field against the Dyke
+    "track": ((772, 2.6, 41), (814, 2.6, -6), 38),
+    "close": ((768, 2.3, 9), (840, 1.6, -13), 40),       # a low camera on the course, the field coming towards it: the verge and the Dyke close by       # the tracking car on the stand-side rail: the field against the Dyke
 }
 
 
 def treat(k):
-    textured = k != "1"
-    land.data.materials[0] = M["tex_lawn"] if textured else M["now_lawn"]
-    track.data.materials[0] = M["tex_turf"] if textured else M["now_turf"]
-    for o in BANKS: o.data.materials[0] = M["soft_bank"] if k in ("4", "5") else M["tex_bank"] if textured else M["now_bank"]
+    textured = k != "1"; soft = k in SURF; piled = k in PILES; F = SURF.get(k); U = UNDERS.get(k)
+    land.data.materials[0] = F["land"] if soft else M["tex_lawn"] if textured else M["now_lawn"]
+    track.data.materials[0] = F["turf"] if soft else M["tex_turf"] if textured else M["now_turf"]
+    for o in BANKS: o.data.materials[0] = F["bank"] if soft else M["soft_bank"] if k in ("4", "5") else M["tex_bank"] if textured else M["now_bank"]
+    if piled: bank.data.materials[0] = U["bank"]
+    verge.data.materials[0] = U["verge"] if piled else F["verge"] if soft else M["tex_verge"]
     verge.hide_render = not textured
     for md in (sub, dsp, dsp2): md.show_render = textured
     for key, mds in SCATTERS.items():
         for md in mds: md.show_render = key == k
+    for key, objs in PILES.items():
+        for o in objs: o.hide_render = key != k
     FOLIAGE.hide_render = k not in ("3", "4", "5")
-    dsp2.strength = 0.12 if k in ("4", "5") else 0.28
+    dsp2.strength = 0.0 if soft else 0.12 if k in ("4", "5") else 0.28          # the soft surfaces: big gentle swells only
+    dsp.strength = 0.9 if soft else 1.1
     TREES["now"].hide_render = textured; TREES["graded"].hide_render = not textured
 
 
@@ -540,7 +684,9 @@ def shoot(tag):
     print("tile", tag, round(time.time() - t), "s", flush=True)
 
 
-NAMES = {"1": "As it is now", "2": "Tone and texture", "3": "With low foliage", "4": "Softer: tussocks with a little fine grass", "5": "Softest: rounded tussocks"}
+NAMES = {"1": "As it is now", "2": "Tone and texture", "3": "With low foliage", "4": "Softer: tussocks with a little fine grass", "5": "Softest: rounded tussocks",
+         "6": "Soft flock: texture only", "7": "Short soft pile", "8": "Long soft pile", "9": "Long soft pile, washes of colour",
+         "10": "Brushed flock, quiet", "11": "Brushed flock, deeper", "12": "Brushed flock, deeper, with a short pile on the Dyke"}
 labels = {}
 for cname in os.environ.get("CAMS", "across,track").split(","):
     eye, at, fov = CAMS[cname]; e, a = B(eye[0], eye[2], eye[1] + ground_y(eye[0], eye[2])), B(at[0], at[2], at[1] + ground_y(at[0], at[2]))
