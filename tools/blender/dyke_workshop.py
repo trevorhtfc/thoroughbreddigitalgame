@@ -222,7 +222,7 @@ def flock(name, where, under=1.0, nap=0.0, relief=False):
     k = 0.5 if where == "turf" else 1.0                                                              # the mown turf: the same grain, quieter
     g1 = noise(nt, p, 1.3, 2); g2 = noise(nt, p, 4.5, 2)                                             # the flock: a soft mottle, and a finer grain in it
     col = mul(nt, col, grey(nt, g1, 1 - 0.08 * k, 1 + 0.08 * k, 0.3, 0.7)); col = mul(nt, col, grey(nt, g2, 1 - 0.06 * k, 1 + 0.06 * k, 0.3, 0.7))
-    if under != 1.0: col = mul(nt, col, (under, under, under, 1.0))
+    if under != 1.0: col = mul(nt, col, grey(nt, s.outputs["Y"], 1.0, under, 0.3, 6.0))             # deeper under the pile, but not where it thins out to nothing at the turf
     add = N_(nt, "ShaderNodeMath"); add.operation = "ADD"; nt.links.new(g1, add.inputs[0]); nt.links.new(g2, add.inputs[1])
     bp = N_(nt, "ShaderNodeBump"); bp.inputs["Strength"].default_value = 0.5 * k; bp.inputs["Distance"].default_value = 0.12; nt.links.new(add.outputs[0], bp.inputs["Height"]); nt.links.new(bp.outputs["Normal"], b.inputs["Normal"])
     if nap:
@@ -258,7 +258,10 @@ def grid_mesh(name, xs, zs, yfun, material, attrs=None):
 land = grid_mesh("land", [G["x0"] + i * G["cell"] for i in range(G["nx"])], [G["z0"] + j * G["cell"] for j in range(G["nz"])], lambda x, z: ground_y(x, z) - 0.03, M["now_lawn"])
 xs = [x for x in np.arange(-120.0, 1900.0, 5.0)]
 track = grid_mesh("track", xs, [0.0, W / 3, 2 * W / 3, W], lambda x, z: ground_y(x, z) + 0.0, M["now_turf"])
-verge = grid_mesh("verge", [x for x in np.arange(X0 - 80, X1 + 80, 4.0)], [-0.6, -3.5, -6.5, -9.5, -12.4], lambda x, z: ground_y(x, z) + 0.01, M["tex_verge"])
+# The verge meets the turf with no step and no gap, and the flat ground casts no shadows (owner, 11 Nov: a thin dark line
+# under the edge of the pile "makes it look like a rug"; it was a 3 cm step between the strips, in a low sun).
+verge = grid_mesh("verge", [x for x in np.arange(X0 - 80, X1 + 80, 4.0)], [0.0, -3.5, -6.5, -9.5, -12.4], lambda x, z: ground_y(x, z) + 0.0, M["tex_verge"])
+for o_ in (land, track, verge): o_.visible_shadow = False
 
 rows = np.array(SC["banks"][0]["rows"], dtype=np.float32).reshape(len(SC["banks"][0]["rows"]), -1, 3)
 def bank_mesh(name, sel):
@@ -270,6 +273,12 @@ def bank_mesh(name, sel):
     for p_ in me.polygons: p_.use_smooth = True
     me.validate(); me.update()
     o = bpy.data.objects.new(name, me); scene.collection.objects.link(o)
+    # The bank's mesh starts at the edge of the turf (a flat apron 12 m wide, then the Dyke). The swells must die away to
+    # nothing towards the turf: they were lifting that edge into a lip with a dark side, which with grass on it looked
+    # like the edge of a rug (owner, 11 Nov).
+    vg = o.vertex_groups.new(name="swell")
+    for i_, z_ in enumerate(r[..., 2].reshape(-1)):
+        t_ = min(max((-float(z_) - 0.5) / 8.0, 0.0), 1.0); vg.add([i_], t_ * t_ * (3 - 2 * t_), "REPLACE")
     n = sum(1 for p_ in me.polygons if p_.normal.z < 0)
     if n > len(me.polygons) / 2: me.flip_normals()
     return o
@@ -286,6 +295,7 @@ tex = bpy.data.textures.new("lumps", "CLOUDS"); tex.noise_scale = 9.0; tex.noise
 dsp = bank.modifiers.new("lumps", "DISPLACE"); dsp.texture = tex; dsp.strength = 1.1; dsp.mid_level = 0.5; dsp.texture_coords = "GLOBAL"
 tex2 = bpy.data.textures.new("ripple", "CLOUDS"); tex2.noise_scale = 2.2; tex2.noise_depth = 2
 dsp2 = bank.modifiers.new("ripple", "DISPLACE"); dsp2.texture = tex2; dsp2.strength = 0.28; dsp2.mid_level = 0.5; dsp2.texture_coords = "GLOBAL"
+dsp.vertex_group = "swell"; dsp2.vertex_group = "swell"
 BANKS = [o for o in (bank, bank_far_a, bank_far_b) if o]
 
 
@@ -411,7 +421,7 @@ def blade_material(name, root, tip, tints):
     return m
 
 
-def scatter(target, inst_objs, density, smin, smax, seed, name, keep=True, slope=False):
+def scatter(target, inst_objs, density, smin, smax, seed, name, keep=True, slope=False, grow=None):
     """Stand copies of a few small things all over a surface (geometry nodes), keeping the surface itself."""
     pick = bpy.data.collections.new(name + "_kit")
     for o in inst_objs: pick.objects.link(o)
@@ -429,7 +439,13 @@ def scatter(target, inst_objs, density, smin, smax, seed, name, keep=True, slope
         st = Gn.new("GeometryNodeStoreNamedAttribute"); st.data_type = "FLOAT_VECTOR"; st.domain = "POINT"; st.inputs["Name"].default_value = "gn"
         GL.new(dist.outputs["Points"], st.inputs["Geometry"]); GL.new(dist.outputs["Normal"], st.inputs["Value"]); GL.new(st.outputs[0], inst.inputs["Points"])
     else: GL.new(dist.outputs["Points"], inst.inputs["Points"])
-    GL.new(rr.outputs[0], inst.inputs["Rotation"]); GL.new(rs.outputs[0], inst.inputs["Scale"])
+    GL.new(rr.outputs[0], inst.inputs["Rotation"])
+    if grow:                                    # (from, to) across the course: the pile grows up out of the turf instead of starting in a line
+        ps = Gn.new("GeometryNodeInputPosition"); sp = Gn.new("ShaderNodeSeparateXYZ"); mr = Gn.new("ShaderNodeMapRange"); mr.interpolation_type = "SMOOTHSTEP"
+        mr.inputs["From Min"].default_value = grow[0]; mr.inputs["From Max"].default_value = grow[1]; mr.inputs["To Min"].default_value = 0.12; mr.inputs["To Max"].default_value = 1.0
+        mu = Gn.new("ShaderNodeMath"); mu.operation = "MULTIPLY"
+        GL.new(ps.outputs[0], sp.inputs[0]); GL.new(sp.outputs["Y"], mr.inputs["Value"]); GL.new(mr.outputs["Result"], mu.inputs[0]); GL.new(rs.outputs[0], mu.inputs[1]); GL.new(mu.outputs[0], inst.inputs["Scale"])
+    else: GL.new(rs.outputs[0], inst.inputs["Scale"])
     if keep: GL.new(gi.outputs[0], join.inputs[0])
     GL.new(inst.outputs[0], join.inputs[0]); GL.new(join.outputs[0], go.inputs[0])
     md = target.modifiers.new(name, "NODES"); md.node_group = ng; return md
@@ -552,15 +568,15 @@ def pile(target, where, wash, density, smin, smax, seed, name, lean=0.17, nap=0.
         if md.name == "ripple": md.strength = 0.0
     mat_ = pile_material(name + "_m", where, wash, nap)
     kit = [small("%s_%d" % (name, i), pile_mesh("%s_%d" % (name, i), 40, 0.38, 0.36, 0.042, lean, seed * 10 + i), mat_) for i in range(3)]
-    scatter(o, kit, density, smin, smax, seed, name, keep=False, slope=True)
+    scatter(o, kit, density, smin, smax, seed, name, keep=False, slope=True, grow=(0.3, 6.0))
     o.visible_shadow = False
     return o
 
 
-PILES = {"7": [pile(bank, "bank", False, 10.0, 0.5, 0.7, 3, "pile_short_bank"), pile(verge, "verge", False, 12.0, 0.4, 0.58, 5, "pile_short_verge")],
-         "8": [pile(bank, "bank", False, 5.0, 0.95, 1.3, 3, "pile_long_bank", 0.3), pile(verge, "verge", False, 9.0, 0.5, 0.78, 5, "pile_long_verge")],
-         "9": [pile(bank, "bank", True, 5.0, 0.95, 1.3, 3, "pile_wash_bank", 0.3), pile(verge, "verge", True, 9.0, 0.5, 0.78, 5, "pile_wash_verge")],
-         "12": [pile(bank, "bank", False, 10.0, 0.5, 0.7, 3, "pile_nap_bank", nap=0.32), pile(verge, "verge", False, 12.0, 0.4, 0.58, 5, "pile_nap_verge", nap=0.32)]}
+PILES = {"7": [pile(bank, "bank", False, 10.0, 0.5, 0.7, 3, "pile_short_bank")],
+         "8": [pile(bank, "bank", False, 5.0, 0.95, 1.3, 3, "pile_long_bank", 0.3)],
+         "9": [pile(bank, "bank", True, 5.0, 0.95, 1.3, 3, "pile_wash_bank", 0.3)],
+         "12": [pile(bank, "bank", False, 10.0, 0.5, 0.7, 3, "pile_nap_bank", nap=0.32)]}
 
 
 def patch(x, z, f): return 0.5 + 0.5 * math.sin(x * f + 1.3) * math.cos(z * f * 1.7 + x * f * 0.31)
@@ -654,8 +670,8 @@ def treat(k):
     track.data.materials[0] = F["turf"] if soft else M["tex_turf"] if textured else M["now_turf"]
     for o in BANKS: o.data.materials[0] = F["bank"] if soft else M["soft_bank"] if k in ("4", "5") else M["tex_bank"] if textured else M["now_bank"]
     if piled: bank.data.materials[0] = U["bank"]
-    verge.data.materials[0] = U["verge"] if piled else F["verge"] if soft else M["tex_verge"]
-    verge.hide_render = not textured
+    verge.data.materials[0] = F["verge"] if soft else M["tex_verge"]      # not darkened under its pile: where the pile thins out towards the rail a darker ground read as a shadow
+    verge.hide_render = (not textured) or soft       # with the soft surfaces the bank's own flat apron is the verge
     for md in (sub, dsp, dsp2): md.show_render = textured
     for key, mds in SCATTERS.items():
         for md in mds: md.show_render = key == k
