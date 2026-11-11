@@ -85,14 +85,15 @@
     const sees = !!held("agent");
     let lots = S.sale.slice().sort((a, b) => sees ? proj(b) - proj(a) : b.reserve - a.reserve);
     if (P.plan && !sees) { const left = targets.filter(r => !taken.has(r.id)); lots = lots.map(l => { const c = centre(stallion(l.sire), byName(l.dam)); const best = Math.min(9, ...left.map(r => Math.abs(c - r.step))); return { l, sc: l.reserve - best * 40000 }; }).sort((a, b) => b.sc - a.sc).map(x => x.l); }
-    // Sales Scout: briefed for the richest races none of his horses can run in yet; his finds first, then the lots
-    // he says suit them; the rest only once those are gone
+    // Sales Scout: briefed for the richest races none of his horses can run in yet; his finds go to the front, a lot
+    // he says suits them moves up a little, one that suits none of them down a little (the strategy's own order otherwise)
     if (held("scout")) {
       const open = targets.filter(r => !S.stable.some(h => bestAt(h, r).w > 0));
       for (const r of open.slice(0, SCOUT_RACES[held("scout").tier])) scoutPick(r.id);
       if (scoutRaces().length) briefScout();
-      const w = l => l.scout ? 3 : (lotSuits(l) || { best: 0 }).best * 2 + (sees ? proj(l) / 200 : l.reserve / 1e6);
-      lots = S.sale.slice().sort((a, b) => w(b) - w(a));
+      const at = new Map(lots.map((l, k) => [l, k])), n = lots.length;
+      const w = l => l.scout ? -99 : (at.has(l) ? at.get(l) : n) - ((lotSuits(l) || { best: 0.4 }).best - 0.4) * 8;
+      lots = S.sale.slice().sort((a, b) => w(a) - w(b));
     }
     const priv = lots.filter(l => privateOK(l) && payFor(privatePrice(l)) <= S.budget);
     if (priv.length && S.stable.length < STABLE_CAP) {
@@ -118,8 +119,8 @@
       S.sale = S.sale.filter(x => x !== l);
       if (price <= limit) {
         const cost = payFor(price); S.budget -= cost; breed(l.sire, l.dam, "bought", cost, l); log.bought++; log.spent += cost;
-        // the vet's report: send back a yearling that won't make the grade
-        if (vetLeft() > 0 && S.foal.h.r[2] < 100) { log.spent -= Math.round(cost * VET_REFUND[held("vet").tier]); handBack(); log.handedBack++; log.bought--; continue; }
+        // the vet's report: send back a yearling with next to no chance in any of the races
+        if (vetLeft() > 0 && Math.max(...RACES.map(r => bestAt(S.foal.h, r).p || 0)) < 0.04) { log.spent -= Math.round(cost * VET_REFUND[held("vet").tier]); handBack(); log.handedBack++; log.bought--; continue; }
         keepFoal();
       }
     }

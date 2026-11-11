@@ -25,7 +25,7 @@ const PEDIGREE_LOOKS = [0, 2, 4, 99];                    // Pedigree Expert: unp
 // Sales Scout (owner, 11 Nov: in place of Trade Terms, "refining the books": pick the races you still need horses for,
 // the game works out which lots won't be useful, and special lots primed for those races)
 const SCOUT_RACES = [0, 2, 3, 4];                        // races you brief him for
-const SCOUT_LOTS = [0, 1, 2, 3];                         // his own finds added to the catalogue, each bred for one of them
+const SCOUT_LOTS = [0, 1, 2, 4];                         // his own finds added to the catalogue, each bred for one of them
 const AGENT_BAND = [0, 15, 10, 5];                       // Bloodstock Agent: his projection is within this many points either way
 const VET_USES = [0, 1, 2, 3], VET_REFUND = [0, 0.8, 0.9, 1];   // Vet's Report: send a yearling back once you've seen it
 const PRIVATE_BOOKS = [null, [3], [2, 3], [1, 2, 3]];    // Private Sale: one lot before the ring, at the middle of its guide
@@ -50,7 +50,7 @@ const OWNER_KINDS = {
   elite: { title: "Elite Mares", leans: "Breeding", when: "The National Stud", text: t => `At the mares sale you see ${ELITE_SEE[t]} mares from the pile instead of 2, and keep the one you want.` },
   stallion: { title: "Stallion Owner", leans: "Breeding", when: "The National Stud", text: t => `Three ${OWNED_STARS[t]}★ stallions are drawn at the stud: keep one as your own, with ${OWNED_FREE} free nominations to him.` },
   pedigree: { title: "Pedigree Expert", leans: "Breeding", when: "The stud and the sales", text: t => `An unproven stallion may be a star better or worse than the stud book says. Your expert tells you the truth about ${t === 3 ? "every one of them" : PEDIGREE_LOOKS[t] + " of them"}.` },
-  scout: { title: "Sales Scout", leans: "The sales", when: "Tattersalls", text: t => `Tell him the ${SCOUT_RACES[t]} races you still need a horse for. He marks the lots bred to suit them, greys out the rest, and finds ${SCOUT_LOTS[t] === 1 ? "one lot" : SCOUT_LOTS[t] + " lots"} of his own, bred for them.` },
+  scout: { title: "Sales Scout", leans: "The sales", when: "Tattersalls", text: t => `Tell him the ${SCOUT_RACES[t]} races you still need a horse for. He marks the lots bred to suit them, greys out the rest, and finds ${SCOUT_LOTS[t] === 1 ? "a bargain" : SCOUT_LOTS[t] + " bargains"} of his own: cheaper lots whose yearlings are good enough for them.` },
   agent: { title: "Bloodstock Agent", leans: "The sales", when: "Tattersalls", text: t => `His projection of every yearling's peak rating, to within ${AGENT_BAND[t]} points either way: the true figure is somewhere in his range.` },
   vet: { title: "Vet's Report", leans: "The sales", when: "Tattersalls", text: t => `When a yearling is knocked down to you and you see what it is, you can send it back: ${["", "once", "twice", "three times"][t]}, ${Math.round(VET_REFUND[t] * 100)}% of the price refunded.` },
   private: { title: "Private Sale", leans: "The sales", when: "Tattersalls", text: t => `Once, buy one lot ${t === 1 ? "from Book 3" : t === 2 ? "from Book 2 or 3" : "from any Book"} before it reaches the ring, at the middle of its guide price, with no rival bidding.` },
@@ -226,13 +226,14 @@ function scoutPick(id) {
 // less 5 a step off its best trip it needs to reach the race's third band (one above the minimum: a fair chance of a
 // place, not just a run); handicaps only take horses rated up to HCAP_MAX
 const scoutBar = race => race.bands[BANDS - 2];
-function foalFits(f, race, sex) {
+function foalFits(f, race, sex, bar) {
+  bar = bar || scoutBar(race);
   if (race.sex && sex && race.sex !== sex) return false;
   for (let age = Math.max(2, race.ages[0]); age <= Math.min(4, race.ages[1]); age++) {
     const r = f.r[age - 2], d = f.d[age - 2], lo = Math.min(...d), hi = Math.max(...d);
     const steps = race.step < lo ? lo - race.step : race.step > hi ? race.step - hi : 0;
     if (steps > 3 || (race.grade === "Handicap" && r > HCAP_MAX)) continue;
-    if (r - steps * 5 >= scoutBar(race)) return true;
+    if (r - steps * 5 >= bar) return true;
   }
   return false;
 }
@@ -254,8 +255,9 @@ function lotSuits(l) {
   const list = rs.map(r => ({ r, p: pedigreeChance(l.sire, l.dam, r) })).filter(x => x.p >= SCOUT_MAYBE).sort((a, b) => b.p - a.p);
   return { list, best: list.length ? list[0].p : 0 };
 }
-// Brief him: the races are settled, and his finds join the catalogue. Each is a pedigree well suited to one of your
-// races (picked from the likeliest), and its yearling really can run in it.
+// Brief him: the races are settled, and his finds join the catalogue. Each is a bargain bred for one of your races:
+// a Book 2 or 3 pedigree that suits it (from the likeliest), whose yearling is better than its price suggests: good
+// enough to win the race if it can be found (its second band), at least a fair chance of a place.
 function briefScout() {
   const c = held("scout"), T = c && scoutState(); if (!T || T.briefed || !T.races.length || !S.sale) return false;
   T.briefed = true; T.found = [];
@@ -281,15 +283,18 @@ function scoutFind(race, taken) {
   for (let k = cand.length - 1; k > 0; k--) { const j = Math.floor(Math.random() * (k + 1)); [cand[k], cand[j]] = [cand[j], cand[k]]; }
   cand.length = Math.min(cand.length, 240);
   cand.forEach(x => x.p = pedigreeChance(x.s.name, x.m.name, race, 16));
-  const top = Math.max(...cand.map(x => x.p)), pool = cand.filter(x => x.p >= top - 0.15);
+  // a bargain: Books 2 and 3 when any of them suit the race at all
+  const cheap = cand.filter(x => x.book.n > 1 && x.p > 0), from = cheap.length ? cheap : cand;
+  const top = Math.max(...from.map(x => x.p)), pool = from.filter(x => x.p >= top - 0.15);
   const pick = pool[Math.floor(Math.random() * pool.length)];
-  // his find really is one: its yearling (settled now, like every lot's) can run in the race
+  // his find really is one: its yearling (settled now, like every lot's) is good enough to win the race if one of
+  // this pedigree's can be, or at least to place
   let fs = 0;
-  for (let k = 0; k < 80; k++) {
-    fs = 1 + Math.floor(Math.random() * 2e9);
-    const R = seeded(fs), f = breedPure(pick.s, pick.m, R), sex = R() < .5 ? "F" : "C";
-    if (foalFits(f, race, sex)) break;
-  }
+  const tryFor = (bar, n) => { for (let k = 0; k < n; k++) {
+    const f0 = 1 + Math.floor(Math.random() * 2e9), R = seeded(f0), f = breedPure(pick.s, pick.m, R), sex = R() < .5 ? "F" : "C";
+    if (foalFits(f, race, sex, bar)) { fs = f0; return true; }
+  } return false; };
+  if (!tryFor(race.bands[1], 300) && !tryFor(scoutBar(race), 200)) tryFor(needFor(race), 100) || (fs = 1 + Math.floor(Math.random() * 2e9));
   S.lotN = (S.lotN || 0) + 1;
   return { id: "lot" + S.lotN, n: S.lotN, book: pick.book.n, sire: pick.s.name, dam: pick.m.name, reserve: RESERVES[pick.s.shownStars + pick.m.stars] || 10000, fs, scout: race.id };
 }

@@ -356,7 +356,7 @@ ten races is at their trips (the board's "take another card"). Then "To the Nati
 | Elite Mares | see 3 mares a draw at the mares sale (everyone else 2) | 4 | 5 | the stud |
 | Stallion Owner | three 3★ stallions drawn, keep one: 2 free nominations | 4★ | 5★ | the stud |
 | Pedigree Expert | the true stars of 2 unproven stallions you ask about | 4 | all | the stud and the sales |
-| Sales Scout (was Trade Terms) | brief him for 2 of your races: lots marked by how well they suit them, the rest greyed; 1 lot of his own bred for them | 3 races, 2 lots | 4 races, 3 lots | Tattersalls |
+| Sales Scout (was Trade Terms) | brief him for 2 of your races: lots marked by how well they suit them, the rest greyed; 1 bargain of his own (Book 2 or 3, its yearling good enough to win one of them if possible) | 3 races, 2 bargains | 4 races, 4 bargains | Tattersalls |
 | Bloodstock Agent | each lot's projected peak, a 30-point range with the truth inside | 20 points | 10 points | Tattersalls |
 | Vet's Report | send a yearling back once you've seen it: once, 80% back | twice, 90% | three times, 100% | Tattersalls |
 | Private Sale | one Book 3 lot before the ring, at the middle of its guide | Books 2–3 | any Book | Tattersalls |
@@ -432,3 +432,44 @@ seasons with no card, at three starting budgets. The simulated players now put s
 At £1.5m: Private Sale III +£35k, Bloodstock Agent III +£26k, Elite Mares III +£13k, Pedigree Expert III +£10k (about
 +£130k for a breeder at £1.75m, where it steers him to stallions better than their stars), Trade Terms III and Vet's
 Report III about nothing. Money only matters when it is short: at £1.75m any card that gives or saves money adds little.
+
+### Owner cards at £1.25m, the Sales Scout and your accounts (11 Nov)
+
+Owner, 11 Nov: keep the budget and the prize money as separate pots, but make the money tighter so every decision is
+weighed up; the other auction card should be about "refining the books" (the races you still need horses for, what
+won't be useful, special lots primed for your races); keep the Vet's Report as cash back for a dud; track where the
+money goes, with thresholds.
+
+- **Starting budget £1.25m** (`START_BUDGET`, was £1.75m): about 7–11 horses instead of 10–12.
+- **Sales Scout** replaces Trade Terms (`O{t}-trade` in an old save reads as the scout). Brief him for 2 / 3 / 4 races
+  (the race chips say which you already have a runner for). Each lot then shows the races it suits: the share of the
+  yearlings its pedigree could give (sampled with the breeding engine, by the stars the catalogue shows) that would
+  reach the race's third band (a fair chance of a place) at an age the race allows; 50%+ "Suits", 25–50% "(maybe)",
+  none "Not for your races" (greyed). The Books put his finds first, then the best-suited lots. Briefing him adds 1 /
+  2 / 4 **bargains**: Book 2 or 3 pedigrees that suit one of the races, whose yearling (seeded, like every lot) is good
+  enough to win it (its second band) if one can be found, else to place.
+- **Your accounts** (`js/accounts.js`): the money in the top bar or the footer opens what has gone on mares, stud fees
+  and yearlings (and come back from the vet), and a list of what the rest still buys: 5★ / 4★ / 3★ nominations, a
+  Blue-blooded or Useful mare, the cheapest lot in each Book. A payment that takes you under one of those says so
+  ("Down to £50,000: a 3★ nomination, a Blue-blooded mare and a Book 1 yearling are out of reach now"); at the sales
+  only the Books count.
+
+Single owner cards at £1.25m, 40 seasons for each of four strategies (160 per card, about ±£7–13k), against the same
+seasons with no card (Planner £219k, Breeder £170k, Balanced £171k, Buyer £57k):
+
+| Card | Bronze | Silver | Gold | Who it helps most |
+|---|---|---|---|---|
+| Stallion Owner | +£40k | +£45k | +£72k | breeders (Gold +£115k) |
+| Powerhouse | +£35k | +£49k | +£67k | the Planner (Gold +£122k) |
+| Sales Scout | +£6k | +£37k | +£45k | buyers (Gold +£128k) |
+| Private Sale | −£6k | +£2k | +£39k | buyers (Gold +£64k) |
+| Pedigree Expert | +£35k | +£37k | +£36k | breeders (+£120k at every tier) |
+| Bloodstock Agent | +£24k | +£24k | +£22k | buyers (+£60–70k) |
+| Elite Mares | +£5k | +£13k | +£10k | breeders (+£30–50k) |
+| Vet's Report | −£2k | −£3k | −£3k | nobody |
+
+The Vet's Report sends back about one yearling per use (only those with next to no chance in any race), but the
+money comes back when the best lots have gone, so there is nothing better to spend it on: it needs another shape
+(see the handover notes). Pedigree Expert is the same at every tier and Bloodstock Agent hardly better on Gold: both
+want their tiers spreading. Private Sale I and II and Elite Mares I are weak.
+
