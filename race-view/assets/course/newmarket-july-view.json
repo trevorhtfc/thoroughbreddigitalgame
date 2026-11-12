@@ -599,7 +599,7 @@
    -178,
    -118,
    757.0999999999999,
-   119.89999999999998
+   122.89999999999998
   ],
   "note": "the ground's light from the buildings (tools/blender/bake_newmarket_ground.py): ground colour x map, inside area [x0, z0, x1, z1] (image top = z0); 1 outside"
  }

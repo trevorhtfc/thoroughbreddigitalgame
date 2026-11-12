@@ -364,7 +364,9 @@ def trees():
         if not ok(x, z, FT["spacing"]):
             return False
         grid.setdefault((int(x // TREE_SPACING), int(z // TREE_SPACING)), []).append((x, z, FT["spacing"]))
-        out.append([round(x, 2), round(z, 2), g.choices(kinds, weights)[0], round(g.uniform(*FT["scale"]), 2), g.randrange(360)])
+        kind = g.choices(kinds, weights)[0]
+        if kind == "poplar_a": kind = "wide_a"                      # broad crowns only out front (no poplar spires by the rail)
+        out.append([round(x, 2), round(z, 2), kind, round(g.uniform(*FT["scale"]), 2), g.randrange(360)])
         return True
     edges = sorted([TIER["x"]] + [p["x"] for p in PAVILIONS])
     for (a0, a1), (b0, b1) in zip(edges, edges[1:]):                   # clumps in the gaps between the pieces
