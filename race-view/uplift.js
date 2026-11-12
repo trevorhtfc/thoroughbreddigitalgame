@@ -227,6 +227,9 @@ const fields = (x, z) => {
 
 export function init(ctx) {
   CTX = ctx;
+  // A course whose stands face the other way (the July Course) keeps its own sun on the other side of the track:
+  // the look's sun follows, so it still falls on the stands' fronts and their shadow lies behind them, off the course.
+  if (ctx.VIEW && ctx.VIEW.sun && ctx.VIEW.sun[2] * U.upSun.value.z < 0) U.upSun.value.z *= -1;
   N = makeNoise();
   const nt = new THREE.DataTexture(N.data, N.size, N.size, THREE.RGBAFormat);
   nt.wrapS = nt.wrapT = THREE.RepeatWrapping; nt.magFilter = THREE.LinearFilter; nt.minFilter = THREE.LinearMipmapLinearFilter;
@@ -358,6 +361,7 @@ const lin = (hex) => { const c = new THREE.Color(hex); return [c.r, c.g, c.b]; }
 // The ground is drawn in its own colours (no lamp on it), so here it is told where the sun reaches it.
 export function patchGround(mat, which) {
   const nap = LOOK.brushed || 0;
+  const bank = !!(mat.userData && mat.userData.bank);       // a grassy bank (the Dyke): the nap much quieter on its slopes
   const heath = has("heath") && which !== "turf" && !nap, turf = has("turf") && which !== "far" && !nap, crowd = has("crowd"), relight = has("relight");
   const lawn = (CTX.lawn || [0.5988, 0.7357, 0.4041]);
   const body = `
@@ -416,7 +420,9 @@ export function patchGround(mat, which) {
       float a = texture2D(upNoise, wv / 42.0).r, b = texture2D(upNoise, wv / 13.0 + 0.3).g;
       float st = texture2D(upNoise, vec2(wv.x * 0.25, wv.y * 1.5) / 9.0).a;
       float g1 = texture2D(upNoise, w / 11.0).b, g2 = texture2D(upNoise, w / 3.6 + 0.6).b;
-      float k = ${nap.toFixed(3)} * mix(0.8, 0.45, onT), gk = mix(1.0, 0.5, onT);
+      // (seen edge-on, by a long lens low over the turf, the clouds pile up into stripes: there the turf's nap eases off)
+      float upEdge = smoothstep(0.02, 0.16, normalize(vec3(cameraPosition.x - w.x, cameraPosition.y - vUpP.y, cameraPosition.z - w.y)).y);
+      float k = ${(nap * (bank ? Number(q.get("banknap") || 0.45) : 1)).toFixed(3)} * mix(0.8, 0.45 * mix(${Number(q.get("napfar") || 0.35).toFixed(2)}, 1.0, upEdge), onT), gk = mix(1.0, 0.5, onT);
       float tone = mix(1.0 - k, 1.0 + k * 0.8, smoothstep(0.34, 0.66, a));
       tone *= 1.0 + k * 0.45 * (smoothstep(0.3, 0.7, b) * 2.0 - 1.0);
       tone *= 1.0 + k * 0.25 * (smoothstep(0.3, 0.7, st) * 2.0 - 1.0);
@@ -430,7 +436,7 @@ export function patchGround(mat, which) {
     ${q.get("updebug") === "vis" ? "diffuseColor.rgb = vec3(upV);" : ""}
   }`;
   if (BOARD) mat.clippingPlanes = BOARD.planes;              // the table look: the ground stops at the board's edge
-  return chain(mat, "ground-" + which + LOOK_ID + OFF.join(""), (sh) => {
+  return chain(mat, "ground-" + which + (bank ? "-bank" : "") + LOOK_ID + OFF.join(""), (sh) => {
     Object.assign(sh.uniforms, U);
     sh.vertexShader = sh.vertexShader.replace("#include <common>", "#include <common>\nvarying vec3 vUpP; varying vec3 vUpN; varying float vUpH;")
       .replace("#include <fog_vertex>", "#include <fog_vertex>\n{ vUpP = (modelMatrix * vec4(transformed, 1.0)).xyz; vUpN = vec3(0.0, 1.0, 0.0); vUpH = 0.0; }");
@@ -606,6 +612,47 @@ export function dressHedge(mesh, kit, { scene, LAYERS, distToRails, quality }) {
     inst.computeBoundingSphere(); scene.add(inst); LAYERS.trees.push(inst);
   });
   console.log("uplift: hedge dressed with", count, "tufts");
+}
+
+// Clipped hedges that a course lists as plain boxes (Newmarket's enclosures): the same tufts, smaller, along the top
+// and down both faces, over the box darkened as the hedge's heart. Returns the heart's colour for the box, or null
+// to leave the box as it is (walls and copings, or the old low level with &upoff=low).
+export function dressBoxes(colour, list, kit, { scene, LAYERS, groundY, quality }) {
+  if (!LOOK.trees || !has("low") || !kit) return null;
+  const c = new THREE.Color(colour);
+  if (!(c.g > c.r * 1.08 && c.g > c.b * 1.08)) return null;
+  const tufts = ["tuft_a", "tuft_b", "tuft_c"].map((n) => firstGeo(kit, n)).filter(Boolean);
+  if (!tufts.length) return null;
+  const dens = ({ low: 0.6, lightest: 0.4 }[quality] || 1), LIFT = 5, spots = tufts.map(() => []);
+  let seed = 11; const rnd = () => { seed = (seed * 16807) % 2147483647; return seed / 2147483647; };
+  for (const [x, z, L, D, y0, y1, yaw] of list) {
+    // (along the hedge and across it, on the ground)
+    const ux = Math.cos(yaw), uz = -Math.sin(yaw), vx = -uz, vz = ux, gy = groundY(x, z), h = y1 - y0;
+    const size = Math.min(1.6, Math.max(0.8, h));
+    const put = (along, across, y) => spots[Math.floor(rnd() * tufts.length)].push([x + ux * along + vx * across, gy + y, z + uz * along + vz * across, rnd(), (0.4 + 0.2 * rnd()) * size]);
+    const nTop = Math.max(2, Math.round(L * 1.7 * dens)), nSide = Math.max(2, Math.round(L * 1.2 * dens));
+    for (let i = 0; i < nTop; i++) put(((i + rnd()) / nTop - 0.5) * L, (rnd() - 0.5) * D * 0.5, y1 + 0.02);
+    for (const side of [-1, 1]) for (let i = 0; i < nSide; i++) put(((i + rnd()) / nSide - 0.5) * L, side * (D / 2 + 0.05), y0 + h * (0.45 + 0.3 * rnd()));
+  }
+  const m4 = new THREE.Matrix4(), qt = new THREE.Quaternion(), sc = new THREE.Vector3(), p = new THREE.Vector3(), up = new THREE.Vector3(0, 1, 0);
+  let count = 0;
+  tufts.forEach((geo, gi) => {
+    const l = spots[gi]; if (!l.length) return; count += l.length;
+    const inst = new THREE.InstancedMesh(geo, cardMat(), l.length);
+    l.forEach(([x, y, z, r1, s], i) => inst.setMatrixAt(i, m4.compose(p.set(x, y - LIFT * s - 0.1 * s, z), qt.setFromAxisAngle(up, r1 * 6.283), sc.set(s, s, s))));
+    inst.computeBoundingSphere(); scene.add(inst); LAYERS.trees.push(inst);
+  });
+  console.log("uplift: clipped hedges dressed with", count, "tufts");
+  return "#2b4d40";
+}
+
+// A grassy bank's colours by height under the brushed ground (the Dyke; the owner's pick, treatment 12 of the Dyke
+// workshop): the ground's own sage at the foot and up the face, a blush of straw towards the crest. Null in the
+// other looks, where the course's own ramp stands.
+export function bankRamp() {
+  if (!LOOK.brushed) return null;
+  const k = Number(q.get("bankk") || 1.3);
+  return [[0, "#9cbc80"], [1.4, "#93b578"], [3.2, "#a2ba7c"], [4.4, "#b6c388"], [5.2, "#c0c690"]].map(([h, hex]) => [h, lin(hex).map((v) => v * k)]);
 }
 
 // ---------- Thinning the belts ----------

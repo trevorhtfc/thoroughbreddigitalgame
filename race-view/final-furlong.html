@@ -1552,7 +1552,9 @@ function placeScenery(SC, models, treeLib, belts) {
   // walls, hedges and copings: [x, z, length, depth, y from, y to, yaw]
   const unit = new THREE.BoxGeometry(1, 1, 1);
   for (const [colour, list] of Object.entries(SC.boxes || {})) {
-    const inst = new THREE.InstancedMesh(unit, new THREE.MeshLambertMaterial({ color: colour }), list.length);
+    // (soft look: clipped hedges in the trees' foliage, over the box as their dark heart)
+    const heart = UPLIFT && treeLib ? UPLIFT.dressBoxes(colour, list, treeLib, { scene, LAYERS, groundY, quality: qLevel }) : null;
+    const inst = new THREE.InstancedMesh(unit, new THREE.MeshLambertMaterial({ color: heart || colour }), list.length);
     list.forEach(([x, z, L, D, y0, y1, yaw], i) => inst.setMatrixAt(i, m4.compose(p.set(x, (y0 + y1) / 2 + groundY(x, z), z), q.setFromAxisAngle(up, yaw), sc.set(L, y1 - y0, D))));
     inst.computeBoundingSphere(); inst.castShadow = inst.receiveShadow = true;
     scene.add(inst); LAYERS.buildings.push(inst);
@@ -1580,7 +1582,7 @@ function placeScenery(SC, models, treeLib, belts) {
     geo.setAttribute("position", new THREE.BufferAttribute(pos, 3)); geo.setIndex(idx); geo.computeVertexNormals();
     const nrm = geo.attributes.normal, col = new Float32Array(nr * nc * 3), flat = 0.72 + 0.4 * Math.max(0, sunDir.y);
     const foot = G.outside, top = G.bank || G.outside;                 // the lawn's colour at the foot, deeper up the bank
-    const ramp = b.ramp || G.bankRamp, mot = b.mottle ?? (G.bankMottle || 0);   // or a ramp by height (owner, 9 Nov late: the Dyke's depth)
+    const ramp = (UPLIFT && UPLIFT.bankRamp()) || b.ramp || G.bankRamp, mot = b.mottle ?? (G.bankMottle || 0);   // or a ramp by height (owner, 9 Nov late: the Dyke's depth)
     const rampAt = (h) => {
       let k = 0; while (k + 1 < ramp.length && ramp[k + 1][0] < h) k++;
       if (k + 1 >= ramp.length) return ramp[k][1];
@@ -1598,7 +1600,9 @@ function placeScenery(SC, models, treeLib, belts) {
     }
     if (GROUND) { for (let i = 0; i < nr * nc; i++) pos[i * 3 + 1] += groundY(pos[i * 3], pos[i * 3 + 2]); geo.attributes.position.needsUpdate = true; geo.computeBoundingSphere(); }
     geo.setAttribute("color", new THREE.BufferAttribute(col, 3));
-    const m = new THREE.Mesh(geo, turfLook(groundDetail(new THREE.MeshBasicMaterial({ vertexColors: true, side: THREE.DoubleSide }), 0.2), "far"));
+    const bankMat = new THREE.MeshBasicMaterial({ vertexColors: true, side: THREE.DoubleSide });
+    bankMat.userData.bank = true;                                      // (the soft look brushes banks more quietly)
+    const m = new THREE.Mesh(geo, turfLook(groundDetail(bankMat, 0.2), "far"));
     scene.add(m); LAYERS.ground.push(m);
   }
   // the boards (as the planting belts'), then the trees
