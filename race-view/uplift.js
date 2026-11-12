@@ -69,8 +69,10 @@ LOOKSET.soft = {
   label: "Soft afternoon", brushed: 0.32, trees: true, sun: [-0.25, 0.55, -0.85],
   sunCol: [1.2, 1.08, 0.82], ambSky: [0.52, 0.56, 0.5], ambGnd: [0.44, 0.41, 0.31],
   gndSun: [1.04, 1.02, 0.94], gndShade: [0.6, 0.67, 0.64], litTint: [1.04, 1.02, 0.96], shadeTint: [0.92, 0.96, 0.98], rim: 0.12,
-  sky: { horizon: "#efecc6", mid: "#dde5cb", top: "#b4d4cc", glow: [0.5, 0.45, 0.3], cover: 2, edge: "#ffffff", base: "#ffffff", thick: 0 },
-  haze: [0.6, 70, 520, 0.15], hazeTop: 0.8, hazeCol: "#efecc6", hazeSun: "#f3edc6", exposure: 1.0, clouds: 0.0, catcher: ["#3a4a40", 0.36],
+  // (owner, 12 Nov: "the sky is a little too yellow": the horizon and the haze eased from straw towards cream; they were
+  // #efecc6 / #dde5cb, glow 0.5 0.45 0.3, haze #efecc6 and #f3edc6)
+  sky: { horizon: "#ebebd6", mid: "#dae5d2", top: "#b4d4cc", glow: [0.42, 0.42, 0.33], cover: 2, edge: "#ffffff", base: "#ffffff", thick: 0 },
+  haze: [0.6, 70, 520, 0.15], hazeTop: 0.8, hazeCol: "#e9ebd8", hazeSun: "#eeecd4", exposure: 1.0, clouds: 0.0, catcher: ["#3a4a40", 0.36],
   crowdShade: [0.6, 0.64, 0.62],
 };
 // The course as a model on a table: the same world under a warm lamp, cut to a board with a painted edge, standing on
@@ -85,7 +87,7 @@ LOOKSET.table = {
   crowdShade: [0.5, 0.5, 0.62], heather: 0.15,
   props: { cards: [-200, -590, 4.04], cover: [-640, -110, 4.35], board: [1380, -1420, 3.0] },   // [x, z, turn]
 };
-const LOOK_ID = LOOKSET[q.get("uplift")] ? q.get("uplift") : "afternoon";
+const LOOK_ID = LOOKSET[q.get("uplift")] ? q.get("uplift") : "soft";      // (the game's look since 12 Nov 2026; the others by name)
 const LOOK = LOOKSET[LOOK_ID];
 export const lookId = LOOK_ID, looks = Object.fromEntries(Object.entries(LOOKSET).map(([k, v]) => [k, v.label]));
 
@@ -299,6 +301,7 @@ const _hz = new THREE.Color();
 export function update(t, camera) {
   U.upTime.value = t;
   if (camera) for (const m of PILES) { const s = m.geometry.boundingSphere; m.visible = s.center.distanceTo(camera.position) < PILE_FAR + s.radius; }
+  if (camera) flatSwitch(camera);
   // a long lens looks through a lot of air: thin the haze for it, or the far rail washes out (as the view's own haze does)
   if (camera) U.upHaze.value.x = LOOK.haze[0] * THREE.MathUtils.clamp(camera.fov / 26, 0.28, 1);
   // things this file doesn't shade (the turf thrown up by hooves) take the view's own haze: keep its colour the look's
@@ -520,11 +523,12 @@ export function patchLit(mat, kind = "") {
   if (mat.userData.up) return mat;
   const relight = has("relight"), crowd = kind === "crowd" && has("crowd"), tree = kind === "tree" && LOOK.trees;
   const baked = mat.isMeshBasicMaterial;                       // baked scenery: unlit colour x Blender's light
-  return chain(mat, "lit" + kind + LOOK_ID + OFF.join(""), (sh) => {
+  const flat = !!mat.userData.flatTrees;                       // far trees as flat pictures: each point says how high up its tree it is
+  return chain(mat, "lit" + kind + (flat ? "flat" : "") + LOOK_ID + OFF.join(""), (sh) => {
     Object.assign(sh.uniforms, U);
-    sh.vertexShader = sh.vertexShader.replace("#include <common>", "#include <common>\nvarying vec3 vUpP; varying vec3 vUpN; varying float vUpH;")
+    sh.vertexShader = sh.vertexShader.replace("#include <common>", "#include <common>\nvarying vec3 vUpP; varying vec3 vUpN; varying float vUpH;" + (flat ? " attribute float aUpH;" : ""))
       .replace("#include <fog_vertex>", `#include <fog_vertex>
-      { vUpP = transpose(mat3(viewMatrix)) * (mvPosition.xyz - viewMatrix[3].xyz); vUpH = position.y;
+      { vUpP = transpose(mat3(viewMatrix)) * (mvPosition.xyz - viewMatrix[3].xyz); vUpH = ${flat ? "aUpH" : "position.y"};
         vec3 upn = normal;
         #ifdef USE_BATCHING
           upn = mat3(batchingMatrix) * upn;
@@ -729,6 +733,128 @@ export function bankRamp() {
   if (!LOOK.brushed) return null;
   const k = Number(q.get("bankk") || 1.3);
   return [[0, "#9cbc80"], [1.4, "#93b578"], [3.2, "#a2ba7c"], [4.4, "#b6c388"], [5.2, "#c0c690"]].map(([h, hex]) => [h, lin(hex).map((v) => v * k)]);
+}
+
+// ---------- Far trees as flat pictures ----------
+// A tree far from the camera is drawn as two flat pictures of itself standing crossed (8 triangles), in place of its
+// crown of leaf cards and its trunk (460 to 840). The pictures are taken here, once, from the kit's own far crown and
+// trunk, from the front and from the side, so they are the same tree; they carry only the leaves' own tone, and go
+// through the same grading, shading and haze as the real crowns. Trees are grouped by where they stand (squares
+// FLAT_CELL metres across): a square whose nearest edge is further than FLAT_AT from the camera shows its pictures,
+// a nearer one its real trees, so nothing near the camera is ever flat. &upoff=flat for real trees everywhere;
+// &flatat=N to move the distance.
+const FLAT_CELL = 120, FLAT_AT = Number(q.get("flatat") || 220), FLAT_TILE = 256, FLAT_COLS = 4;
+const FLAT = { cells: new Map(), list: [], tiles: null, kit: null, rt: null, mat: null, taken: false };
+export function flatTrees(kit) {
+  if (!LOOK.trees || !has("flat") || !firstGeo(kit, "oak_a_crown_far")) return null;
+  FLAT.kit = kit;
+  const cellFor = (id) => { if (!FLAT.cells.has(id)) FLAT.cells.set(id, { cards: [], trees: [], mesh: null, far: false }); return FLAT.cells.get(id); };
+  return {
+    cellOf: (t) => Math.floor(t.x / FLAT_CELL) + "_" + Math.floor(t.z / FLAT_CELL),
+    cards: (cell, inst) => cellFor(cell).cards.push(inst),
+    tree: (cell, name, t, y, colour) => cellFor(cell).trees.push({ name, x: t.x, y, z: t.z, s: t.s, sy: t.sy || 1, turn: t.turn || 0, c: colour ? colour.clone() : null }),
+  };
+}
+function flatSetup() {
+  if (FLAT.tiles) return;
+  FLAT.tiles = {};
+  const names = [];
+  FLAT.kit.scene.traverse((o) => { if (/_crown_far$/.test(o.name)) names.push(o.name.replace("_crown_far", "")); });
+  names.sort();
+  const rows = Math.ceil(names.length * 2 / FLAT_COLS), box = new THREE.Box3();
+  names.forEach((name, i) => {
+    const crown = firstGeo(FLAT.kit, name + "_crown_far"), trunk = firstGeo(FLAT.kit, name + "_trunk");
+    box.makeEmpty();
+    for (const g of [crown, trunk]) if (g) { g.computeBoundingBox(); box.union(g.boundingBox); }
+    const R = Math.max(-box.min.x, box.max.x, -box.min.z, box.max.z) * 1.05, y0 = Math.min(0, box.min.y), y1 = box.max.y * 1.03;
+    const uv = [0, 1].map((v) => { const k = i * 2 + v; return [(k % FLAT_COLS) / FLAT_COLS, Math.floor(k / FLAT_COLS) / rows, 1 / FLAT_COLS, 1 / rows]; });
+    FLAT.tiles[name] = { R, y0, y1, uv, crown, trunk };
+  });
+  FLAT.rt = new THREE.WebGLRenderTarget(FLAT_TILE * FLAT_COLS, FLAT_TILE * rows, { samples: 4, depthBuffer: true, generateMipmaps: true, minFilter: THREE.LinearMipmapLinearFilter, magFilter: THREE.LinearFilter });
+  FLAT.rt.texture.anisotropy = 4;
+  FLAT.mat = new THREE.MeshLambertMaterial({ vertexColors: true, map: FLAT.rt.texture, alphaTest: 0.35 });
+  FLAT.mat.userData.leafCards = true; FLAT.mat.userData.flatTrees = true;
+}
+// The pictures: each tree's far crown and trunk in their own colours, unlit, on nothing; front view, then side view.
+function flatTake(renderer) {
+  const leaf = cardMat().map;
+  if (!leaf.image) return false;
+  const sc = new THREE.Scene(), cam = new THREE.OrthographicCamera();
+  const leafMat = new THREE.MeshBasicMaterial({ vertexColors: true, map: leaf, alphaTest: 0.4, fog: false });
+  const woodMat = new THREE.MeshBasicMaterial({ vertexColors: true, fog: false }), plainWood = new THREE.MeshBasicMaterial({ color: "#6b5a48", fog: false });
+  const rt = FLAT.rt, was = renderer.getRenderTarget(), auto = renderer.autoClear, col = renderer.getClearColor(new THREE.Color()), al = renderer.getClearAlpha();
+  renderer.autoClear = false;
+  rt.scissorTest = false; rt.viewport.set(0, 0, rt.width, rt.height);
+  renderer.setRenderTarget(rt); renderer.setClearColor(new THREE.Color(0.2, 0.23, 0.2), 0); renderer.clear();
+  for (const name of Object.keys(FLAT.tiles)) {
+    const T = FLAT.tiles[name], parts = [];
+    if (T.crown) parts.push(new THREE.Mesh(T.crown, leafMat));
+    if (T.trunk) parts.push(new THREE.Mesh(T.trunk, T.trunk.attributes.color ? woodMat : plainWood));
+    for (const m of parts) sc.add(m);
+    const cy = (T.y0 + T.y1) / 2;
+    Object.assign(cam, { left: -T.R, right: T.R, top: T.y1 - cy, bottom: T.y0 - cy, near: 0.5, far: T.R * 4 + 10 }); cam.updateProjectionMatrix();
+    T.uv.forEach(([u, v, du, dv], view) => {
+      if (view === 0) cam.position.set(0, cy, T.R * 2 + 5); else cam.position.set(T.R * 2 + 5, cy, 0);
+      cam.up.set(0, 1, 0); cam.lookAt(0, cy, 0); cam.updateMatrixWorld(true);
+      rt.viewport.set(u * rt.width, v * rt.height, du * rt.width, dv * rt.height); rt.scissor.copy(rt.viewport); rt.scissorTest = true;
+      renderer.setRenderTarget(rt); renderer.render(sc, cam);
+    });
+    for (const m of parts) sc.remove(m);
+  }
+  rt.scissorTest = false; rt.viewport.set(0, 0, rt.width, rt.height);
+  renderer.setRenderTarget(was); renderer.setClearColor(col, al); renderer.autoClear = auto;
+  leafMat.dispose(); woodMat.dispose(); plainWood.dispose();
+  return true;
+}
+function buildFlat({ scene, LAYERS }) {
+  if (!FLAT.kit || !FLAT.cells.size) return;
+  flatSetup();
+  let n = 0;
+  for (const cell of FLAT.cells.values()) {
+    const trees = cell.trees.filter((t) => FLAT.tiles[t.name]);
+    if (!trees.length) continue;
+    const N = trees.length * 8, pos = new Float32Array(N * 3), nor = new Float32Array(N * 3), uv = new Float32Array(N * 2), col = new Float32Array(N * 3), uph = new Float32Array(N), idx = [];
+    let k = 0;
+    for (const t of trees) {
+      const T = FLAT.tiles[t.name], a = t.turn * Math.PI / 180, ca = Math.cos(a), sa = Math.sin(a), c = t.c || { r: 1, g: 1, b: 1 };
+      for (let view = 0; view < 2; view++) {
+        const [u0, v0, du, dv] = T.uv[view];
+        // the front view lies along the tree's x, the side view along its z (seen from +x, so its left edge is at +z)
+        const dx = view === 0 ? 1 : 0, dz = view === 0 ? 0 : -1;
+        const corners = [[-1, T.y0, 0, 0], [1, T.y0, 1, 0], [1, T.y1, 1, 1], [-1, T.y1, 0, 1]];
+        for (const [side, ly, cu, cv] of corners) {
+          const lx = dx * side * T.R, lz = dz * side * T.R;
+          pos[k * 3] = t.x + (lx * ca + lz * sa) * t.s; pos[k * 3 + 1] = t.y + ly * t.s * t.sy; pos[k * 3 + 2] = t.z + (-lx * sa + lz * ca) * t.s;
+          // (rounded: each edge of the picture faces out and a little up, as the side of a crown does)
+          const nx = dx * side * 0.87, nz = dz * side * 0.87;
+          nor[k * 3] = nx * ca + nz * sa; nor[k * 3 + 1] = 0.5; nor[k * 3 + 2] = -nx * sa + nz * ca;
+          uv[k * 2] = u0 + du * cu; uv[k * 2 + 1] = v0 + dv * cv;
+          col[k * 3] = c.r; col[k * 3 + 1] = c.g; col[k * 3 + 2] = c.b; uph[k] = ly;
+          k++;
+        }
+        const o = k - 4;
+        idx.push(o, o + 1, o + 2, o, o + 2, o + 3, o, o + 2, o + 1, o, o + 3, o + 2);
+      }
+    }
+    const g = new THREE.BufferGeometry();
+    g.setAttribute("position", new THREE.BufferAttribute(pos, 3)); g.setAttribute("normal", new THREE.BufferAttribute(nor, 3));
+    g.setAttribute("uv", new THREE.BufferAttribute(uv, 2)); g.setAttribute("color", new THREE.BufferAttribute(col, 3));
+    g.setAttribute("aUpH", new THREE.BufferAttribute(uph, 1)); g.setIndex(idx); g.computeBoundingSphere();
+    cell.mesh = new THREE.Mesh(g, FLAT.mat); cell.mesh.visible = false;
+    scene.add(cell.mesh); LAYERS.trees.push(cell.mesh); FLAT.list.push(cell); n += trees.length;
+  }
+  console.log("uplift: flat pictures ready for", n, "far trees in", FLAT.list.length, "squares");
+}
+function flatSwitch(camera) {
+  if (!FLAT.list.length) return;
+  if (!FLAT.taken) { if (!CTX.renderer || !flatTake(CTX.renderer)) return; FLAT.taken = true; }
+  for (const c of FLAT.list) {
+    const s = c.mesh.geometry.boundingSphere, d = s.center.distanceTo(camera.position) - s.radius;
+    const far = d > FLAT_AT * (c.far ? 0.94 : 1.06);          // (a little slack, so a square on the line doesn't flicker)
+    if (far === c.far) continue;
+    c.far = far; c.mesh.visible = far;
+    for (const m of c.cards) m.visible = !far;
+  }
 }
 
 // ---------- Thinning the belts ----------
@@ -952,6 +1078,7 @@ function shadowPictures({ renderer, scene, LAYERS, quality }) {
 
 // ---------- Once the scene is built ----------
 export function afterBuild({ scene, LAYERS, shadowCatcher, crowd, crowdShare = 1, sunOffset, renderer, quality }) {
+  buildFlat({ scene, LAYERS });
   if (!S) site(null);
   if (has("crowd") && crowd) crowdShadows(crowd, crowdShare, sunOffset);
   if (has("relight")) {
@@ -970,7 +1097,7 @@ export function afterBuild({ scene, LAYERS, shadowCatcher, crowd, crowdShare = 1
   }
   const seen = new Set();
   // the trees themselves, not the boards and hedge that share their layer
-  const isTree = (o) => { const m = Array.isArray(o.material) ? o.material[0] : o.material; return !!(o.isInstancedMesh && m && m.vertexColors && (!m.map || m.userData.leafCards)); };
+  const isTree = (o) => { const m = Array.isArray(o.material) ? o.material[0] : o.material; return !!(m && m.vertexColors && (m.userData.flatTrees || o.isInstancedMesh && (!m.map || m.userData.leafCards))); };
   const visit = (o, kind) => {
     const mats = Array.isArray(o.material) ? o.material : [o.material];
     for (const m of mats) {

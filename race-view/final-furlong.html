@@ -373,9 +373,11 @@ import * as STANDS from "./stand-styles.js";
 import * as RaceSound from "./race-sound.js";
 // The miniature look test (?mini=1, miniature.js): loaded only when asked for, so the game never fetches it.
 const MINI = new URLSearchParams(location.search).has("mini") ? await import("./miniature.js") : null;
-// The graphics uplift test (?uplift=1, uplift.js; 11 Nov 2026): the ground, planting, sky and light, all in the 3D scene.
-// Loaded only when asked for; without it nothing changes.
-const UPLIFT = new URLSearchParams(location.search).has("uplift") ? await import("./uplift.js") : null;
+// The soft look (uplift.js): the ground, planting, sky and light, all in the 3D scene. It began as a test behind
+// ?uplift=soft (11 Nov 2026) and is the game's look since the owner put it live on 12 Nov. ?uplift=off brings back the
+// look before it, exactly; ?uplift=afternoon|golden|storm|mist|table are the earlier tests.
+const UPLIFT = new URLSearchParams(location.search).get("uplift") === "off" ? null : await import("./uplift.js");
+const SOFT = !!UPLIFT && UPLIFT.lookId === "soft";
 // The race engine (race-engine/ in the repo; a copy lives in assets/engine/): it decides the race, the view plays it back.
 import { runRace } from "./assets/engine/engine.js";
 import { randomField } from "./assets/engine/field.js";
@@ -1354,6 +1356,9 @@ function instanceTrees(gltf, list) {
   const groups = new Map();
   // (soft look: the understorey is a thicket of the trees' own foliage, from the kit, in place of the rounded mass)
   const thick = UPLIFT && UPLIFT.thickets(gltf);
+  // (soft look: trees far from the camera are drawn as flat pictures of themselves; trees away from the middle of the
+  // course are grouped by where they stand, so each group can change over by itself)
+  const flat = UPLIFT && UPLIFT.flatTrees(gltf);
   for (const t of list) {
     t.s0 = t.s;
     if (THIN_BELTS && (t.belt || !isNear(t.x, t.z))) { if ((Math.round(t.x * 7 + t.z * 13) & 1) === 1) continue; t.s *= 1.12; }
@@ -1362,15 +1367,18 @@ function instanceTrees(gltf, list) {
     // solid woodland down to the hedge instead of crowns floating over a strip of sky (owner, 7 Nov)
     // (the soft look thins the belts: about half their trees are understorey only, so the sky comes between the crowns)
     const parts = UPLIFT && !UPLIFT.thinBelt(t) ? ["_under"] : t.scrub ? ["_crown_far"] : [near ? "_crown" : "_crown_far"].concat(near || !t.belt ? ["_trunk"] : []).concat(t.belt ? ["_under"] : []);
+    const cell = flat && !near ? "@" + flat.cellOf(t) : "";
     for (const part of parts) {
-      const key = part === "_under" && thick ? "~" + thick[Math.round(Math.abs(t.x * 3 + t.z * 5)) % thick.length] : t.tree + part;
+      const key = part === "_under" && thick ? "~" + thick[Math.round(Math.abs(t.x * 3 + t.z * 5)) % thick.length] : t.tree + part + (part === "_under" ? "" : cell);
       if (!groups.has(key)) groups.set(key, []);
       groups.get(key).push(t);
     }
   }
   const m4 = new THREE.Matrix4(), q = new THREE.Quaternion(), sc = new THREE.Vector3(), p = new THREE.Vector3(), up = new THREE.Vector3(0, 1, 0);
-  for (const [key, ts] of groups) {
-    if (key[0] === "~") { UPLIFT.placeThickets(gltf, key.slice(1), ts, { scene, LAYERS, groundY, treeMat }); continue; }
+  for (const [key0, ts] of groups) {
+    if (key0[0] === "~") { UPLIFT.placeThickets(gltf, key0.slice(1), ts, { scene, LAYERS, groundY, treeMat }); continue; }
+    const [key, cell] = key0.split("@");
+    let noted = false;
     const under = key.endsWith("_under"), base = under ? key.replace("_under", "_crown_far") : key;
     const node = gltf.scene.getObjectByName(base) || gltf.scene.getObjectByName(base.replace("_far", ""));
     if (!node) continue;
@@ -1386,10 +1394,13 @@ function instanceTrees(gltf, list) {
         let c = under ? (CLAY_TREES ? clayLeaf(base, t, i).clone().multiplyScalar(0.7) : underColour(t, UNDER_CROWN)) : LOOKS.treeColour(key, t, i) || clayLeaf(key, t, i);
         if (c && t.tint) c = c.clone().multiplyScalar(t.tint);
         if (c) inst.setColorAt(i, c);
+        if (cell && !noted && key.endsWith("_crown_far")) flat.tree(cell, key.replace("_crown_far", ""), t, groundY(t.x, t.z) + (t.dy || 0), c);
       });
+      noted = true;
       inst.computeBoundingSphere();
       scene.add(inst);
       LAYERS.trees.push(inst);
+      if (cell) flat.cards(cell, inst);
     }
   }
 }
@@ -2573,7 +2584,7 @@ try {
     // owner's pick in the landscape workshop, 11 Nov, was the leafy trees graded ("leafier... rather than bulbous"),
     // and then, from the tree workshop, trees built as trees: a plain trunk and boughs carrying loose clumps of
     // cut-out foliage (assets/trees/trees_soft, tools/blender/export_soft_trees.py; &trees=leafy for the old crowns)
-    !(params.get("trees") === "clay" || (params.get("trees") !== "leafy" && params.get("uplift") !== "soft" && LIGHT && LIGHT.trees === "clay")) ? optional(loadModel("assets/trees", params.get("uplift") === "soft" && !params.get("trees") ? "trees_soft" : "trees"), "Trees")
+    !(params.get("trees") === "clay" || (params.get("trees") !== "leafy" && !SOFT && LIGHT && LIGHT.trees === "clay")) ? optional(loadModel("assets/trees", SOFT && !params.get("trees") ? "trees_soft" : "trees"), "Trees")
       : Promise.all([optional(loadModel("assets/trees", "trees_clay"), "Trees"), json("assets/trees/trees_clay_info.json")])
           .then(([g, info]) => (g && info ? ((CLAY_TREES = info), g) : optional(loadModel("assets/trees", "trees"), "Trees"))),
     optional(loadModel("assets/course", "planting_belts"), "Planting belts"),
