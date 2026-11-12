@@ -299,6 +299,19 @@
     "z0": -0.1,
     "z1": 0.1
    }
+  },
+  "X": {
+   "piece": "balloon_pod",
+   "name": "Balloon dining pod",
+   "width": 5.2,
+   "depth": 5.2,
+   "height": 8.1,
+   "footprint": {
+    "x0": -2.6,
+    "x1": 2.6,
+    "z0": -2.6,
+    "z1": 2.6
+   }
   }
  }
 }

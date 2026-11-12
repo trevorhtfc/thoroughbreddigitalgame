@@ -167,14 +167,16 @@ print("hedge: %.0f m, %d triangles" % (hedge_len, sum(len(p.vertices) - 2 for p 
 # a smaller front row, taller rows behind, now and then a poplar. Placed here, drawn by any engine.
 KINDS = ["oak_a", "oak_b", "oak_c", "wide_a", "wide_b"]
 trees = []
-for r, (dist, spacing, sc) in enumerate(((GAP + 5.5, 8.5, (1.0, 1.3)), (GAP + 11.5, 9.0, (1.25, 1.6)), (GAP + 18.0, 10.0, (1.35, 1.75)))):
+# (owner, 11 Nov 2026: the belts stay as the tracking cameras' backdrop, "a little lower / less dense in the upper
+# canopies": the two back rows a size smaller and further apart, fewer poplars)
+for r, (dist, spacing, sc) in enumerate(((GAP + 5.5, 8.5, (1.0, 1.3)), (GAP + 11.5, 10.5, (1.12, 1.4)), (GAP + 18.0, 12.5, (1.18, 1.5)))):
     for ln in lines_in_belt(dist):
         s_ = rng.uniform(0, spacing)
         while s_ < ln.length:
             p = ln.interpolate(s_)
             x, z = p.x + rng.uniform(-1.6, 1.6), p.y + rng.uniform(-1.6, 1.6)
             if belts.contains(Point(x, z)):
-                kind = "poplar_a" if rng.random() < 0.1 and r > 0 else KINDS[int(rng.integers(len(KINDS)))]
+                kind = "poplar_a" if rng.random() < 0.05 and r > 0 else KINDS[int(rng.integers(len(KINDS)))]
                 trees.append([round(x, 2), round(z, 2), kind, round(float(rng.uniform(*sc)), 2), round(float(rng.uniform(0, 360)), 0)])
             s_ += spacing * rng.uniform(0.75, 1.25)
 print("belt trees: %d" % len(trees), flush=True)
