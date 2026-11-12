@@ -1269,6 +1269,7 @@ function placeBelts(gltf, planting, treeLib, withHedge = true) {
       if (hc && hc.count) { let r = 0, g = 0, b = 0; for (let i = 0; i < hc.count; i++) { r += hc.getX(i); g += hc.getY(i); b += hc.getZ(i); } HEDGE_MEAN = new THREE.Color(r / hc.count, g / hc.count, b / hc.count); }
       m.material = LOOKS.patchFoliage(new THREE.MeshLambertMaterial({ vertexColors: true }), "hedge");
       LAYERS.trees.push(m);
+      if (UPLIFT && treeLib) UPLIFT.dressHedge(m, treeLib, { scene, LAYERS, distToRails, quality: qLevel });      // (soft look: the hedge in the trees' foliage)
     }
     scene.add(hedge);
   }
@@ -1341,7 +1342,10 @@ function underGeometry(crown) {
 }
 function instanceTrees(gltf, list) {
   const groups = new Map();
+  // (soft look: the understorey is a thicket of the trees' own foliage, from the kit, in place of the rounded mass)
+  const thick = UPLIFT && UPLIFT.thickets(gltf);
   for (const t of list) {
+    t.s0 = t.s;
     if (THIN_BELTS && (t.belt || !isNear(t.x, t.z))) { if ((Math.round(t.x * 7 + t.z * 13) & 1) === 1) continue; t.s *= 1.12; }
     const near = !LITE_TREES && isNear(t.x, t.z);
     // belt trees also get an understorey: their light crown squashed low under the real one, so the belts read as
@@ -1349,13 +1353,14 @@ function instanceTrees(gltf, list) {
     // (the soft look thins the belts: about half their trees are understorey only, so the sky comes between the crowns)
     const parts = UPLIFT && !UPLIFT.thinBelt(t) ? ["_under"] : t.scrub ? ["_crown_far"] : [near ? "_crown" : "_crown_far"].concat(near || !t.belt ? ["_trunk"] : []).concat(t.belt ? ["_under"] : []);
     for (const part of parts) {
-      const key = t.tree + part;
+      const key = part === "_under" && thick ? "~" + thick[Math.round(Math.abs(t.x * 3 + t.z * 5)) % thick.length] : t.tree + part;
       if (!groups.has(key)) groups.set(key, []);
       groups.get(key).push(t);
     }
   }
   const m4 = new THREE.Matrix4(), q = new THREE.Quaternion(), sc = new THREE.Vector3(), p = new THREE.Vector3(), up = new THREE.Vector3(0, 1, 0);
   for (const [key, ts] of groups) {
+    if (key[0] === "~") { UPLIFT.placeThickets(gltf, key.slice(1), ts, { scene, LAYERS, groundY, treeMat }); continue; }
     const under = key.endsWith("_under"), base = under ? key.replace("_under", "_crown_far") : key;
     const node = gltf.scene.getObjectByName(base) || gltf.scene.getObjectByName(base.replace("_far", ""));
     if (!node) continue;

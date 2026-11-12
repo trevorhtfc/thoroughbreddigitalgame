@@ -523,16 +523,90 @@ export function patchLit(mat, kind = "") {
 // (anything clearer than its edge is left out), and are otherwise the trees' usual material, so the grading by
 // height, the form and the haze all apply.
 let CARD_MAT = null;
-export function treeMaterial(geo, base, treeMat, under) {
-  if (!LOOK.trees || under || !/_crown/.test(base) || !geo.attributes.uv || !geo.attributes.color || geo.attributes.position.count % 8 !== 0 || !geo.userData.cards && !isCards(geo)) return null;
+function cardMat() {
   if (!CARD_MAT) {
     const tex = new THREE.TextureLoader().load("assets/trees/leaf_clumps.png"); tex.colorSpace = THREE.SRGBColorSpace; tex.anisotropy = 4; tex.flipY = false;
     CARD_MAT = new THREE.MeshLambertMaterial({ vertexColors: true, map: tex, alphaTest: 0.4 }); CARD_MAT.userData.leafCards = true;
   }
   return CARD_MAT;
 }
+export function treeMaterial(geo, base, treeMat, under) {
+  if (!LOOK.trees || under || !/_crown/.test(base) || !geo.attributes.uv || !geo.attributes.color || geo.attributes.position.count % 8 !== 0 || !geo.userData.cards && !isCards(geo)) return null;
+  return cardMat();
+}
 // the card crowns are told from the old solid ones by their vertex colours: a card's are grey
 function isCards(geo) { const c = geo.attributes.color; geo.userData.cards = Math.abs(c.getX(0) - c.getY(0)) < 0.01 && Math.abs(c.getY(0) - c.getZ(0)) < 0.01; return geo.userData.cards; }
+
+// ---------- The low greenery, in the trees' own foliage ----------
+// Owner, 12 Nov: "all the greenery should be of the same style". Under the new trees the belts still had the old
+// understorey (a smooth dark ball under every tree) and the old hedge (a smooth rounded bank). Both are now the
+// trees' clumps of leaves (the kit's thicket_* and tuft_*, tools/blender/export_soft_trees.py).
+const firstGeo = (kit, name) => { let g = null; const n = kit.scene.getObjectByName(name); if (n) n.traverse((o) => { if (!g && o.isMesh) g = o.geometry; }); return g; };
+const hash2 = (x, z, k) => { const v = Math.sin(x * 12.9898 * k + z * 78.233) * 43758.5453; return v - Math.floor(v); };
+// The understorey: which thickets the kit has (none: the game keeps its own).
+export function thickets(kit) {
+  if (!LOOK.trees || !has("low")) return null;
+  const names = ["thicket_a", "thicket_b"].filter((n) => firstGeo(kit, n + "_leaves") && firstGeo(kit, n + "_core"));
+  return names.length ? names : null;
+}
+// One thicket under each of these belt trees: a bank of bushes over a dark heart, turned and sized tree by tree.
+export function placeThickets(kit, name, ts, { scene, LAYERS, groundY, treeMat }) {
+  const m4 = new THREE.Matrix4(), qt = new THREE.Quaternion(), sc = new THREE.Vector3(), p = new THREE.Vector3(), up = new THREE.Vector3(0, 1, 0);
+  for (const [part, mat] of [["_leaves", cardMat()], ["_core", treeMat]]) {
+    const inst = new THREE.InstancedMesh(firstGeo(kit, name + part), mat, ts.length);
+    ts.forEach((t, i) => {
+      const h = hash2(t.x, t.z, 3.3), s = (t.s0 || t.s) * (0.9 + 0.3 * h);
+      qt.setFromAxisAngle(up, ((t.turn || 0) + 70 + 360 * h) * Math.PI / 180);
+      inst.setMatrixAt(i, m4.compose(p.set(t.x, groundY(t.x, t.z) + (t.dy || 0) - 0.2, t.z), qt, sc.set(s, s * (0.85 + 0.3 * hash2(t.x, t.z, 5.1)), s)));
+    });
+    inst.computeBoundingSphere(); scene.add(inst); LAYERS.trees.push(inst);
+  }
+}
+// The belt hedge: the smooth bank stays as the hedge's dark heart, and tufts of leaves stand all over its top and
+// shoulders, so its outline is leaves against the trees behind and the dark shows between them as depth.
+export function dressHedge(mesh, kit, { scene, LAYERS, distToRails, quality }) {
+  if (!LOOK.trees || !has("low") || !kit) return;
+  const tufts = ["tuft_a", "tuft_b", "tuft_c"].map((n) => firstGeo(kit, n)).filter(Boolean);
+  if (!tufts.length) return;
+  mesh.updateWorldMatrix(true, false);
+  const g = mesh.geometry, pos = g.attributes.position, col = g.attributes.color, idx = g.index, M = mesh.matrixWorld;
+  if (col) { const dark = new THREE.Color("#2b4d40"); for (let i = 0; i < col.count; i++) { const k = 0.85 + 0.3 * Math.min(Math.max(pos.getY(i) / 3.5, 0), 1); col.setXYZ(i, dark.r * k, dark.g * k, dark.b * k); } col.needsUpdate = true; }
+  const a = new THREE.Vector3(), b = new THREE.Vector3(), c = new THREE.Vector3(), n = new THREE.Vector3(), e = new THREE.Vector3();
+  // (tufts to the square metre; fewer on the lighter settings)
+  const per = Number(q.get("hedge") || 0.34) * ({ low: 0.5, lightest: 0.3 }[quality] || 1), LIFT = 5, spots = tufts.map(() => []);
+  let seed = 7; const rnd = () => { seed = (seed * 16807) % 2147483647; return seed / 2147483647; };
+  const nTri = (idx ? idx.count : pos.count) / 3;
+  for (let t = 0; t < nTri; t++) {
+    const i0 = idx ? idx.getX(t * 3) : t * 3, i1 = idx ? idx.getX(t * 3 + 1) : t * 3 + 1, i2 = idx ? idx.getX(t * 3 + 2) : t * 3 + 2;
+    a.fromBufferAttribute(pos, i0).applyMatrix4(M); b.fromBufferAttribute(pos, i1).applyMatrix4(M); c.fromBufferAttribute(pos, i2).applyMatrix4(M);
+    n.subVectors(b, a).cross(e.subVectors(c, a)); const area = n.length() / 2;
+    if (area < 1e-6) continue;
+    n.multiplyScalar(1 / (area * 2)); if (n.y < 0) n.negate();
+    // the top and shoulders all over; of the walls, only the one seen from the track, and only above the boards
+    const wall = n.y < 0.3;
+    if (wall) {
+      e.copy(a).add(b).add(c).multiplyScalar(1 / 3);
+      if (!distToRails || e.y < 1.2) continue;
+      if (distToRails(e.x + n.x * 2, e.z + n.z * 2) > distToRails(e.x - n.x * 2, e.z - n.z * 2)) n.negate();   // (out of the hedge, towards the track)
+      if (distToRails(e.x + n.x * 6, e.z + n.z * 6) > distToRails(e.x, e.z)) continue;
+    }
+    let k = area * per * (wall ? 1.5 : 1); k = Math.floor(k) + (rnd() < k - Math.floor(k) ? 1 : 0);
+    for (; k > 0; k--) {
+      let u = rnd(), v = rnd(); if (u + v > 1) { u = 1 - u; v = 1 - v; }
+      const off = wall ? 0.35 : 0;
+      spots[Math.floor(rnd() * tufts.length)].push([a.x + (b.x - a.x) * u + (c.x - a.x) * v + n.x * off, a.y + (b.y - a.y) * u + (c.y - a.y) * v - (wall ? 0.3 : 0), a.z + (b.z - a.z) * u + (c.z - a.z) * v + n.z * off, rnd(), rnd()]);
+    }
+  }
+  const m4 = new THREE.Matrix4(), qt = new THREE.Quaternion(), sc = new THREE.Vector3(), p = new THREE.Vector3(), up = new THREE.Vector3(0, 1, 0);
+  let count = 0;
+  tufts.forEach((geo, gi) => {
+    const list = spots[gi]; if (!list.length) return; count += list.length;
+    const inst = new THREE.InstancedMesh(geo, cardMat(), list.length);
+    list.forEach(([x, y, z, r1, r2], i) => { const s = 0.85 + 0.45 * r2; inst.setMatrixAt(i, m4.compose(p.set(x, y - LIFT * s - 0.15, z), qt.setFromAxisAngle(up, r1 * 6.283), sc.set(s, s, s))); });
+    inst.computeBoundingSphere(); scene.add(inst); LAYERS.trees.push(inst);
+  });
+  console.log("uplift: hedge dressed with", count, "tufts");
+}
 
 // ---------- Thinning the belts ----------
 // Owner, 11 Nov, with a television still of Ascot's real trees: "thin them out a bit at upper levels... they're so
