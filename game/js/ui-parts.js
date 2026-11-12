@@ -647,6 +647,7 @@ function watch(i) {
   box.innerHTML = `<iframe src="final-furlong.html?game=1${dbg}${window.__watchQuery || ""}" title="${esc2(race.name)}" allow="fullscreen"></iframe><button class="tb-btn ghost x" id="closeWatch"><span class="lg">Back to the racecard</span><span class="sh">Racecard</span></button>`;
   document.body.appendChild(box); document.body.style.overflow = "hidden";
   document.body.classList.add("watching");      // everything under the race is hidden and the board's loop rests (css/game.css)
+  if (window.BOARD) BOARD.Sound.hush(true);     // and its sounds: the race view has its own crowd and horses
   const frame = box.querySelector("iframe");
   watching = { i, box, frame, sent: false };
   watching.timer = setTimeout(() => { if (watching && !watching.sent) {
@@ -657,13 +658,18 @@ function watch(i) {
   // the race's own course (the Newmarket season races on the Rowley Mile and the July Course); at Newmarket the panels
   // name the meeting and the course rather than a day
   watching.payload = { type: "race", course: courseFile(race), race: viewKey(race), going: er.going, seed: er.seed, title: race.name,
+    sound: !!(window.BOARD && BOARD.Sound.on),   // the game's Sound setting: the race view's crowd and horses follow it
     kicker: MEETING.courses ? `${DAYS[race.day]} · ${courseName(race)} · Race ${i + 1} of ${RACES.length}` : `${DAYS[race.day]} · Race ${i + 1} of ${RACES.length} · ${race.grade}`,
     // for the view's own racecard and result panels (game mode): the race's conditions and prizes, your colours
     card: { grade: race.grade, dist: race.dist, day: DAYS[race.day], meeting: MEETING.courses ? `${DAYS[race.day]}, ${courseName(race)}` : MEETING.name, prizes: race.prizes, conditions: race.ageLabel, next: i + 1 < RACES.length && !S.results[RACES[i + 1].id] ? RACES[i + 1].name : "", silkImg: mySilks().img },
     // and, for the dock and the racecard: the owner's own graphic silks, the price and the race-day colour card
     runners: field.map((h, k) => ({ ...engineRunner(h), silk: SILK3D[h.sk], silk2d: SILKS[h.sk].img, odds: mkt[k].odds, card: mkt[k].card, coat: { body: h.coat[0], points: h.coat[1] }, mine: !!h.mine })) };
 }
-function closeWatch() { if (!watching) return; clearTimeout(watching.timer); watching.box.remove(); watching = null; document.body.style.overflow = ""; document.body.classList.remove("watching"); render(); }
+function closeWatch() {
+  if (!watching) return; clearTimeout(watching.timer);
+  try { watching.frame.contentWindow.__soundStop && watching.frame.contentWindow.__soundStop(); } catch (e) {}
+  if (window.BOARD) BOARD.Sound.hush(false);
+  watching.box.remove(); watching = null; document.body.style.overflow = ""; document.body.classList.remove("watching"); render(); }
 // D shows or hides the race view's diagnostics (frame rate, draw calls, triangles, pixel ratio) while a race is on
 addEventListener("keydown", e => {
   if (watching && (e.key === "d" || e.key === "D") && !e.metaKey && !e.ctrlKey && !e.altKey) watching.frame.contentWindow.postMessage({ type: "diag" }, "*");
@@ -679,6 +685,12 @@ addEventListener("message", e => {
   }
   if (d.type === "finished") { const i = watching.i; simAndRecord(i).then(() => { if (typeof raceDone === "function") raceDone(i, true); }).catch(err => toast(String(err.message || err))); }
   if (d.type === "back") closeWatch();
+  // the race view's speaker changes the game's own Sound setting (and its button on the top bar)
+  if (d.type === "sound" && window.BOARD && BOARD.Sound.on !== !!d.on) {
+    BOARD.Sound.set(!!d.on);
+    const b = $("#snd"), ic = $("#sndIcon");
+    if (b) b.setAttribute("aria-pressed", String(!!d.on)); if (ic && window.ICON) ic.innerHTML = d.on ? ICON.speaker : ICON["speaker-off"];
+  }
   if (d.type === "next") { const i = watching.i; closeWatch(); const nx = RACES[i + 1]; if (nx && !S.results[nx.id]) watch(i + 1); }
 });
 

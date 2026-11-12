@@ -336,3 +336,24 @@ the National Stud, Tattersalls, entries at the Jockey Club, the 3D race view):
   matches the sim on the Rowley Mile).
 - `js/meetings/newmarket-season.js` is the 8 Nov draft (all 36 races over the whole season), kept for the long game.
 - The Race Lab now tests all three courses (Ascot, Rowley Mile, July Course).
+
+## The race view's sound: the crowd and the horses (12 Nov 2026)
+
+Owner: "add commentary or at least crowd effects"; crowd effects first, spoken commentary later (the text commentary
+is already there). `race-view/race-sound.js` plays it; `race-view/assets/sound/sounds.json` holds the files and every
+level; `tools/sound/make_race_sounds.py` made the files from scratch (no recordings, so nothing to license: the
+crowd's chatter and shouts are hundreds of eSpeak voices at once, the roar is built from vowel shapes, the applause from
+hand claps, the hooves are four-beat gallops with the horses' breathing). Any file can be swapped for a real recording
+(same name; for a loop keep half a second of the loop either side and give its length in `sounds.json`).
+
+- **The crowd** chatters before the off and hushes a little while they load; cheers as they jump; builds from about
+  5½f out; roars them home (louder when the first two are within 2½ lengths); holds the roar at the line, then settles
+  and applauds. A long race lifts the crowd as it passes the stands. Heard fully when the camera is near the crowd,
+  quieter and muffled from a distant start.
+- **The horses**: the stalls clang open; the field's gallop is as loud as the shot looks close (a long lens on far
+  horses sounds near, as on TV), panned to their side, quicker or slower with them, slowed right down in the replay.
+- **On and off**: the speaker on the race view's plate. In the game it follows the game's Sound button (and changing it
+  in the race changes the game's). The board's own sounds rest while a race is on (`BOARD.Sound.hush`), and the race
+  view borrows the game's sound (`BOARD.Sound.ctx()`), so phones that only allow sound after a tap still play it; if a
+  browser holds it back, the speaker pulses and the first tap lets it out. On the race view's own page: remembered.
+- Checking aid: `window.__sound()` gives what it's doing (excitement, how near the crowd and horses are, each level).

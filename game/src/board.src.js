@@ -685,15 +685,25 @@ const Sound = (() => {
     loop();
     return { stop() { timers.forEach(clearTimeout); stop(); bus.disconnect(); } };
   }
+  // hushed: the board's own sounds rest while a race is being watched (the race view has its own crowd and horses,
+  // and borrows this sound, already let out by the player's taps, through S.ctx())
+  let hushed = false;
+  const quiet = () => { if (scene) scene.stop(); if (bed) bed.stop(); scene = bed = null; try { speechSynthesis.cancel(); } catch (e) {} };
   S.set = (on) => {
     S.on = on;
-    if (on) { if (!ac) init(); ac.resume(); bed = runBed(); const id = sceneId; sceneId = null; S.place(id); }
-    else { if (scene) scene.stop(); if (bed) bed.stop(); scene = bed = null; try { speechSynthesis.cancel(); } catch (e) {} setTimeout(() => ac && !S.on && ac.suspend(), 1000); }
+    if (on) { if (!ac) init(); ac.resume(); if (!hushed && !bed) { bed = runBed(); const id = sceneId; sceneId = null; S.place(id); } }
+    else { quiet(); setTimeout(() => ac && !S.on && ac.suspend(), 1000); }
   };
+  S.hush = (h) => {
+    hushed = h;
+    if (h) quiet();
+    else if (S.on && !bed) { bed = runBed(); const id = sceneId; sceneId = null; S.place(id); }
+  };
+  S.ctx = () => (S.on ? ac : null);
   S.place = (id) => {
     if (id === sceneId && scene) return;
     sceneId = id;
-    if (!S.on) return;
+    if (!S.on || hushed) return;
     if (scene) { scene.stop(); scene = null; }
     if (id) scene = runScene(id);
   };
