@@ -29,7 +29,7 @@ for p in sorted((game / "assets" / "newmarket").glob("*")): add(p, p.relative_to
 for p in sorted((game / "assets" / "board-model").glob("*")): add(p, p.relative_to(game))   # small textures for the board's horses
 # the 3D race view and what it loads in the game
 add(view / "final-furlong.html", "final-furlong.html")
-for f in ["horse-v2.js", "looks.js", "stand-styles.js"]: add(view / f, f)
+for f in ["horse-v2.js", "looks.js", "stand-styles.js", "uplift.js"]: add(view / f, f)   # uplift.js: the soft look test (only loaded with ?uplift=soft)
 # (the style review page, race-view/styles.html, was live for the owner's choice on 7 Nov: today's trees and stand, a
 # fresher light. It stays in the repo but is no longer published.)
 A = view / "assets"
