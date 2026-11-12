@@ -298,6 +298,7 @@ const LEAN = Number(q.get("lean") ?? 1.7);
 const _hz = new THREE.Color();
 export function update(t, camera) {
   U.upTime.value = t;
+  if (camera) for (const m of PILES) { const s = m.geometry.boundingSphere; m.visible = s.center.distanceTo(camera.position) < PILE_FAR + s.radius; }
   // a long lens looks through a lot of air: thin the haze for it, or the far rail washes out (as the view's own haze does)
   if (camera) U.upHaze.value.x = LOOK.haze[0] * THREE.MathUtils.clamp(camera.fov / 26, 0.28, 1);
   // things this file doesn't shade (the turf thrown up by hooves) take the view's own haze: keep its colour the look's
@@ -362,6 +363,7 @@ const lin = (hex) => { const c = new THREE.Color(hex); return [c.r, c.g, c.b]; }
 export function patchGround(mat, which) {
   const nap = LOOK.brushed || 0;
   const bank = !!(mat.userData && mat.userData.bank);       // a grassy bank (the Dyke): the nap much quieter on its slopes
+  const pileU = (mat.userData && mat.userData.pile) || null;   // one layer of the bank's grass pile (see pile(), below)
   const heath = has("heath") && which !== "turf" && !nap, turf = has("turf") && which !== "far" && !nap, crowd = has("crowd"), relight = has("relight");
   const lawn = (CTX.lawn || [0.5988, 0.7357, 0.4041]);
   const body = `
@@ -370,6 +372,15 @@ export function patchGround(mat, which) {
     float dist = sm.r * 64.0, off = 1.0 - sm.b;
     float n1 = texture2D(upNoise, w / 520.0).g;
     float n3 = texture2D(upNoise, mat2(0.8, -0.6, 0.6, 0.8) * w / 61.0).b;
+    ${pileU ? `
+    { // the pile: this layer shows only where a blade reaches up to it (fewer the higher the layer), each blade leaning
+      // its own way; deeper at the root, paler and a touch of straw at the tip, and no two blades quite one tone
+      if (vUpPile < 0.03) discard;
+      vec2 ln = (texture2D(upNoise, w / 9.0).rg - 0.5) * upPile.x * upPile.x * 0.22;
+      vec4 st = texture2D(upStrand, (w + ln) / ${Number(q.get("pilecell") || 4.5).toFixed(2)});
+      if (st.r < mix(0.2, 0.88, upPile.x)) discard;
+      diffuseColor.rgb *= mix(${Number(q.get("pileroot") || 0.62).toFixed(2)}, 1.1, upPile.x) * (0.94 + 0.12 * st.g);
+      diffuseColor.rgb = mix(diffuseColor.rgb, ${f3(lin("#dedaa6"))} * dot(diffuseColor.rgb, UPLUM) / 0.68, ${Number(q.get("piletip") || 0.3).toFixed(2)} * smoothstep(0.45, 1.0, upPile.x)); }` : ""}
     ${relight && which === "baked" ? `
     { // the bake painted soft shadows on this ground for the sun it was baked under: lift them out (the dark at the
       // very foot of things stays), so the look's own sun can lay its shadows
@@ -436,8 +447,15 @@ export function patchGround(mat, which) {
     ${q.get("updebug") === "vis" ? "diffuseColor.rgb = vec3(upV);" : ""}
   }`;
   if (BOARD) mat.clippingPlanes = BOARD.planes;              // the table look: the ground stops at the board's edge
-  return chain(mat, "ground-" + which + (bank ? "-bank" : "") + LOOK_ID + OFF.join(""), (sh) => {
+  return chain(mat, "ground-" + which + (bank ? "-bank" : "") + (pileU ? "-pile" : "") + LOOK_ID + OFF.join(""), (sh) => {
     Object.assign(sh.uniforms, U);
+    if (pileU) {
+      sh.uniforms.upPile = pileU; sh.uniforms.upStrand = { value: strandTex() };
+      // (the layer stands this much above the ground: nothing at the bank's foot, nothing far from the camera)
+      sh.vertexShader = sh.vertexShader.replace("#include <common>", "#include <common>\nattribute float aPile; uniform vec3 upPile; varying float vUpPile;")
+        .replace("#include <begin_vertex>", "#include <begin_vertex>\n{ vec3 upW0 = (modelMatrix * vec4(transformed, 1.0)).xyz; vUpPile = aPile * (1.0 - smoothstep(upPile.z * 0.6, upPile.z, distance(upW0, cameraPosition))); transformed.y += upPile.y * upPile.x * vUpPile; }");
+      sh.fragmentShader = sh.fragmentShader.replace("#include <common>", "#include <common>\nuniform vec3 upPile; uniform sampler2D upStrand; varying float vUpPile;");
+    }
     sh.vertexShader = sh.vertexShader.replace("#include <common>", "#include <common>\nvarying vec3 vUpP; varying vec3 vUpN; varying float vUpH;")
       .replace("#include <fog_vertex>", "#include <fog_vertex>\n{ vUpP = (modelMatrix * vec4(transformed, 1.0)).xyz; vUpN = vec3(0.0, 1.0, 0.0); vUpH = 0.0; }");
     sh.fragmentShader = sh.fragmentShader.replace("#include <common>", "#include <common>\n" + COMMON)
@@ -644,6 +662,64 @@ export function dressBoxes(colour, list, kit, { scene, LAYERS, groundY, quality 
   });
   console.log("uplift: clipped hedges dressed with", count, "tufts");
   return "#2b4d40";
+}
+
+// ---------- The pile ----------
+// The owner's ground (option D; treatment 12 on the Dyke sheet) has "a short soft pile of real grass" on the Dyke: broad
+// close blades covering the ground, lit exactly as the ground under them, casting no shadows, growing from nothing at
+// the bank's foot to full height six metres up it. In Blender that was 400 blades to the square metre; here it is
+// drawn as layers: copies of the bank's own surface stacked a few centimetres apart, each showing only where a blade
+// reaches that high (a fine speckle picture decides), so close to they read as standing blades and from a distance as
+// a soft deep surface with a furred edge. Each layer is the bank's own material, so it takes the same colours, nap,
+// shadows and haze. Only near the camera: the bank is cut into lengths, and lengths further off than PILE_FAR are
+// not drawn at all. High draws six layers, Medium four, Low and Lightest none (&pile=N to set, &upoff=pile for none).
+const PILE_H = Number(q.get("pileh") || 0.3), PILE_FAR = 150, PILE_ROWS = 12, PILES = [];
+let STRAND = null;
+function strandTex() {
+  if (STRAND) return STRAND;
+  const n = 128, d = new Uint8Array(n * n * 4);
+  let s = 12345; const rnd = () => { s = (s * 1664525 + 1013904223) >>> 0; return s / 4294967296; };
+  for (let i = 0; i < n * n; i++) { d[i * 4] = Math.floor(rnd() * 256); d[i * 4 + 1] = Math.floor(rnd() * 256); d[i * 4 + 2] = Math.floor(rnd() * 256); d[i * 4 + 3] = 255; }
+  STRAND = new THREE.DataTexture(d, n, n, THREE.RGBAFormat);
+  STRAND.wrapS = STRAND.wrapT = THREE.RepeatWrapping; STRAND.magFilter = THREE.LinearFilter; STRAND.minFilter = THREE.LinearMipmapLinearFilter;
+  STRAND.generateMipmaps = true; STRAND.anisotropy = 8; STRAND.colorSpace = THREE.NoColorSpace; STRAND.needsUpdate = true;
+  return STRAND;
+}
+// mesh: a bank, built as nr rows of nc points across it, the first point of each row at its foot on the course side.
+// make(material) dresses a plain material exactly as the bank's own was dressed.
+export function pile(mesh, { nr, nc, scene, LAYERS, quality, make }) {
+  if (!LOOK.brushed || !has("pile")) return;
+  const layers = Math.min(10, Math.max(0, Math.round(Number(q.get("pile") || ({ high: 6, medium: 4 }[quality] || 0)))));
+  if (!layers) return;
+  const geo = mesh.geometry, pos = geo.attributes.position, grow = new Float32Array(nr * nc);
+  for (let i = 0; i < nr; i++) {
+    let d = 0;
+    for (let j = 0; j < nc; j++) {
+      const a = i * nc + j;
+      if (j) d += Math.hypot(pos.getX(a) - pos.getX(a - 1), pos.getZ(a) - pos.getZ(a - 1));
+      grow[a] = THREE.MathUtils.smoothstep(d, 0.3, 6.0);
+    }
+  }
+  geo.setAttribute("aPile", new THREE.BufferAttribute(grow, 1));
+  const mats = [];
+  for (let s = 0; s < layers; s++) {
+    const m = new THREE.MeshBasicMaterial({ vertexColors: true, side: THREE.DoubleSide });
+    m.userData.bank = true; m.userData.pile = { value: new THREE.Vector3((s + 1) / layers, PILE_H, PILE_FAR) };
+    mats.push(make(m));
+  }
+  const v = new THREE.Vector3(), box = new THREE.Box3();
+  for (let r0 = 0; r0 + 1 < nr; r0 += PILE_ROWS) {
+    const r1 = Math.min(nr - 1, r0 + PILE_ROWS), idx = [];
+    for (let i = r0; i < r1; i++) for (let j = 0; j + 1 < nc; j++) { const a = i * nc + j, b = a + nc; idx.push(a, b, a + 1, a + 1, b, b + 1); }
+    const g = new THREE.BufferGeometry();
+    for (const k of ["position", "color", "aPile"]) g.setAttribute(k, geo.attributes[k]);
+    g.setIndex(idx);
+    box.makeEmpty();
+    for (let i = r0; i <= r1; i++) for (let j = 0; j < nc; j++) box.expandByPoint(v.fromBufferAttribute(pos, i * nc + j));
+    g.boundingSphere = box.getBoundingSphere(new THREE.Sphere()); g.boundingSphere.radius += 0.5;
+    for (const mat of mats) { const m = new THREE.Mesh(g, mat); m.visible = false; scene.add(m); LAYERS.ground.push(m); PILES.push(m); }
+  }
+  console.log("uplift: pile,", layers, "layers on a bank in", Math.ceil((nr - 1) / PILE_ROWS), "lengths");
 }
 
 // A grassy bank's colours by height under the brushed ground (the Dyke; the owner's pick, treatment 12 of the Dyke

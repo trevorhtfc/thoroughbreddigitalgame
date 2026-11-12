@@ -1604,6 +1604,8 @@ function placeScenery(SC, models, treeLib, belts) {
     bankMat.userData.bank = true;                                      // (the soft look brushes banks more quietly)
     const m = new THREE.Mesh(geo, turfLook(groundDetail(bankMat, 0.2), "far"));
     scene.add(m); LAYERS.ground.push(m);
+    // (soft look: a short grass pile on the bank, near the camera)
+    if (UPLIFT) UPLIFT.pile(m, { nr, nc, scene, LAYERS, quality: qLevel, make: (mat) => turfLook(groundDetail(mat, 0.2), "far") });
   }
   // the boards (as the planting belts'), then the trees
   if (belts && SC.boards) placeBelts(belts, { boards: SC.boards, trees: [] }, null, false);
