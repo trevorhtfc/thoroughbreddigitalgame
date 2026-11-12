@@ -120,18 +120,23 @@ FAR_RUNOUT_CROWD = {"x": [-186, -45], "off": [2.0, 27.0], "note": "the crowd rou
 # Ascot's finish-line assembly (assets/models/architecture/finish_line.glb: the winning post with its red loop, the
 # race-time board, hedges and boards) stands on the far rail at the line, facing the stands, as at Ascot.
 FINISH_LINE = {"at": [0.0, 34.0]}
+# Owner (11 Nov, with a Racing TV frame of the July Course: reference/newmarket-july/owner-ref-marquees-in-trees.png):
+# "thin out some of the festival marquee things and bring some of the planting a little further forwards, so it feels
+# the marquees etc. are a bit more embedded in the trees". So: fewer pieces (22 down to 10 with the tier), set back by
+# different amounts, with clumps of big trees in the gaps, round their ends and in front of the deeper ones (FRONT_TREES).
 PAVILIONS = [
-    {"name": "Pavilion 1", "x": [42, 94], "off": [16, 34], "height": 8, "kind": "long marquee"},
-    {"name": "Pavilion 2", "x": [108, 132], "off": [16, 30], "height": 7, "kind": "pagoda marquee"},
-    {"name": "Pavilion 3", "x": [146, 200], "off": [17, 35], "height": 8, "kind": "three-peak marquee"},
-    {"name": "Pavilion 4", "x": [216, 252], "off": [16, 30], "height": 7, "kind": "white pitched-roof pavilion"},
-    {"name": "Pavilion 5", "x": [266, 290], "off": [16, 30], "height": 7, "kind": "pagoda marquee"},
-    {"name": "Pavilion 6", "x": [304, 360], "off": [16, 34], "height": 8, "kind": "long marquee"},
-    {"name": "Pavilion 7", "x": [376, 412], "off": [16, 30], "height": 7, "kind": "white pitched-roof pavilion"},
-    {"name": "Pavilion 8", "x": [428, 452], "off": [16, 30], "height": 7, "kind": "pagoda marquee"},
-    {"name": "Pavilion 9", "x": [468, 524], "off": [17, 35], "height": 8, "kind": "three-peak marquee"},
-    {"name": "Pavilion 10", "x": [540, 576], "off": [16, 30], "height": 7, "kind": "white pitched-roof pavilion"},
+    {"name": "Pavilion 1", "x": [50, 76], "off": [23, 33], "height": 5, "kind": "long marquee"},
+    {"name": "Pavilion 2", "x": [148, 184], "off": [18, 30], "height": 8, "kind": "three-peak marquee"},
+    {"name": "Pavilion 3", "x": [270, 280], "off": [16, 24], "height": 6, "kind": "pagoda marquee"},
+    {"name": "Pavilion 4", "x": [318, 344], "off": [24, 34], "height": 5, "kind": "long marquee"},
+    {"name": "Pavilion 5", "x": [384, 418], "off": [17, 29], "height": 8, "kind": "white pitched-roof pavilion"},
+    {"name": "Pavilion 6", "x": [490, 524], "off": [22, 34], "height": 8, "kind": "three-peak marquee"},
+    {"name": "Pavilion 7", "x": [566, 576], "off": [18, 26], "height": 6, "kind": "pagoda marquee"},
 ]
+# The trees brought forward among them: from just behind the rail crowd (FAR_CROWD ends 12 m beyond the rail) back to
+# the wall. Clumps in the gaps (about one tree per gap metres), one or two at each end of a marquee, and one in front of
+# each marquee set well back, so its crown half-screens it from the stand camera.
+FRONT_TREES = {"front": 14.5, "back": 37.0, "perGap": 11.0, "spacing": 8.5, "scale": [1.45, 2.1], "clearTier": 4.0, "clearFlag": 3.0}
 # The Dyke's face behind the far side (owner: "the dyke should be on the far rail" opposite the grandstands; his sketch:
 # between the two courses, behind the far-side festival). Behind the festival it stands back; up the straight it comes in
 # to the Rowley Mile's distance. Metres beyond the outer rail: foot, crest, back; height. Between the two courses the
@@ -340,6 +345,40 @@ def trees():
     def belt(x0, x1, z0, z1, n, sp=TREE_SPACING, scale=TREE_SCALE):
         for _ in range(n):
             put(g.uniform(x0, x1), g.uniform(z0, z1), sp, scale)
+    # the far side, first the trees brought forward among the marquees (owner, 11 Nov): trunks off the marquees and the
+    # tier, clear of the rail crowd and the banner flags; crowns may hang over a marquee's edge (that's the point)
+    FT = FRONT_TREES
+    pav = [far_rect(p) for p in PAVILIONS]
+    hard = [far_rect(TIER)] + far_stand_rects()
+    flags = []
+    fx = FAR_CROWD["x"][0] + 10
+    while fx < FAR_CROWD["x"][1]:
+        flags.append(fx); fx += 34
+    def put_front(x, z):
+        if z < TRACK_W + FT["front"] or z > TRACK_W + FT["back"] or not (FAR_FESTIVAL["x"][0] + 30 < x < FAR_FESTIVAL["x"][1]):
+            return False
+        if any(rect_hit(x, z, r, 1.5) for r in pav) or any(rect_hit(x, z, r, FT["clearTier"]) for r in hard):
+            return False
+        if z < TRACK_W + 17 and any(abs(x - f) < FT["clearFlag"] for f in flags):
+            return False
+        if not ok(x, z, FT["spacing"]):
+            return False
+        grid.setdefault((int(x // TREE_SPACING), int(z // TREE_SPACING)), []).append((x, z, FT["spacing"]))
+        out.append([round(x, 2), round(z, 2), g.choices(kinds, weights)[0], round(g.uniform(*FT["scale"]), 2), g.randrange(360)])
+        return True
+    edges = sorted([TIER["x"]] + [p["x"] for p in PAVILIONS])
+    for (a0, a1), (b0, b1) in zip(edges, edges[1:]):                   # clumps in the gaps between the pieces
+        n = max(1, int((b0 - a1) / FT["perGap"]))
+        for _ in range(n * 6):
+            if n <= 0: break
+            if put_front(g.uniform(a1 + 2, b0 - 2), TRACK_W + g.uniform(FT["front"], FT["back"])): n -= 1
+    for p in PAVILIONS:                                                # at each end, and in front of the deeper ones
+        for xe in (p["x"][0], p["x"][1]):
+            for _ in range(8):
+                if put_front(xe + g.uniform(-4, 4), TRACK_W + g.uniform(FT["front"], p["off"][0] + 6)): break
+        if p["off"][0] >= 22:
+            for _ in range(8):
+                if put_front(g.uniform(p["x"][0] + 4, p["x"][1] - 4), TRACK_W + g.uniform(FT["front"], FT["front"] + 2.5)): break
     # the far side (z > TRACK_W): big trees among the festival's marquees, more past the post, then behind the Dyke's face
     belt(FAR_FESTIVAL["x"][0], FAR_FESTIVAL["x"][1], TRACK_W + 14, TRACK_W + 94, 260, 13.0, BIG_TREES)
     belt(-RUN_ON - 80, FAR_FESTIVAL["x"][0], TRACK_W + 10, TRACK_W + 100, 90, 10.0, [1.2, 2.0])
