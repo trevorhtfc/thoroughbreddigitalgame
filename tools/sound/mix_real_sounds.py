@@ -1,16 +1,15 @@
 """The race view's sounds from the owner's recordings (13 Nov 2026), in tools/sound/sources/:
 
-  cheltenham-roar.mp3        the Cheltenham roar: the crowd waiting, "they're off" at 4.1 s, the roar
-  stalls-rare-view.mp3       a rare view from the stalls: the latches go at 1.48 s, the doors bang, the field breaks
+  cheltenham-roar.mp3        the Cheltenham roar: the crowd waiting, "and they're off" from 4.05 s, the roar
+  stalls-rare-view.mp3       a rare view from the stalls: the latches click at 1.475 s, the doors crash at 1.93 s, the field breaks
   japan-cup-crowd.mp3        the Japan Cup crowd: a huge, steady roar with no single voice in it
   aintree-crowd.mp3          the Aintree crowd on Grand National day
   grand-national-finish.mp3  the crowd at the Grand National finish
   galloping-pixabay.mp3      horses galloping (Pixabay sound effect, free to use)
 
 What it makes (race-view/assets/sound/, read by race-sound.js through sounds.json):
-  off.mp3            the off, on the crowd: the Cheltenham roar cut so "they're off" lands offVoiceAt seconds in
-  stalls.mp3         the stalls crashing open: the real latch and doors from the stalls recording, on a heavy clang
-                     of 16 steel doors slamming back on their stops (made here; the recording on its own is a pop)
+  off.mp3            the off: the stalls opening (1 to 2.5 s of the stalls recording, as it is) laid in at 3 s of the
+                     Cheltenham roar, so the doors crash just before "and they're off", the roar blended up through it
   crowd-murmur.mp3   the crowd waiting (loop): the real crowds, softened and distant, with the Cheltenham crowd's buzz
   crowd-excited.mp3  the crowd stirring (loop): Aintree
   crowd-roar.mp3     the roar (loop): the Japan Cup and the Grand National finish together
@@ -104,50 +103,27 @@ def write(name, x, loop=False, rms_db=None, peak_lim=0.89, tail_fade=0.05):
 # ---------------------------------------------------------------- the sources
 chel, stall, japan, aintree, gn, gal = (load(n) for n in ["cheltenham-roar.mp3", "stalls-rare-view.mp3", "japan-cup-crowd.mp3",
                                                          "aintree-crowd.mp3", "grand-national-finish.mp3", "galloping-pixabay.mp3"])
-CHEL_VOICE, STALL_CRASH = 4.10, 1.48            # "they're off" in the Cheltenham clip; the latches in the stalls clip
-OFF_VOICE_AT = 3.0                              # in off.mp3 (sounds.json: offVoiceAt)
+CHEL_VOICE = 4.05                               # "and they're off" starts here in the Cheltenham clip
+STALLS_FROM, STALL_LATCH, STALL_CRASH = 1.0, 1.475, 1.93   # the stalls clip: the opening (owner: 1 to 2.5 s), the latches, the crash
+STALLS_IN = 3.0                                 # the stalls laid in at 3 s of the Cheltenham roar (owner): latches at 3.475 s
 crowd_eq = lambda x: filt(x, "high", 90, 2)     # the phones' rumble out of every crowd
 
-# ---------------------------------------------------------------- the off, on the crowd
+# ---------------------------------------------------------------- the off: the stalls laid into the Cheltenham roar
 def make_off():
-    x = cut(chel, CHEL_VOICE - OFF_VOICE_AT, 10.4)            # the crowd waiting, the call, the roar, before the talk after it
-    x = crowd_eq(x); x = fade(x, 0.4, 2.8)
-    return write("off", x, rms_db=-19)
-
-# ---------------------------------------------------------------- the stalls crashing open (on the master: the start camera is there)
-def steel_door(t_slam):
-    """One stall's pair of doors: the latch, the doors flung open, slamming on their stops and ringing."""
-    n = int(1.6 * SR); t = np.arange(n) / SR; y = np.zeros(n)
-    latch = rng.standard_normal(n) * np.exp(-t / 0.003); y += signal.sosfilt(sos("band", [1500, 9000]), latch) * 0.35
-    i = int(t_slam * SR); tt = np.maximum(t - t_slam, 0) * (t >= t_slam)
-    hit = rng.standard_normal(n) * np.exp(-tt / 0.006) * (t >= t_slam)
-    y += signal.sosfilt(sos("band", [400, 7000]), hit) * 1.0
-    modes = ((142, 0.55, 0.9), (231, 0.5, 0.8), (388, 0.42, 0.7), (617, 0.36, 0.55), (880, 0.3, 0.45),
-             (1245, 0.24, 0.4), (1790, 0.17, 0.3), (2520, 0.11, 0.2), (3480, 0.07, 0.12))
-    for f, d, a in modes:
-        f *= rng.uniform(0.9, 1.1)
-        y += np.sin(2 * np.pi * f * tt + rng.random() * 6) * np.exp(-tt / (d * rng.uniform(0.8, 1.2))) * a * 0.32 * (t >= t_slam)
-    thump = signal.sosfilt(sos("low", 160), rng.standard_normal(n)) * np.exp(-tt / 0.04) * (t >= t_slam)
-    y += thump * 1.4
-    rebound = t_slam + rng.uniform(0.09, 0.16); tr = np.maximum(t - rebound, 0) * (t >= rebound)   # bouncing back off the stop
-    y += signal.sosfilt(sos("band", [600, 5000]), rng.standard_normal(n)) * np.exp(-tr / 0.005) * 0.35 * (t >= rebound)
-    for f, d, a in modes[2:6]: y += np.sin(2 * np.pi * f * 1.03 * tr) * np.exp(-tr / (d * 0.5)) * a * 0.1 * (t >= rebound)
-    rattle = signal.sosfilt(sos("band", [2200, 6000]), rng.standard_normal(n)) * np.exp(-tt / 0.08) * (1 + np.sin(2 * np.pi * 31 * tt)) * 0.08 * (t >= t_slam)
-    return (y + rattle) * np.minimum(1, (t[-1] - t) / 0.3)
-def make_stalls():
-    lead = 0.08                                               # the crash this far in (the race view starts it at the off)
-    T = np.zeros((2, int(4.6 * SR)))
-    for g in range(16):                                       # 16 stalls along the line, left to right, a few ms apart
-        pan = -0.85 + 1.7 * g / 15; d = steel_door(rng.uniform(0.035, 0.06))
-        a = np.cos((pan + 1) * np.pi / 4), np.sin((pan + 1) * np.pi / 4)
-        place(T, np.stack([d * a[0], d * a[1]]) * 1.41, lead - 0.035 + g * rng.uniform(0.002, 0.005) + rng.uniform(0, 0.012), rng.uniform(0.6, 1.0))
-    T = tail(T, 0.8, 0.25, 6000)[:, :T.shape[1]]
-    T = level(T, -16)
-    real = filt(cut(stall, STALL_CRASH - lead, STALL_CRASH - lead + 4.5), "high", 140, 2)   # the real latches, doors and break
-    real = fade(real, 0.02, 1.4); real = level(real, -21)
-    real[:, int(1.2 * SR):] *= np.linspace(1, 0.6, real.shape[1] - int(1.2 * SR))          # (its wind noise down as it goes)
-    n = max(T.shape[1], real.shape[1]); M = np.zeros((2, n)); place(M, T, 0); place(M, real, 0)
-    return write("stalls", M, rms_db=-17, tail_fade=0.6)
+    """Owner, 13 Nov: "lay [the stalls opening, 1 to 2.5 s of the stalls recording] into 3 secs of the Cheltenham roar
+    and then just blend the sound up". One sound: the Cheltenham crowd waiting; at 3.0 s the stalls (their creak, the
+    latches clicking at 3.475 s, the doors crashing at 3.93 s, the field breaking out); "and they're off" at 4.05 s; the
+    roar swelling up through it as the stalls fade. The race view starts it so the latches click at the off
+    (sounds.json: off.latchAt)."""
+    chel_x = crowd_eq(cut(chel, 0.0, 10.4))
+    t = np.arange(chel_x.shape[1]) / SR
+    chel_x = chel_x * (0.75 + 0.25 * np.clip((t - 3.4) / 1.4, 0, 1))[None, :]   # blended up from the stalls into the roar
+    chel_x = fade(chel_x, 2.2, 2.6)                           # (the race view starts it about half a second in: a soft way in)
+    stalls = filt(cut(stall, STALLS_FROM, STALLS_FROM + 3.4), "high", 200, 4)    # (the stalls recording's wind rumble out)
+    stalls = fade(stalls, 0.04, 1.6)
+    M = level(chel_x, -19.5)
+    place(M, level(width(stalls, 1.3), -19.0), STALLS_IN)
+    return write("off", M, rms_db=-19, tail_fade=0)
 
 # ---------------------------------------------------------------- the crowd: waiting, stirring, roaring
 def make_murmur():
@@ -266,9 +242,9 @@ def make_pa():
         write(name, x, loop=True, rms_db=-20)
 
 if __name__ == "__main__":
-    which = sys.argv[1:] or ["off", "stalls", "murmur", "excited", "roar", "line", "gallop", "pa"]
+    which = sys.argv[1:] or ["off", "murmur", "excited", "roar", "line", "gallop", "pa"]
     for w in which:
-        {"off": make_off, "stalls": make_stalls, "murmur": make_murmur, "excited": make_excited, "roar": make_roar,
+        {"off": make_off, "murmur": make_murmur, "excited": make_excited, "roar": make_roar,
          "line": make_line, "gallop": make_gallop, "pa": make_pa}[w]()
     # each loop's exact length into sounds.json (by file name), so the race view loops it at exactly the join
     import json

@@ -3141,7 +3141,7 @@ const CALLER = (() => {
 
 // ---------- The sound: the crowd and the horses (race-sound.js; levels in assets/sound/sounds.json) ----------
 // Owner, 12 Nov 2026: "crowd effects" first; 13 Nov: his recordings. The crowd hums before the off; the off is the
-// Cheltenham roar, its "they're off" as the stalls crash open; the crowd stirs as the field comes towards the last few
+// stalls crashing open laid into the Cheltenham roar, "and they're off" just after; the crowd stirs as the field comes towards the last few
 // furlongs and roars them home (louder still when it's close), surges at the line and applauds; it is muffled and
 // quieter when the camera is far from the stands, and lifts when a long race passes the stands. The course commentary
 // comes over the loudspeakers, distant, calm until the finish. The hooves are heard by how near the shot looks to the
@@ -3195,18 +3195,17 @@ const SND = await (async () => {
     S.pause(state.paused);
     const ph = state.phase, t = state.t;
     // the off (owner, 13 Nov): the Cheltenham roar timed so "they're off" comes just as the gates crash open
-    if (ph === "stalls" && last !== "stalls") { S.hush(); S.play("off", { at: PRE.standSeconds - state.pt + O.voiceLag - O.offVoiceAt }); }
-    if (ph === "race" && last !== "race" && t < 0.5) {
-      if (last !== "stalls") { S.hush(); S.play("off", { at: O.voiceLag - O.offVoiceAt - t }); }
-      S.play("stalls", { at: -O.crashAt - t });
-      atLine = false;
-    }
+    // (owner, 13 Nov: the stalls laid into the Cheltenham roar; started so its latches click at the off)
+    const theOff = (toOff) => { S.hush(); S.play("off", { at: toOff - O.latchAt }); };
+    if (ph === "stalls" && last !== "stalls") theOff(PRE.standSeconds - state.pt);
+    if (ph === "race" && last !== "race" && t < 0.5) { if (last !== "stalls") theOff(-t); atLine = false; }
     if (ph === "prelude" && last !== "prelude") { S.hush(); atLine = false; }
     if (ph === "race" && !atLine && t >= T_FINISH) { atLine = true; if (t < T_FINISH + 2) S.play("line"); }
     last = ph;
     if (!S.on) return;
     // the crowd
     let ex = C.quiet, duck = 1;
+    if (ph === "stalls" || (ph === "race" && t < O.duckUntil)) duck = O.duck + (1 - O.duck) * (ph === "race" ? sm(O.duckUntil - 2, O.duckUntil, t) : 0);
     if (ph === "stalls") ex = C.loading;
     else if (ph === "race") {
       if (t <= T_FINISH) {
