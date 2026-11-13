@@ -370,3 +370,15 @@ course commentary** comes over the loudspeakers from across the course, calm the
 only one available) through horn speakers and echo, so the rise and fall comes through but not the words; a real
 commentary recording can replace it (see the script). A whole-race listening preview can be rendered offline the same
 way the race view mixes it.
+
+### 13 Nov 2026 (later): the sound in sections
+
+Owner: the off as one sound (his recipe: the stalls opening, 1–2.5 s of the stalls recording, laid into the Cheltenham
+roar, "and they're off" brought out); then "a flexible looping middle section … from the off till the 3f stage or so:
+a slightly more muted crowd, galloping and background PA announcer"; then "the finish sound effect where the crowd get
+much more animated as does the background PA, leading to the cheer as they cross the line". So: `middle.mp3` (a loop)
+fades in just after the off; `finish.mp3` (one sound, 51 s) is started so its line (37 s in) comes as the leader
+crosses it, about 3f out, the middle fading out under it; it is kept in step with the race clock (a slow computer draws
+the race slower than real time). The crowd waiting comes back after the race; a long race passing the stands lifts the
+crowd; the gallop loop adds the horses up close and in the replay. The excitement-driven crowd layers and the separate
+commentary loops are gone.

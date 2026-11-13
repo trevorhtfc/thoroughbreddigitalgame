@@ -3,10 +3,10 @@
 // horses, and calls update(); this file turns that into sound. The sounds and every level live in
 // assets/sound/sounds.json (tools/sound/mix_real_sounds.py makes the files from the owner's recordings).
 //
-// Layers: the crowd waiting, the crowd stirring, the roar, mixed by how excited the crowd is and muffled with distance;
-// the field galloping, by how near the camera is to the horses, panned to where they are and sped up or slowed with
-// them (slowed right down in the slow-motion replay); the course commentary over the loudspeakers, calm then the
-// finish; and one-off sounds (the off: the crowd's roar and "they're off", the stalls crashing open; the line).
+// In sections (owner, 13 Nov): the crowd waiting (a loop), the off (one sound), the middle (a loop: the crowd a little
+// muted, the gallop, the course commentator), the finish (one sound, timed to the line: the crowd and commentator rising
+// to the cheer, then applause); plus the horses up close (a loop, by how near the shot looks, slowed in the replay) and
+// the crowd lifting as a long race passes the stands. The race view says which section is playing.
 //
 // Browsers only let a page make sound after the player has tapped or clicked something. In the game the player has
 // already tapped "Watch in 3D", so the game's own sound (already playing) is borrowed if there is one; otherwise, if
@@ -92,36 +92,50 @@ export async function create({ base = "assets/sound/", shared = null, on = false
     if (onChange) onChange(S);
   };
   S.pause = (p) => { if (p !== paused) { paused = p; apply(); } };
-  // each frame: crowd { excitement 0..1, near 0..1 (camera to the crowd), duck 0..1 }, hooves { near 0..1, pan -1..1,
-  // rate (1 = the cruising gallop), moving 0..1 }, commentary 0..1 (the course commentary is on)
-  S.update = ({ crowd, hooves, commentary = 0 }) => {
+  // each frame: layers { name: 0..1 } (the race view decides which section is playing: the crowd waiting, the middle,
+  // the crowd lifting as a long race passes the stands), crowd { near 0..1 (camera to the crowd), duck 0..1 },
+  // hooves { near 0..1, pan -1..1, rate (1 = the cruising gallop), moving 0..1 } for the horses up close
+  S.update = ({ layers = {}, crowd, hooves }) => {
     if (!started) return;
-    const E = crowd.excitement, C = CFG.crowd;
-    const lv = {
-      murmur: MIX.murmur * (1 - 0.7 * smooth(0.3, 0.9, E)),
-      excited: MIX.excited * smooth(C.excitedFrom, C.excitedFull, E) * (1 - 0.6 * smooth(0.78, 1, E)),
-      roar: MIX.roar * smooth(C.roarFrom, 1, E),
-      gallop: MIX.gallop * hooves.moving * hooves.near ** 1.6,
-      paRace: (MIX.paRace || 0) * commentary * (1 - smooth(CFG.commentary.finishFrom, CFG.commentary.finishFull, E)),
-      paFinish: (MIX.paFinish || 0) * commentary * smooth(CFG.commentary.finishFrom, CFG.commentary.finishFull, E),
-    };
-    for (const k in lv) if (gains[k]) to(gains[k].gain, lv[k], k === "gallop" ? 0.12 : 0.5);
+    const C = CFG.crowd;
+    const lv = { gallop: MIX.gallop * hooves.moving * hooves.near ** 1.6 };
+    for (const k in layers) lv[k] = (MIX[k] ?? 1) * layers[k];
+    for (const k in lv) if (gains[k]) to(gains[k].gain, lv[k], k === "gallop" ? 0.12 : 0.4);
     const n = crowd.near;
     to(crowdBus.gain, (C.farLevel + (1 - C.farLevel) * n) * (crowd.duck ?? 1), 0.6);
     to(crowdLow.frequency, C.farMuffle * (16000 / C.farMuffle) ** (n ** 0.7), 0.6);
     to(gallopLow.frequency, 500 * 16 ** hooves.near, 0.15);
     if (gallopPan.pan) to(gallopPan.pan, Math.max(-0.85, Math.min(0.85, hooves.pan)), 0.15);
     if (loops.gallop) to(loops.gallop.playbackRate, Math.max(0.2, Math.min(1.25, hooves.rate)), 0.2);
-    S.levels = { E: +E.toFixed(2), near: +n.toFixed(2), hNear: +hooves.near.toFixed(2), hMoving: +hooves.moving.toFixed(2), rate: +hooves.rate.toFixed(2), pan: +hooves.pan.toFixed(2), ...Object.fromEntries(Object.entries(lv).map(([k, v]) => [k, +v.toFixed(2)])) };
+    S.levels = { playing: [...once].map((s) => s.label).join(","), near: +n.toFixed(2), hNear: +hooves.near.toFixed(2), ...Object.fromEntries(Object.entries(lv).map(([k, v]) => [k, +v.toFixed(2)])) };
   };
-  // a one-off: the off, the stalls, the line. at: seconds from now (less than 0: start that far into it)
+  // a one-off: the off, the finish. at: seconds from now (less than 0: start that far into it)
   S.play = (k, { level = 1, at = 0 } = {}) => {
-    if (!started || !buffers[k] || !wanted) return;
+    if (!started || !buffers[k] || !wanted) return false;
+    if (-at >= buffers[k].duration) return false;
     const s = ac.createBufferSource(), g = ac.createGain(); s.buffer = buffers[k];
     g.gain.value = (MIX[k] ?? 1) * level; s.connect(g); g.connect(bus(CFG.files[k].bus));
-    if (-at >= buffers[k].duration) return;
-    s.start(ac.currentTime + Math.max(0, at), Math.max(0, -at)); once.add(s);
+    s.start(ac.currentTime + Math.max(0, at), Math.max(0, -at)); once.add(s); s.label = k;
+    Object.assign(s, { g, t0: ac.currentTime + Math.max(0, at), pos: Math.max(0, -at), rate: 1, last: ac.currentTime + Math.max(0, at) });
     s.onended = () => { once.delete(s); s.disconnect(); g.disconnect(); };
+    return true;
+  };
+  S.playing = (k) => [...once].some((q) => q.label === k);
+  // keep a one-off in step with the race (a slow computer draws the race slower than real time): want = where in the
+  // sound the race is now. Small drift: played a shade faster or slower; a big one (a pause, a jump): picked up there.
+  S.sync = (k, want) => {
+    if (!started) return;
+    const s = [...once].find((q) => q.label === k); if (!s) return;
+    const now = ac.currentTime; if (now < s.t0) return;
+    s.pos += (now - s.last) * s.rate; s.last = now;
+    const drift = want - s.pos;
+    if (Math.abs(drift) > 1.5) {
+      to(s.g.gain, 0, 0.05); setTimeout(() => { try { s.stop(); } catch (e) {} }, 250); once.delete(s);
+      if (want < buffers[k].duration - 0.2) S.play(k, { at: -want });
+      return;
+    }
+    s.rate = Math.max(0.94, Math.min(1.06, 1 + drift * 0.15));
+    to(s.playbackRate, s.rate, 0.3);
   };
   // the one-offs cut short (the race restarted, or jumped)
   S.hush = () => { for (const s of once) { try { s.stop(); } catch (e) {} } once.clear(); };

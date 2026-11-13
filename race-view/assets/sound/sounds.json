@@ -1,5 +1,5 @@
 {
-  "_about": "The race view's sounds (race-view/race-sound.js). Since 13 Nov 2026 made from the owner's recordings by tools/sound/mix_real_sounds.py (the sources and what each file is are listed there). files: each sound; 'loop' is a loop's exact length in seconds (the file carries half a second of the loop either side of it, so it loops without a click; the script writes these numbers); 'bus' is what it goes through: crowd (louder and clearer when the camera is near the crowd, muffled from a distant start), hooves (by how near the shot looks to the horses), pa (the course commentary, heard everywhere) or master (as it is). mix: each layer's loudest level. crowd: how the crowd follows the race (the race view works out the excitement, 0 quiet to 1 roaring, from the timeline): quiet is the crowd's level before and between races, loading while they go in; it starts to build buildFrom metres out and is roaring by buildTo; closeFinish adds to it in the last closeFrom metres when the first two are within closeLengths; passingStands adds when the leader is near the crowd (a long race passing the stands); after the line it holds the roar for peakHold seconds and settles over settle seconds; replay is its level in the replay, duck how loud the crowd is then. near: a camera within nearFrom metres of the crowd hears it fully, at farAt or more it's at farLevel and muffled to farMuffle Hz. The off (owner, 13 Nov): off.mp3 is one sound, the stalls opening (1 to 2.5 s of his stalls recording, as it is) laid in at 2.8 s of the Cheltenham roar (he said 3 s; a touch earlier so the gates' crash is over before the commentator's 'and they're off' at 4.0 s, which is lifted) and the roar blended up through it: the latches click latchAt seconds in, the doors crash about 0.45 s later, then 'and they're off' and the roar. It is started so the latches click at the off (race time 0), at full strength wherever the start is; the crowd's own loops are turned down to duck while they load and until duckUntil seconds into the race, so the off comes through clearly. line.mp3 at the winning line. commentary: the course commentary starts from seconds into the race and stops after the line; the calm commentary gives way to the finish as the excitement goes from finishFrom to finishFull. hooves: full at nearAt metres from the nearest horse, gone by farAt, as the shot looks (the distance is scaled by the camera's field of view against lensFov degrees, so a long lens on far horses sounds near, as on TV), never below railMics while they gallop; cruise is the gallop's speed (m/s) at which the loop plays at its own speed. Owner, 12 Nov 2026: crowd sounds first; 13 Nov: his recordings for the off, the crowd and the gallop, and a distant course commentary.",
+  "_about": "The race view's sounds (race-view/race-sound.js), in sections (owner, 13 Nov 2026), made from his recordings by tools/sound/mix_real_sounds.py (the sources and what each file is are listed there). Before the off: crowd-murmur (loop), the crowd waiting. The off: off.mp3, one sound, the stalls opening laid into the Cheltenham roar with its 'and they're off'; started so its latches click at the off (off.latchAt seconds in); the crowd's loops are turned down to off.duck until off.duckUntil. The middle: middle.mp3 (loop), the crowd a little muted, the field galloping, the commentator in the background; it fades in from sections.middleFrom seconds into the race over sections.middleIn, and fades out over sections.cross as the finish comes in. The finish: finish.mp3, started so the line (finish.lineAt seconds in) comes as the leader crosses it: about 3 furlongs out; the crowd and the commentator more and more animated, the surge at the line, then applause. After the race the crowd waiting comes back sections.murmurBack seconds after the line. A long race passing the stands with more than sections.passingFrom metres still to run lifts the crowd (crowd-excited, by crowd.passingStands). gallop.mp3 (loop) adds the horses up close: on close shots (by how near the shot looks: hooves.*) and in the slow-motion replay. files: each sound; 'loop' is a loop's exact length in seconds (the file carries half a second of it either side; the script writes these); 'bus': crowd (louder and clearer when the camera is near the crowd, muffled from a distant start: crowd.nearFrom/farAt/farLevel/farMuffle), hooves (by the shot), or master (as it is). mix: each layer's loudest level.",
   "files": {
     "murmur": {
       "file": "crowd-murmur.mp3",
@@ -11,84 +11,65 @@
       "loop": 20.6,
       "bus": "crowd"
     },
-    "roar": {
-      "file": "crowd-roar.mp3",
-      "loop": 30.5,
-      "bus": "crowd"
-    },
     "gallop": {
       "file": "gallop.mp3",
       "loop": 7.3,
       "bus": "hooves"
     },
-    "paRace": {
-      "file": "pa-race.mp3",
-      "loop": 23.9383,
-      "bus": "pa"
-    },
-    "paFinish": {
-      "file": "pa-finish.mp3",
-      "loop": 12.5502,
-      "bus": "pa"
+    "middle": {
+      "file": "middle.mp3",
+      "loop": 33.2349,
+      "bus": "master"
     },
     "off": {
       "file": "off.mp3",
       "bus": "master"
     },
-    "line": {
-      "file": "line.mp3",
-      "bus": "crowd"
+    "finish": {
+      "file": "finish.mp3",
+      "bus": "master"
     }
   },
   "mix": {
     "master": 0.9,
     "murmur": 0.6,
-    "excited": 0.8,
-    "roar": 0.95,
-    "gallop": 0.5,
-    "paRace": 0.24,
-    "paFinish": 0.4,
+    "excited": 0.6,
+    "gallop": 0.35,
+    "middle": 1.0,
     "off": 0.95,
-    "line": 0.9
+    "finish": 1.0
   },
   "off": {
     "latchAt": 3.275,
     "duck": 0.45,
     "duckUntil": 5
   },
+  "finish": {
+    "lineAt": 37.0
+  },
+  "sections": {
+    "middleFrom": 2.5,
+    "middleIn": 3.5,
+    "cross": 4.0,
+    "murmurBack": 9,
+    "passingFrom": 1000
+  },
   "crowd": {
     "quiet": 0.12,
     "loading": 0.1,
-    "buildFrom": 1100,
-    "buildTo": 60,
-    "closeFrom": 500,
-    "closeLengths": 2.5,
-    "closeFinish": 0.22,
-    "offCheer": 0,
-    "passingStands": 0.22,
-    "peakHold": 1.6,
-    "settle": 6,
+    "passingStands": 0.5,
     "replay": 0.1,
     "duck": 0.55,
-    "excitedFrom": 0.16,
-    "excitedFull": 0.5,
-    "roarFrom": 0.55,
     "nearFrom": 40,
     "farAt": 450,
     "farLevel": 0.6,
     "farMuffle": 2200
   },
-  "commentary": {
-    "from": 6,
-    "finishFrom": 0.5,
-    "finishFull": 0.75,
-    "afterLine": 1.5
-  },
   "hooves": {
     "nearAt": 10,
     "farAt": 170,
     "lensFov": 45,
-    "railMics": 0.3,
+    "railMics": 0,
     "cruise": 16.5,
     "replayLevel": 0.7
   }

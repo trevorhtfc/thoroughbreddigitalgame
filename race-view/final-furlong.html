@@ -3140,12 +3140,11 @@ const CALLER = (() => {
 })();
 
 // ---------- The sound: the crowd and the horses (race-sound.js; levels in assets/sound/sounds.json) ----------
-// Owner, 12 Nov 2026: "crowd effects" first; 13 Nov: his recordings. The crowd hums before the off; the off is the
-// stalls crashing open laid into the Cheltenham roar, "and they're off" just after; the crowd stirs as the field comes towards the last few
-// furlongs and roars them home (louder still when it's close), surges at the line and applauds; it is muffled and
-// quieter when the camera is far from the stands, and lifts when a long race passes the stands. The course commentary
-// comes over the loudspeakers, distant, calm until the finish. The hooves are heard by how near the shot looks to the
-// horses, panned to their side, slowed with the replay.
+// Owner, 12 Nov 2026: "crowd effects" first; 13 Nov: his recordings, in sections. The crowd waiting before the off; the
+// off (the stalls crashing open laid into the Cheltenham roar, "and they're off"); the middle (a loop: the crowd a
+// little muted, the gallop, the course commentator) from just after the off; the finish from about 3f out, timed to
+// the line (the crowd and commentator rising to the cheer, then applause); the crowd waiting again. The horses are
+// heard up close by how near the shot looks, slowed with the replay; a long race lifts the crowd passing the stands.
 // In the game the game's Sound setting decides (and the speaker here changes it); on this page, a remembered choice.
 const SND = await (async () => {
   if (params.has("still")) return null;
@@ -3168,54 +3167,43 @@ const SND = await (async () => {
     if (GAME) toGame({ type: "sound", on }); else try { localStorage.setItem("tb-sound", on ? "1" : "0"); } catch {}
   };
   window.__soundStop = () => S.stop();                       // the game closes the race: stop at once
-  const C = S.config.crowd, H = S.config.hooves, F = timeline.frames, dt = timeline.dt, LEN = 2.4;
-  // how excited the crowd is at each moment of the race, from the timeline (before the line)
+  const C = S.config.crowd, H = S.config.hooves, O = S.config.off, SEC = S.config.sections;
   const sm = (a, b, x) => { const t = Math.min(1, Math.max(0, (x - a) / (b - a))); return t * t * (3 - 2 * t); };
-  const E = new Float32Array(F.length), B = new Float32Array(F.length);
-  for (let k = 0; k < F.length; k++) {
-    let a = -1e9, b = -1e9;
-    for (const h of F[k]) { if (h[0] > a) { b = a; a = h[0]; } else if (h[0] > b) b = h[0]; }
-    const toGo = DIST - a, t = k * dt;
-    B[k] = sm(C.buildFrom, C.buildTo, toGo);
-    let e = C.quiet + (1 - C.quiet) * 0.82 * B[k] ** 1.3;
-    if (F[k].length > 1 && toGo < C.closeFrom) e += C.closeFinish * (1 - Math.min(1, (a - b) / (C.closeLengths * LEN))) * sm(C.closeFrom, 0, toGo);
-    e += C.offCheer * Math.exp(-(((t - 1.5) / 1.6) ** 2));   // a cheer as they jump
-    E[k] = Math.min(1, e);
-  }
-  const after = (s) => (s < C.peakHold ? 1 : C.quiet + (1 - C.quiet) * Math.exp(-(s - C.peakHold) / (C.settle / 3)));
+  // the finish is timed so its line comes as the leader crosses it (about 3 furlongs out it starts)
+  const FIN = T_FINISH - S.config.finish.lineAt;
   // where the crowd is: the middles of the crowd's cells (every one, or a fair sample of a big crowd)
   const PTS = [];
   for (const Fg of CROWD.figs || []) for (const c of Fg.cells || []) if (c.count) PTS.push(c.sphere.center);
   const step = Math.max(1, Math.ceil(PTS.length / 600)), P = PTS.filter((_, i) => i % step === 0);
   const nearest = (x, y, z) => { let m = Infinity; for (const p of P) { const d = (p.x - x) ** 2 + (p.y - y) ** 2 + (p.z - z) ** 2; if (d < m) m = d; } return Math.sqrt(m); };
   const right = new THREE.Vector3();
-  const O = S.config.off, CM = S.config.commentary;
-  let last = "", atLine = false;
+  let last = "", finished = false;
   return { levels: () => ({ on: S.on, locked: S.locked, phase: state.phase, ...S.levels }), update(now, leaderX, leaderZ) {
     S.pause(state.paused);
     const ph = state.phase, t = state.t;
-    // the off (owner, 13 Nov): the Cheltenham roar timed so "they're off" comes just as the gates crash open
-    // (owner, 13 Nov: the stalls laid into the Cheltenham roar; started so its latches click at the off)
+    // the off (owner, 13 Nov: the stalls laid into the Cheltenham roar; started so its latches click at the off)
     const theOff = (toOff) => { S.hush(); S.play("off", { at: toOff - O.latchAt }); };
     if (ph === "stalls" && last !== "stalls") theOff(PRE.standSeconds - state.pt);
-    if (ph === "race" && last !== "race" && t < 0.5) { if (last !== "stalls") theOff(-t); atLine = false; }
-    if (ph === "prelude" && last !== "prelude") { S.hush(); atLine = false; }
-    if (ph === "race" && !atLine && t >= T_FINISH) { atLine = true; if (t < T_FINISH + 2) S.play("line"); }
+    if (ph === "race" && last !== "race" && t < 0.5) { if (last !== "stalls") theOff(-t); finished = false; }
+    if (ph === "prelude" && last !== "prelude") { S.hush(); finished = false; }
+    // the finish (owner, 13 Nov): from about 3f out, timed to the line (started part-way in if the race is joined late)
+    // (until it has started: the sound may still be loading, or have been turned on late)
+    if (ph === "race" && !finished && t >= FIN && t < T_FINISH + 6) finished = S.play("finish", { at: FIN - t });
+    if (ph === "race" && finished && !state.paused) S.sync("finish", t - FIN);
     last = ph;
     if (!S.on) return;
-    // the crowd
-    let ex = C.quiet, duck = 1;
+    // which section: the crowd waiting, the middle (after the off until the finish takes over), the crowd back after
+    let murmur = 1, middle = 0, excited = 0, duck = 1;
     if (ph === "stalls" || (ph === "race" && t < O.duckUntil)) duck = O.duck + (1 - O.duck) * (ph === "race" ? sm(O.duckUntil - 2, O.duckUntil, t) : 0);
-    if (ph === "stalls") ex = C.loading;
-    else if (ph === "race") {
-      if (t <= T_FINISH) {
-        const k = Math.min(F.length - 1, Math.max(0, Math.round(t / dt)));
-        ex = E[k];                                           // (passing the stands with a circuit to go: not the run-in)
-        if (P.length && B[k] < 0.5) ex = Math.min(1, ex + C.passingStands * (1 - 2 * B[k]) * (1 - sm(25, 160, nearest(leaderX, 1.5, leaderZ))));
-      } else ex = after(t - T_FINISH);
-    } else if (ph === "replay") { ex = C.replay; duck = C.duck; }
+    if (ph === "race") {
+      middle = sm(SEC.middleFrom, SEC.middleFrom + SEC.middleIn, t) * (1 - sm(FIN, FIN + SEC.cross, t));
+      murmur = Math.max(1 - sm(SEC.middleFrom, SEC.middleFrom + SEC.middleIn, t), sm(T_FINISH + SEC.murmurBack - 3, T_FINISH + SEC.murmurBack, t));
+      // a long race passing the stands with a circuit still to run (the run-in itself is the finish's)
+      const toGo = DIST - Math.max(...now.map((h) => h[0]));
+      if (P.length && t < FIN && toGo > SEC.passingFrom) excited = C.passingStands * (1 - sm(25, 160, nearest(leaderX, 1.5, leaderZ))) * sm(SEC.passingFrom, SEC.passingFrom + 200, toGo);
+    } else if (ph === "replay") duck = C.duck;
     const cp = camera.position, dc = P.length ? nearest(cp.x, cp.y, cp.z) : 200;
-    // the horses: the nearest, the side they're on (weighted to the near ones), how fast they're going
+    // the horses up close: the nearest, the side they're on (weighted to the near ones), how fast they're going
     let dmin = Infinity, wx = 0, wz = 0, v = 0;
     runners.forEach((r, i) => {
       const o = r.obj.position, dx = o.x - cp.x, dz = o.z - cp.z, d = Math.hypot(dx, dz, o.y - cp.y), w = 1 / (d * d + 25);
@@ -3225,13 +3213,11 @@ const SND = await (async () => {
     right.setFromMatrixColumn(camera.matrixWorld, 0);
     const wl = Math.hypot(wx, wz) || 1, slow = ph === "replay" ? DIR_.replaySpeed : 1;
     S.update({
-      crowd: { excitement: ex, near: 1 - sm(C.nearFrom, C.farAt, dc), duck },
-      // as on TV: the closer the shot looks (a long lens makes far horses look near), the louder the hooves, and the
-      // rail microphones always pick them up a little
+      layers: { murmur, middle, excited },
+      crowd: { near: 1 - sm(C.nearFrom, C.farAt, dc), duck },
+      // as on TV: the closer the shot looks (a long lens makes far horses look near), the louder the hooves
       hooves: { near: runners.length ? Math.max(H.railMics, 1 - sm(H.nearAt, H.farAt, dmin * camera.fov / H.lensFov)) : 0, pan: (wx * right.x + wz * right.z) / wl,
         rate: (v / H.cruise) * slow, moving: sm(1, 7, v) * (ph === "replay" ? H.replayLevel : 1) },
-      // the course commentary: from a few seconds after the off until just after the line
-      commentary: ph === "race" && t > CM.from && t < T_FINISH + CM.afterLine ? 1 : 0,
     });
   } };
 })();
