@@ -301,7 +301,9 @@ const FOOTS = {
     if (ph === "gallops") return `<span class="f-info">Develop any that need it, or come back later: the gallops stay open until you leave for ${W.venue}.</span>${goBtn("doneGallops", "Done on the gallops: on to entries")}`;
     return "";
   },
-  palace() { return phase() === "home" ? `<span class="f-info">A new season: new races, new mares, the same ${money(START_BUDGET)}.</span>${goBtn("again", "Start a new season")}` : ""; },
+  palace() { return phase() !== "home" ? "" : isDaily()
+    ? `<span class="f-info">That's ${S.day === ukDay() ? "today's" : "that day's"} card played: it counts once. A new card at midnight, and a random game any time.</span>${goBtn("again", "Play a random game")}`
+    : `<span class="f-info">A new season: new races, new mares, the same ${money(START_BUDGET)}.</span>${goBtn("again", "Start a new season")}`; },
   races() {
     if (S.step === 4) { const done = racesRun();
       return `<span class="f-info ${done === RACES.length ? "ready" : ""}">${done === RACES.length ? `All ${RACES.length} races run.` : `${done} of ${RACES.length} races run · ${money(prizeWon())} won`}</span>${goBtn("simAll", "Sim the rest", { ghost: true, off: done === RACES.length || simBusy })}${goBtn("toResult", "See the final standings", { off: done < RACES.length })}`; }
@@ -332,7 +334,7 @@ const cardBack = (k, t) => `<div class="dc-back"><span>${k}<b>${t}</b></span></d
 function dealCard(face, backHTML, cls) { return `<div class="dc ${cls || ""}"><div class="dc-in">${backHTML}<div class="dc-face">${face}</div></div></div>`; }
 function drawBody() {
   return `<div class="deal in-sheet" id="deal"><div class="deal-in">
-      <div class="deal-head"><div><div class="deal-k" id="dealKicker">Season ${S.seed} · the draw</div><h2 class="deal-t" id="dealTitle">Your ten races</h2></div><button class="deal-skip" id="dealSkip" type="button">Skip</button></div>
+      <div class="deal-head"><div><div class="deal-k" id="dealKicker">${seasonName()} · the draw</div><h2 class="deal-t" id="dealTitle">Your ten races</h2></div><button class="deal-skip" id="dealSkip" type="button">Skip</button></div>
       <div class="deal-body" id="dealBody"></div>
       <div class="deal-foot"><p class="deal-sum" id="dealSum"></p><button class="tb-btn" id="dealNext" type="button" hidden></button></div>
     </div><div class="deal-deck" id="dealDeck" aria-hidden="true"><i></i><i></i><i></i></div></div>`;
@@ -395,7 +397,7 @@ function honours() { try { const h = JSON.parse(localStorage.getItem(HONOURS_KEY
 function noteHonours() {
   try {
     const h = honours(); if (h.some(x => x.seed === S.seed)) return;
-    RACES.forEach(r => { const res = S.results[r.id], hs = horse(S.entries[r.id]); if (res && res.pos === 1 && hs) h.push({ seed: S.seed, horse: hs.name, race: r.name, grade: r.grade, by: res.by, when: Date.now(), silks: mySilkN() }); });
+    RACES.forEach(r => { const res = S.results[r.id], hs = horse(S.entries[r.id]); if (res && res.pos === 1 && hs) h.push({ seed: S.seed, day: S.day || undefined, horse: hs.name, race: r.name, grade: r.grade, by: res.by, when: Date.now(), silks: mySilkN() }); });
     localStorage.setItem(HONOURS_KEY, JSON.stringify(h.slice(-300)));
   } catch (e) {}
 }
@@ -404,18 +406,18 @@ function museumBody() {
   hist.forEach(w => counts[w.title] = (counts[w.title] || 0) + 1);
   const hon = honours().slice().reverse();
   const T = ph === "home" ? titleFor(prizeWon()) : null;
-  return `${T ? `<section class="trophy ${T.cls}"><div class="tr-k">${W.where} ${MEETING.year} · season ${S.seed}</div><div class="tr-t">${T.name}</div>
+  return `${T ? `<section class="trophy ${T.cls}"><div class="tr-k">${W.where} ${MEETING.year} · ${seasonName(S, true)}</div><div class="tr-t">${T.name}</div>
       <p>${T.note} ${money(prizeWon())} in prize money, ${winsNow()} win${winsNow() === 1 ? "" : "s"} from ${RACES.length} races.</p>
       <div class="tr-cup"><svg viewBox="0 0 512 512">${ICON["laurels-trophy"]}</svg></div></section>` : ""}
     <div class="tb-head"><p class="tb-lede">The National Horseracing Museum keeps every ${W.playedNoun} you've played: the titles you've won, your best ${MEETING.id === "royal-ascot" ? "weeks" : "seasons"} and the horses that won for you.</p></div>
     <section class="rec"><h2 class="tb-h2">YOUR TITLES</h2>
       <div class="rec-titles">${TITLES.map(t => `<div class="rt ${t.cls} ${counts[t.name] ? "got" : ""}"><b>${counts[t.name] ? "×" + counts[t.name] : "?"}</b><span>${t.name}</span><small>${t.min ? money(t.min) + "+" : "under " + money(TITLES[TITLES.length - 2].min)}</small></div>`).join("")}</div>
-      ${best ? `<p class="rec-n">Your best ${MEETING.id === "royal-ascot" ? "week" : "season"}: <b>${money(best.prize)}</b> (season ${best.seed}, ${best.wins} win${best.wins === 1 ? "" : "s"}).</p>` : ""}
+      ${best ? `<p class="rec-n">Your best ${MEETING.id === "royal-ascot" ? "week" : "season"}: <b>${money(best.prize)}</b> (${seasonName(best, true)}, ${best.wins} win${best.wins === 1 ? "" : "s"}).</p>` : ""}
     </section>
     ${hist.length ? `<section class="rec"><h2 class="tb-h2">${W.playedPlural}</h2><table class="rec-t"><thead><tr><th>#</th><th>Season</th><th>Prize money</th><th>Wins</th><th>Title</th></tr></thead><tbody>${hist.slice(0, 12).map((w, k) =>
-        `<tr class="${w.seed === S.seed ? "me" : ""}"><td>${k + 1}</td><td>${w.seed}</td><td><b>${money(w.prize)}</b></td><td>${w.wins}/${w.races}</td><td>${w.title}</td></tr>`).join("")}</tbody></table>
+        `<tr class="${w.seed === S.seed ? "me" : ""}"><td>${k + 1}</td><td>${w.day ? "Daily, " + dayText(w.day) : w.seed}</td><td><b>${money(w.prize)}</b></td><td>${w.wins}/${w.races}</td><td>${w.title}</td></tr>`).join("")}</tbody></table>
       <p class="rec-n">${hist.length} ${MEETING.id === "royal-ascot" ? "week" : "season"}${hist.length === 1 ? "" : "s"} played. Collect every title.</p></section>` : ""}
-    ${hon.length ? `<section class="rec"><h2 class="tb-h2">ROLL OF HONOUR</h2><ul class="honours">${hon.slice(0, 30).map(x => `<li>${silkImg(x.silks || 0)}<b>${esc2(x.horse)}</b><span>${esc2(x.race)}</span><small>${esc2(x.grade)} · season ${x.seed}</small></li>`).join("")}</ul></section>` : ""}
+    ${hon.length ? `<section class="rec"><h2 class="tb-h2">ROLL OF HONOUR</h2><ul class="honours">${hon.slice(0, 30).map(x => `<li>${silkImg(x.silks || 0)}<b>${esc2(x.horse)}</b><span>${esc2(x.race)}</span><small>${esc2(x.grade)} · ${seasonName(x, true)}</small></li>`).join("")}</ul></section>` : ""}
     <section class="rec how"><h2 class="tb-h2">HOW THE SEASON GOES</h2><ol class="how-list">
       <li><b>The Jockey Club</b>: the ten races for ${W.whereLong} are drawn.</li>
       <li><b>The National Stud</b>: buy mares (choose one of three each time) and send them to the stallions. A mare can be at most one star above her stallion; outcrosses breed best, the same family worst. Unproven stallions may be a star better or worse than they look.</li>
@@ -566,16 +568,45 @@ function paintMenu(keepScroll) {
   const counts = {}; pastWeeks().forEach(w => counts[w.title] = (counts[w.title] || 0) + 1);
   $("#menuTitles").innerHTML = TITLES.map(t => `<li class="${t.cls} ${counts[t.name] ? "got" : ""}"><b data-n="${counts[t.name] ? "✓ ×" + counts[t.name] : ""}">${t.name}</b><span>${t.min ? money(t.min).replace(",000,000", "m").replace(/,000$/, "k") + "+" : "under " + money(TITLES[TITLES.length - 2].min).replace(/,000$/, "k")}</span></li>`).join("");
   const b = bestWeek(); $("#menuBest").innerHTML = b ? `Your best ${W.bestWord}: <b>${money(b.prize)}</b> · ${titleFor(b.prize).name}` : "";
-  const ph = phase(), ch = CHAPTERS[ph];
-  $("#menuGo").innerHTML = hasProgress()
-    ? `<button class="tb-btn" id="menuContinue">Continue season ${S.seed}<small>Step ${ch.step} of 5 · ${ch.title}</small></button><button class="tb-btn ghost" id="menuNew">${newArmed ? "Tap again to confirm" : "Start a fresh season"}<small>${newArmed ? "This season will be lost" : "New races and mares"}</small></button>`
-    : `<button class="tb-btn" id="menuContinue">Start season ${S.seed}<small>Newmarket and ${money(START_BUDGET)} are waiting</small></button><button class="tb-btn ghost" id="menuNew">Draw a different season<small>New races and mares</small></button>`;
+  // Two ways to play (owner, 13 Nov): today's card, the same season for everyone and played once, or a random game
+  const today = ukDay(), done = dailyLog()[today], ds = dailySave(), dsToday = ds && ds.day === today ? ds : null;
+  const stepOf = x => { const k = Math.min(5, x.step || 1); return `Step ${k} of 5`; };
+  const rnd = isDaily() ? randomSave() : (hasProgress() ? S : null);
+  const daily = done
+    ? `<button class="tb-btn" id="menuDaily">Today's card: ${money(done.prize)}<small>${done.title} · played ${dayText(today)} · a new card at midnight</small></button>`
+    : dsToday && (dsToday.dealt || dsToday.step > 1)
+      ? `<button class="tb-btn" id="menuDaily">Continue today's card<small>${dayText(today, true)} · ${stepOf(dsToday)}</small></button>`
+      : `<button class="tb-btn" id="menuDaily">Play today's card<small>${dayText(today, true)} · the same for everyone · one go</small></button>`;
+  const random = rnd
+    ? `<button class="tb-btn ghost" id="menuRandom">Random game<small>Continue · ${stepOf(rnd).toLowerCase()}</small></button><button class="tb-btn ghost" id="menuNew">${newArmed ? "Tap again to confirm" : "New random game"}<small>${newArmed ? "Season " + rnd.seed + " will be lost" : "New races and mares"}</small></button>`
+    : `<button class="tb-btn ghost" id="menuRandom">Play a random game<small>Any time, as often as you like</small></button>`;
+  $("#menuGo").innerHTML = daily + random;
 }
+// the saved random game, if it has been started (read without opening it)
+function randomSave() { try { const v = JSON.parse(localStorage.getItem(slotKey("random")) || "null"); return v && v.seed && (v.dealt || v.step > 1 || (v.stable || []).length || v.budget !== START_BUDGET) ? v : null; } catch (e) { return null; } }
 // a new season from the cover or Palace House: whatever was open goes, and the season starts at Newmarket
-function freshSeason() {
+function clearTable() {
   if (A) { clearInterval(A.timer); cancelAnimationFrame(A.raf); A.box.remove(); A = null; document.body.style.overflow = ""; }
   closeSheet({ quiet: true }); clearDeal(); D = null; UI.dealing = false; UI.tab = {}; UI.story = null;
-  newCard(); S.at = "newmarket"; save();
+}
+function freshSeason(day) {
+  clearTable();
+  newCard(day ? dailySeed(day) : 0, day); S.at = "newmarket"; save();
+}
+// From the cover: open today's card (started now if it hasn't been; a finished one opens on its result; an unfinished
+// card from an earlier day is put away), or the random game. The game not being played stays saved as it was.
+function playDaily() {
+  const today = ukDay(), ds = dailySave(), silks = S.silks;
+  if (isDaily() && S.day === today) return;
+  clearTable();
+  if (ds && ds.day === today && load("daily")) { save(); return; }
+  newCard(dailySeed(today), today); S.silks = silks; S.at = "newmarket"; save();
+}
+function playRandom() {
+  if (!isDaily()) return;
+  const silks = S.silks; clearTable();
+  if (!load("random")) { newCard(); S.silks = silks; S.at = "newmarket"; }
+  save();
 }
 // Switching season: each is its own game (rules, save, history), so the page opens afresh on the other one's cover
 document.addEventListener("click", e => {
@@ -672,7 +703,10 @@ document.addEventListener("click", e => {
       break; }
     case "toResult": S.step = 5; save(); noteHonours(); render(); sheetTop(); BOARD.Sound.cheer(5); break;
     case "goHome": goHomeFromAscot(); break;
-    case "again": freshSeason(); story("palace", "jockey", "draw"); break;
+    case "again":
+      // after the daily card, the random game: the one in progress if there is one, a new one if not
+      if (isDaily()) { playRandom(); if (hasProgress() && !S.home) { render(); leaveMenu(); break; } }
+      freshSeason(); story("palace", "jockey", "draw"); break;
     case "replayTally": playTally(); break;
     case "copy": {
       const txt = $("#shareText").textContent;
@@ -681,8 +715,10 @@ document.addEventListener("click", e => {
     }
     case "closeWatch": closeWatch(); break;
     case "menuContinue": leaveMenu(); break;
-    case "menuNew": if (hasProgress() && !newArmed) { newArmed = true; paintMenu(true); break; }
-      freshSeason(); newArmed = false; render(); paintMenu(true); if (!hasProgress()) toast("A new season is drawn"); break;
+    case "menuDaily": playDaily(); newArmed = false; render(); leaveMenu(); break;
+    case "menuRandom": playRandom(); newArmed = false; render(); leaveMenu(); break;
+    case "menuNew": if (!newArmed) { newArmed = true; paintMenu(true); break; }
+      playRandom(); freshSeason(); newArmed = false; render(); paintMenu(true); toast("A new random season is drawn"); break;
     case "aucBid": aucPlace("me"); break;
     case "aucLeave": aucLeave(); break;
     case "autoMinus": if (A) { A.auto = Math.max(openBid(A.l), A.auto - incFor(A.auto - 1)); aucPaint(); } break;
@@ -708,7 +744,9 @@ addEventListener("keydown", (e) => {
 /* ================= Starting up ================= */
 document.body.insertAdjacentHTML("afterbegin", `<svg width="0" height="0" style="position:absolute" aria-hidden="true"><symbol id="pip" viewBox="0 0 40 40"><g fill="currentColor"><path d="M20 5 L35 20 L20 35 L5 20Z"/><circle cx="20" cy="3.6" r="3.2"/><circle cx="20" cy="36.4" r="3.2"/><circle cx="3.6" cy="20" r="3.2"/><circle cx="36.4" cy="20" r="3.2"/></g><circle cx="20" cy="20" r="4" fill="#fffdf7"/></symbol></svg>`);
 function boot() {
-  if (!load()) { newCard(); S.at = "newmarket"; save(); }
+  // open on the game last played; a daily card from an earlier day comes back only if it was finished (its result)
+  const dsv = lastMode() === "daily" ? dailySave() : null;
+  if (!(dsv && (dsv.day === ukDay() || Object.keys(dsv.results || {}).length === RACES.length) && load("daily")) && !load("random")) { newCard(); S.at = "newmarket"; save(); }
   BOARD.cardFor = cardFor;
   BOARD.onEnter = (id) => {
     const st = placeStates()[id];

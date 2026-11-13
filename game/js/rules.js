@@ -458,18 +458,41 @@ async function simAndRecord(i) { if (S.results[RACES[i].id]) return; const out =
 
 /* ================= State ================= */
 let S, CARD;
-function newCard(seed) {
-  S = { seed: seed || Math.floor(Math.random() * 1e6) + 1, step: 1, tab: "stud", budget: START_BUDGET, stable: [], hand: [], usedMares: [], deckPos: 0,
+// One season number is one season. Every roll of the dice in it (which mares a pile turns over, the foal a mating gives,
+// the Tattersalls catalogue, how far each rival buyer will go for a lot) comes from the season's number and what is being
+// rolled for, never from the clock or the order things were done in. So the daily card is the same for everyone who plays
+// it, the same mating gives everyone the same foal, and no roll can be taken again. Only the choice of a random game's
+// number, and things that are only for show (how long a rival hesitates before bidding), still use Math.random.
+const luck = key => seeded(hashStr(S.seed + "|" + key));
+// ----- Today's card: one season a day, the same for everyone, changing at midnight UK time -----
+const ukDay = t => { const d = t ? new Date(t) : new Date();
+  try { const o = {}; new Intl.DateTimeFormat("en-GB", { timeZone: "Europe/London", year: "numeric", month: "2-digit", day: "2-digit" }).formatToParts(d).forEach(x => o[x.type] = x.value); return `${o.year}-${o.month}-${o.day}`; }
+  catch (e) { return d.toISOString().slice(0, 10); } };
+// random games are numbered 1 to 1,000,000; the daily cards sit above that, each season (Royal Ascot, Newmarket) with its own
+const dailySeed = day => 1000001 + hashStr("thoroughbred-daily|" + MEETING.id + "|" + day) % 2000000000;
+const dayText = (day, long) => { const [y, m, d] = String(day).split("-").map(Number); return new Date(Date.UTC(y, m - 1, d, 12)).toLocaleDateString("en-GB", { timeZone: "UTC", weekday: long ? "long" : "short", day: "numeric", month: long ? "long" : "short" }); };
+const isDaily = () => !!(S && S.mode === "daily");
+// what a season is called on the screens: "Daily card, Fri 13 Nov" or "Season 123456"
+const seasonName = (x, lower) => { x = x || S; return x.day ? `${lower ? "d" : "D"}aily card, ${dayText(x.day)}` : `${lower ? "s" : "S"}eason ${x.seed}`; };
+const seasonDone = () => !!S && Object.keys(S.results).length === RACES.length;
+function newCard(seed, day) {
+  S = { seed: seed || Math.floor(Math.random() * 1e6) + 1, mode: day ? "daily" : "random", day: day || null, pileN: {}, step: 1, tab: "stud", budget: START_BUDGET, stable: [], hand: [], usedMares: [], deckPos: 0,
     selMare: null, foal: null, sale: [], lotN: 0, entries: {}, results: {}, open: null, silks: S ? S.silks : 0, sort: "fee", offer: null, book: 1, catDams: [], v: 6, dealt: false, tallied: false };
   CARD = makeCard(S.seed);
   // No starting mares: every mare is bought at the mares sale, choosing one of three
   S.selMare = null;
   save();
 }
-function save() { try { localStorage.setItem(SAVE_KEY, JSON.stringify(S)); } catch (e) {} }
-function load() {
-  try { const v = JSON.parse(localStorage.getItem(SAVE_KEY) || "null"); if (v && v.seed && Array.isArray(v.stable)) {
-    S = v; S.open = null; CARD = makeCard(S.seed); migrate();
+// Two saved games a season: the random game, and today's card (so starting one never loses the other)
+const slotKey = mode => SAVE_KEY + (mode === "daily" ? "-daily" : "");
+function save() { try { localStorage.setItem(slotKey(S.mode), JSON.stringify(S)); localStorage.setItem(MODE_KEY, S.mode === "daily" ? "daily" : "random"); } catch (e) {} }
+const lastMode = () => { try { return localStorage.getItem(MODE_KEY) === "daily" ? "daily" : "random"; } catch (e) { return "random"; } };
+// the saved daily card, if there is one (read without opening it): { day, done, step }
+function dailySave() { try { const v = JSON.parse(localStorage.getItem(slotKey("daily")) || "null"); return v && v.seed && v.day ? v : null; } catch (e) { return null; } }
+function load(mode) {
+  mode = mode || "random";
+  try { const v = JSON.parse(localStorage.getItem(slotKey(mode)) || "null"); if (v && v.seed && Array.isArray(v.stable)) {
+    S = v; S.open = null; S.mode = mode === "daily" && S.day ? "daily" : "random"; S.pileN = S.pileN || {}; CARD = makeCard(S.seed); migrate();
     // left in the middle of an auction: that lot has gone through the ring without you
     if (S.ring) { S.sale = (S.sale || []).filter(x => x.id !== S.ring); S.ring = null; save(); }
     return true; } } catch (e) {}
@@ -543,18 +566,18 @@ function tripWeight(s, m) {
   const gap = Math.abs(a - b);
   return gap <= 1 ? TRIP_WEIGHTS.close : gap <= 2 ? TRIP_WEIGHTS.near : gap <= 4 ? TRIP_WEIGHTS.mid : TRIP_WEIGHTS.far;
 }
-function weightedMare(list, s) {
+function weightedMare(list, s, rnd) {
   const w = list.map(m => Math.max(0, ratingWeight(s, m) * tripWeight(s, m))), total = w.reduce((a, b) => a + b, 0);
-  if (total <= 0) return list[Math.floor(Math.random() * list.length)];
-  let r = Math.random() * total; for (let i = 0; i < list.length; i++) { r -= w[i]; if (r <= 0) return list[i]; }
+  if (total <= 0) return list[Math.floor(rnd() * list.length)];
+  let r = rnd() * total; for (let i = 0; i < list.length; i++) { r -= w[i]; if (r <= 0) return list[i]; }
   return list[list.length - 1];
 }
 // The catalogue: each Book has three different stallions (none repeated across Books), each bringing three
 // lots with weighted mares (the site's rules). Every Book has a sprint pedigree and a staying pedigree.
 const optF = x => furlongs(x.optimumDistance) || 8;
 function newCatalogue() {
-  const out = new Set(S.usedMares), used = new Set(), lots = [];
-  const shuffle = a => { for (let k = a.length - 1; k > 0; k--) { const j = Math.floor(Math.random() * (k + 1)); [a[k], a[j]] = [a[j], a[k]]; } return a; };
+  const out = new Set(S.usedMares), used = new Set(), lots = [], rnd = luck("catalogue");
+  const shuffle = a => { for (let k = a.length - 1; k > 0; k--) { const j = Math.floor(rnd() * (k + 1)); [a[k], a[j]] = [a[j], a[k]]; } return a; };
   const sires = shuffle(STALLIONS.map(s => stallion(s.name)));
   for (const b of BOOKS) {
     const fits = (s, m) => !out.has(m.name) && !used.has(m.name) && lotMatch(s, m) && s.shownStars + m.stars >= b.min && s.shownStars + m.stars <= b.max;
@@ -564,9 +587,9 @@ function newCatalogue() {
     const addLot = (sireTest, mareTest) => {
       const ok = sires.filter(s => (perSire[s.name] || 0) < 2 && sireTest(s) && MARES.some(m => fits(s, m) && mareTest(m)));
       if (!ok.length) return false;
-      const s = ok[Math.floor(Math.random() * ok.length)];
+      const s = ok[Math.floor(rnd() * ok.length)];
       let valid = MARES.filter(m => fits(s, m)); const q = valid.filter(mareTest); if (q.length) valid = q;
-      const m = weightedMare(valid, s); used.add(m.name); perSire[s.name] = (perSire[s.name] || 0) + 1;
+      const m = weightedMare(valid, s, rnd); used.add(m.name); perSire[s.name] = (perSire[s.name] || 0) + 1;
       book.push({ book: b.n, sire: s.name, dam: m.name, reserve: RESERVES[s.shownStars + m.stars] || 10000 });
       return true;
     };
@@ -581,7 +604,10 @@ function newCatalogue() {
 const OFFER_SIZE = 3;
 function drawPile(id) {
   const p = PILES.find(x => x.id === id); if (S.offer || !p || studCount() >= MARE_CAP || p.price > S.budget) return;
-  const left = pileLeft(p).map(m => [Math.random(), m]).sort((a, b) => a[0] - b[0]).map(x => x[1]); if (!left.length) return;
+  if (!pileLeft(p).length) return;
+  // each mare has her own place in this pile's nth draw, so the same draw turns over the same mares for everyone
+  S.pileN = S.pileN || {}; const n = S.pileN[id] = (S.pileN[id] || 0) + 1;
+  const left = pileLeft(p).map(m => [hashStr(S.seed + "|pile|" + id + "|" + n + "|" + m.name), m]).sort((a, b) => a[0] - b[0] || (a[1].name < b[1].name ? -1 : 1)).map(x => x[1]);
   S.budget -= p.price; S.offer = { pile: p.id, mares: left.slice(0, OFFER_SIZE).map(m => m.name) };
 }
 function keepOffer(name) {
@@ -589,17 +615,20 @@ function keepOffer(name) {
   S.hand.push(name); S.offer = null;
   const m = byName(name); toast(`${m.name} (${m.stars}★) joins your stud`);
 }
-function newName() {
+function newName(rnd) {
   const taken = new Set([...CARD.oppNames, ...S.stable.map(h => h.name)]);
-  for (let k = 0; k < 300; k++) { const n = (NAME_A[Math.floor(Math.random() * NAME_A.length)] + " " + NAME_B[Math.floor(Math.random() * NAME_B.length)]).toUpperCase(); if (!taken.has(n)) return n; }
+  for (let k = 0; k < 300; k++) { const n = (NAME_A[Math.floor(rnd() * NAME_A.length)] + " " + NAME_B[Math.floor(rnd() * NAME_B.length)]).toUpperCase(); if (!taken.has(n)) return n; }
   return "FOAL " + (S.stable.length + 1);
 }
 function breed(sireName, damName, how, cost, lotId) {
-  const s = stallion(sireName), m = byName(damName), f = breedPure(s, m);
-  const h = { id: "h" + Date.now().toString(36) + Math.floor(Math.random() * 1e4), name: newName(), sex: Math.random() < .5 ? "F" : "C", sire: s.name, dam: m.name,
-    peakAge: f.peakAge, r: f.r, d: f.d, grounds: f.grounds, age: 2, portrait: 1 + Math.floor(Math.random() * 12), coat: COATS[Math.floor(Math.random() * COATS.length)], how, cost };
+  // the foal is this season's foal of this sire and dam: the same for everyone, however and whenever it is bred or bought
+  const rnd = luck("foal|" + sireName + "|" + damName);
+  const s = stallion(sireName), m = byName(damName), f = breedPure(s, m, rnd);
+  let id = "h" + hashStr(S.seed + "|foal|" + sireName + "|" + damName).toString(36); while (S.stable.some(x => x.id === id)) id += "x";
+  const h = { id, name: newName(rnd), sex: rnd() < .5 ? "F" : "C", sire: s.name, dam: m.name,
+    peakAge: f.peakAge, r: f.r, d: f.d, grounds: f.grounds, age: 2, portrait: 1 + Math.floor(rnd() * 12), coat: COATS[Math.floor(rnd() * COATS.length)], how, cost };
   h.verdict = verdictFor(h);
-  Object.assign(h, rollRacecard(Math.random));
+  Object.assign(h, rollRacecard(rnd));
   S.foal = { h, how, cost, lotId, retried: S.foal && S.foal.h && S.foal.how === "bred" && S.foal.h.dam === damName && S.foal.h.sire === sireName ? true : false };
 }
 function keepFoal(name) {
@@ -630,16 +659,26 @@ function develop(id) {
 const TITLES = MEETING.titles;
 const titleFor = prize => TITLES.find(t => prize >= t.min);
 const BEST_KEY = "tb-" + MEETING.id + "-best", HIST_KEY = "tb-" + MEETING.id + "-history", SAVE_KEY = "tb-game-" + MEETING.id;
+const MODE_KEY = "tb-" + MEETING.id + "-mode", DAILY_KEY = "tb-" + MEETING.id + "-daily-log";
+// Today's card counts once: the first time a day's card is finished, its result is written here and stays
+function dailyLog() { try { const v = JSON.parse(localStorage.getItem(DAILY_KEY) || "{}"); return v && typeof v === "object" ? v : {}; } catch (e) { return {}; } }
+function noteDaily(prize, wins) {
+  if (!isDaily()) return;
+  try { const log = dailyLog(); if (log[S.day]) return;
+    log[S.day] = { seed: S.seed, prize, wins, races: RACES.length, title: titleFor(prize).name, silks: S.silks || 0, when: Date.now() };
+    const days = Object.keys(log).sort(); days.slice(0, Math.max(0, days.length - 400)).forEach(d => delete log[d]);
+    localStorage.setItem(DAILY_KEY, JSON.stringify(log)); } catch (e) {}
+}
 function pastWeeks() { try { const h = JSON.parse(localStorage.getItem(HIST_KEY) || "[]"); return Array.isArray(h) ? h : []; } catch (e) { return []; } }
 function addWeek(prize, wins) {
   try {
     const h = pastWeeks(); if (h.some(w => w.seed === S.seed && w.prize === prize)) return h;
-    h.push({ seed: S.seed, prize, wins, races: RACES.length, title: titleFor(prize).name, when: Date.now() });
+    h.push({ seed: S.seed, day: S.day || undefined, prize, wins, races: RACES.length, title: titleFor(prize).name, when: Date.now() });
     localStorage.setItem(HIST_KEY, JSON.stringify(h.slice(-200))); return h;
   } catch (e) { return []; }
 }
 function bestWeek() { try { return JSON.parse(localStorage.getItem(BEST_KEY) || "null"); } catch (e) { return null; } }
-function noteWeek(prize, wins) { try { const b = bestWeek(); if (!b || prize > b.prize) localStorage.setItem(BEST_KEY, JSON.stringify({ prize, wins, seed: S.seed })); } catch (e) {} }
+function noteWeek(prize, wins) { try { const b = bestWeek(); if (!b || prize > b.prize) localStorage.setItem(BEST_KEY, JSON.stringify({ prize, wins, seed: S.seed, day: S.day || undefined })); } catch (e) {} }
 const LADDER_TOP = MEETING.ladderTop;
 
 /* ================= Tattersalls: the rival buyers in the live auction ================= */
@@ -663,10 +702,10 @@ const guide = l => [l.reserve, round5k(l.reserve * 1.6)];
 // How hard the rivals chase the best Books (Book 1 cooled from 1.45, Book 2 from 1.15 on 6 Nov 2026, with the dearer
 // Blue-blooded mares: buying a top horse is now a real option beside breeding one)
 const BOOK_HEAT = [1.3, 1.1];
-function appeal(l) {
+function appeal(l, rnd) {
   const s = stallion(l.sire), m = byName(l.dam), ln = lineNote(s, m).cls;
   let a = 1 + (ln === "out" ? .12 : ln === "in2" ? -.15 : 0);
-  if (s.unproven) a *= .85 + Math.random() * .4;   // rivals take a punt on unproven sires
+  if (s.unproven) a *= .85 + (rnd || Math.random)() * .4;   // rivals take a punt on unproven sires
   // the best pedigrees draw the deepest pockets: Book 1 is fought over, Book 2 a little
   a *= l.book === 1 ? BOOK_HEAT[0] : l.book === 2 ? BOOK_HEAT[1] : 1;
   return a;

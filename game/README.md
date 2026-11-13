@@ -50,6 +50,30 @@ colours walking out to Warren Hill, the horseboxes away up Fordham Road. Then th
 race view; "Sim" gives the same result straight away. Entries can still be changed before the first race (the Jockey
 Club's entries in an Ascot sheet: "Declarations").
 
+## Two ways to play: today's card and the random game (13 Nov 2026, branch `claude/daily-card`)
+
+Owner, 13 Nov: "having the daily mix or just a play a random game option is best". The cover's buttons (`paintMenu()` in
+`js/ui.js`) are now **Play today's card** and **Play a random game**; once a random game is under way, **Random game**
+(continue) and **New random game**.
+
+- **Today's card** is one season a day, the same for everyone, changing at midnight UK time (`ukDay()`). Its season number
+  is made from the date and the season (`dailySeed(day)` in `js/rules.js`; Royal Ascot and Newmarket each have their own),
+  kept above 1,000,000 so it can never be a random game's number (those are 1 to 1,000,000).
+- **One go.** A day's card can't be restarted, and the first time it is finished its result is written to
+  `tb-<season>-daily-log` (`noteDaily()`) and never overwritten. After that the cover's button shows the result and
+  opens the final standings. An unfinished card from an earlier day is put away when today's is started.
+- **Two saved games a season**, so starting one never loses the other: the random game in `tb-game-<season>` (as before,
+  so players' saves carry over) and the daily card in `tb-game-<season>-daily` (`slotKey()`, `load(mode)`); the one last
+  played is in `tb-<season>-mode`. `S.mode` is "daily" or "random", `S.day` the card's day.
+- **One season number is one season** (`luck(key)` in `js/rules.js`). Every roll now comes from the season's number and
+  what is being rolled for, not from `Math.random`: the mares a pile turns over (by pile and by how many times it has been
+  drawn, `S.pileN`), a foal (by sire and dam: the same mating gives everyone the same foal, name and racecard, and it can't
+  be rolled again), the Tattersalls catalogue, and how far each rival will go for a lot (by sire and dam). Still left to
+  chance: a random game's number, how long a rival hesitates before a bid, and the board's moving life.
+- The screens call a season by `seasonName()`: "Daily card, Fri 13 Nov" or "Season 123456".
+- **Not built yet:** the leaderboard (stable names, scores kept on Cloudflare) and score checking. `noteDaily()` is where a
+  finished daily card would be sent from.
+
 ## One look
 
 `css/game.css` on top of the house style (`css/components.css`, the Ascot game's styles). Taken from the board: its

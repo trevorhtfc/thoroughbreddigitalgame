@@ -561,7 +561,7 @@ function weekCard(r) {
 // The final standings: race by race, your prize money climbs the ladder of titles
 function resultBody(wins, losses, prize) {
   const complete = Object.keys(S.results).length === RACES.length;
-  if (complete) { noteWeek(prize, wins); addWeek(prize, wins); }
+  if (complete) { noteWeek(prize, wins); addWeek(prize, wins); noteDaily(prize, wins); }
   const spent = START_BUDGET - S.budget, T = titleFor(prize), rungs = TITLES.slice().reverse();
   const pct = v => Math.min(100, v / LADDER_TOP * 100);
   const rows = RACES.map((r, k) => { const res = S.results[r.id], h = horse(S.entries[r.id]);
@@ -570,7 +570,7 @@ function resultBody(wins, losses, prize) {
   const hist = pastWeeks().slice().sort((a, b) => b.prize - a.prize), counts = {}; hist.forEach(w => counts[w.title] = (counts[w.title] || 0) + 1);
   const rank = hist.findIndex(w => w.seed === S.seed && w.prize === prize) + 1;
   return `<div class="tb-head"><h1 class="tb-h">FINAL STANDINGS</h1>
-      <p class="tb-lede">Season ${S.seed} · ${wins} win${wins === 1 ? "" : "s"} from ${RACES.length} races · ${S.stable.length} horses · budget spent ${money(spent)} (a separate pot)</p></div>
+      <p class="tb-lede">${seasonName()} · ${wins} win${wins === 1 ? "" : "s"} from ${RACES.length} races · ${S.stable.length} horses · budget spent ${money(spent)} (a separate pot)</p></div>
     <div class="fs">
       <div class="fs-ladder" aria-hidden="true"><div class="fs-track"><div class="fs-fill" id="fsFill"></div>
         ${rungs.slice(1).map(t => `<div class="fs-rung ${t.cls}" id="rung-${t.cls}" style="--at:${pct(t.min)}%"><i></i><span><b>${t.name}</b>${money(t.min)}</span></div>`).join("")}</div></div>
@@ -586,7 +586,7 @@ function resultBody(wins, losses, prize) {
     <section class="rec"><h2 class="tb-h2">${W.playedPlural}</h2>
       <div class="rec-titles">${TITLES.map(t => `<div class="rt ${t.cls} ${counts[t.name] ? "got" : ""}"><b>${counts[t.name] ? "×" + counts[t.name] : "?"}</b><span>${t.name}</span></div>`).join("")}</div>
       ${hist.length ? `<table class="rec-t"><thead><tr><th>#</th><th>Card</th><th>Prize money</th><th>Wins</th><th>Title</th></tr></thead><tbody>${hist.slice(0, 10).map((w, k) =>
-        `<tr class="${w.seed === S.seed && w.prize === prize ? "me" : ""}"><td>${k + 1}</td><td>${w.seed}</td><td><b>${money(w.prize)}</b></td><td>${w.wins}/${w.races}</td><td>${w.title}</td></tr>`).join("")}</tbody></table>
+        `<tr class="${w.seed === S.seed && w.prize === prize ? "me" : ""}"><td>${k + 1}</td><td>${w.day ? "Daily, " + dayText(w.day) : w.seed}</td><td><b>${money(w.prize)}</b></td><td>${w.wins}/${w.races}</td><td>${w.title}</td></tr>`).join("")}</tbody></table>
       <p class="rec-n">${hist.length} ${MEETING.id === "royal-ascot" ? "week" : "season"}${hist.length === 1 ? "" : "s"} played${rank ? ` · this one ranks <b>${ord(rank)}</b>` : ""}. Collect every title.</p>` : ""}
     </section>`;
 }
@@ -631,7 +631,7 @@ function playTally() {
 function shareText(wins, losses) {
   const grid = DAYS.map((d, k) => RACES.filter(r => r.day === k).map(r => { const p = S.results[r.id] ? S.results[r.id].pos : 0; return p === 1 ? "🟩" : p >= 2 && p <= 3 ? "🟨" : "⬜"; }).join("")).join("\n");
   const prize = RACES.reduce((a, r) => a + (S.results[r.id] ? S.results[r.id].prize : 0), 0);
-  return `Thoroughbred ${W.gameTitle} · season ${S.seed}\n${titleFor(prize).name}\n${grid}\nPrize money ${money(prize)} · ${wins}–${losses}`;
+  return `Thoroughbred ${W.gameTitle} · ${seasonName(S, true)}\n${titleFor(prize).name}\n${grid}\nPrize money ${money(prize)} · ${wins}–${losses}`;
 }
 
 /* ================= Watching a race: the 3D race view (Final Furlong) ================= */
@@ -699,9 +699,11 @@ addEventListener("message", e => {
 let A = null;   // the auction in progress
 function openAuction(id) {
   const l = S.sale.find(x => x.id === id); if (!l || A || S.step < 2 || S.step > 3 || S.foal || stableFull()) return;
-  const ap = appeal(l);
-  const rivals = RIVALS.map(r => ({ ...r, ceil: Math.random() < r.keen(l) ? l.reserve * ap * r.want(l) * (.7 + Math.random() * .9) : 0, wait: null }));
-  A = { l, price: null, leader: null, start: performance.now(), last: performance.now(), rivals, log: [], call: -1, done: false, auto: 0, autoOn: false, ang: Math.random() * 6.28 };
+  // who is interested in this lot and how far each will go is the season's (the same for everyone playing it); only how
+  // long they hesitate before each bid is left to chance
+  const rnd = luck("ring|" + l.sire + "|" + l.dam), ap = appeal(l, rnd);
+  const rivals = RIVALS.map(r => ({ ...r, ceil: rnd() < r.keen(l) ? l.reserve * ap * r.want(l) * (.7 + rnd() * .9) : 0, wait: null }));
+  A = { rnd, l, price: null, leader: null, start: performance.now(), last: performance.now(), rivals, log: [], call: -1, done: false, auto: 0, autoOn: false, ang: Math.random() * 6.28 };
   A.auto = Math.min(S.budget, round5k(guide(l)[0]));
   S.ring = l.id; save();   // the lot is in the ring: leave the page now and it has gone when you come back (no going back)
   const box = document.createElement("div"); box.className = "auc"; box.id = "auc"; box.setAttribute("role", "dialog"); box.setAttribute("aria-label", `Tattersalls, lot ${l.n}`);
@@ -828,7 +830,7 @@ function aucLeave() {
   for (let k = 0; k < 200; k++) {
     const nx = aucNext(), keen = A.rivals.filter(r => r.id !== A.leader && r.ceil >= nx);
     if (!keen.length) break;
-    const r = keen[Math.floor(Math.random() * keen.length)];
+    const r = keen[Math.floor(A.rnd() * keen.length)];
     A.price = nx; A.leader = r.id;
   }
   aucHammer(); aucClose();
