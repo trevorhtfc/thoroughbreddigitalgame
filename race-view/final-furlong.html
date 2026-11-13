@@ -3273,7 +3273,7 @@ function frame() {
     contact.setMatrixAt(i, _m.compose(_p, _q, _s));
     if (r.v2) {                                            // the v2 horse: its own riding, gallop and detail levels
       if (params.has("still") && !r.started) { r.v2.update(5, v, eff, null, 0); r.started = true; }   // stills: settle the riding first
-      r.v2.update(dt, v, eff, null, step);
+      r.v2.update(dt, v, eff, null, step, x > DIST ? THREE.MathUtils.smoothstep(x - DIST, 5, 40) : 0);   // past the post he stands in his irons to pull up
       if (x > leader) { leader = x; leaderZ = wz; leaderXw = wx; }
       sum += x;
       return;

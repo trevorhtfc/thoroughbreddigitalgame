@@ -32,9 +32,34 @@ SS = 3
 
 BODY_PATTERNS = ["plain", "hoops", "stripes", "sash", "crossbelts", "chevron", "inverted chevron", "chevrons",
                  "braces", "halved", "quartered", "spots", "large spots", "disc", "star", "diamond",
-                 "epaulets", "panel", "seams", "check", "hooped band", "three spots"]
-SLEEVE_PATTERNS = ["plain", "hoops", "stripes", "halved", "chevrons", "armlets", "cuffs", "spots", "diabolo", "seams"]
-CAP_PATTERNS = ["plain", "quartered", "halved", "striped", "hooped", "spots", "four spots", "star", "diamond", "peak"]
+                 "epaulets", "panel", "seams", "check", "hooped band", "three spots",
+                 "strip", "belt", "cross of lorraine", "diamonds", "stars", "diabolo", "inverted triangle",
+                 "triple diamond", "hollow box"]
+SLEEVE_PATTERNS = ["plain", "hoops", "stripes", "halved", "chevrons", "armlets", "cuffs", "spots", "diabolo", "seams",
+                   "stars", "diamonds", "check"]
+CAP_PATTERNS = ["plain", "quartered", "halved", "striped", "hooped", "spots", "four spots", "star", "diamond", "peak",
+                "check", "stars", "diamonds"]
+
+# The base templates, numbered as on the owner's reference sheets (reference/silks/templates-jackets.png and
+# templates-sleeves-caps.png, 13 Nov 2026): 25 jackets, 12 sleeves, 10 caps. Each is (number, name on the sheet,
+# pattern name used in silks.json). A set of silks is one of each, with a colour and a second colour.
+# The patterns above that are not on the sheets (sash, halved, inverted chevron, panel, three spots; cuffs;
+# halved, four spots and peak caps) stay available as extras.
+TEMPLATES = {
+    "jackets": [(1, "Plain", "plain"), (2, "Strip", "strip"), (3, "Braces", "braces"), (4, "Belt", "belt"), (5, "Hooped", "hoops"),
+                (6, "Chevron", "chevron"), (7, "Chevrons", "chevrons"), (8, "Seams", "seams"), (9, "Cross belts", "crossbelts"),
+                (10, "Cross of Lorraine", "cross of lorraine"), (11, "Checks", "check"), (12, "Diamond", "diamond"),
+                (13, "Diamonds", "diamonds"), (14, "Quartered", "quartered"), (15, "Epaulettes", "epaulets"), (16, "Star", "star"),
+                (17, "Stars", "stars"), (18, "Spots", "spots"), (19, "Stripes", "stripes"), (20, "Disc", "disc"),
+                (21, "Diabolo", "diabolo"), (22, "Inverted triangle", "inverted triangle"), (23, "Large spots", "large spots"),
+                (24, "Triple diamond", "triple diamond"), (25, "Hollow box", "hollow box")],
+    "sleeves": [(1, "Plain", "plain"), (2, "Armlet", "armlets"), (3, "Hooped", "hoops"), (4, "Striped", "stripes"),
+                (5, "Chevrons", "chevrons"), (6, "Seams", "seams"), (7, "Stars", "stars"), (8, "Spots", "spots"),
+                (9, "Halved", "halved"), (10, "Diabolo", "diabolo"), (11, "Diamonds", "diamonds"), (12, "Check", "check")],
+    "caps": [(1, "Plain", "plain"), (2, "Hooped", "hooped"), (3, "Striped", "striped"), (4, "Check", "check"), (5, "Spots", "spots"),
+             (6, "Quartered", "quartered"), (7, "Star", "star"), (8, "Diamond", "diamond"), (9, "Stars", "stars"),
+             (10, "Diamonds", "diamonds")],
+}
 
 
 def hexrgb(h):
@@ -46,6 +71,13 @@ def spots(x, y, r):
     row = np.floor(y)
     xs = x + 0.5 * (row % 2)
     return np.hypot(xs - np.floor(xs) - 0.5, y - row - 0.5) < r
+
+
+def cells(x, y):
+    """A brick grid of unit cells (every other row shifted half a cell): each point's place in its own cell."""
+    row = np.floor(y)
+    xs = x + 0.5 * (row % 2)
+    return xs - np.floor(xs) - 0.5, y - row - 0.5
 
 
 def star(px, py, r):
@@ -97,6 +129,24 @@ def body_mask(pattern, u, h, asp=1.9):
     if p == "panel": return (np.abs(L) < 0.45) & (h > 0.12) & (h < 0.88)
     if p == "seams": return (np.abs(np.abs(L) - 1) < 0.07) | (h > 0.95)
     if p == "check": return ((np.floor(u * 16) + np.floor(h * 6)) % 2) == 1
+    # ---- the rest of the owner's 25 jacket templates
+    if p == "strip": return np.abs(L) < 0.24                  # one band down the middle, front and back
+    if p == "belt": return (h > 0.42) & (h < 0.62)            # one band round the middle
+    if p == "cross of lorraine":                              # an upright with two bars, the upper one shorter
+        return ((np.abs(L) < 0.13) & (np.abs(Y) < 0.82)) | ((np.abs(Y - 0.36) < 0.1) & (np.abs(L) < 0.36)) | ((np.abs(Y + 0.06) < 0.1) & (np.abs(L) < 0.56))
+    if p == "diamonds":                                       # harlequin: diamonds all over (6 round the body, so it meets itself)
+        P, Q = u * 12, Y * 1.9
+        return ((np.floor(P + Q) + np.floor(P - Q)) % 2) == 1
+    if p == "stars":
+        dx, dy = cells(u * 4 * 1.5, (Y + 10) * 1.5)
+        return star(dx, dy, 0.4)
+    if p == "diabolo": return np.abs(L) < np.abs(2 * h - 1) * 0.98        # two triangles meeting point to point
+    if p == "inverted triangle": return (Y < 0.72) & (Y > -0.5) & (np.abs(L) < (Y + 0.5) * 0.6)
+    if p == "triple diamond":                                 # three diamonds side by side across the chest
+        return np.minimum(np.minimum(np.abs(L + 0.64), np.abs(L)), np.abs(L - 0.64)) * 3.0 + np.abs(Y - 0.1) * 1.9 < 0.92
+    if p == "hollow box":
+        m = np.maximum(np.abs(L) * 1.15, np.abs(Y - 0.05))
+        return (m > 0.36) & (m < 0.62)
     raise ValueError("unknown body pattern: %s" % p)
 
 
@@ -112,6 +162,13 @@ def sleeve_mask(pattern, u, t, asp=1.0):
     if p == "spots": return spots(u * 6, t * 6 * asp, 0.27)
     if p == "diabolo": return np.abs(((u + 0.5) % 1.0) - 0.5) < (0.12 + 0.2 * np.abs(t - 0.5))
     if p == "seams": return np.abs(((u + 0.25) % 0.5) - 0.25) < 0.03
+    # ---- the rest of the owner's 12 sleeve templates (drawn down the outside of the arm, where they are seen)
+    X = ((u + 0.5) % 1.0) - 0.5                               # round the arm from the outside, -0.5..0.5
+    if p == "stars":                                          # three down the arm
+        return star(X, (t - 0.2) * asp, 0.15) | star(X, (t - 0.5) * asp, 0.15) | star(X, (t - 0.8) * asp, 0.15)
+    if p == "diamonds":                                       # four down the arm
+        return (np.abs(X) * 3.4 + np.abs(((t * 4) % 1.0) - 0.5) * 2.0) < 1.0
+    if p == "check": return ((np.floor(u * 6) + np.floor(t * 6 * asp)) % 2) == 1
     raise ValueError("unknown sleeve pattern: %s" % p)
 
 
@@ -129,6 +186,14 @@ def cap_mask(pattern, u, v):
     if p == "star": return star((u - 0.5) * 3.2, (0.55 - v) * 1.1, 0.42)
     if p == "diamond": return (np.abs(u - 0.5) * 3.2 + np.abs(v - 0.5) * 1.3) < 0.45
     if p == "peak": return (v > 0.85) & (np.abs(u - 0.5) < 0.18)
+    # ---- the rest of the owner's 10 cap templates
+    if p == "check": return ((np.floor(u * 8) + np.floor(v * 3)) % 2) == 1
+    if p == "stars":                                          # stars all over: a ring of six, a ring of three, wider towards the rim
+        a1 = ((u * 6) % 1.0) - 0.5; a2 = ((u * 3 + 0.5) % 1.0) - 0.5
+        return star(a1 * 2 * math.pi * 0.72 / 6 * 3.2, (v - 0.72) * 3.2, 0.42) | star(a2 * 2 * math.pi * 0.36 / 3 * 3.2, (v - 0.36) * 3.2, 0.42)
+    if p == "diamonds":                                       # harlequin
+        P, Q = u * 8, v * 2.5
+        return ((np.floor(P + Q) + np.floor(P - Q)) % 2) == 1
     raise ValueError("unknown cap pattern: %s" % p)
 
 
@@ -319,7 +384,12 @@ def main():
     texture(ze, pal, size // 2).save(f"{out_dir}/textures/zones.png", optimize=True)
     icon(ze, pal).save(f"{out_dir}/icons/zones.png", optimize=True)
     listing["zones"] = {"id": "zones", "legend": z, "colours": {k: pal[v] for k, v in z.items()}}
+    slug = lambda zone, pat: "catalogue-%s-%s" % (zone, pat.replace(" ", "-"))
+    listing["templates"] = {part: [{"number": n, "name": nm, "pattern": pat, "id": slug({"jackets": "body", "sleeves": "sleeves", "caps": "cap"}[part], pat)}
+                                   for n, nm, pat in rows] for part, rows in TEMPLATES.items()}
     json.dump(listing, open(f"{out_dir}/catalogue.json", "w"), indent=1)
+    json.dump({"_about": "The base silks templates, numbered as on the owner's reference sheets (reference/silks/). A set of silks is one jacket, one sleeve and one cap template, each with a colour and a second colour. 'pattern' is the name used in silks.json; 'id' is its demo texture and icon (catalogue-*).",
+               **listing["templates"]}, open(f"{out_dir}/templates.json", "w"), indent=1)
     print("painted", len(listing["silks"]), "silks,", len(listing["catalogue"]), "catalogue patterns and the zone test")
 
 

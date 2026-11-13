@@ -431,3 +431,11 @@ crosses it, about 3f out, the middle fading out under it; it is kept in step wit
 the race slower than real time). The crowd waiting comes back after the race; a long race passing the stands lifts the
 crowd; the gallop loop adds the horses up close and in the replay. The excitement-driven crowd layers and the separate
 commentary loops are gone.
+
+### 13 Nov 2026 (evening): the real commentators
+
+Owner: "the commentary isn't great [the made voice]. Some of these clips have crowd and commentary which I'm happy for
+you to overlay to get the sound." The made voice is gone: the middle is now the Cheltenham commentator after the roar
+and the Aintree clip with its announcer, muted, with the gallop; the finish brings in the Grand National finish (crowd
+and commentary) from about 3f out, opening up and rising to the line over the Japan Cup's roar. Each clip's voices are
+brought forward a little out of its crowd (`lift_voice` in `tools/sound/mix_real_sounds.py`).

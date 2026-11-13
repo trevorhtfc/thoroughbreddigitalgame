@@ -6,20 +6,20 @@
   "racehorse_v2_far": "beyond about 80 m"
  },
  "triangles": {
-  "racehorse_v2_close": 42272,
-  "racehorse_v2": 17137,
-  "racehorse_v2_far": 6575
+  "racehorse_v2_close": 42506,
+  "racehorse_v2": 17273,
+  "racehorse_v2_far": 6627
  },
  "horse": {
-  "gallop_v2": "normal galloping",
-  "gallop_v2_drive": "under pressure: neck lower, deeper nod, tail higher; blend in a beat after the jockey asks",
+  "gallop_v2": "normal galloping (rebalanced 13 Nov: forehand up as the hind legs push, hooves planted at 14.6 m/s)",
+  "gallop_v2_drive": "under pressure: neck lower, deeper nod, tail higher, a little flatter; blend in a beat after the jockey asks",
   "walk": "walking / standing in the stalls (from v1)"
  },
  "jockey": {
   "ride_quiet": "effort 0: sitting still, hands on the neck",
   "ride_push": "effort 1: hands and heels, arms pushing with the stride, back pumping",
   "ride_drive": "effort 2: the same, bigger and lower",
-  "ride_whip": "effort 3: drive with the left hand, whip in the right, one stroke a stride"
+  "ride_whip": "effort 3, TWO strides (0.96 s): a stroke with the stick in his right hand in the first stride, both hands pushing through the second"
  },
  "effort": "timeline effort 0..3. Weights: quiet = max(0, 1 - e); push = max(0, 1 - |e - 1|); drive = max(0, 1 - |e - 2|); whip = max(0, e - 2). The horse: gallop_v2_drive = min(1, e / 2) of a copy of e delayed about 0.4 s.",
  "variety": {
@@ -53,6 +53,12 @@
    1
   ],
   "stride": "cadence x0.95..1.05 per horse; the jockey's clips run 0..0.04 s off the horse's stride per jockey"
+ },
+ "moments": {
+  "additive": "ramp clips like the variety poses, but faded in and out by the viewer rather than held",
+  "jky_look_left": "a look round over his left shoulder (about 1.5 s: round, hold, back), now and then while he sits quietly",
+  "jky_look_right": "the same, to his right",
+  "jky_stand": "standing in his irons to pull up, once past the post"
  },
  "colours": "main material: vertex colour R = coat, G = points (mane, tail, lower legs), B = jockey's skin. Multiply the grey texture's light and shade by the chosen colour inside each. Silks material: the owner's v2 silks texture times the vertex colour (fabric creases)."
 }
