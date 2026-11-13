@@ -105,7 +105,8 @@ chel, stall, japan, aintree, gn, gal = (load(n) for n in ["cheltenham-roar.mp3",
                                                          "aintree-crowd.mp3", "grand-national-finish.mp3", "galloping-pixabay.mp3"])
 CHEL_VOICE = 4.05                               # "and they're off" starts here in the Cheltenham clip
 STALLS_FROM, STALL_LATCH, STALL_CRASH = 1.0, 1.475, 1.93   # the stalls clip: the opening (owner: 1 to 2.5 s), the latches, the crash
-STALLS_IN = 3.0                                 # the stalls laid in at 3 s of the Cheltenham roar (owner): latches at 3.475 s
+VOICE_LIFT_DB, STALLS_AFTER = 7.0, 0.22         # the call lifted this much; the stalls after their crash at this share
+STALLS_IN = 2.8                                 # the stalls laid in at 2.8 s of the Cheltenham roar (owner said 3 s; 0.2 s earlier so the crash is over before the call at 4.0 s): latches at 3.275 s
 crowd_eq = lambda x: filt(x, "high", 90, 2)     # the phones' rumble out of every crowd
 
 # ---------------------------------------------------------------- the off: the stalls laid into the Cheltenham roar
@@ -119,7 +120,15 @@ def make_off():
     t = np.arange(chel_x.shape[1]) / SR
     chel_x = chel_x * (0.75 + 0.25 * np.clip((t - 3.4) / 1.4, 0, 1))[None, :]   # blended up from the stalls into the roar
     chel_x = fade(chel_x, 2.2, 2.6)                           # (the race view starts it about half a second in: a soft way in)
+    # owner, 00:43: "you're missing the and they're off commentary as the roar goes up". The call is the commentator
+    # (about 200 Hz) at 4.0-4.45 s, quiet under the crowd: lift his voice's band there, gently in and out
+    win = np.clip((t - (CHEL_VOICE - 0.1)) / 0.08, 0, 1) * np.clip((CHEL_VOICE + 0.55 - t) / 0.15, 0, 1)
+    voice = peak(filt(chel_x, "band", [170, 3800], 2), 2200, 4, 0.9)
+    chel_x = chel_x + (10 ** (VOICE_LIFT_DB / 20) - 1) * voice * win[None, :]
     stalls = filt(cut(stall, STALLS_FROM, STALLS_FROM + 3.4), "high", 200, 4)    # (the stalls recording's wind rumble out)
+    # the stalls as recorded up to the crash; then, so the call comes through, pulled down quickly to a background
+    ts = np.arange(stalls.shape[1]) / SR; after = STALL_CRASH - STALLS_FROM + 0.07
+    stalls = stalls * (STALLS_AFTER + (1 - STALLS_AFTER) * np.clip(1 - (ts - after) / 0.12, 0, 1))[None, :]
     stalls = fade(stalls, 0.04, 1.6)
     M = level(chel_x, -19.5)
     place(M, level(width(stalls, 1.3), -19.0), STALLS_IN)
