@@ -3140,10 +3140,12 @@ const CALLER = (() => {
 })();
 
 // ---------- The sound: the crowd and the horses (race-sound.js; levels in assets/sound/sounds.json) ----------
-// Owner, 12 Nov 2026: "crowd effects" first. The crowd chatters before the off, stirs as the field comes towards the
-// last few furlongs, roars them home (louder still when it's close), cheers at the line and applauds; it is muffled
-// and quieter when the camera is far from the stands (at a distant start), and lifts when a long race passes the
-// stands. The hooves are heard by how near the camera is to the horses, panned to their side, slowed with the replay.
+// Owner, 12 Nov 2026: "crowd effects" first; 13 Nov: his recordings. The crowd hums before the off; the off is the
+// Cheltenham roar, its "they're off" as the stalls crash open; the crowd stirs as the field comes towards the last few
+// furlongs and roars them home (louder still when it's close), surges at the line and applauds; it is muffled and
+// quieter when the camera is far from the stands, and lifts when a long race passes the stands. The course commentary
+// comes over the loudspeakers, distant, calm until the finish. The hooves are heard by how near the shot looks to the
+// horses, panned to their side, slowed with the replay.
 // In the game the game's Sound setting decides (and the speaker here changes it); on this page, a remembered choice.
 const SND = await (async () => {
   if (params.has("still")) return null;
@@ -3187,13 +3189,20 @@ const SND = await (async () => {
   const step = Math.max(1, Math.ceil(PTS.length / 600)), P = PTS.filter((_, i) => i % step === 0);
   const nearest = (x, y, z) => { let m = Infinity; for (const p of P) { const d = (p.x - x) ** 2 + (p.y - y) ** 2 + (p.z - z) ** 2; if (d < m) m = d; } return Math.sqrt(m); };
   const right = new THREE.Vector3();
-  let last = "", applauded = false;
+  const O = S.config.off, CM = S.config.commentary;
+  let last = "", atLine = false;
   return { levels: () => ({ on: S.on, locked: S.locked, phase: state.phase, ...S.levels }), update(now, leaderX, leaderZ) {
     S.pause(state.paused);
     const ph = state.phase, t = state.t;
-    if (ph === "race" && last !== "race" && t < 0.5) S.play("stalls");
-    if (ph === "prelude" && last !== "prelude") applauded = false;
-    if (ph === "race" && !applauded && t > T_FINISH + C.applauseAfter) { applauded = true; S.play("applause"); }
+    // the off (owner, 13 Nov): the Cheltenham roar timed so "they're off" comes just as the gates crash open
+    if (ph === "stalls" && last !== "stalls") { S.hush(); S.play("off", { at: PRE.standSeconds - state.pt + O.voiceLag - O.offVoiceAt }); }
+    if (ph === "race" && last !== "race" && t < 0.5) {
+      if (last !== "stalls") { S.hush(); S.play("off", { at: O.voiceLag - O.offVoiceAt - t }); }
+      S.play("stalls", { at: -O.crashAt - t });
+      atLine = false;
+    }
+    if (ph === "prelude" && last !== "prelude") { S.hush(); atLine = false; }
+    if (ph === "race" && !atLine && t >= T_FINISH) { atLine = true; if (t < T_FINISH + 2) S.play("line"); }
     last = ph;
     if (!S.on) return;
     // the crowd
@@ -3222,6 +3231,8 @@ const SND = await (async () => {
       // rail microphones always pick them up a little
       hooves: { near: runners.length ? Math.max(H.railMics, 1 - sm(H.nearAt, H.farAt, dmin * camera.fov / H.lensFov)) : 0, pan: (wx * right.x + wz * right.z) / wl,
         rate: (v / H.cruise) * slow, moving: sm(1, 7, v) * (ph === "replay" ? H.replayLevel : 1) },
+      // the course commentary: from a few seconds after the off until just after the line
+      commentary: ph === "race" && t > CM.from && t < T_FINISH + CM.afterLine ? 1 : 0,
     });
   } };
 })();

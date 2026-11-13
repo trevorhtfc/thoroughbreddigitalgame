@@ -1,12 +1,12 @@
 // The race view's sound: the crowd and the horses. Engine-neutral apart from the browser's Web Audio; it holds no race
 // rules. The race view works out, each frame, how excited the crowd is, how near the camera is to the crowd and to the
 // horses, and calls update(); this file turns that into sound. The sounds and every level live in
-// assets/sound/sounds.json (tools/sound/make_race_sounds.py makes the files; any can be swapped for a real recording).
+// assets/sound/sounds.json (tools/sound/mix_real_sounds.py makes the files from the owner's recordings).
 //
-// Layers: the crowd's chatter, the crowd stirring (chatter and shouts), the roar, mixed by how excited the crowd is and
-// muffled with distance; the field galloping, by how near the camera is to the horses, panned to where they are and
-// sped up or slowed with them (slowed right down in the slow-motion replay); and one-off sounds (the stalls opening,
-// the applause after the line).
+// Layers: the crowd waiting, the crowd stirring, the roar, mixed by how excited the crowd is and muffled with distance;
+// the field galloping, by how near the camera is to the horses, panned to where they are and sped up or slowed with
+// them (slowed right down in the slow-motion replay); the course commentary over the loudspeakers, calm then the
+// finish; and one-off sounds (the off: the crowd's roar and "they're off", the stalls crashing open; the line).
 //
 // Browsers only let a page make sound after the player has tapped or clicked something. In the game the player has
 // already tapped "Watch in 3D", so the game's own sound (already playing) is borrowed if there is one; otherwise, if
@@ -17,8 +17,9 @@ const smooth = (a, b, x) => { const t = Math.min(1, Math.max(0, (x - a) / (b - a
 export async function create({ base = "assets/sound/", shared = null, on = false, onChange = null } = {}) {
   const CFG = await fetch(base + "sounds.json").then((r) => r.json());
   const MIX = CFG.mix;
-  let ac = null, own = false, master = null, crowdBus = null, crowdLow = null, gallopGain = null, gallopLow = null, gallopPan = null;
-  const buffers = {}, loops = {}, gains = {};
+  let ac = null, own = false, master = null, crowdBus = null, crowdLow = null, gallopGain = null, gallopLow = null, gallopPan = null, paBus = null;
+  const buffers = {}, loops = {}, gains = {}, once = new Set();
+  const bus = (name) => ({ crowd: crowdBus, hooves: gallopGain, pa: paBus }[name] || master);
   let loading = null, started = false, wanted = on, paused = false, hidden = false, locked = false;
   const S = { get on() { return wanted; }, get locked() { return locked; }, levels: {} };
 
@@ -35,6 +36,7 @@ export async function create({ base = "assets/sound/", shared = null, on = false
     gallopPan = ac.createStereoPanner ? ac.createStereoPanner() : ac.createGain(); gallopPan.connect(master);
     gallopLow = ac.createBiquadFilter(); gallopLow.type = "lowpass"; gallopLow.frequency.value = 8000; gallopLow.connect(gallopPan);
     gallopGain = ac.createGain(); gallopGain.gain.value = 0; gallopGain.connect(gallopLow);
+    paBus = ac.createGain(); paBus.connect(master);
     return ac;
   }
   // older Safari only has the callback form of decodeAudioData
@@ -51,7 +53,7 @@ export async function create({ base = "assets/sound/", shared = null, on = false
     started = true;
     for (const [k, f] of Object.entries(CFG.files)) {
       if (!f.loop || !buffers[k]) continue;
-      const g = ac.createGain(); g.gain.value = 0; g.connect(k === "gallop" ? gallopGain : crowdBus);
+      const g = ac.createGain(); g.gain.value = 0; g.connect(bus(f.bus || (k === "gallop" ? "hooves" : "crowd")));
       const s = ac.createBufferSource(); s.buffer = buffers[k]; s.loop = true;
       s.loopStart = 0.25; s.loopEnd = Math.min(buffers[k].duration - 0.05, 0.25 + f.loop);
       s.connect(g); s.start(ac.currentTime + 0.02, 0.25 + Math.random() * f.loop);
@@ -91,8 +93,8 @@ export async function create({ base = "assets/sound/", shared = null, on = false
   };
   S.pause = (p) => { if (p !== paused) { paused = p; apply(); } };
   // each frame: crowd { excitement 0..1, near 0..1 (camera to the crowd), duck 0..1 }, hooves { near 0..1, pan -1..1,
-  // rate (1 = the cruising gallop), moving 0..1 }
-  S.update = ({ crowd, hooves }) => {
+  // rate (1 = the cruising gallop), moving 0..1 }, commentary 0..1 (the course commentary is on)
+  S.update = ({ crowd, hooves, commentary = 0 }) => {
     if (!started) return;
     const E = crowd.excitement, C = CFG.crowd;
     const lv = {
@@ -100,6 +102,8 @@ export async function create({ base = "assets/sound/", shared = null, on = false
       excited: MIX.excited * smooth(C.excitedFrom, C.excitedFull, E) * (1 - 0.6 * smooth(0.78, 1, E)),
       roar: MIX.roar * smooth(C.roarFrom, 1, E),
       gallop: MIX.gallop * hooves.moving * hooves.near ** 1.6,
+      paRace: (MIX.paRace || 0) * commentary * (1 - smooth(CFG.commentary.finishFrom, CFG.commentary.finishFull, E)),
+      paFinish: (MIX.paFinish || 0) * commentary * smooth(CFG.commentary.finishFrom, CFG.commentary.finishFull, E),
     };
     for (const k in lv) if (gains[k]) to(gains[k].gain, lv[k], k === "gallop" ? 0.12 : 0.5);
     const n = crowd.near;
@@ -110,15 +114,19 @@ export async function create({ base = "assets/sound/", shared = null, on = false
     if (loops.gallop) to(loops.gallop.playbackRate, Math.max(0.2, Math.min(1.25, hooves.rate)), 0.2);
     S.levels = { E: +E.toFixed(2), near: +n.toFixed(2), hNear: +hooves.near.toFixed(2), hMoving: +hooves.moving.toFixed(2), rate: +hooves.rate.toFixed(2), pan: +hooves.pan.toFixed(2), ...Object.fromEntries(Object.entries(lv).map(([k, v]) => [k, +v.toFixed(2)])) };
   };
-  // a one-off: the stalls opening, the applause
-  S.play = (k, level = 1) => {
+  // a one-off: the off, the stalls, the line. at: seconds from now (less than 0: start that far into it)
+  S.play = (k, { level = 1, at = 0 } = {}) => {
     if (!started || !buffers[k] || !wanted) return;
     const s = ac.createBufferSource(), g = ac.createGain(); s.buffer = buffers[k];
-    g.gain.value = (MIX[k] ?? 1) * level; s.connect(g); g.connect(CFG.files[k].bus === "master" ? master : crowdBus);
-    s.start(); s.onended = () => { s.disconnect(); g.disconnect(); };
+    g.gain.value = (MIX[k] ?? 1) * level; s.connect(g); g.connect(bus(CFG.files[k].bus));
+    if (-at >= buffers[k].duration) return;
+    s.start(ac.currentTime + Math.max(0, at), Math.max(0, -at)); once.add(s);
+    s.onended = () => { once.delete(s); s.disconnect(); g.disconnect(); };
   };
+  // the one-offs cut short (the race restarted, or jumped)
+  S.hush = () => { for (const s of once) { try { s.stop(); } catch (e) {} } once.clear(); };
   // the page is going: when the game's sound was borrowed, nothing of the race must play on under the board
-  S.stop = () => { if (!ac) return; stopLoops(); master.disconnect(); if (own) ac.close(); };
+  S.stop = () => { if (!ac) return; S.hush(); stopLoops(); master.disconnect(); if (own) ac.close(); };
   addEventListener("pagehide", S.stop);
   S.config = CFG;
   if (on) S.set(true);

@@ -1,24 +1,100 @@
 {
-  "_about": "The race view's sounds (race-view/race-sound.js). files: each sound; 'loop' is the loop's length in seconds (the file carries half a second of the loop either side of it, so it loops without a click). Every file is made by tools/sound/make_race_sounds.py and can be swapped for a real recording of the same kind: for a loop, keep the half second either side and give its length here. mix: each layer's loudest level. crowd: how the crowd follows the race (the race view works out the excitement, 0 quiet to 1 roaring, from the timeline): quiet is the crowd's level before and between races; it starts to build buildFrom metres out and is roaring by buildTo; closeFinish adds to it in the last closeFrom metres when the first two are within closeLengths; passingStands adds when the leader is near the crowd (a long race passing the stands); after the line it holds the roar for peakHold seconds and settles over settle seconds; replay is its level in the replay, duck how loud the crowd is then. near: a camera within nearFrom metres of the crowd hears it fully, at farAt or more it's at farLevel and muffled to farMuffle Hz. hooves: full at nearAt metres from the nearest horse, gone by farAt, as the shot looks (the distance is scaled by the camera's field of view against lensFov degrees, so a long lens on far horses sounds near, as on TV), never below railMics while they gallop; cruise is the gallop's speed (m/s) at which the loop plays at its own speed. Owner, 12 Nov 2026: crowd sounds first; spoken commentary later.",
+  "_about": "The race view's sounds (race-view/race-sound.js). Since 13 Nov 2026 made from the owner's recordings by tools/sound/mix_real_sounds.py (the sources and what each file is are listed there). files: each sound; 'loop' is a loop's exact length in seconds (the file carries half a second of the loop either side of it, so it loops without a click; the script writes these numbers); 'bus' is what it goes through: crowd (louder and clearer when the camera is near the crowd, muffled from a distant start), hooves (by how near the shot looks to the horses), pa (the course commentary, heard everywhere) or master (as it is). mix: each layer's loudest level. crowd: how the crowd follows the race (the race view works out the excitement, 0 quiet to 1 roaring, from the timeline): quiet is the crowd's level before and between races, loading while they go in; it starts to build buildFrom metres out and is roaring by buildTo; closeFinish adds to it in the last closeFrom metres when the first two are within closeLengths; passingStands adds when the leader is near the crowd (a long race passing the stands); after the line it holds the roar for peakHold seconds and settles over settle seconds; replay is its level in the replay, duck how loud the crowd is then. near: a camera within nearFrom metres of the crowd hears it fully, at farAt or more it's at farLevel and muffled to farMuffle Hz. The off: off.mp3 (the Cheltenham roar, at full strength wherever the start is: owner, 13 Nov) is started so its 'they're off' (offVoiceAt seconds in) comes voiceLag seconds after the gates open, and stalls.mp3 (the gates crashing, crashAt seconds in) at the off itself; line.mp3 at the winning line. commentary: the course commentary starts from seconds into the race and stops after the line; the calm commentary gives way to the finish as the excitement goes from finishFrom to finishFull. hooves: full at nearAt metres from the nearest horse, gone by farAt, as the shot looks (the distance is scaled by the camera's field of view against lensFov degrees, so a long lens on far horses sounds near, as on TV), never below railMics while they gallop; cruise is the gallop's speed (m/s) at which the loop plays at its own speed. Owner, 12 Nov 2026: crowd sounds first; 13 Nov: his recordings for the off, the crowd and the gallop, and a distant course commentary.",
   "files": {
-    "murmur":   { "file": "crowd-murmur.mp3",  "loop": 24 },
-    "excited":  { "file": "crowd-excited.mp3", "loop": 20 },
-    "roar":     { "file": "crowd-roar.mp3",    "loop": 16 },
-    "gallop":   { "file": "gallop.mp3",        "loop": 8 },
-    "applause": { "file": "applause.mp3" },
-    "stalls":   { "file": "stalls.mp3", "bus": "master" }
+    "murmur": {
+      "file": "crowd-murmur.mp3",
+      "loop": 25.9,
+      "bus": "crowd"
+    },
+    "excited": {
+      "file": "crowd-excited.mp3",
+      "loop": 20.6,
+      "bus": "crowd"
+    },
+    "roar": {
+      "file": "crowd-roar.mp3",
+      "loop": 30.5,
+      "bus": "crowd"
+    },
+    "gallop": {
+      "file": "gallop.mp3",
+      "loop": 7.3,
+      "bus": "hooves"
+    },
+    "paRace": {
+      "file": "pa-race.mp3",
+      "loop": 23.9383,
+      "bus": "pa"
+    },
+    "paFinish": {
+      "file": "pa-finish.mp3",
+      "loop": 12.5502,
+      "bus": "pa"
+    },
+    "off": {
+      "file": "off.mp3",
+      "bus": "master"
+    },
+    "stalls": {
+      "file": "stalls.mp3",
+      "bus": "master"
+    },
+    "line": {
+      "file": "line.mp3",
+      "bus": "crowd"
+    }
   },
-  "mix": { "master": 0.85, "murmur": 0.5, "excited": 0.7, "roar": 0.95, "gallop": 0.9, "applause": 0.75, "stalls": 0.45 },
+  "mix": {
+    "master": 0.9,
+    "murmur": 0.6,
+    "excited": 0.8,
+    "roar": 0.95,
+    "gallop": 0.5,
+    "paRace": 0.24,
+    "paFinish": 0.4,
+    "off": 0.85,
+    "stalls": 0.8,
+    "line": 0.9
+  },
+  "off": {
+    "offVoiceAt": 3.0,
+    "voiceLag": 0.12,
+    "crashAt": 0.08
+  },
   "crowd": {
-    "quiet": 0.12, "loading": 0.08,
-    "buildFrom": 1100, "buildTo": 60,
-    "closeFrom": 500, "closeLengths": 2.5, "closeFinish": 0.22,
-    "offCheer": 0.12, "passingStands": 0.22,
-    "peakHold": 1.6, "settle": 5,
-    "replay": 0.1, "duck": 0.55,
-    "excitedFrom": 0.16, "excitedFull": 0.5, "roarFrom": 0.55,
-    "nearFrom": 40, "farAt": 450, "farLevel": 0.3, "farMuffle": 900,
-    "applauseAfter": 0.6
+    "quiet": 0.12,
+    "loading": 0.1,
+    "buildFrom": 1100,
+    "buildTo": 60,
+    "closeFrom": 500,
+    "closeLengths": 2.5,
+    "closeFinish": 0.22,
+    "offCheer": 0,
+    "passingStands": 0.22,
+    "peakHold": 1.6,
+    "settle": 6,
+    "replay": 0.1,
+    "duck": 0.55,
+    "excitedFrom": 0.16,
+    "excitedFull": 0.5,
+    "roarFrom": 0.55,
+    "nearFrom": 40,
+    "farAt": 450,
+    "farLevel": 0.6,
+    "farMuffle": 2200
   },
-  "hooves": { "nearAt": 10, "farAt": 170, "lensFov": 45, "railMics": 0.25, "cruise": 16.5, "replayLevel": 0.7 }
+  "commentary": {
+    "from": 6,
+    "finishFrom": 0.5,
+    "finishFull": 0.75,
+    "afterLine": 1.5
+  },
+  "hooves": {
+    "nearAt": 10,
+    "farAt": 170,
+    "lensFov": 45,
+    "railMics": 0.3,
+    "cruise": 16.5,
+    "replayLevel": 0.7
+  }
 }

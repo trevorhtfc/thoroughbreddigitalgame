@@ -1,4 +1,8 @@
-"""The race view's sounds: the crowd (murmur, excited, roar, applause), the field galloping, the stalls opening.
+"""(12 Nov 2026; since 13 Nov the race view's files come from tools/sound/mix_real_sounds.py and the owner's recordings.
+This script is kept for its made voices and hand claps, which that one borrows. Running it on its own still writes the
+old made-up files, over the real ones: don't, unless going back.)
+
+The race view's sounds: the crowd (murmur, excited, roar, applause), the field galloping, the stalls opening.
 
 Everything is made here from scratch (no recordings, so nothing to license): the crowd's chatter and shouts are the
 eSpeak NG speaking voice, dozens to hundreds of voices at a time at different pitches, speeds and distances, so no

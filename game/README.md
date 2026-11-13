@@ -357,3 +357,16 @@ hand claps, the hooves are four-beat gallops with the horses' breathing). Any fi
   view borrows the game's sound (`BOARD.Sound.ctx()`), so phones that only allow sound after a tap still play it; if a
   browser holds it back, the speaker pulses and the first tap lets it out. On the race view's own page: remembered.
 - Checking aid: `window.__sound()` gives what it's doing (excitement, how near the crowd and horses are, each level).
+
+### 13 Nov 2026: the owner's recordings
+
+Owner, after hearing the made sounds: "you can't hear the crowd; the gates are a pop rather than a crash". He sent
+recordings (`tools/sound/sources/`, with a note on their licences); `tools/sound/mix_real_sounds.py` cuts and mixes
+them. **The off:** the Cheltenham roar, timed so its "they're off" comes just as the stalls crash open (the real latches
+and doors from a stalls recording on a heavy clang of steel doors), at full strength wherever the start is. **The crowd**
+waits (real crowds, softened and distant), stirs (Aintree) and roars (the Japan Cup with the Grand National finish), then
+surges at the line into applause. **The gallop** is the recording doubled up into a field, under the crowd now. **The
+course commentary** comes over the loudspeakers from across the course, calm then the finish: a made voice (eSpeak, the
+only one available) through horn speakers and echo, so the rise and fall comes through but not the words; a real
+commentary recording can replace it (see the script). A whole-race listening preview can be rendered offline the same
+way the race view mixes it.
