@@ -76,6 +76,29 @@ Owner, 13 Nov: "having the daily mix or just a play a random game option is best
 - **Not built yet:** the leaderboard (stable names, scores kept on Cloudflare) and score checking. `noteDaily()` is where a
   finished daily card would be sent from.
 
+## Your colours: every player makes their own (13 Nov 2026, branch `claude/own-colours`)
+
+Owner, 13 Nov: "let's make all new players make their own colours.. and let's also remember their colours? no selection
+from the initial suite". The cover no longer offers the 54 ready-made silks to choose from (they are the opposition's).
+
+- **The maker** (`js/colours.js`, `openColours()`): three tabs (Jacket, Sleeves, Cap), each with a colour, a second colour
+  and a pattern; a big picture with its description in racing's words; "Surprise me". A player with no colours yet is
+  brought to it before their first game (`needColours()` on the cover's play buttons), then carries on into the game.
+- **The templates and the palette** are in `race-view/silks-paint.js` (staged to the site's top folder and loaded by both
+  the game and the race view): the owner's 25 jackets, 12 sleeves and 10 caps, then the extra patterns (sash, halved,
+  inverted chevron, panel, three spots; cuffs; halved, four spots, peak), and twelve colours read from his 54 silks
+  graphics (the ten most used, plus green and orange). Its pattern rules are `tools/silks/make_silks.py`'s line for line
+  (checked: all 56 patterns give identical masks), so **a pattern changed in one must be changed in the other**.
+- **Remembered** in the browser under `tb-colours` (one set for every game and both seasons): `setColours()`, `MY`,
+  `hasColours()` in `js/rules.js`. `mySilkN()` is `MINE` (-1) once a player has colours; `silkImg(MINE)` is their picture.
+  `SilksPaint.encode()` gives a short text for a set (e.g. `j5.1.4-s6.0.5-c6.4.1`), kept with a finished daily card for
+  the leaderboard to show.
+- **The menu picture** is drawn in the owner's diagram layout (`SilksPaint.icon()`: the strip on the left the sleeves,
+  the half circle at the top the cap, the rest the body), so it sits beside the 54 in the racecards and results.
+- **In 3D**: the race view is sent the colours' description (`silkSpec` on your runner) and `race-view/horse-v2.js`
+  paints the jockey's texture from it (`SilksPaint.texture(spec, 1024, "v2")`); the board's string of horses
+  (`js/life.js`, the v1 layout) and your banner on the road to the races (`flyOwn()` in `src/board.src.js`) take them too.
+
 ## One look
 
 `css/game.css` on top of the house style (`css/components.css`, the Ascot game's styles). Taken from the board: its

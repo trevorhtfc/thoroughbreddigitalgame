@@ -40,9 +40,14 @@ export async function loadHorse(loadModel, dir = "assets/model-v2", tex) {
 export const debug = { zones: false };     // checking aid: main zones (coat red, points green, face blue), silks as their uv
 
 const silkCache = new Map();
-function silkTexture(id, load) {
+// silk: one of the ready-made sets (its texture is a file), or colours a player made themselves (silk.spec:
+// painted here by silks-paint.js, in the same layout)
+function silkTexture(silk, load) {
+  const own = silk.spec && globalThis.SilksPaint ? silk.spec : null, id = own ? "own:" + globalThis.SilksPaint.encode(own) : silk.id;
   if (!silkCache.has(id)) {
-    const t = load(`assets/silks-3d-v2/${id}.png`, true);
+    let t;
+    if (own) { t = new THREE.CanvasTexture(globalThis.SilksPaint.texture(own, 1024, "v2")); t.flipY = false; t.colorSpace = THREE.SRGBColorSpace; }
+    else t = load(`assets/silks-3d-v2/${id}.png`, true);
     t.wrapS = THREE.RepeatWrapping; t.anisotropy = 8;
     silkCache.set(id, t);
   }
@@ -110,7 +115,7 @@ export function makeRunner(proto, { coat, silk, seed = 1, texLoader, castShadow 
     if (!o.isSkinnedMesh) return;
     o.castShadow = castShadow; o.frustumCulled = false;
     const src = o.material;
-    if (!mats.has(src.name)) mats.set(src.name, src.name.includes("silks") ? silksMaterial(src, silkTexture(silk.id, load), proto.maps.shade) : mainMaterial(src, proto.maps, u));
+    if (!mats.has(src.name)) mats.set(src.name, src.name.includes("silks") ? silksMaterial(src, silkTexture(silk, load), proto.maps.shade) : mainMaterial(src, proto.maps, u));
     o.material = mats.get(src.name);
     sized.push(o);
   });

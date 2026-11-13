@@ -663,7 +663,7 @@ function watch(i) {
     // for the view's own racecard and result panels (game mode): the race's conditions and prizes, your colours
     card: { grade: race.grade, dist: race.dist, day: DAYS[race.day], meeting: MEETING.courses ? `${DAYS[race.day]}, ${courseName(race)}` : MEETING.name, prizes: race.prizes, conditions: race.ageLabel, next: i + 1 < RACES.length && !S.results[RACES[i + 1].id] ? RACES[i + 1].name : "", silkImg: mySilks().img },
     // and, for the dock and the racecard: the owner's own graphic silks, the price and the race-day colour card
-    runners: field.map((h, k) => ({ ...engineRunner(h), silk: SILK3D[h.sk], silk2d: SILKS[h.sk].img, odds: mkt[k].odds, card: mkt[k].card, coat: { body: h.coat[0], points: h.coat[1] }, mine: !!h.mine })) };
+    runners: field.map((h, k) => ({ ...engineRunner(h), ...(h.mine && MY ? { silk: "own", silkSpec: MY.spec, silk2d: MY.img } : { silk: SILK3D[h.sk], silk2d: SILKS[h.sk].img }), odds: mkt[k].odds, card: mkt[k].card, coat: { body: h.coat[0], points: h.coat[1] }, mine: !!h.mine })) };
 }
 function closeWatch() {
   if (!watching) return; clearTimeout(watching.timer);

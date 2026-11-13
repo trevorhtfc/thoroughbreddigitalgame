@@ -161,7 +161,7 @@ if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => fitB
 function paintBoard() {
   if (!window.BOARD) return;
   BOARD.setStates(placeStates());
-  BOARD.flyOwn(SILK3D[mySilkN()]);
+  BOARD.flyOwn(my3D());
   paintGuide();
   if (BOARD.chosen && !UI.sheet) BOARD.choose(BOARD.chosen);    // keep the open card's words up to date
 }
@@ -192,7 +192,7 @@ async function story(from, to, key, { procession, then } = {}) {
   if (CHAPTERS[key]) BOARD.setHour(CHAPTERS[key].hour);
   paintBar(); paintBoard();
   showChapter(key);
-  if (procession && window.LIFE) { try { LIFE.procession(procession, { silk: SILK3D[mySilkN()] }); } catch (e) { console.warn(e); } }
+  if (procession && window.LIFE) { try { LIFE.procession(procession, { silk: my3D() }); } catch (e) { console.warn(e); } }
   BOARD.Sound.hooves && BOARD.Sound.hooves(3);
   if (from && to && from !== to) await BOARD.trail(from, to);
   if (UI.story !== run) return;
@@ -562,8 +562,10 @@ function paintMenu(keepScroll) {
   $("#menuWord").textContent = W.gameTitle || "Ascot";
   if (W.coverLede) $("#menuLede").innerHTML = W.coverLede;
   if (W.coverRaces) $("#menuRaces").innerHTML = `<b>${W.coverRaces[0]}</b><span>${W.coverRaces[1]}</span>`;
-  $("#menuCol").innerHTML = `<div class="mc-big">${silkImg(mySilkN())}</div><div class="mc-h">Your colours</div>
-    <div class="swatches" role="group" aria-label="Choose your silks">${SILKS.map((c, k) => `<button class="sw ${k === mySilkN() ? "on" : ""}" data-silks="${k}" aria-label="Silks ${k + 1} of ${SILKS.length}" aria-pressed="${k === mySilkN()}">${silkImg(k)}</button>`).join("")}</div>`;
+  // your colours: made by you (js/colours.js), not chosen from the ready-made silks
+  $("#menuCol").innerHTML = hasColours()
+    ? `<div class="mc-big">${silkImg(MINE)}</div><div class="mc-h">Your colours</div><div class="mc-own"><span>${esc2(SilksPaint.describe(MY.spec))}</span><button class="mc-change" id="menuColours" type="button">Change your colours</button></div>`
+    : `<div class="mc-big mc-none" aria-hidden="true"><span>?</span></div><div class="mc-h">Your colours</div><div class="mc-own"><span>Every owner races in their own colours. Make yours before your first runner.</span><button class="mc-change" id="menuColours" type="button">Make your colours</button></div>`;
   if (keepScroll) { const s2 = $("#menu .swatches"); if (s2) s2.scrollLeft = x; }
   const counts = {}; pastWeeks().forEach(w => counts[w.title] = (counts[w.title] || 0) + 1);
   $("#menuTitles").innerHTML = TITLES.map(t => `<li class="${t.cls} ${counts[t.name] ? "got" : ""}"><b data-n="${counts[t.name] ? "✓ ×" + counts[t.name] : ""}">${t.name}</b><span>${t.min ? money(t.min).replace(",000,000", "m").replace(/,000$/, "k") + "+" : "under " + money(TITLES[TITLES.length - 2].min).replace(/,000$/, "k")}</span></li>`).join("");
@@ -714,9 +716,9 @@ document.addEventListener("click", e => {
       break;
     }
     case "closeWatch": closeWatch(); break;
-    case "menuContinue": leaveMenu(); break;
-    case "menuDaily": playDaily(); newArmed = false; render(); leaveMenu(); break;
-    case "menuRandom": playRandom(); newArmed = false; render(); leaveMenu(); break;
+    case "menuContinue": if (needColours(() => leaveMenu())) break; leaveMenu(); break;
+    case "menuDaily": if (needColours(() => $("#menuDaily").click())) break; playDaily(); newArmed = false; render(); leaveMenu(); break;
+    case "menuRandom": if (needColours(() => $("#menuRandom").click())) break; playRandom(); newArmed = false; render(); leaveMenu(); break;
     case "menuNew": if (!newArmed) { newArmed = true; paintMenu(true); break; }
       playRandom(); freshSeason(); newArmed = false; render(); paintMenu(true); toast("A new random season is drawn"); break;
     case "aucBid": aucPlace("me"); break;

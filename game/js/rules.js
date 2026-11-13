@@ -262,9 +262,26 @@ const SILKS = [{img:"img/silks/s01.webp",a:"#3e9745",b:"#d53f3c"},{img:"img/silk
 const COLOURS = SILKS;
 // The same 54 silks as traditional silks for the 3D jockey (silks/silks.json in the repo, in menu order: s01 first)
 const SILK3D = ["aga-khan", "alcohol-free", "amo-2", "ballydoyle-navy", "ballydoyle-orange", "ballydoyle-pink", "ballydoyle-purple", "black-white", "bradsell", "cheveley-park", "circus-maximus", "clipper-logistics", "desert-crown", "doha", "ebts-guard", "flamin-rib", "glen-sheil", "godolphin", "highclere", "judmonte", "king-power", "lake-forest", "liberty-lane", "lord-riddleford", "maroon-classic", "masrshamn", "middleham-park", "mill-reef", "nashwa", "nathaniel", "night-of-thunder", "oppenheimer", "orange-black", "phoenix-of-spain", "pink-white", "pink-white-blue", "poetic-flare", "purple-pink", "qatar", "red-white", "red-white-black", "royal", "sea-the-stars", "shadwell", "silkiewilie", "starlust", "strawbridge", "stradivarius", "swingalong", "wantan-2", "watnan", "white-blue", "wimbledon-hawkeye", "yellow-black-epilite"];
-const mySilkN = () => Math.min(S.silks || 0, SILKS.length - 1);
-const mySilks = () => SILKS[mySilkN()];
-const silkImg = (k, cls) => `<img class="silk ${cls || ""}" src="${SILKS[k].img}" alt="">`;
+// Your colours (owner, 13 Nov): every player makes their own from the templates and the palette (silks-paint.js, the
+// maker in js/colours.js), and they are remembered on this phone or computer for every game and both seasons. The 54
+// ready-made silks are the opposition's; a player who has not made colours yet is shown the first of them until they do.
+const COLOURS_KEY = "tb-colours", MINE = -1;
+let MY = null;   // { spec, code, img (the menu picture, a data: address), a, b }
+function setColours(spec, keep) {
+  if (!window.SilksPaint || !SilksPaint.valid(spec)) return false;
+  const second = [spec.body, spec.sleeves, spec.cap].map(z => z.p !== "plain" && z.b !== spec.body.a ? z.b : z.a).find(c => c !== spec.body.a) || spec.body.a;
+  MY = { spec, code: SilksPaint.encode(spec), img: SilksPaint.icon(spec, 280).toDataURL("image/png"), a: spec.body.a, b: second };
+  if (keep !== false) { try { localStorage.setItem(COLOURS_KEY, JSON.stringify({ v: 1, spec, when: Date.now() })); } catch (e) {} }
+  return true;
+}
+(() => { try { const v = JSON.parse(localStorage.getItem(COLOURS_KEY) || "null"); if (v && v.spec) setColours(v.spec, false); } catch (e) {} })();
+const hasColours = () => !!MY;
+const mySilkN = () => MY ? MINE : Math.min(S.silks || 0, SILKS.length - 1);
+const mySilks = () => MY || SILKS[mySilkN()];
+const silkOf = k => k === MINE ? (MY || SILKS[0]) : SILKS[Math.max(0, Math.min(SILKS.length - 1, k || 0))];
+const silkImg = (k, cls) => `<img class="silk ${cls || ""}" src="${silkOf(k).img}" alt="">`;
+// what the 3D views are given for your jockey: your own colours to paint, or one of the ready-made silks by name
+const my3D = () => MY ? MY.spec : SILK3D[mySilkN()];
 const shirt = (a, b) => `<svg class="shirt" viewBox="0 0 40 46" aria-hidden="true"><path d="M12 6l8-3 8 3 9 8-5 6-4-3v26H12V17l-4 3-5-6z" fill="${a}" stroke="rgba(0,0,0,.35)"/><rect x="12" y="20" width="16" height="6" fill="${b}"/></svg>`;
 
 /* ================= Building a card from a seed: the opposition, the going, the mare draw ================= */
@@ -673,7 +690,7 @@ function dailyLog() { try { const v = JSON.parse(localStorage.getItem(DAILY_KEY)
 function noteDaily(prize, wins) {
   if (!isDaily()) return;
   try { const log = dailyLog(); if (log[S.day]) return;
-    log[S.day] = { seed: S.seed, prize, wins, races: RACES.length, title: titleFor(prize).name, silks: S.silks || 0, when: Date.now() };
+    log[S.day] = { seed: S.seed, prize, wins, races: RACES.length, title: titleFor(prize).name, silks: mySilkN(), colours: MY ? MY.code : undefined, when: Date.now() };
     const days = Object.keys(log).sort(); days.slice(0, Math.max(0, days.length - 400)).forEach(d => delete log[d]);
     localStorage.setItem(DAILY_KEY, JSON.stringify(log)); } catch (e) {}
 }

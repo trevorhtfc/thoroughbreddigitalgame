@@ -826,8 +826,11 @@ function drawBanners(t, dt) {
 let ownSilk = null, silkDefs = null;
 function flyOwn(id) {
   ownSilk = id;
-  if (!silkDefs || !BANNERS.length || !silkDefs.byId[id]) return;
+  if (!silkDefs || !BANNERS.length) return;
   const i = BANNERS.length - 1;
+  // colours a player made themselves come as their description (body: pattern, colour, second colour), not a name
+  if (id && typeof id === "object" && id.body) { BANNERS[i].flag = silkFlag({ body: { colour: "a", colour2: "b", pattern: id.body.p === "belt" ? "hooped band" : id.body.p } }, { a: id.body.a, b: id.body.b || id.body.a }, banW, Math.round(banW * 0.72), 99); return; }
+  if (!silkDefs.byId[id]) return;
   BANNERS[i].flag = silkFlag(silkDefs.byId[id], silkDefs.palette, banW, Math.round(banW * 0.72), 99);
 }
 Promise.all([fetch(BASE + "banners.json").then((r) => r.json()), fetch(BASE + "silks.json").then((r) => r.json())]).then(([ban, silks]) => {
