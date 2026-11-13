@@ -458,12 +458,20 @@ async function simAndRecord(i) { if (S.results[RACES[i].id]) return; const out =
 
 /* ================= State ================= */
 let S, CARD;
-// One season number is one season. Every roll of the dice in it (which mares a pile turns over, the foal a mating gives,
-// the Tattersalls catalogue, how far each rival buyer will go for a lot) comes from the season's number and what is being
-// rolled for, never from the clock or the order things were done in. So the daily card is the same for everyone who plays
-// it, the same mating gives everyone the same foal, and no roll can be taken again. Only the choice of a random game's
-// number, and things that are only for show (how long a rival hesitates before bidding), still use Math.random.
-const luck = key => seeded(hashStr(S.seed + "|" + key));
+// Two numbers make a game. The season's number (S.seed) is the race card: the ten races, the going, the fields. That is
+// what today's card shares: everyone gets the same races. The game's own luck (S.luck, drawn afresh for every game and
+// every player) is the breeding and buying: which mares a pile turns over, the foal a mating gives, the Tattersalls
+// catalogue, how far each rival buyer will go, what an unproven stallion is really worth (owner, 13 Nov: "the mares and
+// foals etc shouldn't be pre fixed. it should work fresh for each player"). Each roll comes from the game's luck and
+// what is being rolled for, never from the clock, so within one game a roll can't be taken again by reloading the page.
+// (Games saved before this have no luck of their own and go on using the season's number.)
+const luckOf = () => S.luck || S.seed;
+const luck = key => seeded(hashStr(luckOf() + "|" + key));
+function ownLuck() {
+  if (!S.luck) return;
+  const r = luck("stallions");
+  STALLIONS.forEach(s => { CARD.trueStars[s.name] = s.base > 0 ? Math.max(1, Math.min(5, s.base + (r() < .5 ? -1 : 1))) : s.stars; });
+}
 // ----- Today's card: one season a day, the same for everyone, changing at midnight UK time -----
 const ukDay = t => { const d = t ? new Date(t) : new Date();
   try { const o = {}; new Intl.DateTimeFormat("en-GB", { timeZone: "Europe/London", year: "numeric", month: "2-digit", day: "2-digit" }).formatToParts(d).forEach(x => o[x.type] = x.value); return `${o.year}-${o.month}-${o.day}`; }
@@ -476,9 +484,9 @@ const isDaily = () => !!(S && S.mode === "daily");
 const seasonName = (x, lower) => { x = x || S; return x.day ? `${lower ? "d" : "D"}aily card, ${dayText(x.day)}` : `${lower ? "s" : "S"}eason ${x.seed}`; };
 const seasonDone = () => !!S && Object.keys(S.results).length === RACES.length;
 function newCard(seed, day) {
-  S = { seed: seed || Math.floor(Math.random() * 1e6) + 1, mode: day ? "daily" : "random", day: day || null, pileN: {}, step: 1, tab: "stud", budget: START_BUDGET, stable: [], hand: [], usedMares: [], deckPos: 0,
+  S = { seed: seed || Math.floor(Math.random() * 1e6) + 1, luck: Math.floor(Math.random() * 2e9) + 1, mode: day ? "daily" : "random", day: day || null, pileN: {}, step: 1, tab: "stud", budget: START_BUDGET, stable: [], hand: [], usedMares: [], deckPos: 0,
     selMare: null, foal: null, sale: [], lotN: 0, entries: {}, results: {}, open: null, silks: S ? S.silks : 0, sort: "fee", offer: null, book: 1, catDams: [], v: 6, dealt: false, tallied: false };
-  CARD = makeCard(S.seed);
+  CARD = makeCard(S.seed); ownLuck();
   // No starting mares: every mare is bought at the mares sale, choosing one of three
   S.selMare = null;
   save();
@@ -492,7 +500,7 @@ function dailySave() { try { const v = JSON.parse(localStorage.getItem(slotKey("
 function load(mode) {
   mode = mode || "random";
   try { const v = JSON.parse(localStorage.getItem(slotKey(mode)) || "null"); if (v && v.seed && Array.isArray(v.stable)) {
-    S = v; S.open = null; S.mode = mode === "daily" && S.day ? "daily" : "random"; S.pileN = S.pileN || {}; CARD = makeCard(S.seed); migrate();
+    S = v; S.open = null; S.mode = mode === "daily" && S.day ? "daily" : "random"; S.pileN = S.pileN || {}; CARD = makeCard(S.seed); ownLuck(); migrate();
     // left in the middle of an auction: that lot has gone through the ring without you
     if (S.ring) { S.sale = (S.sale || []).filter(x => x.id !== S.ring); S.ring = null; save(); }
     return true; } } catch (e) {}
@@ -605,9 +613,9 @@ const OFFER_SIZE = 3;
 function drawPile(id) {
   const p = PILES.find(x => x.id === id); if (S.offer || !p || studCount() >= MARE_CAP || p.price > S.budget) return;
   if (!pileLeft(p).length) return;
-  // each mare has her own place in this pile's nth draw, so the same draw turns over the same mares for everyone
+  // each mare has her own place in this pile's nth draw of this game
   S.pileN = S.pileN || {}; const n = S.pileN[id] = (S.pileN[id] || 0) + 1;
-  const left = pileLeft(p).map(m => [hashStr(S.seed + "|pile|" + id + "|" + n + "|" + m.name), m]).sort((a, b) => a[0] - b[0] || (a[1].name < b[1].name ? -1 : 1)).map(x => x[1]);
+  const left = pileLeft(p).map(m => [hashStr(luckOf() + "|pile|" + id + "|" + n + "|" + m.name), m]).sort((a, b) => a[0] - b[0] || (a[1].name < b[1].name ? -1 : 1)).map(x => x[1]);
   S.budget -= p.price; S.offer = { pile: p.id, mares: left.slice(0, OFFER_SIZE).map(m => m.name) };
 }
 function keepOffer(name) {
@@ -621,10 +629,10 @@ function newName(rnd) {
   return "FOAL " + (S.stable.length + 1);
 }
 function breed(sireName, damName, how, cost, lotId) {
-  // the foal is this season's foal of this sire and dam: the same for everyone, however and whenever it is bred or bought
+  // the foal is this game's foal of this sire and dam, however and whenever it is bred or bought
   const rnd = luck("foal|" + sireName + "|" + damName);
   const s = stallion(sireName), m = byName(damName), f = breedPure(s, m, rnd);
-  let id = "h" + hashStr(S.seed + "|foal|" + sireName + "|" + damName).toString(36); while (S.stable.some(x => x.id === id)) id += "x";
+  let id = "h" + hashStr(luckOf() + "|foal|" + sireName + "|" + damName).toString(36); while (S.stable.some(x => x.id === id)) id += "x";
   const h = { id, name: newName(rnd), sex: rnd() < .5 ? "F" : "C", sire: s.name, dam: m.name,
     peakAge: f.peakAge, r: f.r, d: f.d, grounds: f.grounds, age: 2, portrait: 1 + Math.floor(rnd() * 12), coat: COATS[Math.floor(rnd() * COATS.length)], how, cost };
   h.verdict = verdictFor(h);

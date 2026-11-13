@@ -576,7 +576,7 @@ function paintMenu(keepScroll) {
     ? `<button class="tb-btn" id="menuDaily">Today's card: ${money(done.prize)}<small>${done.title} · played ${dayText(today)} · a new card at midnight</small></button>`
     : dsToday && (dsToday.dealt || dsToday.step > 1)
       ? `<button class="tb-btn" id="menuDaily">Continue today's card<small>${dayText(today, true)} · ${stepOf(dsToday)}</small></button>`
-      : `<button class="tb-btn" id="menuDaily">Play today's card<small>${dayText(today, true)} · the same for everyone · one go</small></button>`;
+      : `<button class="tb-btn" id="menuDaily">Play today's card<small>${dayText(today, true)} · the same races for everyone · one go</small></button>`;
   const random = rnd
     ? `<button class="tb-btn ghost" id="menuRandom">Random game<small>Continue · ${stepOf(rnd).toLowerCase()}</small></button><button class="tb-btn ghost" id="menuNew">${newArmed ? "Tap again to confirm" : "New random game"}<small>${newArmed ? "Season " + rnd.seed + " will be lost" : "New races and mares"}</small></button>`
     : `<button class="tb-btn ghost" id="menuRandom">Play a random game<small>Any time, as often as you like</small></button>`;

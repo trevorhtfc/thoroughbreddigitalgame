@@ -699,8 +699,8 @@ addEventListener("message", e => {
 let A = null;   // the auction in progress
 function openAuction(id) {
   const l = S.sale.find(x => x.id === id); if (!l || A || S.step < 2 || S.step > 3 || S.foal || stableFull()) return;
-  // who is interested in this lot and how far each will go is the season's (the same for everyone playing it); only how
-  // long they hesitate before each bid is left to chance
+  // who is interested in this lot and how far each will go is this game's own luck (fixed once the game is dealt, so
+  // leaving the page and coming back can't change it); how long they hesitate before each bid is left to chance
   const rnd = luck("ring|" + l.sire + "|" + l.dam), ap = appeal(l, rnd);
   const rivals = RIVALS.map(r => ({ ...r, ceil: rnd() < r.keen(l) ? l.reserve * ap * r.want(l) * (.7 + rnd() * .9) : 0, wait: null }));
   A = { rnd, l, price: null, leader: null, start: performance.now(), last: performance.now(), rivals, log: [], call: -1, done: false, auto: 0, autoOn: false, ang: Math.random() * 6.28 };
