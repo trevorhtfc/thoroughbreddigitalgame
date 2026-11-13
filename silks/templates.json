@@ -1,0 +1,291 @@
+{
+ "_about": "The base silks templates, numbered as on the owner's reference sheets (reference/silks/). A set of silks is one jacket, one sleeve and one cap template, each with a colour and a second colour. 'pattern' is the name used in silks.json; 'id' is its demo texture and icon (catalogue-*).",
+ "jackets": [
+  {
+   "number": 1,
+   "name": "Plain",
+   "pattern": "plain",
+   "id": "catalogue-body-plain"
+  },
+  {
+   "number": 2,
+   "name": "Strip",
+   "pattern": "strip",
+   "id": "catalogue-body-strip"
+  },
+  {
+   "number": 3,
+   "name": "Braces",
+   "pattern": "braces",
+   "id": "catalogue-body-braces"
+  },
+  {
+   "number": 4,
+   "name": "Belt",
+   "pattern": "belt",
+   "id": "catalogue-body-belt"
+  },
+  {
+   "number": 5,
+   "name": "Hooped",
+   "pattern": "hoops",
+   "id": "catalogue-body-hoops"
+  },
+  {
+   "number": 6,
+   "name": "Chevron",
+   "pattern": "chevron",
+   "id": "catalogue-body-chevron"
+  },
+  {
+   "number": 7,
+   "name": "Chevrons",
+   "pattern": "chevrons",
+   "id": "catalogue-body-chevrons"
+  },
+  {
+   "number": 8,
+   "name": "Seams",
+   "pattern": "seams",
+   "id": "catalogue-body-seams"
+  },
+  {
+   "number": 9,
+   "name": "Cross belts",
+   "pattern": "crossbelts",
+   "id": "catalogue-body-crossbelts"
+  },
+  {
+   "number": 10,
+   "name": "Cross of Lorraine",
+   "pattern": "cross of lorraine",
+   "id": "catalogue-body-cross-of-lorraine"
+  },
+  {
+   "number": 11,
+   "name": "Checks",
+   "pattern": "check",
+   "id": "catalogue-body-check"
+  },
+  {
+   "number": 12,
+   "name": "Diamond",
+   "pattern": "diamond",
+   "id": "catalogue-body-diamond"
+  },
+  {
+   "number": 13,
+   "name": "Diamonds",
+   "pattern": "diamonds",
+   "id": "catalogue-body-diamonds"
+  },
+  {
+   "number": 14,
+   "name": "Quartered",
+   "pattern": "quartered",
+   "id": "catalogue-body-quartered"
+  },
+  {
+   "number": 15,
+   "name": "Epaulettes",
+   "pattern": "epaulets",
+   "id": "catalogue-body-epaulets"
+  },
+  {
+   "number": 16,
+   "name": "Star",
+   "pattern": "star",
+   "id": "catalogue-body-star"
+  },
+  {
+   "number": 17,
+   "name": "Stars",
+   "pattern": "stars",
+   "id": "catalogue-body-stars"
+  },
+  {
+   "number": 18,
+   "name": "Spots",
+   "pattern": "spots",
+   "id": "catalogue-body-spots"
+  },
+  {
+   "number": 19,
+   "name": "Stripes",
+   "pattern": "stripes",
+   "id": "catalogue-body-stripes"
+  },
+  {
+   "number": 20,
+   "name": "Disc",
+   "pattern": "disc",
+   "id": "catalogue-body-disc"
+  },
+  {
+   "number": 21,
+   "name": "Diabolo",
+   "pattern": "diabolo",
+   "id": "catalogue-body-diabolo"
+  },
+  {
+   "number": 22,
+   "name": "Inverted triangle",
+   "pattern": "inverted triangle",
+   "id": "catalogue-body-inverted-triangle"
+  },
+  {
+   "number": 23,
+   "name": "Large spots",
+   "pattern": "large spots",
+   "id": "catalogue-body-large-spots"
+  },
+  {
+   "number": 24,
+   "name": "Triple diamond",
+   "pattern": "triple diamond",
+   "id": "catalogue-body-triple-diamond"
+  },
+  {
+   "number": 25,
+   "name": "Hollow box",
+   "pattern": "hollow box",
+   "id": "catalogue-body-hollow-box"
+  }
+ ],
+ "sleeves": [
+  {
+   "number": 1,
+   "name": "Plain",
+   "pattern": "plain",
+   "id": "catalogue-sleeves-plain"
+  },
+  {
+   "number": 2,
+   "name": "Armlet",
+   "pattern": "armlets",
+   "id": "catalogue-sleeves-armlets"
+  },
+  {
+   "number": 3,
+   "name": "Hooped",
+   "pattern": "hoops",
+   "id": "catalogue-sleeves-hoops"
+  },
+  {
+   "number": 4,
+   "name": "Striped",
+   "pattern": "stripes",
+   "id": "catalogue-sleeves-stripes"
+  },
+  {
+   "number": 5,
+   "name": "Chevrons",
+   "pattern": "chevrons",
+   "id": "catalogue-sleeves-chevrons"
+  },
+  {
+   "number": 6,
+   "name": "Seams",
+   "pattern": "seams",
+   "id": "catalogue-sleeves-seams"
+  },
+  {
+   "number": 7,
+   "name": "Stars",
+   "pattern": "stars",
+   "id": "catalogue-sleeves-stars"
+  },
+  {
+   "number": 8,
+   "name": "Spots",
+   "pattern": "spots",
+   "id": "catalogue-sleeves-spots"
+  },
+  {
+   "number": 9,
+   "name": "Halved",
+   "pattern": "halved",
+   "id": "catalogue-sleeves-halved"
+  },
+  {
+   "number": 10,
+   "name": "Diabolo",
+   "pattern": "diabolo",
+   "id": "catalogue-sleeves-diabolo"
+  },
+  {
+   "number": 11,
+   "name": "Diamonds",
+   "pattern": "diamonds",
+   "id": "catalogue-sleeves-diamonds"
+  },
+  {
+   "number": 12,
+   "name": "Check",
+   "pattern": "check",
+   "id": "catalogue-sleeves-check"
+  }
+ ],
+ "caps": [
+  {
+   "number": 1,
+   "name": "Plain",
+   "pattern": "plain",
+   "id": "catalogue-cap-plain"
+  },
+  {
+   "number": 2,
+   "name": "Hooped",
+   "pattern": "hooped",
+   "id": "catalogue-cap-hooped"
+  },
+  {
+   "number": 3,
+   "name": "Striped",
+   "pattern": "striped",
+   "id": "catalogue-cap-striped"
+  },
+  {
+   "number": 4,
+   "name": "Check",
+   "pattern": "check",
+   "id": "catalogue-cap-check"
+  },
+  {
+   "number": 5,
+   "name": "Spots",
+   "pattern": "spots",
+   "id": "catalogue-cap-spots"
+  },
+  {
+   "number": 6,
+   "name": "Quartered",
+   "pattern": "quartered",
+   "id": "catalogue-cap-quartered"
+  },
+  {
+   "number": 7,
+   "name": "Star",
+   "pattern": "star",
+   "id": "catalogue-cap-star"
+  },
+  {
+   "number": 8,
+   "name": "Diamond",
+   "pattern": "diamond",
+   "id": "catalogue-cap-diamond"
+  },
+  {
+   "number": 9,
+   "name": "Stars",
+   "pattern": "stars",
+   "id": "catalogue-cap-stars"
+  },
+  {
+   "number": 10,
+   "name": "Diamonds",
+   "pattern": "diamonds",
+   "id": "catalogue-cap-diamonds"
+  }
+ ]
+}

@@ -525,6 +525,216 @@ for _ in range(2):
 bm.to_mesh(me); bm.free()
 print("smoothed jockey vertices:", len(movable))
 
+# ------------------------------------------------------------------ 4a. clean joins, and silks laid out afresh
+# (owner, 13 Nov: "even cleaner silks where the patterns etc join")
+# Where the jacket met the breeches, and each sleeve met the body, the join followed the model's triangles: a
+# saw-tooth edge. Each join is now a smooth line: a flat cut fitted to the old join, allowed to dip and rise
+# gently round the body (JOIN_WAVES), and the mesh is cut along it, so the edge is clean however close you look.
+JOIN_WAVES = 2
+def clean_join(bm, zl, A, B, ZN, band=0.012, where=None):
+    ia, ib = ZN.index(A), ZN.index(B)
+    pts, wts = [], []
+    on_join = lambda e: len(e.link_faces) == 2 and {f[zl] for f in e.link_faces} == {ia, ib} and (where is None or where(np.array(((e.verts[0].co + e.verts[1].co) / 2)[:])))
+    for e in bm.edges:
+        if on_join(e):
+            pts.append(((e.verts[0].co + e.verts[1].co) / 2)[:]); wts.append(e.calc_length())
+    if len(pts) < 8:
+        print("join %s/%s: too short to tidy" % (A, B)); return
+    X = np.array(pts); w = np.array(wts) / sum(wts)
+    c = (X * w[:, None]).sum(0)
+    _, _, vt = np.linalg.svd((X - c) * np.sqrt(w)[:, None], full_matrices=False)
+    n = vt[2]; e1, e2 = vt[0], vt[1]
+    ca = np.mean([f.calc_center_median()[:] for f in bm.faces if f[zl] == ia and np.linalg.norm(np.array(f.calc_center_median()[:]) - c) < 0.08], axis=0)
+    cb = np.mean([f.calc_center_median()[:] for f in bm.faces if f[zl] == ib and np.linalg.norm(np.array(f.calc_center_median()[:]) - c) < 0.08], axis=0)
+    if (cb - ca) @ n < 0: n = -n
+    def basis(P):
+        d = np.atleast_2d(P) - c; ph = np.arctan2(d @ e2, d @ e1)
+        return np.stack([np.ones_like(ph)] + [fn(k * ph) for k in range(1, JOIN_WAVES + 1) for fn in (np.cos, np.sin)], axis=1), d @ n
+    Bm, r = basis(X)
+    Wd = np.diag(w)
+    coef = np.linalg.solve(Bm.T @ Wd @ Bm + np.eye(Bm.shape[1]) * 1e-4, Bm.T @ Wd @ r)
+    def sgn(P):                                   # < 0 on A's side of the join, > 0 on B's
+        Bq, d = basis(P); return d - Bq @ coef
+    rad = np.linalg.norm((X - c) - np.outer((X - c) @ n, n), axis=1).max() * 1.35 + 0.01
+    before = float(np.sqrt((sgn(X) ** 2 * w).sum()))
+    def near(f):
+        q = np.array(f.calc_center_median()[:]) - c
+        return f[zl] in (ia, ib) and np.linalg.norm(q - (q @ n) * n) < rad and abs(q @ n) < band + 0.03
+    region = [f for f in bm.faces if near(f)]
+    # only the faces joined to the old line through the band (not, say, a knee that happens to lie on the cut)
+    reg = set(region); seed = [f for f in region if any(on_join(e) for e in f.edges)]
+    keep = set(seed); st = list(seed)
+    sval = {}
+    def sv(v):
+        if v not in sval: sval[v] = float(sgn(np.array(v.co[:]))[0])
+        return sval[v]
+    while st:
+        f = st.pop()
+        for e in f.edges:
+            for g in e.link_faces:
+                if g in reg and g not in keep and min(abs(sv(v)) for v in g.verts) < band:
+                    keep.add(g); st.append(g)
+    edges = {e for f in keep for e in f.edges}
+    on_line = set()
+    for e in list(edges):
+        a, b_ = e.verts; sa, sb = sv(a), sv(b_)
+        if abs(sa) < 2e-4: on_line.add(a)
+        if abs(sb) < 2e-4: on_line.add(b_)
+        if sa * sb < 0 and abs(sa) >= 2e-4 and abs(sb) >= 2e-4:
+            faces_before = set(e.link_faces)
+            _, nv = bmesh.utils.edge_split(e, a, sa / (sa - sb))
+            sval[nv] = 0.0; on_line.add(nv)
+            keep |= {f for f in nv.link_faces if f in faces_before or any(g in keep for g in faces_before)}
+    made = 0
+    for f in list(keep):
+        if not f.is_valid: continue
+        vs = [v for v in f.verts if v in on_line]
+        if len(vs) == 2 and not any(set(e.verts) == set(vs) for e in f.edges):
+            try:
+                nf, _ = bmesh.utils.face_split(f, vs[0], vs[1])
+                if nf is not None: keep.add(nf); made += 1
+            except Exception:
+                pass
+    moved = 0
+    for f in keep:
+        if not f.is_valid: continue
+        side = float(sgn(np.array(f.calc_center_median()[:]))[0])
+        if abs(side) > band: continue
+        want = ib if side > 0 else ia
+        if f[zl] != want: f[zl] = want; moved += 1
+    print("join %s/%s: saw-tooth of %.1f mm (at the view's scale) cut clean; %d faces cut, %d changed sides" % (A, B, before * 3000, made, moved))
+
+bm = bmesh.new(); bm.from_mesh(me); bm.faces.ensure_lookup_table()
+ZN = sorted(set(zone))
+zl = bm.faces.layers.int.new("zone_id"); z0 = bm.faces.layers.int.new("zone_was"); ol = bm.loops.layers.uv.new("orig_uv")
+for f in bm.faces:
+    f[zl] = f[z0] = ZN.index(zone[f.index])
+    for l in f.loops:
+        l[ol].uv = ORIG_UV.get(l.index, (-10.0, -10.0))
+# The jacket meets the breeches along a long wandering line (across his back at the waist, then forward under each
+# side of his chest where it rests on his thighs), so no flat cut fits it. There the line itself is ironed: each
+# point on it slides, on the surface, towards the middle of its two neighbours along the line, until the teeth are gone.
+def iron_join(bm, zl, A, B, ZN, passes=40, most=0.016):
+    ia, ib = ZN.index(A), ZN.index(B)
+    nb = {}
+    for e in bm.edges:
+        if len(e.link_faces) == 2 and {f[zl] for f in e.link_faces} == {ia, ib}:
+            a, b_ = e.verts
+            nb.setdefault(a, []).append(b_); nb.setdefault(b_, []).append(a)
+    line = [v for v, ns in nb.items() if len(ns) == 2]          # ends and forks stay where they are
+    if not line:
+        return
+    tree = BVHTree.FromBMesh(bm)
+    home = {v: v.co.copy() for v in nb}
+    def rough():
+        return 3000 * float(np.mean([(v.co - (nb[v][0].co + nb[v][1].co) / 2).length for v in line]))
+    before = rough()
+    for _ in range(passes):
+        new = {v: v.co * 0.5 + (nb[v][0].co + nb[v][1].co) * 0.25 for v in line}
+        for v, c_ in new.items():
+            d = c_ - home[v]
+            if d.length > most: c_ = home[v] + d * (most / d.length)
+            hit = tree.find_nearest(c_)
+            v.co = hit[0] if hit[0] is not None else c_
+    print("join %s/%s ironed: %d points, teeth %.1f mm -> %.1f mm (at the view's scale)" % (A, B, len(line), before, rough()))
+iron_join(bm, zl, "kit", "body", ZN)
+clean_join(bm, zl, "body", "left", ZN)
+clean_join(bm, zl, "body", "right", ZN)
+bm.faces.ensure_lookup_table(); bm.faces.index_update()
+new_zone = [ZN[f[zl]] for f in bm.faces]; was_zone = [ZN[f[z0]] for f in bm.faces]
+orig_l = [tuple(l[ol].uv) for f in bm.faces for l in f.loops]
+bm.faces.layers.int.remove(zl); bm.faces.layers.int.remove(bm.faces.layers.int["zone_was"]); bm.loops.layers.uv.remove(bm.loops.layers.uv["orig_uv"])
+bm.to_mesh(me); bm.free()
+zone = np.array(new_zone, dtype=object); nF = len(me.polygons)
+ORIG_UV = {i: t for i, t in enumerate(orig_l) if t[0] > -5}
+uv = me.uv_layers["UVMap"].data; col = me.color_attributes["Color"]
+for p in me.polygons:
+    zn, zw = zone[p.index], was_zone[p.index]
+    p.use_smooth = True
+    if zn == zw: continue
+    if zn == "kit":                                 # jacket that is now breeches
+        p.material_index = MAIN
+        for l in p.loop_indices:
+            uv[l].uv = LIGHT; col.data[l].color = (0.0, 0.0, 0.0, 1.0)
+    elif zw == "kit":                               # breeches that are now jacket
+        p.material_index = SILK
+        for l in p.loop_indices:
+            col.data[l].color = (1.0, 1.0, 1.0, 1.0)
+
+# The silks' layout, measured afresh from the jockey's shape instead of carried over from v1's unwrap (which
+# wandered, so stripes wobbled and a sash broke into patches). Body: round the line of his back (0 his right side,
+# a quarter his chest, a half his left side, three quarters his back), and along it from the hem to the collar.
+# Sleeves: round each arm from the outside, and along it from the shoulder to the cuff.
+co = np.array([v.co[:] for v in me.vertices])
+lv = np.array([l.vertex_index for l in me.loops])
+def put(face_ids, U, T, island):
+    X0, Y0, W_, Hh = ATLAS[island]
+    for i in face_ids:
+        p = me.polygons[i]; ls = list(p.loop_indices)
+        us = np.array([U[lv[l]] for l in ls])
+        if us.max() - us.min() > 0.5: us = np.where(us < 0.5, us + 1.0, us)       # a face across the back seam
+        for l, u_ in zip(ls, us):
+            uv[l].uv = (X0 + W_ * float(u_), 1 - (Y0 + Hh * float(T[lv[l]])))
+bf = [i for i in range(nF) if zone[i] == "body"]
+bv = sorted({v for i in bf for v in me.polygons[i].vertices})
+A0 = np.array((0.000, 0.0, 0.495)); A1 = np.array((0.150, 0.0, 0.545)); ax = (A1 - A0) / np.linalg.norm(A1 - A0)   # his hips to the top of his chest
+lat = np.array((0.0, 1.0, 0.0)); upn = np.cross(ax, lat); upn /= np.linalg.norm(upn)
+if upn[2] < 0: upn = -upn                                    # out of his back
+tt = (co - A0) @ ax; nn = (co - A0) @ upn; yy = co[:, 1]
+mid = np.polyfit(tt[bv], nn[bv], 2)                          # the line of his back curves a little
+nn_c = nn - np.polyval(mid, tt)
+U_body = (np.arctan2(-nn_c, -yy) / (2 * math.pi)) % 1.0
+t_lo, t_hi = np.percentile(tt[bv], 1.5), np.percentile(tt[bv], 99.5)
+T_body = np.clip((tt - t_lo) / (t_hi - t_lo), 0.0, 1.0)
+put(bf, U_body, T_body, "body")
+print("body laid out: %d faces, hem to collar %.0f mm" % (len(bf), (t_hi - t_lo) * 3000))
+# Each sleeve is a bent tube (his arms are folded), so it is measured along the cloth itself: "along" is a smooth
+# field over the sleeve that is 0 on the shoulder join and 1 on the cuff (so a hoop is a ring round the arm wherever
+# the arm bends); the middle line of the tube is found from rings of it; "round" is the angle about that line.
+vfz = [set() for _ in me.vertices]
+for p in me.polygons:
+    for v in p.vertices: vfz[v].add(zone[p.index])
+for isl, sg in (("left", 1.0), ("right", -1.0)):
+    sf = [i for i in range(nF) if zone[i] == isl]
+    svs = sorted({v for i in sf for v in me.polygons[i].vertices}); ix = {v: k for k, v in enumerate(svs)}
+    nbr = [set() for _ in svs]
+    for i in sf:
+        vs = list(me.polygons[i].vertices)
+        for a_, b_ in zip(vs, vs[1:] + vs[:1]):
+            nbr[ix[a_]].add(ix[b_]); nbr[ix[b_]].add(ix[a_])
+    fixed = {}
+    for v in svs:
+        if "glove" in vfz[v]: fixed[ix[v]] = 1.0
+        elif "body" in vfz[v]: fixed[ix[v]] = 0.0
+    n_ = len(svs); Lm = np.zeros((n_, n_)); rhs = np.zeros(n_)
+    for k in range(n_):
+        if k in fixed: Lm[k, k] = 1.0; rhs[k] = fixed[k]
+        else:
+            Lm[k, k] = len(nbr[k])
+            for j in nbr[k]: Lm[k, j] = -1.0
+    tf = np.clip(np.linalg.solve(Lm + np.eye(n_) * 1e-9, rhs), 0, 1)
+    P = co[svs]
+    # the middle line: the centres of 10 rings of the tube, smoothed
+    edges_ = np.linspace(0, 1, 11); cen, tc = [], []
+    for k in range(10):
+        m_ = (tf >= edges_[k] - 0.04) & (tf <= edges_[k + 1] + 0.04)
+        if m_.sum() >= 6: cen.append(P[m_].mean(0)); tc.append(tf[m_].mean())
+    cen, tc = np.array(cen), np.array(tc)
+    fit = [np.polyfit(tc, cen[:, d_], 3) for d_ in range(3)]
+    mid_at = lambda t_: np.stack([np.polyval(f_, t_) for f_ in fit], axis=-1)
+    dir_at = lambda t_: np.stack([np.polyval(np.polyder(f_), t_) for f_ in fit], axis=-1)
+    axis = dir_at(tf); axis /= np.linalg.norm(axis, axis=1)[:, None]
+    d = P - mid_at(tf); d -= axis * (d * axis).sum(1)[:, None]
+    side_ = np.array((0.0, sg, 0.0))
+    out0 = side_[None] - axis * (axis @ side_)[:, None]; out0 /= np.linalg.norm(out0, axis=1)[:, None]
+    out1 = np.cross(axis, out0)
+    ang = (np.arctan2((d * out1).sum(1), (d * out0).sum(1)) / (2 * math.pi)) % 1.0
+    # evenly spaced along the arm's own length
+    ts = np.linspace(0, 1, 41); seg = np.linalg.norm(np.diff(mid_at(ts), axis=0), axis=1); cum = np.concatenate([[0], np.cumsum(seg)]) / seg.sum()
+    U_s = np.zeros(len(co)); T_s = np.zeros(len(co))
+    U_s[svs] = ang; T_s[svs] = np.interp(tf, ts, cum)
+    put(sf, U_s, T_s, isl)
+    print("%s sleeve laid out: %d faces, shoulder to cuff %.0f mm, %d points on the shoulder join, %d on the cuff" % (isl, len(sf), seg.sum() * 3000, sum(1 for v_ in fixed.values() if v_ == 0.0), sum(1 for v_ in fixed.values() if v_ == 1.0)))
 
 # ------------------------------------------------------------------ 4b. helmet and collar on the silks
 # The helmet keeps its own shape; its faces take the cap's disc in the silks layout (crown in the middle, the
@@ -868,11 +1078,12 @@ def ik(S, a, b, T, pole):
     ca = (a * a + L * L - b * b) / (2 * a * L); sa = math.sqrt(max(0.0, 1 - ca * ca))
     return S + (u * ca + v * sa) * a, S + u * L
 def set_pose(P):
-    """P: hips (dx, dz, pitch), chest pitch, head pitch, hand targets L/R (offsets from rest, horse frame),
-    elbow out L/R (metres), whip turn (degrees), hand turn R."""
+    """P: hips (dx, dz, pitch), chest pitch, twist (cy, to his left +) and roll (cr), head pitch, turn (dy) and
+    tilt (dr), hand targets L/R (offsets from rest, horse frame), elbow out L/R (metres), whip turn (degrees),
+    hand turn R."""
     Dh = Matrix.Translation(Vector((P["hx"], 0, P["hz"]))) @ about(J["jky_hips"][0], (0, 1, 0), P["hp"])
-    Dc = Dh @ about(J["jky_chest"][0], (0, 1, 0), P["cp"])
-    Dhd = Dc @ about(J["jky_head"][0], (0, 1, 0), P["dp"])
+    Dc = Dh @ about(J["jky_chest"][0], (0, 1, 0), P["cp"]) @ about(J["jky_chest"][0], (0, 0, 1), P.get("cy", 0.0)) @ about(J["jky_chest"][0], (1, 0, 0), P.get("cr", 0.0))
+    Dhd = Dc @ about(J["jky_head"][0], (0, 1, 0), P["dp"]) @ about(J["jky_head"][0], (0, 0, 1), P.get("dy", 0.0)) @ about(J["jky_head"][0], (1, 0, 0), P.get("dr", 0.0))
     pb["jky_hips"].matrix = Dh @ REST["jky_hips"]; bpy.context.view_layer.update()
     pb["jky_chest"].matrix = Dc @ REST["jky_chest"]; bpy.context.view_layer.update()
     pb["jky_head"].matrix = Dhd @ REST["jky_head"]; bpy.context.view_layer.update()
@@ -890,7 +1101,13 @@ def set_pose(P):
         pb["jky_hand." + sd].matrix = hm; bpy.context.view_layer.update()
     # whip: turned about the fist (relative to the hand)
     wr = REST["jky_whip"]; hand = pb["jky_hand.R"].matrix @ REST["jky_hand.R"].inverted()
-    pb["jky_whip"].matrix = hand @ about(WHIP_GRIP, (0, 1, 0), P["wh"]) @ about(WHIP_GRIP, (0, 0, 1), P.get("wy", 0.0)) @ wr
+    wm = hand @ about(WHIP_GRIP, (0, 1, 0), P["wh"]) @ about(WHIP_GRIP, (0, 0, 1), P.get("wy", 0.0)) @ wr
+    if P.get("wmix", 0.0) > 0:                 # the stick pointed where it should go (horse's frame), whatever the fist is doing
+        carried = (wm.to_3x3() @ (wr.to_3x3().inverted() @ WHIP_DIR)).normalized()
+        want = carried.lerp(Vector(P["wdir"]).normalized(), P["wmix"]).normalized()
+        wm = aim(wr, hand @ WHIP_GRIP, WHIP_DIR, want)
+        wm.translation = (hand @ WHIP_GRIP) + (wm.to_3x3() @ (wr.to_3x3().inverted() @ (Vector(wr.translation) - WHIP_GRIP)))
+    pb["jky_whip"].matrix = wm
     bpy.context.view_layer.update()
 BASE = dict(hx=0.0, hz=0.0, hp=0.0, cp=0.0, dp=0.0, wL=(0, 0, 0), wR=(0, 0, 0), eoL=0.0, eoR=0.0, wh=0.0)
 JKEYS = list(J)
@@ -903,7 +1120,60 @@ def new_action(name):
     arm.animation_data.action = a
     return a
 NECK = Vector((0.85, 0.0, -0.45)).normalized()          # along the horse's neck, forward and down
-def ride(name, push, pump, lower, head_drop, whip=False):
+sstep = lambda a, b_, x: (lambda t: t * t * (3 - 2 * t))(min(1.0, max(0.0, (x - a) / (b_ - a))))
+def ride(name, push, pump, lower, head_drop, float_=0.0, rock=0.0, whip=False, strides=1, tall=0.0):
+    """One riding clip. push: how far his hands go up the neck with each stride. pump: how hard his back and
+    elbows work. lower: how low he gets. float_: how much his seat and back give against the horse's rise, fall
+    and rocking under him (RIDE_BOB, RIDE_ROCK: read from the gallop), so that he travels level while the horse
+    moves. rock: his shoulders rolling with the push. whip: 2 strides: a stroke in the first, pushing through the second."""
+    new_action(name)
+    for f in range(N * strides + 1):
+        ph = (f / N) % 1.0; k_ = f % N
+        c = math.cos(2 * math.pi * (ph - PEAK))          # 1 when the head is lowest: hands furthest forward
+        s_ = math.sin(2 * math.pi * (ph - PEAK))
+        late = math.cos(2 * math.pi * (ph - PEAK - 0.09))  # his back follows his hands
+        P = dict(BASE)
+        # tall: standing in his irons with a straighter back, his hands sitting back on the withers (cruising)
+        P["hz"] = -lower + 0.014 * tall - 0.0030 * pump * (1 + late) - max(-0.009, min(0.009, float_ * RIDE_BOB[k_]))
+        P["hx"] = 0.004 * pump * c - 0.4 * lower - 0.006 * tall
+        P["hp"] = 2.4 * pump * late + float_ * 0.75 * RIDE_ROCK[k_] - 7.0 * tall      # (+ tips him forward: against the horse's forehand coming up)
+        P["cp"] = 4.0 * lower / 0.006 + 5.5 * pump * late - 13.0 * tall      # the back pumps with the push
+        P["cr"] = rock * s_                                     # the shoulders roll through the push
+        P["cy"] = 0.5 * rock * math.sin(2 * math.pi * (ph - PEAK - 0.2))
+        P["dp"] = -0.72 * P["cp"] - 0.6 * (P["hp"]) + head_drop + 1.2 * pump * math.cos(2 * math.pi * (ph - PEAK - 0.2))   # head kept looking forward, with a little nod
+        P["dr"] = -0.8 * P["cr"]; P["dy"] = -0.8 * P["cy"]
+        hand = NECK * (push * c) + Vector((0, 0, -0.005 * pump * (1 - c))) + Vector((-0.020, 0.0, 0.014)) * tall
+        P["wL"] = tuple(hand + Vector((0, 0.004 * rock / 4 * s_, 0))); P["wR"] = tuple(hand - Vector((0, 0.004 * rock / 4 * s_, 0)))
+        P["eoL"] = P["eoR"] = 0.004 + 0.011 * pump * (0.5 - 0.5 * c) + 0.008 * tall        # elbows out as the hands come back
+        if whip:
+            # two strides. The first: his right hand leaves the rein, the arm goes out and back with the stick
+            # upright, and comes down across the quarters as the hind legs push; the second: back to the rein,
+            # both hands pushing, the stick carried. (A stroke every stride looked like flailing.)
+            u = f / N                                         # 0..2
+            lift = sstep(0.02, 0.42, u) * (1 - sstep(0.60, 0.74, u))             # arm raised
+            hit = sstep(0.56, 0.70, u) * (1 - sstep(0.80, 1.22, u))              # down on the quarters, then back to the rein
+            away = max(lift, hit)
+            up = Vector((-0.088, -0.074, 0.100))              # fist out beside his shoulder
+            down = Vector((-0.125, -0.050, 0.020))            # fist back beside his seat
+            off = (up * lift + down * hit) / max(1.0, lift + hit)
+            P["wR"] = tuple(Vector(P["wR"]) * (1 - away) + off * away)
+            P["eoR"] = P["eoR"] + 0.030 * lift + 0.012 * hit
+            w_up, w_hit = Vector((-0.42, -0.26, 0.87)), Vector((-0.93, 0.20, -0.30))     # upright beside him; laid back along the quarters
+            bounce = sstep(0.70, 0.78, u) * (1 - sstep(0.78, 0.95, u))
+            P["wdir"] = tuple((w_up * (lift * (1 - hit)) + (w_hit + Vector((0, 0, 0.22 * bounce))) * hit) / max(1e-6, lift * (1 - hit) + hit))
+            P["wmix"] = max(lift, hit)
+            P["cy"] = P["cy"] - 9.0 * lift - 15.0 * hit       # his shoulders open towards the stick
+            P["cr"] = P["cr"] + 4.0 * hit
+            P["dy"] = P["dy"] + 7.0 * lift + 11.0 * hit       # but he keeps looking where he is going
+            P["wL"] = tuple(Vector(P["wL"]) + NECK * (0.006 * away))   # the rein hand takes both reins a touch shorter
+        set_pose(P); key_all(f)
+FLAT_BACK = float(os.environ.get("FLAT_BACK", "16"))       # degrees his back is tipped level while cruising
+FLAT_LIFT = float(os.environ.get("FLAT_LIFT", "0.030"))    # how far his seat comes up to do it (model units)
+def ride_as_before(name, push, pump, lower, head_drop, flat=0.0):
+    """The riding as it was before 13 Nov: the same crouch at every effort, only the push growing.
+    flat (owner, 13 Nov, of the no-effort seat: "if you just pulled the jockey's bottom up a bit such his back
+    became flat that would be ideal"): his seat lifted off the saddle and his back tipped level, his shoulders,
+    hands and head staying where they were."""
     new_action(name)
     for f in range(N + 1):
         ph = f / N
@@ -917,22 +1187,27 @@ def ride(name, push, pump, lower, head_drop, whip=False):
         hand = NECK * (push * c) + Vector((0, 0, -0.004 * pump * (1 - c)))
         P["wL"] = tuple(hand); P["wR"] = tuple(hand)
         P["eoL"] = P["eoR"] = 0.006 * pump * (1 - c)
-        if whip:                                          # right hand: up and back, then down onto the quarters
-            u = ph
-            if u < 0.55:   k = 0.5 - 0.5 * math.cos(math.pi * u / 0.55)            # wind up
-            elif u < 0.72: k = 1 - ((u - 0.55) / 0.17) ** 1.5 * 1.35                 # strike, fast
-            else:          k = -0.35 * (1 - (u - 0.72) / 0.28) ** 2                  # follow through, back to the reins
-            up = Vector((-0.085, -0.050, 0.140))
-            down = Vector((-0.070, -0.060, -0.015))
-            off = up * max(k, 0) + down * max(-k, 0) * 2.2
-            P["wR"] = tuple(off + Vector((-0.010, 0, 0)))
-            P["eoR"] = 0.025 * max(k, 0)
-            P["wh"] = 100.0 * max(k, 0) - 25.0 * max(-k, 0) * 2.0          # shaft up behind his shoulder, then down onto the quarters
+        if flat:
+            P["hz"] += FLAT_LIFT * flat; P["hp"] += FLAT_BACK * flat; P["dp"] -= 0.85 * FLAT_BACK * flat
         set_pose(P); key_all(f)
-ride("ride_quiet", push=0.004, pump=0.2, lower=0.0, head_drop=0.0)
-ride("ride_push", push=0.022, pump=1.0, lower=0.003, head_drop=-2.0)
-ride("ride_drive", push=0.036, pump=1.9, lower=0.006, head_drop=-4.0)
-ride("ride_whip", push=0.030, pump=1.6, lower=0.006, head_drop=-4.0, whip=True)
+# Owner, 13 Nov (midday), on the film: "the previous horse and jockey shape were better"; asked which, he chose the
+# jockey back as he was and the new gallop kept. So the jockey's seat and riding are as before ("before"); the
+# tall-then-low seat he had asked for overnight is kept here, switched off ("story"), in case it is wanted again.
+JOCKEY_SEAT = os.environ.get("JOCKEY_SEAT", "before")
+def ride_clips():
+    if JOCKEY_SEAT == "story":
+        # tall and still in his irons while the horse just gallops, then down low and flat as he asks for an
+        # effort, lowest of all in a drive
+        ride("ride_quiet", push=0.006, pump=0.2, lower=0.0, head_drop=0.0, float_=0.6, rock=0.0, tall=1.0)
+        ride("ride_push", push=0.030, pump=1.0, lower=0.006, head_drop=-2.0, float_=0.35, rock=2.2)
+        ride("ride_drive", push=0.050, pump=1.9, lower=0.012, head_drop=-5.0, float_=0.2, rock=4.0)
+        ride("ride_whip", push=0.042, pump=1.7, lower=0.011, head_drop=-4.0, float_=0.2, rock=3.0, whip=True, strides=2)
+        return
+    ride_as_before("ride_quiet", push=0.004, pump=0.2, lower=0.0, head_drop=0.0, flat=1.0)
+    ride_as_before("ride_push", push=0.022, pump=1.0, lower=0.003, head_drop=-2.0)
+    ride_as_before("ride_drive", push=0.036, pump=1.9, lower=0.006, head_drop=-4.0)
+    # the whip keeps its new stroke (up beside him, down onto the quarters, once in two strides), on the old crouch
+    ride("ride_whip", push=0.030, pump=1.6, lower=0.006, head_drop=-4.0, whip=True, strides=2)
 
 def ramp_pose(name, P1, bones):
     """A variety pose as a short ramp from the rest pose (frame 0) to the pose (frame N): engines play it
@@ -947,6 +1222,13 @@ ramp_pose("jky_crouch_low", dict(BASE, hz=-0.006, cp=6.0, dp=-5.0, hp=2.0), JB)
 ramp_pose("jky_crouch_high", dict(BASE, hz=0.006, cp=-6.0, dp=5.0, hp=-2.0), JB)
 ramp_pose("jky_elbows_out", dict(BASE, eoL=0.03, eoR=0.03), JB)
 ramp_pose("jky_hands_long", dict(BASE, wL=tuple(NECK * 0.02), wR=tuple(NECK * 0.02)), JB)
+# a look round for dangers (each way), and standing in the irons to pull up after the line
+ramp_pose("jky_look_left", dict(BASE, dy=52.0, dr=-6.0, dp=-3.0, cy=13.0, cr=-3.0, cp=-3.0), JB)
+ramp_pose("jky_look_right", dict(BASE, dy=-52.0, dr=6.0, dp=-3.0, cy=-13.0, cr=3.0, cp=-3.0), JB)
+if JOCKEY_SEAT == "story":            # (the tall seat is already partway up)
+    ramp_pose("jky_stand", dict(BASE, hz=0.010, hx=-0.004, hp=-6.0, cp=-12.0, dp=10.0, wL=(-0.016, 0.0, 0.014), wR=(-0.016, 0.0, 0.014), eoL=0.008, eoR=0.008), JB)
+else:
+    ramp_pose("jky_stand", dict(BASE, hz=0.016, hx=-0.006, hp=-9.0, cp=-17.0, dp=14.0, wL=(-0.030, 0.0, 0.022), wR=(-0.030, 0.0, 0.022), eoL=0.012, eoR=0.012), JB)
 for pbn in pb:
     pbn.rotation_quaternion = (1, 0, 0, 0); pbn.location = (0, 0, 0)
 
@@ -991,6 +1273,29 @@ def horse_clip(src, name, nod, neck_low, tail_lift, tail_swing, reach):
     return act
 horse_clip("gallop", "gallop_v2", nod=2.2, neck_low=0.0, tail_lift=9.0, tail_swing=4.0, reach=7.0)
 horse_clip("gallop_drive", "gallop_v2_drive", nod=3.0, neck_low=2.0, tail_lift=12.0, tail_swing=6.0, reach=9.0)
+# The body's rocking put in step with the legs, and every hoof planted (see gallop_balance.py: the horse no longer
+# looks to be tipping onto its front). Under pressure it runs a little flatter and rocks a little more.
+exec(open(os.path.join(ROOT, "tools/blender/gallop_balance.py")).read())
+rebalance(bpy.data.actions["gallop_v2"], level=1.5, swing=2.8)
+rebalance(bpy.data.actions["gallop_v2_drive"], level=1.1, swing=3.3)
+# What the jockey sits on: his saddle's rise and fall and the back's rocking through the stride (about their
+# means), read from the gallop. The riding clips give against them.
+arm.animation_data.action = bpy.data.actions["gallop_v2"]
+_z, _r = [], []
+for f in range(N):
+    scene.frame_set(f)
+    m_ = arm.pose.bones["tripo::Spine_4"].matrix
+    d_ = m_.to_3x3() @ Vector((0, 1, 0))
+    _z.append(m_.translation.z); _r.append(math.degrees(math.atan2(d_.z, d_.x)))
+RIDE_BOB = [z_ - sum(_z) / N for z_ in _z]; RIDE_ROCK = [r_ - sum(_r) / N for r_ in _r]
+print("saddle: rise and fall %.3f, rocking %.1f degrees" % (max(RIDE_BOB) - min(RIDE_BOB), max(RIDE_ROCK) - min(RIDE_ROCK)))
+arm.animation_data.action = None
+for pbn in pb:
+    pbn.rotation_quaternion = (1, 0, 0, 0); pbn.location = (0, 0, 0)
+bpy.context.view_layer.update()
+ride_clips()
+for pbn in pb:
+    pbn.rotation_quaternion = (1, 0, 0, 0); pbn.location = (0, 0, 0)
 def horse_ramp(name, degs):
     new_action(name)
     for f, s_ in ((0, 0.0), (N, 1.0)):
@@ -1045,16 +1350,21 @@ rig = {
     "about": "racehorse_v2: how to play the clips. Every clip is one stride (0.48 s) unless noted; play them together and in step. Scale playback by speed / 14.6 m/s (model scaled x3).",
     "detailLevels": {"racehorse_v2_close": "within about 25 m of the camera (or the horse fills a quarter of the screen)", "racehorse_v2": "the race view", "racehorse_v2_far": "beyond about 80 m"},
     "triangles": tris,
-    "horse": {"gallop_v2": "normal galloping", "gallop_v2_drive": "under pressure: neck lower, deeper nod, tail higher; blend in a beat after the jockey asks",
+    "horse": {"gallop_v2": "normal galloping (rebalanced 13 Nov: forehand up as the hind legs push, hooves planted at 14.6 m/s)", "gallop_v2_drive": "under pressure: neck lower, deeper nod, tail higher, a little flatter; blend in a beat after the jockey asks",
               "walk": "walking / standing in the stalls (from v1)"},
     "jockey": {"ride_quiet": "effort 0: sitting still, hands on the neck", "ride_push": "effort 1: hands and heels, arms pushing with the stride, back pumping",
-               "ride_drive": "effort 2: the same, bigger and lower", "ride_whip": "effort 3: drive with the left hand, whip in the right, one stroke a stride"},
+               "ride_drive": "effort 2: the same, bigger and lower", "ride_whip": "effort 3, TWO strides (0.96 s): a stroke with the stick in his right hand in the first stride, both hands pushing through the second"},
     "effort": "timeline effort 0..3. Weights: quiet = max(0, 1 - e); push = max(0, 1 - |e - 1|); drive = max(0, 1 - |e - 2|); whip = max(0, e - 2). The horse: gallop_v2_drive = min(1, e / 2) of a copy of e delayed about 0.4 s.",
     "variety": {
         "additive": "ramp clips: rest at the start, the pose at the end. Play additively, held at the end, weight 0..1, chosen once per runner from its seed.",
         "jky_crouch_low": [0, 1], "jky_crouch_high": [0, 1], "jky_elbows_out": [0, 1], "jky_hands_long": [0, 1],
         "horse_head_high": [0, 1], "horse_head_low": [0, 1], "horse_tail_high": [0, 1],
         "stride": "cadence x0.95..1.05 per horse; the jockey's clips run 0..0.04 s off the horse's stride per jockey",
+    },
+    "moments": {
+        "additive": "ramp clips like the variety poses, but faded in and out by the viewer rather than held",
+        "jky_look_left": "a look round over his left shoulder (about 1.5 s: round, hold, back), now and then while he sits quietly", "jky_look_right": "the same, to his right",
+        "jky_stand": "standing in his irons to pull up, once past the post",
     },
     "colours": "main material: vertex colour R = coat, G = points (mane, tail, lower legs), B = jockey's skin. Multiply the grey texture's light and shade by the chosen colour inside each. Silks material: the owner's v2 silks texture times the vertex colour (fabric creases).",
 }
