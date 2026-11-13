@@ -293,10 +293,11 @@ function site(dressing) {
   st.magFilter = st.minFilter = THREE.LinearFilter; st.colorSpace = THREE.NoColorSpace; st.needsUpdate = true;
   U.upSite.value = st; U.upArea.value.set(S.x0, S.z0, S.x1, S.z1);
 }
-// A galloping horse leans into a turn: the tighter the turn and the faster it goes, the more (a little more than
-// life, so it reads from a TV camera). turn: how fast the course's direction changes here, radians a metre.
-export const lean = (turn, v) => THREE.MathUtils.clamp(Math.atan((v * v * turn) / 9.81) * LEAN, -0.3, 0.3);
-const LEAN = Number(q.get("lean") ?? 1.7);
+// A galloping horse leans into a turn, but only by a hint: the whole model tips as one piece, so anything like
+// life-size (it was 1.7 times life, up to 17 degrees) reads as a horse falling over (owner, 13 Nov: "really odd").
+// Now a third of life and never more than 3 degrees. turn: how fast the course's direction changes, radians a metre.
+export const lean = (turn, v) => THREE.MathUtils.clamp(Math.atan((v * v * turn) / 9.81) * LEAN, -0.052, 0.052);
+const LEAN = Number(q.get("lean") ?? 0.3);
 const _hz = new THREE.Color();
 export function update(t, camera) {
   U.upTime.value = t;

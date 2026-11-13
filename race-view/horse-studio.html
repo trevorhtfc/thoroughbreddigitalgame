@@ -24,7 +24,7 @@
   <label>Silks <select id="silk"></select></label>
   <label>Coat <select id="coat"></select></label>
   <label>Effort <input id="eff" type="range" min="0" max="3" step="0.05" value="0"></label>
-  <label>View <select id="view"><option>side</option><option>front34</option><option>back34</option><option>back</option><option>top</option><option>jockey</option><option>jback</option><option>face</option><option>head</option><option>legs</option></select></label>
+  <label>View <select id="view"><option>side</option><option>front34</option><option>back34</option><option>back</option><option>top</option><option>jockey</option><option>jback</option><option>face</option><option>head</option><option>legs</option><option>cap</option><option>jside</option><option>jhigh</option></select></label>
   <label><input id="spin" type="checkbox"> Turn</label>
   <button id="play" type="button">Pause</button>
 </div>
@@ -153,7 +153,7 @@ const VIEWS = {   // eye, look point (metres; the horse faces +x) and zoom
   side: [[0.3, 1.6, 6.6], [0.15, 1.3, 0], 25], front34: [[3.8, 2.1, 4.4], [0.3, 1.4, 0], 26], back34: [[-3.4, 2.5, 3.2], [0, 1.45, 0], 26],
   back: [[-4.6, 2.3, 0.01], [0, 1.55, 0], 24], top: [[-1.2, 5.6, 2.2], [0.25, 1.4, 0], 26], jockey: [[1.2, 2.3, 3.4], [0.35, 1.68, 0], 22],
   jback: [[-1.6, 2.6, 1.1], [0.3, 1.68, 0], 24], head: [[2.9, 1.9, 2.6], [1.2, 1.6, 0], 24], face: [[1.75, 1.85, 0.9], [0.62, 1.7, 0], 22],
-  legs: [[0.2, 0.7, 6], [0, 0.6, 0], 28],
+  legs: [[0.2, 0.7, 6], [0, 0.6, 0], 28], cap: [[1.5, 2.6, 1.7], [0.6, 1.82, 0], 13], jside: [[0.5, 2.0, 3.2], [0.32, 1.66, 0], 17], jhigh: [[-0.9, 3.3, 1.5], [0.32, 1.66, 0], 20],
 };
 function place() {
   const w = innerWidth, h = innerHeight; renderer.setSize(w, h, false); camera.aspect = w / h;
@@ -180,7 +180,7 @@ function frame() {
   requestAnimationFrame(frame);
 }
 if (STILL) { document.getElementById("bar").hidden = true; }
-window.__set = (t, eff) => { horses.forEach((h) => { h.setTime(t); h.update(0, 14.6, eff, camera); }); renderer.render(scene, camera); };
+window.__set = (t, eff) => { horses.forEach((h) => { h.setTime(t); h.update(0, 14.6, eff, camera); if (h.hold && params.get("hold")) h.hold(params.get("hold"), +(params.get("holdw") || 1)); }); renderer.render(scene, camera); };
 frame();
 </script>
 </body>
