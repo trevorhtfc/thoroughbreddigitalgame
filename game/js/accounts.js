@@ -28,6 +28,8 @@ function ledger(kind, amt) {
   const L = ledgerOf();
   if (amt < 0) L.refunds += -amt; else L[kind] = (L[kind] || 0) + amt;
   const before = S.budget + amt, now = S.budget;
+  // the money tumbles out of the budget you can see (js/tumble.js)
+  if (typeof budgetTumble === "function") budgetTumble(amt, before, now);
   // the thresholds this payment took you under (those that still matter where you are now), the cheapest first
   const crossed = THRESHOLDS().filter(t => before >= t.at && now < t.at && (t.place === "sales" || S.step < 2)).reverse().slice(0, 3).map(t => t.what);
   const list = crossed.length > 1 ? crossed.slice(0, -1).join(", ") + " and " + crossed[crossed.length - 1] : crossed[0];

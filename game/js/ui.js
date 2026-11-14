@@ -143,7 +143,7 @@ function paintBar() {
   }).join("");
   const n = S.stable.length;
   $("#tally").innerHTML = S.step <= 3
-    ? `<span class="t-silk">${silkImg(mySilkN())}</span><span title="Horses in your stable"><svg viewBox="0 0 512 512">${ICON.stable}</svg><em>${n}</em><i>/${STABLE_CAP}</i></span><button type="button" class="t-money" data-accounts="1" title="Your budget: open your accounts"><svg viewBox="0 0 512 512">${ICON["two-coins"]}</svg><em>${money(S.budget)}</em></button>`
+    ? `<span class="t-silk">${silkImg(mySilkN())}</span><span title="Horses in your stable"><svg viewBox="0 0 512 512">${ICON.stable}</svg><em>${n}</em><i>/${STABLE_CAP}</i></span><button type="button" class="t-money" data-accounts="1" title="Your budget: open your accounts"><svg viewBox="0 0 512 512">${ICON["two-coins"]}</svg><em data-budget>${money(TB.tick ? TB.tick.to : S.budget)}</em><i class="t-meter" aria-hidden="true"><b style="width:${Math.max(0, Math.min(100, S.budget / tbStart() * 100)).toFixed(1)}%"></b></i></button>`
     : `<span class="t-silk">${silkImg(mySilkN())}</span><span title="Wins: ${winsNow()} from ${racesRun()} of ${RACES.length} races run"><svg viewBox="0 0 512 512">${ICON["laurels-trophy"]}</svg><em>${winsNow()}</em><i> win${winsNow() === 1 ? "" : "s"}</i></span><span class="t-money prize" title="Prize money won (a separate pot from your budget)"><svg viewBox="0 0 512 512">${ICON["trophy-cup"]}</svg><em>${money(prizeWon())}</em></span>`;
   fitBar(); refreshAccounts();
 }
@@ -299,10 +299,10 @@ const FOOTS = {
     if (S.step !== 1) return "";
     return S.confirmSale
       ? `<span class="f-info"><b>Close the stud?</b> Once you go to Tattersalls you can't come back to breed.${S.hand.length ? ` Your ${S.hand.length} unused mare${S.hand.length === 1 ? "" : "s"} may turn up in the sale.` : ""}</span>${goBtn("saleNo", "Stay at the stud", { ghost: true })}${goBtn("saleYes", "Go to Tattersalls", { off: S.foal || S.offer })}`
-      : `<span class="f-info">${studCount()} mare${studCount() === 1 ? "" : "s"} · ${S.stable.length} horse${S.stable.length === 1 ? "" : "s"} · <button type="button" class="f-acct" data-accounts="1">${money(S.budget)} left</button></span>${goBtn("toSale", handDone() ? "Close the stud and go to the sales" : "Draw your mares first", { off: S.foal || S.offer || !handDone() })}`;  },
+      : `<span class="f-info">${studCount()} mare${studCount() === 1 ? "" : "s"} · ${S.stable.length} horse${S.stable.length === 1 ? "" : "s"} · <button type="button" class="f-acct" data-accounts="1"><span data-budget>${money(S.budget)}</span> left</button></span>${goBtn("toSale", handDone() ? "Close the stud and go to the sales" : "Draw your mares first", { off: S.foal || S.offer || !handDone() })}`;  },
   tatts() {
     // never a dead end: with no horse bought or bred you can still leave (and race nothing, or start again)
-    if (S.step === 2) return `<span class="f-info">${S.stable.length} horse${S.stable.length === 1 ? "" : "s"} in your string · <button type="button" class="f-acct" data-accounts="1">${money(S.budget)} left</button></span>${goBtn("toEnter", S.stable.length ? "Leave the sales: on to entries" : "Leave the sales without a horse", { off: S.foal })}`;
+    if (S.step === 2) return `<span class="f-info">${S.stable.length} horse${S.stable.length === 1 ? "" : "s"} in your string · <button type="button" class="f-acct" data-accounts="1"><span data-budget>${money(S.budget)}</span> left</button></span>${goBtn("toEnter", S.stable.length ? "Leave the sales: on to entries" : "Leave the sales without a horse", { off: S.foal })}`;
     return "";
   },
   warren() {

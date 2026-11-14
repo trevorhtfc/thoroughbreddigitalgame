@@ -204,6 +204,21 @@ and move that to the next page as more of an instructions piece integrating the 
   their colours; `needHowTo()`, remembered as `tb-howto-seen`), and any time from the cover's button or Palace House
   (where it replaces the old "How the season goes" list, which had gone out of date).
 
+## The money tumbling out of your budget (14 Nov 2026)
+
+Owner, 14 Nov: "a more visible tumbling of the budget. The money should graphically drop from the budget to put into
+perspective for the players how much they are spending".
+
+- `js/tumble.js`, called from `ledger()` in `js/accounts.js`, so every payment and refund shows (mares, stud fees,
+  yearlings, a Private Sale, a mare sent back, a vet's report). Styles `.tb-*`, `.t-meter` at the end of `css/game.css`.
+- Every budget figure on screen is marked `data-budget` (the top bar's money, a sheet footer's "… left", the auction's
+  "Budget"). The one the player can see (nothing in front of it) counts down to the new figure; the amount drops out of
+  it as a price tag saying what share of the starting budget it was; sovereigns, and banknotes for a spend of 4% or
+  more, tumble out and fall away, more for a bigger spend; and a slice of the gold budget meter under the top bar's
+  money, the size of the spend, breaks off and drops. A refund counts up and its green tag rises into the figure.
+- If no budget figure can be seen (the foal's card, a film), the tumble waits until one can: a stud fee falls as the
+  foal's card closes. Payments made together fall as one. "Reduce motion" gets just the figure and the tag.
+
 ## One look
 
 `css/game.css` on top of the house style (`css/components.css`, the Ascot game's styles). Taken from the board: its

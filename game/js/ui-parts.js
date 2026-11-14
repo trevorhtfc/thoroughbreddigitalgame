@@ -775,7 +775,7 @@ function aucHTML() {
       <div class="auc-ped">
         <div class="pc s"><span class="pc-l">S</span><div><b>${esc2(s.name)}</b>${knowsTrue(s.name) ? pips(s.trueStars) : pips(s.shownStars, s.unproven)}<small>${s.optimumDistance} · peaks ${s.peakAge}</small></div></div>
         <div class="pc m"><span class="pc-l">M</span><div><b>${esc2(m.name)}</b>${pips(m.stars)}<small>${m.optimumDistance} · peaks ${m.peakAge}</small></div></div></div>
-      <div class="auc-facts"><span><span class="line ${ln.cls}">${ln.text}</span></span><span>Reserve <b>${money(l.reserve)}</b></span><span>Guide <b>${money(guide(l)[0])}–${money(guide(l)[1])}</b></span><span>Budget <b>${money(S.budget)}</b></span></div>
+      <div class="auc-facts"><span><span class="line ${ln.cls}">${ln.text}</span></span><span>Reserve <b>${money(l.reserve)}</b></span><span>Guide <b>${money(guide(l)[0])}–${money(guide(l)[1])}</b></span><span>Budget <b data-budget>${money(S.budget)}</b></span></div>
       <div class="auc-now" aria-live="polite"><div class="lbl" id="aucLbl">Opening bid</div><div class="big" id="aucBig">${money(openBid(l))}</div><div class="who" id="aucWho">No bids yet</div></div>
       <button class="tb-btn block auc-bid" id="aucBid">Bid</button>
       <div class="auc-auto"><span>Bid for me up to</span><button class="tb-square" id="autoMinus" aria-label="Lower my limit">−</button><span class="amt" id="autoAmt"></span><button class="tb-square" id="autoPlus" aria-label="Raise my limit">+</button><button class="tb-chip" id="autoOn" aria-pressed="false">Off</button></div>
