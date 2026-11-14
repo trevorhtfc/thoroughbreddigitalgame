@@ -514,7 +514,7 @@ const seasonName = (x, lower) => { x = x || S; return x.day ? `${lower ? "d" : "
 const seasonDone = () => !!S && Object.keys(S.results).length === RACES.length;
 function newCard(seed, day) {
   S = { seed: seed || Math.floor(Math.random() * 1e6) + 1, luck: Math.floor(Math.random() * 2e9) + 1, mode: day ? "daily" : "random", day: day || null, pileN: {}, step: 1, tab: "stud", budget: START_BUDGET, stable: [], hand: [], usedMares: [], deckPos: 0,
-    selMare: null, foal: null, sale: [], lotN: 0, entries: {}, results: {}, open: null, silks: S ? S.silks : 0, sort: "fee", offer: null, book: 1, catDams: [], v: 7, dealt: false, tallied: false,
+    selMare: null, foal: null, sale: [], lotN: 0, entries: {}, results: {}, open: null, silks: S ? S.silks : 0, sort: "fee", offer: null, book: 1, catDams: [], v: 8, dealt: false, tallied: false,
     team: { picks: [], offer: null, done: false, choice: {}, used: {}, trains: {}, book: {}, income: 0, incomeLog: [] } };
   CARD = makeCard(S.seed); ownLuck();
   // No starting mares: every mare is bought at the mares sale, choosing one of three
@@ -538,7 +538,8 @@ function load(mode) {
 }
 // Saves from before the mares sale: only mares you bred from count as yours, and the ring is rebuilt into Books
 function migrate() {
-  if (S.v === 7) return;
+  if (S.v === 8) return;
+  if (S.v === 7) return migrate8();
   if (S.v === 6) return migrate7();
   if (S.v === 5) return migrate6();
   if (S.v === 4) return migrate5();
@@ -571,7 +572,12 @@ function migrate6() {
 function migrate7() {
   if (!S.team) S.team = S.dealt ? { picks: [], offer: null, done: true, gone: true, skipped: true, choice: {}, used: {}, trains: {}, book: {}, income: 0, incomeLog: [] }
     : { picks: [], offer: null, done: false, choice: {}, used: {}, trains: {}, book: {}, income: 0, incomeLog: [] };
-  S.v = 7; save();
+  S.v = 7; migrate8();
+}
+// v8 (14 Nov): the mares hand. A game already buying mares, or past the stud, keeps the old mares sale
+function migrate8() {
+  if (S.step > 1 || studCount() > 0 || S.offer || Object.keys(S.pileN || {}).length) S.mh = { legacy: true };
+  S.v = 8; save();
 }
 // Mares in your stud: still to breed from, plus those already used this season
 const studCount = () => S.hand.length + S.usedMares.length;
@@ -646,21 +652,55 @@ function newCatalogue() {
   }
   S.sale = lots; S.catDams = [...used];
 }
-// Mares sale: pay the pile's price, three of its mares are turned over, and you keep one
-// (owner, 10 Nov: two mares turned over for everyone; Elite Mares shows more: js/team.js offerSize)
+// Mares sale: pay the pile's price, two of its mares are turned over, and you keep one
+// (owner, 10 Nov: two mares turned over for everyone). Since 14 Nov this is only for the one extra mare: your stud
+// starts with a dealt hand (below)
 const OFFER_SIZE = 2;
+// a pile's mares in this game's order for one draw (tag): each mare has her own place in it
+const pileOrder = (p, tag) => pileLeft(p).map(m => [hashStr(luckOf() + "|" + tag + "|" + m.name), m]).sort((a, b) => a[0] - b[0] || (a[1].name < b[1].name ? -1 : 1)).map(x => x[1]);
 function drawPile(id) {
   const p = PILES.find(x => x.id === id); if (S.offer || !p || studCount() >= MARE_CAP || p.price > S.budget) return;
+  if (handOn() && extraLeft() <= 0) return;
   if (!pileLeft(p).length) return;
-  // each mare has her own place in this pile's nth draw of this game
   S.pileN = S.pileN || {}; const n = S.pileN[id] = (S.pileN[id] || 0) + 1;
-  const left = pileLeft(p).map(m => [hashStr(luckOf() + "|pile|" + id + "|" + n + "|" + m.name), m]).sort((a, b) => a[0] - b[0] || (a[1].name < b[1].name ? -1 : 1)).map(x => x[1]);
-  S.budget -= p.price; if (typeof ledger === "function") ledger("mares", p.price); S.offer = { pile: p.id, mares: left.slice(0, typeof offerSize === "function" ? offerSize() : OFFER_SIZE).map(m => m.name) };
+  const left = pileOrder(p, "pile|" + id + "|" + n);
+  S.budget -= p.price; if (typeof ledger === "function") ledger("mares", p.price);
+  if (handOn()) mh().extra++;
+  S.offer = { pile: p.id, mares: left.slice(0, offerSize()).map(m => m.name) };
 }
 function keepOffer(name) {
   if (!S.offer || !S.offer.mares.includes(name)) return;
-  S.hand.push(name); S.offer = null;
-  const m = byName(name); toast(`${m.name} (${m.stars}★) joins your stud`);
+  const was = S.offer.swap;
+  if (was && S.hand.includes(was)) { S.hand[S.hand.indexOf(was)] = name; mh().up = (mh().up || 0) + 1; }
+  else S.hand.push(name);
+  S.offer = null;
+  const m = byName(name); toast(was ? `${m.name} (${m.stars}★) takes ${was}'s place in your stud` : `${m.name} (${m.stars}★) joins your stud`);
+}
+// ----- Your mares hand (owner, 14 Nov: "a deal would be better ... 2 of each ... + an opportunity to buy an extra one
+// with a choice, at the current price ... cut the budget down to reflect you no longer have to buy mares"). The stud
+// opens with a hand dealt from the piles: 2 Blue-blooded, 2 Useful, 2 Moderate (2 of each, as the big races want
+// Blue-blooded mares). You may buy one extra mare (pick a pile, see two, keep one), and send back any mare you
+// don't want to breed from for half her pile's price, so a player who'd rather shop at Tattersalls can. Games saved
+// before the hand (S.mh.legacy) keep buying their mares.
+const HAND = { hi: 2, mid: 2, lo: 2 }, EXTRA_MARES = 1, SEND_BACK = 0.5;
+const mh = () => (S.mh = S.mh || { dealt: false, extra: 0, up: 0, sent: [] });
+const handOn = () => !(S.mh && S.mh.legacy);
+const extraLeft = () => handOn() ? EXTRA_MARES - (mh().extra || 0) : 99;
+const pileOf = name => { const m = byName(name); return PILES.find(p => p.stars.includes(m.stars)); };
+const sendBackFor = name => Math.round(pileOf(name).price * SEND_BACK / 500) * 500;
+function dealHand() {
+  if (!handOn() || mh().dealt || S.step !== 1) return false;
+  const got = [];
+  for (const p of PILES) got.push(...pileOrder(p, "hand|" + p.id).slice(0, HAND[p.id] || 0).map(m => m.name));
+  S.hand.push(...got); mh().dealt = true; mh().hand = got.slice();
+  save(); return true;
+}
+function sendBack(name) {
+  if (!handOn() || S.step !== 1 || !S.hand.includes(name) || (S.offer && S.offer.swap === name) || (S.foal && S.foal.h.dam === name)) return 0;
+  const back = sendBackFor(name);
+  S.hand = S.hand.filter(n => n !== name); mh().sent.push(name); if (S.selMare === name) S.selMare = null;
+  S.budget += back; if (typeof ledger === "function") ledger("mares", -back);
+  save(); return back;
 }
 function newName(rnd) {
   const taken = new Set([...CARD.oppNames, ...S.stable.map(h => h.name)]);

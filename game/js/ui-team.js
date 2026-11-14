@@ -62,7 +62,8 @@ function teamAtStud() {
   if (!teamOn() || teamSkipped()) return "";
   const out = [];
   const el = held("elite");
-  if (el) out.push(tcard(el, { cls: "sm", extra: `<p class="tc-do">Each draw at the mares sale turns over <b>${offerSize()}</b> mares.</p>` }));
+  if (el) out.push(tcard(el, { cls: "sm", extra: handOn() ? `<p class="tc-do">${upgradesLeft() > 0 ? `<b>${upgradesLeft()}</b> upgrade${upgradesLeft() === 1 ? "" : "s"} left: use the Upgrade buttons under your mares.` : "Upgrades used."}</p>`
+    : `<p class="tc-do">Each draw at the mares sale turns over <b>${offerSize()}</b> mares.</p>` }));
   const so = held("stallion");
   if (so) { const own = ownedStallion();
     out.push(tcard(so, { cls: "sm", extra: own ? `<p class="tc-do">Your stallion: <b>${esc2(own)}</b> · ${ownedFreeLeft()} of ${OWNED_FREE} free nominations left</p>`

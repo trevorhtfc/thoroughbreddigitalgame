@@ -60,7 +60,8 @@ const JOCKEY_EDGE = {
 // Owner: 6 kinds × 3 tiers. Trainer: the board's 10 kinds × 3 tiers. Jockey: the board's 4 kinds × 3 tiers.
 const OWNER_KINDS = {
   powerhouse: { title: "Powerhouse", leans: "Either", when: "At once", text: t => `${money(POWERHOUSE[t])} more to spend on mares, stud fees and yearlings.` },
-  elite: { title: "Elite Mares", leans: "Breeding", when: "The National Stud", text: t => `At the mares sale you see ${ELITE_SEE[t]} mares from the pile instead of 2, and keep the one you want.` },
+  elite: { title: "Elite Mares", leans: "Breeding", when: "The National Stud", text: t => typeof handOn === "function" && !handOn() ? `At the mares sale you see ${ELITE_SEE[t]} mares from the pile instead of 2, and keep the one you want.`
+    : `Upgrade ${ELITE_UP[t] === 1 ? "one of your mares" : ELITE_UP[t] + " of your mares"} a grade, Moderate to Useful or Useful to Blue-blooded: two from the grade above are turned over and you keep one.` },
   stallion: { title: "Stallion Owner", leans: "Breeding", when: "The National Stud", text: t => `Three ${OWNED_STARS[t]}★ stallions are drawn at the stud: keep one as your own, with ${OWNED_FREE} free nominations to him.` },
   pedigree: { title: "Pedigree Expert", leans: "Breeding", when: "The stud and the sales", text: t => `An unproven stallion may be a star better or worse than the stud book says. Your expert tells you the truth about ${t === 3 ? "every one of them" : PEDIGREE_LOOKS[t] + " of them"}.` },
   scout: { title: "Sales Scout", leans: "The sales", when: "Tattersalls", text: t => `Tell him the ${SCOUT_RACES[t]} races you still need a horse for. He marks the lots bred to suit them, greys out the rest, and finds ${SCOUT_LOTS[t] === 1 ? "a bargain" : SCOUT_LOTS[t] + " bargains"} of his own: cheaper lots whose yearlings are good enough for them.` },
@@ -187,7 +188,20 @@ const teamSkipped = () => !!(S.team && S.team.skipped);
 
 // ---------- owner cards at the National Stud ----------
 // how many mares the mares sale turns over (rules.js drawPile)
-const offerSize = () => ELITE_SEE[held("elite") ? held("elite").tier : 0];
+// (games saved before the mares hand: Elite Mares turns more over. Since 14 Nov it upgrades mares in your hand instead)
+const offerSize = () => typeof handOn === "function" && handOn() ? OFFER_SIZE : ELITE_SEE[held("elite") ? held("elite").tier : 0];
+// Elite Mares with the dealt hand (owner, 14 Nov: "Elite mares would change to be able to upgrade your hand"): each
+// upgrade swaps a Moderate or Useful mare you haven't bred for one of two from the grade above
+const ELITE_UP = [0, 1, 2, 3];
+const upgradesLeft = () => handOn() && held("elite") ? ELITE_UP[held("elite").tier] - (mh().up || 0) : 0;
+const gradeUp = name => { const k = PILES.indexOf(pileOf(name)); return k > 0 ? PILES[k - 1] : null; };
+const canUpgrade = name => upgradesLeft() > 0 && S.step === 1 && !S.offer && !S.foal && S.hand.includes(name) && !!gradeUp(name) && pileLeft(gradeUp(name)).length > 0;
+function upgradeMare(name) {
+  if (!canUpgrade(name)) return false;
+  const p = gradeUp(name), n = (mh().up || 0) + 1;
+  S.offer = { pile: p.id, swap: name, mares: pileOrder(p, "up|" + n + "|" + name).slice(0, OFFER_SIZE).map(m => m.name) };
+  save(); return true;
+}
 // Stallion Owner: three stallions of the card's stars drawn (once), one kept
 function ownerDraw() {
   const c = held("stallion"); if (!c) return [];

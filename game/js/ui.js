@@ -691,6 +691,9 @@ document.addEventListener("click", e => {
   if (d.trip) { S.trip = d.trip; save(); render(); return; }
   if (d.pile) { drawPile(d.pile); save(); render(); BOARD.Sound.whinny(); return; }
   if (d.keep) { keepOffer(d.keep); save(); render(); return; }
+  if (d.upmare) { UI.sendBack = null; if (upgradeMare(d.upmare)) { render(); const o = document.getElementById("offer"); if (o) o.scrollIntoView({ block: "start", behavior: "smooth" }); } return; }
+  if (d.sendback) { if (UI.sendBack !== d.sendback) { UI.sendBack = d.sendback; UI.handOpen = true; render(); return; }
+    UI.sendBack = null; const back = sendBack(d.sendback); if (back) toast(`${d.sendback} goes back: ${money(back)} for Tattersalls`); render(); return; }
   if (d.book) { S.book = +d.book; save(); render(); return; }
   if (d.auction) { openAuction(d.auction); BOARD.setInPlace("tatts-ring"); return; }
   if (d.plansel) { S.planSel = S.planSel === d.plansel ? null : d.plansel; render(); return; }
