@@ -3,7 +3,7 @@
   "files": {
     "murmur": {
       "file": "crowd-murmur.mp3",
-      "loop": 25.9,
+      "loop": 18.3,
       "bus": "crowd"
     },
     "excited": {
@@ -18,7 +18,7 @@
     },
     "middle": {
       "file": "middle.mp3",
-      "loop": 25.9,
+      "loop": 21.0094,
       "bus": "master"
     },
     "off": {

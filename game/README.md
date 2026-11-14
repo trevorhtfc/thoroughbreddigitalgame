@@ -853,3 +853,10 @@ forgot and just wasted them". Now: the entries footer says how many rides aren't
 we'll book them where they help most when you go"); leaving entries for the races (and going back to racing from a
 change of runners) books any rides left (`bookForgotten` → `autoBook`; ones you booked yourself are kept); the jockey
 cards say "book him for them at entries" and their tag reads "Entries" (was "Race day").
+Owner, 14 Nov (evening): "the sound through the middle of the race is frankly haunting … horrible little pauses
+constantly". The commentary had been short phrases stripped out of their crowds (a thin, ghostly voice), through
+loudspeaker echoes, with gaps between and the crowd dipping under each; the crowd under it heavily muffled and
+swelling. Now the middle is a natural crowd (Aintree and the Japan Cup mid-race, matched and joined smoothly) with the
+commentary running on unbroken over it: the real recordings with their own crowd, joined end to end, the voice brought
+forward and nothing else. The finish's commentary is the same unbroken run, louder and a shade quicker to the line; the
+crowd before the off is the natural crowd too. Measured: the middle's drop-outs 18% of the time → none.
