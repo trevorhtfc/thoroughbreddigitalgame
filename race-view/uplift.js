@@ -94,11 +94,13 @@ const LOOK_ID = LOOKSET[q.get("uplift")] ? q.get("uplift") : "soft";      // (th
 // trees. And the weather is to vary (another chat is building that). So the soft look is now a FAMILY: the same ground,
 // trees, hedges and pile, under one of a few kinds of day. Each kind of day is a short list here: its light, sky and
 // haze, and the colours of the grass and the leaves under it. Nothing else in the file knows which day it is.
-//   fine      (the default) a warm clear afternoon: soft blue overhead, a warm horizon, clear air, warm greens
+//   fair      (the default) half-way between the cool look and the fine day
+//   fine      a warm clear afternoon: soft blue overhead, a warm horizon, clear air, warm greens
+//   cool      the look as it was live from 12 to 14 Nov: a pale hazy sun, sage greens
 //   overcast  a bright grey day: no real sun, pale even light, cooler sage greens (close to the look before 14 Nov)
 //   rain      a wet day: a low slate sky, the far side sunk in mist, deep wet greens (the look only: no falling rain)
-// HOW TO CHOOSE IT: add &weather=fine|overcast|rain to the race view's address (the game: on the iframe's address,
-// beside ?game=1). Anything else, or nothing, is "fine". To add a kind of day, add an entry; every field is optional
+// HOW TO CHOOSE IT: add &weather=fair|fine|cool|overcast|rain to the race view's address (the game: on the iframe's address,
+// beside ?game=1). Anything else, or nothing, is "fair". To add a kind of day, add an entry; every field is optional
 // and falls back to the soft look's own.
 const WEATHER = {
   fine: {
@@ -126,7 +128,30 @@ const WEATHER = {
       bank: ["#84a86c", "#7ba164", "#88a668", "#9aad72", "#a3b078"] },
   },
 };
-const WEATHER_ID = LOOK_ID === "soft" && WEATHER[q.get("weather")] ? q.get("weather") : "fine";
+// The look as it was live from 12 to 14 Nov (with the brighter grass of the 14th): kept as one end of the scale.
+WEATHER.cool = {
+  label: "Cool", sunCol: [1.2, 1.08, 0.82], ambSky: [0.52, 0.56, 0.5], ambGnd: [0.44, 0.41, 0.31],
+  gndSun: [1.04, 1.02, 0.94], gndShade: [0.6, 0.67, 0.64], litTint: [1.04, 1.02, 0.96], shadeTint: [0.92, 0.96, 0.98], rim: 0.12,
+  sky: { horizon: "#ebebd6", mid: "#dae5d2", top: "#b4d4cc", glow: [0.42, 0.42, 0.33], cover: 2, edge: "#ffffff", base: "#ffffff", thick: 0 },
+  haze: [0.52, 70, 560, 0.15], hazeCol: "#e9ebd8", hazeSun: "#eeecd4", vivid: [1.0, 1.0],
+  grass: { ...WEATHER.overcast.grass },
+};
+// A day part-way between two others: every number and colour taken that far from a towards b.
+function between(a, b, k) {
+  const hex = (s) => typeof s === "string" && /^#[0-9a-f]{6}$/i.test(s);
+  const mix = (x, y) => {
+    if (typeof x === "number" && typeof y === "number") return x + (y - x) * k;
+    if (hex(x) && hex(y)) { const c = new THREE.Color(x).lerp(new THREE.Color(y), k); return "#" + c.getHexString(); }
+    if (Array.isArray(x) && Array.isArray(y)) return x.map((v, i) => mix(v, y[i]));
+    if (x && y && typeof x === "object" && typeof y === "object") return Object.fromEntries(Object.keys(y).map((key) => [key, key in x ? mix(x[key], y[key]) : y[key]]));
+    return y;
+  };
+  return mix(a, b);
+}
+// The default day (owner, 14 Nov, shown the look as it was beside the fine day: "maybe somewhere between the two as
+// default?"): fair, half-way from the cool look to the fine day. &warm=0..1 moves it, for trying.
+WEATHER.fair = { ...between(WEATHER.cool, WEATHER.fine, Number(q.get("warm") || 0.5)), label: "Fair" };
+const WEATHER_ID = LOOK_ID === "soft" && WEATHER[q.get("weather")] ? q.get("weather") : "fair";
 const LOOK = LOOK_ID === "soft" ? { ...LOOKSET.soft, ...WEATHER[WEATHER_ID] } : LOOKSET[LOOK_ID];
 export const weatherId = LOOK_ID === "soft" ? WEATHER_ID : null, weathers = Object.fromEntries(Object.entries(WEATHER).map(([k, v]) => [k, v.label]));
 // the colours of the grass and leaves (the other looks take the overcast day's, which were the soft look's own)
