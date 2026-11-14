@@ -337,13 +337,63 @@ function dressField(opp, grade, X) {
     Object.assign(opp[k], { sk, a: t.a, b: t.b, silks: t.img });
   });
 }
-function makeCard(seed, mix) {
+// ----- Real fields (owner, 14 Nov 2026) -----
+// "just get the names jockey silks trainers odds and results to form a decent vibe on the horses ability": where the
+// meeting has a file of the real runners (js/meetings/<meeting>-real.js, from the 2026 results), a new card's opposition
+// is the real field for each race: the real horses with their real draw, jockeys and trainers (shortened, as R. Moore),
+// and a rating worked out from their official rating, how they ran on the day and their starting price. Owners are left
+// out. Running style, temperament, trip and ground are still the game's own (a rough pace forecast is to come later),
+// the ground nudged towards quick going for the horses that ran well on Royal Ascot's good to firm. Your horse joins
+// the field as an extra runner; a field too big for the stalls (26 with yours) loses its lowest-rated horses.
+const REAL = (window.REAL_FIELDS || {})[MEETING.id] || null;
+const MAX_FIELD = 26;
+// The big stables' colours, where the 54 silks have them: Aidan O'Brien's horses race in the four Ballydoyle sets, Charlie
+// Appleby's and Saeed bin Suroor's in Godolphin blue (matched on the trainer's full name). Everyone else is dressed as the game always has (by tier).
+const STABLE_SILKS = [
+  [/^A P O'Brien$/, ["ballydoyle-navy", "ballydoyle-orange", "ballydoyle-pink", "ballydoyle-purple"]],
+  [/^Charlie Appleby$|^Saeed bin Suroor$/, ["godolphin"]]
+];
+function stableSilks(opp, field) {
+  const taken = new Set(), claimed = [];
+  opp.forEach((o, k) => {
+    const rule = STABLE_SILKS.find(([re]) => re.test(field[k].tf || "")); if (!rule) return;
+    const sk = rule[1].map(s => SILK3D.indexOf(s)).find(j => j >= 0 && !taken.has(j)); if (sk === undefined) return;
+    taken.add(sk); claimed.push([k, sk]);
+  });
+  // whoever was given those colours by chance swaps with the stable's horse
+  claimed.forEach(([k, sk]) => {
+    const other = opp.findIndex((o, j) => j !== k && o.sk === sk);
+    if (other >= 0) { const t = SILKS[opp[k].sk]; Object.assign(opp[other], { sk: opp[k].sk, a: t.a, b: t.b, silks: t.img }); }
+    const t = SILKS[sk]; Object.assign(opp[k], { sk, a: t.a, b: t.b, silks: t.img });
+  });
+}
+function realRace(race, list, R, seed, used) {
+  const b = race.bands, lo = b[3] - 6, hi = b[0] + 10;
+  let field = list.slice();
+  if (field.length > MAX_FIELD - 1) field = field.sort((x, y) => y.r - x.r).slice(0, MAX_FIELD - 1);
+  field = field.sort((x, y) => (x.d || 99) - (y.d || 99));                  // in the order of the real draw
+  const opp = field.map((h, k) => {
+    const H = rngFrom(hashStr("real:" + MEETING.id + ":" + h.n));           // the same horse is the same in every card
+    const up = H.r() < .5, l = Math.max(0, Math.min(DISTANCES.length - 2, up ? race.step : race.step - 1));
+    const ranWell = h.b !== null && h.b !== undefined && h.b <= 3;
+    const grounds = ranWell ? (s => GROUND_ORDER.slice(s, Math.min(GROUND_ORDER.length, s + H.int(2, 3))))(H.int(2, 3)) : groundsFor(H);
+    const name = h.n.toUpperCase(); used.add(name);
+    return { id: race.id + "-" + k, name, rating: Math.max(lo, Math.min(hi, h.r)), grounds, coat: H.pick(COATS),
+      jockey: h.j, trainer: h.t, real: { sp: h.sp, pos: h.p, btn: h.b }, ...rollRacecard(H.r), trip: [l, l + 1] };
+  });
+  dressField(opp, race.grade, rngFrom(hashStr(seed + ":silks:" + race.id)));
+  stableSilks(opp, field);
+  const X = rngFrom(hashStr(seed + ":" + race.id));
+  return { opp, strength: "Real", count: [], myStall: X.int(0, opp.length), pace: R.pick(["fast", "even", "even", "slow"]), seed: R.int(1, 2e9), real: true };
+}
+function makeCard(seed, mix, real) {
   const R = rngFrom(seed), used = new Set();
   const nm = () => { for (let k = 0; k < 300; k++) { const n = (R.pick(NAME_A) + " " + R.pick(NAME_B)).toUpperCase(); if (!used.has(n)) { used.add(n); return n; } } return "RUNNER " + used.size; };
   const going = DAYS.map(() => R.pick(MEETING.goings));
   const jockeys = JOCKEYS.concat(MORE_JOCKEYS), trainers = TRAINERS.concat(MORE_TRAINERS);
   setRaces(drawRaces(R, mix));
   const races = RACES.map(race => {
+    if (real && REAL && REAL.races[race.id]) return realRace(race, REAL.races[race.id], R, seed, used);
     const open = isOpenRace(race), n = open ? R.int(9, 11) : R.int(6, 9), x = R.r(), strength = x < .3 ? "Weak" : x < .7 ? "Average" : "Strong";
     // handicaps are framed so most of the field is closely matched
     const w = (open ? FIELD_W.open : FIELD_W.pattern)[strength], tot = w.reduce((a, b) => a + b);
@@ -564,7 +614,8 @@ const ukDay = t => { const d = t ? new Date(t) : new Date();
 // Newmarket is on mix 3 (owner, 14 Nov: at least 2 handicaps there, "let's go 2"; it has only three in the season), so its
 // card for the day was re-dealt again; Royal Ascot stays on mix 2 and its card for the day is unchanged.
 const CARD_MIX = MEETING.cardMix || 2;
-const dailySeed = day => 1000001 + hashStr("thoroughbred-daily|" + (CARD_MIX >= 2 ? "mix" + CARD_MIX + "|" : "") + MEETING.id + "|" + day) % 2000000000;
+// Real fields re-deal the day's card too (a card saved with the made-up fields is put aside, as for a change of mix)
+const dailySeed = day => 1000001 + hashStr("thoroughbred-daily|" + (CARD_MIX >= 2 ? "mix" + CARD_MIX + "|" : "") + (REAL ? "real" + REAL.year + "|" : "") + MEETING.id + "|" + day) % 2000000000;
 // a daily card (a save or a finished one in the log) still counts as that day's card
 const dailyCurrent = x => !!x && x.seed === dailySeed(x.day);
 const dayText = (day, long) => { const [y, m, d] = String(day).split("-").map(Number); return new Date(Date.UTC(y, m - 1, d, 12)).toLocaleDateString("en-GB", { timeZone: "UTC", weekday: long ? "long" : "short", day: "numeric", month: long ? "long" : "short" }); };
@@ -576,7 +627,7 @@ function newCard(seed, day) {
   S = { seed: seed || Math.floor(Math.random() * 1e6) + 1, luck: Math.floor(Math.random() * 2e9) + 1, mode: day ? "daily" : "random", day: day || null, pileN: {}, step: 1, tab: "stud", budget: START_BUDGET, start: START_BUDGET, stable: [], hand: [], usedMares: [], deckPos: 0,
     selMare: null, foal: null, sale: [], lotN: 0, entries: {}, results: {}, open: null, silks: S ? S.silks : 0, sort: "fee", offer: null, book: 1, catDams: [], v: 8, dealt: false, tallied: false,
     team: { picks: [], offer: null, done: false, choice: {}, used: {}, trains: {}, book: {}, income: 0, incomeLog: [] } };
-  S.mix = CARD_MIX; CARD = makeCard(S.seed, S.mix); ownLuck();
+  S.mix = CARD_MIX; S.real = REAL ? REAL.year : 0; CARD = makeCard(S.seed, S.mix, S.real); ownLuck();
   // No starting mares: every mare is bought at the mares sale, choosing one of three
   S.selMare = null;
   save();
@@ -590,7 +641,7 @@ function dailySave() { try { const v = JSON.parse(localStorage.getItem(slotKey("
 function load(mode) {
   mode = mode || "random";
   try { const v = JSON.parse(localStorage.getItem(slotKey(mode)) || "null"); if (v && v.seed && Array.isArray(v.stable)) {
-    S = v; S.open = null; S.mode = mode === "daily" && S.day ? "daily" : "random"; S.pileN = S.pileN || {}; CARD = makeCard(S.seed, S.mix); ownLuck(); migrate();
+    S = v; S.open = null; S.mode = mode === "daily" && S.day ? "daily" : "random"; S.pileN = S.pileN || {}; CARD = makeCard(S.seed, S.mix, S.real); ownLuck(); migrate();
     // left in the middle of an auction: that lot has gone through the ring without you
     if (S.ring) { S.sale = (S.sale || []).filter(x => x.id !== S.ring); S.ring = null; save(); }
     return true; } } catch (e) {}

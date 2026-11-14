@@ -806,3 +806,26 @@ game").** The hand isn't dealt in one go: the stud shows the board's three Weath
 "WEATHERBYS / MARES / 4&5 Stars", as on the Thoroughbred site's Step 03 page). Tap a deck and its top mare turns over
 and joins your stud, two from each (`drawHandMare`; "Draw the rest for me" deals what's left). You can't close the stud
 until all six are drawn. The extra mare is drawn from the same decks (two turned over, keep one).
+
+## Real fields (14 Nov 2026)
+
+The owner: "just get the names jockey silks trainers odds and results to form a decent vibe on the horses ability, then
+it's just getting a rough pace forecast we need later". Royal Ascot's opposition is now the real 2026 field for each race.
+
+- **The data**: `tools/real-fields/royal-ascot-2026/*.csv`, one file per race (named by the race's id in
+  `js/meetings/royal-ascot.js`), read off the Racing Post's public result pages: place, draw, horse, starting price,
+  age, official rating, Racing Post rating on the day, jockey, trainer, lengths behind the winner.
+- **The build**: `python3 tools/real-fields/build_real.py tools/real-fields/royal-ascot-2026 royal-ascot 2026
+  game/js/meetings/royal-ascot-real.js`. It shortens the names (Ryan Moore → R. Moore, John & Thady Gosden → J. & T.
+  Gosden) and works out each horse's game rating: 45% official rating, 30% how it ran on the day (its Racing Post rating,
+  a bad day costing at most 10lb), 25% the market (the starting prices, 7lb a doubling of the chance, as the game's own
+  market). Two-year-olds and other unrated horses go on the day's rating and the market. Owners are not included.
+- **In the game** (`realRace()` in `js/rules.js`): a new card (`S.real = 2026`) takes the real field for each race in
+  the order of the real draw; ratings are kept between the race's lowest band less 6 and its top band plus 10. A field too
+  big for the stalls (26 with your horse) loses its lowest-rated runners. Running style, temperament and trip are still
+  the game's own, rolled from the horse's name so a horse is the same in every card (the rough pace forecast is to come);
+  horses that finished within 3 lengths on Royal Ascot's good to firm like quick ground. Aidan O'Brien's runners wear the
+  Ballydoyle silks and Charlie Appleby's and Saeed bin Suroor's Godolphin blue; everyone else is dressed by tier as before.
+  The prices are the game's market on the game's ratings (so they still sit on the colour cards), which the real starting
+  prices helped shape. Saved games made before keep their made-up fields; today's card was re-dealt (the daily seed now
+  carries `real2026`).
