@@ -685,15 +685,25 @@ const Sound = (() => {
     loop();
     return { stop() { timers.forEach(clearTimeout); stop(); bus.disconnect(); } };
   }
+  // hushed: the board's own sounds rest while a race is being watched (the race view has its own crowd and horses,
+  // and borrows this sound, already let out by the player's taps, through S.ctx())
+  let hushed = false;
+  const quiet = () => { if (scene) scene.stop(); if (bed) bed.stop(); scene = bed = null; try { speechSynthesis.cancel(); } catch (e) {} };
   S.set = (on) => {
     S.on = on;
-    if (on) { if (!ac) init(); ac.resume(); bed = runBed(); const id = sceneId; sceneId = null; S.place(id); }
-    else { if (scene) scene.stop(); if (bed) bed.stop(); scene = bed = null; try { speechSynthesis.cancel(); } catch (e) {} setTimeout(() => ac && !S.on && ac.suspend(), 1000); }
+    if (on) { if (!ac) init(); ac.resume(); if (!hushed && !bed) { bed = runBed(); const id = sceneId; sceneId = null; S.place(id); } }
+    else { quiet(); setTimeout(() => ac && !S.on && ac.suspend(), 1000); }
   };
+  S.hush = (h) => {
+    hushed = h;
+    if (h) quiet();
+    else if (S.on && !bed) { bed = runBed(); const id = sceneId; sceneId = null; S.place(id); }
+  };
+  S.ctx = () => (S.on ? ac : null);
   S.place = (id) => {
     if (id === sceneId && scene) return;
     sceneId = id;
-    if (!S.on) return;
+    if (!S.on || hushed) return;
     if (scene) { scene.stop(); scene = null; }
     if (id) scene = runScene(id);
   };
@@ -816,8 +826,11 @@ function drawBanners(t, dt) {
 let ownSilk = null, silkDefs = null;
 function flyOwn(id) {
   ownSilk = id;
-  if (!silkDefs || !BANNERS.length || !silkDefs.byId[id]) return;
+  if (!silkDefs || !BANNERS.length) return;
   const i = BANNERS.length - 1;
+  // colours a player made themselves come as their description (body: pattern, colour, second colour), not a name
+  if (id && typeof id === "object" && id.body) { BANNERS[i].flag = silkFlag({ body: { colour: "a", colour2: "b", pattern: id.body.p === "belt" ? "hooped band" : id.body.p } }, { a: id.body.a, b: id.body.b || id.body.a }, banW, Math.round(banW * 0.72), 99); return; }
+  if (!silkDefs.byId[id]) return;
   BANNERS[i].flag = silkFlag(silkDefs.byId[id], silkDefs.palette, banW, Math.round(banW * 0.72), 99);
 }
 Promise.all([fetch(BASE + "banners.json").then((r) => r.json()), fetch(BASE + "silks.json").then((r) => r.json())]).then(([ban, silks]) => {

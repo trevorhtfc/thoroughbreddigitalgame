@@ -167,7 +167,7 @@ const offerSize = () => ELITE_SEE[held("elite") ? held("elite").tier : 0];
 function ownerDraw() {
   const c = held("stallion"); if (!c) return [];
   if (!S.team.choice.draw) {
-    const fits = STALLIONS.map(x => stallion(x.name)).filter(x => x.shownStars === OWNED_STARS[c.tier]).map(x => [Math.random(), x.name]).sort((a, b) => a[0] - b[0]).map(x => x[1]);
+    const fits = STALLIONS.map(x => stallion(x.name)).filter(x => x.shownStars === OWNED_STARS[c.tier]).map(x => [hashStr(luckOf() + "|owned|" + x.name), x.name]).sort((a, b) => a[0] - b[0]).map(x => x[1]);
     S.team.choice.draw = fits.slice(0, OWNED_DRAW); save();
   }
   return S.team.choice.draw;
@@ -198,8 +198,8 @@ function closeSales() {}
 // ---------- owner cards at Tattersalls ----------
 // Each lot's yearling is settled when the catalogue is made (seeded), so the agent's projection is of the real yearling
 function lotFoal(l) {
-  if (l.fs == null) return null;
-  return breedPure(stallion(l.sire), byName(l.dam), seeded(l.fs));
+  // the same yearling breed() will give (rules.js): this game's foal of the pair, or a scout's find's own
+  return breedPure(stallion(l.sire), byName(l.dam), l.fs != null ? seeded(l.fs) : luck("foal|" + l.sire + "|" + l.dam));
 }
 // what a yearling costs you, and the dearest hammer price your budget covers (Trade Terms used to take a share off)
 const payFor = price => price;
@@ -208,7 +208,7 @@ const canBidTo = () => S.budget;
 function agentRange(l) {
   const c = held("agent"); if (!c) return null;
   const f = lotFoal(l); if (!f) return null;
-  const B = AGENT_BAND[c.tier], u = seeded((l.fs ^ 0x5bd1e995) >>> 0)(), lo = Math.round(f.r[2] - u * 2 * B);
+  const B = AGENT_BAND[c.tier], u = luck("agent|" + l.sire + "|" + l.dam)(), lo = Math.round(f.r[2] - u * 2 * B);
   return { lo, hi: lo + 2 * B };
 }
 // Vet's Report: yearlings you may still send back
@@ -280,21 +280,22 @@ function scoutFind(race, taken) {
   }
   if (!cand.length) return null;
   // a fair sample of the pedigrees near the trip (sampling them all takes too long on a phone)
-  for (let k = cand.length - 1; k > 0; k--) { const j = Math.floor(Math.random() * (k + 1)); [cand[k], cand[j]] = [cand[j], cand[k]]; }
+  const rnd = luck("scout|" + race.id + "|" + taken.size);   // this game's own luck: reloading can't change his finds
+  for (let k = cand.length - 1; k > 0; k--) { const j = Math.floor(rnd() * (k + 1)); [cand[k], cand[j]] = [cand[j], cand[k]]; }
   cand.length = Math.min(cand.length, 240);
   cand.forEach(x => x.p = pedigreeChance(x.s.name, x.m.name, race, 16));
   // a bargain: Books 2 and 3 when any of them suit the race at all
   const cheap = cand.filter(x => x.book.n > 1 && x.p > 0), from = cheap.length ? cheap : cand;
   const top = Math.max(...from.map(x => x.p)), pool = from.filter(x => x.p >= top - 0.15);
-  const pick = pool[Math.floor(Math.random() * pool.length)];
+  const pick = pool[Math.floor(rnd() * pool.length)];
   // his find really is one: its yearling (settled now, like every lot's) is good enough to win the race if one of
   // this pedigree's can be, or at least to place
   let fs = 0;
   const tryFor = (bar, n) => { for (let k = 0; k < n; k++) {
-    const f0 = 1 + Math.floor(Math.random() * 2e9), R = seeded(f0), f = breedPure(pick.s, pick.m, R), sex = R() < .5 ? "F" : "C";
+    const f0 = 1 + Math.floor(rnd() * 2e9), R = seeded(f0), f = breedPure(pick.s, pick.m, R), sex = R() < .5 ? "F" : "C";
     if (foalFits(f, race, sex, bar)) { fs = f0; return true; }
   } return false; };
-  if (!tryFor(race.bands[1], 300) && !tryFor(scoutBar(race), 200)) tryFor(needFor(race), 100) || (fs = 1 + Math.floor(Math.random() * 2e9));
+  if (!tryFor(race.bands[1], 300) && !tryFor(scoutBar(race), 200)) tryFor(needFor(race), 100) || (fs = 1 + Math.floor(rnd() * 2e9));
   S.lotN = (S.lotN || 0) + 1;
   return { id: "lot" + S.lotN, n: S.lotN, book: pick.book.n, sire: pick.s.name, dam: pick.m.name, reserve: RESERVES[pick.s.shownStars + pick.m.stars] || 10000, fs, scout: race.id };
 }

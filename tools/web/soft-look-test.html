@@ -1,0 +1,248 @@
+<title>Soft Look Test</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<style>
+  :root {
+    --bg: #f3f1dc; --panel: #e7e4c6; --fg: #17261f; --dim: #54645b; --line: #c9c7a3;
+    --accent: #1f5a43; --on-accent: #f6f4e2; --good: #1f6a3e; --warn: #8a5a00; --bad: #9a2f21;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #101a16; --panel: #18261f; --fg: #e8ead9; --dim: #9aa89c; --line: #2c4034;
+      --accent: #a6cb92; --on-accent: #10201a; --good: #8fd29c; --warn: #e3b866; --bad: #ef9a8a;
+      color-scheme: dark;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #101a16; --panel: #18261f; --fg: #e8ead9; --dim: #9aa89c; --line: #2c4034;
+    --accent: #a6cb92; --on-accent: #10201a; --good: #8fd29c; --warn: #e3b866; --bad: #ef9a8a;
+    color-scheme: dark;
+  }
+  * { box-sizing: border-box; }
+  body {
+    background: var(--bg); color: var(--fg);
+    font: 14px/1.35 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    display: flex; flex-direction: column; height: 100%; overflow: hidden;
+  }
+  html { height: 100%; }
+  .bar {
+    display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px;
+    padding-block: 8px;
+    padding-left: max(16px, env(safe-area-inset-left, 0px));
+    padding-right: max(16px, env(safe-area-inset-right, 0px));
+    border-bottom: 1px solid var(--line);
+  }
+  h1 { font-size: 0.95rem; margin: 0; font-weight: 650; letter-spacing: 0.01em; }
+  .group { display: flex; align-items: center; gap: 6px; }
+  .label { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--dim); }
+  .seg { display: inline-flex; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
+  .seg button {
+    font: inherit; color: var(--fg); background: transparent; border: 0; padding: 7px 11px; min-height: 34px; cursor: pointer;
+  }
+  .seg button + button { border-left: 1px solid var(--line); }
+  .seg button[aria-pressed="true"] { background: var(--accent); color: var(--on-accent); font-weight: 600; }
+  .seg button:focus-visible, .plain:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .now { margin-left: auto; display: flex; align-items: baseline; gap: 6px; font-variant-numeric: tabular-nums; }
+  .now b { font-size: 1.35rem; font-weight: 700; min-width: 2ch; text-align: right; }
+  .now span { color: var(--dim); font-size: 0.8rem; }
+  .results {
+    display: flex; flex-wrap: wrap; align-items: center; gap: 6px 8px;
+    padding-block: 6px;
+    padding-left: max(16px, env(safe-area-inset-left, 0px));
+    padding-right: max(16px, env(safe-area-inset-right, 0px));
+    background: var(--panel); border-bottom: 1px solid var(--line); font-size: 0.8rem;
+  }
+  .results .hint { color: var(--dim); }
+  .go {
+    font: inherit; font-size: 0.85rem; font-weight: 650; color: var(--on-accent); background: var(--accent); border: 0;
+    border-radius: 8px; padding: 6px 14px; min-height: 34px; cursor: pointer;
+  }
+  .go[aria-pressed="true"] { background: transparent; color: var(--fg); box-shadow: inset 0 0 0 1px var(--line); }
+  .go:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .chip {
+    display: inline-flex; gap: 6px; align-items: baseline; padding: 3px 8px; border: 1px solid var(--line);
+    border-radius: 999px; background: var(--bg); font-variant-numeric: tabular-nums; white-space: nowrap;
+  }
+  .chip b { font-weight: 700; }
+  .chip.good b { color: var(--good); } .chip.warn b { color: var(--warn); } .chip.bad b { color: var(--bad); }
+  .chip small { color: var(--dim); font-size: 0.72rem; }
+  .plain {
+    font: inherit; font-size: 0.8rem; color: var(--fg); background: transparent; border: 1px solid var(--line);
+    border-radius: 8px; padding: 4px 10px; min-height: 30px; cursor: pointer; margin-left: auto;
+  }
+  .stage { flex: 1; min-height: 0; position: relative; background: #0d1512; }
+  iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; display: block; }
+  textarea.copy { position: absolute; left: 16px; right: 16px; bottom: 16px; height: 9em; z-index: 2; font: 12px/1.4 ui-monospace, Menlo, Consolas, monospace;
+    color: var(--fg); background: var(--bg); border: 1px solid var(--line); border-radius: 8px; padding: 8px; }
+  @media (max-height: 460px) {
+    .bar { padding-block: 5px; gap: 5px 12px; }
+    .seg button { padding: 5px 10px; min-height: 30px; }
+    .go { min-height: 30px; padding: 4px 12px; }
+    .results { padding-block: 4px; }
+    h1 { display: none; }
+  }
+</style>
+
+<div class="bar">
+  <h1>Soft look test</h1>
+  <div class="group"><span class="label" id="lookLabel">Look</span>
+    <div class="seg" role="group" aria-labelledby="lookLabel" id="look">
+      <button type="button" data-v="now">Today's</button>
+      <button type="button" data-v="soft">Soft</button>
+    </div>
+  </div>
+  <div class="group"><span class="label" id="qLabel">Quality</span>
+    <div class="seg" role="group" aria-labelledby="qLabel" id="quality">
+      <button type="button" data-v="high">High</button>
+      <button type="button" data-v="medium">Medium</button>
+      <button type="button" data-v="low">Low</button>
+    </div>
+  </div>
+  <div class="now" aria-live="off"><b id="fps">&ndash;</b><span id="fpsNote">frames a second</span></div>
+</div>
+<div class="results" id="results">
+  <button type="button" class="go" id="run" aria-pressed="false">Run the test</button>
+  <span class="hint" id="hint">Takes about four minutes: both looks over the same stretch of the race, at two qualities.</span>
+  <button type="button" class="plain" id="copy" hidden>Copy results</button>
+</div>
+<div class="stage" id="stage">
+  <iframe id="view" title="The race view" allow="fullscreen"></iframe>
+</div>
+
+<script>
+(() => {
+  const $ = (id) => document.getElementById(id);
+  const view = $("view"), fpsEl = $("fps"), fpsNote = $("fpsNote"), resultsEl = $("results"), hint = $("hint"), copyBtn = $("copy"), runBtn = $("run");
+  const LOOKS = { now: "Today's look", soft: "Soft look" };
+  const QUALS = { high: "High", medium: "Medium", low: "Low" };
+  const save = (k, v) => { try { localStorage.setItem(k, v); } catch (e) {} };
+  const load = (k) => { try { return localStorage.getItem(k); } catch (e) { return null; } };
+
+  // phones and other sharp screens start on Medium in the game itself; computers start on High
+  const state = {
+    look: LOOKS[load("slt-look")] ? load("slt-look") : "soft",
+    quality: QUALS[load("slt-quality")] ? load("slt-quality") : (window.devicePixelRatio > 1.5 ? "medium" : "high"),
+  };
+  // start with the race view's own control panel tucked away (its small button brings it back), to leave room for the picture
+  if (load("tb-bar") === null) save("tb-bar", "0");
+  const results = {};          // "look|quality" -> { n, sum, low, set }
+  let key = "", skip = 0, canRead = true;
+
+  // The test: each look in turn over the same stretch of the race (from TEST.from seconds in, for TEST.secs seconds),
+  // first at the quality the game itself starts on for this screen, then at the other. Same race, same cameras, so
+  // the only difference between the two numbers is the look.
+  const TEST = { from: 140, secs: 40, giveUp: 120 };
+  const HOME = window.devicePixelRatio > 1.5 ? "medium" : "high", AWAY = HOME === "medium" ? "high" : "medium";
+  const STEPS = [["now", HOME], ["soft", HOME], ["now", AWAY], ["soft", AWAY]];
+  let run = null, wake = null;               // run: { i, waited }
+  const say = (text) => { hint.textContent = text; hint.hidden = false; };
+  function step() {
+    const [look, quality] = STEPS[run.i];
+    state.look = look; state.quality = quality; run.waited = 0;
+    start(true);
+  }
+  function endRun(text) {
+    run = null; runBtn.textContent = "Run the test again"; runBtn.setAttribute("aria-pressed", "false");
+    try { if (wake) wake.release(); } catch (e) {} wake = null;
+    say(text);
+  }
+  runBtn.addEventListener("click", () => {
+    if (run) { endRun("Stopped. What was measured so far is kept."); return; }
+    run = { i: 0, waited: 0 }; runBtn.textContent = "Stop"; runBtn.setAttribute("aria-pressed", "true");
+    try { if (navigator.wakeLock) navigator.wakeLock.request("screen").then((w) => { wake = w; }, () => {}); } catch (e) {}
+    step();
+  });
+
+  function start(set) {
+    key = state.look + "|" + state.quality;
+    results[key] = { n: 0, sum: 0, low: Infinity, set: !!set };
+    skip = 5;                  // the first few seconds after loading are never typical
+    fpsEl.textContent = "–"; fpsNote.textContent = "loading…";
+    const q = ["race=long", "runners=12", "quality=" + state.quality];
+    if (state.look === "soft") q.push("uplift=soft");
+    if (set) q.push("t=" + TEST.from);
+    view.src = "final-furlong.html?" + q.join("&");
+    for (const [id, v] of [["look", state.look], ["quality", state.quality]])
+      $(id).querySelectorAll("button").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.v === v)));
+    draw();
+  }
+
+  function draw() {
+    resultsEl.querySelectorAll(".chip").forEach((c) => c.remove());
+    let any = false;
+    for (const qual of Object.keys(QUALS)) for (const look of Object.keys(LOOKS)) {
+      const r = results[look + "|" + qual];
+      if (!r || r.n < 3) continue;
+      any = true;
+      const avg = Math.round(r.sum / r.n);
+      const chip = document.createElement("span");
+      chip.className = "chip " + (avg >= 45 ? "good" : avg >= 30 ? "warn" : "bad");
+      chip.innerHTML = `${LOOKS[look].replace(" look", "")} · ${QUALS[qual]} <b>${avg}</b><small>lowest ${r.low} · ${r.n}s</small>`;
+      resultsEl.insertBefore(chip, copyBtn);
+    }
+    copyBtn.hidden = !any;
+  }
+
+  // The race view shows its own frame rate once a second; read it from there, so the number is the game's own.
+  setInterval(() => {
+    if (document.hidden || !canRead) return;
+    if (run) {
+      const r = results[key], [look, quality] = STEPS[run.i];
+      const where = `${run.i + 1} of ${STEPS.length}: ${LOOKS[look]}, ${QUALS[quality]}`;
+      if (!r.n && ++run.waited > TEST.giveUp) {            // never drew: move on rather than hang
+        if (++run.i < STEPS.length) step(); else endRun("Finished, though one step never loaded. Copy the results and paste them into the chat.");
+        return;
+      }
+      say(r.n ? `${where}. ${TEST.secs - r.n} seconds to go.` : `${where}. Loading\u2026`);
+    }
+    let text = "";
+    try { const el = view.contentDocument && view.contentDocument.querySelector(".fps"); text = el ? el.textContent : ""; }
+    catch (e) { canRead = false; fpsNote.textContent = "shown in the picture below"; start(); return; }
+    const m = /^(\d+) fps/.exec(text || "");
+    if (!m) return;
+    const fps = Number(m[1]);
+    fpsEl.textContent = fps; fpsNote.textContent = "frames a second";
+    if (skip > 0) { skip--; return; }
+    const r = results[key]; r.n++; r.sum += fps; r.low = Math.min(r.low, fps);
+    draw();
+    if (run && r.n >= TEST.secs) {
+      if (++run.i < STEPS.length) step(); else endRun("Finished. Copy the results and paste them into the chat.");
+    }
+  }, 1000);
+
+  for (const id of ["look", "quality"]) $(id).addEventListener("click", (e) => {
+    const b = e.target.closest("button"); if (!b || state[id] === b.dataset.v) return;
+    if (run) endRun("Stopped. What was measured so far is kept.");
+    state[id] = b.dataset.v; save("slt-" + id, b.dataset.v); start();
+  });
+
+  function graphics() {
+    try {
+      const gl = document.createElement("canvas").getContext("webgl2") || document.createElement("canvas").getContext("webgl");
+      const ext = gl && gl.getExtension("WEBGL_debug_renderer_info");
+      return ext ? gl.getParameter(ext.UNMASKED_RENDERER_WEBGL) : (gl ? gl.getParameter(gl.RENDERER) : "unknown");
+    } catch (e) { return "unknown"; }
+  }
+  function report() {
+    const lines = ["Soft look test, " + new Date().toLocaleString("en-GB")];
+    lines.push(`Screen ${screen.width} x ${screen.height}, sharpness ${window.devicePixelRatio}; graphics: ${graphics()}`);
+    lines.push(navigator.userAgent);
+    for (const qual of Object.keys(QUALS)) for (const look of Object.keys(LOOKS)) {
+      const r = results[look + "|" + qual];
+      if (r && r.n >= 3) lines.push(`${LOOKS[look]}, ${QUALS[qual]}: ${Math.round(r.sum / r.n)} frames a second on average, lowest ${r.low}, over ${r.n} seconds${r.set ? " (set stretch)" : " (watched by hand)"}`);
+    }
+    return lines.join("\n");
+  }
+  copyBtn.addEventListener("click", () => {
+    const text = report();
+    const fallback = () => {
+      let box = document.querySelector("textarea.copy");
+      if (!box) { box = document.createElement("textarea"); box.className = "copy"; box.readOnly = true; $("stage").append(box); box.addEventListener("blur", () => box.remove()); }
+      box.value = text; box.focus(); box.select(); copyBtn.textContent = "Select and copy below";
+    };
+    try { navigator.clipboard.writeText(text).then(() => { copyBtn.textContent = "Copied"; setTimeout(() => (copyBtn.textContent = "Copy results"), 1600); }, fallback); }
+    catch (e) { fallback(); }
+  });
+
+  start();
+})();
+</script>

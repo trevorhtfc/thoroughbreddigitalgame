@@ -563,7 +563,7 @@ function weekCard(r) {
 // The final standings: race by race, your prize money climbs the ladder of titles
 function resultBody(wins, losses, prize) {
   const complete = Object.keys(S.results).length === RACES.length;
-  if (complete) { noteWeek(prize, wins); addWeek(prize, wins); }
+  if (complete) { noteWeek(prize, wins); addWeek(prize, wins); noteDaily(prize, wins); }
   const spent = START_BUDGET - S.budget, T = titleFor(prize), rungs = TITLES.slice().reverse();
   const pct = v => Math.min(100, v / LADDER_TOP * 100);
   const rows = RACES.map((r, k) => { const res = S.results[r.id], h = horse(S.entries[r.id]);
@@ -573,7 +573,7 @@ function resultBody(wins, losses, prize) {
   const hist = pastWeeks().slice().sort((a, b) => b.prize - a.prize), counts = {}; hist.forEach(w => counts[w.title] = (counts[w.title] || 0) + 1);
   const rank = hist.findIndex(w => w.seed === S.seed && w.prize === prize) + 1;
   return `<div class="tb-head"><h1 class="tb-h">FINAL STANDINGS</h1>
-      <p class="tb-lede">Season ${S.seed} · ${wins} win${wins === 1 ? "" : "s"} from ${RACES.length} races · ${S.stable.length} horses · budget spent ${money(spent)} (a separate pot)</p></div>
+      <p class="tb-lede">${seasonName()} · ${wins} win${wins === 1 ? "" : "s"} from ${RACES.length} races · ${S.stable.length} horses · budget spent ${money(spent)} (a separate pot)</p></div>
     <div class="fs">
       <div class="fs-ladder" aria-hidden="true"><div class="fs-track"><div class="fs-fill" id="fsFill"></div>
         ${rungs.slice(1).map(t => `<div class="fs-rung ${t.cls}" id="rung-${t.cls}" style="--at:${pct(t.min)}%"><i></i><span><b>${t.name}</b>${money(t.min)}</span></div>`).join("")}</div></div>
@@ -589,7 +589,7 @@ function resultBody(wins, losses, prize) {
     <section class="rec"><h2 class="tb-h2">${W.playedPlural}</h2>
       <div class="rec-titles">${TITLES.map(t => `<div class="rt ${t.cls} ${counts[t.name] ? "got" : ""}"><b>${counts[t.name] ? "×" + counts[t.name] : "?"}</b><span>${t.name}</span></div>`).join("")}</div>
       ${hist.length ? `<table class="rec-t"><thead><tr><th>#</th><th>Card</th><th>Prize money</th><th>Wins</th><th>Title</th></tr></thead><tbody>${hist.slice(0, 10).map((w, k) =>
-        `<tr class="${w.seed === S.seed && w.prize === prize ? "me" : ""}"><td>${k + 1}</td><td>${w.seed}</td><td><b>${money(w.prize)}</b></td><td>${w.wins}/${w.races}</td><td>${w.title}</td></tr>`).join("")}</tbody></table>
+        `<tr class="${w.seed === S.seed && w.prize === prize ? "me" : ""}"><td>${k + 1}</td><td>${w.day ? "Daily, " + dayText(w.day) : w.seed}</td><td><b>${money(w.prize)}</b></td><td>${w.wins}/${w.races}</td><td>${w.title}</td></tr>`).join("")}</tbody></table>
       <p class="rec-n">${hist.length} ${MEETING.id === "royal-ascot" ? "week" : "season"}${hist.length === 1 ? "" : "s"} played${rank ? ` · this one ranks <b>${ord(rank)}</b>` : ""}. Collect every title.</p>` : ""}
     </section>`;
 }
@@ -633,8 +633,8 @@ function playTally() {
 
 function shareText(wins, losses) {
   const grid = DAYS.map((d, k) => RACES.filter(r => r.day === k).map(r => { const p = S.results[r.id] ? S.results[r.id].pos : 0; return p === 1 ? "🟩" : p >= 2 && p <= 3 ? "🟨" : "⬜"; }).join("")).join("\n");
-  const prize = RACES.reduce((a, r) => a + (S.results[r.id] ? S.results[r.id].prize : 0), 0) + teamIncome();
-  return `Thoroughbred ${W.gameTitle} · season ${S.seed}\n${titleFor(prize).name}\n${grid}\nPrize money ${money(prize)} · ${wins}–${losses}`;
+  const prize = RACES.reduce((a, r) => a + (S.results[r.id] ? S.results[r.id].prize : 0), 0);
+  return `Thoroughbred ${W.gameTitle} · ${seasonName(S, true)}\n${titleFor(prize).name}\n${grid}\nPrize money ${money(prize)} · ${wins}–${losses}`;
 }
 
 /* ================= Watching a race: the 3D race view (Final Furlong) ================= */
@@ -650,6 +650,7 @@ function watch(i) {
   box.innerHTML = `<iframe src="final-furlong.html?game=1${dbg}${window.__watchQuery || ""}" title="${esc2(race.name)}" allow="fullscreen"></iframe><button class="tb-btn ghost x" id="closeWatch"><span class="lg">Back to the racecard</span><span class="sh">Racecard</span></button>`;
   document.body.appendChild(box); document.body.style.overflow = "hidden";
   document.body.classList.add("watching");      // everything under the race is hidden and the board's loop rests (css/game.css)
+  if (window.BOARD) BOARD.Sound.hush(true);     // and its sounds: the race view has its own crowd and horses
   const frame = box.querySelector("iframe");
   watching = { i, box, frame, sent: false };
   watching.timer = setTimeout(() => { if (watching && !watching.sent) {
@@ -660,13 +661,18 @@ function watch(i) {
   // the race's own course (the Newmarket season races on the Rowley Mile and the July Course); at Newmarket the panels
   // name the meeting and the course rather than a day
   watching.payload = { type: "race", course: courseFile(race), race: viewKey(race), going: er.going, seed: er.seed, title: race.name,
+    sound: !!(window.BOARD && BOARD.Sound.on),   // the game's Sound setting: the race view's crowd and horses follow it
     kicker: MEETING.courses ? `${DAYS[race.day]} · ${courseName(race)} · Race ${i + 1} of ${RACES.length}` : `${DAYS[race.day]} · Race ${i + 1} of ${RACES.length} · ${race.grade}`,
     // for the view's own racecard and result panels (game mode): the race's conditions and prizes, your colours
     card: { grade: race.grade, dist: race.dist, day: DAYS[race.day], meeting: MEETING.courses ? `${DAYS[race.day]}, ${courseName(race)}` : MEETING.name, prizes: race.prizes, conditions: race.ageLabel, next: i + 1 < RACES.length && !S.results[RACES[i + 1].id] ? RACES[i + 1].name : "", silkImg: mySilks().img },
     // and, for the dock and the racecard: the owner's own graphic silks, the price and the race-day colour card
-    runners: field.map((h, k) => ({ ...engineRunner(h), silk: SILK3D[h.sk], silk2d: SILKS[h.sk].img, odds: mkt[k].odds, card: mkt[k].card, coat: { body: h.coat[0], points: h.coat[1] }, mine: !!h.mine })) };
+    runners: field.map((h, k) => ({ ...engineRunner(h), ...(h.mine && MY ? { silk: "own", silkSpec: MY.spec, silk2d: MY.img } : { silk: SILK3D[h.sk], silk2d: SILKS[h.sk].img }), odds: mkt[k].odds, card: mkt[k].card, coat: { body: h.coat[0], points: h.coat[1] }, mine: !!h.mine })) };
 }
-function closeWatch() { if (!watching) return; clearTimeout(watching.timer); watching.box.remove(); watching = null; document.body.style.overflow = ""; document.body.classList.remove("watching"); render(); }
+function closeWatch() {
+  if (!watching) return; clearTimeout(watching.timer);
+  try { watching.frame.contentWindow.__soundStop && watching.frame.contentWindow.__soundStop(); } catch (e) {}
+  if (window.BOARD) BOARD.Sound.hush(false);
+  watching.box.remove(); watching = null; document.body.style.overflow = ""; document.body.classList.remove("watching"); render(); }
 // D shows or hides the race view's diagnostics (frame rate, draw calls, triangles, pixel ratio) while a race is on
 addEventListener("keydown", e => {
   if (watching && (e.key === "d" || e.key === "D") && !e.metaKey && !e.ctrlKey && !e.altKey) watching.frame.contentWindow.postMessage({ type: "diag" }, "*");
@@ -682,6 +688,12 @@ addEventListener("message", e => {
   }
   if (d.type === "finished") { const i = watching.i; simAndRecord(i).then(() => { if (typeof raceDone === "function") raceDone(i, true); }).catch(err => toast(String(err.message || err))); }
   if (d.type === "back") closeWatch();
+  // the race view's speaker changes the game's own Sound setting (and its button on the top bar)
+  if (d.type === "sound" && window.BOARD && BOARD.Sound.on !== !!d.on) {
+    BOARD.Sound.set(!!d.on);
+    const b = $("#snd"), ic = $("#sndIcon");
+    if (b) b.setAttribute("aria-pressed", String(!!d.on)); if (ic && window.ICON) ic.innerHTML = d.on ? ICON.speaker : ICON["speaker-off"];
+  }
   if (d.type === "next") { const i = watching.i; closeWatch(); const nx = RACES[i + 1]; if (nx && !S.results[nx.id]) watch(i + 1); }
 });
 
@@ -690,10 +702,12 @@ addEventListener("message", e => {
 let A = null;   // the auction in progress
 function openAuction(id) {
   const l = S.sale.find(x => x.id === id); if (!l || A || S.step < 2 || S.step > 3 || S.foal || stableFull()) return;
-  const ap = appeal(l);
-  const rivals = RIVALS.map(r => ({ ...r, ceil: Math.random() < r.keen(l) ? l.reserve * ap * r.want(l) * (.7 + Math.random() * .9) : 0, wait: null }));
-  A = { l, price: null, leader: null, start: performance.now(), last: performance.now(), rivals, log: [], call: -1, done: false, auto: 0, autoOn: false, ang: Math.random() * 6.28 };
-  A.auto = Math.min(canBidTo(), round5k(guide(l)[0]));
+  // who is interested in this lot and how far each will go is this game's own luck (fixed once the game is dealt, so
+  // leaving the page and coming back can't change it); how long they hesitate before each bid is left to chance
+  const rnd = luck("ring|" + l.sire + "|" + l.dam), ap = appeal(l, rnd);
+  const rivals = RIVALS.map(r => ({ ...r, ceil: rnd() < r.keen(l) ? l.reserve * ap * r.want(l) * (.7 + rnd() * .9) : 0, wait: null }));
+  A = { rnd, l, price: null, leader: null, start: performance.now(), last: performance.now(), rivals, log: [], call: -1, done: false, auto: 0, autoOn: false, ang: Math.random() * 6.28 };
+  A.auto = Math.min(S.budget, round5k(guide(l)[0]));
   S.ring = l.id; save();   // the lot is in the ring: leave the page now and it has gone when you come back (no going back)
   const box = document.createElement("div"); box.className = "auc"; box.id = "auc"; box.setAttribute("role", "dialog"); box.setAttribute("aria-label", `Tattersalls, lot ${l.n}`);
   box.innerHTML = aucHTML(); document.body.appendChild(box); document.body.style.overflow = "hidden";
@@ -820,7 +834,7 @@ function aucLeave() {
   for (let k = 0; k < 200; k++) {
     const nx = aucNext(), keen = A.rivals.filter(r => r.id !== A.leader && r.ceil >= nx);
     if (!keen.length) break;
-    const r = keen[Math.floor(Math.random() * keen.length)];
+    const r = keen[Math.floor(A.rnd() * keen.length)];
     A.price = nx; A.leader = r.id;
   }
   aucHammer(); aucClose();

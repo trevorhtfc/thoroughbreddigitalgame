@@ -1,0 +1,76 @@
+{
+  "_about": "The race view's sounds (race-view/race-sound.js), in sections (owner, 13 Nov 2026), made from his recordings by tools/sound/mix_real_sounds.py (the sources and what each file is are listed there). Before the off: crowd-murmur (loop), the crowd waiting. The off: off.mp3, one sound, the stalls opening laid into the Cheltenham roar with its 'and they're off'; started so its latches click at the off (off.latchAt seconds in); the crowd's loops are turned down to off.duck until off.duckUntil. The middle: middle.mp3 (loop), the crowd a little muted, the field galloping, the commentator in the background; it fades in from sections.middleFrom seconds into the race over sections.middleIn, and fades out over sections.cross as the finish comes in. The finish: finish.mp3, started so the line (finish.lineAt seconds in) comes as the leader crosses it: about 3 furlongs out; the crowd and the commentator more and more animated, the surge at the line, then applause. After the race the crowd waiting comes back sections.murmurBack seconds after the line. A long race passing the stands with more than sections.passingFrom metres still to run lifts the crowd (crowd-excited, by crowd.passingStands). gallop.mp3 (loop) adds the horses up close: on close shots (by how near the shot looks: hooves.*) and in the slow-motion replay. files: each sound; 'loop' is a loop's exact length in seconds (the file carries half a second of it either side; the script writes these); 'bus': crowd (louder and clearer when the camera is near the crowd, muffled from a distant start: crowd.nearFrom/farAt/farLevel/farMuffle), hooves (by the shot), or master (as it is). mix: each layer's loudest level.",
+  "files": {
+    "murmur": {
+      "file": "crowd-murmur.mp3",
+      "loop": 25.9,
+      "bus": "crowd"
+    },
+    "excited": {
+      "file": "crowd-excited.mp3",
+      "loop": 20.6,
+      "bus": "crowd"
+    },
+    "gallop": {
+      "file": "gallop.mp3",
+      "loop": 7.3,
+      "bus": "hooves"
+    },
+    "middle": {
+      "file": "middle.mp3",
+      "loop": 18.2047,
+      "bus": "master"
+    },
+    "off": {
+      "file": "off.mp3",
+      "bus": "master"
+    },
+    "finish": {
+      "file": "finish.mp3",
+      "bus": "master"
+    }
+  },
+  "mix": {
+    "master": 0.9,
+    "murmur": 0.6,
+    "excited": 0.6,
+    "gallop": 0.35,
+    "middle": 1.0,
+    "off": 0.95,
+    "finish": 1.0
+  },
+  "off": {
+    "latchAt": 3.275,
+    "duck": 0.45,
+    "duckUntil": 5
+  },
+  "finish": {
+    "lineAt": 37.0
+  },
+  "sections": {
+    "middleFrom": 2.5,
+    "middleIn": 3.5,
+    "cross": 4.0,
+    "murmurBack": 9,
+    "passingFrom": 1000
+  },
+  "crowd": {
+    "quiet": 0.12,
+    "loading": 0.1,
+    "passingStands": 0.5,
+    "replay": 0.1,
+    "duck": 0.55,
+    "nearFrom": 40,
+    "farAt": 450,
+    "farLevel": 0.6,
+    "farMuffle": 2200
+  },
+  "hooves": {
+    "nearAt": 10,
+    "farAt": 170,
+    "lensFov": 45,
+    "railMics": 0,
+    "cruise": 16.5,
+    "replayLevel": 0.7
+  }
+}

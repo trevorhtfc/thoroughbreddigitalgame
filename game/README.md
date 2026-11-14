@@ -50,6 +50,55 @@ colours walking out to Warren Hill, the horseboxes away up Fordham Road. Then th
 race view; "Sim" gives the same result straight away. Entries can still be changed before the first race (the Jockey
 Club's entries in an Ascot sheet: "Declarations").
 
+## Two ways to play: today's card and the random game (13 Nov 2026, branch `claude/daily-card`)
+
+Owner, 13 Nov: "having the daily mix or just a play a random game option is best". The cover's buttons (`paintMenu()` in
+`js/ui.js`) are now **Play today's card** and **Play a random game**; once a random game is under way, **Random game**
+(continue) and **New random game**.
+
+- **Today's card** is one race card a day (the same ten races, going and fields for everyone), changing at midnight UK time (`ukDay()`). Its season number
+  is made from the date and the season (`dailySeed(day)` in `js/rules.js`; Royal Ascot and Newmarket each have their own),
+  kept above 1,000,000 so it can never be a random game's number (those are 1 to 1,000,000).
+- **One go.** A day's card can't be restarted, and the first time it is finished its result is written to
+  `tb-<season>-daily-log` (`noteDaily()`) and never overwritten. After that the cover's button shows the result and
+  opens the final standings. An unfinished card from an earlier day is put away when today's is started.
+- **Two saved games a season**, so starting one never loses the other: the random game in `tb-game-<season>` (as before,
+  so players' saves carry over) and the daily card in `tb-game-<season>-daily` (`slotKey()`, `load(mode)`); the one last
+  played is in `tb-<season>-mode`. `S.mode` is "daily" or "random", `S.day` the card's day.
+- **Two numbers make a game** (`js/rules.js`). The season's number (`S.seed`) is the race card: the ten races, the
+  going, the fields. That is what today's card shares. The game's own luck (`S.luck`, drawn afresh for every game and
+  every player) is the breeding and buying: the mares a pile turns over, a foal, the Tattersalls catalogue, how far
+  each rival will go for a lot, what an unproven stallion is really worth. Owner, 13 Nov: "the mares and foals etc
+  shouldn't be pre fixed. it should work fresh for each player". Each roll comes from `luck(key)` (the game's luck plus
+  what is being rolled for), not `Math.random`, so within one game a roll can't be taken again by reloading. Still
+  left to the moment: how long a rival hesitates before a bid, and the board's moving life.
+- The screens call a season by `seasonName()`: "Daily card, Fri 13 Nov" or "Season 123456".
+- **Not built yet:** the leaderboard (stable names, scores kept on Cloudflare) and score checking. `noteDaily()` is where a
+  finished daily card would be sent from.
+
+## Your colours: every player makes their own (13 Nov 2026, branch `claude/own-colours`)
+
+Owner, 13 Nov: "let's make all new players make their own colours.. and let's also remember their colours? no selection
+from the initial suite". The cover no longer offers the 54 ready-made silks to choose from (they are the opposition's).
+
+- **The maker** (`js/colours.js`, `openColours()`): three tabs (Jacket, Sleeves, Cap), each with a colour, a second colour
+  and a pattern; a big picture with its description in racing's words; "Surprise me". A player with no colours yet is
+  brought to it before their first game (`needColours()` on the cover's play buttons), then carries on into the game.
+- **The templates and the palette** are in `race-view/silks-paint.js` (staged to the site's top folder and loaded by both
+  the game and the race view): the owner's 25 jackets, 12 sleeves and 10 caps, then the extra patterns (sash, halved,
+  inverted chevron, panel, three spots; cuffs; halved, four spots, peak), and twelve colours read from his 54 silks
+  graphics (the ten most used, plus green and orange). Its pattern rules are `tools/silks/make_silks.py`'s line for line
+  (checked: all 56 patterns give identical masks), so **a pattern changed in one must be changed in the other**.
+- **Remembered** in the browser under `tb-colours` (one set for every game and both seasons): `setColours()`, `MY`,
+  `hasColours()` in `js/rules.js`. `mySilkN()` is `MINE` (-1) once a player has colours; `silkImg(MINE)` is their picture.
+  `SilksPaint.encode()` gives a short text for a set (e.g. `j5.1.4-s6.0.5-c6.4.1`), kept with a finished daily card for
+  the leaderboard to show.
+- **The menu picture** is drawn in the owner's diagram layout (`SilksPaint.icon()`: the strip on the left the sleeves,
+  the half circle at the top the cap, the rest the body), so it sits beside the 54 in the racecards and results.
+- **In 3D**: the race view is sent the colours' description (`silkSpec` on your runner) and `race-view/horse-v2.js`
+  paints the jockey's texture from it (`SilksPaint.texture(spec, 1024, "v2")`); the board's string of horses
+  (`js/life.js`, the v1 layout) and your banner on the road to the races (`flyOwn()` in `src/board.src.js`) take them too.
+
 ## One look
 
 `css/game.css` on top of the house style (`css/components.css`, the Ascot game's styles). Taken from the board: its
@@ -473,3 +522,69 @@ money comes back when the best lots have gone, so there is nothing better to spe
 (see the handover notes). Pedigree Expert is the same at every tier and Bloodstock Agent hardly better on Gold: both
 want their tiers spreading. Private Sale I and II and Elite Mares I are weak.
 
+## The race view's sound: the crowd and the horses (12 Nov 2026)
+
+Owner: "add commentary or at least crowd effects"; crowd effects first, spoken commentary later (the text commentary
+is already there). `race-view/race-sound.js` plays it; `race-view/assets/sound/sounds.json` holds the files and every
+level; `tools/sound/make_race_sounds.py` made the files from scratch (no recordings, so nothing to license: the
+crowd's chatter and shouts are hundreds of eSpeak voices at once, the roar is built from vowel shapes, the applause from
+hand claps, the hooves are four-beat gallops with the horses' breathing). Any file can be swapped for a real recording
+(same name; for a loop keep half a second of the loop either side and give its length in `sounds.json`).
+
+- **The crowd** chatters before the off and hushes a little while they load; cheers as they jump; builds from about
+  5½f out; roars them home (louder when the first two are within 2½ lengths); holds the roar at the line, then settles
+  and applauds. A long race lifts the crowd as it passes the stands. Heard fully when the camera is near the crowd,
+  quieter and muffled from a distant start.
+- **The horses**: the stalls clang open; the field's gallop is as loud as the shot looks close (a long lens on far
+  horses sounds near, as on TV), panned to their side, quicker or slower with them, slowed right down in the replay.
+- **On and off**: the speaker on the race view's plate. In the game it follows the game's Sound button (and changing it
+  in the race changes the game's). The board's own sounds rest while a race is on (`BOARD.Sound.hush`), and the race
+  view borrows the game's sound (`BOARD.Sound.ctx()`), so phones that only allow sound after a tap still play it; if a
+  browser holds it back, the speaker pulses and the first tap lets it out. On the race view's own page: remembered.
+- Checking aid: `window.__sound()` gives what it's doing (excitement, how near the crowd and horses are, each level).
+
+### 13 Nov 2026: the owner's recordings
+
+Owner, after hearing the made sounds: "you can't hear the crowd; the gates are a pop rather than a crash". He sent
+recordings (`tools/sound/sources/`, with a note on their licences); `tools/sound/mix_real_sounds.py` cuts and mixes
+them. **The off:** the Cheltenham roar, timed so its "they're off" comes just as the stalls crash open (the real latches
+and doors from a stalls recording on a heavy clang of steel doors), at full strength wherever the start is. **The crowd**
+waits (real crowds, softened and distant), stirs (Aintree) and roars (the Japan Cup with the Grand National finish), then
+surges at the line into applause. **The gallop** is the recording doubled up into a field, under the crowd now. **The
+course commentary** comes over the loudspeakers from across the course, calm then the finish: a made voice (eSpeak, the
+only one available) through horn speakers and echo, so the rise and fall comes through but not the words; a real
+commentary recording can replace it (see the script). A whole-race listening preview can be rendered offline the same
+way the race view mixes it.
+
+### 13 Nov 2026 (later): the sound in sections
+
+Owner: the off as one sound (his recipe: the stalls opening, 1–2.5 s of the stalls recording, laid into the Cheltenham
+roar, "and they're off" brought out); then "a flexible looping middle section … from the off till the 3f stage or so:
+a slightly more muted crowd, galloping and background PA announcer"; then "the finish sound effect where the crowd get
+much more animated as does the background PA, leading to the cheer as they cross the line". So: `middle.mp3` (a loop)
+fades in just after the off; `finish.mp3` (one sound, 51 s) is started so its line (37 s in) comes as the leader
+crosses it, about 3f out, the middle fading out under it; it is kept in step with the race clock (a slow computer draws
+the race slower than real time). The crowd waiting comes back after the race; a long race passing the stands lifts the
+crowd; the gallop loop adds the horses up close and in the replay. The excitement-driven crowd layers and the separate
+commentary loops are gone.
+
+### 13 Nov 2026 (evening): the real commentators
+
+Owner: "the commentary isn't great [the made voice]. Some of these clips have crowd and commentary which I'm happy for
+you to overlay to get the sound." The made voice is gone: the middle is now the Cheltenham commentator after the roar
+and the Aintree clip with its announcer, muted, with the gallop; the finish brings in the Grand National finish (crowd
+and commentary) from about 3f out, opening up and rising to the line over the Japan Cup's roar. Each clip's voices are
+brought forward a little out of its crowd (`lift_voice` in `tools/sound/mix_real_sounds.py`).
+
+### 14 Nov 2026: the three finishes lined up
+
+Owner gave where each crowd's horses cross the line: the Grand National finish at 22 s, Aintree at 21 s, the Japan Cup at
+38 s. The finish now lays all three so their lines land on ours (`LINES` in `tools/sound/mix_real_sounds.py`), their own
+build-ups making the crescendo (about 8 dB over the last 20 s, the Japan Cup's surge right on the line), the Grand
+National's cheering and commentary carrying on after it into applause. The middle uses Aintree only before its finish
+builds, then the Japan Cup crowd early in its race as a breather between the commentators.
+
+Owner, 14 Nov: "I can't really hear any PA announcer … the applause is too prominent, it doesn't sound like a big crowd".
+The commentators are now brought forward harder (`TALK_LIFT_DB` 11) and the middle's talk sits above the gallop and the
+crowd (the only clearly spoken commentary in the clips is the Cheltenham commentator's few seconds after the roar, and
+Aintree's announcer); the applause is some 1,400 pairs of hands, mostly far off down the stands, and much quieter.

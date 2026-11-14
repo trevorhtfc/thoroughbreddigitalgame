@@ -4,20 +4,20 @@
  "finish": {
   "mesh": "finish",
   "lightMap": "finish_light.jpg",
-  "scale": 1.6894
+  "scale": 1.6872
  },
  "site": {
   "mesh": null,
   "lightMap": "site_light.jpg",
-  "scale": 1.8728,
+  "scale": 1.8678,
   "kit": {
+   "balloon_pod_q2": "kit_balloon_pod_q2",
    "banner_flag_q0": "kit_banner_flag_q0",
    "banner_flag_q2": "kit_banner_flag_q2",
    "barrier_rail_q0": "kit_barrier_rail_q0",
    "big_top_q0": "kit_big_top_q0",
    "big_top_q2": "kit_big_top_q2",
    "booth_hut_q0": "kit_booth_hut_q0",
-   "booth_hut_q2": "kit_booth_hut_q2",
    "booth_hut_q3": "kit_booth_hut_q3",
    "fence_cross_q2": "kit_fence_cross_q2",
    "fence_picket_q0": "kit_fence_picket_q0",
@@ -27,8 +27,8 @@
    "kiosk_awning_q2": "kit_kiosk_awning_q2",
    "kiosk_awning_q3": "kit_kiosk_awning_q3",
    "kiosk_row_arched_q0": "kit_kiosk_row_arched_q0",
-   "kiosk_row_arched_q2": "kit_kiosk_row_arched_q2",
    "marquee_clearspan_q0": "kit_marquee_clearspan_q0",
+   "marquee_clearspan_q2": "kit_marquee_clearspan_q2",
    "marquee_peaks_q0": "kit_marquee_peaks_q0",
    "marquee_peaks_q2": "kit_marquee_peaks_q2",
    "pagoda_counter_q0": "kit_pagoda_counter_q0",
@@ -38,6 +38,8 @@
    "pergola_picnic_q0": "kit_pergola_picnic_q0",
    "pergola_picnic_q2": "kit_pergola_picnic_q2",
    "picnic_table_q0": "kit_picnic_table_q0",
+   "picnic_table_q1": "kit_picnic_table_q1",
+   "picnic_table_q2": "kit_picnic_table_q2",
    "planter_long_q0": "kit_planter_long_q0",
    "planter_short_q0": "kit_planter_short_q0",
    "planter_short_q2": "kit_planter_short_q2",
@@ -57,12 +59,12 @@
  "stand": {
   "mesh": "stand",
   "lightMap": "stand_light.jpg",
-  "scale": 1.6962
+  "scale": 1.6953
  },
  "ground": {
   "mesh": "ground",
   "map": "ground.jpg",
-  "scale": 0.9157,
+  "scale": 0.9108,
   "area": {
    "x0": -260.0,
    "x1": 700.0,
@@ -70,14 +72,14 @@
    "z1": 140.0
   },
   "outside": [
-   0.5988,
-   0.7357,
-   0.4041
+   0.5989,
+   0.7359,
+   0.4042
   ],
   "turf": [
-   0.2387,
-   0.4813,
-   0.1158
+   0.2394,
+   0.4825,
+   0.116
   ]
  }
 }

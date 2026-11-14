@@ -13,7 +13,9 @@ const V1 = "assets/model/racehorse-3d-model-clone1-";        // v2 reuses v1's n
 // The jockey's face is the original model's painting (owner's reference). Each jockey's skin tone is that
 // painting multiplied by one of these (linear light; [1, 1, 1] = exactly as painted). Goggles stay dark.
 const SKIN = [[1.22, 1.17, 1.12], [1.1, 1.06, 1.03], [1, 1, 1], [1, 1, 1], [0.84, 0.78, 0.72], [0.6, 0.53, 0.46], [0.4, 0.34, 0.28]];
-const VARIETY = ["jky_crouch_low", "jky_crouch_high", "jky_elbows_out", "jky_hands_long", "horse_head_high", "horse_head_low", "horse_tail_high"];
+const VARIETY = ["jky_crouch_low", "jky_crouch_high", "jky_elbows_out", "jky_hands_long", "horse_head_high", "horse_head_low", "horse_tail_high",
+  "jky_look_left", "jky_look_right", "jky_stand"];
+const MOMENTS = ["jky_look_left", "jky_look_right", "jky_stand"];   // not part of how he sits: they come and go (a look round, pulling up)
 
 function seeded(seed) {
   let s = (seed * 2654435761) >>> 0 || 1;
@@ -37,12 +39,18 @@ export async function loadHorse(loadModel, dir = "assets/model-v2", tex) {
   return { gltf, clips, maps };
 }
 
+const NO_SHEEN = new URLSearchParams(globalThis.location ? location.search : "").has("oldcoat");   // checking aid: the coat as it was lit before
 export const debug = { zones: false };     // checking aid: main zones (coat red, points green, face blue), silks as their uv
 
 const silkCache = new Map();
-function silkTexture(id, load) {
+// silk: one of the ready-made sets (its texture is a file), or colours a player made themselves (silk.spec:
+// painted here by silks-paint.js, in the same layout)
+function silkTexture(silk, load) {
+  const own = silk.spec && globalThis.SilksPaint ? silk.spec : null, id = own ? "own:" + globalThis.SilksPaint.encode(own) : silk.id;
   if (!silkCache.has(id)) {
-    const t = load(`assets/silks-3d-v2/${id}.png`, true);
+    let t;
+    if (own) { t = new THREE.CanvasTexture(globalThis.SilksPaint.texture(own, 1024, "v2")); t.flipY = false; t.colorSpace = THREE.SRGBColorSpace; }
+    else t = load(`assets/silks-3d-v2/${id}.png`, true);
     t.wrapS = THREE.RepeatWrapping; t.anisotropy = 8;
     silkCache.set(id, t);
   }
@@ -54,8 +62,11 @@ function silkTexture(id, load) {
 // G points, B face), so each colour stops exactly at its edge.
 function mainMaterial(src, maps, u) {
   const m = src.clone();
-  m.map = maps.base; m.normalMap = maps.normal; m.roughnessMap = maps.rm; m.metalnessMap = maps.rm;
-  m.color.set("#ffffff"); m.metalness = 1; m.roughness = 1; m.vertexColors = true;
+  // Nothing on a horse is metal bar the bit and irons, and the model's metal map called patches of the dock, the
+  // quarters and the saddle cloth metal, which caught the sun as grey-white flares. So: no metal, and the roughness
+  // map kept, a touch smoother, for the soft sheen of a groomed coat.
+  m.map = maps.base; m.normalMap = maps.normal; m.roughnessMap = maps.rm; m.metalnessMap = NO_SHEEN ? maps.rm : null;
+  m.color.set("#ffffff"); m.metalness = NO_SHEEN ? 1 : 0; m.roughness = NO_SHEEN ? 1 : 0.9; m.vertexColors = true;
   m.onBeforeCompile = (shader) => {
     Object.assign(shader.uniforms, u);
     shader.fragmentShader = shader.fragmentShader
@@ -110,7 +121,7 @@ export function makeRunner(proto, { coat, silk, seed = 1, texLoader, castShadow 
     if (!o.isSkinnedMesh) return;
     o.castShadow = castShadow; o.frustumCulled = false;
     const src = o.material;
-    if (!mats.has(src.name)) mats.set(src.name, src.name.includes("silks") ? silksMaterial(src, silkTexture(silk.id, load), proto.maps.shade) : mainMaterial(src, proto.maps, u));
+    if (!mats.has(src.name)) mats.set(src.name, src.name.includes("silks") ? silksMaterial(src, silkTexture(silk, load), proto.maps.shade) : mainMaterial(src, proto.maps, u));
     o.material = mats.get(src.name);
     sized.push(o);
   });
@@ -137,6 +148,10 @@ export function makeRunner(proto, { coat, silk, seed = 1, texLoader, castShadow 
     horse_head_high: Math.max(0, head) * 0.9, horse_head_low: Math.max(0, -head) * 0.9, horse_tail_high: rnd() * 0.8,
   };
   for (const [k, w] of Object.entries(look)) actions[k] && actions[k].setEffectiveWeight(w);
+  // a look round for dangers now and then while he is sitting quietly: some jockeys often, some hardly ever,
+  // each with a side he favours. Cosmetic: from his seed and his own clock, never from the race.
+  const glance = { every: 5 + rnd() * 14, left: 0.25 + rnd() * 0.5, next: 2 + rnd() * 12, t: 0, side: null, w: 0 };
+  let stand = 0;
   const cadence = 0.955 + rnd() * 0.09;                       // a touch quicker or slower in the stride
   const lag = rnd() * 0.04;                                  // the jockey's push a little before or after the stride
   const vigour = 0.85 + rnd() * 0.3;                         // how hard he rides for the same effort
@@ -151,8 +166,9 @@ export function makeRunner(proto, { coat, silk, seed = 1, texLoader, castShadow 
     setTime(t) {
       for (const [n, a] of Object.entries(actions)) if (!VARIETY.includes(n)) a.time = (t + (RIDE.includes(n) ? lag : 0)) % a.getClip().duration;
     },
-    // speed m/s, effort 0..3 from the race timeline (0 quiet, 1 push, 2 drive, 3 whip)
-    update(dt, v, eff, camera, step = dt) {
+    // speed m/s, effort 0..3 from the race timeline (0 quiet, 1 push, 2 drive, 3 whip); ease 0..1: pulling up
+    // after the line (he stands in his irons)
+    update(dt, v, eff, camera, step = dt, ease = 0) {
       effort += (Math.min(3, eff) * (eff > 0.05 ? vigour : 1) - effort) * Math.min(1, dt * 2.2);
       horseEffort += (effort - horseEffort) * Math.min(1, dt * 1.5);   // the horse answers a beat later
       const e = THREE.MathUtils.clamp(effort, 0, 3);
@@ -162,6 +178,19 @@ export function makeRunner(proto, { coat, silk, seed = 1, texLoader, castShadow 
       const w = 1 - THREE.MathUtils.smoothstep(v, 0.3, 4.5);             // standing in the stalls: the walk, nearly still
       const d = Math.min(1, horseEffort / 2) * 0.85;
       set("walk", w); set("gallop_v2", (1 - d) * (1 - w)); set("gallop_v2_drive", d * (1 - w));
+      // moments: standing in the irons as he pulls up; a look round while he sits quietly
+      stand += (THREE.MathUtils.clamp(ease, 0, 1) * (1 - w) - stand) * Math.min(1, dt * 1.6);
+      set("jky_stand", stand);
+      if (step > 0 && dt < 1) {
+        glance.t += step;
+        if (glance.side === null && glance.t > glance.next && e < 0.6 && w < 0.05 && stand < 0.1) { glance.side = rnd() < glance.left ? "jky_look_left" : "jky_look_right"; glance.t = 0; }
+        if (glance.side !== null) {
+          const u = glance.t / 1.5;                                          // round, hold, back: a second and a half
+          glance.w = e > 1.2 ? glance.w * Math.max(0, 1 - dt * 6) : THREE.MathUtils.smoothstep(u, 0, 0.3) * (1 - THREE.MathUtils.smoothstep(u, 0.62, 1));
+          set(glance.side, glance.w);
+          if (u >= 1 || (e > 1.2 && glance.w < 0.01)) { set(glance.side, 0); glance.side = null; glance.t = 0; glance.next = glance.every * (0.5 + rnd()); }
+        }
+      }
       mixer.timeScale = v < 0.3 ? 0.06 : THREE.MathUtils.clamp((v / STRIDE_SPEED) * cadence, 0.3, 1.45);
       mixer.update(step);
       if (camera) {                                                          // on its own (the studio): detail by size on screen
@@ -177,6 +206,7 @@ export function makeRunner(proto, { coat, silk, seed = 1, texLoader, castShadow 
       return 2.0 / (2 * dist * Math.tan(THREE.MathUtils.degToRad(camera.fov) / 2));
     },
     setLevel,
+    hold(name, weight) { if (MOMENTS.includes(name) && actions[name]) { actions[name].setEffectiveWeight(weight); mixer.update(0); } },   // checking aid: a moment held in a still
   };
 }
 

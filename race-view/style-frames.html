@@ -1,0 +1,221 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Thoroughbred style frames</title>
+<style>html, body { margin: 0; height: 100%; background: #222; } canvas { display: block; width: 100vw; height: 100vh; }</style>
+<canvas id="scene"></canvas>
+<script type="importmap">
+{ "imports": {
+  "three": "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js",
+  "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/"
+} }
+</script>
+<script type="module">
+// Style frames (11 Nov 2026): one small scene (a piece of grandstand with the clock tower, rail and turf, trees, a few
+// people, three horses) built from NEW pieces, three times over, each in a different hand. Nothing here uses the game's
+// stand, crowd or trees: only the horse and jockey model is the game's, repainted to belong.
+//   ?style=toy     chunky clay toy-town (after the pastel street)
+//   ?style=facet   flat-faceted, two-colour, misty (after the tree house in the pines)
+//   ?style=brick   the brick model town (after the harbour town)
+//   &cam=hero|close|low      &still=1 (stop after a few frames; window.__ready)
+import * as THREE from "three";
+import { RoundedBoxGeometry } from "three/addons/geometries/RoundedBoxGeometry.js";
+import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
+import { MeshoptDecoder } from "three/addons/libs/meshopt_decoder.module.js";
+import { EffectComposer } from "three/addons/postprocessing/EffectComposer.js";
+import { RenderPass } from "three/addons/postprocessing/RenderPass.js";
+import { GTAOPass } from "three/addons/postprocessing/GTAOPass.js";
+import { OutputPass } from "three/addons/postprocessing/OutputPass.js";
+import * as HorseV2 from "./horse-v2.js";
+import { STYLES } from "./style-frames.js";
+
+const q = new URLSearchParams(location.search);
+const SID = STYLES[q.get("style")] ? q.get("style") : "toy";
+const S = STYLES[SID];
+const canvas = document.getElementById("scene");
+const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, preserveDrawingBuffer: true });
+renderer.setPixelRatio(1); renderer.setSize(innerWidth, innerHeight, false);
+renderer.shadowMap.enabled = true; renderer.shadowMap.type = THREE.PCFShadowMap;
+renderer.toneMapping = THREE.NeutralToneMapping; renderer.toneMappingExposure = S.exposure || 1;
+const scene = new THREE.Scene();
+
+// ---------- the kit: plain building blocks every style draws on ----------
+const mats = new Map();
+const mat = (color, o = {}) => {
+  const k = color + (o.map ? o.map.uuid : "") + [o.rough, o.flat, o.side, o.emit].join("|");
+  if (!mats.has(k)) mats.set(k, new THREE.MeshStandardMaterial({ color, roughness: o.rough ?? 0.92, metalness: 0, flatShading: o.flat ?? !!S.flat, map: o.map || null, side: o.side || THREE.FrontSide,
+    emissive: o.emit ? new THREE.Color(o.emit) : new THREE.Color(0), emissiveIntensity: o.emit ? 1.6 : 0 }));
+  return mats.get(k);
+};
+let G = scene;                                           // where pieces are being added
+const put = (geo, color, x = 0, y = 0, z = 0, o = {}) => {
+  const m = new THREE.Mesh(geo, typeof color === "string" ? mat(color, o) : color);
+  m.position.set(x, y, z); if (o.rot) m.rotation.set(...o.rot); if (o.scale) m.scale.set(...o.scale);
+  m.castShadow = o.cast ?? true; m.receiveShadow = true; G.add(m); return m;
+};
+const K = {
+  THREE, mat, put, scene,
+  group(fn, x = 0, y = 0, z = 0, ry = 0) { const g = new THREE.Group(), was = G; g.position.set(x, y, z); g.rotation.y = ry; was.add(g); G = g; fn(); G = was; return g; },
+  // a block; 'r' rounds its edges (the toy look), centred on x and z, standing on y
+  box(w, h, d, color, x, y, z, o = {}) {
+    const r = o.r ?? S.round ?? 0;
+    const geo = r > 0 ? new RoundedBoxGeometry(w, h, d, 3, Math.min(r, w / 2 - 0.01, h / 2 - 0.01, d / 2 - 0.01)) : new THREE.BoxGeometry(w, h, d);
+    return put(geo, color, x, y + h / 2, z, o);
+  },
+  // a block whose pattern (bricks, tiles, planks) keeps its true size whatever the block's size
+  tbox(w, h, d, color, x, y, z, o = {}) {
+    const geo = new THREE.BoxGeometry(w, h, d), uv = geo.attributes.uv, dims = [[d, h], [d, h], [w, d], [w, d], [w, h], [w, h]];
+    for (let f = 0; f < 6; f++) for (let i = 0; i < 4; i++) uv.setXY(f * 4 + i, uv.getX(f * 4 + i) * dims[f][0], uv.getY(f * 4 + i) * dims[f][1]);
+    return put(geo, color, x, y + h / 2, z, o);
+  },
+  // a pitched roof of two slabs, ridge along x, eaves at y
+  roof2(len, depth, h, color, x, y, z, o = {}) {
+    const run = Math.hypot(depth / 2 + 0.5, h), a = Math.atan2(h, depth / 2);
+    for (const sgn of [-1, 1]) K.tbox(len, 0.3, run, color, x, y + h / 2 - 0.15, z + sgn * depth / 4, { ...o, rot: [sgn * a, 0, 0] });
+  },
+  // a grey pattern to multiply a colour by: blocks bw x bh metres in staggered courses, each a slightly different tone
+  blocks(bw, bh, vary = 0.1, joint = 0.82) {
+    const t = K.canvas(256, 256, (c, w, h) => {
+      const rows = 4, cols = 2, rh = h / rows, cw = w / cols;
+      c.fillStyle = `rgb(${joint * 255},${joint * 255},${joint * 255})`; c.fillRect(0, 0, w, h);
+      for (let r = 0; r < rows; r++) for (let k = -1; k <= cols; k++) {
+        const v = Math.round(255 * (1 - vary * K.rnd())); c.fillStyle = `rgb(${v},${v},${v})`;
+        c.fillRect(k * cw + (r % 2 ? cw / 2 : 0) + 2, r * rh + 2, cw - 4, rh - 4);
+      }
+    });
+    t.wrapS = t.wrapT = THREE.RepeatWrapping; t.repeat.set(1 / (bw * 2), 1 / (bh * 4)); return t;
+  },
+  cyl(r0, r1, h, color, x, y, z, o = {}) { return put(new THREE.CylinderGeometry(r0, r1, h, o.seg ?? S.seg ?? 20), color, x, y + h / 2, z, o); },
+  cone(r, h, color, x, y, z, o = {}) { return put(new THREE.ConeGeometry(r, h, o.seg ?? S.seg ?? 20), color, x, y + h / 2, z, o); },
+  ball(r, color, x, y, z, o = {}) { return put(S.flat ? new THREE.IcosahedronGeometry(r, o.detail ?? 1) : new THREE.SphereGeometry(r, 24, 16), color, x, y, z, o); },
+  // a wall along x from x0, standing on y, its front face at z (it runs back by 'depth'); openings are cut through it:
+  // { x (centre, from the wall's left end), w, y0, h, arch (round head) }
+  wall(len, h, depth, color, x0, y, z, holes = [], o = {}) {
+    const sh = new THREE.Shape();
+    if (o.outline) { o.outline.forEach(([px, py], i) => (i ? sh.lineTo(px, py) : sh.moveTo(px, py))); sh.closePath(); }
+    else { sh.moveTo(0, 0); sh.lineTo(len, 0); sh.lineTo(len, h); sh.lineTo(0, h); sh.closePath(); }
+    for (const c of holes) {
+      const p = new THREE.Path(), a = c.x - c.w / 2, b = c.x + c.w / 2, y0 = c.y0 || 0, top = y0 + c.h;
+      if (c.arch) { p.moveTo(a, y0); p.lineTo(a, top - c.w / 2); p.absarc(c.x, top - c.w / 2, c.w / 2, Math.PI, 0, true); p.lineTo(b, y0); p.closePath(); }
+      else { p.moveTo(a, y0); p.lineTo(a, top); p.lineTo(b, top); p.lineTo(b, y0); p.closePath(); }
+      sh.holes.push(p);
+    }
+    const bev = o.bevel ?? S.bevel ?? 0;
+    const geo = new THREE.ExtrudeGeometry(sh, { depth: depth - bev * 2, bevelEnabled: bev > 0, bevelSize: bev, bevelThickness: bev, bevelSegments: 3, curveSegments: S.flat ? 4 : 14 });
+    geo.translate(0, 0, bev);
+    return put(geo, color, x0, y, z, o);
+  },
+  // a hipped roof over a len x depth block, centred, its eaves at y
+  hip(len, depth, h, color, x, y, z, o = {}) {
+    const a = len / 2, b = depth / 2, r = Math.max(0, a - b);
+    const v = [-a, 0, -b, a, 0, -b, a, 0, b, -a, 0, b, -r, h, 0, r, h, 0];
+    const idx = [0, 4, 5, 0, 5, 1, 2, 5, 4, 2, 4, 3, 0, 3, 4, 1, 5, 2, 0, 1, 2, 0, 2, 3];
+    const g = new THREE.BufferGeometry(); g.setAttribute("position", new THREE.Float32BufferAttribute(v, 3)); g.setIndex(idx);
+    const ng = g.toNonIndexed(); ng.computeVertexNormals();
+    return put(ng, color, x, y, z, { ...o, flat: true, side: THREE.DoubleSide });
+  },
+  // a gabled roof, ridge along x
+  gable(len, depth, h, color, x, y, z, o = {}) {
+    const sh = new THREE.Shape(); sh.moveTo(-depth / 2, 0); sh.lineTo(depth / 2, 0); sh.lineTo(0, h); sh.closePath();
+    const geo = new THREE.ExtrudeGeometry(sh, { depth: len, bevelEnabled: false }); geo.rotateY(Math.PI / 2); geo.translate(-len / 2, 0, 0);
+    return put(geo, color, x, y, z, { ...o, flat: true, side: THREE.DoubleSide });
+  },
+  canvas(w, h, draw, repeat) {
+    const c = document.createElement("canvas"); c.width = w; c.height = h; draw(c.getContext("2d"), w, h);
+    const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 8;
+    if (repeat) { t.wrapS = t.wrapT = THREE.RepeatWrapping; t.repeat.set(...repeat); }
+    return t;
+  },
+  stripes(a, b, n = 8, across = false) { return K.canvas(256, 256, (c, w, h) => { for (let i = 0; i < n; i++) { c.fillStyle = i % 2 ? a : b; across ? c.fillRect(0, (i * h) / n, w, h / n + 1) : c.fillRect((i * w) / n, 0, w / n + 1, h); } }); },
+  rnd: (() => { let s = 12345; return () => ((s = (s * 1664525 + 1013904223) >>> 0) / 4294967296); })(),
+  pick(list) { return list[Math.floor(K.rnd() * list.length)]; },
+};
+
+// ---------- the horses: the game's own model and gallop, repainted flat to belong to the scene ----------
+const loader = new GLTFLoader().setMeshoptDecoder(MeshoptDecoder);
+async function loadModel(dir, name) {
+  const text = (f) => fetch(`${dir}/${f}`).then((r) => { if (!r.ok) throw new Error(f + " " + r.status); return r.text(); });
+  const json = await text(`${name}.json`), b64 = await text(`${name}-geometry.txt`);
+  const raw = atob(b64.trim()), bin = new Uint8Array(raw.length);
+  for (let i = 0; i < raw.length; i++) bin[i] = raw.charCodeAt(i);
+  const pad = (n) => (n + 3) & ~3, jb = new TextEncoder().encode(json), jl = pad(jb.length), bl = pad(bin.length);
+  const glb = new Uint8Array(28 + jl + bl), dv = new DataView(glb.buffer);
+  dv.setUint32(0, 0x46546c67, true); dv.setUint32(4, 2, true); dv.setUint32(8, glb.length, true);
+  dv.setUint32(12, jl, true); dv.setUint32(16, 0x4e4f534a, true); glb.fill(0x20, 20, 20 + jl); glb.set(jb, 20);
+  dv.setUint32(20 + jl, bl, true); dv.setUint32(24 + jl, 0x004e4942, true); glb.set(bin, 28 + jl);
+  return new Promise((res, rej) => loader.parse(glb.buffer, dir + "/", res, rej));
+}
+let pending = 0;
+const tl = new THREE.TextureLoader();
+const tex = (url, srgb) => { pending++; const t = tl.load(url, () => pending--, undefined, () => pending--); t.flipY = false; if (srgb) t.colorSpace = THREE.SRGBColorSpace; return t; };
+function repaint(h, proto, coat) {
+  const H = S.horse || {};
+  const main = new THREE.MeshStandardMaterial({ map: proto.maps.base, vertexColors: true, roughness: H.rough ?? 0.8, metalness: 0, flatShading: !!S.flat });
+  const u = { cCoat: { value: new THREE.Color(coat[0]) }, cPts: { value: new THREE.Color(coat[1]) }, cSkin: { value: new THREE.Color(H.skin || "#e4b796") },
+              cDark: { value: new THREE.Color(H.dark || "#2b2622") }, cLight: { value: new THREE.Color(H.light || "#f6f1e6") } };
+  main.onBeforeCompile = (sh) => {
+    Object.assign(sh.uniforms, u);
+    sh.fragmentShader = sh.fragmentShader
+      .replace("#include <common>", "#include <common>\nuniform vec3 cCoat, cPts, cSkin, cDark, cLight;")
+      .replace("#include <color_fragment>", `{
+        vec3 zm = vColor.rgb; float l = dot(diffuseColor.rgb, vec3(0.2126, 0.7152, 0.0722)), hk = zm.r + zm.g;
+        vec3 c = mix(cDark, cLight, smoothstep(0.2, 0.3, l));                     // tack and kit: just dark or light
+        c = mix(c, (cCoat * zm.r + cPts * zm.g) / max(hk, 1e-4), clamp(hk, 0.0, 1.0));   // the horse: one coat colour, dark points
+        c = mix(c, mix(cDark, cSkin, smoothstep(0.1, 0.22, l)), zm.b);            // the jockey's face: skin, goggles dark
+        diffuseColor.rgb = c; }`);
+  };
+  h.obj.traverse((o) => {
+    if (!o.isSkinnedMesh) return;
+    if (o.material.name.includes("silks")) { o.material.roughness = 0.85; o.material.flatShading = !!S.flat; o.material.needsUpdate = true; }
+    else o.material = main;
+    o.castShadow = true; o.receiveShadow = true;
+  });
+}
+
+// ---------- build ----------
+S.build(K);
+const proto = await HorseV2.loadHorse(loadModel, "assets/model-v2", tex);
+const runners = [];
+(S.horses || []).forEach(([x, z, coat, silk, effort, phase], i) => {
+  const h = HorseV2.makeRunner(proto, { coat: { body: coat[0], points: coat[1] }, silk: { id: silk }, seed: i + 3, texLoader: tex });
+  repaint(h, proto, coat);
+  h.obj.position.set(x, 0, z); h.obj.rotation.y = Math.PI; h.obj.scale.multiplyScalar(S.horseScale || 1);                      // running towards -x
+  h.update(5, 16.5, effort, null, 0); h.setTime(phase); h.setLevel(0);
+  scene.add(h.obj); runners.push({ h, effort });
+});
+
+// ---------- light ----------
+const sunDir = new THREE.Vector3(...S.sun).normalize();
+const sun = new THREE.DirectionalLight(S.sunCol, S.sunPow);
+sun.position.copy(sunDir).multiplyScalar(120).add(new THREE.Vector3(0, 0, 14)); sun.target.position.set(0, 0, 14);
+sun.castShadow = true; sun.shadow.mapSize.set(4096, 4096); sun.shadow.radius = S.soft ?? 5; sun.shadow.blurSamples = 16;
+Object.assign(sun.shadow.camera, { left: -75, right: 75, top: 60, bottom: -60, near: 10, far: 260 }); sun.shadow.bias = -0.0004; sun.shadow.normalBias = 0.05;
+scene.add(sun, sun.target, new THREE.HemisphereLight(S.skyLight, S.groundLight, S.fill));
+if (S.fog) scene.fog = new THREE.Fog(S.fog[0], S.fog[1], S.fog[2]);
+scene.background = K.canvas(8, 512, (c, w, h) => { const g = c.createLinearGradient(0, 0, 0, h); S.sky.forEach((col, i) => g.addColorStop(Math.min(1, (i / (S.sky.length - 1)) * (S.skyTo || 0.5)), col)); c.fillStyle = g; c.fillRect(0, 0, w, h); });
+
+// ---------- camera ----------
+const CAMS = { hero: [[-28, 17, -45], [2.5, 10.8, 20], 33], close: [[-21, 4.6, -15], [-1, 5.4, 16], 36], low: [[-34, 3.2, 2], [6, 5, 20], 34], ...(S.cams || {}) };
+const [eye, at, fov] = CAMS[q.get("cam")] || CAMS.hero;
+const camera = new THREE.PerspectiveCamera(fov, innerWidth / innerHeight, 1, 900);
+camera.position.set(...eye); camera.lookAt(...at);
+
+// ---------- drawing: the scene, then soft shading where surfaces meet (crevices, the foot of walls, under eaves) ----------
+const rt = new THREE.WebGLRenderTarget(innerWidth, innerHeight, { samples: 4, type: THREE.HalfFloatType });
+const composer = new EffectComposer(renderer, rt);
+composer.addPass(new RenderPass(scene, camera));
+if (q.get("ao") !== "0") {
+  const ao = new GTAOPass(scene, camera, innerWidth, innerHeight);
+  ao.blendIntensity = S.ao ?? 1; ao.updateGtaoMaterial({ radius: S.aoRadius ?? 1.6, distanceExponent: 1.4, thickness: 1.2, scale: 1.25, samples: 16 });
+  composer.addPass(ao);
+}
+composer.addPass(new OutputPass());
+let frames = 0, last = performance.now();
+function frame() {
+  const now = performance.now(), dt = q.has("still") ? 0 : Math.min(0.05, (now - last) / 1000); last = now;
+  for (const r of runners) r.h.update(dt, 16.5, r.effort, null, dt);
+  composer.render();
+  if (q.has("still") && pending === 0 && ++frames >= 4) { window.__ready = true; return; }
+  requestAnimationFrame(frame);
+}
+frame();
+</script>

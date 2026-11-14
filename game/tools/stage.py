@@ -17,7 +17,7 @@ def add(src, dst):
     if not src.exists(): raise SystemExit(f"missing {src}")
     take.append((src, out / dst))
 # the game
-for f in ["index.html", "card.html", "css/components.css", "css/game.css", "js/meetings/royal-ascot.js", "js/meetings/newmarket.js", "js/rules.js", "js/team.js", "js/accounts.js", "js/board.js", "js/ui-parts.js", "js/ui-team.js", "js/ui.js", "js/life.js"]:
+for f in ["index.html", "card.html", "css/components.css", "css/game.css", "js/meetings/royal-ascot.js", "js/meetings/newmarket.js", "js/rules.js", "js/team.js", "js/accounts.js", "js/board.js", "js/ui-parts.js", "js/ui-team.js", "js/ui.js", "js/colours.js", "js/life.js"]:
     add(game / f, f)
 # the Race Lab (lab.html): test the race engine on any course, distance, going, field and tactics
 for f in ["lab.html", "css/lab.css", "js/lab.js", "js/lab-worker.js"]:
@@ -29,7 +29,9 @@ for p in sorted((game / "assets" / "newmarket").glob("*")): add(p, p.relative_to
 for p in sorted((game / "assets" / "board-model").glob("*")): add(p, p.relative_to(game))   # small textures for the board's horses
 # the 3D race view and what it loads in the game
 add(view / "final-furlong.html", "final-furlong.html")
-for f in ["horse-v2.js", "looks.js", "stand-styles.js"]: add(view / f, f)
+for f in ["horse-v2.js", "looks.js", "stand-styles.js", "race-sound.js", "uplift.js", "silks-paint.js"]: add(view / f, f)   # uplift.js: the soft look test (only loaded with ?uplift=soft)
+for p in sorted((view / "assets" / "sound").glob("*")):        # the crowd and the horses (race-sound.js, 12 Nov)
+    if p.suffix in (".mp3", ".json"): add(p, p.relative_to(view))
 # (the style review page, race-view/styles.html, was live for the owner's choice on 7 Nov: today's trees and stand, a
 # fresher light. It stays in the repo but is no longer published.)
 A = view / "assets"

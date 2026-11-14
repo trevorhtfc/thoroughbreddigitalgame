@@ -125,6 +125,14 @@ body { background: #5f8a44; color: var(--green-ink); font-family: var(--body); o
   position: fixed; right: max(12px, env(safe-area-inset-right, 0px)); bottom: calc(env(safe-area-inset-bottom, 0px) + 12px + var(--dock-h));
   background: var(--cream); border: 1px solid var(--cream-edge); box-shadow: 0 4px 12px rgba(40, 40, 20, 0.25); opacity: 0.85;
 }
+/* the sound (race-sound.js): a speaker on the plate; it pulses when the browser is holding the sound back until a tap */
+.plate .snd { align-self: center; display: grid; place-items: center; width: 34px; height: 34px; padding: 0; border-radius: 50%; border-color: rgba(184, 149, 74, 0.6); }
+.plate .snd svg { width: 20px; height: 20px; fill: currentColor; }
+.plate .snd .on, .plate .snd[aria-pressed="true"] .off { display: none; }
+.plate .snd[aria-pressed="true"] .on { display: inline; }
+.plate .snd.locked { animation: sndpulse 1.4s ease-in-out infinite; }
+@keyframes sndpulse { 50% { box-shadow: 0 0 0 5px rgba(183, 144, 66, 0.45); } }
+@media (max-width: 600px) { .plate .snd { width: 30px; height: 30px; } .plate .snd svg { width: 17px; height: 17px; } }
 .group { display: flex; gap: 4px; align-items: center; }
 .group > span { font-size: 0.68rem; letter-spacing: 0.12em; text-transform: uppercase; color: var(--ink-soft); margin-right: 2px; }
 button {
@@ -281,6 +289,7 @@ body.pre .dock { display: none; }
     <p id="courseName">Ascot</p>
   </div>
   <div class="togo"><strong id="toRun">5f</strong><span>to run</span></div>
+  <button id="snd" class="snd" type="button" aria-pressed="false" aria-label="Sound" title="Sound: the crowd and the horses"><svg viewBox="0 0 512 512" aria-hidden="true"><path class="on" d="m275.5 96l-96 96h-96v128h96l96 96zm51.46 27.668l-4.66 17.387c52.066 13.95 88.2 61.04 88.2 114.945s-36.134 100.994-88.2 114.945l4.66 17.387C386.81 372.295 428.5 317.962 428.5 256c0-61.963-41.69-116.295-101.54-132.332m-12.425 46.365l-4.658 17.387C340.96 195.748 362.5 223.822 362.5 256s-21.54 60.252-52.623 68.58l4.658 17.387C353.402 331.552 380.5 296.237 380.5 256s-27.098-75.552-65.965-85.967m-12.424 46.363l-4.657 17.387C307.55 236.49 314.5 245.547 314.5 256s-6.95 19.51-17.047 22.217l4.658 17.387c17.884-4.792 30.39-21.09 30.39-39.604s-12.506-34.812-30.39-39.604"/><path class="off" d="m275.5 96l-96 96h-96v128h96l96 96zm50.863 89.637l-12.726 12.726L371.273 256l-57.636 57.637l12.726 12.726L384 268.727l57.637 57.636l12.726-12.726L396.727 256l57.636-57.637l-12.726-12.726L384 243.273z"/></svg></button>
 </div>
 
 <div class="bar">
@@ -339,6 +348,7 @@ body.pre .dock { display: none; }
 })();
 </script>
 <!-- import maps for older Safari (before 16.4): a standard shim that does nothing where they're supported -->
+<script src="silks-paint.js"></script><!-- paints a player's own colours for the 3D jockey -->
 <script async src="https://cdn.jsdelivr.net/npm/es-module-shims@1.10.0/dist/es-module-shims.js"></script>
 <script type="importmap">
 { "imports": {
@@ -361,8 +371,14 @@ import * as HorseV2 from "./horse-v2.js";
 import * as LOOKS from "./looks.js";
 // Grandstand style tests (?stand=pastel|brick&v=1..3); without ?stand nothing changes. See stand-styles.js.
 import * as STANDS from "./stand-styles.js";
+import * as RaceSound from "./race-sound.js";
 // The miniature look test (?mini=1, miniature.js): loaded only when asked for, so the game never fetches it.
 const MINI = new URLSearchParams(location.search).has("mini") ? await import("./miniature.js") : null;
+// The soft look (uplift.js): the ground, planting, sky and light, all in the 3D scene. It began as a test behind
+// ?uplift=soft (11 Nov 2026) and is the game's look since the owner put it live on 12 Nov. ?uplift=off brings back the
+// look before it, exactly; ?uplift=afternoon|golden|storm|mist|table are the earlier tests.
+const UPLIFT = new URLSearchParams(location.search).get("uplift") === "off" ? null : await import("./uplift.js");
+const SOFT = !!UPLIFT && UPLIFT.lookId === "soft";
 // The race engine (race-engine/ in the repo; a copy lives in assets/engine/): it decides the race, the view plays it back.
 import { runRace } from "./assets/engine/engine.js";
 import { randomField } from "./assets/engine/field.js";
@@ -391,7 +407,17 @@ const COURSE = await fetch(`assets/course/${COURSE_ID}.json`).then((r) => r.json
 const VIEW = await fetch(`assets/course/${COURSE_ID}-view.json`).then((r) => r.json());        // cameras, director, paths, trees
 const SILK_DATA = await fetch("assets/silks-catalogue.json").then((r) => r.json());
 const SILKS = SILK_DATA.silks;
-const silkFor = (i) => (GP && SILKS.find((s) => s.id === GP.runners[i].silk)) || SILKS[(i * 5 + 2) % SILKS.length];   // runner i (stall i + 1) wears these colours
+// runner i (stall i + 1) wears these colours: one of the ready-made sets, or, for a player's own colours, the
+// description the game sent (silkSpec), which silks-paint.js paints for the 3D jockey
+const ownSilk = new Map();
+const silkFor = (i) => {
+  const R = GP && GP.runners[i];
+  if (R && R.silkSpec && window.SilksPaint && SilksPaint.valid(R.silkSpec)) {
+    if (!ownSilk.has(i)) ownSilk.set(i, { id: "own-" + i, name: "Your colours", colour: R.silkSpec.body.a, spec: R.silkSpec });
+    return ownSilk.get(i);
+  }
+  return (R && SILKS.find((s) => s.id === R.silk)) || SILKS[(i * 5 + 2) % SILKS.length];
+};
 // Par times and the going (courses/ascot-standards.json, shared with the race engine): the dock's pace reading.
 const STANDARDS = await fetch(`assets/course/${COURSE_ID}-standards.json`).then((r) => r.json());
 const GOING = STANDARDS.going[params.get("going")] ? params.get("going") : "Good";
@@ -685,6 +711,7 @@ sun.shadow.normalBias = 0.03;
 scene.add(sun, sun.target);
 LOOKS.setupScene({ scene, hemi: sky, sun, cloudMat: scene.userData.cloudMat });
 const SUN_OFFSET = new THREE.Vector3(...((LIGHT && LIGHT.sunDir) || VIEW.sun || [-110, 49.5, -35.2]));   // (a course's view file may move it: the July Course's stands face the other way)   // the bake's sun direction (Blender (-1, 0.32, 0.45)), in the course's axes
+if (UPLIFT) UPLIFT.init({ COURSE, VIEW, scene, sun, hemi: sky, sunOffset: SUN_OFFSET, renderer });
 
 let shadowCatcher = null;
 // ---------- Textures ----------
@@ -780,7 +807,7 @@ function distToRails(x, z) {
 const GROUND_FIRST = LEGACY_GROUND ? {} : { stencilWrite: true, stencilRef: 1, stencilFunc: THREE.AlwaysStencilFunc, stencilZPass: THREE.ReplaceStencilOp };
 const GROUND_UNDER = LEGACY_GROUND ? { depthWrite: false } : { stencilWrite: true, stencilRef: 1, stencilFunc: THREE.NotEqualStencilFunc, stencilZPass: THREE.ReplaceStencilOp };
 // the ground's look: the graphic style tests (looks.js) and the miniature test (miniature.js), when asked for
-const turfLook = (m, which) => { m = groundLight(LOOKS.patchGround(m, which)); return MINI && which === "turf" ? MINI.patchTurf(m) : m; };
+const turfLook = (m, which) => { m = groundLight(LOOKS.patchGround(m, which)); if (UPLIFT) m = UPLIFT.patchGround(m, which); return MINI && which === "turf" ? MINI.patchTurf(m) : m; };
 // The ground's light from the buildings, baked once in Blender for a course drawn live (Newmarket: the view file's
 // groundLight, tools/blender/bake_newmarket_ground.py): the soft shadows of the stands, marquees and walls on the lawns
 // and the shade at their feet, in the model look's light. The ground colour is multiplied by it inside its area.
@@ -1114,7 +1141,7 @@ function bakedTex(file) {
 function bakedMaterial(m, info, tex, key) {
   const name = m.material.name || "";
   let mat;
-  if (key === "ground") mat = groundDetail(new THREE.MeshBasicMaterial({ map: tex, color: new THREE.Color(info.scale, info.scale, info.scale), ...GROUND_FIRST }));
+  if (key === "ground") { mat = groundDetail(new THREE.MeshBasicMaterial({ map: tex, color: new THREE.Color(info.scale, info.scale, info.scale), ...GROUND_FIRST })); if (UPLIFT) mat = UPLIFT.patchGround(mat, "baked"); }
   // the baked ground is drawn first of all and marks its pixels; the plain turf and grass under it skip every pixel
   // it covers (they used to be painted in full, then painted over: two extra screens of work every frame)
   else if (name.includes("digit")) mat = new THREE.MeshBasicMaterial({ color: m.material.color.clone().multiplyScalar(2.2) });
@@ -1265,6 +1292,7 @@ function placeBelts(gltf, planting, treeLib, withHedge = true) {
       if (hc && hc.count) { let r = 0, g = 0, b = 0; for (let i = 0; i < hc.count; i++) { r += hc.getX(i); g += hc.getY(i); b += hc.getZ(i); } HEDGE_MEAN = new THREE.Color(r / hc.count, g / hc.count, b / hc.count); }
       m.material = LOOKS.patchFoliage(new THREE.MeshLambertMaterial({ vertexColors: true }), "hedge");
       LAYERS.trees.push(m);
+      if (UPLIFT && treeLib) UPLIFT.dressHedge(m, treeLib, { scene, LAYERS, distToRails, quality: qLevel });      // (soft look: the hedge in the trees' foliage)
     }
     scene.add(hedge);
   }
@@ -1337,37 +1365,53 @@ function underGeometry(crown) {
 }
 function instanceTrees(gltf, list) {
   const groups = new Map();
+  // (soft look: the understorey is a thicket of the trees' own foliage, from the kit, in place of the rounded mass)
+  const thick = UPLIFT && UPLIFT.thickets(gltf);
+  // (soft look: trees far from the camera are drawn as flat pictures of themselves; trees away from the middle of the
+  // course are grouped by where they stand, so each group can change over by itself)
+  const flat = UPLIFT && UPLIFT.flatTrees(gltf);
   for (const t of list) {
+    t.s0 = t.s;
     if (THIN_BELTS && (t.belt || !isNear(t.x, t.z))) { if ((Math.round(t.x * 7 + t.z * 13) & 1) === 1) continue; t.s *= 1.12; }
     const near = !LITE_TREES && isNear(t.x, t.z);
     // belt trees also get an understorey: their light crown squashed low under the real one, so the belts read as
     // solid woodland down to the hedge instead of crowns floating over a strip of sky (owner, 7 Nov)
-    const parts = t.scrub ? ["_crown_far"] : [near ? "_crown" : "_crown_far"].concat(near || !t.belt ? ["_trunk"] : []).concat(t.belt ? ["_under"] : []);
+    // (the soft look thins the belts: about half their trees are understorey only, so the sky comes between the crowns)
+    const parts = UPLIFT && !UPLIFT.thinBelt(t) ? ["_under"] : t.scrub ? ["_crown_far"] : [near ? "_crown" : "_crown_far"].concat(near || !t.belt ? ["_trunk"] : []).concat(t.belt ? ["_under"] : []);
+    const cell = flat && !near ? "@" + flat.cellOf(t) : "";
     for (const part of parts) {
-      const key = t.tree + part;
+      const key = part === "_under" && thick ? "~" + thick[Math.round(Math.abs(t.x * 3 + t.z * 5)) % thick.length] : t.tree + part + (part === "_under" ? "" : cell);
       if (!groups.has(key)) groups.set(key, []);
       groups.get(key).push(t);
     }
   }
   const m4 = new THREE.Matrix4(), q = new THREE.Quaternion(), sc = new THREE.Vector3(), p = new THREE.Vector3(), up = new THREE.Vector3(0, 1, 0);
-  for (const [key, ts] of groups) {
+  for (const [key0, ts] of groups) {
+    if (key0[0] === "~") { UPLIFT.placeThickets(gltf, key0.slice(1), ts, { scene, LAYERS, groundY, treeMat }); continue; }
+    const [key, cell] = key0.split("@");
+    let noted = false;
     const under = key.endsWith("_under"), base = under ? key.replace("_under", "_crown_far") : key;
     const node = gltf.scene.getObjectByName(base) || gltf.scene.getObjectByName(base.replace("_far", ""));
     if (!node) continue;
     for (const mesh of meshesOf(node)) {
       // a look may swap the tree's shape and material, and give each tree its own colour (looks.js)
       const geo = under ? underGeometry(mesh.geometry) : LOOKS.treeGeometry(base, mesh.geometry) || mesh.geometry;
-      const inst = new THREE.InstancedMesh(geo, LOOKS.treeMaterial(treeMat, base), ts.length);
+      const inst = new THREE.InstancedMesh(geo, (UPLIFT && UPLIFT.treeMaterial(geo, base, treeMat, under)) || LOOKS.treeMaterial(treeMat, base), ts.length);
       ts.forEach((t, i) => {
         q.setFromAxisAngle(up, ((t.turn || 0) + (under ? 70 : 0)) * Math.PI / 180);
         if (under) sc.set(t.s, t.s, t.s); else sc.set(t.s, t.s * (t.sy || 1), t.s);
         inst.setMatrixAt(i, m4.compose(p.set(t.x, (under ? -0.6 : 0) + groundY(t.x, t.z) + (t.dy || 0), t.z), q, sc));
         // (the clay crowns carry only light and shade: their understorey takes the tree's own leaf colour, darker)
-        const c = under ? (CLAY_TREES ? clayLeaf(base, t, i).clone().multiplyScalar(0.7) : underColour(t, UNDER_CROWN)) : LOOKS.treeColour(key, t, i) || clayLeaf(key, t, i); if (c) inst.setColorAt(i, c);
+        let c = under ? (CLAY_TREES ? clayLeaf(base, t, i).clone().multiplyScalar(0.7) : underColour(t, UNDER_CROWN)) : LOOKS.treeColour(key, t, i) || clayLeaf(key, t, i);
+        if (c && t.tint) c = c.clone().multiplyScalar(t.tint);
+        if (c) inst.setColorAt(i, c);
+        if (cell && !noted && key.endsWith("_crown_far")) flat.tree(cell, key.replace("_crown_far", ""), t, groundY(t.x, t.z) + (t.dy || 0), c);
       });
+      noted = true;
       inst.computeBoundingSphere();
       scene.add(inst);
       LAYERS.trees.push(inst);
+      if (cell) flat.cards(cell, inst);
     }
   }
 }
@@ -1380,8 +1424,8 @@ function placeTrees(gltf, dressing) {
   const rnd = seeded(11);
   const CL = VIEW.clearOf, S = CL.stand;
   const pieces = (dressing && dressing.pieces) || [];
-  const clear = (x, z) => (x > S[0] && x < S[2] && z > S[1] && z < S[3])
-    || onTrack(x, z) || distToRails(x, z) < CL.track
+  const clear = (x, z, track = CL.track) => (x > S[0] && x < S[2] && z > S[1] && z < S[3])
+    || onTrack(x, z) || distToRails(x, z) < track
     || pieces.some((p) => Math.abs(p.x - x) < CL.pieces && Math.abs(p.z - z) < CL.pieces);
   const spots = [];
   for (const a of VIEW.trees) {
@@ -1393,28 +1437,97 @@ function placeTrees(gltf, dressing) {
         const n = a.clump ? a.clump[0] + Math.floor(rnd() * (a.clump[1] - a.clump[0] + 1)) : 1;
         for (let k = 0; k < n; k++) {
           const tx = x + (rnd() - 0.5) * (n > 1 ? 14 : a.spacing * 0.6), tz = z + (rnd() - 0.5) * (n > 1 ? 10 : a.spacing * 0.6);
-          if (!clear(tx, tz)) spots.push({ x: tx, z: tz, s: a.scale[0] + rnd() * (a.scale[1] - a.scale[0]) });
+          if (!clear(tx, tz, a.trackClear ?? CL.track)) spots.push({ x: tx, z: tz, s: a.scale[0] + rnd() * (a.scale[1] - a.scale[0]) });
         }
       }
     }
   }
   for (const sp of spots) { sp.tree = names[Math.floor(rnd() * names.length)]; sp.turn = rnd() * 360; sp.sy = 0.92 + rnd() * 0.18; }
+  // The festival's own planting (owner, 11 Nov 2026: no tall trees in the middle of the course; low planting and small
+  // clusters of smaller trees), worked out by tools/course/place_festival.py so the site plan shows exactly this: the
+  // small trees, and the low planting as the bushes' light crowns squashed to about a metre, a shade darker.
+  const F = VIEW.festival;
+  if (F) {
+    for (const [x, z, tree, s, turn] of F.trees) spots.push({ x, z, tree, s, turn, sy: 0.92 + rnd() * 0.18 });
+    for (const [x, z, tree, s, turn, sy] of F.shrubs) spots.push({ x, z, tree, s, turn, sy, scrub: true, hgt: 5.5 * s, tint: 0.84 });
+  }
   instanceTrees(gltf, spots);
   const m4 = new THREE.Matrix4(), q = new THREE.Quaternion(), sc = new THREE.Vector3(), p = new THREE.Vector3();
   // Soft shadows on the grass, falling away from the sun.
   console.log("trees:", spots.length);
-  const shadows = new THREE.InstancedMesh(new THREE.PlaneGeometry(1, 1), new THREE.MeshBasicMaterial({ map: shadowTex, color: "#1f3318", transparent: true, opacity: 0.45, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -4 }), spots.length);
+  const shadows = new THREE.InstancedMesh(new THREE.PlaneGeometry(1, 1), new THREE.MeshBasicMaterial({ map: shadowTex, color: "#1f3318", transparent: true, opacity: 0.45, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -4 }), spots.length * 2);
   const sunFlat = new THREE.Vector2(-SUN_OFFSET.x, -SUN_OFFSET.z).normalize();
   const ang = Math.atan2(sunFlat.y, sunFlat.x);
   spots.forEach((t, i) => {
-    const h = 11 * t.s;
+    const h = t.hgt || 11 * t.s;
     p.set(t.x + sunFlat.x * h * 0.35, 0.04, t.z + sunFlat.y * h * 0.35);
     q.setFromEuler(new THREE.Euler(-Math.PI / 2, 0, -ang, "YXZ"));
     shadows.setMatrixAt(i, m4.compose(p, q, sc.set(h * 0.95, h * 0.6, 1)));
+    // and a darker patch right round the trunk, so every tree sits on the grass (owner, 10 Nov: "the trees are still a
+    // bit floating")
+    shadows.setMatrixAt(spots.length + i, m4.compose(p.set(t.x, 0.05, t.z), q, sc.set(h * 0.42, h * 0.42, 1)));
   });
   shadows.frustumCulled = false;
   scene.add(shadows);
   LAYERS.trees.push(shadows);
+}
+
+// Bunting (owner, 11 Nov 2026: "add some things like bunting and flags"): strings of little pennants in the model look's
+// pastel accents, sagging between poles (or between the balloon pods' frames), stirring a little in the breeze. Runs
+// from courses/ascot-view.json -> festival.bunting ({pts: [[x, z], ...], h: metres up, pole: false for none}).
+const BUNTING_T = { value: 0 };
+const BUNTING_COLS = ["#e7a3b3", "#9fc1de", "#f1d27e", "#f6f0e2", "#b5d3a0", "#eaa98a", "#a99ad0", "#d9534f", "#3f4c6e"];
+function buildBunting(runs) {
+  const tri = new THREE.BufferGeometry();
+  tri.setAttribute("position", new THREE.Float32BufferAttribute([-0.15, 0, 0, 0.15, 0, 0, 0, -0.34, 0], 3));
+  tri.computeVertexNormals();
+  const mat = new THREE.MeshLambertMaterial({ side: THREE.DoubleSide });
+  mat.onBeforeCompile = (sh) => {
+    sh.uniforms.uTime = BUNTING_T;
+    sh.vertexShader = "uniform float uTime;\n" + sh.vertexShader.replace("#include <begin_vertex>", `#include <begin_vertex>
+      #ifdef USE_INSTANCING
+        float ph = instanceMatrix[3].x * 1.7 + instanceMatrix[3].z * 0.9;
+        float k = clamp(-position.y / 0.34, 0.0, 1.0);
+        transformed.z += sin(uTime * 3.1 + ph) * 0.07 * k;
+        transformed.x += sin(uTime * 2.3 + ph * 1.3) * 0.02 * k;
+      #endif`);
+  };
+  mat.customProgramCacheKey = () => "bunting";
+  const flags = [], line = [], poles = [];
+  const up = new THREE.Vector3(0, 1, 0), q = new THREE.Quaternion(), p = new THREE.Vector3(), one = new THREE.Vector3(1, 1, 1), m4 = new THREE.Matrix4();
+  let n = 0;
+  for (const r of runs) {
+    const h = r.h || 4;
+    if (r.pole !== false) for (const [x, z] of r.pts) poles.push([x, z, h]);
+    for (let i = 1; i < r.pts.length; i++) {
+      const [ax, az] = r.pts[i - 1], [bx, bz] = r.pts[i];
+      const L = Math.hypot(bx - ax, bz - az), sag = THREE.MathUtils.clamp(L * 0.06, 0.25, 0.9);
+      const ya = groundY(ax, az) + h, yb = groundY(bx, bz) + h;
+      const at = (u) => [ax + (bx - ax) * u, ya + (yb - ya) * u - sag * 4 * u * (1 - u), az + (bz - az) * u];
+      for (let k = 0; k < 10; k++) line.push(...at(k / 10), ...at((k + 1) / 10));
+      q.setFromAxisAngle(up, Math.atan2(-(bz - az), bx - ax));
+      const count = Math.max(1, Math.floor(L / 0.62));
+      for (let k = 0; k < count; k++) {
+        const u = (k + 0.5) / count, [x, y, z] = at(u);
+        flags.push({ m: m4.compose(p.set(x, y, z), q, one).clone(), c: BUNTING_COLS[n++ % BUNTING_COLS.length] });
+      }
+    }
+  }
+  const inst = new THREE.InstancedMesh(tri, mat, flags.length), col = new THREE.Color();
+  flags.forEach((f, i) => { inst.setMatrixAt(i, f.m); inst.setColorAt(i, col.set(f.c)); });
+  inst.computeBoundingSphere();
+  scene.add(inst); LAYERS.buildings.push(inst);
+  const lg = new THREE.BufferGeometry(); lg.setAttribute("position", new THREE.Float32BufferAttribute(line, 3));
+  const lines = new THREE.LineSegments(lg, new THREE.LineBasicMaterial({ color: "#6a6156" }));
+  scene.add(lines); LAYERS.buildings.push(lines);
+  if (poles.length) {
+    const pg = new THREE.CylinderGeometry(0.035, 0.045, 1, 6).translate(0, 0.5, 0);
+    const pm = new THREE.InstancedMesh(pg, new THREE.MeshLambertMaterial({ color: "#eee7d8" }), poles.length), sc = new THREE.Vector3();
+    poles.forEach(([x, z, h], i) => pm.setMatrixAt(i, m4.compose(p.set(x, groundY(x, z), z), q.identity(), sc.set(1, h + 0.15, 1))));
+    pm.computeBoundingSphere();
+    scene.add(pm); LAYERS.buildings.push(pm);
+  }
+  console.log("bunting:", flags.length, "pennants,", poles.length, "poles");
 }
 
 // A course drawn live, with nothing baked yet (Newmarket: courses/<id>-scenery.json, tools/course/newmarket/to_race_view.py):
@@ -1461,7 +1574,9 @@ function placeScenery(SC, models, treeLib, belts) {
   // walls, hedges and copings: [x, z, length, depth, y from, y to, yaw]
   const unit = new THREE.BoxGeometry(1, 1, 1);
   for (const [colour, list] of Object.entries(SC.boxes || {})) {
-    const inst = new THREE.InstancedMesh(unit, new THREE.MeshLambertMaterial({ color: colour }), list.length);
+    // (soft look: clipped hedges in the trees' foliage, over the box as their dark heart)
+    const heart = UPLIFT && treeLib ? UPLIFT.dressBoxes(colour, list, treeLib, { scene, LAYERS, groundY, quality: qLevel }) : null;
+    const inst = new THREE.InstancedMesh(unit, new THREE.MeshLambertMaterial({ color: heart || colour }), list.length);
     list.forEach(([x, z, L, D, y0, y1, yaw], i) => inst.setMatrixAt(i, m4.compose(p.set(x, (y0 + y1) / 2 + groundY(x, z), z), q.setFromAxisAngle(up, yaw), sc.set(L, y1 - y0, D))));
     inst.computeBoundingSphere(); inst.castShadow = inst.receiveShadow = true;
     scene.add(inst); LAYERS.buildings.push(inst);
@@ -1489,7 +1604,7 @@ function placeScenery(SC, models, treeLib, belts) {
     geo.setAttribute("position", new THREE.BufferAttribute(pos, 3)); geo.setIndex(idx); geo.computeVertexNormals();
     const nrm = geo.attributes.normal, col = new Float32Array(nr * nc * 3), flat = 0.72 + 0.4 * Math.max(0, sunDir.y);
     const foot = G.outside, top = G.bank || G.outside;                 // the lawn's colour at the foot, deeper up the bank
-    const ramp = b.ramp || G.bankRamp, mot = b.mottle ?? (G.bankMottle || 0);   // or a ramp by height (owner, 9 Nov late: the Dyke's depth)
+    const ramp = (UPLIFT && UPLIFT.bankRamp()) || b.ramp || G.bankRamp, mot = b.mottle ?? (G.bankMottle || 0);   // or a ramp by height (owner, 9 Nov late: the Dyke's depth)
     const rampAt = (h) => {
       let k = 0; while (k + 1 < ramp.length && ramp[k + 1][0] < h) k++;
       if (k + 1 >= ramp.length) return ramp[k][1];
@@ -1507,8 +1622,12 @@ function placeScenery(SC, models, treeLib, belts) {
     }
     if (GROUND) { for (let i = 0; i < nr * nc; i++) pos[i * 3 + 1] += groundY(pos[i * 3], pos[i * 3 + 2]); geo.attributes.position.needsUpdate = true; geo.computeBoundingSphere(); }
     geo.setAttribute("color", new THREE.BufferAttribute(col, 3));
-    const m = new THREE.Mesh(geo, turfLook(groundDetail(new THREE.MeshBasicMaterial({ vertexColors: true, side: THREE.DoubleSide }), 0.2), "far"));
+    const bankMat = new THREE.MeshBasicMaterial({ vertexColors: true, side: THREE.DoubleSide });
+    bankMat.userData.bank = true;                                      // (the soft look brushes banks more quietly)
+    const m = new THREE.Mesh(geo, turfLook(groundDetail(bankMat, 0.2), "far"));
     scene.add(m); LAYERS.ground.push(m);
+    // (soft look: a short grass pile on the bank, near the camera)
+    if (UPLIFT) UPLIFT.pile(m, { nr, nc, scene, LAYERS, quality: qLevel, make: (mat) => turfLook(groundDetail(mat, 0.2), "far") });
   }
   // the boards (as the planting belts'), then the trees
   if (belts && SC.boards) placeBelts(belts, { boards: SC.boards, trees: [] }, null, false);
@@ -1516,12 +1635,17 @@ function placeScenery(SC, models, treeLib, belts) {
     // (belt 2: scrub, e.g. along the Dyke's crest: light crowns only, no trunks, so hundreds of bushes stay cheap)
     const spots = SC.trees.map(([x, z, tree, s, turn, belt, dy]) => ({ x, z, tree, s, turn: turn || 0, belt: belt === 1, scrub: belt === 2, dy: dy || 0 }));
     instanceTrees(treeLib, spots);
-    const shadows = new THREE.InstancedMesh(new THREE.PlaneGeometry(1, 1), new THREE.MeshBasicMaterial({ map: shadowTex, color: "#1f3318", transparent: true, opacity: 0.45, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -4 }), spots.length);
+    const shadows = new THREE.InstancedMesh(new THREE.PlaneGeometry(1, 1), new THREE.MeshBasicMaterial({ map: shadowTex, color: "#1f3318", transparent: true, opacity: 0.45, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -4 }), spots.length * 2);
     const sunFlat = new THREE.Vector2(-SUN_OFFSET.x, -SUN_OFFSET.z).normalize(), ang = Math.atan2(sunFlat.y, sunFlat.x);
     spots.forEach((t, i) => {
       const h = 11 * t.s;
       const sx_ = t.x + sunFlat.x * h * 0.35, sz_ = t.z + sunFlat.y * h * 0.35;
-      shadows.setMatrixAt(i, m4.compose(p.set(sx_, 0.04 + groundY(sx_, sz_), sz_), q.setFromEuler(new THREE.Euler(-Math.PI / 2, 0, -ang, "YXZ")), sc.set(t.dy ? 0 : h * 0.95, h * 0.6, 1)));   // (none under sunk trees or the Dyke's scrub)
+      q.setFromEuler(new THREE.Euler(-Math.PI / 2, 0, -ang, "YXZ"));
+      shadows.setMatrixAt(i, m4.compose(p.set(sx_, 0.04 + groundY(sx_, sz_), sz_), q, sc.set(t.dy ? 0 : h * 0.95, h * 0.6, 1)));   // (none under sunk trees or the Dyke's scrub)
+      // a darker patch right round the trunk, so every tree sits on the ground (owner, 10 Nov: "the trees are still a bit
+      // floating"); trees raised onto a bank (dy > 0) get it on the bank, a little smaller
+      const k = t.scrub || t.dy < 0 ? 0 : t.dy > 0 ? 0.32 : 0.42;
+      shadows.setMatrixAt(spots.length + i, m4.compose(p.set(t.x, 0.06 + groundY(t.x, t.z) + Math.max(0, t.dy), t.z), q, sc.set(h * k, h * k, 1)));
     });
     shadows.frustumCulled = false; scene.add(shadows); LAYERS.trees.push(shadows);
   }
@@ -1562,7 +1686,17 @@ function buildCrowd(gltf, data, pieceAt) {
   const spots = [];
   // nobody standing where a terrace camera's spectator stands (raceCameras, kind "terrace": 'clear' metres round its eye)
   const EYES = Object.values(VIEW.raceCameras || {}).filter((c) => c.kind === "terrace").map((c) => [c.at[0], c.at[2], c.clear || 1]);
-  const free = (x, z) => EYES.every(([ex, ez, r]) => (x - ex) ** 2 + (z - ez) ** 2 > r * r);
+  // and nobody inside or just behind the winning line kit (owner, 10 Nov: "the people in front of the winning line kit
+  // need moving back"): its 30 m of hedge, panels and judge's box on the far rail, and 3 m behind them, kept clear.
+  // Where it stands: the scenery's finishLine (Newmarket) or the view file's finishKit (Ascot, where it's in the bake).
+  const KIT = data.finishLine || VIEW.finishKit || null;
+  const kitTh = KIT ? KIT.turn * Math.PI / 180 : 0, kitC = Math.cos(kitTh), kitS = Math.sin(kitTh);
+  const inKit = (x, z) => {
+    if (!KIT) return false;
+    const dx = x - KIT.at[0], dz = z - KIT.at[1], lx = dx * kitC - dz * kitS, lz = dx * kitS + dz * kitC;
+    return lx > -17.5 && lx < 17.5 && lz > -5 && lz < 1.5;               // the kit's own frame: x along it, -z behind
+  };
+  const free = (x, z) => !inKit(x, z) && EYES.every(([ex, ez, r]) => (x - ex) ** 2 + (z - ez) ** 2 > r * r);
   const add = (x, y, z, seated = false) => { if (crowdKeep(x, rnd) && free(x, z)) spots.push({ x, y, z, seated }); };
   // a course that lists its crowd one person at a time ([x, y, z, facing], tools/course/newmarket/to_race_view.py)
   if (data.people) for (let i = 0; i < data.people.length; i += 4) if (free(data.people[i], data.people[i + 2])) spots.push({ x: data.people[i], y: data.people[i + 1], z: data.people[i + 2], face: data.people[i + 3] });
@@ -1622,6 +1756,7 @@ function buildCrowd(gltf, data, pieceAt) {
     }
   }
   // shuffle, so lowering the quality thins the crowd evenly instead of emptying whole areas
+  { let k = 0; for (const sp of spots) if (free(sp.x, sp.z)) spots[k++] = sp; spots.length = k; }   // (every source of people)
   for (let i = spots.length - 1; i > 0; i--) { const j = Math.floor(rnd() * (i + 1)); [spots[i], spots[j]] = [spots[j], spots[i]]; }
 
   // The plasticine or skittle figures (five gents, five ladies, each a different hat) or the old four.
@@ -1751,8 +1886,16 @@ function crowdMaterial() {
           transformed.y += hop * (1.0 + 0.35 * h);
           transformed.x += (sway + ex * 0.016 * sin(uTime * (1.8 + seed) + seed * 9.0)) * h;
           transformed.z -= ex * 0.035 * h;
-          if (aPart > 1.5 && aPart < 2.5 && seed > 0.75) transformed.y += ex * 0.12 * smoothstep(0.3, 0.9, 0.5 + 0.5 * sin(uTime * 1.6 + seed * 31.0));
-        }`);
+          // the hat lifts with its band (trim above the brow, 1.58 m up in the figure) and feather: the band was left
+          // hanging in the air (owner, 10 Nov: "little bits that are flashing")
+          bool hatPart = (aPart > 1.5 && aPart < 2.5) || (aPart > 2.5 && aPart < 3.5 && h > 1.58);
+          if (hatPart && seed > 0.75) transformed.y += ex * 0.12 * smoothstep(0.3, 0.9, 0.5 + 0.5 * sin(uTime * 1.6 + seed * 31.0));
+        }`)
+      // hat bands and trims sit right on the hat and clothes, so their faces fought the ones underneath for the same
+      // pixels and flickered as the camera moved: a tiny pull towards the camera settles which one is drawn (trims over
+      // hats, hats over hair and skin; in depth terms about 0.1 mm at 10 m, 1 cm at 100 m)
+      .replace("#include <project_vertex>", `#include <project_vertex>
+        gl_Position.z -= (aPart > 2.5 && aPart < 3.5 ? 1.5e-6 : aPart > 1.5 && aPart < 2.5 ? 0.7e-6 : 0.0) * gl_Position.w;`);
     sh.fragmentShader = sh.fragmentShader
       .replace("#include <common>", "#include <common>\nvarying vec3 vPartCol;")
       .replace("#include <color_fragment>", "#include <color_fragment>\ndiffuseColor.rgb *= vPartCol;");
@@ -2012,6 +2155,9 @@ function directorShot(d, leadU) {
   if (ON_STRAIGHT && d > LOOP.length) return d - LOOP.length > DIR_.straight.grandstand ? STRAIGHT_CAM : "grandstand";
   const L = LOOP.length, q = ((d % L) + L) % L;                       // metres to the next pass of the post
   if (q <= DIR_.round.grandstand || d <= DIR_.round.grandstand) return "grandstand";
+  // the swing round the home bend (owner, 10 Nov): a camera high over the enclosures east of the stand, long lens,
+  // from round.bend metres out until the grandstand camera takes them up the straight (the last time round only)
+  if (DIR_.round.bend && RCAMS.bend && d <= DIR_.round.bend) return "bend";
   // just past a post that isn't the finish: the drone, ahead of the field round the bend with the stand behind them (owner,
   // 7 Nov: the fixed look-back camera had the field hidden behind the carnival's terraces and towers by the far rail)
   if (q > L - DIR_.round.lookback && d < DIST - 50 && RCAMS.drone) return "drone";
@@ -2222,7 +2368,8 @@ function button(parent, label, onClick, id) {
 const camsEl = document.getElementById("cams");
 const camChoices = VIEW.cameraMenu ? [["auto", "TV director"]].concat(VIEW.cameraMenu[RACE.course === "straight" ? "straight" : "round"].filter(([id]) => RCAMS[id]))
   : [["auto", "TV director"]].concat(RACE.course === "straight" ? [["drone_straight", "Drone"], ["track_straight", "Tracking"]] : [["track_loop", "Tracking"]], [["grandstand", "Grandstand"]])
-  .concat(RACE.course === "round" ? [["lookback", "Looking back"]] : [], RCAMS.terraces ? [["terraces", "Terraces"]] : []);
+  .concat(RACE.course === "round" ? [["lookback", "Looking back"]] : [], RACE.course !== "straight" && RCAMS.bend ? [["bend", "Bend"]] : [],
+    RCAMS.terraces ? [["terraces", "Terraces"]] : []);
 const camButtons = camChoices.map(([id, label]) => {
   const b = button(camsEl, label, () => { state.cam = id; snap = true; syncButtons(); }, "cam-" + id);
   b.dataset.cam = id; return b;
@@ -2444,8 +2591,11 @@ try {
     SC ? null : optional(loadModel("assets/baked", "static_world"), "Baked scenery"),
     // the leafy trees (owner, 7 Nov: preferred to the clay ones, which stay on ?trees=clay); in the model look the clay
     // trees, rounded clustered crowns on trunks as in the concept (owner, 9 Nov: the leafy ones read as "big puddings";
-    // view file light.trees; ?trees=leafy for the leafy ones)
-    !(params.get("trees") === "clay" || (params.get("trees") !== "leafy" && LIGHT && LIGHT.trees === "clay")) ? optional(loadModel("assets/trees", "trees"), "Trees")
+    // view file light.trees; ?trees=leafy for the leafy ones). The soft look (?uplift=soft) takes the leafy ones: the
+    // owner's pick in the landscape workshop, 11 Nov, was the leafy trees graded ("leafier... rather than bulbous"),
+    // and then, from the tree workshop, trees built as trees: a plain trunk and boughs carrying loose clumps of
+    // cut-out foliage (assets/trees/trees_soft, tools/blender/export_soft_trees.py; &trees=leafy for the old crowns)
+    !(params.get("trees") === "clay" || (params.get("trees") !== "leafy" && !SOFT && LIGHT && LIGHT.trees === "clay")) ? optional(loadModel("assets/trees", SOFT && !params.get("trees") ? "trees_soft" : "trees"), "Trees")
       : Promise.all([optional(loadModel("assets/trees", "trees_clay"), "Trees"), json("assets/trees/trees_clay_info.json")])
           .then(([g, info]) => (g && info ? ((CLAY_TREES = info), g) : optional(loadModel("assets/trees", "trees"), "Trees"))),
     optional(loadModel("assets/course", "planting_belts"), "Planting belts"),
@@ -2471,9 +2621,13 @@ try {
   if (SC) { buildPlainGround(VIEW.ground); placeScenery(SC, scModels || [], trees, belts); }
   if (belts && !SC) placeBelts(belts, planting, trees);
   if (trees && !SC) placeTrees(trees, dressing);
+  if (VIEW.festival && VIEW.festival.bunting) buildBunting(VIEW.festival.bunting);
   if (crowd && palette) {
     const pieceAt = (p) => new THREE.Matrix4().makeTranslation(p.x, 0, p.z).multiply(new THREE.Matrix4().makeRotationY(Math.PI + (p.turn || 0) * Math.PI / 180));
-    buildCrowd(crowd, { dressing, areas: areas && areas.areas, spots: spots && spots.pieces, palette, people: SC && SC.people }, pieceAt);
+    buildCrowd(crowd, { dressing, areas: areas && areas.areas, spots: spots && spots.pieces, palette, people: SC && SC.people, finishLine: SC && SC.finishLine }, pieceAt);
+  }
+  if (UPLIFT) {                       // the uplift test: planting on the heath
+    if (!SC) UPLIFT.plant({ scene, LAYERS, sunOffset: SUN_OFFSET, dressing, instanceTrees: trees ? (list) => instanceTrees(trees, list) : null });
   }
   const v2Tex = (url, srgb) => { const t = texLoader.load(url); t.flipY = false; if (srgb) t.colorSpace = THREE.SRGBColorSpace; return t; };
   for (let i = 0; i < RUNNERS && HORSE_V === "v2"; i++) {
@@ -2501,7 +2655,7 @@ try {
       if (!o.isMesh) return;
       o.castShadow = true; o.frustumCulled = false;
       o.material = o.material.clone();
-      if (o.material.name === "silks") { o.material.map = silkTexture(silk.id); o.material.roughness = 0.6; }
+      if (o.material.name === "silks") { o.material.map = silk.spec ? (() => { const t = new THREE.CanvasTexture(SilksPaint.texture(silk.spec, 1024, "v1")); t.flipY = false; t.colorSpace = THREE.SRGBColorSpace; return t; })() : silkTexture(silk.id); o.material.roughness = 0.6; }
       else makeTintable(o.material, u);
       full.push(o);
     });
@@ -2524,6 +2678,8 @@ try {
   }
   // Compile every shader now, while the loading note is up (in parallel where the browser can), instead of the first
   // time each thing comes into shot, which stalled a frame or two mid-race and could tip Auto into dropping a level.
+  // the uplift test, once everything stands in the scene (the horses too): the sun's shadow pictures, and its light on everything
+  if (UPLIFT) UPLIFT.afterBuild({ scene, LAYERS, shadowCatcher, crowd: CROWD.figs, crowdShare: QUALITY[qLevel].crowd, sunOffset: SUN_OFFSET, renderer, quality: qLevel });
   setGrade(GRADE.on);
   try { await renderer.compileAsync(scene, camera); } catch (e) { console.warn("compile", e); }
   document.getElementById("loading").hidden = true;
@@ -2994,6 +3150,90 @@ const CALLER = (() => {
   } };
 })();
 
+// ---------- The sound: the crowd and the horses (race-sound.js; levels in assets/sound/sounds.json) ----------
+// Owner, 12 Nov 2026: "crowd effects" first; 13 Nov: his recordings, in sections. The crowd waiting before the off; the
+// off (the stalls crashing open laid into the Cheltenham roar, "and they're off"); the middle (a loop: the crowd a
+// little muted, the gallop, the course commentator) from just after the off; the finish from about 3f out, timed to
+// the line (the crowd and commentator rising to the cheer, then applause); the crowd waiting again. The horses are
+// heard up close by how near the shot looks, slowed with the replay; a long race lifts the crowd passing the stands.
+// In the game the game's Sound setting decides (and the speaker here changes it); on this page, a remembered choice.
+const SND = await (async () => {
+  if (params.has("still")) return null;
+  const btn = document.getElementById("snd");
+  let startOn = false;
+  if (GAME) startOn = !!(GP && GP.sound);
+  else try { startOn = localStorage.getItem("tb-sound") === "1"; } catch {}
+  let S;
+  try {
+    S = await RaceSound.create({ on: startOn,
+      shared: () => { try { return GAME && parent.BOARD && parent.BOARD.Sound.ctx ? parent.BOARD.Sound.ctx() : null; } catch { return null; } },
+      onChange: (s) => { btn.setAttribute("aria-pressed", String(s.on)); btn.classList.toggle("locked", s.locked); btn.title = s.locked ? "Tap to let the sound play" : "Sound: the crowd and the horses"; } });
+  } catch (e) { console.warn("race sound unavailable", e); btn.hidden = true; return null; }
+  btn.setAttribute("aria-pressed", String(S.on));
+  let wasLocked = false;                                      // a tap while it's held back only lets it out (race-sound.js)
+  btn.addEventListener("pointerdown", () => { wasLocked = S.locked; });
+  btn.onclick = () => {
+    if (wasLocked) { wasLocked = false; return; }
+    const on = !S.on; S.set(on);
+    if (GAME) toGame({ type: "sound", on }); else try { localStorage.setItem("tb-sound", on ? "1" : "0"); } catch {}
+  };
+  window.__soundStop = () => S.stop();                       // the game closes the race: stop at once
+  const C = S.config.crowd, H = S.config.hooves, O = S.config.off, SEC = S.config.sections;
+  const sm = (a, b, x) => { const t = Math.min(1, Math.max(0, (x - a) / (b - a))); return t * t * (3 - 2 * t); };
+  // the finish is timed so its line comes as the leader crosses it (about 3 furlongs out it starts)
+  const FIN = T_FINISH - S.config.finish.lineAt;
+  // where the crowd is: the middles of the crowd's cells (every one, or a fair sample of a big crowd)
+  const PTS = [];
+  for (const Fg of CROWD.figs || []) for (const c of Fg.cells || []) if (c.count) PTS.push(c.sphere.center);
+  const step = Math.max(1, Math.ceil(PTS.length / 600)), P = PTS.filter((_, i) => i % step === 0);
+  const nearest = (x, y, z) => { let m = Infinity; for (const p of P) { const d = (p.x - x) ** 2 + (p.y - y) ** 2 + (p.z - z) ** 2; if (d < m) m = d; } return Math.sqrt(m); };
+  const right = new THREE.Vector3();
+  let last = "", finished = false;
+  return { levels: () => ({ on: S.on, locked: S.locked, phase: state.phase, ...S.levels }), update(now, leaderX, leaderZ) {
+    S.pause(state.paused);
+    const ph = state.phase, t = state.t;
+    // the off (owner, 13 Nov: the stalls laid into the Cheltenham roar; started so its latches click at the off)
+    const theOff = (toOff) => { S.hush(); S.play("off", { at: toOff - O.latchAt }); };
+    if (ph === "stalls" && last !== "stalls") theOff(PRE.standSeconds - state.pt);
+    if (ph === "race" && last !== "race" && t < 0.5) { if (last !== "stalls") theOff(-t); finished = false; }
+    if (ph === "prelude" && last !== "prelude") { S.hush(); finished = false; }
+    // the finish (owner, 13 Nov): from about 3f out, timed to the line (started part-way in if the race is joined late)
+    // (until it has started: the sound may still be loading, or have been turned on late)
+    if (ph === "race" && !finished && t >= FIN && t < T_FINISH + 6) finished = S.play("finish", { at: FIN - t });
+    if (ph === "race" && finished && !state.paused) S.sync("finish", t - FIN);
+    last = ph;
+    if (!S.on) return;
+    // which section: the crowd waiting, the middle (after the off until the finish takes over), the crowd back after
+    let murmur = 1, middle = 0, excited = 0, duck = 1;
+    if (ph === "stalls" || (ph === "race" && t < O.duckUntil)) duck = O.duck + (1 - O.duck) * (ph === "race" ? sm(O.duckUntil - 2, O.duckUntil, t) : 0);
+    if (ph === "race") {
+      middle = sm(SEC.middleFrom, SEC.middleFrom + SEC.middleIn, t) * (1 - sm(FIN, FIN + SEC.cross, t));
+      murmur = Math.max(1 - sm(SEC.middleFrom, SEC.middleFrom + SEC.middleIn, t), sm(T_FINISH + SEC.murmurBack - 3, T_FINISH + SEC.murmurBack, t));
+      // a long race passing the stands with a circuit still to run (the run-in itself is the finish's)
+      const toGo = DIST - Math.max(...now.map((h) => h[0]));
+      if (P.length && t < FIN && toGo > SEC.passingFrom) excited = C.passingStands * (1 - sm(25, 160, nearest(leaderX, 1.5, leaderZ))) * sm(SEC.passingFrom, SEC.passingFrom + 200, toGo);
+    } else if (ph === "replay") duck = C.duck;
+    const cp = camera.position, dc = P.length ? nearest(cp.x, cp.y, cp.z) : 200;
+    // the horses up close: the nearest, the side they're on (weighted to the near ones), how fast they're going
+    let dmin = Infinity, wx = 0, wz = 0, v = 0;
+    runners.forEach((r, i) => {
+      const o = r.obj.position, dx = o.x - cp.x, dz = o.z - cp.z, d = Math.hypot(dx, dz, o.y - cp.y), w = 1 / (d * d + 25);
+      if (d < dmin) dmin = d; wx += dx * w; wz += dz * w; v += now[i][2];
+    });
+    v /= Math.max(1, runners.length);
+    right.setFromMatrixColumn(camera.matrixWorld, 0);
+    const wl = Math.hypot(wx, wz) || 1, slow = ph === "replay" ? DIR_.replaySpeed : 1;
+    S.update({
+      layers: { murmur, middle, excited },
+      crowd: { near: 1 - sm(C.nearFrom, C.farAt, dc), duck },
+      // as on TV: the closer the shot looks (a long lens makes far horses look near), the louder the hooves
+      hooves: { near: runners.length ? Math.max(H.railMics, 1 - sm(H.nearAt, H.farAt, dmin * camera.fov / H.lensFov)) : 0, pan: (wx * right.x + wz * right.z) / wl,
+        rate: (v / H.cruise) * slow, moving: sm(1, 7, v) * (ph === "replay" ? H.replayLevel : 1) },
+    });
+  } };
+})();
+window.__sound = () => SND && SND.levels();                // checking aid: what the sound is doing now
+
 // ---------- Loop ----------
 const toRunEl = document.getElementById("toRun"), toRunLabel = document.querySelector(".togo span");
 const clock = new THREE.Clock();
@@ -3025,11 +3265,15 @@ function frame() {
     const gy = groundY(wx, wz);
     r.obj.position.set(wx, gy, wz);
     r.obj.rotation.y = head;
+    if (UPLIFT) {            // the uplift test: a horse leans into a bend, by its speed and how tightly the course turns here
+      let turn = headingAt(x + 4, yaw) - headingAt(x - 4, yaw); turn = Math.atan2(Math.sin(turn), Math.cos(turn));
+      r.obj.rotation.order = "YXZ"; r.obj.rotation.x = UPLIFT.lean(turn / 8, v);
+    }
     _p.set(wx - Math.cos(head) * 0.15, 0.04 + gy, wz + Math.sin(head) * 0.15); _q.setFromEuler(_e.set(-Math.PI / 2, 0, head - Math.PI, "YXZ")); _s.set(3.0, 1.05, 1);
     contact.setMatrixAt(i, _m.compose(_p, _q, _s));
     if (r.v2) {                                            // the v2 horse: its own riding, gallop and detail levels
       if (params.has("still") && !r.started) { r.v2.update(5, v, eff, null, 0); r.started = true; }   // stills: settle the riding first
-      r.v2.update(dt, v, eff, null, step);
+      r.v2.update(dt, v, eff, null, step, x > DIST ? THREE.MathUtils.smoothstep(x - DIST, 5, 40) : 0);   // past the post he stands in his irons to pull up
       if (x > leader) { leader = x; leaderZ = wz; leaderXw = wx; }
       sum += x;
       return;
@@ -3084,11 +3328,13 @@ function frame() {
   }
   if (MINI) MINI.afterSun(sunAt, camera, focus);
   scene.userData.sky.position.copy(camera.position);
-  CROWD.uniforms.uTime.value = params.has("still") ? state.t : performance.now() / 1000;   // (?still=1: the race clock, so stepped frames make a true film)
+  if (UPLIFT) UPLIFT.update(params.has("still") ? state.t : performance.now() / 1000, camera);
+  BUNTING_T.value = CROWD.uniforms.uTime.value = params.has("still") ? state.t : performance.now() / 1000;   // (?still=1: the race clock, so stepped frames make a true film)
   CROWD.uniforms.uLeader.value.set(leaderXw, leaderZ);
   camera.updateMatrixWorld();
   const tCrowd = performance.now();
   updateCrowd(camera, TV.on ? TV.cam : null);
+  if (SND) SND.update(now, leaderXw, leaderZ);
   const tPanels = performance.now(); diag.sec.crowd += tPanels - tCrowd;
 
   const left = (DIST - leader) / FURLONG;

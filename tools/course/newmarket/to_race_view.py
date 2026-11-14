@@ -531,6 +531,12 @@ def view_file(cid, L, course, stalls, stands_side, cams, prelude, postlude, dire
     return out
 
 
+def overview_after(prelude):
+    """After the race (owner, 10 Nov: "maybe we also use the overview shot for the results page"): the racecard's view
+    again behind the results, drifting back the other way."""
+    return {"label": "After the race", "seconds": 8, "eye": prelude["eye"][::-1], "at": prelude["at"][::-1], "fov": prelude["fov"]}
+
+
 def terrace_cam(S, x, z, face, level=None, label="Terraces"):
     """Watching from the terraces (owner, 10 Nov): a spectator's eye on the stand's step nearest (x, z), among its crowd
     (S.people), with the TV director's picture in a corner of the screen. The race view keeps 'clear' metres round the eye
@@ -642,7 +648,7 @@ def main():
             # the racecard / overview (owner, 9 Nov, with a photo from the stands): high at the cranked stand's rail end,
             # looking up the course, the Millennium's canopies on the right, a slow drift
             prelude = {"label": "The runners", "seconds": 9, "eye": [[-40, 14, W + 31], [-30, 13, W + 28]], "at": [[480, 2, W * 0.1], [490, 2, W * 0.2]], "fov": 42, "list": [7, 0.6], "cardAfter": 3.5}
-            postlude = {"label": "After the race", "seconds": 8, "eye": [[20, 3, W - 8], [60, 45, -60]], "at": [[0, 8, W + 60], [-10, 6, W + 70]], "fov": 42}
+            postlude = overview_after(prelude)
             models = ["rowley_stands", "site_props", "finish_line"]
         else:
             S, trees, banks = july_scenery(course)
@@ -655,8 +661,12 @@ def main():
             menu = {k: v + [["terraces", "Terraces"]] for k, v in (
                 ("straight", [["drone_straight", "Drone"], ["track_straight", "Tracking"], ["headon", "Head-on"], ["grandstand", "Stand"]]),
                 ("round", [["track_loop", "Tracking"], ["drone_straight", "Drone"], ["headon", "Head-on"], ["grandstand", "Stand"]]))}
-            prelude = {"label": "The runners", "seconds": 9, "eye": [[200, 62, W + 190], [90, 58, W + 190]], "at": [[100, 8, -40], [20, 8, -40]], "fov": 40, "list": [7, 0.6]}
-            postlude = {"label": "After the race", "seconds": 8, "eye": [[20, 3, 8], [60, 45, W + 60]], "at": [[0, 8, -40], [-10, 6, -50]], "fov": 42}
+            prelude = {"label": "The runners", "seconds": 9, "eye": [[200, 62, W + 190], [90, 58, W + 190]], "at": [[100, 8, -40], [20, 8, -40]], "fov": 40, "list": [7, 0.6], "cardAfter": 3.5}
+            postlude = overview_after(prelude)
+            # the replay from the far side, in front of the winning line kit, looking back across the finish at the stands
+            # (owner, 10 Nov, as Ascot's and the Rowley Mile's)
+            cams["sideon"].update({"at": [-8, 6.5, round(W - 0.8, 2)], "look": [0, 6.0, round(W * 0.35, 2)], "fov": [46, 46],
+                                   "note": "from the far side at the line, on the track side of the finish-line kit, looking back across at the stands"})
             models = ["july_stands", "site_props", "finish_line"]
         boards = [list(b) for b in course["boards"]["list"]] + (boards_extra if side < 0 else [])
         write(f"{cid}.json", c)
