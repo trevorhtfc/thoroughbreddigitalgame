@@ -410,12 +410,12 @@ ten races is at their trips (the board's "take another card"). Then "To the Nati
 | Vet's Report | send a yearling back once you've seen it: once, 80% back | twice, 90% | three times, 100% | Tattersalls |
 | Private Sale | one Book 3 lot before the ring, at the middle of its guide | Books 2–3 | any Book | Tattersalls |
 | Trainer (see "Trainers at Warren Hill" below) | 2 jobs | 3 jobs | 4 jobs | Warren Hill, and race week |
-| Champion Jockey | +1 in every race he rides | +2 | +3 | 3 / 4 / 5 races |
+| Champion Jockey | +2 in every race he rides | +3 | +4 | 3 / 4 / 5 races |
 | Tempo Setter | more energy left when ridden in front or prominent | more | more | 3 / 4 / 5 races |
 | Late Closer | stronger finish when ridden midfield or held up | stronger | stronger | 3 / 4 / 5 races |
-| Sprint / Mile / Middle-Distance / Staying Jockey | +2 at their trips | +3 | +4 | 3 / 4 / 5 races |
-| Big-Race Jockey | +2 in Group races | +3 | +4 | 3 / 4 / 5 races |
-| Mud Lark | +3 on Softer or Heavy going | +4 | +5 | 3 / 4 / 5 races |
+| Sprint (5f, 6f) / Mile (7f–1m1f) / Staying (1m2f+) Jockey | +3 at their trips | +4 | +6 | 3 / 4 / 5 races |
+| Big-Race Jockey | +3 in Group races | +4 | +6 | 3 / 4 / 5 races |
+| Mud Lark | +5 on Softer or Heavy going | +6 | +8 | 3 / 4 / 5 races |
 
 Where the digital game differs from the board, and why:
 - **Trainer cards reach more horses** (2 / 3 / 3, Stable Form 2 / 4 / all) because the board's one horse for three
@@ -596,19 +596,19 @@ jockeys: boosts to riding styles, and boosts to distances, maybe some others; ch
 
 **Warren Hill** is now a step of the season, between Tattersalls and entries (`phase()` "gallops" while
 `!S.galloped`; it stays open through entries). Developing horses is there too. Each trainer card gives jobs (`TRAINER_JOBS`
-2 / 3 / 4, Master Trainer one more), shown as tokens; tap a horse's job buttons:
+1 / 2 / 3), shown as tokens; tap a horse's job buttons:
 
 | Job | What it does | Notes |
 |---|---|---|
 | Trip work | its best trip a step longer or shorter, at every age, for the season | two steps towards a trip specialist's trips, or with a sire-line card |
-| Settle | a keen horse becomes calm (the engine: keen 8% wins vs 14% calm, about 2–3 points) | free on 2-year-olds with the Juvenile Specialist |
+| Settle | a keen horse becomes calm (the engine: keen 8% wins vs 14% calm, about 2–3 points) | |
 | Ground work | it also likes the next going on the side you pick | two goings with a sire-line card |
-| Tune-up | +3 on the day in one race you name (`TUNE_UP`) | +5 with a matching speciality (`TUNE_SPECIAL`) |
+| Tune-up | +3 on the day in one race you name (`TUNE_UP`) | +5 with a matching speciality (`TUNE_SPECIAL`), +4 anywhere with the Master Trainer; the Juvenile Specialist's first in a 2-year-old race is free |
 | Trainer's eye | shows its rating and best trip at the next age before you develop it | free on every horse with the Slow Burner |
 
 Jobs change the horse itself (what it was is kept, so a job can be undone until race week). Jobs not spent can be used in
 race week, once the going is declared: ground work or a tune-up, on the race-week screen (`weekJobs`). Stable Form places
-no jobs: +1 / +2 / +2 on every horse, Gold with 2 jobs too. The trainer's notes on each horse point out what's worth doing.
+no jobs: +1 / +2 / +2 on every horse, Gold with 1 job too. The trainer's notes on each horse point out what's worth doing.
 
 **Jockeys** are booked race by race at entries, as before (3 / 4 / 5 rides). A rating boost on the day where they fit
 (`jockeyBoost`: shown in the race-day rating and given to the race engine), or the two riding-style skills in the engine.
@@ -618,4 +618,26 @@ only offered in the draft when the ten races include his kind of race. The Race 
 Rules in `js/team.js` (numbers at the top), screens in `js/ui-team.js` (`trainerPanel`, `jobStrip`, `weekJobs`),
 measurements in `race-engine/check/trainer-levers.mjs`; the team harness spends the jobs where they add most and books
 jockeys where they fit.
+
+**What they're worth** (team harness, 15 seasons × four strategies = 60 per card, ±£6–12k; at £1.25m; against the
+same seasons with no card: Planner £198k, Balanced £187k, Breeder £132k, Buyer £92k). The first try (2 / 3 / 4 jobs;
+Champion +1 / +2 / +3, specialists +2 / +3 / +4) had trainers at +£55–120k a week, well above the owner cards
+(+£35k / +£45k / +£70k), and jockeys at +£5–30k, so the jobs came down by one and the jockeys went up:
+
+| Card | Bronze | Silver | Gold |
+|---|---|---|---|
+| Trainers (trip specialists, sire lines, Slow Burner) | +£28–38k | +£50–63k | +£77–94k |
+| Juvenile Specialist (first 2YO tune-up free) | +£38k | +£65k | +£94k |
+| Master Trainer (tune-ups +4 anywhere) | +£30k | +£50k | +£80k |
+| Stable Form | +£29k | +£55k | +£76k |
+| Champion Jockey | +£19k | +£38k | +£62k |
+| Big-Race Jockey | +£23k | +£34k | +£55k |
+| Tempo Setter / Late Closer | +£16k | +£29–35k | +£42–47k |
+| Sprint / Mile / Staying Jockey | +£12–18k | +£22–24k | +£33–39k |
+| Mud Lark | +£12k | +£28k | +£31k |
+
+(The trip jockeys' figures include seasons with few races at their trips; in the draft they only turn up when the card
+has some.) The Juvenile Specialist first gave free settling of 2-year-olds, but every horse is a 2-year-old at Warren
+Hill, so it was a free job on anyone (+£79k on Bronze): now its first tune-up in a 2-year-old race is free. The
+Middle-Distance Jockey was merged into the Staying Jockey (1m2f and further): on their own neither had enough races.
 

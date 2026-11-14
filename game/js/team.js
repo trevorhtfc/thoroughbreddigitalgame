@@ -35,9 +35,10 @@ const PRIVATE_BOOKS = [null, [3], [2, 3], [1, 2, 3]];    // Private Sale: one lo
 // stronger. Stable Form is the one with no jobs to place: a flat boost on every horse.
 // (first test games, 14 Nov: 2 / 3 / 4 jobs made a trainer worth +55k to +120k a week, well above the owner and jockey
 // cards, so one fewer)
-const TRAINER_JOBS = [0, 1, 2, 3];                        // jobs a trainer gives you, by tier (Master Trainer one more)
-const JUVENILE_FREE = 2;                                  // the Juvenile Specialist settles this many 2-year-olds free
-const TUNE_UP = 3, TUNE_SPECIAL = 5;                      // a tune-up: this much better in the race you name (a specialist's)
+const TRAINER_JOBS = [0, 1, 2, 3];                        // jobs a trainer gives you, by tier
+// The Juvenile Specialist's first tune-up in a 2-year-old race is free (every horse is a 2-year-old at Warren Hill, so a
+// free settle for 2-year-olds, tried first, was a free settle for anyone)
+const TUNE_UP = 3, TUNE_SPECIAL = 5, TUNE_MASTER = 4;    // a tune-up: this much better in the race you name (a specialist's; the Master's anywhere)
 const FORM_BOOST = [0, 1, 2, 2], FORM_JOBS = [0, 0, 0, 1];   // Stable Form: every horse this much better; Gold has 2 jobs too
 // Jockey cards (owner, 14 Nov: "boosts to riding styles and boosts to distances ... champion jockey is just an all over
 // boost"): booked race by race at entries. A rating boost on the day where his speciality fits, or (the two style
@@ -46,7 +47,8 @@ const JOCKEY_RIDES = [0, 3, 4, 5];                       // how many of your rac
 const JOCKEY_LEVEL = [0, 3, 4, 5];                       // his skill in the race engine (1 to 5); your own yard's is random
 const CHAMPION_BOOST = [0, 2, 3, 4];                     // Champion Jockey: in every race he rides
 const SPECIAL_BOOST = [0, 3, 4, 6];                      // trip, big-race and going specialists: where they shine
-const PARTNER_BOOST = 1;                                 // a trainer and jockey of the same trip, in races at that trip
+const PARTNER_BOOST = 1;
+const MUD_EXTRA = 2;                                     // the Mud Lark: this much more than the other specialists (the going is a gamble)                                 // a trainer and jockey of the same trip, in races at that trip
 // The style jockeys in the race engine (race-engine/engine.js: paceTank, lateKick), measured with
 // race-engine/check/team-jockeys.mjs: about +2 / +3.3 / +4.7 rating points when the horse runs his way, +0 otherwise.
 const JOCKEY_EDGE = {
@@ -76,10 +78,9 @@ const JOCKEY_KINDS = {
   closer: { title: "Late Closer", style: "back", text: t => `Times his run from behind: a midfield or hold-up horse finishes ${["", "a little", "much", "far"][t]} stronger.` },
   speed: { title: "Sprint Jockey", trips: TRIPS.speed, text: t => `Quick out of the stalls and sharp in a finish: ${SPECIAL_BOOST[t]} better in ${tripWords(TRIPS.speed)} races.` },
   miler: { title: "Mile Jockey", trips: TRIPS.miler, text: t => `At home over a mile: ${SPECIAL_BOOST[t]} better in ${tripWords(TRIPS.miler)} races.` },
-  middle: { title: "Middle-Distance Jockey", trips: TRIPS.middle, text: t => `Knows when to go in the Derby trips: ${SPECIAL_BOOST[t]} better in ${tripWords(TRIPS.middle)} races.` },
-  staying: { title: "Staying Jockey", trips: TRIPS.staying, text: t => `Patient and strong in a long finish: ${SPECIAL_BOOST[t]} better in ${tripWords(TRIPS.staying)} races.` },
+  staying: { title: "Staying Jockey", trips: TRIPS.middle.concat(TRIPS.staying), text: t => `Patient and strong in a long finish: ${SPECIAL_BOOST[t]} better in races of 1m2f and further.` },
   bigrace: { title: "Big-Race Jockey", text: t => `Never better than on the big day: ${SPECIAL_BOOST[t]} better in Group races, nothing extra in the others.` },
-  mudlark: { title: "Mud Lark", text: t => `Loves it when the rain comes: ${SPECIAL_BOOST[t] + 1} better on Softer or Heavy going. You book him before the going is declared.` },
+  mudlark: { title: "Mud Lark", text: t => `Loves it when the rain comes: ${SPECIAL_BOOST[t] + MUD_EXTRA} better on Softer or Heavy going. You book him before the going is declared.` },
 };
 // The board's trainer cards (TeamCards, role Trainer), now specialities: every trainer can do every job, the
 // speciality makes some of them stronger (owner, 11 Nov brainstorm, "yard jobs").
@@ -95,15 +96,15 @@ const TRAINER_KINDS = {
   master: { title: "Master Trainer", spec: "master" },
   form: { title: "Stable Form", spec: "form" },
 };
-const jobsOfCard = c => c.kind === "form" ? FORM_JOBS[c.tier] : TRAINER_JOBS[c.tier] + (c.kind === "master" ? 1 : 0);
+const jobsOfCard = c => c.kind === "form" ? FORM_JOBS[c.tier] : TRAINER_JOBS[c.tier];
 function trainerText(kind, t) {
   const K = TRAINER_KINDS[kind], n = jobsOfCard({ kind, tier: t }), jobs = `${n === 1 ? "One job" : n + " jobs"} at Warren Hill`;
   if (K.spec === "form") return `Every horse in your stable runs ${FORM_BOOST[t]} better on the day${n ? `, and ${n === 1 ? "one job" : n + " jobs"} at Warren Hill` : ". No jobs to place"}.`;
   if (K.spec === "trip") return `${jobs}. In ${tripWords(K.trips)} races his tune-ups are +${TUNE_SPECIAL}, and trip work towards those trips moves two steps.`;
-  if (K.spec === "juvenile") return `${jobs}. Settling up to ${JUVENILE_FREE} keen 2-year-olds is free, and his tune-ups are +${TUNE_SPECIAL} in 2-year-old races.`;
+  if (K.spec === "juvenile") return `${jobs}. His tune-ups are +${TUNE_SPECIAL} in 2-year-old races, and the first of them is free.`;
   if (K.spec === "burner") return `${jobs}. His eye is free: you see every horse's next age before you develop it. Tune-ups are +${TUNE_SPECIAL} for 4-year-olds.`;
   if (K.spec === "line") return `${jobs}. On horses by ${K.lines.join(" or ")} stallions every job counts double.`;
-  return `${jobs}: one more than the other trainers, and no speciality. The all-rounder.`;
+  return `${jobs}. The all-rounder: his tune-ups are +${TUNE_MASTER} in any race.`;
 }
 // What a trainer's jobs are (the same for every trainer)
 const JOB_INFO = {
@@ -362,7 +363,7 @@ function groundAdds(h, side) {
 }
 // a tune-up's boost in this race: +5 when a speciality fits (trip, 2-year-old race, a 4-year-old, the sire line)
 function tuneBoost(h, race) {
-  let b = TUNE_UP;
+  let b = trainerSpecs().some(t => t.spec === "master") ? TUNE_MASTER : TUNE_UP;
   for (const t of trainerSpecs()) {
     if (t.spec === "trip" && t.trips.includes(raceTrip(race))) b = TUNE_SPECIAL;
     if (t.spec === "juvenile" && race.ages[1] === 2) b = TUNE_SPECIAL;
@@ -371,7 +372,7 @@ function tuneBoost(h, race) {
   if (lineDouble(h)) b = TUNE_SPECIAL;
   return b;
 }
-const settleFree = h => h.age === 2 && trainerSpecs().some(t => t.spec === "juvenile") && jobsAll().filter(j => j.k === "settle" && j.free).length < JUVENILE_FREE;
+const tuneFree = race => !!race && race.ages[1] === 2 && trainerSpecs().some(t => t.spec === "juvenile") && !jobsAll().some(j => j.k === "tune" && j.free);
 const eyeFree = () => trainerSpecs().some(t => t.spec === "burner");
 const tuneOf = race => jobsAll().find(j => j.k === "tune" && j.race === race.id);
 const eyed = h => eyeFree() || jobsAll().some(j => j.k === "eye" && j.h === h.id && j.age === h.age);
@@ -379,7 +380,7 @@ const eyed = h => eyeFree() || jobsAll().some(j => j.k === "eye" && j.h === h.id
 function jobProblem(k, h, o = {}) {
   if (!teamOn() || !trainerCards().length) return "You have no trainer";
   if (!h) return "No horse";
-  const free = (k === "settle" && settleFree(h)) || (k === "eye" && eyeFree());
+  const free = (k === "eye" && eyeFree()) || (k === "tune" && tuneFree(raceOf(o.race)));
   if (!free && jobsLeft() <= 0) return "No jobs left";
   if (raceWeek() && k !== "ground" && k !== "tune") return "In race week only ground work and tune-ups";
   if (k === "trip") { if (!tripSteps(h, o.dir)) return o.dir > 0 ? "Can't go any longer" : "Can't go any shorter"; }
@@ -396,7 +397,7 @@ function jobProblem(k, h, o = {}) {
 function doJob(k, h, o = {}) {
   if (jobProblem(k, h, o)) return false;
   const T = teamState(); T.jobs = T.jobs || [];
-  const j = { k, h: h.id, free: (k === "settle" && settleFree(h)) || (k === "eye" && eyeFree()) || undefined, week: raceWeek() || undefined, was: { d: h.d.map(x => x.slice()), grounds: h.grounds.slice(), temper: h.temper } };
+  const j = { k, h: h.id, free: (k === "eye" && eyeFree()) || (k === "tune" && tuneFree(raceOf(o.race))) || undefined, week: raceWeek() || undefined, was: { d: h.d.map(x => x.slice()), grounds: h.grounds.slice(), temper: h.temper } };
   if (k === "trip") { const n = tripSteps(h, o.dir); j.dir = o.dir; j.n = n; h.d = h.d.map(r => [...new Set(r.map(i => Math.max(0, Math.min(DISTANCES.length - 1, i + o.dir * n))))].sort((a, b) => a - b)); }
   if (k === "settle") h.temper = "calm";
   if (k === "ground") { j.side = o.side; j.add = groundAdds(h, o.side); h.grounds = GROUND_ORDER.filter(g => h.grounds.includes(g) || j.add.includes(g)); }
@@ -466,7 +467,7 @@ function jockeyBoost(race, h) {
   if (c.kind === "champion") b = CHAMPION_BOOST[c.tier];
   else if (K.trips && K.trips.includes(trip)) b = SPECIAL_BOOST[c.tier];
   else if (c.kind === "bigrace" && race.grade.startsWith("Group")) b = SPECIAL_BOOST[c.tier];
-  else if (c.kind === "mudlark" && going && (going === "Softer" || going === "Heavy")) b = SPECIAL_BOOST[c.tier] + 1;
+  else if (c.kind === "mudlark" && going && (going === "Softer" || going === "Heavy")) b = SPECIAL_BOOST[c.tier] + MUD_EXTRA;
   if (K.trips && K.trips.includes(trip) && trainerSpecs().some(t => t.spec === "trip" && t.trips.includes(trip))) b += PARTNER_BOOST;
   return { boost: b, why: b ? `+${b} ${cardName(c)}` : "" };
 }

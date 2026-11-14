@@ -165,8 +165,6 @@
       const b = bestJob(true, ["trip", "settle", "tune"]); if (!b) break;
       H.forEach(h => h.age = 2); if (!doJob(b.k, b.h, b.o)) break; log.jobs = (log.jobs || 0) + 1;
     }
-    // free settles (the Juvenile Specialist's) wherever a keen 2-year-old runs
-    for (const h of H) if (h.temper === "keen" && settleFree(h)) doJob("settle", h, {});
     H.forEach(h => h.age = 2); enter();
     // jockeys: booked where the prize is biggest and his speciality fits the horse and race
     for (const c of jockeyCards()) {

@@ -174,12 +174,12 @@ function jobStrip(h) {
   const mine = new Set([...runsOf(h).map(r => r.id), ...RACES.filter(r => (S.targets || {})[r.id] === h.id).map(r => r.id)]);
   const races = RACES.filter(r => !S.results[r.id] && !tuneOf(r) && (mine.has(r.id) || (() => { const c = check(h, r); return c && c.ok; })()))
     .sort((a, b) => mine.has(b.id) - mine.has(a.id) || b.prizes[0] - a.prizes[0]);
-  const tune = races.length && !jobProblem("tune", h, { race: races[0].id }) ? `<select class="jb-sel" data-tune="${h.id}"><option value="">Tune-up for…</option>${races.map(r => `<option value="${r.id}">${esc2(shortRace(r))} (+${tuneBoost(h, r)})</option>`).join("")}</select>` : "";
+  const tune = races.length && !jobProblem("tune", h, { race: races[0].id }) ? `<select class="jb-sel" data-tune="${h.id}"><option value="">Tune-up for…</option>${races.map(r => `<option value="${r.id}">${esc2(shortRace(r))} (+${tuneBoost(h, r)}${tuneFree(r) ? ", free" : ""})</option>`).join("")}</select>` : "";
   const nx = eyed(h) ? nextAge(h) : null;
   const done = jobsOn(h).map(j => `<span class="jb-done">${JOB_INFO[j.k].name}${j.k === "trip" ? `: ${j.dir > 0 ? "longer" : "shorter"}` : j.k === "ground" ? `: ${j.add.join(", ")}` : j.k === "tune" ? `: ${esc2(shortRace(raceOf(j.race) || { name: "" }))}` : ""}${j.free ? " (free)" : ""}${jobUndoable(j.i) ? `<button data-unjob="${j.i}" aria-label="Undo">×</button>` : ""}</span>`).join("");
   const notes = trainerNotes(h).map(t => `<li>${esc2(t)}</li>`).join("");
   const opts = [btn("trip", { dir: -1 }, `Shorter: ${shift(-1)}`, "Trip work: its best trip moves this way for the season"), btn("trip", { dir: 1 }, `Longer: ${shift(1)}`, "Trip work: its best trip moves this way for the season"),
-    btn("settle", {}, settleFree(h) ? "Settle (free)" : "Settle", "A keen horse learns to settle"), btn("ground", { side: "soft" }, `Also ${adds("soft")}`, "Ground work: it handles this going too"), btn("ground", { side: "quick" }, `Also ${adds("quick")}`, "Ground work: it handles this going too"),
+    btn("settle", {}, "Settle", "A keen horse learns to settle"), btn("ground", { side: "soft" }, `Also ${adds("soft")}`, "Ground work: it handles this going too"), btn("ground", { side: "quick" }, `Also ${adds("quick")}`, "Ground work: it handles this going too"),
     btn("eye", {}, eyeFree() ? "" : "Trainer's eye", "See how it will be at the next age before you develop it")].join("") + tune;
   return `<div class="jb-strip">${notes ? `<ul class="jb-notes">${notes}</ul>` : ""}
     ${nx ? `<div class="jb-eye">Trainer's eye: at ${nx.age} it will be rated <b>${nx.rating}</b>, best <b>${tripText(nx.trip)}</b>.</div>` : ""}
@@ -193,7 +193,7 @@ function weekJobs() {
     if (!h) return "";
     const side = GROUND_ORDER.indexOf(g) < GROUND_ORDER.indexOf(h.grounds[0]) ? "soft" : "quick", adds = h.grounds.includes(g) ? [] : groundAdds(h, side);
     const gb = adds.length && !jobProblem("ground", h, { side }) ? `<button class="jb-b" data-job="ground" data-h="${h.id}" data-side="${side}">Ground work: also ${adds.join(" & ")}${adds.includes(g) ? " (+5 today)" : ""}</button>` : "";
-    const tb = !jobProblem("tune", h, { race: r.id }) ? `<button class="jb-b" data-job="tune" data-h="${h.id}" data-race="${r.id}">Tune-up +${tuneBoost(h, r)}</button>` : "";
+    const tb = !jobProblem("tune", h, { race: r.id }) ? `<button class="jb-b" data-job="tune" data-h="${h.id}" data-race="${r.id}">Tune-up +${tuneBoost(h, r)}${tuneFree(r) ? " (free)" : ""}</button>` : "";
     return gb || tb ? `<li><span><b>${esc2(shortRace(r))}</b> · ${esc2(h.name)} · ${g}${h.grounds.includes(g) ? " (likes it)" : ""}</span><span class="jb-opts">${gb}${tb}</span></li>` : ""; }).join("");
   return rows ? `<section class="sect tm-at jb-week"><div class="sect-h"><h2 class="tb-h2">YOUR TRAINER IN RACE WEEK</h2>${jobTokens()}</div>
     <p class="tc-do">The going is out. Spend the jobs you kept back on ground work or a tune-up before the race is run.</p><ul class="jb-wk">${rows}</ul></section>` : "";
