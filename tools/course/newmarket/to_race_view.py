@@ -84,6 +84,60 @@ def path_course(L, course, cid, name, stalls):
     }
 
 
+# The Rowley Mile where the July Course leaves it (owner, 14 Nov: "we should really be able to see the rowley mile track at
+# the junction.. dont need the modelled stands or anything but the little map should show it and the track should also give
+# off the notion of the junction"). The Rowley Mile's own turf and rails from the junction (where the July bend leaves the
+# shared Cesarewitch leg, site_plan.S_UP metres above the Rowley Mile's bend) round its bend and down its straight to the
+# end of its run-on, in the July Course's axes; the July Course's outer rail is opened where the Rowley Mile carries on
+# across it, and the Rowley Mile's rails are left out where they would run over the July turf or beside the July's own.
+# The race view draws the turf under the July turf (so the July's wins where they overlap), adds the rails to the course's
+# and draws the Rowley Mile's line, faintly, on the little map.
+def junction(c, overlap=40.0):
+    from shapely.geometry import Polygon, Point, LineString
+    W, WR = J.TRACK_W, R.TRACK_W
+    d_j = R.STRAIGHT + R.BEND_LEN + SP.S_UP                       # the junction, in the Rowley Mile's metres to go
+    ds = [-R.RUN_ON + k * STEP for k in range(int((d_j + overlap + R.RUN_ON) / STEP) + 1)]
+    def rp(d, w):
+        (x, z), (tx, tz) = R.course_pt(d)
+        return SP.s2j(x + tz * w, z - tx * w)                         # (the Rowley Mile's turf runs to the horses' left, +w)
+    inside = [rp(d, 0) for d in ds]; outer = [rp(d, WR) for d in ds]
+    strip = Polygon(inside + outer[::-1]).buffer(0)
+    july = Polygon(c["track"]["surface"][0]).buffer(0)
+    july_rails = [LineString(l) for l in c["rails"]["lines"]]
+    def runs(line, drop):
+        out, cur = [], []
+        for p in line:
+            if drop(p):
+                if len(cur) > 2: out.append(cur)
+                cur = []
+            else: cur.append([r2(p[0]), r2(p[1])])
+        if len(cur) > 2: out.append(cur)
+        return [r for r in out if LineString(r).length > 12]
+    # the July Course's rails: opened where the Rowley Mile's turf carries on across them
+    shrunk = strip.buffer(-2.5)
+    july_lines = []
+    for l in c["rails"]["lines"]:
+        july_lines += runs(l, lambda p: shrunk.contains(Point(p)))
+    # the Rowley Mile's rails, where they are not on the July turf or beside the July's own rails
+    near_july = july.buffer(3.0)
+    rowley_lines = []
+    for w in (-GAP, WR + GAP):
+        line = [rp(d, w) for d in ds]
+        rowley_lines += runs(line, lambda p: near_july.contains(Point(p)) or any(r.distance(Point(p)) < 2.5 for r in july_rails))
+    c["rails"]["lines"] = july_lines
+    # the turf as a strip (inside rail to outer, every 5 m, as the race view's own turfStrip) and its outline
+    mid = [rp(d, WR / 2) for d in ds[::4]]
+    c["neighbour"] = {
+        "name": "Rowley Mile", "trackWidth": WR, "spacing": STEP, "d0": ds[0],
+        "inside": [[r2(x), r2(z)] for x, z in inside], "outer": [[r2(x), r2(z)] for x, z in outer],
+        "surface": [[r2(x), r2(z)] for x, z in inside + outer[::-1]],
+        "map": [[r2(x), r2(z)] for x, z in mid], "rails": rowley_lines,
+        "_about": "The Rowley Mile from its run-on to %d m up the shared leg beyond the junction, in this course's axes: "
+                  "inside and outer edges of its turf every 'spacing' metres, its "
+                  "outline, its middle line for the little map, and its rails (left out where they would cross the July turf)." % overlap}
+    print("   junction: July rail runs", len(july_lines), "; Rowley Mile rail runs", len(rowley_lines), "; strip", len(ds), "samples")
+
+
 # The ground's height over the whole site (owner, 9 Nov: model the Dip): the course's own height profile (heights, along
 # the path) carried out sideways, each point taking the height at its nearest point on the track's centre line, easing
 # to 0 over the outer 'fade' metres of the grid so it meets the flat far ground. The race view and this script read
@@ -357,6 +411,7 @@ STAND_CAM_JULY = [0.0, 13.5, -13.5]          # on the judge's box roof (july_lay
 
 
 boards_extra = []
+PRELUDE_JULY = {"eye": [[150, 12, 22], [128, 11, 22]], "at": [[0, 5, -24], [-12, 5, -24]], "fov": 36}
 
 
 def july_scenery(course):
@@ -429,8 +484,19 @@ def july_scenery(course):
     S.fill(J.ENCLOSURE["x"][0], J.ENCLOSURE["x"][1], J.ENCLOSURE["z"][0], J.ENCLOSURE["z"][1], 0.3, face(0, 1))
     S.fill(J.FAR_CROWD["x"][0], J.FAR_CROWD["x"][1], W + J.FAR_CROWD["off"][0], W + J.FAR_CROWD["off"][1], 0.38, face(0, -1))
     fr = J.FAR_RUNOUT_CROWD; S.fill(fr["x"][0], fr["x"][1], W + fr["off"][0], W + fr["off"][1], 0.3, face(0, -1))
-    S.fill(J.FESTIVAL["x"][0], J.FESTIVAL["x"][1], J.FESTIVAL["crowd"][0], J.FESTIVAL["crowd"][1], 0.2)
-    ff = J.far_rect(J.FAR_FESTIVAL); S.fill(ff["x"][0], ff["x"][1], ff["z"][0] + 2, ff["z"][1], 0.035)
+    # (owner, 14 Nov: "ensure the festival side ... is nice and full of crowd please including in the little pavilion
+    # stands"): people in every seat and on every deck of the site pieces, as at the Rowley Mile, and both festivals fuller
+    spots = json.load(open(REPO / "assets/models/architecture/site_props_spots.json"))["pieces"]
+    for model, piece, px, pz, turn, sx, sc in S.pieces:
+        if model != "site_props": continue
+        ca_, sa_ = math.cos(math.radians(turn)), math.sin(math.radians(turn))
+        for kind in ("seats", "stand"):
+            for lx, ly, lz in spots.get(piece, {}).get(kind, []):
+                if rnd.random() < 0.9:
+                    lx, ly, lz = lx * sx, ly * sc, lz * sc
+                    S.person(px + lx * ca_ - ly * sa_, lz, pz - (lx * sa_ + ly * ca_), face(0, -1) if turn == 180.0 else face(0, 1), S.G(px, pz))
+    S.fill(J.FESTIVAL["x"][0], J.FESTIVAL["x"][1], J.FESTIVAL["crowd"][0], J.FESTIVAL["crowd"][1], 0.32)
+    ff = J.far_rect(J.FAR_FESTIVAL); S.fill(ff["x"][0], ff["x"][1], ff["z"][0] + 2, ff["z"][1], 0.09)
     # nobody standing in front of the stand camera on the judge's box roof
     P, keep = S.people, []
     for i in range(0, len(P), 4):
@@ -449,7 +515,7 @@ def july_scenery(course):
     k = 0
     for mid, count in ((880, 5), (1080, 4), (1290, 5), (1500, 4)):
         for j in range(count):
-            boards_extra.append([r2(mid + (j - (count - 1) / 2) * J.BOARD_LEN), -J.BOARDS_BEYOND, 0.0, J.BOARD_DESIGNS[k % 4]]); k += 1
+            pass   # (owner, 14 Nov: boards only on the far side, opposite the tracking car; were stand-side runs here)
     grid = {}
     for _ in range(420):
         x, z = rnd.uniform(J.FESTIVAL["x"][1] + 10, J.STRAIGHT - 40), rnd.uniform(-46, -11)
@@ -652,16 +718,25 @@ def main():
             models = ["rowley_stands", "site_props", "finish_line"]
         else:
             S, trees, banks = july_scenery(course)
-            director = None
+            # the director (owner, 14 Nov: "the camera needs to be more tracking through the early stages of the race before
+            # [the] switch to the stand cam", not the raised shot at the start): the tracking car from the off (down the leg
+            # and round the bend on round races), then the stand camera on the judge's box for the last 2f (the climb)
+            director = {"tracking": True, "grandstand": 2 * F}
             # the stand camera on the front of the judge's box roof (its own spectators kept clear: see july_scenery)
             cams = cameras(W, side, STAND_CAM_JULY, ([0, 4.5, -9], [0, 1.4, W * 0.58]), -L.RUN_ON + 40, [-110, 49.5, 35.2], drone=(10, 13))
             # the terraces: the second row of the grand terrace's steps, 60 m before the post, in the middle of a bay
             # between the roof's columns (they stand every 13 m)
             cams["terraces"] = terrace_cam(S, 59.5, -17.6, (0, 1), level=1.25)
+            # the tracking car stays low (3 m) up the straight (owner, 14 Nov: not a raised shot); it lifts a little only over
+            # the lawns in front of the stands, where the stand camera has the race (from 2f out) anyway
+            cams["track_straight"]["raise"] = [[-200, 360, 6]]
             menu = {k: v + [["terraces", "Terraces"]] for k, v in (
-                ("straight", [["drone_straight", "Drone"], ["track_straight", "Tracking"], ["headon", "Head-on"], ["grandstand", "Stand"]]),
-                ("round", [["track_loop", "Tracking"], ["drone_straight", "Drone"], ["headon", "Head-on"], ["grandstand", "Stand"]]))}
-            prelude = {"label": "The runners", "seconds": 9, "eye": [[200, 62, W + 190], [90, 58, W + 190]], "at": [[100, 8, -40], [20, 8, -40]], "fov": 40, "list": [7, 0.6], "cardAfter": 3.5}
+                ("straight", [["track_straight", "Tracking"], ["grandstand", "Stand"], ["headon", "Head-on"], ["drone_straight", "Drone"]]),
+                ("round", [["track_loop", "Tracking"], ["grandstand", "Stand"], ["headon", "Head-on"], ["drone_straight", "Drone"]]))}
+            # the racecard / overview (owner, 14 Nov: "too high up and shows too much undesigned background.. zoom in more to
+            # the areas around the finish line and the grandstand"): low over the far rail a furlong up, looking back down the
+            # straight at the post, the old pavilion and the stands, a slow drift towards the line
+            prelude = {"label": "The runners", "seconds": 9, "eye": PRELUDE_JULY["eye"], "at": PRELUDE_JULY["at"], "fov": PRELUDE_JULY["fov"], "list": [7, 0.6], "cardAfter": 3.5}
             postlude = overview_after(prelude)
             # the replay from the far side, in front of the winning line kit, looking back across the finish at the stands
             # (owner, 10 Nov, as Ascot's and the Rowley Mile's)
@@ -669,6 +744,7 @@ def main():
                                    "note": "from the far side at the line, on the track side of the finish-line kit, looking back across at the stands"})
             models = ["july_stands", "site_props", "finish_line"]
         boards = [list(b) for b in course["boards"]["list"]] + (boards_extra if side < 0 else [])
+        if side < 0: junction(c)
         write(f"{cid}.json", c)
         write(f"{cid}-stalls.json", stalls, 1)
         (OUT / f"{cid}-standards.json").write_text((REPO / f"courses/{src}-standards.json").read_text()); print("wrote", f"{cid}-standards.json")

@@ -105,6 +105,8 @@
       <h1 class="menu-t" id="menuTitle"><span>Thoroughbred</span><b id="menuWord">Ascot</b></h1>
       <p class="menu-lede" id="menuLede">Build a stable in Newmarket, breed and buy your string, then take them to Royal Ascot and win as much prize money as you can. Win enough and you're crowned <b>Royal Ascot Champion</b>.</p>
     </div>
+    <!-- the leaderboard: the standings and your position (js/leaderboard.js) -->
+    <section class="menu-lb" id="menuBoard" aria-label="Leaderboard"></section>
     <ol class="menu-how">
       <li><b>The National Stud</b><span>Start with £1,750,000. Buy mares, one of three each time, and send them to the stallions.</span></li>
       <li><b>Tattersalls</b><span>Bid against rival buyers for yearlings out of the mares nobody bred. No going back.</span></li>
@@ -130,11 +132,14 @@
 })();</script>
 <script src="js/meetings/royal-ascot.js"></script>
 <script src="js/meetings/newmarket.js"></script>
+<script src="silks-paint.js"></script><!-- paints a player's own colours (shared with the race view) -->
 <script src="js/rules.js"></script>
 <script>window.ICON = { %%ICONSET%% };</script>
 <script src="js/board.js"></script>
 <script src="js/ui-parts.js"></script>
 <script src="js/ui.js"></script>
+<script src="js/colours.js"></script>
+<script src="js/leaderboard.js"></script>
 <script type="module">
 // The race engine (race-engine/engine.js in the repo) and the course data it reads. The 3D race view
 // (final-furlong.html) loads the very same files, so a race simmed here and the race watched there are the same race.
