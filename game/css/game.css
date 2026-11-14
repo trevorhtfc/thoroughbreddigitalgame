@@ -709,3 +709,27 @@ details.mh .hint{margin:0 0 6px}
 .mh-n small{color:var(--tb-muted)}
 .mh-b{display:flex;flex-wrap:wrap;gap:5px}
 .mh-b .tb-btn.warn{border-color:#a3402b;color:#a3402b}
+
+/* the board's Weatherbys mares decks (14 Nov): draw your hand, and the extra mare */
+.mdecks{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;max-width:560px;margin:4px auto 0}
+.mdeck{display:grid;justify-items:center;gap:3px;background:none;border:0;padding:6px 4px;font:inherit;color:var(--tb-ink);cursor:pointer;text-align:center}
+.mdeck b{font-family:var(--serif);font-size:18px;line-height:1.1;margin-top:8px}
+.mdeck small{font-size:12.5px;color:var(--tb-muted)}
+.mdeck .pile-p{font-size:14px;font-weight:700;color:var(--tb-green)}
+.mdeck:disabled{cursor:default}.mdeck:disabled .mstack{opacity:.45;filter:grayscale(.4)}
+.mstack{container-type:inline-size;position:relative;width:min(120px,78%);aspect-ratio:1/1.4;display:block;transition:transform .2s}
+.mdeck:not(:disabled):hover .mstack{transform:translateY(-4px)}
+.mback{position:absolute;inset:0;border-radius:4px;background:#2b5e74;border:4cqw solid #f6efdc;box-shadow:0 0 0 1px #c9b98f,0 3px 8px rgba(51,51,43,.25);display:flex;flex-direction:column;align-items:center;color:#f6efdc;font-family:var(--tb-display);text-align:center;padding:7cqw 4cqw 6cqw;background-image:radial-gradient(rgba(246,239,220,.10) 1.4px,transparent 1.6px);background-size:12cqw 12cqw}
+.mback.b2{transform:translate(-6px,6px) rotate(-4deg)}.mback.b1{transform:translate(3px,3px) rotate(2deg)}
+.mback.gone{background:transparent;border:2px dashed #c9b98f;box-shadow:none}
+.mback .wb{font-size:8cqw;letter-spacing:.12em;font-weight:500;opacity:.9}
+.mback .mt{font-size:19cqw;font-weight:600;letter-spacing:.06em;line-height:1;margin-top:6cqw}
+.mback .ms{font-size:12cqw;font-weight:600;line-height:1.1;margin-top:3cqw}
+.mback .mp{margin-top:auto;display:grid;grid-template-columns:repeat(5,1fr);gap:2cqw 3cqw;width:84%}
+.mback .mp svg{width:100%;aspect-ratio:1;color:#f6efdc;display:block}
+.mdrawn{margin-top:16px}
+.mdeal-all{text-align:center;margin:12px 0 0}
+.hc.flipin,.offers.flip .offer{animation:mFlip .6s cubic-bezier(.2,.8,.3,1) backwards}
+.offers.flip .offer:nth-child(2){animation-delay:.15s}
+@keyframes mFlip{from{transform:perspective(800px) translateY(-30px) rotateY(90deg);opacity:0}55%{opacity:1}to{transform:none}}
+@media (max-width:620px){ .mdecks{gap:8px}.mdeck b{font-size:15px}.mback .mt{font-size:18cqw} }

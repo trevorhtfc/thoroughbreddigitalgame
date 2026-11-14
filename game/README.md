@@ -762,3 +762,9 @@ gallop (one recording's uneven hoofbeats, raised 9 dB towards the line) and the 
 The gallop is now five copies blended into a rolling field, softened, rising only 5 dB; the finish's level is shaped
 slowly (over ~5 s); the commentary phrases are cleaner and eased in and out, and the crowd dips gently in the voice's
 range while he speaks (`duck_under`) so the overall level stays even. The crowd and gallop's wobble halved (1.5 → 0.7 dB).
+
+**Drawn like the board (14 Nov, owner: "it would be good if this felt like proper drawing of the cards from the board
+game").** The hand isn't dealt in one go: the stud shows the board's three Weatherbys mares decks (blue card backs,
+"WEATHERBYS / MARES / 4&5 Stars", as on the Thoroughbred site's Step 03 page). Tap a deck and its top mare turns over
+and joins your stud, two from each (`drawHandMare`; "Draw the rest for me" deals what's left). You can't close the stud
+until all six are drawn. The extra mare is drawn from the same decks (two turned over, keep one).

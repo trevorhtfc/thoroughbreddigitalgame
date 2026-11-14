@@ -14,7 +14,7 @@ const CHAPTERS = {
   team:      { step: 1, place: "jockey", season: "Winter", title: "Your team", hour: 11.5,
                line: "Draft your owner, trainer and jockeys: six points from the Bronze, Silver and Gold decks." },
   breed:     { step: 1, place: "stud", season: "Spring", title: "The covering season", hour: 8,
-               line: "Buy your mares at the National Stud and send them to the stallions of your choice." },
+               line: "Draw your mares at the National Stud and send them to the stallions of your choice." },
   sales:     { step: 2, place: "tatts", season: "Autumn", title: "The Yearling Sales", hour: 11,
                line: "The mares nobody bred have sent their yearlings to Tattersalls. Bid for the best of them." },
   gallops:   { step: 3, place: "warren", season: "The next spring", title: "Into training", hour: 7,
@@ -299,7 +299,7 @@ const FOOTS = {
     if (S.step !== 1) return "";
     return S.confirmSale
       ? `<span class="f-info"><b>Close the stud?</b> Once you go to Tattersalls you can't come back to breed.${S.hand.length ? ` Your ${S.hand.length} unused mare${S.hand.length === 1 ? "" : "s"} may turn up in the sale.` : ""}</span>${goBtn("saleNo", "Stay at the stud", { ghost: true })}${goBtn("saleYes", "Go to Tattersalls", { off: S.foal || S.offer })}`
-      : `<span class="f-info">${studCount()} mare${studCount() === 1 ? "" : "s"} · ${S.stable.length} horse${S.stable.length === 1 ? "" : "s"} · <button type="button" class="f-acct" data-accounts="1">${money(S.budget)} left</button></span>${goBtn("toSale", "Close the stud and go to the sales", { off: S.foal || S.offer })}`;  },
+      : `<span class="f-info">${studCount()} mare${studCount() === 1 ? "" : "s"} · ${S.stable.length} horse${S.stable.length === 1 ? "" : "s"} · <button type="button" class="f-acct" data-accounts="1">${money(S.budget)} left</button></span>${goBtn("toSale", handDone() ? "Close the stud and go to the sales" : "Draw your mares first", { off: S.foal || S.offer || !handDone() })}`;  },
   tatts() {
     // never a dead end: with no horse bought or bred you can still leave (and race nothing, or start again)
     if (S.step === 2) return `<span class="f-info">${S.stable.length} horse${S.stable.length === 1 ? "" : "s"} in your string · <button type="button" class="f-acct" data-accounts="1">${money(S.budget)} left</button></span>${goBtn("toEnter", S.stable.length ? "Leave the sales: on to entries" : "Leave the sales without a horse", { off: S.foal })}`;
@@ -690,6 +690,11 @@ document.addEventListener("click", e => {
   if (d.stallion) { S.selStallion = S.selStallion === d.stallion ? null : d.stallion; save(); render(); return; }
   if (d.trip) { S.trip = d.trip; save(); render(); return; }
   if (d.pile) { drawPile(d.pile); save(); render(); BOARD.Sound.whinny(); return; }
+  if (d.mdraw) { const n = d.mdraw === "all" ? (dealHand(), null) : drawHandMare(d.mdraw); UI.mareDrew = n;
+    if (n) { const m = byName(n); toast(`${m.name} (${m.stars}★) joins your stud`); }
+    if (handDone()) setTimeout(() => toast("Your mares are in. Tap one to send her to a stallion"), n ? 1600 : 0);
+    render(); BOARD.Sound.whinny && BOARD.Sound.whinny();
+    const f = document.querySelector(".hc.flipin"); if (f) f.scrollIntoView({ block: "center", behavior: "smooth" }); return; }
   if (d.keep) { keepOffer(d.keep); save(); render(); return; }
   if (d.upmare) { UI.sendBack = null; if (upgradeMare(d.upmare)) { render(); const o = document.getElementById("offer"); if (o) o.scrollIntoView({ block: "start", behavior: "smooth" }); } return; }
   if (d.sendback) { if (UI.sendBack !== d.sendback) { UI.sendBack = d.sendback; UI.handOpen = true; render(); return; }

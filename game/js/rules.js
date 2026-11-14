@@ -692,12 +692,23 @@ const handOn = () => !(S.mh && S.mh.legacy);
 const extraLeft = () => handOn() ? EXTRA_MARES - (mh().extra || 0) : 99;
 const pileOf = name => { const m = byName(name); return PILES.find(p => p.stars.includes(m.stars)); };
 const sendBackFor = name => Math.round(pileOf(name).price * SEND_BACK / 500) * 500;
+// Drawn like the board: tap a Weatherbys deck and its top mare is yours, two from each (owner, 14 Nov: "it would be
+// good if this felt like proper drawing of the cards from the board game"). The order is this game's luck
+const handDrawn = id => ((mh().drawn || {})[id]) || 0;
+const handDone = () => !handOn() || !!mh().dealt;
+function drawHandMare(id) {
+  if (!handOn() || mh().dealt || S.step !== 1) return null;
+  const p = PILES.find(x => x.id === id); if (!p || handDrawn(id) >= (HAND[id] || 0)) return null;
+  const top = pileOrder(p, "hand|" + p.id)[0], n = top && top.name; if (!n) return null;
+  S.hand.push(n); mh().drawn = Object.assign({}, mh().drawn, { [id]: handDrawn(id) + 1 }); mh().hand = (mh().hand || []).concat(n);
+  if (PILES.every(q => handDrawn(q.id) >= (HAND[q.id] || 0) || !pileLeft(q).length)) mh().dealt = true;
+  save(); return n;
+}
+// the rest of the hand at once
 function dealHand() {
   if (!handOn() || mh().dealt || S.step !== 1) return false;
-  const got = [];
-  for (const p of PILES) got.push(...pileOrder(p, "hand|" + p.id).slice(0, HAND[p.id] || 0).map(m => m.name));
-  S.hand.push(...got); mh().dealt = true; mh().hand = got.slice();
-  save(); return true;
+  for (const p of PILES) while (handDrawn(p.id) < (HAND[p.id] || 0) && drawHandMare(p.id));
+  mh().dealt = true; save(); return true;
 }
 function sendBack(name) {
   if (!handOn() || S.step !== 1 || !S.hand.includes(name) || (S.offer && S.offer.swap === name) || (S.foal && S.foal.h.dam === name)) return 0;

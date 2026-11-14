@@ -126,7 +126,7 @@ function stallionCard(s, m) {
     <div class="hc-foot">${s.unproven ? (knowsTrue(s.name) ? `<span class="warn">Your expert: really ${s.trueStars}★</span>` : `<span class="warn">Unproven: one star either way</span>`) : ""}${prob ? `<span class="why">${esc2(prob)}</span>` : ""}${ln ? `<span class="ln ${ln.cls}">${ln.text}</span>` : ""}</div></div></button>`;
 }
 function studView() {
-  dealHand();
+  if (!handDone()) return `${teamAtStud()}${dealView()}`;
   const m = S.selMare && byName(S.selMare);
   let rows = STALLIONS.map(s => stallion(s.name)).filter(s => (S.trip || "all") === "all" || band(s.optimumDistance) === S.trip);
   rows.sort(S.sort === "stars" ? (a, b) => b.shownStars - a.shownStars || a.fee - b.fee : S.sort === "trip" ? (a, b) => DISTANCES.indexOf(a.optimumDistance) - DISTANCES.indexOf(b.optimumDistance) || a.fee - b.fee : (a, b) => a.fee - b.fee || b.shownStars - a.shownStars);
@@ -158,6 +158,25 @@ function offerCard(name) {
     ${hcTrip(m)}<div class="hc-meta one"><span><b>${m.sireLine} | ${m.sireCode}</b></span></div><div class="hc-g">${m.groundPreference.join(", ")}</div></div></div>
     <button class="tb-btn block" data-keep="${esc2(name)}">Keep<span class="kn"> ${esc2(m.name)}</span></button></div>`;
 }
+// The board's Weatherbys mares decks: a card back (blue, cream edge, the stars it holds) and a stack of them
+const PILE_STARS = { hi: "4&amp;5", mid: "3", lo: "1&amp;2" };
+const MPIP = '<svg viewBox="0 0 40 40"><g fill="currentColor"><path d="M20 5 L35 20 L20 35 L5 20Z"/><circle cx="20" cy="3.6" r="3.2"/><circle cx="20" cy="36.4" r="3.2"/><circle cx="3.6" cy="20" r="3.2"/><circle cx="36.4" cy="20" r="3.2"/></g><circle cx="20" cy="20" r="4" fill="#2b5e74"/></svg>';
+function mareBack(id) {
+  return `<span class="mback"><span class="wb">WEATHERBYS</span><span class="mt">MARES</span><span class="ms">${PILE_STARS[id]}<br>Stars</span><span class="mp">${MPIP.repeat(10)}</span></span>`;
+}
+const mareStack = (id, n) => `<span class="mstack">${n > 1 ? '<span class="mback b2"></span>' : ""}${n > 0 ? '<span class="mback b1"></span>' : ""}${n > 0 ? mareBack(id) : '<span class="mback gone"></span>'}</span>`;
+// a mare's card as it's turned over (not a button: she isn't picked for breeding until the hand is in)
+const mareFace = (name, cls) => mareCard(name).replace(/^<button class="hc m[^"]*" data-mare="[^"]*" aria-pressed="[^"]*">/, `<div class="hc m ${cls || ""}">`).replace(/<\/button>$/, "</div>");
+function dealView() {
+  const drawn = mh().hand || [], left = PILES.reduce((a, p) => a + Math.max(0, (HAND[p.id] || 0) - handDrawn(p.id)), 0);
+  return `<section class="sect mdeal"><div class="sect-h"><h2 class="tb-h2">DRAW YOUR MARES</h2><span>${drawn.length} of ${HAND.hi + HAND.mid + HAND.lo} drawn</span></div>
+    <p class="hint">Your stud starts with two mares from each of the Weatherbys decks. Tap a deck to turn over its top card: she's yours.</p>
+    <div class="mdecks">${PILES.map(p => { const k = (HAND[p.id] || 0) - handDrawn(p.id);
+      return `<button class="mdeck ${p.id}" data-mdraw="${p.id}" ${k > 0 ? "" : "disabled"} aria-label="Draw from the ${p.name} deck">${mareStack(p.id, Math.min(3, pileLeft(p).length))}
+        <b>${p.name}</b><small>${k > 0 ? `${k} to draw` : "Done"}</small></button>`; }).join("")}</div>
+    ${drawn.length ? `<div class="grid mdrawn">${drawn.map(n => mareFace(n, n === UI.mareDrew ? "flipin" : "")).join("")}</div>` : ""}
+    ${left > 1 ? `<p class="mdeal-all"><button class="tb-btn ghost sm" data-mdraw="all">Draw the rest for me</button></p>` : ""}</section>`;
+}
 // your hand's mares, each with what you can do besides breeding her: upgrade her (Elite Mares) or send her back
 function handList() {
   if (!handOn() || S.offer || !S.hand.length) return "";
@@ -174,18 +193,20 @@ function maresSale() {
   const full = paidMares() >= MARE_CAP;
   const pile = p => {
     const left = pileLeft(p).length, why = full ? "Stud full" : !left ? "None left" : p.price > S.budget ? "Can't afford" : "";
-    return `<button class="pile ${p.id}" data-pile="${p.id}" ${why ? "disabled" : ""}>
+    return handOn() ? `<button class="mdeck ${p.id}" data-pile="${p.id}" ${why ? "disabled" : ""}>${mareStack(p.id, Math.min(3, left))}
+      <b>${p.name}</b><span class="pile-p">${money(p.price)}</span><small>${why || "draw two, keep one"}</small></button>`
+    : `<button class="pile ${p.id}" data-pile="${p.id}" ${why ? "disabled" : ""}>
       <span class="pile-k">${p.stars.map(n => n + "★").join("–")}</span><b class="pile-n">${p.name}</b>
       <span class="pile-p">${money(p.price)} a mare</span><span class="pile-l">${why || `${left} left`}</span></button>`;
   };
   if (S.offer) { const p = PILES.find(x => x.id === S.offer.pile), sw = S.offer.swap;
     return `<section class="sect msale" id="offer"><div class="sect-h"><h2 class="tb-h2">${sw ? `UPGRADING ${esc2(sw).toUpperCase()}` : `MARES SALE · ${p.name.toUpperCase()}`}</h2><span>${sw ? "Elite Mares: free" : `Paid ${money(p.price)}`}</span></div>
       <p class="offer-h">${S.offer.mares.length} mare${S.offer.mares.length === 1 ? "" : "s"} turned over from the ${p.stars.map(n => n + "★").join("–")} pile. ${sw ? `Keep one in place of ${esc2(sw)}, who goes back.` : "Keep one; the others go back."}</p>
-      <div class="offers">${S.offer.mares.map(offerCard).join("")}</div></section>`; }
+      <div class="offers flip">${S.offer.mares.map(offerCard).join("")}</div></section>`; }
   if (handOn()) {
     if (extraLeft() <= 0) return "";
     return `<section class="sect msale"><div class="sect-h"><h2 class="tb-h2">ONE MORE MARE</h2><span>You may buy one extra: pay the price, see ${offerSize()} from that pile and keep the one you want</span></div>
-    <div class="piles">${PILES.map(pile).join("")}</div>
+    <div class="mdecks">${PILES.map(pile).join("")}</div>
     ${full ? `<p class="hint">Your stud is full at ${MARE_CAP} mares.</p>` : ""}</section>`;
   }
   return `<section class="sect msale"><div class="sect-h"><h2 class="tb-h2">MARES SALE</h2><span>Pay the price, see ${offerSize()} mares from that pile and keep the one you want</span></div>
