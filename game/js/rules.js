@@ -740,7 +740,8 @@ function keepOffer(name) {
 // ----- Your mares hand (owner, 14 Nov: "a deal would be better ... 2 of each ... + an opportunity to buy an extra one
 // with a choice, at the current price ... cut the budget down to reflect you no longer have to buy mares"). The stud
 // opens with a hand dealt from the piles: 2 Blue-blooded, 2 Useful, 2 Moderate (2 of each, as the big races want
-// Blue-blooded mares). You may buy one extra mare (pick a pile, see two, keep one), and send back any mare you
+// Blue-blooded mares). You may buy one extra mare (pick a pile, see two, keep one). (Sending mares back was taken out
+// on 14 Nov evening.) Previously: send back any mare you
 // don't want to breed from for half her pile's price, so a player who'd rather shop at Tattersalls can. Games saved
 // before the hand (S.mh.legacy) keep buying their mares.
 const HAND = { hi: 2, mid: 2, lo: 2 }, EXTRA_MARES = 1, SEND_BACK = 0.5;
@@ -767,7 +768,11 @@ function dealHand() {
   for (const p of PILES) while (handDrawn(p.id) < (HAND[p.id] || 0) && drawHandMare(p.id));
   mh().dealt = true; save(); return true;
 }
+// (owner, 14 Nov evening: "the mares are still showing that you can return your mares" → no returns. Kept switched
+// off, so old notes and the harness still read)
+const SEND_BACK_ON = false;
 function sendBack(name) {
+  if (!SEND_BACK_ON) return 0;
   if (!handOn() || S.step !== 1 || !S.hand.includes(name) || (S.offer && S.offer.swap === name) || (S.foal && S.foal.h.dam === name)) return 0;
   const back = sendBackFor(name);
   S.hand = S.hand.filter(n => n !== name); mh().sent.push(name); if (S.selMare === name) S.selMare = null;

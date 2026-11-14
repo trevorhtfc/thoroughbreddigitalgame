@@ -82,7 +82,7 @@ document.addEventListener("drop", e => {
 });
 function breedBody() {
   return `<div class="tb-head"><h1 class="tb-h">BREED</h1>
-    <p class="tb-lede" ${onJob() ? "" : "hidden"}>You have ${money(startBudget() + (held("powerhouse") ? POWERHOUSE[held("powerhouse").tier] : 0))} to build a stable for this season's ${RACES.length} races, with room for ${STABLE_CAP - RACES.length} spares. ${handOn() ? `Your stud starts with ${HAND.hi + HAND.mid + HAND.lo} mares dealt to you: ${HAND.hi} Blue-blooded, ${HAND.mid} Useful and ${HAND.lo} Moderate. Breed them, buy one more if you like, or send back any you don't want for half her price.` : `Buy mares at the mares sale (pick a pile, then choose one of the ${offerSize()} turned over; up to ${MARE_CAP}), then breed them.`} Keep some money back for Tattersalls, where the sale is made from the mares nobody bred: the cheapest Book 1 yearling starts at ${money(RESERVES[BOOKS[0].min])}. Tap your money at the top to see where it's gone. Every foal arrives as a 2-year-old, and it's a coin flip whether you get a colt or a filly.</p></div>
+    <p class="tb-lede" ${onJob() ? "" : "hidden"}>You have ${money(startBudget() + (held("powerhouse") ? POWERHOUSE[held("powerhouse").tier] : 0))} to build a stable for this season's ${RACES.length} races, with room for ${STABLE_CAP - RACES.length} spares. ${handOn() ? `Your stud starts with ${HAND.hi + HAND.mid + HAND.lo} mares dealt to you: ${HAND.hi} Blue-blooded, ${HAND.mid} Useful and ${HAND.lo} Moderate. Breed them, and buy one more if you like.` : `Buy mares at the mares sale (pick a pile, then choose one of the ${offerSize()} turned over; up to ${MARE_CAP}), then breed them.`} Keep some money back for Tattersalls, where the sale is made from the mares nobody bred: the cheapest Book 1 yearling starts at ${money(RESERVES[BOOKS[0].min])}. Tap your money at the top to see where it's gone. Every foal arrives as a 2-year-old, and it's a coin flip whether you get a colt or a filly.</p></div>
     ${viewTabs("The stud")}
     ${refView(studView)}`;
 }
@@ -134,7 +134,7 @@ function studView() {
   const st = S.selStallion && stallion(S.selStallion), ok = st && m && !pairProblem(st, m), fee = st ? feeFor(st) : 0, afford = st && fee <= S.budget, ln = ok ? lineNote(st, m) : null;
   const trips = [["all", "All"], ["sprint", "Sprint 5–6f"], ["mile", "Mile 7f–1m1f"], ["middle", "Middle 1m2f–1m4f"], ["staying", "Staying 1m6f+"]];
   if (!m && !studCount()) return `${teamAtStud()}${maresSale()}<section class="sect"><div class="sect-h"><h2 class="tb-h2">YOUR MARES</h2><span>0 of ${MARE_CAP}</span></div>
-    <p class="tb-empty">${handOn() ? `You've sent back every mare you were dealt.${extraLeft() > 0 ? " You can still buy one above." : ""} Tattersalls is next.` : `No mares yet. Buy your first above: pick a pile, then choose one of the ${offerSize()} mares turned over.`}</p></section>`;
+    <p class="tb-empty">${handOn() ? `No mares left to breed.${extraLeft() > 0 ? " You can still buy one more above." : ""} Tattersalls is next.` : `No mares yet. Buy your first above: pick a pile, then choose one of the ${offerSize()} mares turned over.`}</p></section>`;
   if (!m) return `${teamAtStud()}<section class="sect"><div class="sect-h"><h2 class="tb-h2">YOUR MARES</h2><span>${studCount()} of ${MARE_CAP} in your stud · ${S.usedMares.length} covered · tap a mare to breed her</span></div>
     <div class="grid">${S.hand.map(mareCard).join("") || `<p class="tb-empty">${S.usedMares.length ? (extraLeft() > 0 ? "Every mare has been covered. Buy another below, or head to Tattersalls." : "Every mare has been covered: on to Tattersalls.") : "No mares yet. Buy one below."}</p>`}</div>
     ${handList()}</section>
@@ -177,17 +177,16 @@ function dealView() {
     ${drawn.length ? `<div class="grid mdrawn">${drawn.map(n => mareFace(n, n === UI.mareDrew ? "flipin" : "")).join("")}</div>` : ""}
     ${left > 1 ? `<p class="mdeal-all"><button class="tb-btn ghost sm" data-mdraw="all">Draw the rest for me</button></p>` : ""}</section>`;
 }
-// your hand's mares, each with what you can do besides breeding her: upgrade her (Elite Mares) or send her back
+// Elite Mares: upgrade a mare a grade (owner, 14 Nov evening: no sending mares back, so this is only for the upgrades)
 function handList() {
   if (!handOn() || S.offer || !S.hand.length) return "";
-  const up = upgradesLeft();
-  const row = n => { const m = byName(n), p = pileOf(n), sure = UI.sendBack === n;
+  const up = upgradesLeft(); if (up <= 0 || !S.hand.some(canUpgrade)) return "";
+  const row = n => { const m = byName(n), p = pileOf(n);
     return `<li><span class="mh-n"><b>${esc2(m.name)}</b> ${pips(m.stars)} <small>${p.name}</small></span><span class="mh-b">
-      ${canUpgrade(n) ? `<button class="tb-btn ghost sm" data-upmare="${esc2(n)}">Upgrade to ${gradeUp(n).name}</button>` : ""}
-      <button class="tb-btn ghost sm ${sure ? "warn" : ""}" data-sendback="${esc2(n)}">${sure ? `Sure? Send her back for ${money(sendBackFor(n))}` : `Send back · ${money(sendBackFor(n))}`}</button></span></li>`; };
-  return `<details class="mh" ${UI.handOpen || up > 0 ? "open" : ""}><summary>${up > 0 ? `Upgrade a mare (${up} left), or send one back for half her price` : "Don't want a mare? Send her back for half her price"}</summary>
-    <p class="hint">A mare you send back is gone for the season, and half what she'd cost at the mares sale goes into your budget for Tattersalls.${up > 0 ? ` Elite Mares: ${up === 1 ? "one upgrade" : up + " upgrades"} left. Each one turns over ${OFFER_SIZE} mares from the grade above, and you keep one in her place.` : ""}</p>
-    <ul class="mh-list">${S.hand.map(row).join("")}</ul></details>`;
+      ${canUpgrade(n) ? `<button class="tb-btn ghost sm" data-upmare="${esc2(n)}">Upgrade to ${gradeUp(n).name}</button>` : ""}</span></li>`; };
+  return `<details class="mh" open><summary>Elite Mares: upgrade a mare (${up} left)</summary>
+    <p class="hint">Each upgrade turns over ${OFFER_SIZE} mares from the grade above, and you keep one in her place.</p>
+    <ul class="mh-list">${S.hand.filter(canUpgrade).map(row).join("")}</ul></details>`;
 }
 function maresSale() {
   const full = paidMares() >= MARE_CAP;

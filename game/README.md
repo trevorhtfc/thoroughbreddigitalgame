@@ -841,3 +841,9 @@ a bit under used as they can be specific races and maybe you don't have enough r
   Jockey +£49–81k.
 - Also: the page's source (`src/index.src.html`) had fallen behind the built page again (the money tumble and How to
   play were added to `index.html` only); they're in the source now. **Edit the source, then run tools/build.py.**
+
+**No sending mares back (14 Nov, 22:19).** Owner: "the mares are still showing that you can return your mares" → he
+chose to remove it. The Send back buttons and their wording are gone (stud, How to play); `sendBack` stays in the code
+switched off (`SEND_BACK_ON = false`). The list under your mares now only appears for Elite Mares' upgrades. (The £1m
+budget was set with the Buyer able to send the hand back for up to £130k; without that the Buyer's way is a little
+harder.)

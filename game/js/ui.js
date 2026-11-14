@@ -692,9 +692,7 @@ document.addEventListener("click", e => {
     render(); BOARD.Sound.whinny && BOARD.Sound.whinny();
     const f = document.querySelector(".hc.flipin"); if (f) f.scrollIntoView({ block: "center", behavior: "smooth" }); return; }
   if (d.keep) { keepOffer(d.keep); save(); render(); return; }
-  if (d.upmare) { UI.sendBack = null; if (upgradeMare(d.upmare)) { render(); const o = document.getElementById("offer"); if (o) o.scrollIntoView({ block: "start", behavior: "smooth" }); } return; }
-  if (d.sendback) { if (UI.sendBack !== d.sendback) { UI.sendBack = d.sendback; UI.handOpen = true; render(); return; }
-    UI.sendBack = null; const back = sendBack(d.sendback); if (back) toast(`${d.sendback} goes back: ${money(back)} for Tattersalls`); render(); return; }
+  if (d.upmare) { if (upgradeMare(d.upmare)) { render(); const o = document.getElementById("offer"); if (o) o.scrollIntoView({ block: "start", behavior: "smooth" }); } return; }
   if (d.book) { S.book = +d.book; save(); render(); return; }
   if (d.auction) { openAuction(d.auction); BOARD.setInPlace("tatts-ring"); return; }
   if (d.plansel) { S.planSel = S.planSel === d.plansel ? null : d.plansel; render(); return; }
