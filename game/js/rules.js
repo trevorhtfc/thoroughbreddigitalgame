@@ -183,7 +183,9 @@ function lineNote(s, m) {
 
 
 /* ================= The card ================= */
-const START_BUDGET = 1250000, MARE_CAP = 10, STABLE_CAP = 15, LOTS_PER_BOOK = 9;
+// the budget at the start of a season: £1m since the mares hand (14 Nov; it was £1.25m, and the hand is worth about
+// £260k at the mares sale's prices). startBudget() is this game's own, for games begun before
+const START_BUDGET = 1000000, MARE_CAP = 10, STABLE_CAP = 15, LOTS_PER_BOOK = 9;
 // From the site's Tattersalls page code (src/pages/Tattersalls.hju2p.js)
 const TRIP_WEIGHTS = { close: 3, near: 2, mid: 1, far: 0.35, sprinterVsMiddle: 0.1 };
 // CMS newStallion = "Yes" (standard set): a mare one star above gets a slightly better chance in their lots
@@ -221,16 +223,41 @@ function fieldSize(r) {
   return FIELD_SIZE.other;
 }
 let RACES = [];
-// Draw the card's ten races: two a day, a real mix (at least three of each kind), in race-time order
-function drawRaces(R) {
+// Draw the card's ten races: two a day, in race-time order.
+// The mix (owner, 14 Nov: "a decent mix reg. class. min 3 grp1s, 3 handicaps and then mix inbetween. also a mix of gender
+// races is good. distances being a bit less controlled"): at least three Group 1s and three handicaps, at least two of
+// the races in between (Group 2, Group 3, Listed), at least two fillies' races and one colts' race but no more than five
+// single-sex races in all. Distances are left to chance: a card heavy on one trip is part of the skill. A meeting can
+// change these numbers (MEETING.mix). Cards made before 14 Nov (no S.mix) keep the old draw, so a saved game's races
+// never change under it.
+// Mix 2 is the first set of rules (every meeting); from mix 3 a meeting's own changes (MEETING.mix) apply. A card keeps the
+// mix it was made with (S.mix), so a saved game's races never change when the rules do.
+const MIX_BASE = { group1: 3, handicaps: 3, middle: 2, fillies: 2, colts: 1, maxSingleSex: 5 };
+const mixRules = mix => mix >= 3 ? Object.assign({}, MIX_BASE, MEETING.mix || {}) : MIX_BASE;
+let MIX = MIX_BASE;
+const isMiddle = r => r.grade === "Group 2" || r.grade === "Group 3" || r.grade === "Listed";
+function mixOK(pick) {
+  const n = f => pick.filter(f).length;
+  return n(r => r.grade === "Group 1") >= MIX.group1 && n(r => r.grade === "Handicap") >= MIX.handicaps && n(isMiddle) >= MIX.middle
+    && n(r => r.sex === "F") >= MIX.fillies && n(r => r.sex === "C") >= MIX.colts && n(r => !!r.sex) <= MIX.maxSingleSex;
+}
+function drawDays(R) {
+  const pick = [];
+  for (let d = 0; d < DAYS.length; d++) {
+    const day = POOL.filter(r => r.day === d).slice();
+    for (let k = day.length - 1; k > 0; k--) { const j = Math.floor(R.r() * (k + 1)); [day[k], day[j]] = [day[j], day[k]]; }
+    pick.push(...day.slice(0, PER_DAY).sort((a, b) => POOL.indexOf(a) - POOL.indexOf(b)));
+  }
+  return pick;
+}
+function drawRaces(R, mix) {
+  if (mix >= 2) {
+    MIX = mixRules(mix);
+    for (let tries = 0; tries < 20000; tries++) { const pick = drawDays(R); if (mixOK(pick)) return pick; }
+    console.warn("No race mix found that meets every rule: using the old one");
+  }
   for (let tries = 0; tries < 200; tries++) {
-    const pick = [];
-    for (let d = 0; d < DAYS.length; d++) {
-      const day = POOL.filter(r => r.day === d).slice();
-      for (let k = day.length - 1; k > 0; k--) { const j = Math.floor(R.r() * (k + 1)); [day[k], day[j]] = [day[j], day[k]]; }
-      pick.push(...day.slice(0, PER_DAY).sort((a, b) => POOL.indexOf(a) - POOL.indexOf(b)));
-    }
-    const h = pick.filter(isOpenRace).length;
+    const pick = drawDays(R), h = pick.filter(isOpenRace).length;
     if (h >= MIN_HANDICAPS && pick.length - h >= MIN_PATTERN) return pick;
   }
   return POOL.filter((r, k) => k % 7 < 2);
@@ -289,12 +316,33 @@ function rngFrom(seed) { const r = seeded(seed); return { r, int: (a, b) => a + 
 function groundsFor(R) { const s = R.int(0, 3), n = R.int(2, 3); return GROUND_ORDER.slice(s, s + n); }
 // How the rest of each AI field is spread across the race's four rating bands, top to bottom, by race strength; every field also has one runner in the top band and one in the bottom
 let FIELD_W = { open: { Weak: [0.3, 2, 4, 2], Average: [0.6, 3, 4, 1.5], Strong: [1.2, 4, 3, 1] }, pattern: { Weak: [0.5, 2, 3, 3], Average: [1, 2, 3, 2], Strong: [2, 3, 2, 1] } };
-function makeCard(seed) {
+// The opposition's colours by stable size (owner, 14 Nov 2026): each of the 54 ready-made silks has a tier, 1 the big
+// powerful stables to 4 the small owners (silks/silks.json "tier", in SILK3D order; set on the owner's crib sheet). In the
+// bigger races the better horses lean towards the big stables' colours: "the bigger the races the more in tune to the tier
+// one cards… not to rule out tier 2s and below… just more weighted"; handicaps and conditions races stay random. SILK_PULL
+// is how much more likely a tier 1 and a tier 2 silk is for the top-rated runner (tiers 3 and 4 count 1): in a Group 1
+// the top-rated runner wears tier 1 colours about 60% of the time, tier 2 25%, tier 3 or 4 15%; Group 2 45/25/30,
+// Group 3 35/25/40, Listed 25/27/48 (pure chance is 19/26/55). The pull fades down the field to nothing for the
+// lowest-rated. No colours are worn twice in one field.
+const SILK_TIER = [1, 2, 3, 1, 1, 2, 1, 4, 2, 2, 2, 3, 1, 2, 4, 3, 3, 1, 3, 1, 3, 2, 1, 4, 3, 4, 3, 4, 3, 3, 3, 2, 4, 4, 4, 3, 3, 4, 2, 4, 4, 2, 2, 1, 3, 2, 4, 3, 2, 3, 1, 4, 3, 2];
+const SILK_PULL = { "Group 1": [12, 3.6], "Group 2": [4.5, 1.8], "Group 3": [2.6, 1.35], "Listed": [1.55, 1.2] };
+function dressField(opp, grade, X) {
+  const pull = SILK_PULL[grade] || [1, 1], free = SILKS.map((_, k) => k), n = opp.length;
+  const order = opp.map((o, k) => [o.rating + X.r() * 0.5, k]).sort((x, y) => y[0] - x[0]);   // best first, ties broken at random
+  order.forEach(([, k], rank) => {
+    const q = n > 1 ? Math.pow(1 - rank / (n - 1), 1.2) : 1;            // 1 for the top-rated, fading to 0 for the lowest
+    const w = free.map(j => { const t = SILK_TIER[j]; return t === 1 ? 1 + (pull[0] - 1) * q : t === 2 ? 1 + (pull[1] - 1) * q : 1; });
+    let y = X.r() * w.reduce((a, b) => a + b), i = 0; while (i < w.length - 1 && y >= w[i]) { y -= w[i]; i++; }
+    const sk = free.splice(i, 1)[0], t = SILKS[sk];
+    Object.assign(opp[k], { sk, a: t.a, b: t.b, silks: t.img });
+  });
+}
+function makeCard(seed, mix) {
   const R = rngFrom(seed), used = new Set();
   const nm = () => { for (let k = 0; k < 300; k++) { const n = (R.pick(NAME_A) + " " + R.pick(NAME_B)).toUpperCase(); if (!used.has(n)) { used.add(n); return n; } } return "RUNNER " + used.size; };
   const going = DAYS.map(() => R.pick(MEETING.goings));
   const jockeys = JOCKEYS.concat(MORE_JOCKEYS), trainers = TRAINERS.concat(MORE_TRAINERS);
-  setRaces(drawRaces(R));
+  setRaces(drawRaces(R, mix));
   const races = RACES.map(race => {
     const open = isOpenRace(race), n = open ? R.int(9, 11) : R.int(6, 9), x = R.r(), strength = x < .3 ? "Weak" : x < .7 ? "Average" : "Strong";
     // handicaps are framed so most of the field is closely matched
@@ -322,6 +370,8 @@ function makeCard(seed) {
       opp.splice(X.int(0, opp.length), 0, { id: race.id + "-" + nextId++, name, rating: X.int(b[d], top[d]),
         sk, a: s.a, b: s.b, silks: s.img, grounds: groundsFor(X), coat: X.pick(COATS), jockey: X.pick(jockeys), trainer: X.pick(trainers) });
     }
+    // The colours, on their own stream so the rest of the card draws as before (owner, 14 Nov: tiers)
+    dressField(opp, race.grade, rngFrom(hashStr(seed + ":silks:" + race.id)));
     // Each is bred for this trip: the race is one of its two best distances.
     opp.forEach(o => { const up = X.r() < .5, lo = Math.max(0, Math.min(DISTANCES.length - 2, up ? race.step : race.step - 1));
       Object.assign(o, rollRacecard(X.r), { trip: [lo, lo + 1] }); });
@@ -395,8 +445,9 @@ function fieldFor(i) {
   const race = RACES[i], C = CARD.races[i], mk = mySilkN(), me0 = mySilks();
   const list = C.opp.map((o, k) => {
     let sk = o.sk;
-    if (sk === mk) sk = (mk + 1 + k) % SILKS.length;   // nobody else wears your colours
-    if (sk === mk) sk = (sk + 1) % SILKS.length;
+    if (sk === mk) {                                    // nobody else wears your colours: the first set nobody in the field has
+      const taken = new Set(C.opp.map(x => x.sk)); sk = SILKS.findIndex((_, j) => j !== mk && !taken.has(j));
+    }
     const t = SILKS[sk];
     return { ...o, sk, a: t.a, b: t.b, silks: t.img, trip: o.trip.map(x => DISTANCES[x]), goings: o.grounds };
   });
@@ -494,6 +545,7 @@ let S, CARD;
 // foals etc shouldn't be pre fixed. it should work fresh for each player"). Each roll comes from the game's luck and
 // what is being rolled for, never from the clock, so within one game a roll can't be taken again by reloading the page.
 // (Games saved before this have no luck of their own and go on using the season's number.)
+const startBudget = () => (S && S.start) || START_BUDGET;
 const luckOf = () => S.luck || S.seed;
 const luck = key => seeded(hashStr(luckOf() + "|" + key));
 function ownLuck() {
@@ -506,17 +558,25 @@ const ukDay = t => { const d = t ? new Date(t) : new Date();
   try { const o = {}; new Intl.DateTimeFormat("en-GB", { timeZone: "Europe/London", year: "numeric", month: "2-digit", day: "2-digit" }).formatToParts(d).forEach(x => o[x.type] = x.value); return `${o.year}-${o.month}-${o.day}`; }
   catch (e) { return d.toISOString().slice(0, 10); } };
 // random games are numbered 1 to 1,000,000; the daily cards sit above that, each season (Royal Ascot, Newmarket) with its own
-const dailySeed = day => 1000001 + hashStr("thoroughbred-daily|" + MEETING.id + "|" + day) % 2000000000;
+// The race mix new cards are drawn with (drawRaces). Changing it re-deals today's card: the daily seed carries it, so a
+// daily card saved or finished under the old mix no longer matches the day's seed and is put aside (owner, 14 Nov:
+// "reset todays races to align").
+// Newmarket is on mix 3 (owner, 14 Nov: at least 2 handicaps there, "let's go 2"; it has only three in the season), so its
+// card for the day was re-dealt again; Royal Ascot stays on mix 2 and its card for the day is unchanged.
+const CARD_MIX = MEETING.cardMix || 2;
+const dailySeed = day => 1000001 + hashStr("thoroughbred-daily|" + (CARD_MIX >= 2 ? "mix" + CARD_MIX + "|" : "") + MEETING.id + "|" + day) % 2000000000;
+// a daily card (a save or a finished one in the log) still counts as that day's card
+const dailyCurrent = x => !!x && x.seed === dailySeed(x.day);
 const dayText = (day, long) => { const [y, m, d] = String(day).split("-").map(Number); return new Date(Date.UTC(y, m - 1, d, 12)).toLocaleDateString("en-GB", { timeZone: "UTC", weekday: long ? "long" : "short", day: "numeric", month: long ? "long" : "short" }); };
 const isDaily = () => !!(S && S.mode === "daily");
 // what a season is called on the screens: "Daily card, Fri 13 Nov" or "Season 123456"
 const seasonName = (x, lower) => { x = x || S; return x.day ? `${lower ? "d" : "D"}aily card, ${dayText(x.day)}` : `${lower ? "s" : "S"}eason ${x.seed}`; };
 const seasonDone = () => !!S && Object.keys(S.results).length === RACES.length;
 function newCard(seed, day) {
-  S = { seed: seed || Math.floor(Math.random() * 1e6) + 1, luck: Math.floor(Math.random() * 2e9) + 1, mode: day ? "daily" : "random", day: day || null, pileN: {}, step: 1, tab: "stud", budget: START_BUDGET, stable: [], hand: [], usedMares: [], deckPos: 0,
-    selMare: null, foal: null, sale: [], lotN: 0, entries: {}, results: {}, open: null, silks: S ? S.silks : 0, sort: "fee", offer: null, book: 1, catDams: [], v: 7, dealt: false, tallied: false,
+  S = { seed: seed || Math.floor(Math.random() * 1e6) + 1, luck: Math.floor(Math.random() * 2e9) + 1, mode: day ? "daily" : "random", day: day || null, pileN: {}, step: 1, tab: "stud", budget: START_BUDGET, start: START_BUDGET, stable: [], hand: [], usedMares: [], deckPos: 0,
+    selMare: null, foal: null, sale: [], lotN: 0, entries: {}, results: {}, open: null, silks: S ? S.silks : 0, sort: "fee", offer: null, book: 1, catDams: [], v: 8, dealt: false, tallied: false,
     team: { picks: [], offer: null, done: false, choice: {}, used: {}, trains: {}, book: {}, income: 0, incomeLog: [] } };
-  CARD = makeCard(S.seed); ownLuck();
+  S.mix = CARD_MIX; CARD = makeCard(S.seed, S.mix); ownLuck();
   // No starting mares: every mare is bought at the mares sale, choosing one of three
   S.selMare = null;
   save();
@@ -526,11 +586,11 @@ const slotKey = mode => SAVE_KEY + (mode === "daily" ? "-daily" : "");
 function save() { try { localStorage.setItem(slotKey(S.mode), JSON.stringify(S)); localStorage.setItem(MODE_KEY, S.mode === "daily" ? "daily" : "random"); } catch (e) {} }
 const lastMode = () => { try { return localStorage.getItem(MODE_KEY) === "daily" ? "daily" : "random"; } catch (e) { return "random"; } };
 // the saved daily card, if there is one (read without opening it): { day, done, step }
-function dailySave() { try { const v = JSON.parse(localStorage.getItem(slotKey("daily")) || "null"); return v && v.seed && v.day ? v : null; } catch (e) { return null; } }
+function dailySave() { try { const v = JSON.parse(localStorage.getItem(slotKey("daily")) || "null"); return v && v.seed && v.day && dailyCurrent(v) ? v : null; } catch (e) { return null; } }
 function load(mode) {
   mode = mode || "random";
   try { const v = JSON.parse(localStorage.getItem(slotKey(mode)) || "null"); if (v && v.seed && Array.isArray(v.stable)) {
-    S = v; S.open = null; S.mode = mode === "daily" && S.day ? "daily" : "random"; S.pileN = S.pileN || {}; CARD = makeCard(S.seed); ownLuck(); migrate();
+    S = v; S.open = null; S.mode = mode === "daily" && S.day ? "daily" : "random"; S.pileN = S.pileN || {}; CARD = makeCard(S.seed, S.mix); ownLuck(); migrate();
     // left in the middle of an auction: that lot has gone through the ring without you
     if (S.ring) { S.sale = (S.sale || []).filter(x => x.id !== S.ring); S.ring = null; save(); }
     return true; } } catch (e) {}
@@ -538,7 +598,8 @@ function load(mode) {
 }
 // Saves from before the mares sale: only mares you bred from count as yours, and the ring is rebuilt into Books
 function migrate() {
-  if (S.v === 7) return;
+  if (S.v === 8) return;
+  if (S.v === 7) return migrate8();
   if (S.v === 6) return migrate7();
   if (S.v === 5) return migrate6();
   if (S.v === 4) return migrate5();
@@ -555,7 +616,7 @@ function migrate() {
 }
 // v5: ten races drawn per card from the full programme, and a £2m budget
 function migrate5() {
-  S.budget += START_BUDGET - 1250000;
+  // (the budget change this made has since been undone: it stays as it was)
   const ids = new Set(RACES.map(r => r.id));
   Object.keys(S.entries || {}).forEach(k => { if (!ids.has(k)) delete S.entries[k]; });
   Object.keys(S.results || {}).forEach(k => { if (!ids.has(k)) delete S.results[k]; });
@@ -571,7 +632,13 @@ function migrate6() {
 function migrate7() {
   if (!S.team) S.team = S.dealt ? { picks: [], offer: null, done: true, gone: true, skipped: true, choice: {}, used: {}, trains: {}, book: {}, income: 0, incomeLog: [] }
     : { picks: [], offer: null, done: false, choice: {}, used: {}, trains: {}, book: {}, income: 0, incomeLog: [] };
-  S.v = 7; save();
+  S.v = 7; migrate8();
+}
+// v8 (14 Nov): the mares hand. A game already buying mares, or past the stud, keeps the old mares sale
+function migrate8() {
+  if (S.step > 1 || studCount() > 0 || S.offer || Object.keys(S.pileN || {}).length) S.mh = { legacy: true };
+  S.start = 1250000;   // every game before v8 started with £1.25m
+  S.v = 8; save();
 }
 // Mares in your stud: still to breed from, plus those already used this season
 const studCount = () => S.hand.length + S.usedMares.length;
@@ -646,21 +713,66 @@ function newCatalogue() {
   }
   S.sale = lots; S.catDams = [...used];
 }
-// Mares sale: pay the pile's price, three of its mares are turned over, and you keep one
-// (owner, 10 Nov: two mares turned over for everyone; Elite Mares shows more: js/team.js offerSize)
+// Mares sale: pay the pile's price, two of its mares are turned over, and you keep one
+// (owner, 10 Nov: two mares turned over for everyone). Since 14 Nov this is only for the one extra mare: your stud
+// starts with a dealt hand (below)
 const OFFER_SIZE = 2;
+// a pile's mares in this game's order for one draw (tag): each mare has her own place in it
+const pileOrder = (p, tag) => pileLeft(p).map(m => [hashStr(luckOf() + "|" + tag + "|" + m.name), m]).sort((a, b) => a[0] - b[0] || (a[1].name < b[1].name ? -1 : 1)).map(x => x[1]);
 function drawPile(id) {
   const p = PILES.find(x => x.id === id); if (S.offer || !p || studCount() >= MARE_CAP || p.price > S.budget) return;
+  if (handOn() && extraLeft() <= 0) return;
   if (!pileLeft(p).length) return;
-  // each mare has her own place in this pile's nth draw of this game
   S.pileN = S.pileN || {}; const n = S.pileN[id] = (S.pileN[id] || 0) + 1;
-  const left = pileLeft(p).map(m => [hashStr(luckOf() + "|pile|" + id + "|" + n + "|" + m.name), m]).sort((a, b) => a[0] - b[0] || (a[1].name < b[1].name ? -1 : 1)).map(x => x[1]);
-  S.budget -= p.price; if (typeof ledger === "function") ledger("mares", p.price); S.offer = { pile: p.id, mares: left.slice(0, typeof offerSize === "function" ? offerSize() : OFFER_SIZE).map(m => m.name) };
+  const left = pileOrder(p, "pile|" + id + "|" + n);
+  S.budget -= p.price; if (typeof ledger === "function") ledger("mares", p.price);
+  if (handOn()) mh().extra++;
+  S.offer = { pile: p.id, mares: left.slice(0, offerSize()).map(m => m.name) };
 }
 function keepOffer(name) {
   if (!S.offer || !S.offer.mares.includes(name)) return;
-  S.hand.push(name); S.offer = null;
-  const m = byName(name); toast(`${m.name} (${m.stars}★) joins your stud`);
+  const was = S.offer.swap;
+  if (was && S.hand.includes(was)) { S.hand[S.hand.indexOf(was)] = name; mh().up = (mh().up || 0) + 1; }
+  else S.hand.push(name);
+  S.offer = null;
+  const m = byName(name); toast(was ? `${m.name} (${m.stars}★) takes ${was}'s place in your stud` : `${m.name} (${m.stars}★) joins your stud`);
+}
+// ----- Your mares hand (owner, 14 Nov: "a deal would be better ... 2 of each ... + an opportunity to buy an extra one
+// with a choice, at the current price ... cut the budget down to reflect you no longer have to buy mares"). The stud
+// opens with a hand dealt from the piles: 2 Blue-blooded, 2 Useful, 2 Moderate (2 of each, as the big races want
+// Blue-blooded mares). You may buy one extra mare (pick a pile, see two, keep one), and send back any mare you
+// don't want to breed from for half her pile's price, so a player who'd rather shop at Tattersalls can. Games saved
+// before the hand (S.mh.legacy) keep buying their mares.
+const HAND = { hi: 2, mid: 2, lo: 2 }, EXTRA_MARES = 1, SEND_BACK = 0.5;
+const mh = () => (S.mh = S.mh || { dealt: false, extra: 0, up: 0, sent: [] });
+const handOn = () => !(S.mh && S.mh.legacy);
+const extraLeft = () => handOn() ? EXTRA_MARES - (mh().extra || 0) : 99;
+const pileOf = name => { const m = byName(name); return PILES.find(p => p.stars.includes(m.stars)); };
+const sendBackFor = name => Math.round(pileOf(name).price * SEND_BACK / 500) * 500;
+// Drawn like the board: tap a Weatherbys deck and its top mare is yours, two from each (owner, 14 Nov: "it would be
+// good if this felt like proper drawing of the cards from the board game"). The order is this game's luck
+const handDrawn = id => ((mh().drawn || {})[id]) || 0;
+const handDone = () => !handOn() || !!mh().dealt;
+function drawHandMare(id) {
+  if (!handOn() || mh().dealt || S.step !== 1) return null;
+  const p = PILES.find(x => x.id === id); if (!p || handDrawn(id) >= (HAND[id] || 0)) return null;
+  const top = pileOrder(p, "hand|" + p.id)[0], n = top && top.name; if (!n) return null;
+  S.hand.push(n); mh().drawn = Object.assign({}, mh().drawn, { [id]: handDrawn(id) + 1 }); mh().hand = (mh().hand || []).concat(n);
+  if (PILES.every(q => handDrawn(q.id) >= (HAND[q.id] || 0) || !pileLeft(q).length)) mh().dealt = true;
+  save(); return n;
+}
+// the rest of the hand at once
+function dealHand() {
+  if (!handOn() || mh().dealt || S.step !== 1) return false;
+  for (const p of PILES) while (handDrawn(p.id) < (HAND[p.id] || 0) && drawHandMare(p.id));
+  mh().dealt = true; save(); return true;
+}
+function sendBack(name) {
+  if (!handOn() || S.step !== 1 || !S.hand.includes(name) || (S.offer && S.offer.swap === name) || (S.foal && S.foal.h.dam === name)) return 0;
+  const back = sendBackFor(name);
+  S.hand = S.hand.filter(n => n !== name); mh().sent.push(name); if (S.selMare === name) S.selMare = null;
+  S.budget += back; if (typeof ledger === "function") ledger("mares", -back);
+  save(); return back;
 }
 function newName(rnd) {
   const taken = new Set([...CARD.oppNames, ...S.stable.map(h => h.name)]);
@@ -712,9 +824,11 @@ const BEST_KEY = "tb-" + MEETING.id + "-best", HIST_KEY = "tb-" + MEETING.id + "
 const MODE_KEY = "tb-" + MEETING.id + "-mode", DAILY_KEY = "tb-" + MEETING.id + "-daily-log";
 // Today's card counts once: the first time a day's card is finished, its result is written here and stays
 function dailyLog() { try { const v = JSON.parse(localStorage.getItem(DAILY_KEY) || "{}"); return v && typeof v === "object" ? v : {}; } catch (e) { return {}; } }
+// the day's finished card, if it was that day's card as dealt now (one finished before a re-deal doesn't count)
+const dailyDone = day => { const e = dailyLog()[day]; return e && dailyCurrent({ seed: e.seed, day }) ? e : null; };
 function noteDaily(prize, wins) {
   if (!isDaily()) return;
-  try { const log = dailyLog(); if (log[S.day]) return;
+  try { const log = dailyLog(); if (dailyDone(S.day)) return;
     log[S.day] = { seed: S.seed, prize, wins, races: RACES.length, title: titleFor(prize).name, silks: mySilkN(), colours: MY ? MY.code : undefined, when: Date.now() };
     const days = Object.keys(log).sort(); days.slice(0, Math.max(0, days.length - 400)).forEach(d => delete log[d]);
     localStorage.setItem(DAILY_KEY, JSON.stringify(log)); } catch (e) {}

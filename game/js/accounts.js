@@ -35,7 +35,7 @@ function ledger(kind, amt) {
 }
 function accountsHTML() {
   const L = ledgerOf(), pw = typeof held === "function" && held("powerhouse") ? POWERHOUSE[held("powerhouse").tier] : 0;
-  const start = START_BUDGET + pw, spent = LEDGER_KINDS.reduce((a, x) => a + (L[x.k] || 0), 0) - (L.refunds || 0);
+  const start = startBudget() + pw, spent = LEDGER_KINDS.reduce((a, x) => a + (L[x.k] || 0), 0) - (L.refunds || 0);
   const pct = v => Math.max(0, v / start * 100).toFixed(2) + "%";
   const bar = LEDGER_KINDS.map(x => L[x.k] ? `<i class="ac-${x.k}" style="width:${pct(L[x.k])}" title="${x.name} ${money(L[x.k])}"></i>` : "").join("")
     + `<i class="ac-left" style="width:${pct(S.budget)}" title="Left ${money(S.budget)}"></i>`;
@@ -43,7 +43,7 @@ function accountsHTML() {
   const can = THRESHOLDS().map(t => `<li class="${S.budget >= t.at ? "ok" : "no"}"><span>${S.budget >= t.at ? "✓" : "✕"} ${t.what.replace(/^an? /, "").replace(/^./, c => c.toUpperCase())}</span><b>${money(t.at)}</b></li>`).join("");
   return `<div class="ac-h"><b>YOUR ACCOUNTS</b><button class="tb-square" data-accounts="close" aria-label="Close">✕</button></div>
     <div class="ac-bar" aria-hidden="true">${bar}</div>
-    <ul class="ac-rows">${row("Starting budget", money(START_BUDGET))}${pw ? row("Powerhouse", "+" + money(pw), "in") : ""}
+    <ul class="ac-rows">${row("Starting budget", money(startBudget()))}${pw ? row("Powerhouse", "+" + money(pw), "in") : ""}
       ${LEDGER_KINDS.map(x => row(x.name, L[x.k] ? "−" + money(L[x.k]) : "–", "k-" + x.k)).join("")}
       ${L.refunds ? row("Sent back", "+" + money(L.refunds), "in") : ""}
       ${row("Left to spend", money(S.budget), "tot")}</ul>

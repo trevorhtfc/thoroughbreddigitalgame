@@ -20,7 +20,9 @@ function htSteps() {
     teamOn && { place: "jockey", when: CHAPTERS.team.season, title: "Draft your team", team: true,
       text: `Before the stud opens, draw the people behind your stable from the Bronze, Silver and Gold decks. You have <b>${pts} points</b>: Gold costs 3, Silver 2 and Bronze 1, and you need at least one owner, one trainer and one jockey. Tap a deck and its top card is yours.` },
     { place: "stud", when: CHAPTERS.breed.season, title: "Breed at the National Stud",
-      text: `You start with <b>${money(START_BUDGET)}</b>. Buy mares from the piles (${two} are turned over each time and you keep one), then send each to a stallion. A mare can be at most one star above her stallion; an outcross breeds best, the same family worst, and an unproven stallion may be a star better or worse than he looks.`,
+      text: typeof HAND !== "undefined"
+        ? `You start with <b>${money(START_BUDGET)}</b>. Draw your mares from the three Weatherbys decks, two of each grade: ${PILES.map(p => p.name).join(", ").replace(/, ([^,]*)$/, " and $1")}. Send them to the stallions, buy one more if you like, or send back any you don't want for half her price. A mare can be at most one star above her stallion; an outcross breeds best, the same family worst, and an unproven stallion may be a star better or worse than he looks.`
+        : `You start with <b>${money(START_BUDGET)}</b>. Buy mares from the piles (${two} are turned over each time and you keep one), then send each to a stallion. A mare can be at most one star above her stallion; an outcross breeds best, the same family worst, and an unproven stallion may be a star better or worse than he looks.`,
       after: cards("Owner") },
     { place: "tatts", when: CHAPTERS.sales.season, title: "Buy at Tattersalls",
       text: `The yearlings out of the mares nobody bred are sold in three Books. Bid against five rival buyers: you see the pedigree, not the yearling, until it's yours. Once you leave the stud there's no going back.` },
@@ -37,7 +39,7 @@ function htSteps() {
   ].filter(Boolean);
 }
 const HT_TEAM = {
-  Owner: "helps at the stud and the sales: more money, more mares to choose from, a stallion of your own, an eye for a pedigree or a yearling.",
+  Owner: "helps at the stud and the sales: more money, better mares, a stallion of your own, an eye for a pedigree or a yearling.",
   Trainer: "does the jobs on Warren Hill. Some are specialists: a trip, 2-year-olds, late developers or a sire line.",
   Jockey: "ride the races you book them for: the Champion anywhere, the others at their trips, their style of race, big races or soft ground.",
 };

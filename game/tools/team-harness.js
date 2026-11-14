@@ -34,10 +34,12 @@
   }
   const centre = (a, b) => { const x = DISTANCES.indexOf(a.optimumDistance), y = DISTANCES.indexOf(b.optimumDistance); return Math.min(x, y) * .6 + Math.max(x, y) * .4; };
     const STRATS = {
-    "Breeder": { mares: { hi: 4, mid: 3 }, feeCap: 200000, keepForSale: 150000, lots: 3, bidUpTo: 1.5 },
-    "Buyer": { mares: {}, feeCap: 75000, keepForSale: 0, lots: 12, bidUpTo: 1.6 },
-    "Balanced": { mares: { hi: 3 }, feeCap: 125000, keepForSale: 700000, lots: 7, bidUpTo: 1.5 },
-    "Planner": { plan: true, mares: { hi: 4, mid: 2 }, feeCap: 200000, keepForSale: 400000, lots: 5, bidUpTo: 1.7 },
+    // mares: what they bought at the old mares sale (games before 14 Nov, TEAMH.legacy); hand: with the dealt hand, the
+    // grades they keep (the rest go back for half price) and the extra mare they buy
+    "Breeder": { mares: { hi: 4, mid: 3 }, hand: { keep: ["hi", "mid", "lo"], extra: "hi" }, feeCap: 200000, keepForSale: 150000, lots: 3, bidUpTo: 1.5 },
+    "Buyer": { mares: {}, hand: { keep: [], extra: null }, feeCap: 75000, keepForSale: 0, lots: 12, bidUpTo: 1.6 },
+    "Balanced": { mares: { hi: 3 }, hand: { keep: ["hi"], extra: null }, feeCap: 125000, keepForSale: 700000, lots: 7, bidUpTo: 1.5 },
+    "Planner": { plan: true, mares: { hi: 4, mid: 2 }, hand: { keep: ["hi", "mid"], extra: "hi" }, feeCap: 200000, keepForSale: 400000, lots: 5, bidUpTo: 1.7 },
   };
   const realRandom = Math.random;
 
@@ -56,13 +58,27 @@
     while (pedigreeLeft() > 0) { const u = unprovenStallions().filter(x => !knowsTrue(x.name)).sort((a, b) => b.shownStars - a.shownStars)[0]; if (!u || !askExpert(u.name)) break; }
     // Stallion Owner: of the three drawn, the best he knows of (true stars if his expert has told him), the trip nearest the big races
     if (held("stallion")) { const t = aim(), d = ownerDraw().map(stallion).sort((a, b) => eff(b) - eff(a) || (t ? Math.abs(DISTANCES.indexOf(a.optimumDistance) - t.step) - Math.abs(DISTANCES.indexOf(b.optimumDistance) - t.step) : 0)); ownStallion(d[0].name); }
-    // 1) the mares sale: each draw turns over offerSize() mares; keep the best (the trip nearest the next big race)
-    for (const [pid, n] of Object.entries(P.mares)) for (let k = 0; k < n; k++) {
-      const p = PILES.find(x => x.id === pid);
-      if (paidMares() >= MARE_CAP || !pileLeft(p).length || p.price > S.budget) break;
-      drawPile(pid); if (!S.offer) break;
-      const t = aim(), m = S.offer.mares.map(byName).sort((a, b) => b.stars - a.stars || (t ? Math.abs(DISTANCES.indexOf(a.optimumDistance) - t.step) - Math.abs(DISTANCES.indexOf(b.optimumDistance) - t.step) : 0))[0];
-      log.spent += p.price; keepOffer(m.name);
+    // 1) the mares. Pick from an offer: the most stars, then the trip nearest the next big race
+    const pickOffer = () => { const t = aim(); return S.offer.mares.map(byName).sort((a, b) => b.stars - a.stars || (t ? Math.abs(DISTANCES.indexOf(a.optimumDistance) - t.step) - Math.abs(DISTANCES.indexOf(b.optimumDistance) - t.step) : 0))[0]; };
+    if (TEAMH.legacy) {
+      // the old mares sale: each draw turns over offerSize() mares; keep the best
+      S.mh = { legacy: true };
+      for (const [pid, n] of Object.entries(P.mares)) for (let k = 0; k < n; k++) {
+        const p = PILES.find(x => x.id === pid);
+        if (paidMares() >= MARE_CAP || !pileLeft(p).length || p.price > S.budget) break;
+        drawPile(pid); if (!S.offer) break;
+        log.spent += p.price; keepOffer(pickOffer().name);
+      }
+    } else {
+      // the dealt hand: Elite Mares upgrades first (Useful to Blue-blooded first, the mares it keeps), then send back
+      // the grades it doesn't want, then the extra mare
+      dealHand(); const H = P.hand;
+      for (let g = 0; g < 4 && upgradesLeft() > 0; g++) {
+        const c = S.hand.filter(canUpgrade).sort((a, b) => byName(b).stars - byName(a).stars).find(n => H.keep.includes(gradeUp(n).id)) || S.hand.filter(canUpgrade).sort((a, b) => byName(b).stars - byName(a).stars)[0];
+        if (!c || !upgradeMare(c)) break; keepOffer(pickOffer().name); log.upgraded = (log.upgraded || 0) + 1;
+      }
+      for (const n of S.hand.slice()) if (!H.keep.includes(pileOf(n).id)) { log.sentBack = (log.sentBack || 0) + sendBack(n); }
+      if (H.extra) { const p = PILES.find(x => x.id === H.extra); if (p.price <= S.budget - P.keepForSale / 2) { drawPile(H.extra); if (S.offer) { log.spent += p.price; keepOffer(pickOffer().name); } } }
     }
     // 2) breed (best mares first); your own stallion while he's free and among the best she can have
     const sts = STALLIONS.map(s => stallion(s.name));

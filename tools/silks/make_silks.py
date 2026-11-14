@@ -48,7 +48,7 @@ CAP_PATTERNS = ["plain", "quartered", "halved", "striped", "hooped", "spots", "f
 TEMPLATES = {
     "jackets": [(1, "Plain", "plain"), (2, "Strip", "strip"), (3, "Braces", "braces"), (4, "Belt", "belt"), (5, "Hooped", "hoops"),
                 (6, "Chevron", "chevron"), (7, "Chevrons", "chevrons"), (8, "Seams", "seams"), (9, "Cross belts", "crossbelts"),
-                (10, "Cross of Lorraine", "cross of lorraine"), (11, "Checks", "check"), (12, "Diamond", "diamond"),
+                (10, "Cross", "cross of lorraine"), (11, "Checks", "check"), (12, "Diamond", "diamond"),
                 (13, "Diamonds", "diamonds"), (14, "Quartered", "quartered"), (15, "Epaulettes", "epaulets"), (16, "Star", "star"),
                 (17, "Stars", "stars"), (18, "Spots", "spots"), (19, "Stripes", "stripes"), (20, "Disc", "disc"),
                 (21, "Diabolo", "diabolo"), (22, "Inverted triangle", "inverted triangle"), (23, "Large spots", "large spots"),
@@ -110,7 +110,8 @@ def body_mask(pattern, u, h, asp=1.9):
     if p == "sash": return np.abs(L - (2 * h - 1)) < 0.34
     if p == "crossbelts": return (np.abs(L - (2 * h - 1)) < 0.26) | (np.abs(L + (2 * h - 1)) < 0.26)
     if p == "chevron": return np.abs(h - (0.25 + 0.78 * np.abs(L))) < 0.15
-    if p == "inverted chevron": return np.abs(h - (0.95 - 0.7 * np.abs(L))) < 0.15
+    if p == "inverted chevron":                               # "Bars" (owner, 14 Nov): four thin hoops, just above the armpit down to just above the hip
+        return (np.min(np.abs(h[..., None] - np.array([0.17, 0.37, 0.57, 0.77])), axis=-1) < 0.028) & (np.abs(L) < 0.7)   # stopping short of the sides
     if p == "chevrons": return (np.floor((h - 0.6 * np.abs(L)) * 5) % 2) == 1
     if p == "braces": return np.abs(np.abs(L) - 0.5) < 0.12
     if p == "halved": return L > 0
@@ -132,8 +133,8 @@ def body_mask(pattern, u, h, asp=1.9):
     # ---- the rest of the owner's 25 jacket templates
     if p == "strip": return np.abs(L) < 0.24                  # one band down the middle, front and back
     if p == "belt": return (h > 0.42) & (h < 0.62)            # one band round the middle
-    if p == "cross of lorraine":                              # an upright with two bars, the upper one shorter
-        return ((np.abs(L) < 0.13) & (np.abs(Y) < 0.82)) | ((np.abs(Y - 0.36) < 0.1) & (np.abs(L) < 0.36)) | ((np.abs(Y + 0.06) < 0.1) & (np.abs(L) < 0.56))
+    if p == "cross of lorraine":                              # "Cross" (owner, 14 Nov): a plain + across the chest (the name is kept so saved silks still read)
+        return ((np.abs(L) < 0.14) & (np.abs(Y - 0.05) < 0.78)) | ((np.abs(Y - 0.15) < 0.14) & (np.abs(L) < 0.62))
     if p == "diamonds":                                       # harlequin: diamonds all over (6 round the body, so it meets itself)
         P, Q = u * 12, Y * 1.9
         return ((np.floor(P + Q) + np.floor(P - Q)) % 2) == 1
@@ -180,12 +181,11 @@ def cap_mask(pattern, u, v):
     if p == "striped": return (np.floor(u * 12) % 2) == 1
     if p == "hooped": return (np.floor(v * 5) % 2) == 1
     if p == "spots": return spots(u * 8, v * 2.2, 0.27)
-    if p == "four spots":                                     # two by two on the front of the cap
-        X, Yc = (u - 0.5) * 3.2, (0.5 - v) * 1.1
-        return ((np.hypot(np.abs(X) - 0.2, np.abs(Yc) - 0.17) < 0.13))
+    if p == "four spots":                                     # "Spot" (owner, 14 Nov): one medium spot on the front of the cap
+        return np.hypot((u - 0.5) * 3.2, (0.55 - v) * 1.1) < 0.3
     if p == "star": return star((u - 0.5) * 3.2, (0.55 - v) * 1.1, 0.42)
     if p == "diamond": return (np.abs(u - 0.5) * 3.2 + np.abs(v - 0.5) * 1.3) < 0.45
-    if p == "peak": return (v > 0.85) & (np.abs(u - 0.5) < 0.18)
+    if p == "peak": return np.abs(v * np.sin(2 * math.pi * u)) < 0.14   # "Stripe" (owner, 14 Nov): one stripe over the crown, front to back
     # ---- the rest of the owner's 10 cap templates
     if p == "check": return ((np.floor(u * 8) + np.floor(v * 3)) % 2) == 1
     if p == "stars":                                          # stars all over: a ring of six, a ring of three, wider towards the rim
@@ -297,6 +297,8 @@ def icon(entry, palette, size=200):
         img[sel] = col(z["cap"])
     else:
         paint(sel, c, cap_mask, u, v)
+        if (c.get("pattern") or "plain") == "peak":           # seen from the front the stripe runs straight up the middle
+            img[sel] = col(c["colour"]); img[sel & (np.abs(X - cx) < CAP_R * 0.2)] = col(c["colour2"])
     im = Image.fromarray(img.clip(0, 255).astype(np.uint8), "RGBA")
     # outline
     a = im.split()[3]
@@ -323,7 +325,7 @@ def describe(entry):
             return ("%s %s" % (two(p), {"check": "check"}.get(pat, pat))).capitalize()
         if pat == "large spots": return "%s, large %s spots" % (p["colour"].capitalize(), p["colour2"])
         if pat == "three spots": return "%s, three %s spots" % (p["colour"].capitalize(), p["colour2"])
-        return "%s, %s %s" % (p["colour"].capitalize(), p["colour2"], pat)
+        return "%s, %s %s" % (p["colour"].capitalize(), p["colour2"], {"inverted chevron": "bars", "cross of lorraine": "cross"}.get(pat, pat))
     def sleeve_phrase(p):
         pat = p.get("pattern") or "plain"
         if pat == "plain": return "%s sleeves" % p["colour"]
@@ -336,7 +338,8 @@ def describe(entry):
         if pat == "plain": return "%s cap" % p["colour"]
         if pat in ("quartered", "halved", "striped", "hooped"): return "%s %s cap" % (two(p), pat)
         if pat == "spots": return "%s cap, %s spots" % (p["colour"], p["colour2"])
-        if pat == "four spots": return "%s cap, four %s spots" % (p["colour"], p["colour2"])
+        if pat == "four spots": return "%s cap, %s spot" % (p["colour"], p["colour2"])
+        if pat == "peak": return "%s cap, %s stripe" % (p["colour"], p["colour2"])
         return "%s cap, %s %s" % (p["colour"], p["colour2"], pat)
     parts = [body_phrase(b)]
     plain_same = lambda p: (p.get("pattern") or "plain") == "plain" and p["colour"] == b["colour"]

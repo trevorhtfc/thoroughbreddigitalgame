@@ -14,7 +14,7 @@ const CHAPTERS = {
   team:      { step: 1, place: "jockey", season: "Winter", title: "Your team", hour: 11.5,
                line: "Draft your owner, trainer and jockeys: six points from the Bronze, Silver and Gold decks." },
   breed:     { step: 1, place: "stud", season: "Spring", title: "The covering season", hour: 8,
-               line: "Buy your mares at the National Stud and send them to the stallions of your choice." },
+               line: "Draw your mares at the National Stud and send them to the stallions of your choice." },
   sales:     { step: 2, place: "tatts", season: "Autumn", title: "The Yearling Sales", hour: 11,
                line: "The mares nobody bred have sent their yearlings to Tattersalls. Bid for the best of them." },
   gallops:   { step: 3, place: "warren", season: "The next spring", title: "Into training", hour: 7,
@@ -299,7 +299,7 @@ const FOOTS = {
     if (S.step !== 1) return "";
     return S.confirmSale
       ? `<span class="f-info"><b>Close the stud?</b> Once you go to Tattersalls you can't come back to breed.${S.hand.length ? ` Your ${S.hand.length} unused mare${S.hand.length === 1 ? "" : "s"} may turn up in the sale.` : ""}</span>${goBtn("saleNo", "Stay at the stud", { ghost: true })}${goBtn("saleYes", "Go to Tattersalls", { off: S.foal || S.offer })}`
-      : `<span class="f-info">${studCount()} mare${studCount() === 1 ? "" : "s"} · ${S.stable.length} horse${S.stable.length === 1 ? "" : "s"} · <button type="button" class="f-acct" data-accounts="1">${money(S.budget)} left</button></span>${goBtn("toSale", "Close the stud and go to the sales", { off: S.foal || S.offer })}`;  },
+      : `<span class="f-info">${studCount()} mare${studCount() === 1 ? "" : "s"} · ${S.stable.length} horse${S.stable.length === 1 ? "" : "s"} · <button type="button" class="f-acct" data-accounts="1">${money(S.budget)} left</button></span>${goBtn("toSale", handDone() ? "Close the stud and go to the sales" : "Draw your mares first", { off: S.foal || S.offer || !handDone() })}`;  },
   tatts() {
     // never a dead end: with no horse bought or bred you can still leave (and race nothing, or start again)
     if (S.step === 2) return `<span class="f-info">${S.stable.length} horse${S.stable.length === 1 ? "" : "s"} in your string · <button type="button" class="f-acct" data-accounts="1">${money(S.budget)} left</button></span>${goBtn("toEnter", S.stable.length ? "Leave the sales: on to entries" : "Leave the sales without a horse", { off: S.foal })}`;
@@ -556,7 +556,7 @@ async function goHomeFromAscot() {
 
 /* ================= The cover ================= */
 let menuOpen = false, newArmed = false;
-const hasProgress = () => S.dealt || S.step > 1 || S.stable.length > 0 || S.budget !== START_BUDGET;
+const hasProgress = () => S.dealt || S.step > 1 || S.stable.length > 0 || S.budget !== startBudget();
 function openMenu() {
   menuOpen = true; newArmed = false; const m = $("#menu"); m.hidden = false;
   paintMenu(); const v = $("#menuVid"); try { if (v && v.play && !v.dataset.still) v.play().catch(() => {}); } catch (e) {}
@@ -586,7 +586,7 @@ function paintMenu(keepScroll) {
   const b = bestWeek(); $("#menuBest").innerHTML = b ? `Your best ${W.bestWord}: <b>${money(b.prize)}</b> · ${titleFor(b.prize).name}` : "";
   if (window.lbShow) lbShow();   // the leaderboard panel: the standings and your position
   // Two ways to play (owner, 13 Nov): today's card, the same season for everyone and played once, or a random game
-  const today = ukDay(), done = dailyLog()[today], ds = dailySave(), dsToday = ds && ds.day === today ? ds : null;
+  const today = ukDay(), done = dailyDone(today), ds = dailySave(), dsToday = ds && ds.day === today ? ds : null;
   const stepOf = x => { const k = Math.min(5, x.step || 1); return `Step ${k} of 5`; };
   const rnd = isDaily() ? randomSave() : (hasProgress() ? S : null);
   const daily = done
@@ -683,7 +683,15 @@ document.addEventListener("click", e => {
   if (d.stallion) { S.selStallion = S.selStallion === d.stallion ? null : d.stallion; save(); render(); return; }
   if (d.trip) { S.trip = d.trip; save(); render(); return; }
   if (d.pile) { drawPile(d.pile); save(); render(); BOARD.Sound.whinny(); return; }
+  if (d.mdraw) { const n = d.mdraw === "all" ? (dealHand(), null) : drawHandMare(d.mdraw); UI.mareDrew = n;
+    if (n) { const m = byName(n); toast(`${m.name} (${m.stars}★) joins your stud`); }
+    if (handDone()) setTimeout(() => toast("Your mares are in. Tap one to send her to a stallion"), n ? 1600 : 0);
+    render(); BOARD.Sound.whinny && BOARD.Sound.whinny();
+    const f = document.querySelector(".hc.flipin"); if (f) f.scrollIntoView({ block: "center", behavior: "smooth" }); return; }
   if (d.keep) { keepOffer(d.keep); save(); render(); return; }
+  if (d.upmare) { UI.sendBack = null; if (upgradeMare(d.upmare)) { render(); const o = document.getElementById("offer"); if (o) o.scrollIntoView({ block: "start", behavior: "smooth" }); } return; }
+  if (d.sendback) { if (UI.sendBack !== d.sendback) { UI.sendBack = d.sendback; UI.handOpen = true; render(); return; }
+    UI.sendBack = null; const back = sendBack(d.sendback); if (back) toast(`${d.sendback} goes back: ${money(back)} for Tattersalls`); render(); return; }
   if (d.book) { S.book = +d.book; save(); render(); return; }
   if (d.auction) { openAuction(d.auction); BOARD.setInPlace("tatts-ring"); return; }
   if (d.plansel) { S.planSel = S.planSel === d.plansel ? null : d.plansel; render(); return; }

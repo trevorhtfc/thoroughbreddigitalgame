@@ -25,6 +25,7 @@ export async function create({ base = "assets/sound/", shared = null, on = false
 
   function context() {
     if (ac) return ac;
+    try { if (navigator.audioSession) navigator.audioSession.type = "playback"; } catch (e) {}   // (iPhone/iPad: play with the silent switch on)
     const c = shared && shared();
     if (c && c.state === "running") { ac = c; own = false; }
     else { ac = new (window.AudioContext || window.webkitAudioContext)(); own = true; }

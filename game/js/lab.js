@@ -778,7 +778,20 @@ function openRace(T, k) {
 // --- watching a race in 3D (the game's race view, handed this race exactly as the game hands it one)
 const ODDS_LADDER = [[1, 3], [2, 5], [1, 2], [4, 7], [4, 6], [4, 5], [10, 11], [1, 1], [6, 5], [5, 4], [11, 8], [6, 4], [7, 4], [2, 1], [9, 4], [5, 2], [11, 4], [3, 1], [7, 2], [4, 1], [9, 2], [5, 1], [11, 2], [6, 1], [13, 2], [7, 1], [8, 1], [9, 1], [10, 1], [11, 1], [12, 1], [14, 1], [16, 1], [20, 1], [25, 1], [33, 1], [40, 1], [50, 1], [66, 1], [100, 1]];
 let WATCH = null;
+// The race's sound (owner, 14 Nov: "I didn't hear it on my iPad … in the test lab"): on unless switched off in the race
+// view (remembered). Pressing "Watch it in 3D" is a tap, so the sound is let out here, in the lab's own page, and the
+// race view plays through it (an iPad won't let the race view start sound itself until it's tapped).
+const labSound = () => { try { return localStorage.getItem("tb-sound") !== "0"; } catch (e) { return true; } };
+function unlockSound() {
+  try {
+    if (navigator.audioSession) navigator.audioSession.type = "playback";      // (play even with the silent switch on)
+    const C = window.__raceAudio || (window.__raceAudio = new (window.AudioContext || window.webkitAudioContext)());
+    if (C.state !== "running") C.resume();
+    const b = C.createBuffer(1, 1, C.sampleRate), s = C.createBufferSource(); s.buffer = b; s.connect(C.destination); s.start();   // (older Safari wants a sound started in the tap)
+  } catch (e) {}
+}
 function watch(T, k) {
+  if (labSound()) unlockSound();
   const J = buildJob(T, k), S = settingsWith(T.tune), P = flatSettings(S);
   const dr = J.runners.map((r) => raceDayRating(P, r, J.race).rating), w = dr.map((x) => Math.exp(x / 7)), tot = w.reduce((a, b) => a + b, 0);
   const runners = J.meta.map((h, i) => {
@@ -793,6 +806,7 @@ function watch(T, k) {
   document.body.appendChild(box); document.body.style.overflow = "hidden";
   WATCH = { box, frame: box.querySelector("iframe"), payload: {
     type: "race", course: J.cid, race: J.trip.view, going: J.race.going, seed: J.race.seed, handicap: J.race.handicap,
+    sound: labSound(),
     settings: Object.keys(T.tune || {}).length ? S : undefined,
     title: J.trip.label, kicker: `Race Lab · ${T.name}${T.total > 1 ? ` · race ${k + 1}` : ""}`,
     card: { dist: J.trip.trip, meeting: `Race Lab · ${J.trip.rc.name}`, conditions: [J.race.handicap ? "Handicap" : "", J.V.label !== "As set" ? J.V.label : ""].filter(Boolean).join(" · "), next: "" },
@@ -801,12 +815,17 @@ function watch(T, k) {
   window.__labWatch = WATCH.payload;      // checking aid: what the 3D view is handed
   box.querySelector(".x").onclick = closeWatch;
 }
-function closeWatch() { if (!WATCH) return; WATCH.box.remove(); WATCH = null; document.body.style.overflow = ""; }
+function closeWatch() {
+  if (!WATCH) return;
+  try { WATCH.frame.contentWindow.__soundStop && WATCH.frame.contentWindow.__soundStop(); } catch (e) {}   // (its sound is the lab's: stop it here)
+  WATCH.box.remove(); WATCH = null; document.body.style.overflow = "";
+}
 addEventListener("message", (e) => {
   if (!WATCH || e.source !== WATCH.frame.contentWindow) return;
   const d = e.data || {};
   if (d.type === "ready") WATCH.frame.contentWindow.postMessage(WATCH.payload, "*");
   if (d.type === "back" || d.type === "next") closeWatch();
+  if (d.type === "sound") { try { localStorage.setItem("tb-sound", d.on ? "1" : "0"); } catch (err) {} if (d.on) unlockSound(); }
 });
 addEventListener("keydown", (e) => { if (e.key === "Escape") { if (WATCH) closeWatch(); else { const d = $(".drawer"); if (d) d.remove(); } } });
 

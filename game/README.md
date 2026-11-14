@@ -115,6 +115,26 @@ Owner, 13 Nov: "having the daily mix or just a play a random game option is best
 - **Not built yet:** the leaderboard (stable names, scores kept on Cloudflare) and score checking. `noteDaily()` is where a
   finished daily card would be sent from.
 
+### The race mix (14 Nov 2026)
+Owner: "min 3 grp1s, 3 handicaps and then mix inbetween. also a mix of gender races ... distances being a bit less
+controlled ... dont however give people trainer cards for specific races of which there are none", and "reset todays
+races to align".
+- `drawRaces` (js/rules.js) now keeps drawing two races a day until the card has at least 3 Group 1s, 3 handicaps
+  (the Queen Alexandra, a Conditions race, doesn't count as one), 2 races in between (Group 2, Group 3 or Listed),
+  2 fillies' races and 1 colts' race, and no more than 5 single-sex races. Distances are left to chance. The numbers
+  are `MIX`; a meeting file can change them with `mix: { ... }`. About 1 random draw in 11 passes at Ascot and 1 in 900
+  at Newmarket (it has only three handicaps, one each at the July, Cambridgeshire and Future Champions meetings, so
+  every Newmarket card now has all three).
+- New cards carry `S.mix = 2` (`CARD_MIX`); a saved game without it keeps the old draw, so its races never change.
+- The daily seed now includes the mix, so today's card was re-dealt. A daily card saved or finished under the old mix
+  no longer matches the day's seed (`dailyCurrent`) and is put aside: the menu offers the new card. No daily scores
+  had been posted to the leaderboard when this went in.
+- Later the same day (owner: "let's go 2"): Newmarket needs only 2 handicaps (`mix: { handicaps: 2 }`, `cardMix: 3` in
+  js/meetings/newmarket.js). Its day's card was re-dealt again; Royal Ascot's was not. In 300 test cards, 95% have two
+  handicaps and 5% all three. Saved Newmarket games on mix 2 keep their races.
+- `cardFits` (js/team.js) now covers trainers too: a trip trainer needs a race at his trips, the Juvenile Specialist a
+  2-year-old race, the Slow Burner a race open to 4-year-olds; otherwise the card isn't in the deck.
+
 ## Your colours: every player makes their own (13 Nov 2026, branch `claude/own-colours`)
 
 Owner, 13 Nov: "let's make all new players make their own colours.. and let's also remember their colours? no selection
@@ -734,6 +754,40 @@ and downs evened out, then shaped (`BUILD`, `BRIGHT`): it starts at the middle's
 slowly then faster and faster to the line (about 13 dB louder, 19 dB brighter), the gallop coming up with it; the middle
 is quieter so the build has somewhere to go.
 
+## Your mares hand (14 Nov 2026, branch `claude/mare-hand`)
+
+Owner, 14 Nov: "I did wonder whether buying mares was quite right ... a deal would be better? ... an opportunity to buy
+an extra one with a choice, at the current price, and then we cut the budget down ... Elite mares would change to be
+able to upgrade your hand". He chose 2 of each grade over 3-2-1, "as most of this game is big races ... we are mainly
+using Blue-blooded, especially for Group 1s".
+
+- The stud opens with six mares dealt from the piles: 2 Blue-blooded, 2 Useful, 2 Moderate (`HAND`, `dealHand` in
+  `js/rules.js`; the hand is this game's luck, so the daily card deals everyone the same).
+- **One more mare** (`EXTRA_MARES`): pick a pile, pay its price, see two, keep one.
+- **Send back** any mare you haven't bred for half her pile's price (`SEND_BACK`; £47,500 / £12,500 / £5,000), booked as
+  "Sent back" in your accounts. That keeps the Buyer's way open: all six back is £130,000 more for Tattersalls.
+- **Elite Mares** now upgrades mares a grade, Moderate → Useful or Useful → Blue-blooded, turning two over from the grade
+  above to keep one in her place: 1 / 2 / 4 upgrades (`ELITE_UP` in `js/team.js`).
+- **Budget £1,000,000** (was £1.25m; the hand is worth £260k at the mares sale's prices). `S.start` keeps each game's
+  own starting budget; save v8 (`migrate8`): a game already buying mares, or past the stud, keeps the old mares sale
+  and its £1.25m (`S.mh.legacy`).
+
+Team harness: `TEAMH.legacy` plays the old sale; with the hand, each strategy keeps the grades it wants and sends the
+rest back (Breeder keeps all and buys a Blue-blooded extra; Planner keeps Blue-blooded and Useful and buys a
+Blue-blooded extra; Balanced keeps only Blue-blooded; Buyer sends all back).
+
+| 40 seasons each, average prize | Breeder | Planner | Balanced | Buyer |
+|---|---|---|---|---|
+| Old mares sale, £1.25m | £162k | £159k | £130k | £41k |
+| Dealt hand, £1.0m | £174k | £192k | £128k | £43k |
+| Dealt hand, £1.1m | £178k | £215k | £130k | £39k |
+
+(± about £20k.) At £1m the four ways of playing come out as before, with planning a little better rewarded.
+
+Card tests at £1m (40 paired seasons, so ± £10–30k): **Elite Mares** as upgrades +£15–35k / +£30–45k by tier for
+Breeder and Planner (it was +£5–13k when it only showed more mares); Gold with 3 upgrades +£40k, with 4 +£25k, both
+within the noise of Silver, so Gold has 4 (lift every Useful and Moderate mare a grade). **Powerhouse** (£150k / £300k /
+£450k more) Planner +£27k / +£31k / +£58k, Breeder +£11–19k, Balanced +£3–18k: not stronger for the smaller budget.
 Owner, 14 Nov: "a weird step at 36-37 secs … it needs blending; can we turn the PA up more … even if it means looping what
 you have … PA up at the start as well". The step was the middle loop's stitched pieces (the bright Japan Cup crowd into
 the Cheltenham roar's tail). The middle's crowd is now the long seamless crowd loops, muted, and the commentary is its
@@ -746,3 +800,9 @@ gallop (one recording's uneven hoofbeats, raised 9 dB towards the line) and the 
 The gallop is now five copies blended into a rolling field, softened, rising only 5 dB; the finish's level is shaped
 slowly (over ~5 s); the commentary phrases are cleaner and eased in and out, and the crowd dips gently in the voice's
 range while he speaks (`duck_under`) so the overall level stays even. The crowd and gallop's wobble halved (1.5 → 0.7 dB).
+
+**Drawn like the board (14 Nov, owner: "it would be good if this felt like proper drawing of the cards from the board
+game").** The hand isn't dealt in one go: the stud shows the board's three Weatherbys mares decks (blue card backs,
+"WEATHERBYS / MARES / 4&5 Stars", as on the Thoroughbred site's Step 03 page). Tap a deck and its top mare turns over
+and joins your stud, two from each (`drawHandMare`; "Draw the rest for me" deals what's left). You can't close the stud
+until all six are drawn. The extra mare is drawn from the same decks (two turned over, keep one).
