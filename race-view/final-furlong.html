@@ -1593,6 +1593,8 @@ function placeScenery(SC, models, treeLib, belts) {
       const geo = mesh.geometry.clone().applyMatrix4(mesh.matrixWorld);
       const inst = new THREE.InstancedMesh(geo, clayOf(mesh.material), list.length);
       list.forEach(([, , x, z, turn, sx, s], i) => inst.setMatrixAt(i, m4.compose(p.set(x, groundY(x, z), z), q.setFromAxisAngle(up, turn * Math.PI / 180), sc.set(sx, s, s))));
+      // (soft look: pastel colours for canvas, stripes and flags, each copy its own, on every course)
+      if (UPLIFT) UPLIFT.festivalInstanced(inst, mesh.material.name || "", piece, list);
       inst.computeBoundingSphere();
       inst.castShadow = true; inst.receiveShadow = true;
       scene.add(inst); LAYERS.buildings.push(inst);

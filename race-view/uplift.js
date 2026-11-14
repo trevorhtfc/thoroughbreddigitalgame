@@ -851,23 +851,46 @@ export function bankRamp() {
 // takes it as stripes up its roofs. Colours go round in order along the course, so neighbours differ and the row
 // reads as a set rather than a scatter. &upoff=festival for the plain canvas.
 const PASTELS = ["#e58fa3", "#93c48c", "#86b3de", "#f0c765", "#f0a877"];       // pink, green, blue, butter, apricot
-const TENT_STRIPED = { marquee_peaks: 1, marquee_clearspan: 1, pagoda_kiosk: 1, pagoda_counter: 1, kiosk_awning: 1 };
+// THE RULE, FOR EVERY COURSE (owner, 14 Nov: "apply this colour item to the overall game such it is default into all
+// courses current and future"): it goes by the material's name in the shared site kit (site_props), so any course
+// that places those pieces gets it without being told, however it places them:
+//   ..._stripe  the piece's pastel, whole (the big tops' stripes)
+//   ..._flag    the piece's pastel, whole
+//   ..._canvas  the piece's pastel as stripes up its roofs; except the pieces in PLAIN_CANVAS, which stay cream
+// Only materials whose names begin "sp_" (the site kit): a grandstand's own canvas roof is left alone. A new tent
+// added to the kit with these material names is coloured the day it is placed; to keep one cream, add its name to
+// PLAIN_CANVAS. A course that bakes its pieces (Ascot) comes through festival(); one that places them live
+// (Newmarket) through festivalInstanced().
+const PLAIN_CANVAS = { big_top: 1, terrace_deck: 1 };
+const canvasKind = (matName) => !/^sp_/.test(matName) ? "" : matName.endsWith("stripe") ? "stripe" : matName.endsWith("flag") ? "flag" : matName.endsWith("canvas") ? "canvas" : "";
+// which pastel: pieces of a kind go round the five in order along the course, each kind starting somewhere of its own
+const pastelAt = (piece, rank) => PASTELS[((piece.length % PASTELS.length) + 1 + rank) % PASTELS.length];
+const overBase = (hex, base, c) => { c.set(hex); return c.setRGB(c.r / Math.max(base.r, 0.02), c.g / Math.max(base.g, 0.02), c.b / Math.max(base.b, 0.02)); };
 export function festival(batch, matName, placed) {
   if (LOOK_ID !== "soft" || !has("festival") || !placed.length || !batch.setColorAt) return;
-  const kind = matName.endsWith("stripe") ? "stripe" : matName.endsWith("flag") ? "flag" : matName.endsWith("canvas") ? "canvas" : "";
+  const kind = canvasKind(matName);
   if (!kind) return;
   const base = batch.material.color.clone(), c = new THREE.Color(), white = new THREE.Color(1, 1, 1);
-  // in order along the course, each kind of piece counting for itself
   const order = placed.slice().sort((a, b) => a[1].x - b[1].x || a[1].z - b[1].z), n = {};
   let any = false;
   for (const [id, p] of order) {
-    const k = (n[p.piece] = (n[p.piece] ?? (p.piece.length % PASTELS.length)) + 1);
-    if (kind === "canvas" && !TENT_STRIPED[p.piece]) { batch.setColorAt(id, white); continue; }
-    c.set(PASTELS[k % PASTELS.length]);
-    batch.setColorAt(id, c.setRGB(c.r / Math.max(base.r, 0.02), c.g / Math.max(base.g, 0.02), c.b / Math.max(base.b, 0.02)));
+    const rank = (n[p.piece] = (n[p.piece] ?? -1) + 1);
+    if (kind === "canvas" && PLAIN_CANVAS[p.piece]) { batch.setColorAt(id, white); continue; }
+    batch.setColorAt(id, overBase(pastelAt(p.piece, rank), base, c));
     any = true;
   }
   if (kind === "canvas" && any) batch.material.userData.tent = true;
+}
+// The same for pieces placed live, one instanced mesh a piece: list holds each copy as [model, piece, x, z, ...].
+export function festivalInstanced(inst, matName, piece, list) {
+  if (LOOK_ID !== "soft" || !has("festival") || !list.length) return;
+  const kind = canvasKind(matName);
+  if (!kind || (kind === "canvas" && PLAIN_CANVAS[piece])) return;
+  const base = inst.material.color.clone(), c = new THREE.Color();
+  const order = list.map((it, i) => [i, it[2], it[3]]).sort((a, b) => a[1] - b[1] || a[2] - b[2]);
+  order.forEach(([i], rank) => inst.setColorAt(i, overBase(pastelAt(piece, rank), base, c)));
+  if (inst.instanceColor) inst.instanceColor.needsUpdate = true;
+  if (kind === "canvas") inst.material.userData.tent = true;
 }
 
 // ---------- The festival's low planting ----------
