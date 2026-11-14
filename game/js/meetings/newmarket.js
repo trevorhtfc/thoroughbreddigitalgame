@@ -20,6 +20,10 @@ window.MEETINGS["newmarket"] = {
   nRaces: 10,
   minOpen: 1,                            // at least one of the heritage handicaps (the Bunbury Cup, the Cambridgeshire, the Cesarewitch)
   minPattern: 6,
+  // the race mix (js/rules.js MIX): only three handicaps in the season, so at least two of them on a card, not three
+  // (owner, 14 Nov: "let's go 2"). cardMix 3 is the version of the rules that reads this.
+  mix: { handicaps: 2 },
+  cardMix: 3,
   hcapMax: 110,
   runsPerMeeting: 1,                     // a horse may run at every meeting it qualifies for, once at each
   goings: ["Softer", "Good", "Good", "Quicker", "Quicker", "Quick", "Heavy"],   // drawn for each meeting

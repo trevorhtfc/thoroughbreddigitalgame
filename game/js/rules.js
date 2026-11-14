@@ -230,7 +230,11 @@ let RACES = [];
 // single-sex races in all. Distances are left to chance: a card heavy on one trip is part of the skill. A meeting can
 // change these numbers (MEETING.mix). Cards made before 14 Nov (no S.mix) keep the old draw, so a saved game's races
 // never change under it.
-const MIX = Object.assign({ group1: 3, handicaps: 3, middle: 2, fillies: 2, colts: 1, maxSingleSex: 5 }, MEETING.mix || {});
+// Mix 2 is the first set of rules (every meeting); from mix 3 a meeting's own changes (MEETING.mix) apply. A card keeps the
+// mix it was made with (S.mix), so a saved game's races never change when the rules do.
+const MIX_BASE = { group1: 3, handicaps: 3, middle: 2, fillies: 2, colts: 1, maxSingleSex: 5 };
+const mixRules = mix => mix >= 3 ? Object.assign({}, MIX_BASE, MEETING.mix || {}) : MIX_BASE;
+let MIX = MIX_BASE;
 const isMiddle = r => r.grade === "Group 2" || r.grade === "Group 3" || r.grade === "Listed";
 function mixOK(pick) {
   const n = f => pick.filter(f).length;
@@ -248,6 +252,7 @@ function drawDays(R) {
 }
 function drawRaces(R, mix) {
   if (mix >= 2) {
+    MIX = mixRules(mix);
     for (let tries = 0; tries < 20000; tries++) { const pick = drawDays(R); if (mixOK(pick)) return pick; }
     console.warn("No race mix found that meets every rule: using the old one");
   }
@@ -556,7 +561,9 @@ const ukDay = t => { const d = t ? new Date(t) : new Date();
 // The race mix new cards are drawn with (drawRaces). Changing it re-deals today's card: the daily seed carries it, so a
 // daily card saved or finished under the old mix no longer matches the day's seed and is put aside (owner, 14 Nov:
 // "reset todays races to align").
-const CARD_MIX = 2;
+// Newmarket is on mix 3 (owner, 14 Nov: at least 2 handicaps there, "let's go 2"; it has only three in the season), so its
+// card for the day was re-dealt again; Royal Ascot stays on mix 2 and its card for the day is unchanged.
+const CARD_MIX = MEETING.cardMix || 2;
 const dailySeed = day => 1000001 + hashStr("thoroughbred-daily|" + (CARD_MIX >= 2 ? "mix" + CARD_MIX + "|" : "") + MEETING.id + "|" + day) % 2000000000;
 // a daily card (a save or a finished one in the log) still counts as that day's card
 const dailyCurrent = x => !!x && x.seed === dailySeed(x.day);

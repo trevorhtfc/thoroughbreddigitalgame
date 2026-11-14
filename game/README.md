@@ -129,6 +129,9 @@ races to align".
 - The daily seed now includes the mix, so today's card was re-dealt. A daily card saved or finished under the old mix
   no longer matches the day's seed (`dailyCurrent`) and is put aside: the menu offers the new card. No daily scores
   had been posted to the leaderboard when this went in.
+- Later the same day (owner: "let's go 2"): Newmarket needs only 2 handicaps (`mix: { handicaps: 2 }`, `cardMix: 3` in
+  js/meetings/newmarket.js). Its day's card was re-dealt again; Royal Ascot's was not. In 300 test cards, 95% have two
+  handicaps and 5% all three. Saved Newmarket games on mix 2 keep their races.
 - `cardFits` (js/team.js) now covers trainers too: a trip trainer needs a race at his trips, the Juvenile Specialist a
   2-year-old race, the Slow Burner a race open to 4-year-olds; otherwise the card isn't in the deck.
 
