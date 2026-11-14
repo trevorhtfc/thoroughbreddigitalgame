@@ -1,10 +1,16 @@
 // Cloudflare settings for publishing Thoroughbred Ascot.
-// Cloudflare runs the build command `python3 game/tools/stage.py dist`, which gathers the game into dist/,
-// then serves that folder as plain files (no server code).
+// Cloudflare runs the build command `python3 game/tools/stage.py dist`, which gathers the game into dist/, then
+// `npx wrangler deploy`. The game's files are served as plain files; server/worker.js answers only the addresses
+// under /api/ (the leaderboard), with its scores in the D1 database below (tables: server/schema.sql).
 {
   "name": "thoroughbreddigitalgame",
   "compatibility_date": "2026-11-01",
+  "main": "server/worker.js",
   "assets": {
-    "directory": "./dist"
-  }
+    "directory": "./dist",
+    "binding": "ASSETS"
+  },
+  "d1_databases": [
+    { "binding": "DB", "database_name": "thoroughbred-leaderboard", "database_id": "427e3cfc-e538-4a79-981d-9fee2c133ae2" }
+  ]
 }
