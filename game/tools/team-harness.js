@@ -163,7 +163,7 @@
     const hold = trainerCards().some(c => c.tier >= 2) ? 1 : 0;
     while (jobsLeft() > hold) {
       const b = bestJob(true, ["trip", "settle", "tune"]); if (!b) break;
-      H.forEach(h => h.age = 2); doJob(b.k, b.h, b.o); log.jobs = (log.jobs || 0) + 1;
+      H.forEach(h => h.age = 2); if (!doJob(b.k, b.h, b.o)) break; log.jobs = (log.jobs || 0) + 1;
     }
     // free settles (the Juvenile Specialist's) wherever a keen 2-year-old runs
     for (const h of H) if (h.temper === "keen" && settleFree(h)) doJob("settle", h, {});
@@ -178,7 +178,7 @@
     const out = { strat: name, seed, team: (team || []).join(" "), prize: 0, horses: H.length, budgetLeft: S.budget, wins: 0, runners: 0, ...log };
     S.step = 4;
     // race week: the jobs kept back, now the going is out (ground work or a tune-up where it helps most)
-    while (jobsLeft() > 0) { const b = bestJob(false, ["ground", "tune"]); if (!b) break; doJob(b.k, b.h, b.o); log.jobs = (log.jobs || 0) + 1; }
+    while (jobsLeft() > 0) { const b = bestJob(false, ["ground", "tune"]); if (!b || !doJob(b.k, b.h, b.o)) break; log.jobs = (log.jobs || 0) + 1; }
     for (const [i, r] of RACES.entries()) {
       const id = S.entries[r.id]; if (!id) continue;
       out.runners++;
