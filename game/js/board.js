@@ -384,41 +384,41 @@ function drawSky(dt) {
 }
 
 // ================================================================ the day, the weather and the sounds of the place
-// ---------------------------------------------------------------- the day: one passes every five minutes
-// Most of the cycle is daylight (5:30 to 21:30); the night goes by quickly. The board opens in the early morning,
-// when the mist is lying on the heath and the strings are going out.
-const DAY = 300;
+// ---------------------------------------------------------------- the morning: sunrise, then the fresh light of the day
+// (Owner, 14 Nov: "leave it to early morning/sunrise and daytime without showing the actual time".) The board opens
+// before sunrise, with the lamps still lit and mist lying on the heath; the sun comes up, the strings go out, and the
+// day settles into its fresh light. After a good while it eases round to the next sunrise: no dusk, no night, no clock.
+// Inside, the time is still kept as an hour (5.6 to 11.6), which is what the horses, lads and horseboxes go by.
+const DAY = 250;                                                    // seconds from one sunrise to the next
+const RISE = 0.34, TURN = 0.92;                                     // the sunrise is the first third; the last 8% eases back to it
+const H0 = 5.6, H1 = 8.4, H2 = 11.6;
 let dayT = 0.04;
-const hourAt = (t) => (t < 0.86 ? 5.5 + (t / 0.86) * 16 : 21.5 + ((t - 0.86) / 0.14) * 8) % 24;
+const hourAt = (t) => (t < RISE ? H0 + (t / RISE) * (H1 - H0) : H1 + Math.min(1, (t - RISE) / (TURN - RISE)) * (H2 - H1));
 const hourNow = () => hourAt(dayT);
 const inHours = ([a, b]) => { const h = hourNow(); return h >= a && h < b; };
-// the light through the day: [hour, the colour the board is multiplied by, warm light, lamps, mist, smoke]
+// the light through the morning: [hour, the colour the board is multiplied by, warm light, lamps, mist, smoke]
 const LIGHT = [
-  [0, [70, 78, 128], 0, 1, 0.15, 0.5], [4.8, [70, 78, 128], 0, 1, 0.3, 0.5], [5.6, [168, 160, 196], 0.12, 0.7, 1, 0.9],
-  [6.6, [236, 222, 210], 0.14, 0.1, 1, 1], [8, [255, 255, 255], 0.05, 0, 0.45, 0.8], [9.5, [255, 255, 255], 0, 0, 0, 0.55],
-  [15, [255, 255, 255], 0.1, 0, 0, 0.5], [17.8, [255, 228, 196], 0.24, 0, 0, 0.7], [19.4, [214, 168, 162], 0.18, 0.45, 0.1, 0.9],
-  [20.6, [110, 110, 160], 0.06, 0.95, 0.15, 0.8], [21.5, [70, 78, 128], 0, 1, 0.15, 0.6], [24, [70, 78, 128], 0, 1, 0.15, 0.5],
+  [5.6, [168, 160, 196], 0.12, 0.7, 1, 0.9], [6.6, [236, 222, 210], 0.14, 0.1, 1, 1], [8, [255, 255, 255], 0.05, 0, 0.45, 0.8],
+  [9.5, [255, 255, 255], 0, 0, 0, 0.55], [12, [255, 255, 255], 0.04, 0, 0, 0.5],
 ];
 function lightAt(h) {
   let i = 0; while (i < LIGHT.length - 2 && LIGHT[i + 1][0] <= h) i++;
-  const a = LIGHT[i], b = LIGHT[i + 1], u = (h - a[0]) / (b[0] - a[0] || 1), mix = (x, y) => x + (y - x) * u;
+  const a = LIGHT[i], b = LIGHT[i + 1], u = Math.min(1, Math.max(0, (h - a[0]) / (b[0] - a[0] || 1))), mix = (x, y) => x + (y - x) * u;
   return { rgb: a[1].map((v, k) => Math.round(mix(v, b[1][k]))), warm: mix(a[2], b[2]), lamps: mix(a[3], b[3]), mist: mix(a[4], b[4]), smoke: mix(a[5], b[5]) };
 }
 const shade = document.getElementById("shade"), warm = document.getElementById("warm");
-const clockTime = document.getElementById("clockTime"), clockIcon = document.getElementById("clockIcon");
-const DAYICON = { sunrise: `<path d="M259.375 16.25c-132.32 0-239.78 107.46-239.78 239.78s107.46 239.783 239.78 239.783s239.78-107.462 239.78-239.782s-107.46-239.78-239.78-239.78zm33.5 20.406c26.563 4.015 51.57 12.708 74.156 25.25L308.907 209.03c-14.573-7.215-30.96-11.344-48.312-11.53zm-67.72.094l23.97 161.22c-17.2 1.56-33.28 6.986-47.313 15.436l-51-151a220.4 220.4 0 0 1 74.344-25.656zm193.25 64.5c17.683 18.164 32.28 39.32 42.94 62.688l-107.658 85.468a111.7 111.7 0 0 0-34.968-34.875l99.686-113.28zm-319.092 1.063L192.5 219.686a111.7 111.7 0 0 0-32.063 37.75L56.5 166c10.527-23.725 25.082-45.226 42.813-63.688zm378.75 115.906a224 224 0 0 1 3.218 37.81c0 11.49-.882 22.768-2.56 33.783l-107.876 16.062a111.2 111.2 0 0 0-12-47.375l119.22-40.28zM40.25 221.093l115.844 45.75a111.3 111.3 0 0 0-8.188 39l-107.844-16.03A224 224 0 0 1 37.5 256.03c0-11.89.954-23.554 2.75-34.936zm130.563 89.53h177.125L467 334.532c-31.674 83.843-112.62 143.376-207.625 143.376c-95.018 0-175.968-59.548-207.625-143.406l119.063-23.875z"/>`, sun: `<path d="M320.063 19.72c-72.258 14.575-19.248 71.693-74.344 108.81c4.846-.49 9.746-.702 14.655-.624c16.288.26 32.785 3.72 48.594 10.72a126 126 0 0 1 14.25 7.405c12.107-47.476-37.103-96.38-3.158-126.31zM136.75 44.47c-40.76 61.357 36.984 64.33 24.406 129.405c17.407-21.255 41.17-35.9 67.156-42.313c-25.006-42.138-94.4-41.924-91.562-87.093zm297.313 75.405c-32.547.872-45.475 46.314-96.594 36.22c21.35 17.42 36.034 41.25 42.467 67.31c42.306-24.92 42.053-94.466 87.282-91.624c-13.43-8.92-24.06-12.15-33.158-11.905zm-177.97 26.656c-23.656.46-46.53 8.82-64.906 23.626l18.657 36.156L170 193.156a107.6 107.6 0 0 0-9.406 16.938c-8.726 19.708-11.002 40.59-7.78 60.344l44.78 2.125l-34 30.312c10.798 20.622 28.414 37.852 51.406 48.03a108 108 0 0 0 9.313 3.626l24.53-38.25l9.095 43.814c27.3.075 53.737-10.387 73.593-29.188l-19.186-37.125l38.406 12.658a109 109 0 0 0 5.03-9.938c9.746-22.01 11.457-45.498 6.44-67.22l-37.626-1.75l27.687-24.718c-10.83-20.194-28.236-37.07-50.874-47.093a107 107 0 0 0-4.125-1.72l-25.874 40.313l-9.906-47.75c-.5-.016-1-.023-1.5-.032c-1.3-.02-2.61-.024-3.906 0zM133.407 186.5c-41.652.725-82.483 34.847-108.72 5.094c14.573 72.234 71.664 19.3 108.783 74.312c-2.154-20.972.934-42.758 10.06-63.375a126 126 0 0 1 7.345-14.093c-5.822-1.47-11.642-2.038-17.47-1.937zm249.5 53.97a124.65 124.65 0 0 1-10.03 63.624l-.188.375a126 126 0 0 1-7.22 13.78c47.524 12.244 96.507-37.137 126.47-3.156c-14.603-72.388-71.92-19.04-109.032-74.625zM136.53 283.405c-42.123 25.014-41.928 94.37-87.093 91.53c61.422 40.803 64.322-37.123 129.594-24.342c-21.344-17.385-36.03-41.167-42.5-67.188zm219.064 48.906c-17.406 21.46-41.236 36.24-67.344 42.72c24.944 42.263 94.497 42.004 91.656 87.218c40.867-61.52-37.402-64.358-24.312-129.938M193.406 360.72c-12.047 47.456 37.087 96.33 3.156 126.25c72.305-14.587 19.195-71.79 74.47-108.908c-21.04 2.204-42.898-.9-63.594-10.062a126 126 0 0 1-14.032-7.28"/>`, sunset: `<path d="M247 27v80h18V27zm-63.992 53.602l-16.631 6.886l15.309 36.955l16.628-6.886zm145.984 0l-15.306 36.955l16.628 6.886l15.309-36.955l-16.63-6.886zM77.795 92.068l-12.727 12.727l56.569 56.568l12.726-12.726zm356.41 0l-56.568 56.569l12.726 12.726l56.569-56.568zM256 145.994a118.9 118.9 0 0 0-59.5 15.95c-34.215 19.754-56.177 55.048-59.129 94.056H374.63c-2.952-39.008-24.914-74.302-59.129-94.057a118.9 118.9 0 0 0-59.5-15.949zM66.488 195.377l-6.886 16.63l36.955 15.307l6.886-16.628l-36.955-15.31zm379.024 0l-36.955 15.309l6.886 16.628l36.955-15.306zM24 274v18h464v-18zm200 62v64h-32l64 80l64-80h-32v-64z"/>`, moon: `<path d="M253.125 18.563c-131.53 0-238.375 106.813-238.375 238.343S121.596 495.25 253.125 495.25c131.53 0 238.344-106.815 238.344-238.344c0-131.528-106.816-238.344-238.345-238.344zm-23.938 52.093c40.517 0 77.988 12.904 108.532 34.813a154 154 0 0 0-17.064-.97c-84.157 0-152.375 68.25-152.375 152.406S236.5 409.28 320.656 409.28c5.762 0 11.467-.313 17.063-.936c-30.545 21.91-68.016 34.812-108.533 34.812c-102.98 0-186.28-83.272-186.28-186.25s83.3-186.25 186.28-186.25z"/>` };
-let L = lightAt(hourNow()), lastIcon = "";
+let L = lightAt(hourNow());
 function stepDay(dt) {
   if (!REDUCED) dayT = (dayT + dt / DAY) % 1;
-  const h = hourNow(); L = lightAt(h);
-  const night = L.rgb[0] < 250;
-  shade.hidden = !night; if (night) shade.style.background = `rgb(${L.rgb.join(",")})`;
+  L = lightAt(hourNow());
+  if (dayT > TURN) {                                                // the day eases round to the next sunrise
+    const u = (dayT - TURN) / (1 - TURN), k = u * u * (3 - 2 * u), D = lightAt(H0), mix = (x, y) => x + (y - x) * k;
+    L = { rgb: L.rgb.map((v, i) => Math.round(mix(v, D.rgb[i]))), warm: mix(L.warm, D.warm), lamps: mix(L.lamps, D.lamps), mist: mix(L.mist, D.mist), smoke: mix(L.smoke, D.smoke) };
+  }
+  const dim = L.rgb[0] < 250;
+  shade.hidden = !dim; if (dim) shade.style.background = `rgb(${L.rgb.join(",")})`;
   warm.style.opacity = L.warm.toFixed(3);
   wisps.style.filter = `brightness(${(0.45 + 0.55 * L.rgb[0] / 255).toFixed(3)})`;
-  const hh = Math.floor(h), mm = Math.floor((h - hh) * 60 / 5) * 5;
-  clockTime.textContent = `${String(hh).padStart(2, "0")}:${String(mm).padStart(2, "0")}`;
-  const icon = h >= 5 && h < 7.5 ? "sunrise" : h >= 7.5 && h < 18 ? "sun" : h >= 18 && h < 21 ? "sunset" : "moon";
-  if (icon !== lastIcon) { clockIcon.innerHTML = DAYICON[icon]; lastIcon = icon; }
 }
 
 // ---------------------------------------------------------------- mist lying on the heath and the paddocks at dawn
@@ -440,7 +440,7 @@ function drawMist(dt) {
   }
 }
 
-// ---------------------------------------------------------------- lamps: windows and the street lamps, lit at dusk
+// ---------------------------------------------------------------- lamps: windows and the street lamps, still lit before sunrise
 // (assets/atmos.json: tools/atmos.py found the windows on the board)
 const lampC = document.getElementById("lamps"), lx = lampC.getContext("2d");
 let LAMPS = [];
@@ -676,7 +676,7 @@ const Sound = (() => {
       setTimeout(() => { stops.forEach((f) => f()); bus.disconnect(); }, 900);
     } };
   }
-  // always there while sound is on: the breeze, birds by day, an owl at night
+  // always there while sound is on: the breeze and the birds (the owl only before sunrise)
   function runBed() {
     const bus = gainAt(out, 0.7), stop = breeze(bus, 0.06), timers = [];
     const loop = () => { if (!S.on) return; const h = hourNow(), t = now() + 0.05;
@@ -883,7 +883,7 @@ const API = window.BOARD = {
   MW, MH, REDUCED, ROAD, PLACES, RACES, placeOf, medalAt, routeFor, join, rev,
   get scale() { return scale; }, view, stage, holder,
   inHours, hourNow,
-  setHour: (h) => { const t = h >= 5.5 && h < 21.5 ? (h - 5.5) / 16 * 0.86 : 0.86 + (((h - 21.5 + 24) % 24) / 8) * 0.14; dayT = t % 1; },
+  setHour: (h) => { h = Math.min(H2 - 0.4, Math.max(H0, h)); dayT = h <= H1 ? (h - H0) / (H1 - H0) * RISE : RISE + (h - H1) / (H2 - H1) * (TURN - RISE); },   // an hour of the morning (5.6 sunrise to 11)
   holdDay: false, covered: false, blocked: false, states: {},
   setStates, choose, hover, trail, clearTrail, leanTo, panTo, paintPic, fit,
   get chosen() { return chosen; },

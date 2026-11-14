@@ -17,12 +17,12 @@ const CHAPTERS = {
                line: "The mares nobody bred have sent their yearlings to Tattersalls. Bid for the best of them." },
   gallops:   { step: 3, place: "warren", season: "The next spring", title: "Into training", hour: 7,
                line: "Your string is in the yard as 2-year-olds. Take them up Warren Hill to bring them on." },
-  entries:   { step: 3, place: "jockey", season: "May", title: "Entries", hour: 14,
+  entries:   { step: 3, place: "jockey", season: "May", title: "Entries", hour: 9.5,
                line: W.entriesLine },
   week:      { step: 4, place: "races", season: W.when, title: W.weekTitle, hour: 9,
                line: W.weekLine },
-  standings: { step: 5, place: "races", season: W.when, title: "The final standings", hour: 18, line: "" },
-  home:      { step: 5, place: "palace", season: "Summer", title: "Home to Newmarket", hour: 19.2,
+  standings: { step: 5, place: "races", season: W.when, title: "The final standings", hour: 10, line: "" },
+  home:      { step: 5, place: "palace", season: "Summer", title: "Home to Newmarket", hour: 6.2,
                line: `${W.titleFrom} hangs in Palace House.` },
 };
 const STEPS = [
