@@ -350,16 +350,18 @@ function check(h, race) {
   if (race.grade === "Handicap" && ratingAt(h, h.age) > HCAP_MAX) return { why: `Rated ${ratingAt(h, h.age)}: too high for a handicap (max ${HCAP_MAX})` };
   const best = tripAt(h, h.age), lo = Math.min(...best), hi = Math.max(...best);
   const steps0 = race.step < lo ? lo - race.step : race.step > hi ? race.step - hi : 0;
-  // your trainer cards (js/team.js): a race-day boost, and the best trip moved a step towards the race
+  // your trainer (js/team.js): a tune-up for this race, Stable Form (trip work and the rest change the horse itself)
   const train = typeof trainFor === "function" ? trainFor(h, race, steps0) : { boost: 0, shift: 0, cards: [] };
   const steps = Math.max(0, steps0 - train.shift);
   if (steps > 3) return { why: `More than 3 steps from its best trip (${tripText(best)})` };
   const eff = ratingAt(h, h.age) + train.boost - steps * 5;
   if (eff < needFor(race)) return { eff, steps, train, why: `Rated ${eff} here: this race needs ${needFor(race)}+` };
   // Before race week the going isn't known, so the race-day rating is the rating at this trip; then the ground counts too
-  const going = goingKnown() ? CARD.going[race.day] : null, ground = groundPts(h.grounds, going), day = eff + ground;
+  // a booked jockey's boost on the day (js/team.js: the Champion everywhere, a specialist where he fits)
+  const jock = typeof jockeyBoost === "function" ? jockeyBoost(race, h) : { boost: 0, why: "" };
+  const going = goingKnown() ? CARD.going[race.day] : null, ground = groundPts(h.grounds, going), day = eff + ground + jock.boost;
   const rk = rankIn(race, day, going);
-  return { eff, steps, ok: true, ground, day, rank: rk.rank, of: rk.of, suits: ground > 0, train };
+  return { eff, steps, ok: true, ground, day, rank: rk.rank, of: rk.of, suits: ground > 0, train, jock };
 }
 // Where a race-day rating sits among the field's (the opposition race at their best trip)
 function oppDay(o, going) { return o.rating + groundPts(o.grounds, going); }
@@ -407,7 +409,7 @@ function fieldFor(i) {
     if (sh && race.step < lo) { const k = Math.min(sh, lo - race.step); lo -= k; hi -= k; }
     else if (sh && race.step > hi) { const k = Math.min(sh, race.step - hi); lo += k; hi += k; }
     const jc = typeof bookedFor === "function" ? bookedFor(race) : null;
-    if (c.ok) list.splice(C.myStall, 0, { id: me.id, name: me.name, rating: ratingAt(me, me.age) + (c.train ? c.train.boost : 0), trip: [DISTANCES[lo], DISTANCES[hi]],
+    if (c.ok) list.splice(C.myStall, 0, { id: me.id, name: me.name, rating: ratingAt(me, me.age) + (c.train ? c.train.boost : 0) + (c.jock ? c.jock.boost : 0), trip: [DISTANCES[lo], DISTANCES[hi]],
       goings: me.grounds, style: me.style, flex: me.flex, temper: me.temper, sk: mk, a: me0.a, b: me0.b, silks: me0.img,
       coat: me.coat, jockey: jc ? `${jc.title} ${TIER_NUM[jc.tier]}` : "Your jockey", trainer: "Your yard", owner: "You", mine: true,
       edge: typeof jockeyFields === "function" ? jockeyFields(race) : {} });

@@ -124,42 +124,61 @@
         keepFoal();
       }
     }
-    // 4) entries: each horse at its best age for its race (with its trainer cards), then the trainer cards placed
-    // where they add most, then entries again
+    // 4) Warren Hill and entries: each horse at its best age for its race; the trainer's jobs one at a time, each where
+    // it adds most to the whole entry (a keen horse counted 2.5 worse, as the race engine has it), one job kept for race
+    // week from Silver up; then jockeys booked where they're worth most
+    S.step = 3;
     const H = S.stable;
+    const keenAdj = h => h.temper === "keen" ? { ...h, r: h.r.map(x => x - 2.5) } : h;
+    const wOf = (h, r) => bestAt(keenAdj(h), r).w;
     const enter = () => {
-      const w = H.map(h => RACES.map(r => bestAt(h, r).w)), ages = {};
+      const w = H.map(h => RACES.map(r => wOf(h, r))), ages = {};
       S.entries = {};
       for (const [hi, ri] of assign(w)) if (w[hi][ri] > 0) { const b = bestAt(H[hi], RACES[ri]); ages[H[hi].id] = b.age; S.entries[RACES[ri].id] = H[hi].id; }
       H.forEach(h => { if (ages[h.id]) h.age = ages[h.id]; });
     };
-    enter();
-    for (const c of trainerCards()) {
-      const sp = trainerSpec(c.kind, c.tier); if (sp.horses >= 99) continue;
-      for (let k = 0; k < sp.horses; k++) {
-        let best = null;
-        for (const r of RACES) {
-          const h = horse(S.entries[r.id]); if (!h || !trainerCanGo(c, h) || trainHorses(c).includes(h.id)) continue;
-          const before = bestAt(h, r).w; giveTrainer(c.code, h.id); const after = bestAt(h, r).w; takeTrainer(c.code, h.id);
-          // a horse that can't run anywhere yet might be made to with the card
-          if (!best || after - before > best.gain) best = { h, gain: after - before };
+    // the value of the stable as entered: re-entered at Warren Hill, as it stands in race week
+    const value = reenter => { if (reenter) { const ages = H.map(h => h.age); H.forEach(h => h.age = 2); enter(); const v = RACES.reduce((a, r) => { const h = horse(S.entries[r.id]); return a + (h ? wOf(h, r) : 0); }, 0); return v; }
+      return RACES.reduce((a, r) => { const h = horse(S.entries[r.id]); if (!h) return a; const c = check(keenAdj(h), r); return a + (c.ok ? winChance(h, r, c) * r.prizes[0] / 300000 : 0); }, 0); };
+    const bestJob = (reenter, kinds) => {
+      const base = value(reenter); let best = null;
+      for (const h of H) {
+        const cands = [];
+        if (kinds.includes("trip")) cands.push(["trip", { dir: -1 }], ["trip", { dir: 1 }]);
+        if (kinds.includes("settle")) cands.push(["settle", {}]);
+        if (kinds.includes("ground")) cands.push(["ground", { side: "soft" }], ["ground", { side: "quick" }]);
+        if (kinds.includes("tune")) for (const r of RACES) if (!reenter ? S.entries[r.id] === h.id : true) cands.push(["tune", { race: r.id }]);
+        for (const [k, o] of cands) {
+          if (jobProblem(k, h, o)) continue;
+          const ages = H.map(x => x.age), ent = { ...S.entries };
+          doJob(k, h, o); const v = value(reenter); const i = S.team.jobs.length - 1;
+          if (reenter) undoJob(i); else { const j = S.team.jobs[i]; if (j.was) { h.d = j.was.d; h.grounds = j.was.grounds; h.temper = j.was.temper; } S.team.jobs.splice(i, 1); }
+          H.forEach((x, n) => x.age = ages[n]); S.entries = ent;
+          if (v - base > 1e-9 && (!best || v - base > best.gain)) best = { h, k, o, gain: v - base };
         }
-        for (const h of H) if (!Object.values(S.entries).includes(h.id) && trainerCanGo(c, h) && !trainHorses(c).includes(h.id)) {
-          for (const r of RACES) if (!S.entries[r.id]) { giveTrainer(c.code, h.id); const g = bestAt(h, r).w; takeTrainer(c.code, h.id); if (!best || g > best.gain) best = { h, gain: g }; }
-        }
-        if (best && best.gain > 0) { const list = S.team.trains[c.code] || []; list.push(best.h.id); S.team.trains[c.code] = list; }
       }
-    }
+      return best;
+    };
     enter();
-    // jockeys: booked where the prize is biggest and his way of riding suits the horse
+    const hold = trainerCards().some(c => c.tier >= 2) ? 1 : 0;
+    while (jobsLeft() > hold) {
+      const b = bestJob(true, ["trip", "settle", "tune"]); if (!b) break;
+      H.forEach(h => h.age = 2); doJob(b.k, b.h, b.o); log.jobs = (log.jobs || 0) + 1;
+    }
+    // free settles (the Juvenile Specialist's) wherever a keen 2-year-old runs
+    for (const h of H) if (h.temper === "keen" && settleFree(h)) doJob("settle", h, {});
+    H.forEach(h => h.age = 2); enter();
+    // jockeys: booked where the prize is biggest and his speciality fits the horse and race
     for (const c of jockeyCards()) {
-      const opts = RACES.filter(r => S.entries[r.id] && !bookedFor(r) && jockeySuits(c, horse(S.entries[r.id])))
+      const opts = RACES.filter(r => S.entries[r.id] && !bookedFor(r) && jockeySuits(c, horse(S.entries[r.id]), r))
         .map(r => ({ r, v: bestAt(horse(S.entries[r.id]), r).p * r.prizes[0] })).sort((a, b) => b.v - a.v);
       for (const o of opts.slice(0, JOCKEY_RIDES[c.tier])) bookJockey(o.r.id, c.code);
     }
     // 5) race week: the real race engine
     const out = { strat: name, seed, team: (team || []).join(" "), prize: 0, horses: H.length, budgetLeft: S.budget, wins: 0, runners: 0, ...log };
     S.step = 4;
+    // race week: the jobs kept back, now the going is out (ground work or a tune-up where it helps most)
+    while (jobsLeft() > 0) { const b = bestJob(false, ["ground", "tune"]); if (!b) break; doJob(b.k, b.h, b.o); log.jobs = (log.jobs || 0) + 1; }
     for (const [i, r] of RACES.entries()) {
       const id = S.entries[r.id]; if (!id) continue;
       out.runners++;

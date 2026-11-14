@@ -425,6 +425,7 @@ function hcardC(h, race, canAct, opts) {
       ${planned ? `<div class="hk-plan">★ Your planned runner for this race</div>` : ""}
       ${verdict}
       ${opts && opts.plan ? "" : entryNote(h, race, inRace, here)}
+      ${opts && opts.train ? jobStrip(h) : ""}
       ${acts ? `<div class="hc2-acts">${acts}</div>` : ""}
       <div class="hc2-end">${opts && opts.plan ? targetBox(h, race) : "<span></span>"}<button class="hc2-card" data-card="${h.id}">Card</button></div>
     </div></article>`;
@@ -523,6 +524,7 @@ function weekBody(done) {
     <p class="tb-lede">${W.watchHere}, or sim it for the result straight away. Both run the very same race. The pace forecast comes from the runners' racecards: lots of front-runners make a fast race that suits horses held up, and a race with none will be slow and tactical.</p></div>
     <div class="going-dec ${S.goingShown ? "" : "fresh"}"><b>THE GOING IS DECLARED</b><div class="gd-days">${DAYS.map((d, k) => `<div class="gd" style="--d:${k * 260}ms"><small>${dayTag(k)}</small><span class="gday g-${CARD.going[k]}">${CARD.going[k]}</span></div>`).join("")}</div>
       <p>${(() => { const mine = RACES.filter(r => S.entries[r.id]), liked = mine.filter(r => horse(S.entries[r.id]).grounds.includes(CARD.going[r.day])).length; return mine.length ? `${liked} of your ${mine.length} runners like the ground they'll get.` : ""; })()}</p></div>
+    ${typeof weekJobs === "function" ? weekJobs() : ""}
     <div class="tb-bar"><div class="tb-bar-info ${done === RACES.length ? "ready" : ""}">${done === RACES.length ? `All ${RACES.length} races run.` : `${done} of ${RACES.length} races run.`}</div>
     <div class="tb-bar-btns"><button class="tb-btn ghost" id="backEntries" ${done ? "disabled" : ""} title="${done ? "Entries are closed once the first race is run" : "Change your runners before the first race"}">Change entries</button></div></div>
     ${racesByDay(weekCard)}`;

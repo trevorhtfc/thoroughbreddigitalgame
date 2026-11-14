@@ -18,7 +18,7 @@ const CHAPTERS = {
   sales:     { step: 2, place: "tatts", season: "Autumn", title: "The Yearling Sales", hour: 11,
                line: "The mares nobody bred have sent their yearlings to Tattersalls. Bid for the best of them." },
   gallops:   { step: 3, place: "warren", season: "The next spring", title: "Into training", hour: 7,
-               line: "Your string is in the yard as 2-year-olds. Take them up Warren Hill to bring them on." },
+               line: "Your string is in the yard as 2-year-olds. Up Warren Hill, your trainer gets them ready: trip, temperament, ground." },
   entries:   { step: 3, place: "jockey", season: "May", title: "Entries", hour: 14,
                line: W.entriesLine },
   week:      { step: 4, place: "races", season: W.when, title: W.weekTitle, hour: 9,
@@ -36,9 +36,9 @@ function phase() {
   if (S.step === 1 && !(teamOn() && S.team.gone)) return "team";
   if (S.step === 1) return "breed";
   if (S.step === 2) return "sales";
-  // (training on Warren Hill, "gallops", is kept for a later version: owner, 6 Nov; horses are developed at the foal
-  // reveal and on the entries screen meanwhile)
-  if (S.step === 3) return "entries";
+  // Warren Hill opens with the trainers (owner, 14 Nov): after the sales the string goes up the gallops first, where the
+  // trainer's jobs are done and horses developed, then on to entries (a season begun before this had no gallops step)
+  if (S.step === 3) return S.galloped ? "entries" : "gallops";
   if (S.step === 4) return "week";
   return S.home ? "home" : "standings";
 }
@@ -63,7 +63,7 @@ function placeStates() {
   st.stables = has ? "open" : "locked";
   st.stud = ph === "breed" ? "open" : after("breed") ? "done" : "locked";
   st.tatts = ph === "sales" || ph === "gallops" || ph === "entries" ? (S.sale.length || ph === "sales" ? "open" : "done") : after("entries") ? "done" : "locked";
-  st.warren = "locked";                                             // training comes in a later version
+  st.warren = ph === "gallops" || ph === "entries" ? "open" : after("entries") ? "done" : "locked";
   st.races = ph === "gallops" || ph === "entries" || ph === "week" || ph === "standings" ? "open" : ph === "home" ? "done" : "locked";
   st[nextPlace()] = "next";
   return st;
@@ -104,9 +104,10 @@ function cardFor(id) {
     case "warren": {
       const can = S.stable.filter(h => h.age < 4).length;
       c.kicker = "The gallops";
-      if (st === "locked") { c.status = "Coming in a later version"; c.text = "Training on the gallops is on its way. For now, develop your 2-year-olds when they arrive or on the Jockey Club's entries screen."; c.cta = ""; }
+      const jl = typeof jobsLeft === "function" && teamOn() ? jobsLeft() : 0;
+      if (st === "locked") { c.status = "Opens after the sales"; c.text = "Your trainer gets the string ready here: trip, temperament, ground and a tune-up for a big race. Horses are developed here too."; c.cta = "Go to the gallops"; }
       else if (st === "done") { c.status = "Training is over for this season"; c.text = `Your string has gone to ${W.venue}.`; c.cta = ""; }
-      else { c.text = `Develop a horse to 3 or 4 to change its rating and best trip; you only see how once it's done. <b>${can}</b> of your ${S.stable.length} could still develop.`; c.cta = "Go to the gallops"; }
+      else { c.text = `${jl ? `Your trainer has <b>${jl}</b> job${jl === 1 ? "" : "s"} to spend. ` : ""}Develop a horse to 3 or 4 to change its rating and best trip. <b>${can}</b> of your ${S.stable.length} could still develop.`; c.cta = "Go to the gallops"; }
       break; }
     case "palace": {
       const weeks = pastWeeks().length;
@@ -306,7 +307,8 @@ const FOOTS = {
   },
   warren() {
     const ph = phase();
-    if (ph === "gallops") return `<span class="f-info">Develop any that need it, or come back later: the gallops stay open until you leave for ${W.venue}.</span>${goBtn("doneGallops", "Done on the gallops: on to entries")}`;
+    if (ph === "gallops" || ph === "entries") { const jl = typeof jobsLeft === "function" && teamOn() ? jobsLeft() : 0;
+      return `<span class="f-info">${jl ? `${jl} job${jl === 1 ? "" : "s"} left: spend ${jl === 1 ? "it" : "them"} now or keep ${jl === 1 ? "it" : "them"} for race week. ` : ""}The gallops stay open until you leave for ${W.venue}.</span>${ph === "gallops" ? goBtn("doneGallops", "Done on the gallops: on to entries") : ""}`; }
     return "";
   },
   palace() { return phase() !== "home" ? "" : isDaily()
@@ -405,9 +407,9 @@ function jockeyTabs(tab) {
 function gallopsBody() {
   const young = S.stable.filter(h => h.age < 4), grown = S.stable.filter(h => h.age >= 4);
   if (!S.stable.length) return `<p class="tb-empty">No horses in training yet.</p>`;
-  return `<div class="tb-head"><p class="tb-lede">Every horse arrives as a 2-year-old. Work one up the hill to develop it to 3 or 4: its rating and best trip change, and you only see how once it's done. There's no going back, and a horse can only run in races for its age. The projected peak is the age it should be at its best.</p></div>
+  return `${trainerPanel()}<div class="tb-head"><p class="tb-lede">Every horse arrives as a 2-year-old. Work one up the hill to develop it to 3 or 4: its rating and best trip change, and you only see how once it's done. There's no going back, and a horse can only run in races for its age. The projected peak is the age it should be at its best.</p></div>
     <div class="gal-sum"><span><b>${young.length}</b> could still develop</span><span><b>${grown.length}</b> fully grown</span><span><b>${S.stable.filter(h => h.age === h.peakAge).length}</b> at their projected peak</span></div>
-    ${horseCols(S.stable, null, true, { plan: true }, false)}`;
+    ${horseCols(S.stable, null, true, { plan: true, train: true }, false)}`;
 }
 
 /* ----- Palace House: your trophies and your history ----- */
@@ -441,7 +443,7 @@ function museumBody() {
       <li><b>The Jockey Club</b>: the ten races for ${W.whereLong} are drawn, and you draft your team: owner, trainer and jockey cards worth six points (Gold 3, Silver 2, Bronze 1).</li>
       <li><b>The National Stud</b>: buy mares (choose one of three each time) and send them to the stallions. A mare can be at most one star above her stallion; outcrosses breed best, the same family worst. Unproven stallions may be a star better or worse than they look.</li>
       <li><b>Tattersalls</b>: the yearlings out of the mares nobody bred are sold in three Books. Bid against five rival buyers; you see the pedigree, not the yearling, until it's yours.</li>
-      <li><b>Warren Hill</b>: develop horses to 3 or 4. Their rating and best trip change; you only see how once it's done.</li>
+      <li><b>Warren Hill</b>: your trainer's jobs (trip work, settling a keen horse, ground work, a tune-up for a big race) and developing horses to 3 or 4.</li>
       <li><b>The Jockey Club</b>: enter ${W.entryRule.toLowerCase()}. Each step from its best trip costs 5; the going counts ${W.goingCounts} (+5 on a going it likes, down to −10 three steps off).</li>
       <li>${W.howRaces ? W.howRaces : "<b>Royal Ascot</b>: watch each race in 3D or sim it."} Rating, trip, going and pace decide it, and a horse's running style meets the pace of the race. Prize money is its own pot; the money you spent doesn't count against it.</li>
     </ol></section>`;
@@ -659,10 +661,7 @@ document.addEventListener("change", e => {
   if (t.id === "sort") { S.sort = t.value; save(); render(); return; }
   // your team (js/team.js): a stallion for an owner's card, a trainer card on a horse, a jockey booked for a race
   if (d.ask) { if (t.value && askExpert(t.value)) { const x = stallion(t.value); toast(`Your expert: ${x.name} is really a ${x.trueStars}★ stallion`); } render(); return; }
-  if (d.train) { const on = (S.team.trains[d.train] || []).slice(), k = +d.slot || 0;
-    if (on[k]) takeTrainer(d.train, on[k]);
-    if (t.value) { giveTrainer(d.train, t.value); const h = horse(t.value); toast(`${cardName(teamCard(d.train))} goes on ${h.name}`); }
-    render(); return; }
+  if (d.tune) { const h = horse(d.tune), r = raceOf(t.value); if (h && r && doJob("tune", h, { race: r.id })) toast(`${h.name} is tuned up for the ${r.name}: +${tuneBoost(h, r)} there`); render(); return; }
   if (d.bookrace) { if (!bookJockey(d.bookrace, t.value)) toast("He has no rides left"); render(); return; }
 });
 document.addEventListener("click", e => {
@@ -676,6 +675,11 @@ document.addEventListener("click", e => {
   if (d.own) { if (ownStallion(d.own)) toast(`${d.own} is your own stallion: ${OWNED_FREE} free nominations`); render(); return; }
   if (d.claim) { claimLot(d.claim); render(); return; }
   if (d.accounts) { toggleAccounts(); return; }
+  if (d.job) { const h = horse(d.h), k = d.job, o = { dir: d.dir ? +d.dir : undefined, side: d.side, race: d.race };
+    if (h && doJob(k, h, o)) { const j = jobsAll()[jobsAll().length - 1];
+      toast(k === "trip" ? `${h.name}: best trip now ${tripText(tripAt(h, h.age))}` : k === "settle" ? `${h.name} has learned to settle` : k === "ground" ? `${h.name} now handles ${j.add.join(" and ")} too` : k === "tune" ? `${h.name} is tuned up: +${tuneBoost(h, raceOf(o.race))} in the ${raceOf(o.race).name}` : `Your trainer has looked ${h.name} over`); }
+    render(); return; }
+  if (d.unjob) { if (undoJob(+d.unjob)) toast("Job undone"); render(); return; }
   if (d.scoutrace) { scoutPick(d.scoutrace); render(); return; }
   if (d.scout) { if (briefScout()) { const n = (S.team.scout.found || []).length; toast(n ? `Your scout has found ${n === 1 ? "a lot" : n + " lots"} for your races` : "Your scout has your races"); } render(); return; }
   if (d.agent) { handBack(); render(); return; }
@@ -728,8 +732,8 @@ document.addEventListener("click", e => {
       S.confirmSale = false; S.step = 2; S.book = 1; S.view = "job"; newCatalogue(); save();
       story("stud", "tatts", "sales", { procession: "yearlings" }); break;
     case "toEnter": if (S.step !== 2 || S.foal) break;
-      S.step = 3; S.galloped = true; S.view = "job"; save();
-      story("tatts", "jockey", "entries", { procession: "gallops" }); break;
+      S.step = 3; S.galloped = false; S.view = "job"; save();
+      story("tatts", "warren", "gallops", { procession: "gallops" }); break;
     case "doneGallops": S.galloped = true; save(); story("warren", "jockey", "entries"); break;
     case "fill": fillEmpty(); render(); break;
     case "clear": S.entries = {}; save(); render(); break;

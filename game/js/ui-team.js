@@ -6,8 +6,8 @@
 const ROLE_CLS = { Owner: "r-own", Trainer: "r-trn", Jockey: "r-jky" };
 const ROLE_BLURB = {
   Owner: "Money and bloodstock: a bigger budget, free mares, cheap nominations, help at the sales.",
-  Trainer: "Make a horse better on the day, or move its best trip a step nearer the race.",
-  Jockey: "Ride your horses in the races you book them for, each with his own way of winning.",
+  Trainer: "Gets your horses ready at Warren Hill: their trip, temperament and ground, and a tune-up for a big race.",
+  Jockey: "Rides in the races you book him for: the Champion anywhere, the others at their trips, styles or going.",
 };
 function tcard(c, opts = {}) {
   return `<article class="tcard ${ROLE_CLS[c.role]} t${c.tier} ${opts.cls || ""}">
@@ -20,11 +20,10 @@ function tcard(c, opts = {}) {
 }
 // A word on how a card fits this season's ten races (so the draft is a real choice)
 function cardFit(c) {
-  if (c.role === "Trainer") {
-    const K = TRAINER_KINDS[c.kind];
-    if (K.cond === "dist") { const n = RACES.filter(r => K.vals.includes(DISTANCES[r.step])).length; return `${n} of your ${RACES.length} races ${n === 1 ? "is" : "are"} at these trips.`; }
-    if (K.cond === "age") { const n = RACES.filter(r => r.ages[0] <= K.vals[0] && r.ages[1] >= K.vals[0]).length; return `${n} of your races ${n === 1 ? "is" : "are"} open to ${K.vals[0]}-year-olds.`; }
-  }
+  const trips = c.role === "Trainer" ? TRAINER_KINDS[c.kind].trips : JOCKEY_KINDS[c.kind].trips;
+  if (trips) { const n = RACES.filter(r => trips.includes(raceTrip(r))).length; return `${n} of your ${RACES.length} races ${n === 1 ? "is" : "are"} at these trips.`; }
+  if (c.role === "Trainer" && c.kind === "juvenile") { const n = RACES.filter(r => r.ages[1] === 2).length; return `${n} of your races ${n === 1 ? "is" : "are"} for 2-year-olds.`; }
+  if (c.role === "Jockey" && c.kind === "bigrace") { const n = RACES.filter(r => r.grade.startsWith("Group")).length; return `${n} of your races ${n === 1 ? "is a Group race" : "are Group races"}.`; }
   if (c.role === "Jockey" && JOCKEY_KINDS[c.kind].style) return JOCKEY_KINDS[c.kind].style === "front" ? "Best on front-runners and prominent horses." : "Best on midfield and hold-up horses.";
   return "";
 }
@@ -134,18 +133,70 @@ function handBack() {
   S.budget += back; ledger("yearlings", -back); S.team.used.vet = (S.team.used.vet || 0) + 1; S.foal = null; save();
   toast(`Sent back on the vet's report: ${money(back)} refunded`);
 }
-// Entries: your trainer cards on horses, your jockeys booked for races
+// Entries: your trainer's jobs (done at Warren Hill) and your jockeys, booked race by race
 function teamAtEntries() {
   if (!teamOn() || teamSkipped()) return "";
   const tr = trainerCards(), jk = jockeyCards();
-  const trRow = c => { const sp = trainerSpec(c.kind, c.tier), on = trainHorses(c);
-    if (sp.horses >= 99) return tcard(c, { cls: "sm", extra: `<p class="tc-do">On every horse in your stable.</p>` });
-    const opts = S.stable.filter(h => trainerCanGo(c, h)).sort((a, b) => a.name.localeCompare(b.name));
-    const slots = Array.from({ length: sp.horses }, (_, k) => `<select class="tm-sel" data-train="${c.code}" data-slot="${k}"><option value="">${k ? "And another horse…" : "Give to a horse…"}</option>${opts.map(h => `<option value="${h.id}" ${on[k] === h.id ? "selected" : ""}>${esc2(h.name)} · ${h.age}YO · ${tripText(tripAt(h, h.age))}</option>`).join("")}</select>`).join("");
-    return tcard(c, { cls: "sm", extra: opts.length ? slots : `<p class="tc-hint">None of your horses can take it.</p>` }); };
+  const trRow = c => tcard(c, { cls: "sm", extra: `<p class="tc-do">${jobsAll().length ? `Jobs done: ${jobsAll().map(jobLabel).join(", ")}. ` : ""}${jobsLeft() ? `<b>${jobsLeft()}</b> job${jobsLeft() === 1 ? "" : "s"} left: spend ${jobsLeft() === 1 ? "it" : "them"} at Warren Hill, or keep ${jobsLeft() === 1 ? "it" : "them"} for race week.` : c.kind === "form" && !FORM_JOBS[c.tier] ? "Working on every horse." : "Every job is spent."}</p>${jobsLeft() && !atAscot() ? `<button class="tb-btn ghost sm" data-guide="warren">Go to Warren Hill</button>` : ""}` });
   const jkRow = c => tcard(c, { cls: "sm", extra: `<p class="tc-do">Booked for <b>${ridesOf(c.code).length} of ${JOCKEY_RIDES[c.tier]}</b> rides${ridesOf(c.code).length ? ": " + ridesOf(c.code).map(r => r.name.replace(/ Stakes$/, "")).join(", ") : ". Book him in a race below."}</p>` });
-  return `<details class="sect tm-at" ${S.team.openEntries === false ? "" : "open"}><summary class="sect-h"><h2 class="tb-h2">YOUR TRAINER AND JOCKEYS</h2><span>Trainer cards go on horses; jockeys are booked race by race</span></summary>
+  return `<details class="sect tm-at" ${S.team.openEntries === false ? "" : "open"}><summary class="sect-h"><h2 class="tb-h2">YOUR TRAINER AND JOCKEYS</h2><span>The trainer works at Warren Hill; jockeys are booked race by race</span></summary>
     <div class="tm-hand sm">${tr.map(trRow).join("")}${jk.map(jkRow).join("")}</div></details>`;
+}
+// a job in a few words: "Settle: Copper Falcon"
+function jobLabel(j) {
+  const h = horse(j.h), n = h ? h.name : "?";
+  if (j.k === "trip") return `${j.dir > 0 ? "longer" : "shorter"} trip for ${esc2(n)}`;
+  if (j.k === "ground") return `${esc2(n)} on ${j.add.join(" and ")}`;
+  if (j.k === "tune") { const r = raceOf(j.race); return `${esc2(n)} tuned up for the ${r ? esc2(shortRace(r)) : "race"}`; }
+  return `${JOB_INFO[j.k].name.toLowerCase()}: ${esc2(n)}`;
+}
+// ---------- Warren Hill: the trainer's jobs ----------
+function jobTokens() {
+  const tot = jobsTotal(), used = jobsUsed();
+  return `<div class="jb-tokens" aria-label="${tot - used} of ${tot} jobs left">${Array.from({ length: tot }, (_, k) => `<i class="${k < used ? "used" : ""}"></i>`).join("")}<span><b>${Math.max(0, tot - used)}</b> of ${tot} job${tot === 1 ? "" : "s"} left</span></div>`;
+}
+function trainerPanel() {
+  if (!teamOn() || teamSkipped() || !trainerCards().length) return "";
+  const tr = trainerCards();
+  return `<section class="sect tm-at jb-panel"><div class="sect-h"><h2 class="tb-h2">YOUR TRAINER</h2>${jobTokens()}</div>
+    <div class="jb-top"><div class="tm-hand sm">${tr.map(c => tcard(c, { cls: "sm" })).join("")}</div>
+      <ul class="jb-how">${Object.values(JOB_INFO).map(x => `<li><b>${x.name}</b> ${x.what}.</li>`).join("")}
+        <li class="jb-keep">Jobs you don't spend here can be used in race week, once the going is declared: ground work or a tune-up.</li></ul></div></section>`;
+}
+// the job strip on a horse's card at Warren Hill
+function jobStrip(h) {
+  if (!teamOn() || teamSkipped() || !trainerCards().length) return "";
+  const btn = (k, o, label, title) => { const why = jobProblem(k, h, o); return why ? "" : `<button class="jb-b" data-job="${k}" data-h="${h.id}" ${o.dir ? `data-dir="${o.dir}"` : ""} ${o.side ? `data-side="${o.side}"` : ""} title="${esc2(title)}">${label}</button>`; };
+  const d = tripAt(h, h.age), lo = Math.min(...d), hi = Math.max(...d);
+  const shift = dir => { const n = tripSteps(h, dir); if (!n) return ""; const nl = Math.max(0, lo + dir * n), nh = Math.min(DISTANCES.length - 1, hi + dir * n); return `${DISTANCES[nl]}${nh !== nl ? "–" + DISTANCES[nh] : ""}`; };
+  const adds = side => groundAdds(h, side).join(" & ");
+  // the races it's entered in or targeted at first, then any it can run in now, richest first
+  const mine = new Set([...runsOf(h).map(r => r.id), ...RACES.filter(r => (S.targets || {})[r.id] === h.id).map(r => r.id)]);
+  const races = RACES.filter(r => !S.results[r.id] && !tuneOf(r) && (mine.has(r.id) || (() => { const c = check(h, r); return c && c.ok; })()))
+    .sort((a, b) => mine.has(b.id) - mine.has(a.id) || b.prizes[0] - a.prizes[0]);
+  const tune = races.length && !jobProblem("tune", h, { race: races[0].id }) ? `<select class="jb-sel" data-tune="${h.id}"><option value="">Tune-up for…</option>${races.map(r => `<option value="${r.id}">${esc2(shortRace(r))} (+${tuneBoost(h, r)})</option>`).join("")}</select>` : "";
+  const nx = eyed(h) ? nextAge(h) : null;
+  const done = jobsOn(h).map(j => `<span class="jb-done">${JOB_INFO[j.k].name}${j.k === "trip" ? `: ${j.dir > 0 ? "longer" : "shorter"}` : j.k === "ground" ? `: ${j.add.join(", ")}` : j.k === "tune" ? `: ${esc2(shortRace(raceOf(j.race) || { name: "" }))}` : ""}${j.free ? " (free)" : ""}${jobUndoable(j.i) ? `<button data-unjob="${j.i}" aria-label="Undo">×</button>` : ""}</span>`).join("");
+  const notes = trainerNotes(h).map(t => `<li>${esc2(t)}</li>`).join("");
+  const opts = [btn("trip", { dir: -1 }, `Shorter: ${shift(-1)}`, "Trip work: its best trip moves this way for the season"), btn("trip", { dir: 1 }, `Longer: ${shift(1)}`, "Trip work: its best trip moves this way for the season"),
+    btn("settle", {}, settleFree(h) ? "Settle (free)" : "Settle", "A keen horse learns to settle"), btn("ground", { side: "soft" }, `Also ${adds("soft")}`, "Ground work: it handles this going too"), btn("ground", { side: "quick" }, `Also ${adds("quick")}`, "Ground work: it handles this going too"),
+    btn("eye", {}, eyeFree() ? "" : "Trainer's eye", "See how it will be at the next age before you develop it")].join("") + tune;
+  return `<div class="jb-strip">${notes ? `<ul class="jb-notes">${notes}</ul>` : ""}
+    ${nx ? `<div class="jb-eye">Trainer's eye: at ${nx.age} it will be rated <b>${nx.rating}</b>, best <b>${tripText(nx.trip)}</b>.</div>` : ""}
+    ${done ? `<div class="jb-dones">${done}</div>` : ""}
+    ${opts ? `<div class="jb-opts">${opts}</div>` : jobsLeft() ? "" : `<div class="jb-none">No jobs left.</div>`}</div>`;
+}
+// race week: jobs kept back, now the going is out (ground work, tune-ups) for horses with races still to run
+function weekJobs() {
+  if (!teamOn() || teamSkipped() || !trainerCards().length || !jobsLeft() || S.step !== 4) return "";
+  const rows = RACES.filter(r => !S.results[r.id] && S.entries[r.id]).map(r => { const h = horse(S.entries[r.id]), g = CARD.going[r.day];
+    if (!h) return "";
+    const side = GROUND_ORDER.indexOf(g) < GROUND_ORDER.indexOf(h.grounds[0]) ? "soft" : "quick", adds = h.grounds.includes(g) ? [] : groundAdds(h, side);
+    const gb = adds.length && !jobProblem("ground", h, { side }) ? `<button class="jb-b" data-job="ground" data-h="${h.id}" data-side="${side}">Ground work: also ${adds.join(" & ")}${adds.includes(g) ? " (+5 today)" : ""}</button>` : "";
+    const tb = !jobProblem("tune", h, { race: r.id }) ? `<button class="jb-b" data-job="tune" data-h="${h.id}" data-race="${r.id}">Tune-up +${tuneBoost(h, r)}</button>` : "";
+    return gb || tb ? `<li><span><b>${esc2(shortRace(r))}</b> · ${esc2(h.name)} · ${g}${h.grounds.includes(g) ? " (likes it)" : ""}</span><span class="jb-opts">${gb}${tb}</span></li>` : ""; }).join("");
+  return rows ? `<section class="sect tm-at jb-week"><div class="sect-h"><h2 class="tb-h2">YOUR TRAINER IN RACE WEEK</h2>${jobTokens()}</div>
+    <p class="tc-do">The going is out. Spend the jobs you kept back on ground work or a tune-up before the race is run.</p><ul class="jb-wk">${rows}</ul></section>` : "";
 }
 // the jockey line in a race's panel at entries
 function jockeyPick(r) {
@@ -154,10 +205,11 @@ function jockeyPick(r) {
   const cur = bookedFor(r), h = horse(S.entries[r.id]);
   if (!h && !cur) return `<div class="tm-jk"><span>Jockey</span><small>Enter a runner, then book one of your jockeys for it.</small></div>`;
   return `<div class="tm-jk"><span>Jockey</span><select class="tm-sel" data-bookrace="${r.id}"><option value="">Your yard's own jockey</option>${jk.map(c => { const left = ridesLeft(c) + (cur && cur.code === c.code ? 1 : 0);
-    return `<option value="${c.code}" ${cur && cur.code === c.code ? "selected" : ""} ${left > 0 ? "" : "disabled"}>${cardName(c)} (${left} ride${left === 1 ? "" : "s"} left)${h && !jockeySuits(c, h) ? " · doesn't suit its style" : ""}</option>`; }).join("")}</select></div>`;
+    return `<option value="${c.code}" ${cur && cur.code === c.code ? "selected" : ""} ${left > 0 ? "" : "disabled"}>${cardName(c)} (${left} ride${left === 1 ? "" : "s"} left)${!jockeySuits(c, h, r) ? (JOCKEY_KINDS[c.kind].style ? " · doesn't suit its style" : " · nothing extra here") : ""}</option>`; }).join("")}</select></div>`;
 }
 // what the team does for a horse in a race, in words (for the horse cards' verdict line)
 function teamNote(c) {
-  if (!c || !c.train || !c.train.cards.length) return "";
-  return " · " + c.train.cards.map(x => `${x.did} ${cardName(x.c)}`).join(", ");
+  if (!c) return "";
+  const bits = (c.train ? c.train.cards.map(x => x.c && x.c.kind === "form" ? `${x.did} ${cardName(x.c)}` : x.did) : []).concat(c.jock && c.jock.why ? [c.jock.why] : []);
+  return bits.length ? " · " + bits.join(", ") : "";
 }
