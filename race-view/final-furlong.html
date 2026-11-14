@@ -624,7 +624,7 @@ renderer.toneMappingExposure = Math.pow(2, (LIGHT && LIGHT.exposure) ?? 0.12);
 
 renderer.shadowMap.type = QUALITY[qLevel].soft ? THREE.PCFSoftShadowMap : THREE.PCFShadowMap;
 renderer.setPixelRatio(QUALITY[qLevel].scale);
-const KICK = { perSecond: 26, maxClods: 1600, share: QUALITY[qLevel].kick };   // turf kick-back
+const KICK = { perSecond: 26, maxClods: 4200, maxDust: 1200, share: QUALITY[qLevel].kick };   // turf kick-back
 
 const scene = new THREE.Scene();
 // Haze into the distance: up to 30% towards a soft, faintly cool pale grey, starting 120 m out
@@ -711,7 +711,7 @@ sun.shadow.normalBias = 0.03;
 scene.add(sun, sun.target);
 LOOKS.setupScene({ scene, hemi: sky, sun, cloudMat: scene.userData.cloudMat });
 const SUN_OFFSET = new THREE.Vector3(...((LIGHT && LIGHT.sunDir) || VIEW.sun || [-110, 49.5, -35.2]));   // (a course's view file may move it: the July Course's stands face the other way)   // the bake's sun direction (Blender (-1, 0.32, 0.45)), in the course's axes
-if (UPLIFT) UPLIFT.init({ COURSE, VIEW, scene, sun, hemi: sky, sunOffset: SUN_OFFSET, renderer });
+if (UPLIFT) UPLIFT.init({ COURSE, VIEW, scene, sun, hemi: sky, sunOffset: SUN_OFFSET, renderer, going: GOING, quality: qLevel });   // (the going: its weather, and how the turf wears)
 
 let shadowCatcher = null;
 // ---------- Textures ----------
@@ -1265,7 +1265,7 @@ function placeSiteKit(gltf, info, pieces) {
     }
   }
   const m4 = new THREE.Matrix4();
-  for (const { mat, parts } of byMat.values()) {
+  for (const [matName, { mat, parts }] of byMat) {
     const use = pieces.filter((p) => parts.has(p.piece + "_q" + quarter(p.turn || 0)));
     if (!use.length) continue;
     let nv = 0, ni = 0;
@@ -1274,10 +1274,14 @@ function placeSiteKit(gltf, info, pieces) {
     batch.sortObjects = false;
     const ids = new Map();
     for (const [vkey, g] of parts) ids.set(vkey, batch.addGeometry(g));
+    const placed = [];
     for (const p of use) {
       const id = batch.addInstance(ids.get(p.piece + "_q" + quarter(p.turn || 0)));
       batch.setMatrixAt(id, m4.makeRotationY(Math.PI + (p.turn || 0) * Math.PI / 180).setPosition(p.x, 0, p.z));
+      placed.push([id, p]);
     }
+    // (soft look: pastel colours for the festival's canvas, stripes and flags, each piece its own)
+    if (UPLIFT) UPLIFT.festival(batch, matName, placed);
     batch.castShadow = batch.receiveShadow = false;
     scene.add(batch);
     LAYERS.buildings.push(batch);
@@ -1398,7 +1402,10 @@ function instanceTrees(gltf, list) {
   // (soft look: trees far from the camera are drawn as flat pictures of themselves; trees away from the middle of the
   // course are grouped by where they stand, so each group can change over by itself)
   const flat = UPLIFT && UPLIFT.flatTrees(gltf);
+  // (soft look: low planting listed as a bush the tree kit doesn't have is drawn as tufts of the trees' own foliage)
+  const shrubs = [];
   for (const t of list) {
+    if (t.scrub && UPLIFT && UPLIFT.shrubs(gltf, t.tree)) { shrubs.push(t); continue; }
     t.s0 = t.s;
     if (THIN_BELTS && (t.belt || !isNear(t.x, t.z))) { if ((Math.round(t.x * 7 + t.z * 13) & 1) === 1) continue; t.s *= 1.12; }
     const near = !LITE_TREES && isNear(t.x, t.z);
@@ -1413,6 +1420,7 @@ function instanceTrees(gltf, list) {
       groups.get(key).push(t);
     }
   }
+  if (shrubs.length) UPLIFT.placeShrubs(gltf, shrubs, { scene, LAYERS, groundY });
   const m4 = new THREE.Matrix4(), q = new THREE.Quaternion(), sc = new THREE.Vector3(), p = new THREE.Vector3(), up = new THREE.Vector3(0, 1, 0);
   for (const [key0, ts] of groups) {
     if (key0[0] === "~") { UPLIFT.placeThickets(gltf, key0.slice(1), ts, { scene, LAYERS, groundY, treeMat }); continue; }
@@ -1585,6 +1593,8 @@ function placeScenery(SC, models, treeLib, belts) {
       const geo = mesh.geometry.clone().applyMatrix4(mesh.matrixWorld);
       const inst = new THREE.InstancedMesh(geo, clayOf(mesh.material), list.length);
       list.forEach(([, , x, z, turn, sx, s], i) => inst.setMatrixAt(i, m4.compose(p.set(x, groundY(x, z), z), q.setFromAxisAngle(up, turn * Math.PI / 180), sc.set(sx, s, s))));
+      // (soft look: pastel colours for canvas, stripes and flags, each copy its own, on every course)
+      if (UPLIFT) UPLIFT.festivalInstanced(inst, mesh.material.name || "", piece, list);
       inst.computeBoundingSphere();
       inst.castShadow = true; inst.receiveShadow = true;
       scene.add(inst); LAYERS.buildings.push(inst);
@@ -2722,33 +2732,79 @@ contact.frustumCulled = false; contact.count = 0; contact.renderOrder = 1;
 scene.add(contact);
 
 // ---------- Turf kick-back: clods of earth and grass thrown up behind the hooves ----------
+// It follows the going (owner, 14 Nov: "the kick back to be much more intense on heavier ground ... quick ground should
+// just have a little dusty kick just so it feels real"). Good is as it always was. Softer and Heavy throw more and
+// bigger clods, higher and further, mostly wet earth, and they lie on the turf a while before they are gone. Quicker
+// and Quick throw only a few small dry bits, and a little pale dust hangs low behind each horse for a moment.
+//   rate, size: against Good; big: the share that are big clods; up, back: how high and how far back they fly;
+//   lie: seconds a landed clod stays; colours: earth first, then grass; dust: puffs a second from a horse at full gallop
+const CLOD = (list) => list.map((c) => new THREE.Color(c));
+const KICK_GOING = {
+  Heavy:   { rate: 4.4, size: 1.3,  big: 0.36, up: 1.42, back: 1.2,  lie: 1.3,  dust: 0,  colours: CLOD(["#3f3022", "#4a3826", "#55412c", "#3a2c1f", "#4d3b28", "#453522", "#46562f", "#4f6234"]) },
+  Softer:  { rate: 2.3, size: 1.15, big: 0.3,  up: 1.22, back: 1.1,  lie: 0.9,  dust: 0,  colours: CLOD(["#4d3a28", "#5a4430", "#6d5238", "#4f3d2a", "#4d6a34", "#44702e", "#587c3a"]) },
+  Good:    { rate: 1,   size: 1,    big: 0.25, up: 1,    back: 1,    lie: 0.35, dust: 0,  colours: CLOD(["#5a4430", "#6d5238", "#567e36", "#44702e", "#5f8a3c", "#7a9a48"]) },
+  Quicker: { rate: 0.6, size: 0.85, big: 0.15, up: 0.9,  back: 0.95, lie: 0.3,  dust: 16, colours: CLOD(["#7a6a48", "#8a7a52", "#6f8a44", "#86a052", "#9aa860"]) },
+  Quick:   { rate: 0.4, size: 0.72, big: 0.08, up: 0.8,  back: 0.9,  lie: 0.25, dust: 36, colours: CLOD(["#8f8058", "#a39468", "#8a9a55", "#a3ad68", "#b5b278"]) },
+};
+const KG = KICK_GOING[GOING] || KICK_GOING.Good;
 const clods = new THREE.InstancedMesh(new THREE.IcosahedronGeometry(1, 0), new THREE.MeshLambertMaterial({ color: "#ffffff" }), KICK.maxClods);
 clods.frustumCulled = false; clods.count = 0; clods.castShadow = false;
 scene.add(clods);
 LAYERS.kick.push(clods);
-const CLOD_COLOURS = ["#5a4430", "#6d5238", "#567e36", "#44702e", "#5f8a3c", "#7a9a48"].map((c) => new THREE.Color(c));
+const CLOD_COLOURS = KG.colours;
 const live = [];
 const kickRnd = seeded(99);
 const _m = new THREE.Matrix4(), _q = new THREE.Quaternion(), _s = new THREE.Vector3(), _p = new THREE.Vector3(), _e = new THREE.Euler();
+// The dust of quick ground: soft pale puffs, each a flat picture turned to the camera, that swell and thin out in under
+// a second. Drawn only on the goings that have any.
+const dust = [], dustRnd = seeded(41), DUST_K = Number(params.get("dustk") || 1);
+let puffs = null;
+if (KG.dust) {
+  const dc = document.createElement("canvas"); dc.width = dc.height = 64;
+  const dg = dc.getContext("2d"), gr = dg.createRadialGradient(32, 32, 1, 32, 32, 31);
+  gr.addColorStop(0, "rgba(255,255,255,1)"); gr.addColorStop(0.45, "rgba(255,255,255,0.5)"); gr.addColorStop(1, "rgba(255,255,255,0)");
+  dg.fillStyle = gr; dg.fillRect(0, 0, 64, 64);
+  const geo = new THREE.PlaneGeometry(1, 1);
+  geo.setAttribute("aFade", new THREE.InstancedBufferAttribute(new Float32Array(KICK.maxDust), 1).setUsage(THREE.DynamicDrawUsage));
+  const mat = new THREE.MeshBasicMaterial({ map: new THREE.CanvasTexture(dc), color: "#ebe1c2", transparent: true, depthWrite: false });
+  mat.onBeforeCompile = (sh) => {
+    sh.vertexShader = sh.vertexShader.replace("#include <common>", "#include <common>\nattribute float aFade; varying float vFade;").replace("#include <begin_vertex>", "#include <begin_vertex>\nvFade = aFade;");
+    sh.fragmentShader = sh.fragmentShader.replace("#include <common>", "#include <common>\nvarying float vFade;").replace("#include <map_fragment>", "#include <map_fragment>\ndiffuseColor.a *= vFade;");
+  };
+  puffs = new THREE.InstancedMesh(geo, mat, KICK.maxDust);
+  puffs.frustumCulled = false; puffs.count = 0; puffs.castShadow = false; puffs.renderOrder = 3;
+  scene.add(puffs); LAYERS.kick.push(puffs);
+}
 function stepKick(dt, field) {
   // Emit: from the hind and fore hooves, thrown up and back; they leave the horse behind as it gallops on.
   for (const [x, z, v, , yaw] of field) {
     if (v < 6) continue;
-    let n = KICK.perSecond * KICK.share * (v / 16) * dt;
+    let n = KICK.perSecond * KG.rate * KICK.share * (v / 16) * dt * (KG.rate > 1 ? Math.min(1, 16 / field.length) : 1);   // (a big field on soft ground: a little less each, so every horse still throws some)
     while (n > 0 && live.length < KICK.maxClods) {
       if (n < 1 && kickRnd() > n) break;
       n -= 1;
       const hind = kickRnd() < 0.7;
       const lx = hind ? -1.1 + kickRnd() * 0.5 : 0.7 + kickRnd() * 0.4, lz = (kickRnd() - 0.5) * 0.7;
       const c = Math.cos(yaw), s = Math.sin(yaw);
-      const big = kickRnd() < 0.25;
+      const big = kickRnd() < KG.big;
       live.push({
         x: x + lx * c - lz * s, y: 0.05, z: z + lx * s + lz * c,
-        vx: v * (0.25 + kickRnd() * 0.35), vy: 1.0 + kickRnd() * (big ? 1.4 : 2.6), vz: (kickRnd() - 0.5) * 1.6,
-        size: big ? 0.035 + kickRnd() * 0.03 : 0.012 + kickRnd() * 0.02,
+        vx: v * (1 - (1 - (0.25 + kickRnd() * 0.35)) * KG.back), vy: (1.0 + kickRnd() * (big ? 1.4 : 2.6)) * KG.up, vz: (kickRnd() - 0.5) * 1.6 * KG.back,
+        size: (big ? 0.035 + kickRnd() * 0.03 : 0.012 + kickRnd() * 0.02) * KG.size,
         rot: kickRnd() * 6.28, spin: (kickRnd() - 0.5) * 20, age: 0, landed: -1,
         col: CLOD_COLOURS[Math.floor(kickRnd() * CLOD_COLOURS.length)],
       });
+    }
+    if (puffs) {
+      let m = KG.dust * Math.max(KICK.share, 0.4) * (v / 16) * dt;
+      while (m > 0 && dust.length < KICK.maxDust) {
+        if (m < 1 && dustRnd() > m) break;
+        m -= 1;
+        const lx = dustRnd() < 0.65 ? -1.0 + dustRnd() * 0.5 : 0.7 + dustRnd() * 0.4, lz = (dustRnd() - 0.5) * 0.6;
+        const c = Math.cos(yaw), s = Math.sin(yaw);
+        dust.push({ x: x + lx * c - lz * s, y: 0.08 + dustRnd() * 0.1, z: z + lx * s + lz * c, vx: v * (0.04 + dustRnd() * 0.1), vy: 0.3 + dustRnd() * 0.5, vz: (dustRnd() - 0.5) * 0.5,
+          size: 0.2 + dustRnd() * 0.2, grow: 0.6 + dustRnd() * 0.6, age: 0, life: 0.4 + dustRnd() * 0.35, k: 0.5 + dustRnd() * 0.5 });
+      }
     }
   }
   // Fly, fall, land, then settle into the turf.
@@ -2759,21 +2815,46 @@ function stepKick(dt, field) {
       c.vy -= 9.8 * dt; c.x += c.vx * dt; c.y += c.vy * dt; c.z += c.vz * dt; c.rot += c.spin * dt;
       if (c.y <= c.size * 0.5) { c.y = c.size * 0.5; c.landed = c.age; }
     }
-    if ((c.landed >= 0 && c.age - c.landed > 0.35) || c.age > 3) live.splice(i, 1);
+    if ((c.landed >= 0 && c.age - c.landed > KG.lie) || c.age > 3 + KG.lie) { live[i] = live[live.length - 1]; live.pop(); }
+  }
+  for (let i = dust.length - 1; i >= 0; i--) {
+    const d = dust[i], drag = Math.exp(-dt * 3.5);
+    d.age += dt; d.vx *= drag; d.vz *= drag; d.vy *= Math.exp(-dt * 2);
+    d.x += d.vx * dt; d.y += d.vy * dt; d.z += d.vz * dt;
+    if (d.age > d.life) { dust[i] = dust[dust.length - 1]; dust.pop(); }
   }
 }
 function drawKick() {
   live.forEach((c, i) => {
-    const fade = c.landed >= 0 ? Math.max(0, 1 - (c.age - c.landed) / 0.35) : 1;
-    const [wx, wz] = toWorld(c.x, c.z); _p.set(wx, c.y + groundY(wx, wz), wz); _q.setFromEuler(_e.set(c.rot, c.rot * 0.7, 0)); _s.setScalar(c.size * (0.4 + 0.6 * fade));
+    const fade = c.landed >= 0 ? Math.max(0, 1 - (c.age - c.landed) / KG.lie) : 1;
+    // (a clod that lies a while keeps its size, then sinks away over its last third of a second)
+    const sink = KG.lie > 0.4 && c.landed >= 0 ? Math.min(1, (KG.lie - (c.age - c.landed)) / 0.35) : fade;
+    if (c.landed < 0 || !c.at) { const [wx, wz] = toWorld(c.x, c.z); c.at = [wx, groundY(wx, wz), wz]; }      // (worked out once it has landed, not every frame)
+    const [wx, gy, wz] = c.at; if (c.landed < 0) c.at = null;
+    _p.set(wx, c.y + gy, wz); _q.setFromEuler(_e.set(c.rot, c.rot * 0.7, 0)); _s.setScalar(c.size * (0.4 + 0.6 * Math.max(0, sink)));
+    if (KG !== KICK_GOING.Good) {                              // off good ground no two bits are one shape: flat, ragged lumps of turf and earth, not round ones
+      const h = Math.abs(c.spin) * 7.13; _s.x *= 0.85 + 0.75 * (h % 1); _s.y *= 0.4 + 0.4 * ((h * 3.7) % 1); _s.z *= 0.75 + 0.55 * ((h * 5.3) % 1);
+      if (c.landed >= 0) _q.setFromEuler(_e.set(0, c.rot, 0));   // and it lies flat where it lands
+    }
     clods.setMatrixAt(i, _m.compose(_p, _q, _s));
     clods.setColorAt(i, c.col);
   });
   clods.count = live.length;
   clods.instanceMatrix.needsUpdate = true;
   if (clods.instanceColor) clods.instanceColor.needsUpdate = true;
+  if (puffs) {
+    const fade = puffs.geometry.attributes.aFade;
+    dust.forEach((d, i) => {
+      const u = d.age / d.life, [wx, wz] = toWorld(d.x, d.z);
+      _p.set(wx, d.y + groundY(wx, wz), wz); _s.setScalar(d.size + d.grow * u); _s.x *= 1.5; _s.y *= 0.8;      // (low and drawn out, not a ball)
+      puffs.setMatrixAt(i, _m.compose(_p, camera.quaternion, _s));
+      fade.setX(i, DUST_K * d.k * Math.min(1, u * 8) * Math.pow(1 - u, 1.5));
+    });
+    puffs.count = dust.length; puffs.instanceMatrix.needsUpdate = true; fade.needsUpdate = true;
+  }
 }
 
+const worldField = (t) => sample(t).map(([x, z, v]) => { const [wx, wz] = toWorld(x, z); return [wx, wz, v]; });
 function sample(t) {
   const f = t / timeline.dt;
   const i = Math.min(Math.floor(f), timeline.frames.length - 2), k = Math.min(1, f - i);
@@ -3333,6 +3414,8 @@ function frame() {
     }
     if (!state.paused) stepKick(step, now);
     drawKick();
+    // the turf remembers where the field has run (uplift.js: the wear map), by the going
+    if (UPLIFT) { if (state.phase === "race") UPLIFT.wear(state.t, worldField); else if (state.phase === "prelude" || state.phase === "stalls") UPLIFT.wearReset(); }   // (fresh turf before each off)
   }
   const packU = runners.length ? sum / runners.length : 0;
   // the gates: shut until the off, then spring open; on a race that comes back past its own start (2 miles)
@@ -3417,7 +3500,7 @@ requestAnimationFrame(frame);
 // Checking aid (?still=1): play on by exactly dt seconds and draw (the whole show, phases and all), for recording a
 // film frame by frame: window.__advance(1 / 25).
 if (params.has("still")) window.__advance = (dt) => { FIXED_DT = dt; state.paused = false; stillFrames = 99; frame(); state.paused = true; FIXED_DT = 0; };
-if (params.has("still")) window.__seek = (t) => { state.phase = "race"; state.t = t; snap = true; TV.snap = true; stillFrames = 0; window.__ready = false; requestAnimationFrame(frame); };
+if (params.has("still")) window.__seek = (t) => { if (UPLIFT && t < state.t) UPLIFT.wearReset(); live.length = 0; dust.length = 0; kickWarm = false; state.phase = "race"; state.t = t; snap = true; TV.snap = true; stillFrames = 0; window.__ready = false; requestAnimationFrame(frame); };
 // Checking aid (?bench=1): the scene's parts, for timing each one on its own (see the rig's bench script).
 if (params.has("bench")) window.__dbg = { THREE, renderer, scene, camera, LAYERS, sun, QUALITY, runners, get qLevel() { return qLevel; } };
 </script>

@@ -19,12 +19,12 @@ const CHAPTERS = {
                line: "The mares nobody bred have sent their yearlings to Tattersalls. Bid for the best of them." },
   gallops:   { step: 3, place: "warren", season: "The next spring", title: "Into training", hour: 7,
                line: "Your string is in the yard as 2-year-olds. Up Warren Hill, your trainer gets them ready: trip, temperament, ground." },
-  entries:   { step: 3, place: "jockey", season: "May", title: "Entries", hour: 14,
+  entries:   { step: 3, place: "jockey", season: "May", title: "Entries", hour: 9.5,
                line: W.entriesLine },
   week:      { step: 4, place: "races", season: W.when, title: W.weekTitle, hour: 9,
                line: W.weekLine },
-  standings: { step: 5, place: "races", season: W.when, title: "The final standings", hour: 18, line: "" },
-  home:      { step: 5, place: "palace", season: "Summer", title: "Home to Newmarket", hour: 19.2,
+  standings: { step: 5, place: "races", season: W.when, title: "The final standings", hour: 10, line: "" },
+  home:      { step: 5, place: "palace", season: "Summer", title: "Home to Newmarket", hour: 6.2,
                line: `${W.titleFrom} hangs in Palace House.` },
 };
 const STEPS = [
@@ -671,7 +671,7 @@ document.addEventListener("click", e => {
   if (d.guide) { BOARD.choose(d.guide); return; }
   if (d.step) { const s = STEPS.find(x => x.n === +d.step); if (s && !atAscot()) BOARD.choose(s.n === CHAPTERS[phase()].step ? nextPlace() : s.place); return; }
   if (d.jtab) { UI.tab.jockey = d.jtab; render(); sheetTop(); return; }
-  if (d.deck) { const [role, tier] = d.deck.split(":"); if (drawDeck(role, +tier)) { render(); sheetTop(); BOARD.Sound.chime && BOARD.Sound.chime(); } return; }
+  if (d.deck) { const [role, tier] = d.deck.split(":"), code = drawDeck(role, +tier); if (code) { UI.drew = Date.now(); render(); sheetTop(); BOARD.Sound.chime && BOARD.Sound.chime(); toast(`${cardName(teamCard(code))} joins your team`); } return; }
   if (d.keepcard) { const c = teamCard(d.keepcard); keepTeamCard(d.keepcard); toast(`${cardName(c)} joins your team`); render(); sheetTop(); return; }
   if (d.own) { if (ownStallion(d.own)) toast(`${d.own} is your own stallion: ${OWNED_FREE} free nominations`); render(); return; }
   if (d.claim) { claimLot(d.claim); render(); return; }

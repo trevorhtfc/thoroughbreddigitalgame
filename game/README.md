@@ -50,6 +50,45 @@ colours walking out to Warren Hill, the horseboxes away up Fordham Road. Then th
 race view; "Sim" gives the same result straight away. Entries can still be changed before the first race (the Jockey
 Club's entries in an Ascot sheet: "Declarations").
 
+## The board's morning (14 Nov 2026, branch `claude/newmarket-morning`)
+
+Owner, 14 Nov: "leave it to early morning/sunrise and daytime without showing the actual time"; "these people standing
+on horses?"; "there shouldn't really be any still horses?"; "some of the vans are still hitting buildings, horses or
+each other"; "increase the horses on the gallops once it's brightened up a tad at sunrise".
+
+- **The light** (`src/board.src.js`, "the morning"): one cycle of 250 seconds. It opens before sunrise (lamps lit, mist
+  on the heath), the sun comes up over the first third, the day holds its fresh light, and the last 8% eases back round
+  to the next sunrise. No dusk, no night, and no clock in the bar. Inside, time is still an hour (5.6 to 11.6) that the
+  horses and horseboxes go by; `BOARD.setHour(h)` takes an hour of the morning, and the chapters' hours in `js/ui.js`
+  (`CHAPTERS`) are all mornings now.
+- **No painted horses left on the game's board.** `python3 newmarket-live/tools/clean_board.py --game` paints the 32
+  still horses out of the paddocks and yards (a clean patch of the same grass or sand laid over each) and takes them out
+  of the game's copy of the hide-behind map (`assets/newmarket/occlusion.png`). The old living map's own board is not
+  touched. The arrival film (`video/newmarket-arrive.mp4`) still ends on the old painting, so its horses fade away as
+  the live board takes over.
+- **Moving ones in their place** (`src/life.src.js`): `ROUNDS` (ovals in the paddocks, the Tattersalls yard and lawn,
+  the stable yard: loose, ridden or led), the three paddock lines turned into rounds (`loopOf`), a second horse on the
+  ring. Nothing pauses any more.
+- **The lads** walk at the horse's shoulder on the side nearer the viewer (`place()`): on the far side the board's
+  projection drew them standing on its back. The riders themselves were always seated.
+- **The gallops**: the lots come in over the board's left edge, gallop up the Gallops, wheel at the top and come back
+  out along the hedge (`GALLOPS` is one round). A first lot is out from first light; from hour 6.4 (`BRIGHT`) there are
+  four lots of five on the Gallops and four of four up Warren Hill (a phone: three of four, three of three). The first
+  string now walks out along the Avenue instead of across the Gallops.
+- **The roads are one way** (`tools/snap_van_routes.py` writes `VAN_ROUTES`): in by Old Station Road, Newmarket Road and
+  Bury Road; out up Fordham Road, or down the High Street and Station Road to the Avenue. It is the way the strings
+  already walked each road, so nothing meets head on. Everything goes round the roundabout's island (`roundabout()`),
+  not over the monument.
+- **Right of way** (`rightOfWay()`, `meets()`): a horsebox looks three seconds down its route and at where every horse,
+  lad and horsebox on the roads (`ROADIES`, the processions too) will be by then, eases off and waits, or falls in
+  behind a string; one horsebox on the roundabout at a time (`ZONE`); a string halts together behind a standing
+  horsebox (`holdGroups`).
+- **Checked** by running the board on a made-up clock without drawing (`LIFE.noDraw`, `LIFE.__state()`): over a whole
+  morning, and through each procession, no horsebox came within 2 pixels of a horse or 27 of another horsebox.
+  The scripts were in the session's scratch folder (worth keeping as a repo test one day).
+- **Not checked on a real phone or the Mac.** About 65 to 78 horses are in sight at once on a computer (about 50 to 62
+  on a phone, where each horse's animation is worked out every other frame); it was about 35 to 55 before.
+
 ## Two ways to play: today's card and the random game (13 Nov 2026, branch `claude/daily-card`)
 
 Owner, 13 Nov: "having the daily mix or just a play a random game option is best". The cover's buttons (`paintMenu()` in
@@ -147,6 +186,9 @@ The race itself (the engine, the timeline, the cameras, the models) is unchanged
   running style) and **the result** after the line (the first four with their silks and margins, your horse's place and
   prize, Watch the replay / Back to the racecard / Next race). In the game the show ends on the set piece after the race,
   with the result up, instead of going round again.
+- **Weather and ground by the going** (14 Nov): the day's going sets the race's weather (Heavy grey and flat, through
+  to Quick as a summer's day), how much turf the field throws up (heavy clods on soft ground, a little dust on quick)
+  and how the turf wears where they have run. Details: `claude/weather-and-ground-handover.md` in the project.
 - **Panels in the game's dress** (Crimson Pro, gold hairlines); the controls start tucked away for a clean TV picture
   (the Controls button brings them back); the v1/v2 horse switch is hidden.
 - **The course by name**: the view reads `assets/course/<course>.json`, `-view.json`, `-stalls.json`, `-standards.json`
@@ -249,7 +291,7 @@ as its `files` (one publish takes 255 files and 64 MB; this is 241 files and 35 
 
 Serve the staged folder (`python3 -m http.server`) and play it in a browser. On a machine without a graphics chip, add
 `?nolife=1` (the 3D life on the board is very slow in software rendering, though fine on a real graphics chip). In the
-console: `__setHour(19)` sets the time of day on the board; `LIFE.__advance(10)` moves a procession on 10 seconds.
+console: `__setHour(6)` sets the time of the morning on the board (5.6 before sunrise to 11); `LIFE.__advance(10)` moves a procession on 10 seconds.
 
 ## 7 Nov 2026: the new look and a faster race view in the game (version 7)
 
@@ -708,3 +750,15 @@ Card tests at £1m (40 paired seasons, so ± £10–30k): **Elite Mares** as upg
 Breeder and Planner (it was +£5–13k when it only showed more mares); Gold with 3 upgrades +£40k, with 4 +£25k, both
 within the noise of Silver, so Gold has 4 (lift every Useful and Moderate mare a grade). **Powerhouse** (£150k / £300k /
 £450k more) Planner +£27k / +£31k / +£58k, Breeder +£11–19k, Balanced +£3–18k: not stronger for the smaller budget.
+Owner, 14 Nov: "a weird step at 36-37 secs … it needs blending; can we turn the PA up more … even if it means looping what
+you have … PA up at the start as well". The step was the middle loop's stitched pieces (the bright Japan Cup crowd into
+the Cheltenham roar's tail). The middle's crowd is now the long seamless crowd loops, muted, and the commentary is its
+own layer: the clearest commentary in the clips (Cheltenham's commentator after the roar, Aintree's announcer) lifted
+out of its crowd (`isolate`), put through a loudspeaker sound (`tannoy`) and looped on top through the middle (evenly
+spaced) and the finish (louder and a shade quicker and higher towards the line: `PA_BUILD`).
+
+Owner, 14 Nov: "the crowd has got a bit jittery … jumpy rather than a smooth crescendo". Measured: the jumpiness was the
+gallop (one recording's uneven hoofbeats, raised 9 dB towards the line) and the finish's quick automatic level control.
+The gallop is now five copies blended into a rolling field, softened, rising only 5 dB; the finish's level is shaped
+slowly (over ~5 s); the commentary phrases are cleaner and eased in and out, and the crowd dips gently in the voice's
+range while he speaks (`duck_under`) so the overall level stays even. The crowd and gallop's wobble halved (1.5 → 0.7 dB).

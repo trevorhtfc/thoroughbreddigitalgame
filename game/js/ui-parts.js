@@ -671,7 +671,8 @@ function watch(i) {
   box.className = "watch";
   // the race view's diagnostics: the game opened as …#debug (or ?debug=1) opens every race with them showing
   const dbg = location.hash === "#debug" || /[?&]debug=1\b/.test(location.search) ? "&debug=1" : "";
-  box.innerHTML = `<iframe src="final-furlong.html?game=1${dbg}${window.__watchQuery || ""}" title="${esc2(race.name)}" allow="fullscreen"></iframe><button class="tb-btn ghost x" id="closeWatch"><span class="lg">Back to the racecard</span><span class="sh">Racecard</span></button>`;
+  // (the day's going is on the address too: the race view's weather is chosen from it as the page opens, before the race arrives)
+  box.innerHTML = `<iframe src="final-furlong.html?game=1&going=${encodeURIComponent(CARD.going[race.day])}${dbg}${window.__watchQuery || ""}" title="${esc2(race.name)}" allow="fullscreen"></iframe><button class="tb-btn ghost x" id="closeWatch"><span class="lg">Back to the racecard</span><span class="sh">Racecard</span></button>`;
   document.body.appendChild(box); document.body.style.overflow = "hidden";
   document.body.classList.add("watching");      // everything under the race is hidden and the board's loop rests (css/game.css)
   if (window.BOARD) BOARD.Sound.hush(true);     // and its sounds: the race view has its own crowd and horses
