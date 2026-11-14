@@ -166,6 +166,24 @@ Owner, 14 Nov: "the game should now show the leaderboard on the home screen and 
   checks only that it is sensible. Clearing the browser's storage makes a new player (the old name stays taken). A
   name can't yet be carried to a second device.
 
+## How to play: the steps off the cover, onto their own page (14 Nov 2026)
+
+Owner, 14 Nov: the cover's four steps were out of date ("you now have more steps"); "sack off the steps thing here ..
+and move that to the next page as more of an instructions piece integrating the team cards etc as well".
+
+- The cover's numbered steps (`.menu-how`) are gone; in their place a **How to play** button (`#menuHow`).
+- **The page** is `js/howto.js` (`openHowTo()`), styles `.ht-*` at the end of `css/game.css`: eight steps (the draw,
+  draft your team, the National Stud, Tattersalls, Warren Hill, entries, the races, the prize money), each with its window
+  onto the board (`BOARD.paintPic`, the place's own `pic`, a little wider) or the racecourse still, its place and time of
+  year from `CHAPTERS`, and a note of which team card comes into play there (owner at the stud and sales, trainer on
+  Warren Hill, jockeys at entries). The team step shows a fan of an owner, a trainer and a jockey card in their Gold,
+  Silver and Bronze frames. Then a word on today's card and the random game.
+- Its numbers come from the rules (`START_BUDGET`, `OFFER_SIZE`, `TEAM_POINTS`, `TITLES`, each season's words), so a
+  change there shows here too. Words written into it by hand (what each card kind does) need updating by hand.
+- **When it shows:** by itself the first time a player presses Play today's card or Play a random game (before making
+  their colours; `needHowTo()`, remembered as `tb-howto-seen`), and any time from the cover's button or Palace House
+  (where it replaces the old "How the season goes" list, which had gone out of date).
+
 ## One look
 
 `css/game.css` on top of the house style (`css/components.css`, the Ascot game's styles). Taken from the board: its

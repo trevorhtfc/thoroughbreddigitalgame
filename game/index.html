@@ -107,12 +107,8 @@
     </div>
     <!-- the leaderboard: the standings and your position (js/leaderboard.js) -->
     <section class="menu-lb" id="menuBoard" aria-label="Leaderboard"></section>
-    <ol class="menu-how">
-      <li><b>The National Stud</b><span>Start with £1,250,000. Buy mares, one of two each time, and send them to the stallions.</span></li>
-      <li><b>Tattersalls</b><span>Bid against rival buyers for yearlings out of the mares nobody bred. No going back.</span></li>
-      <li><b>The Jockey Club</b><span>Enter one horse per race, bringing on any 2-year-olds who need it.</span></li>
-      <li id="menuRaces"><b>Royal Ascot</b><span>Ten races over five days, watched in 3D. Prize money is its own pot, apart from your budget.</span></li>
-    </ol>
+    <!-- how to play: the season step by step, on its own page (js/howto.js; owner, 14 Nov: the steps came off the cover) -->
+    <button class="menu-howbtn" id="menuHow" type="button">How to play <span>· the season step by step, and your team</span></button>
     <section class="menu-ladder" aria-label="Titles by prize money"><div class="mc-h">The titles</div>
       <ol id="menuTitles"></ol><p class="ml-best" id="menuBest"></p></section>
     <section class="menu-col" id="menuCol"></section>
@@ -142,6 +138,7 @@
 <script src="js/ui-team.js"></script>
 <script src="js/ui.js"></script>
 <script src="js/colours.js"></script>
+<script src="js/howto.js"></script>
 <script src="js/leaderboard.js"></script>
 <script type="module">
 // The race engine (race-engine/engine.js in the repo) and the course data it reads. The 3D race view

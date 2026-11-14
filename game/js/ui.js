@@ -439,14 +439,8 @@ function museumBody() {
         `<tr class="${w.seed === S.seed ? "me" : ""}"><td>${k + 1}</td><td>${w.day ? "Daily, " + dayText(w.day) : w.seed}</td><td><b>${money(w.prize)}</b></td><td>${w.wins}/${w.races}</td><td>${w.title}</td></tr>`).join("")}</tbody></table>
       <p class="rec-n">${hist.length} ${MEETING.id === "royal-ascot" ? "week" : "season"}${hist.length === 1 ? "" : "s"} played. Collect every title.</p></section>` : ""}
     ${hon.length ? `<section class="rec"><h2 class="tb-h2">ROLL OF HONOUR</h2><ul class="honours">${hon.slice(0, 30).map(x => `<li>${silkImg(x.silks || 0)}<b>${esc2(x.horse)}</b><span>${esc2(x.race)}</span><small>${esc2(x.grade)} · ${seasonName(x, true)}</small></li>`).join("")}</ul></section>` : ""}
-    <section class="rec how"><h2 class="tb-h2">HOW THE SEASON GOES</h2><ol class="how-list">
-      <li><b>The Jockey Club</b>: the ten races for ${W.whereLong} are drawn, and you draft your team: owner, trainer and jockey cards worth six points (Gold 3, Silver 2, Bronze 1).</li>
-      <li><b>The National Stud</b>: buy mares (choose one of three each time) and send them to the stallions. A mare can be at most one star above her stallion; outcrosses breed best, the same family worst. Unproven stallions may be a star better or worse than they look.</li>
-      <li><b>Tattersalls</b>: the yearlings out of the mares nobody bred are sold in three Books. Bid against five rival buyers; you see the pedigree, not the yearling, until it's yours.</li>
-      <li><b>Warren Hill</b>: your trainer's jobs (trip work, settling a keen horse, ground work, a tune-up for a big race) and developing horses to 3 or 4.</li>
-      <li><b>The Jockey Club</b>: enter ${W.entryRule.toLowerCase()}. Each step from its best trip costs 5; the going counts ${W.goingCounts} (+5 on a going it likes, down to −10 three steps off).</li>
-      <li>${W.howRaces ? W.howRaces : "<b>Royal Ascot</b>: watch each race in 3D or sim it."} Rating, trip, going and pace decide it, and a horse's running style meets the pace of the race. Prize money is its own pot; the money you spent doesn't count against it.</li>
-    </ol></section>`;
+    <section class="rec how"><h2 class="tb-h2">HOW THE SEASON GOES</h2><p class="rec-n">The season step by step, with your team cards and how the titles are won.</p>
+      <button class="tb-btn ghost" type="button" data-howto="1">How to play <span aria-hidden="true">›</span></button></section>`;
 }
 
 /* ================= Films between the places ================= */
@@ -582,7 +576,6 @@ function paintMenu(keepScroll) {
   if (W.coverKicker) $("#menuKick").textContent = W.coverKicker;
   $("#menuWord").textContent = W.gameTitle || "Ascot";
   if (W.coverLede) $("#menuLede").innerHTML = W.coverLede;
-  if (W.coverRaces) $("#menuRaces").innerHTML = `<b>${W.coverRaces[0]}</b><span>${W.coverRaces[1]}</span>`;
   // your colours: made by you (js/colours.js), not chosen from the ready-made silks
   $("#menuCol").innerHTML = hasColours()
     ? `<div class="mc-big">${silkImg(MINE)}</div><div class="mc-h">Your colours</div><div class="mc-own"><span>${esc2(SilksPaint.describe(MY.spec))}</span><button class="mc-change" id="menuColours" type="button">Change your colours</button></div>`
@@ -761,8 +754,9 @@ document.addEventListener("click", e => {
     }
     case "closeWatch": closeWatch(); break;
     case "menuContinue": if (needColours(() => leaveMenu())) break; leaveMenu(); break;
-    case "menuDaily": if (needColours(() => $("#menuDaily").click())) break; playDaily(); newArmed = false; render(); leaveMenu(); break;
-    case "menuRandom": if (needColours(() => $("#menuRandom").click())) break; playRandom(); newArmed = false; render(); leaveMenu(); break;
+    // a player's first game: how to play, then their colours, then the season
+    case "menuDaily": if (needHowTo(() => $("#menuDaily").click()) || needColours(() => $("#menuDaily").click())) break; playDaily(); newArmed = false; render(); leaveMenu(); break;
+    case "menuRandom": if (needHowTo(() => $("#menuRandom").click()) || needColours(() => $("#menuRandom").click())) break; playRandom(); newArmed = false; render(); leaveMenu(); break;
     case "menuNew": if (!newArmed) { newArmed = true; paintMenu(true); break; }
       playRandom(); freshSeason(); newArmed = false; render(); paintMenu(true); toast("A new random season is drawn"); break;
     case "aucBid": aucPlace("me"); break;
