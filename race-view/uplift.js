@@ -146,18 +146,21 @@ const GC = LOOK.grass || WEATHER.overcast.grass;
 // how much the ground's and the leaves' colour is deepened before the view's film curve (AgX) pales it: 1 = not at all
 const GSAT = Number(q.get("gsat") || (LOOK.vivid ? LOOK.vivid[0] : 1)), LSAT = Number(q.get("lsat") || (LOOK.vivid ? LOOK.vivid[1] : 1));
 // ---------- The ground, by the going (owner, 14 Nov 2026) ----------
-// "More wear left on the track" on heavier ground. How the turf shows where the field has galloped over it (the wear
-// map: see wearSetup, below), for each going:
-//   gain: how much one horse's passing marks it; cut: how much of a fully worn patch is torn open to the earth, and
-//   col: the earth's colour there (pale and dry on quick ground); stain: how much the grass between the cuts takes that
-//   colour; old: marks already there from earlier races.
+// "More wear left on the track" on heavier ground; then, on a first version that left a brown band behind the field:
+// "it needs to be more patchy and sort of indented prints rather than strips". So the turf where the field has
+// galloped (the wear map: see wearSetup, below) is marked with HOOF PRINTS, in patches: small dark ovals pressed into
+// the grass, thick in some places and thin in others, never an even band. For each going:
+//   gain: how much one horse's passing marks the map; dens: how thickly the prints lie where it is fully marked;
+//   size: a print's size against a real hoof (soft ground takes a bigger, deeper print); cut: how dark a print is, and
+//   col: the earth's colour in it (pale and dry on quick ground); halo: trodden earth round each print (soft ground);
+//   torn: bigger ragged divots among the prints; old: prints already there from earlier races.
 // (the kick-back itself, clods and dust, is in final-furlong.html: KICK_GOING.  &upoff=wear for none of this.)
 const WEAR_BY_GOING = {
-  Heavy:   { gain: 1.5, cut: 0.95, col: "#54412c", stain: 0.4,  old: 0.3 },
-  Softer:  { gain: 1.2, cut: 0.82, col: "#5c4a33", stain: 0.3,  old: 0.16 },
-  Good:    { gain: 0.6, cut: 0.5,  col: "#5f6140", stain: 0.08, old: 0.05 },
-  Quicker: { gain: 0.5, cut: 0.3,  col: "#a8a678", stain: 0.08, old: 0.03 },
-  Quick:   { gain: 0.4, cut: 0.28, col: "#bdb489", stain: 0.1,  old: 0.02 },
+  Heavy:   { gain: 1.5, dens: 0.92, size: 1.2,  cut: 0.92, col: "#4b3a27", halo: 0.42, torn: 0.5,  old: 0.14 },
+  Softer:  { gain: 1.2, dens: 0.72, size: 1.08, cut: 0.82, col: "#574531", halo: 0.26, torn: 0.25, old: 0.09 },
+  Good:    { gain: 0.7, dens: 0.42, size: 0.95, cut: 0.5,  col: "#586040", halo: 0.06, torn: 0,    old: 0.05 },
+  Quicker: { gain: 0.5, dens: 0.24, size: 0.9,  cut: 0.36, col: "#a8a678", halo: 0,    torn: 0,    old: 0.03 },
+  Quick:   { gain: 0.4, dens: 0.2,  size: 0.9,  cut: 0.32, col: "#bdb489", halo: 0,    torn: 0,    old: 0.02 },
 };
 let WEARK = null;                  // the going's entry, once the race view has said which going it is (init)
 export const lookId = LOOK_ID, looks = Object.fromEntries(Object.entries(LOOKSET).map(([k, v]) => [k, v.label]));
@@ -533,20 +536,38 @@ export function patchGround(mat, which) {
       tone *= 1.0 + k * 0.25 * (smoothstep(0.3, 0.7, st) * 2.0 - 1.0);
       tone *= 1.0 + gk * (0.08 * (smoothstep(0.3, 0.7, g1) * 2.0 - 1.0) + 0.06 * (smoothstep(0.3, 0.7, g2) * 2.0 - 1.0));
       diffuseColor.rgb *= tone;
-      ${wearK ? `{ // the turf where the field has galloped over it (and a scatter of older marks): torn open to the earth in
-        // small ragged cuts, more of them the more it has been run over, the grass between them bruised. Far off the
-        // cuts are too small to draw one by one: there the patch just takes their average tone.
+      ${wearK ? `{ // the turf where the field has galloped over it (and a scatter of older marks): hoof prints pressed into
+        // the grass, in patches. Two scatterings of prints of different spacing laid over each other, so no grid shows;
+        // how many of them are there depends on how much the spot has been run over and on a patchiness of its own.
+        // Far off the prints are too small to draw one by one: there the patch just takes their average tone.
         float wr = ${WEAR ? "texture2D(upWear, (w - upWearArea.xy) / (upWearArea.zw - upWearArea.xy)).r" : "0.0"};
         float old = ${wearK.old.toFixed(3)} * smoothstep(0.42, 0.8, n3 * 0.6 + g1 * 0.4);
         float W = clamp(wr * ${wearK.gain.toFixed(3)} + old, 0.0, 1.0) * onT;
-        float d1 = texture2D(upNoise, w / 2.7 + 0.21).b, d2 = texture2D(upNoise, mat2(0.6, -0.8, 0.8, 0.6) * w / 1.1).b;
-        float th = mix(0.97, 0.38, W), cut = smoothstep(th, th + 0.07, d1 * 0.6 + d2 * 0.4);
-        float fw = fwidth(w.x) + fwidth(w.y), fine = 1.0 - smoothstep(0.04, 0.16, fw);
-        cut = mix(W * W * 0.75, cut, fine) * ${wearK.cut.toFixed(3)};
-        // (between the cuts the grass is trodden and stained with the earth; only where this race has been run)
-        diffuseColor.rgb = mix(diffuseColor.rgb, ${f3(lin(wearK.col).map((v) => v * 1.25))}, ${wearK.stain.toFixed(3)} * clamp(wr * ${wearK.gain.toFixed(3)}, 0.0, 1.0) * onT);
-        diffuseColor.rgb = mix(diffuseColor.rgb, ${f3(lin(wearK.col))} * (0.78 + 0.44 * d2), cut);
-        ${q.get("updebug") === "wear" ? "diffuseColor.rgb = vec3(wr, W, cut);" : ""} }` : ""} }` : ""}
+        float pn = texture2D(upNoise, w / 7.3 + 0.13).a * 0.62 + texture2D(upNoise, mat2(0.6, -0.8, 0.8, 0.6) * w / 2.9).g * 0.38;
+        float p = W * mix(0.06, 1.0, smoothstep(0.36, 0.56, pn)) * ${wearK.dens.toFixed(3)};
+        // (how much ground one pixel covers, as the side of a square: low over the turf a pixel is long and thin, and
+        // a print still shows as a dab; a little way off the prints are drawn a shade bigger so they still read)
+        vec2 wdx = dFdx(w), wdy = dFdy(w);
+        float fw = sqrt(abs(wdx.x * wdy.y - wdx.y * wdy.x)), fine = 1.0 - smoothstep(0.07, 0.17, fw), grow = clamp(fw / 0.045, 1.0, 1.6);
+        vec3 pr = vec3(0.0);
+        if (p > 0.004 && fine > 0.0) {
+          float blur = 0.5 * max(length(wdx), length(wdy)) * smoothstep(0.05, 0.12, max(length(wdx), length(wdy)));
+          pr = upPrints(w, 0.44, p, ${wearK.size.toFixed(2)} * grow, blur);
+          vec3 p2 = upPrints(mat2(0.83, 0.56, -0.56, 0.83) * w + 3.7, 0.61, p * 0.9, ${(wearK.size * 1.08).toFixed(2)} * grow, blur);
+          pr = vec3(max(pr.x, p2.x), pr.x > p2.x ? pr.y : p2.y, max(pr.z, p2.z));
+        }
+        vec3 earth = ${f3(lin(wearK.col))};
+        ${wearK.torn ? `{ // on soft ground, here and there among the prints, a bigger ragged divot
+          float d1 = texture2D(upNoise, w / 2.7 + 0.21).b, d2 = texture2D(upNoise, mat2(0.6, -0.8, 0.8, 0.6) * w / 1.1).b;
+          float th = mix(1.0, 0.7, p * ${wearK.torn.toFixed(2)});
+          float tn = smoothstep(th, th + 0.05, d1 * 0.6 + d2 * 0.4) * fine;
+          pr.x = max(pr.x, tn); pr.y = mix(pr.y, 0.8 + 0.4 * d2, step(pr.x, tn + 0.001)); }` : ""}
+        // near to: the prints themselves, and the trodden earth round each; far off: their average over the patch
+        float halo = mix(p * 0.55, pr.z, fine) * ${wearK.halo.toFixed(3)};
+        float cut = mix(p * p * 0.5, pr.x, fine) * ${wearK.cut.toFixed(3)};
+        diffuseColor.rgb = mix(diffuseColor.rgb, earth * 1.3, halo);
+        diffuseColor.rgb = mix(diffuseColor.rgb, earth * mix(1.0, pr.y, fine), cut);
+        ${q.get("updebug") === "wear" ? "diffuseColor.rgb = vec3(wr, p, cut);" : ""} }` : ""} }` : ""}
     ${relight ? `float upV = upVis(vec3(w.x, vUpP.y, w.y), vec3(0.0, 1.0, 0.0));` : `float upV = 1.0 - upCloud(w);`}
     ${crowd ? `{ vec2 cu = (w - upCrowdArea.xy) / (upCrowdArea.zw - upCrowdArea.xy);        // the people's shadows
       if (cu.x > 0.0 && cu.x < 1.0 && cu.y > 0.0 && cu.y < 1.0) { vec4 cs = texture2D(upCrowd, cu);
@@ -568,12 +589,35 @@ export function patchGround(mat, which) {
     }
     sh.vertexShader = sh.vertexShader.replace("#include <common>", "#include <common>\nvarying vec3 vUpP; varying vec3 vUpN; varying float vUpH;")
       .replace("#include <fog_vertex>", "#include <fog_vertex>\n{ vUpP = (modelMatrix * vec4(transformed, 1.0)).xyz; vUpN = vec3(0.0, 1.0, 0.0); vUpH = 0.0; }");
-    sh.fragmentShader = sh.fragmentShader.replace("#include <common>", "#include <common>\n" + COMMON + (wearK && WEAR ? "uniform sampler2D upWear; uniform vec4 upWearArea;\n" : ""))
+    sh.fragmentShader = sh.fragmentShader.replace("#include <common>", "#include <common>\n" + COMMON + (wearK && WEAR ? "uniform sampler2D upWear; uniform vec4 upWearArea;\n" : "") + (wearK ? PRINTS : ""))
       .replace("#include <color_fragment>", "#include <color_fragment>\n" + body)
       .replace("#include <fog_fragment>", HAZE);
   });
 }
 
+// One scattering of hoof prints. The ground is cut into squares (cell metres across); a square has a print in it if
+// its own random number is under p; the print sits somewhere in its square, turned its own way, a little bigger or
+// smaller than the next. Gives (the print, its tone from toe to heel, the trodden ground round it).
+const PRINTS = `
+float upHash(vec2 p) { return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
+vec3 upPrints(vec2 w, float cell, float p, float size, float blur) {
+  vec2 g = w / cell, id = floor(g);
+  float h1 = upHash(id);
+  if (h1 > p) return vec3(0.0);
+  float h2 = upHash(id + 17.3), h3 = upHash(id + 41.7), h4 = upHash(id + 73.1);
+  vec2 d = (fract(g) - 0.5 - (vec2(h2, h3) - 0.5) * 0.42) * cell;
+  float a = h4 * 6.2832, c = cos(a), s = sin(a); d = vec2(d.x * c + d.y * s, d.y * c - d.x * s);
+  float k = size * (0.85 + 0.35 * h3);
+  // a hoof: an oval about 15 cm by 12, pressed deepest at the toe, open and shallow at the heel
+  // (blur: half of what one pixel covers on the ground, at its longest. A print smaller than that is drawn as wide as
+  // the pixel and as much fainter, which is how it would really look from there, and it does not flicker as the camera moves)
+  vec2 rad = vec2(0.078, 0.062) * k + blur;
+  float r = length(d / rad);
+  float m = (1.0 - smoothstep(0.72, 1.0, r)) * mix(0.55, 1.0, smoothstep(-0.06, 0.02, d.x / k)) * (0.062 * k) / rad.y;
+  float tone = mix(1.12, 0.72, smoothstep(-0.05, 0.07, d.x / k));
+  return vec3(m, tone, 1.0 - smoothstep(0.9, 2.1, r));
+}
+`;
 // ---------- Track wear: the turf remembers where the field has run ----------
 // A picture of the whole course from above, black to begin with (about a metre a pixel; one number a pixel). As the
 // race is run, every horse leaves a soft trail in it; the turf's shader reads it and cuts the grass up there, by the
