@@ -860,3 +860,9 @@ swelling. Now the middle is a natural crowd (Aintree and the Japan Cup mid-race,
 commentary running on unbroken over it: the real recordings with their own crowd, joined end to end, the voice brought
 forward and nothing else. The finish's commentary is the same unbroken run, louder and a shade quicker to the line; the
 crowd before the off is the natural crowd too. Measured: the middle's drop-outs 18% of the time → none.
+
+**The draft as a table (14 Nov, 22:30).** Owner: "the ui on the team draw is really unpleasant. It puts stuff in random
+places, it's really not clear". Now nothing on the page moves: your team sits at the top (points, what's left in words,
+and an Owner / Trainer / Jockey slot that each card drops into; it stays pinned as you scroll), with the nine decks below
+in three columns (Owners, Trainers, Jockeys; Gold, Silver, Bronze). A drawn card turns over in front of everything
+(`showReveal`): "Add to my team", or "Wrong deck? Put it back". Decks you can't take say why in two or three words.

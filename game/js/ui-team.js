@@ -49,29 +49,44 @@ function pointsLeftWords() {
   return `<b>${left} point${left === 1 ? "" : "s"} left</b>${need.length ? ` for ${who}${ways ? `: ${ways}` : ""}` : ": any deck"}.`;
 }
 // (the card you've just drawn shows big at the top for a couple of minutes, then joins the rest)
-const justDrew = () => !!UI.drew && Date.now() - UI.drew < 120000;
+// The draft, laid out like the table (owner, 14 Nov evening: "the ui on the team draw is really unpleasant. It puts stuff
+// in random places"): your team's three slots and the points at the top, the nine decks below, always in the same
+// places. A drawn card turns over in front of everything (tmReveal) and then drops into its slot: nothing on the page moves.
+const DECK_SHORT = why => !why ? "" : /^Only/.test(why) ? "Not enough points" : /^Keep a point/.test(why) ? "Leaves too few points" : why === "None left" ? "None left" : "";
+function teamTray(full) {
+  const T = teamState(), mine = teamCards(), p = teamPoints();
+  const slot = role => { const got = mine.filter(c => c.role === role);
+    return `<div class="tt-slot ${ROLE_CLS[role]} ${got.length ? "got" : ""}"><div class="tt-h">${role}${got.length > 1 ? "s" : ""}</div>
+      ${got.length ? got.map(c => `<div class="tt-card t${c.tier} ${c.code === UI.landed ? "landed" : ""}"><img src="${cardArt(c)}" alt=""><span><b>${c.title}</b><small>${TIER_NAME[c.tier]} · ${c.tier} pt${c.tier === 1 ? "" : "s"}</small></span></div>`).join("")
+        : `<div class="tt-empty">${T.done ? "" : `Draw ${role === "Owner" ? "an owner" : "a " + role.toLowerCase()}`}</div>`}</div>`; };
+  return `<section class="tt ${full ? "full" : ""}"><div class="tt-top"><div class="tm-pips" aria-label="${p} of ${TEAM_POINTS} points">${Array.from({ length: TEAM_POINTS }, (_, k) => `<i class="${k < p ? "on" : ""}"></i>`).join("")}</div>
+      <span class="tt-pts"><b>${p} of ${TEAM_POINTS}</b> points</span><span class="tt-left">${T.done ? "Your team is complete." : p ? pointsLeftWords() : "Gold costs 3 points, Silver 2, Bronze 1. You need an owner, a trainer and a jockey."}</span></div>
+    <div class="tt-slots">${TEAM_ROLES.map(slot).join("")}</div></section>`;
+}
 function draftBody() {
   const T = teamState(), mine = teamCards();
   if (T.offer) keepTeamCard(T.offer.codes[0]);   // a game saved mid-way through the old draft
   if (T.done) return `<div class="tb-head"><h1 class="tb-h">YOUR TEAM</h1>
-      <p class="tb-lede">Your team for the season. Each card says where it comes into play: the owner's cards at the stud and the sales, the trainer's at Warren Hill, the jockeys in the races you book them for.</p></div>
-    ${teamPips()}${drawnCard()}<div class="tm-hand">${mine.filter(c => c.code !== T.last || !justDrew()).map(c => tcard(c, { fit: cardFit(c) })).join("")}</div>`;
-  const decks = `<section class="sect"><div class="sect-h"><h2 class="tb-h2">THE DECKS</h2><span>Gold 3 points · Silver 2 · Bronze 1</span></div>
-    <div class="tm-decks">${TEAM_ROLES.map(role => `<div class="tm-row ${ROLE_CLS[role]}"><div class="tm-rl"><b>${role}s</b><small>${ROLE_BLURB[role]}</small></div>
-      ${[3, 2, 1].map(t => { const why = deckProblem(role, t);
-        return `<button class="tdeck ${ROLE_CLS[role]} t${t}" data-deck="${role}:${t}" ${why ? "disabled" : ""}><img class="td-art" src="img/team/${role[0]}${t}.webp" alt=""><small>${why || `${t} point${t === 1 ? "" : "s"} · draw`}</small></button>`; }).join("")}</div>`).join("")}</div></section>`;
+      <p class="tb-lede">Your team for the season. Each card says where it comes into play.</p></div>
+    ${teamTray(true)}<section class="sect"><div class="sect-h"><h2 class="tb-h2">THE CARDS</h2></div><div class="tm-hand">${mine.map(c => tcard(c, { fit: cardFit(c) })).join("")}</div></section>`;
+  const deck = (role, t) => { const why = deckProblem(role, t), short = DECK_SHORT(why);
+    return `<button class="tdeck ${ROLE_CLS[role]} t${t}" data-deck="${role}:${t}" ${why ? "disabled" : ""} title="${why || ""}"><img class="td-art" src="img/team/${role[0]}${t}.webp" alt="${role} ${TIER_NAME[t]}"><b>${TIER_NAME[t]}</b><small>${short || `${t} point${t === 1 ? "" : "s"}`}</small></button>`; };
   return `<div class="tb-head"><h1 class="tb-h">DRAFT YOUR TEAM</h1>
-      <p class="tb-lede">Before the stud opens, draw the people behind your stable. You have ${TEAM_POINTS} points: a Gold card costs 3, Silver 2 and Bronze 1, and you need at least one owner, one trainer and one jockey. Tap a deck to draw its top card: it joins your team.</p></div>
-    ${teamPips()}${drawnCard()}${decks}
-    ${mine.length > (justDrew() ? 1 : 0) ? `<section class="sect"><div class="sect-h"><h2 class="tb-h2">YOUR TEAM SO FAR</h2></div><div class="tm-hand">${mine.filter(c => c.code !== T.last || !justDrew()).map(c => tcard(c, { fit: cardFit(c) })).join("")}</div></section>` : ""}`;
+      <p class="tb-lede">Tap a deck to draw its top card. Spend all ${TEAM_POINTS} points, with at least one owner, one trainer and one jockey.</p></div>
+    ${teamTray(false)}
+    <section class="sect tm-table"><div class="tm-cols">${TEAM_ROLES.map(role => `<div class="tm-col ${ROLE_CLS[role]}"><div class="tm-ch"><b>${role}s</b><small>${ROLE_BLURB[role]}</small></div>
+      <div class="tm-dk">${[3, 2, 1].map(t => deck(role, t)).join("")}</div></div>`).join("")}</div></section>`;
 }
-// the card you've just drawn, turned over
-function drawnCard() {
-  const T = teamState(); if (!justDrew() || !T.last) return "";
-  const c = teamCard(T.last);
-  return `<section class="sect tm-offer" id="tmOffer"><div class="sect-h"><h2 class="tb-h2">YOU DREW</h2><span>${c.role} · ${TIER_NAME[c.tier]}</span></div>
-    <div class="tm-hand one">${tcard(c, { fit: cardFit(c), extra: T.gone ? "" : `<button class="tb-btn ghost sm tm-back" data-putback="1">Tapped the wrong deck? Put it back</button>` })}</div></section>`;
+// the card you've just drawn, turned over in front of the table
+function showReveal(code) {
+  closeReveal(); const c = teamCard(code), T = teamState(); if (!c) return;
+  const el = document.createElement("div"); el.id = "tmReveal"; el.className = "tm-reveal"; el.setAttribute("role", "dialog"); el.setAttribute("aria-label", "You drew " + c.title);
+  el.innerHTML = `<div class="tr-in"><p class="tr-k">You drew · ${c.role} · ${TIER_NAME[c.tier]}</p>${tcard(c, { fit: cardFit(c) })}
+    <div class="tr-b"><button class="tb-btn" data-revealok="1">Add to my team${T.done ? " · team complete" : ""}</button>
+    <button class="tb-btn ghost sm" data-putback="1">Wrong deck? Put it back</button></div></div>`;
+  document.body.appendChild(el);
 }
+function closeReveal() { const el = document.getElementById("tmReveal"); if (el) el.remove(); }
 // ---------- the team at work, place by place ----------
 const panel = out => out.length ? `<section class="sect tm-at"><div class="sect-h"><h2 class="tb-h2">YOUR OWNER'S CARDS</h2></div><div class="tm-hand sm">${out.join("")}</div></section>` : "";
 // Pedigree Expert: ask about an unproven stallion (Gold knows them all)

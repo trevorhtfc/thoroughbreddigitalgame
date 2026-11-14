@@ -817,3 +817,45 @@ details.mh .hint{margin:0 0 6px}
 
 .f-jk{color:#8a5a12;font-weight:600}
 .tm-auto small b{color:#8a5a12}
+
+/* ---------- the draft as a table (14 Nov evening): your team's slots at the top, the decks below, the drawn card on top ---------- */
+.tt{position:sticky;top:0;z-index:3;background:var(--tb-bg,#f3efe7);padding:10px 0 12px;margin:0 0 6px;border-bottom:1px solid var(--tb-line)}
+.tt.full{position:static;border:0}
+.tt-top{display:flex;flex-wrap:wrap;align-items:center;gap:6px 12px;font-size:14px}
+.tt-pts b{color:var(--tb-ink)}.tt-left{color:var(--tb-muted);font-size:13.5px}.tt-left b{color:var(--tb-ink)}
+.tt-slots{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-top:10px}
+.tt-slot{border:1.5px dashed color-mix(in srgb,var(--role) 45%,transparent);border-radius:8px;padding:6px 8px 8px;min-height:70px;background:rgba(255,255,255,.5)}
+.tt-slot.got{border-style:solid;border-color:var(--role);background:#fff}
+.tt-h{font-family:var(--tb-display);font-size:11.5px;font-weight:600;letter-spacing:.16em;text-transform:uppercase;color:var(--role);margin-bottom:4px}
+.tt-empty{font-size:13px;color:var(--tb-muted);padding:8px 0}
+.tt-card{display:flex;align-items:center;gap:8px;padding:4px 6px;border-radius:6px;border:2px solid var(--frame,#b0703a);background:#fffbf1;margin-top:4px}
+.tt-card.t3{--frame:#c9a24a}.tt-card.t2{--frame:#aeb7bd}
+.tt-card img{height:40px;width:auto;flex:0 0 auto}
+.tt-card span{display:grid;min-width:0}.tt-card b{font-size:13px;line-height:1.2;overflow:hidden;text-overflow:ellipsis}.tt-card small{font-size:11.5px;color:var(--tb-muted)}
+.tt-card.landed{animation:ttLand .5s .1s cubic-bezier(.2,.8,.3,1.3) backwards}
+@keyframes ttLand{from{transform:scale(.6);opacity:0}to{transform:none;opacity:1}}
+.tm-cols{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}
+.tm-ch{border-top:4px solid var(--role);padding:8px 2px 8px}
+.tm-ch b{display:block;font-family:var(--tb-serif);font-size:20px;color:var(--role);line-height:1.1}
+.tm-ch small{display:block;font-size:12.5px;color:var(--tb-muted);line-height:1.35;margin-top:2px}
+.tm-dk{display:grid;gap:8px}
+.tm-table .tdeck{grid-template-columns:auto 1fr;grid-template-rows:auto auto;justify-items:start;align-content:center;column-gap:10px;padding:8px 12px;min-height:76px;text-align:left}
+.tm-table .tdeck .td-art{grid-row:1/3;height:60px}
+.tm-table .tdeck b{align-self:end}.tm-table .tdeck small{align-self:start;text-align:left;opacity:.9}
+.tm-reveal{position:fixed;inset:0;z-index:60;display:grid;place-items:center;padding:16px;background:rgba(20,26,22,.62);animation:trFade .25s ease-out}
+@keyframes trFade{from{opacity:0}}
+.tr-in{width:min(340px,100%);display:grid;gap:10px;justify-items:center}
+.tr-k{margin:0;font-family:var(--tb-display);font-size:12px;letter-spacing:.18em;text-transform:uppercase;color:#f6efdc}
+.tm-reveal .tcard{width:100%;flex-direction:column;align-items:stretch;text-align:center;border-width:5px;border-radius:12px;animation:tmFlip .6s cubic-bezier(.2,.8,.3,1) backwards}
+.tm-reveal .tcard .tc-art{height:150px;align-self:center}.tm-reveal .tcard .tc-chips{justify-content:center}
+.tm-reveal .tcard .tc-title{font-size:17px}.tm-reveal .tcard .tc-text{font-size:13.5px}
+.tr-b{display:grid;gap:8px;justify-items:center;width:100%}.tr-b .tb-btn:first-child{width:100%}
+.tr-b .tb-btn.ghost{color:#f6efdc;border-color:rgba(246,239,220,.5);background:transparent}
+@media (max-width:760px){
+  .tt-slots{gap:6px}.tt-slot{padding:5px 5px 6px;min-height:58px}
+  .tt-card{flex-direction:column;align-items:flex-start;gap:2px;padding:4px 5px}.tt-card img{height:30px}.tt-card b{font-size:12px}.tt-card small{font-size:10.5px}
+  .tm-cols{gap:6px}.tm-ch{padding:6px 0}.tm-ch b{font-size:16px}.tm-ch small{display:none}
+  .tm-table .tdeck{grid-template-columns:1fr;justify-items:center;text-align:center;padding:8px 4px;min-height:0}
+  .tm-table .tdeck .td-art{grid-row:auto;height:54px}.tm-table .tdeck small{text-align:center;font-size:10.5px}.tm-table .tdeck b{font-size:11.5px}
+  .tt-left{font-size:12.5px}
+}
