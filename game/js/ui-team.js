@@ -9,14 +9,18 @@ const ROLE_BLURB = {
   Trainer: "Gets your horses ready at Warren Hill: their trip, temperament and ground, and a tune-up for a big race.",
   Jockey: "Rides in the races you book him for: the Champion anywhere, the others at their trips, styles or going.",
 };
+// The cards look like the board game's: a cream card in a Gold, Silver or Bronze frame, the board's picture for the role
+// and tier (img/team, from the Thoroughbred site's Your Team page), the title in capitals, and chips for the points and
+// where it's played (owner, 14 Nov: "we really should be lending the graphics from the board game")
+const cardArt = c => `img/team/${c.role[0]}${c.tier}.webp`;
 function tcard(c, opts = {}) {
   return `<article class="tcard ${ROLE_CLS[c.role]} t${c.tier} ${opts.cls || ""}">
-    <div class="tc-top"><span class="tc-role">${c.role}</span><span class="tc-medal" title="${TIER_NAME[c.tier]}: ${c.tier} point${c.tier === 1 ? "" : "s"}">${TIER_NUM[c.tier]}</span></div>
-    <h4 class="tc-title">${c.title}</h4>
+    <div class="tc-art"><img src="${cardArt(c)}" alt="${c.role} ${TIER_NUM[c.tier]}" loading="lazy"></div>
+    <div class="tc-body"><h4 class="tc-title">${c.title}</h4>
     <p class="tc-text">${cardText(c)}</p>
     ${opts.fit ? `<p class="tc-fit">${opts.fit}</p>` : ""}
-    <div class="tc-foot"><span>${cardWhen(c)}</span><span>${TIER_NAME[c.tier]}</span></div>
-    ${opts.btn || ""}${opts.extra || ""}</article>`;
+    <div class="tc-chips"><span class="tc-chip">${c.tier} point${c.tier === 1 ? "" : "s"}</span><span class="tc-chip soft">${cardWhen(c)}</span></div>
+    ${opts.btn || ""}${opts.extra || ""}</div></article>`;
 }
 // A word on how a card fits this season's ten races (so the draft is a real choice)
 function cardFit(c) {
@@ -33,23 +37,30 @@ function teamPips() {
   return `<div class="tm-sum"><div class="tm-pips" aria-label="${p} of ${TEAM_POINTS} points">${Array.from({ length: TEAM_POINTS }, (_, k) => `<i class="${k < p ? "on" : ""}"></i>`).join("")}</div>
     <span><b>${p} of ${TEAM_POINTS}</b> points</span>${TEAM_ROLES.map(r => `<span class="tm-role ${ROLE_CLS[r]} ${roles.has(r) ? "got" : ""}">${roles.has(r) ? "✓" : "·"} ${r}</span>`).join("")}</div>`;
 }
+// (the card you've just drawn shows big at the top for a couple of minutes, then joins the rest)
+const justDrew = () => !!UI.drew && Date.now() - UI.drew < 120000;
 function draftBody() {
   const T = teamState(), mine = teamCards();
+  if (T.offer) keepTeamCard(T.offer.codes[0]);   // a game saved mid-way through the old draft
   if (T.done) return `<div class="tb-head"><h1 class="tb-h">YOUR TEAM</h1>
-      <p class="tb-lede">Your team for the season. Each card says where it comes into play: the owner's cards at the stud and the sales, the trainer's on your horses at entries, the jockeys in the races you book them for.</p></div>
-    ${teamPips()}<div class="tm-hand">${mine.map(c => tcard(c, { fit: cardFit(c) })).join("")}</div>`;
-  const offer = T.offer ? `<section class="sect tm-offer" id="tmOffer"><div class="sect-h"><h2 class="tb-h2">${T.offer.role.toUpperCase()} · ${TIER_NAME[T.offer.tier].toUpperCase()}</h2><span>Keep one; the others go back in the deck</span></div>
-      <div class="tm-hand">${T.offer.codes.map(code => { const c = teamCard(code); return tcard(c, { fit: cardFit(c), btn: `<button class="tb-btn block" data-keepcard="${code}">Keep</button>` }); }).join("")}</div></section>` : "";
+      <p class="tb-lede">Your team for the season. Each card says where it comes into play: the owner's cards at the stud and the sales, the trainer's at Warren Hill, the jockeys in the races you book them for.</p></div>
+    ${teamPips()}${drawnCard()}<div class="tm-hand">${mine.filter(c => c.code !== T.last || !justDrew()).map(c => tcard(c, { fit: cardFit(c) })).join("")}</div>`;
   const decks = `<section class="sect"><div class="sect-h"><h2 class="tb-h2">THE DECKS</h2><span>Gold 3 points · Silver 2 · Bronze 1</span></div>
-    <div class="tm-decks">${TEAM_ROLES.map(role => `<div class="tm-row ${ROLE_CLS[role]}"><div class="tm-rl"><b>${role}</b><small>${ROLE_BLURB[role]}</small></div>
+    <div class="tm-decks">${TEAM_ROLES.map(role => `<div class="tm-row ${ROLE_CLS[role]}"><div class="tm-rl"><b>${role}s</b><small>${ROLE_BLURB[role]}</small></div>
       ${[3, 2, 1].map(t => { const why = deckProblem(role, t);
-        return `<button class="tdeck ${ROLE_CLS[role]} t${t}" data-deck="${role}:${t}" ${why ? "disabled" : ""}><span class="td-m">${TIER_NUM[t]}</span><b>${TIER_NAME[t]}</b><small>${why || `${t} point${t === 1 ? "" : "s"} · turn over ${TEAM_OFFER}`}</small></button>`; }).join("")}</div>`).join("")}</div></section>`;
+        return `<button class="tdeck ${ROLE_CLS[role]} t${t}" data-deck="${role}:${t}" ${why ? "disabled" : ""}><img class="td-art" src="img/team/${role[0]}${t}.webp" alt=""><small>${why || `${t} point${t === 1 ? "" : "s"} · draw`}</small></button>`; }).join("")}</div>`).join("")}</div></section>`;
   return `<div class="tb-head"><h1 class="tb-h">DRAFT YOUR TEAM</h1>
-      <p class="tb-lede">Before the stud opens, pick the people behind your stable. You have ${TEAM_POINTS} points: a Gold card costs 3, Silver 2 and Bronze 1, and you need at least one owner, one trainer and one jockey. Choose a deck, see three of its cards and keep one.</p></div>
-    ${teamPips()}${offer}${T.offer ? "" : decks}
-    ${mine.length ? `<section class="sect"><div class="sect-h"><h2 class="tb-h2">YOUR TEAM SO FAR</h2></div><div class="tm-hand">${mine.map(c => tcard(c, { fit: cardFit(c) })).join("")}</div></section>` : ""}`;
+      <p class="tb-lede">Before the stud opens, draw the people behind your stable. You have ${TEAM_POINTS} points: a Gold card costs 3, Silver 2 and Bronze 1, and you need at least one owner, one trainer and one jockey. Tap a deck to draw its top card: it joins your team.</p></div>
+    ${teamPips()}${drawnCard()}${decks}
+    ${mine.length > (justDrew() ? 1 : 0) ? `<section class="sect"><div class="sect-h"><h2 class="tb-h2">YOUR TEAM SO FAR</h2></div><div class="tm-hand">${mine.filter(c => c.code !== T.last || !justDrew()).map(c => tcard(c, { fit: cardFit(c) })).join("")}</div></section>` : ""}`;
 }
-
+// the card you've just drawn, turned over
+function drawnCard() {
+  const T = teamState(); if (!justDrew() || !T.last) return "";
+  const c = teamCard(T.last);
+  return `<section class="sect tm-offer" id="tmOffer"><div class="sect-h"><h2 class="tb-h2">YOU DREW</h2><span>${c.role} · ${TIER_NAME[c.tier]}</span></div>
+    <div class="tm-hand one">${tcard(c, { fit: cardFit(c) })}</div></section>`;
+}
 // ---------- the team at work, place by place ----------
 const panel = out => out.length ? `<section class="sect tm-at"><div class="sect-h"><h2 class="tb-h2">YOUR OWNER'S CARDS</h2></div><div class="tm-hand sm">${out.join("")}</div></section>` : "";
 // Pedigree Expert: ask about an unproven stallion (Gold knows them all)

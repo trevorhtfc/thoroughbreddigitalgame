@@ -7,8 +7,8 @@
 // digital game's terms where the board's rules can't work as they are (no other players at the stud, no card hands in
 // the race). The trainer cards are the board's almost word for word. Rules only, no screens (those are in js/ui-team.js).
 //
-// The draft: pick a deck (Owner, Trainer or Jockey; Bronze, Silver or Gold), three of its cards are turned over and you
-// keep one, as at the mares sale. Spend exactly 6 points (Gold 3, Silver 2, Bronze 1), with at least one card of each
+// The draft: pick a deck (Owner, Trainer or Jockey; Bronze, Silver or Gold) and its top card is yours (14 Nov; it
+// used to turn three over to keep one). Spend exactly 6 points (Gold 3, Silver 2, Bronze 1), with at least one card of each
 // kind, as on the board.
 // =====================================================================================================================
 const TEAM_POINTS = 6, TEAM_OFFER = 3;
@@ -156,23 +156,26 @@ function deckLeft(role, tier) {
 function deckProblem(role, tier) {
   const T = teamState(), left = TEAM_POINTS - teamPoints(), roles = new Set(teamCards().map(c => c.role));
   if (T.done) return "Your team is picked";
-  if (T.offer) return "Keep a card first";
   if (tier > left) return `Only ${left} point${left === 1 ? "" : "s"} left`;
   const missing = TEAM_ROLES.filter(r => r !== role && !roles.has(r)).length;
   if (left - tier < missing) return `Keep a point for ${TEAM_ROLES.filter(r => r !== role && !roles.has(r)).map(r => "a " + r.toLowerCase()).join(" and ")}`;
   if (!deckLeft(role, tier).length) return "None left";
   return "";
 }
+// Pick and go (owner, 14 Nov: "we don't get a choice on which cards we pick once we draw. It's a simple pick and go"):
+// the deck's top card is yours. The order is this game's luck, so a reload doesn't change it
 function drawDeck(role, tier, rnd) {
-  rnd = rnd || Math.random;
   if (deckProblem(role, tier)) return false;
+  const T = teamState(); rnd = rnd || luck("team|" + role + "|" + tier + "|" + T.picks.length);
   const left = deckLeft(role, tier).map(c => [rnd(), c]).sort((a, b) => a[0] - b[0]).map(x => x[1].code);
-  S.team.offer = { role, tier, codes: left.slice(0, TEAM_OFFER) };
-  save(); return true;
+  T.picks.push(left[0]); T.last = left[0]; T.offer = null;
+  if (teamPoints() >= TEAM_POINTS) finishTeam();
+  save(); return left[0];
 }
+// (games saved part-way through the old draft, with three cards turned over: the first is kept)
 function keepTeamCard(code) {
   const T = teamState(); if (!T.offer || !T.offer.codes.includes(code)) return;
-  T.picks.push(code); T.offer = null;
+  T.picks.push(code); T.last = code; T.offer = null;
   if (teamPoints() >= TEAM_POINTS) finishTeam();
   save();
 }
