@@ -452,3 +452,8 @@ Owner, 14 Nov: "I can't really hear any PA announcer … the applause is too pro
 The commentators are now brought forward harder (`TALK_LIFT_DB` 11) and the middle's talk sits above the gallop and the
 crowd (the only clearly spoken commentary in the clips is the Cheltenham commentator's few seconds after the roar, and
 Aintree's announcer); the applause is some 1,400 pairs of hands, mostly far off down the stands, and much quieter.
+
+Owner, 14 Nov: "I don't feel the excitement evolving". The three real finishes are now made into one crowd, its own ups
+and downs evened out, then shaped (`BUILD`, `BRIGHT`): it starts at the middle's level, far off and muffled, and climbs
+slowly then faster and faster to the line (about 13 dB louder, 19 dB brighter), the gallop coming up with it; the middle
+is quieter so the build has somewhere to go.
