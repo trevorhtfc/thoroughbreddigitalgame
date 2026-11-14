@@ -934,15 +934,23 @@ function buildTurf(colour) {
   LAYERS.ground.push(m);
   scene.add(m);
   if (NEIGH) {                                           // the other course's turf: under this course's where they overlap
-    const pos = [], idx = [];
+    // mown in soft lanes along its length (owner, 14 Nov: "yes" to a mown look so the fork reads against the rough):
+    // eight lanes across, light and dark in turn, as vertex colours across the strip (half a lane between vertices)
+    const pos = [], col = [], idx = [], N = 16;
     NEIGH.inside.forEach(([ax, az], i) => {
       const [bx, bz] = NEIGH.outer[i];
-      for (const f of [0, 1 / 3, 2 / 3, 1]) { const px = ax + (bx - ax) * f, pz = az + (bz - az) * f; pos.push(px, groundY(px, pz), pz); }
-      if (i) for (let k = 0; k < 3; k++) { const a = (i - 1) * 4 + k, b = i * 4 + k; idx.push(a, b, a + 1, a + 1, b, b + 1); }
+      for (let k = 0; k <= N; k++) {
+        const f = k / N, px = ax + (bx - ax) * f, pz = az + (bz - az) * f;
+        pos.push(px, groundY(px, pz), pz);
+        const v = k % 2 ? 1 + 0.09 * (((k - 1) / 2) % 2 ? -1 : 1) : 1;      // lane middles light or dark, edges between
+        col.push(v, v, v);
+      }
+      if (i) for (let k = 0; k < N; k++) { const a = (i - 1) * (N + 1) + k, b = i * (N + 1) + k; idx.push(a, b, a + 1, a + 1, b, b + 1); }
     });
-    const ng = new THREE.BufferGeometry(); ng.setAttribute("position", new THREE.Float32BufferAttribute(pos, 3)); ng.setIndex(idx);
+    const ng = new THREE.BufferGeometry(); ng.setAttribute("position", new THREE.Float32BufferAttribute(pos, 3));
+    ng.setAttribute("color", new THREE.Float32BufferAttribute(col, 3)); ng.setIndex(idx);
     ng.computeVertexNormals(); ng.computeBoundingSphere();
-    const nm = new THREE.Mesh(ng, turfLook(groundDetail(new THREE.MeshBasicMaterial({ color: colour, side: THREE.DoubleSide, ...GROUND_UNDER })), "turf"));
+    const nm = new THREE.Mesh(ng, turfLook(groundDetail(new THREE.MeshBasicMaterial({ color: colour, vertexColors: true, side: THREE.DoubleSide, ...GROUND_UNDER })), "turf"));
     nm.position.y = -0.03;
     nm.renderOrder = LEGACY_GROUND ? -2.5 : -1.9;        // after this course's turf with the stencil (first drawn wins), before it without
     LAYERS.ground.push(nm);
