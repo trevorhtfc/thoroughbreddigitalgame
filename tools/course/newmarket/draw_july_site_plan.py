@@ -179,11 +179,12 @@ def crowd_layer(ax, X0, X1, Z0, Z1, detail):
 
 
 def boards_layer(ax, X0, X1, detail):
-    for x, z, turn, design in S["boards"]:
+    for b in S["boards"]:
+        x, z, turn, design = b[:4]; L = 3 * (b[4] if len(b) > 4 else 1.0)
         if not (X0 < x < X1):
             continue
         th = math.radians(turn); c, s = math.cos(th), math.sin(th)
-        a = [(x - 3 * c, -(z + 3 * s)), (x + 3 * c, -(z - 3 * s))]
+        a = [(x - L * c, -(z + L * s)), (x + L * c, -(z - L * s))]
         ax.plot([a[0][0], a[1][0]], [a[0][1], a[1][1]], color=COL["ink"], lw=3.4 if detail else 1.6, solid_capstyle="butt", zorder=7.1)
         ax.plot([a[0][0], a[1][0]], [a[0][1], a[1][1]], color=BOARD.get(design, "#999"), lw=2.2 if detail else 1.0, solid_capstyle="butt", zorder=7.2)
 

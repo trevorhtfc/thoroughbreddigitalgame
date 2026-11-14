@@ -276,8 +276,8 @@
    "raise": [
     [
      -200,
-     720,
-     9
+     360,
+     6
     ]
    ],
    "frame": "field",
@@ -457,20 +457,20 @@
  "cameraMenu": {
   "straight": [
    [
-    "drone_straight",
-    "Drone"
-   ],
-   [
     "track_straight",
     "Tracking"
+   ],
+   [
+    "grandstand",
+    "Stand"
    ],
    [
     "headon",
     "Head-on"
    ],
    [
-    "grandstand",
-    "Stand"
+    "drone_straight",
+    "Drone"
    ],
    [
     "terraces",
@@ -483,16 +483,16 @@
     "Tracking"
    ],
    [
-    "drone_straight",
-    "Drone"
+    "grandstand",
+    "Stand"
    ],
    [
     "headon",
     "Head-on"
    ],
    [
-    "grandstand",
-    "Stand"
+    "drone_straight",
+    "Drone"
    ],
    [
     "terraces",
@@ -510,7 +510,8 @@
     600
    ],
    "headonMin": 1150,
-   "grandstand": 600
+   "grandstand": 402.336,
+   "tracking": true
   },
   "straight": {
    "grandstand": 600,
@@ -528,29 +529,29 @@
    "seconds": 9,
    "eye": [
     [
-     200,
-     62,
-     224.0
+     150,
+     12,
+     22
     ],
     [
-     90,
-     58,
-     224.0
+     128,
+     11,
+     22
     ]
    ],
    "at": [
     [
-     100,
-     8,
-     -40
+     0,
+     5,
+     -24
     ],
     [
-     20,
-     8,
-     -40
+     -12,
+     5,
+     -24
     ]
    ],
-   "fov": 40,
+   "fov": 36,
    "list": [
     7,
     0.6
@@ -562,29 +563,29 @@
    "seconds": 8,
    "eye": [
     [
-     90,
-     58,
-     224.0
+     128,
+     11,
+     22
     ],
     [
-     200,
-     62,
-     224.0
+     150,
+     12,
+     22
     ]
    ],
    "at": [
     [
-     20,
-     8,
-     -40
+     -12,
+     5,
+     -24
     ],
     [
-     100,
-     8,
-     -40
+     0,
+     5,
+     -24
     ]
    ],
-   "fov": 40
+   "fov": 36
   }
  },
  "startSequence": {
