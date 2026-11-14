@@ -11,12 +11,14 @@
 const CHAPTERS = {
   draw:      { step: 1, place: "jockey", season: "Winter", title: W.programme, hour: 10.5,
                line: W.drawLine },
+  team:      { step: 1, place: "jockey", season: "Winter", title: "Your team", hour: 11.5,
+               line: "Draft your owner, trainer and jockeys: six points from the Bronze, Silver and Gold decks." },
   breed:     { step: 1, place: "stud", season: "Spring", title: "The covering season", hour: 8,
                line: "Buy your mares at the National Stud and send them to the stallions of your choice." },
   sales:     { step: 2, place: "tatts", season: "Autumn", title: "The Yearling Sales", hour: 11,
                line: "The mares nobody bred have sent their yearlings to Tattersalls. Bid for the best of them." },
   gallops:   { step: 3, place: "warren", season: "The next spring", title: "Into training", hour: 7,
-               line: "Your string is in the yard as 2-year-olds. Take them up Warren Hill to bring them on." },
+               line: "Your string is in the yard as 2-year-olds. Up Warren Hill, your trainer gets them ready: trip, temperament, ground." },
   entries:   { step: 3, place: "jockey", season: "May", title: "Entries", hour: 9.5,
                line: W.entriesLine },
   week:      { step: 4, place: "races", season: W.when, title: W.weekTitle, hour: 9,
@@ -31,17 +33,19 @@ const STEPS = [
 ];
 function phase() {
   if (!S.dealt) return "draw";
+  if (S.step === 1 && !(teamOn() && S.team.gone)) return "team";
   if (S.step === 1) return "breed";
   if (S.step === 2) return "sales";
-  // (training on Warren Hill, "gallops", is kept for a later version: owner, 6 Nov; horses are developed at the foal
-  // reveal and on the entries screen meanwhile)
-  if (S.step === 3) return "entries";
+  // Warren Hill opens with the trainers (owner, 14 Nov): after the sales the string goes up the gallops first, where the
+  // trainer's jobs are done and horses developed, then on to entries (a season begun before this had no gallops step)
+  if (S.step === 3) return S.galloped ? "entries" : "gallops";
   if (S.step === 4) return "week";
   return S.home ? "home" : "standings";
 }
 const entered = () => RACES.filter(r => S.entries[r.id]).length;
 const racesRun = () => RACES.filter(r => S.results[r.id]).length;
-const prizeWon = () => RACES.reduce((a, r) => a + (S.results[r.id] ? S.results[r.id].prize : 0), 0);
+// prize money, with any Stud Master income (it counts with prize money, as on the board)
+const prizeWon = () => RACES.reduce((a, r) => a + (S.results[r.id] ? S.results[r.id].prize : 0), 0) + teamIncome();
 const winsNow = () => RACES.filter(r => S.results[r.id] && S.results[r.id].pos === 1).length;
 function nextPlace() {
   const ph = phase();
@@ -54,12 +58,12 @@ const atAscot = () => S.at === "ascot";
 const PLACE_ICON = { jockey: "JC", stud: "horse-head", tatts: "gavel", stables: "stable", warren: "horse", palace: "greek-temple", races: "horse" };
 function placeStates() {
   const ph = phase(), has = S.stable.length > 0, st = {};
-  const after = (k) => ["draw", "breed", "sales", "gallops", "entries", "week", "standings", "home"].indexOf(ph) > ["draw", "breed", "sales", "gallops", "entries", "week", "standings", "home"].indexOf(k);
+  const ORDER = ["draw", "team", "breed", "sales", "gallops", "entries", "week", "standings", "home"], after = (k) => ORDER.indexOf(ph) > ORDER.indexOf(k);
   st.jockey = "open"; st.palace = "open";
   st.stables = has ? "open" : "locked";
   st.stud = ph === "breed" ? "open" : after("breed") ? "done" : "locked";
   st.tatts = ph === "sales" || ph === "gallops" || ph === "entries" ? (S.sale.length || ph === "sales" ? "open" : "done") : after("entries") ? "done" : "locked";
-  st.warren = "locked";                                             // training comes in a later version
+  st.warren = ph === "gallops" || ph === "entries" ? "open" : after("entries") ? "done" : "locked";
   st.races = ph === "gallops" || ph === "entries" || ph === "week" || ph === "standings" ? "open" : ph === "home" ? "done" : "locked";
   st[nextPlace()] = "next";
   return st;
@@ -73,6 +77,7 @@ function cardFor(id) {
     case "jockey":
       c.kicker = "Racing's rule-makers";
       if (ph === "draw") { c.text = W.drawText; c.cta = "See the programme"; }
+      else if (ph === "team") { c.text = `Draft your team: an owner, a trainer and jockeys, <b>${teamPoints()} of ${TEAM_POINTS}</b> points picked.`; c.cta = "Draft your team"; }
       else if (ph === "gallops" || ph === "entries") { c.text = `Make your entries: ${W.entryRule.toLowerCase()}. <b>${n} of ${RACES.length}</b> races have a runner.`; c.cta = "Make entries"; c.off = false; }
       else if (ph === "week" || ph === "standings") { c.text = `The programme, with your results so far: <b>${racesRun()} of ${RACES.length}</b> run.`; c.cta = "The programme"; }
       else { c.text = "Your ten races and the race planner: map out which horse is for which race."; c.cta = "The programme"; }
@@ -99,9 +104,10 @@ function cardFor(id) {
     case "warren": {
       const can = S.stable.filter(h => h.age < 4).length;
       c.kicker = "The gallops";
-      if (st === "locked") { c.status = "Coming in a later version"; c.text = "Training on the gallops is on its way. For now, develop your 2-year-olds when they arrive or on the Jockey Club's entries screen."; c.cta = ""; }
+      const jl = typeof jobsLeft === "function" && teamOn() ? jobsLeft() : 0;
+      if (st === "locked") { c.status = "Opens after the sales"; c.text = "Your trainer gets the string ready here: trip, temperament, ground and a tune-up for a big race. Horses are developed here too."; c.cta = "Go to the gallops"; }
       else if (st === "done") { c.status = "Training is over for this season"; c.text = `Your string has gone to ${W.venue}.`; c.cta = ""; }
-      else { c.text = `Develop a horse to 3 or 4 to change its rating and best trip; you only see how once it's done. <b>${can}</b> of your ${S.stable.length} could still develop.`; c.cta = "Go to the gallops"; }
+      else { c.text = `${jl ? `Your trainer has <b>${jl}</b> job${jl === 1 ? "" : "s"} to spend. ` : ""}Develop a horse to 3 or 4 to change its rating and best trip. <b>${can}</b> of your ${S.stable.length} could still develop.`; c.cta = "Go to the gallops"; }
       break; }
     case "palace": {
       const weeks = pastWeeks().length;
@@ -137,9 +143,9 @@ function paintBar() {
   }).join("");
   const n = S.stable.length;
   $("#tally").innerHTML = S.step <= 3
-    ? `<span class="t-silk">${silkImg(mySilkN())}</span><span title="Horses in your stable"><svg viewBox="0 0 512 512">${ICON.stable}</svg><em>${n}</em><i>/${STABLE_CAP}</i></span><span class="t-money" title="Your budget"><svg viewBox="0 0 512 512">${ICON["two-coins"]}</svg><em>${money(S.budget)}</em></span>`
+    ? `<span class="t-silk">${silkImg(mySilkN())}</span><span title="Horses in your stable"><svg viewBox="0 0 512 512">${ICON.stable}</svg><em>${n}</em><i>/${STABLE_CAP}</i></span><button type="button" class="t-money" data-accounts="1" title="Your budget: open your accounts"><svg viewBox="0 0 512 512">${ICON["two-coins"]}</svg><em>${money(S.budget)}</em></button>`
     : `<span class="t-silk">${silkImg(mySilkN())}</span><span title="Wins: ${winsNow()} from ${racesRun()} of ${RACES.length} races run"><svg viewBox="0 0 512 512">${ICON["laurels-trophy"]}</svg><em>${winsNow()}</em><i> win${winsNow() === 1 ? "" : "s"}</i></span><span class="t-money prize" title="Prize money won (a separate pot from your budget)"><svg viewBox="0 0 512 512">${ICON["trophy-cup"]}</svg><em>${money(prizeWon())}</em></span>`;
-  fitBar();
+  fitBar(); refreshAccounts();
 }
 // if the five steps' names don't fit beside the tally (a narrow window, or the fonts still loading), only the
 // current step keeps its name
@@ -168,7 +174,7 @@ function paintBoard() {
 function paintGuide() {
   const ph = phase(), ch = CHAPTERS[ph], nx = nextPlace(), p = BOARD.placeOf(nx), g = $("#guide");
   const what = {
-    draw: "See the programme at the Jockey Club", breed: "Breed your foals at the National Stud", sales: "Buy at the Yearling Sales, Tattersalls",
+    draw: "See the programme at the Jockey Club", team: "Draft your team at the Jockey Club", breed: "Breed your foals at the National Stud", sales: "Buy at the Yearling Sales, Tattersalls",
     gallops: "Bring your string on at Warren Hill", entries: nx === "races" ? `Every race has a runner: off to ${W.where}` : `Make your entries at the Jockey Club (${entered()} of ${RACES.length})`,
     week: W.weekTitle === "Royal Ascot" ? "Race week at Royal Ascot" : W.weekTitle, standings: W.standingsAt, home: "Collect your title at Palace House",
   }[ph];
@@ -250,10 +256,10 @@ function paintSheet(first) {
 const SHEETS = {
   jockey() {
     if (!S.dealt) return drawBody();
+    if (phase() === "team" || UI.tab.jockey === "team") return (phase() === "team" ? "" : jockeyTabs("team")) + draftBody();
     const ph = phase(), canEnter = S.step >= 3 && S.step <= 4 && !racesRun();
     const tab = UI.tab.jockey || (canEnter && (ph === "entries" || ph === "gallops" || atAscot()) ? "entries" : "programme");
-    const tabs = [["programme", "The programme"], ["plan", "Race planner"]].concat(canEnter ? [["entries", "Entries"]] : []);
-    const bar = `<div class="vtabs" role="tablist">${tabs.map(([k, t]) => `<button class="vtab ${tab === k ? "on" : ""}" data-jtab="${k}" role="tab" aria-selected="${tab === k}">${t}${k === "entries" ? `<i>${entered()}/${RACES.length}</i>` : k === "plan" ? `<i>${RACES.filter(r => (S.targets || {})[r.id] && horse(S.targets[r.id])).length}/${RACES.length}</i>` : ""}</button>`).join("")}</div>`;
+    const bar = jockeyTabs(tab);
     if (tab === "entries" && canEnter) return bar + entriesBody(entered());
     if (tab === "plan") return bar + `<p class="tb-lede sh-lede">Map out which horse is for which race. A target is only a plan: it doesn't enter the horse. Drag a race onto a horse, or tap a race to see how every horse fits it.</p>` + plannerView();
     return bar + programmeBody();
@@ -280,6 +286,9 @@ const goBtn = (id, label, opts = {}) => `<button class="tb-btn ${opts.ghost ? "g
 const FOOTS = {
   jockey() {
     if (!S.dealt) return "";
+    if (phase() === "team") { const T = teamState();
+      return T.done ? `<span class="f-info ready">Your team is picked.</span>${goBtn("teamDone", "To the National Stud")}`
+        : `<span class="f-info">${T.offer ? "Keep one of the three cards." : `${teamPoints()} of ${TEAM_POINTS} points picked. Choose a deck.`}</span>`; }
     if (atAscot()) return `<span class="f-info">Change your runners before the first race. The going is declared again when you go back.</span>${goBtn("toWeek", W.backToRacing)}`;
     const ph = phase();
     if (ph === "gallops" || ph === "entries") { const left = RACES.length - entered();
@@ -290,15 +299,16 @@ const FOOTS = {
     if (S.step !== 1) return "";
     return S.confirmSale
       ? `<span class="f-info"><b>Close the stud?</b> Once you go to Tattersalls you can't come back to breed.${S.hand.length ? ` Your ${S.hand.length} unused mare${S.hand.length === 1 ? "" : "s"} may turn up in the sale.` : ""}</span>${goBtn("saleNo", "Stay at the stud", { ghost: true })}${goBtn("saleYes", "Go to Tattersalls", { off: S.foal || S.offer })}`
-      : `<span class="f-info">${studCount()} mare${studCount() === 1 ? "" : "s"} · ${S.stable.length} horse${S.stable.length === 1 ? "" : "s"} · ${money(S.budget)} left</span>${goBtn("toSale", "Close the stud and go to the sales", { off: S.foal || S.offer })}`;  },
+      : `<span class="f-info">${studCount()} mare${studCount() === 1 ? "" : "s"} · ${S.stable.length} horse${S.stable.length === 1 ? "" : "s"} · <button type="button" class="f-acct" data-accounts="1">${money(S.budget)} left</button></span>${goBtn("toSale", "Close the stud and go to the sales", { off: S.foal || S.offer })}`;  },
   tatts() {
     // never a dead end: with no horse bought or bred you can still leave (and race nothing, or start again)
-    if (S.step === 2) return `<span class="f-info">${S.stable.length} horse${S.stable.length === 1 ? "" : "s"} in your string · ${money(S.budget)} left</span>${goBtn("toEnter", S.stable.length ? "Leave the sales: on to entries" : "Leave the sales without a horse", { off: S.foal })}`;
+    if (S.step === 2) return `<span class="f-info">${S.stable.length} horse${S.stable.length === 1 ? "" : "s"} in your string · <button type="button" class="f-acct" data-accounts="1">${money(S.budget)} left</button></span>${goBtn("toEnter", S.stable.length ? "Leave the sales: on to entries" : "Leave the sales without a horse", { off: S.foal })}`;
     return "";
   },
   warren() {
     const ph = phase();
-    if (ph === "gallops") return `<span class="f-info">Develop any that need it, or come back later: the gallops stay open until you leave for ${W.venue}.</span>${goBtn("doneGallops", "Done on the gallops: on to entries")}`;
+    if (ph === "gallops" || ph === "entries") { const jl = typeof jobsLeft === "function" && teamOn() ? jobsLeft() : 0;
+      return `<span class="f-info">${jl ? `${jl} job${jl === 1 ? "" : "s"} left: spend ${jl === 1 ? "it" : "them"} now or keep ${jl === 1 ? "it" : "them"} for race week. ` : ""}The gallops stay open until you leave for ${W.venue}.</span>${ph === "gallops" ? goBtn("doneGallops", "Done on the gallops: on to entries") : ""}`; }
     return "";
   },
   palace() { return phase() !== "home" ? "" : isDaily()
@@ -378,7 +388,18 @@ function racesDone(instant) {
   const n = $("#dealNext"); n.hidden = false; n.innerHTML = `To the National Stud <span aria-hidden="true">›</span>`;
 }
 function skipDeal() { clearDeal(); $("#dealBody").querySelectorAll(".dc").forEach(c => c.getAnimations().forEach(a => a.finish())); if (D && D.phase === 1) racesDone(); }
-function closeDeal() { clearDeal(); D = null; UI.dealing = false; S.dealt = true; save(); story("jockey", "stud", "breed"); }
+function closeDeal() {
+  clearDeal(); D = null; UI.dealing = false; S.dealt = true; teamState(); save();
+  // the team is drafted here at the Jockey Club before the stud opens (js/team.js)
+  if (!(teamOn() && S.team.gone)) { paintBar(); paintBoard(); paintSheet(true); sheetTop(); return; }
+  story("jockey", "stud", "breed");
+}
+// the Jockey Club's tabs (your team appears once it's picked)
+function jockeyTabs(tab) {
+  const ph = phase(), canEnter = S.step >= 3 && S.step <= 4 && !racesRun();
+  const tabs = [["programme", "The programme"], ["plan", "Race planner"]].concat(canEnter ? [["entries", "Entries"]] : []).concat(teamOn() && !teamSkipped() ? [["team", "Your team"]] : []);
+  return `<div class="vtabs" role="tablist">${tabs.map(([k, t]) => `<button class="vtab ${tab === k ? "on" : ""}" data-jtab="${k}" role="tab" aria-selected="${tab === k}">${t}${k === "entries" ? `<i>${entered()}/${RACES.length}</i>` : k === "plan" ? `<i>${RACES.filter(r => (S.targets || {})[r.id] && horse(S.targets[r.id])).length}/${RACES.length}</i>` : k === "team" ? `<i>${teamCards().length}</i>` : ""}</button>`).join("")}</div>`;
+}
 
 /* ----- National Stud and Tattersalls: the Ascot game's own screens (js/ui-parts.js), in the sheet ----- */
 
@@ -386,9 +407,9 @@ function closeDeal() { clearDeal(); D = null; UI.dealing = false; S.dealt = true
 function gallopsBody() {
   const young = S.stable.filter(h => h.age < 4), grown = S.stable.filter(h => h.age >= 4);
   if (!S.stable.length) return `<p class="tb-empty">No horses in training yet.</p>`;
-  return `<div class="tb-head"><p class="tb-lede">Every horse arrives as a 2-year-old. Work one up the hill to develop it to 3 or 4: its rating and best trip change, and you only see how once it's done. There's no going back, and a horse can only run in races for its age. The projected peak is the age it should be at its best.</p></div>
+  return `${trainerPanel()}<div class="tb-head"><p class="tb-lede">Every horse arrives as a 2-year-old. Work one up the hill to develop it to 3 or 4: its rating and best trip change, and you only see how once it's done. There's no going back, and a horse can only run in races for its age. The projected peak is the age it should be at its best.</p></div>
     <div class="gal-sum"><span><b>${young.length}</b> could still develop</span><span><b>${grown.length}</b> fully grown</span><span><b>${S.stable.filter(h => h.age === h.peakAge).length}</b> at their projected peak</span></div>
-    ${horseCols(S.stable, null, true, { plan: true }, false)}`;
+    ${horseCols(S.stable, null, true, { plan: true, train: true }, false)}`;
 }
 
 /* ----- Palace House: your trophies and your history ----- */
@@ -419,10 +440,10 @@ function museumBody() {
       <p class="rec-n">${hist.length} ${MEETING.id === "royal-ascot" ? "week" : "season"}${hist.length === 1 ? "" : "s"} played. Collect every title.</p></section>` : ""}
     ${hon.length ? `<section class="rec"><h2 class="tb-h2">ROLL OF HONOUR</h2><ul class="honours">${hon.slice(0, 30).map(x => `<li>${silkImg(x.silks || 0)}<b>${esc2(x.horse)}</b><span>${esc2(x.race)}</span><small>${esc2(x.grade)} · ${seasonName(x, true)}</small></li>`).join("")}</ul></section>` : ""}
     <section class="rec how"><h2 class="tb-h2">HOW THE SEASON GOES</h2><ol class="how-list">
-      <li><b>The Jockey Club</b>: the ten races for ${W.whereLong} are drawn.</li>
+      <li><b>The Jockey Club</b>: the ten races for ${W.whereLong} are drawn, and you draft your team: owner, trainer and jockey cards worth six points (Gold 3, Silver 2, Bronze 1).</li>
       <li><b>The National Stud</b>: buy mares (choose one of three each time) and send them to the stallions. A mare can be at most one star above her stallion; outcrosses breed best, the same family worst. Unproven stallions may be a star better or worse than they look.</li>
       <li><b>Tattersalls</b>: the yearlings out of the mares nobody bred are sold in three Books. Bid against five rival buyers; you see the pedigree, not the yearling, until it's yours.</li>
-      <li><b>Warren Hill</b>: develop horses to 3 or 4. Their rating and best trip change; you only see how once it's done.</li>
+      <li><b>Warren Hill</b>: your trainer's jobs (trip work, settling a keen horse, ground work, a tune-up for a big race) and developing horses to 3 or 4.</li>
       <li><b>The Jockey Club</b>: enter ${W.entryRule.toLowerCase()}. Each step from its best trip costs 5; the going counts ${W.goingCounts} (+5 on a going it likes, down to −10 three steps off).</li>
       <li>${W.howRaces ? W.howRaces : "<b>Royal Ascot</b>: watch each race in 3D or sim it."} Rating, trip, going and pace decide it, and a horse's running style meets the pace of the race. Prize money is its own pot; the money you spent doesn't count against it.</li>
     </ol></section>`;
@@ -636,13 +657,33 @@ function render() {
 }
 
 /* ================= Clicks ================= */
-document.addEventListener("change", e => { if (e.target.id === "sort") { S.sort = e.target.value; save(); render(); } });
+document.addEventListener("change", e => {
+  const t = e.target, d = t.dataset || {};
+  if (t.id === "sort") { S.sort = t.value; save(); render(); return; }
+  // your team (js/team.js): a stallion for an owner's card, a trainer card on a horse, a jockey booked for a race
+  if (d.ask) { if (t.value && askExpert(t.value)) { const x = stallion(t.value); toast(`Your expert: ${x.name} is really a ${x.trueStars}★ stallion`); } render(); return; }
+  if (d.tune) { const h = horse(d.tune), r = raceOf(t.value); if (h && r && doJob("tune", h, { race: r.id })) toast(`${h.name} is tuned up for the ${r.name}: +${tuneBoost(h, r)} there`); render(); return; }
+  if (d.bookrace) { if (!bookJockey(d.bookrace, t.value)) toast("He has no rides left"); render(); return; }
+});
 document.addEventListener("click", e => {
   const t = e.target.closest("button"); if (!t || t.disabled) return;
   const d = t.dataset;
   if (d.guide) { BOARD.choose(d.guide); return; }
   if (d.step) { const s = STEPS.find(x => x.n === +d.step); if (s && !atAscot()) BOARD.choose(s.n === CHAPTERS[phase()].step ? nextPlace() : s.place); return; }
   if (d.jtab) { UI.tab.jockey = d.jtab; render(); sheetTop(); return; }
+  if (d.deck) { const [role, tier] = d.deck.split(":"); if (drawDeck(role, +tier)) { render(); sheetTop(); BOARD.Sound.chime && BOARD.Sound.chime(); } return; }
+  if (d.keepcard) { const c = teamCard(d.keepcard); keepTeamCard(d.keepcard); toast(`${cardName(c)} joins your team`); render(); sheetTop(); return; }
+  if (d.own) { if (ownStallion(d.own)) toast(`${d.own} is your own stallion: ${OWNED_FREE} free nominations`); render(); return; }
+  if (d.claim) { claimLot(d.claim); render(); return; }
+  if (d.accounts) { toggleAccounts(); return; }
+  if (d.job) { const h = horse(d.h), k = d.job, o = { dir: d.dir ? +d.dir : undefined, side: d.side, race: d.race };
+    if (h && doJob(k, h, o)) { const j = jobsAll()[jobsAll().length - 1];
+      toast(k === "trip" ? `${h.name}: best trip now ${tripText(tripAt(h, h.age))}` : k === "settle" ? `${h.name} has learned to settle` : k === "ground" ? `${h.name} now handles ${j.add.join(" and ")} too` : k === "tune" ? `${h.name} is tuned up: +${tuneBoost(h, raceOf(o.race))} in the ${raceOf(o.race).name}` : `Your trainer has looked ${h.name} over`); }
+    render(); return; }
+  if (d.unjob) { if (undoJob(+d.unjob)) toast("Job undone"); render(); return; }
+  if (d.scoutrace) { scoutPick(d.scoutrace); render(); return; }
+  if (d.scout) { if (briefScout()) { const n = (S.team.scout.found || []).length; toast(n ? `Your scout has found ${n === 1 ? "a lot" : n + " lots"} for your races` : "Your scout has your races"); } render(); return; }
+  if (d.agent) { handBack(); render(); return; }
   if (d.stab) { UI.tab.stables = d.stab; render(); sheetTop(); return; }
   if (d.tab) { S.tab = d.tab; save(); render(); return; }
   if (d.mare) { if (S.selMare !== d.mare) { S.selMare = d.mare; S.selStallion = null; save(); render(); sheetTop(); } return; }
@@ -677,21 +718,23 @@ document.addEventListener("click", e => {
     case "toMenu": openMenu(); break;
     case "snd": { const on = !BOARD.Sound.on; BOARD.Sound.set(on); t.setAttribute("aria-pressed", String(on)); $("#sndIcon").innerHTML = on ? ICON.speaker : ICON["speaker-off"]; break; }
     case "shClose": closeSheet(); break;
-    case "breedBtn": { const s = stallion(S.selStallion); if (!s || s.fee > S.budget || stableFull() || pairProblem(s, byName(S.selMare))) break; breed(s.name, S.selMare, "bred", s.fee); save(); render(); BOARD.Sound.whinny(); break; }
+    case "breedBtn": { const s = stallion(S.selStallion); if (!s || feeFor(s) > S.budget || stableFull() || pairProblem(s, byName(S.selMare))) break; breed(s.name, S.selMare, "bred", feeFor(s)); save(); render(); BOARD.Sound.whinny(); break; }
     case "keep": keepFoal(($("#foalName") || {}).value); render(); break;
     case "closeDev": { const b = $("#devCard"); if (b) b.remove(); cardFrame = null; break; }
     case "changeMare": S.selMare = null; S.selStallion = null; save(); render(); sheetTop(); break;
     case "vjob": case "vplan": S.view = t.id.slice(1); render(); break;
     case "dealSkip": skipDeal(); break;
     case "dealNext": closeDeal(); break;
+    case "teamDone": if (teamOn()) { S.team.gone = true; UI.tab.jockey = null; save(); story("jockey", "stud", "breed"); } break;
     case "toSale": S.confirmSale = true; render(); break;
     case "saleNo": S.confirmSale = false; render(); break;
     case "saleYes": if (S.step !== 1 || S.foal || S.offer) break;
+      // a Stud Master who hasn't chosen gets a stallion picked for him
       S.confirmSale = false; S.step = 2; S.book = 1; S.view = "job"; newCatalogue(); save();
       story("stud", "tatts", "sales", { procession: "yearlings" }); break;
     case "toEnter": if (S.step !== 2 || S.foal) break;
-      S.step = 3; S.galloped = true; S.view = "job"; save();
-      story("tatts", "jockey", "entries", { procession: "gallops" }); break;
+      S.step = 3; S.galloped = false; S.view = "job"; save();
+      story("tatts", "warren", "gallops", { procession: "gallops" }); break;
     case "doneGallops": S.galloped = true; save(); story("warren", "jockey", "entries"); break;
     case "fill": fillEmpty(); render(); break;
     case "clear": S.entries = {}; save(); render(); break;
@@ -725,7 +768,7 @@ document.addEventListener("click", e => {
     case "aucBid": aucPlace("me"); break;
     case "aucLeave": aucLeave(); break;
     case "autoMinus": if (A) { A.auto = Math.max(openBid(A.l), A.auto - incFor(A.auto - 1)); aucPaint(); } break;
-    case "autoPlus": if (A) { A.auto = Math.min(S.budget, A.auto + incFor(A.auto)); aucPaint(); } break;
+    case "autoPlus": if (A) { A.auto = Math.min(canBidTo(), A.auto + incFor(A.auto)); aucPaint(); } break;
     case "autoOn": if (A) { A.autoOn = !A.autoOn; aucPaint(); } break;
     case "simInstead": { const i = watching.i; closeWatch(); simAndRecord(i).then(() => raceDone(i)).catch(err => toast(String(err.message || err))).finally(render); break; }
   }
