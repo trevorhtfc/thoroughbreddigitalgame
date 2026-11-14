@@ -196,3 +196,10 @@ python tools/web/package_racehorse_v2.py /tmp/racehorse_v2_web.glb
 - **Gallop v2**: `gallop_v2` and `gallop_v2_drive` add a tail carried up off the quarters that swings behind the stride, a fuller head and neck nod, and the loin flexing with the hind legs.
 - **Variety** (cosmetic per runner, from its seed): additive ramp clips `jky_crouch_low`, `jky_crouch_high`, `jky_elbows_out`, `jky_hands_long`, `horse_head_high`, `horse_head_low`, `horse_tail_high`, played held at their end with a weight 0..1; plus a stride rhythm of ±4.5% and the jockey's timing up to 0.04 s off the stride.
 - **Detail levels**: `racehorse_v2_close` (smoothed, about 45k triangles), `racehorse_v2` (race, about 18.7k: lighter than v1's 19.3k), `racehorse_v2_far` (about 7.2k). The race view picks by size on screen and allows only a few close at once.
+
+## Horse movement and silks templates (13 Nov 2026)
+
+- `tools/blender/gallop_balance.py` is read by `build_racehorse_v2.py`. It puts the body's rocking in step with the legs (forehand up while the hind legs push, level as the fore legs land) and plants every hoof on the turf at the ground's speed, re-timing each leg from the clip's own sweep and swing. The numbers to tune are at its top (`GB_STANCE`, `gb_pitch_curve`).
+- The riding clips are made after the gallop, because the jockey gives against the saddle's movement: tall in his irons at effort 0, down low when pushing, lowest when driving. `ride_whip` is two strides long (a stroke, then a push). New "moments" (`jky_look_left`, `jky_look_right`, `jky_stand`) are faded in and out by the viewer (`race-view/horse-v2.js`).
+- Section 4a of the build irons the jacket and breeches join, cuts the sleeve joins clean, and lays the silks out afresh from the jockey's shape (body round the line of his back; each sleeve along the cloth itself).
+- `tools/silks/make_silks.py` now holds the owner's base templates (`TEMPLATES`: 25 jackets, 12 sleeves, 10 caps, numbered as on `reference/silks/templates-*.png`) and writes `silks/templates.json`. Review sheets of every template on the 3D jockey are in `reference/silks/templates/`.

@@ -98,17 +98,20 @@ const PEOPLE_TRIPS = [
 const movers = [];
 let horseProto = null, peopleProto = null, silkList = [], maskTex = null, clipsByName = {}, horseScale = 1, personScale = 1;
 const silkTex = new Map(), texLoader = new THREE.TextureLoader();
+// colours a player made themselves: painted here, in the little horses' own layout (silks-paint.js)
+function ownTexture(spec) { const id = "own:" + window.SilksPaint.encode(spec); if (!silkTex.has(id)) { const t = new THREE.CanvasTexture(window.SilksPaint.texture(spec, 512, "v1")); t.flipY = false; t.colorSpace = THREE.SRGBColorSpace; silkTex.set(id, t); } return silkTex.get(id); }
 function silkTexture(id) { if (!silkTex.has(id)) { const t = texLoader.load(`assets/silks-3d/${id}.png`); t.flipY = false; t.colorSpace = THREE.SRGBColorSpace; silkTex.set(id, t); } return silkTex.get(id); }
 const COATS = [["#6e4026", "#1d1714"], ["#4a2e1c", "#17110d"], ["#9a4f28", "#5f2e14"], ["#2b2523", "#141110"], ["#8f8d88", "#5d5b56"], ["#7a4a2a", "#1d1714"]];
 let nHorse = 0;
 function makeHorse({ silk: silkId, rider = true, coat: coatIx } = {}) {
   const k = nHorse++, obj = SkeletonUtils.clone(horseProto.scene); obj.scale.setScalar(horseScale);
-  const coat = COATS[(coatIx ?? k) % COATS.length], silk = silkList.find((s) => s.id === silkId) || silkList[(k * 7 + 3) % silkList.length];
+  const own = silkId && typeof silkId === "object" && silkId.body && window.SilksPaint ? silkId : null;
+  const coat = COATS[(coatIx ?? k) % COATS.length], silk = own ? { id: "own", colour: own.body.a } : silkList.find((s) => s.id === silkId) || silkList[(k * 7 + 3) % silkList.length];
   const u = { mask: { value: maskTex }, coatCol: { value: new THREE.Color(coat[0]) }, pointsCol: { value: new THREE.Color(coat[1]) }, silkCol: { value: new THREE.Color(silk.colour) }, uRider: { value: rider ? 1 : 0 } };
   const mats = [], ground = { value: 0 }; obj.userData.ground = ground;
   obj.traverse((o) => {
     if (!o.isMesh) return; o.frustumCulled = false; o.material = o.material.clone(); o.material.transparent = true; mats.push(o.material);
-    if (o.material.name === "silks") { o.material.map = silkTexture(silk.id); occluded(o.material, ground); if (!rider) o.visible = false; return; }
+    if (o.material.name === "silks") { o.material.map = own ? ownTexture(own) : silkTexture(silk.id); occluded(o.material, ground); if (!rider) o.visible = false; return; }
     o.material.onBeforeCompile = (sh) => {
       Object.assign(sh.uniforms, u);
       sh.vertexShader = sh.vertexShader.replace("#include <common>", "#include <common>\nvarying vec3 vBind;").replace("#include <begin_vertex>", "#include <begin_vertex>\nvBind = position;");
