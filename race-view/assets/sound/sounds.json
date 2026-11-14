@@ -18,7 +18,7 @@
     },
     "middle": {
       "file": "middle.mp3",
-      "loop": 24.2047,
+      "loop": 18.2047,
       "bus": "master"
     },
     "off": {

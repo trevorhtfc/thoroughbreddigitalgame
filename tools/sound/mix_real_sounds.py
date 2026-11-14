@@ -185,49 +185,60 @@ def gallop_loop():
     c = np.roll(a, int(5.2 * SR), axis=1); c = filt(c, "low", 1200, 2)
     return width(a + 0.55 * b + 0.35 * c, 1.1)
 def applause(n, start):
-    """Hand claps (made: there's no applause in the recordings), starting 'start' seconds in and tailing off."""
+    """Hand claps (made: there's no applause in the recordings), starting 'start' seconds in and tailing off. Owner,
+    14 Nov: "the applause is too prominent, it doesn't sound like a big crowd". So it's a big crowd now: some 1,400
+    pairs of hands, nearly all of them far off down the stands (duller and later the further), so it reads as a wash."""
     from make_race_sounds import clap_kit
-    kit = clap_kit(); claps = np.zeros((2, n))
-    for _ in range(260):
-        rate = rng.uniform(3.4, 6.5); st = start + rng.uniform(0, 2.2) ** 1.3; stop = st + 3 + rng.gamma(2.2, 1.8)
-        d = rng.uniform(6, 70); g = 6.0 / d * rng.uniform(0.5, 1); pan = rng.uniform(-0.95, 0.95); c = kit[rng.integers(len(kit))]
-        a = np.cos((pan + 1) * np.pi / 4), np.sin((pan + 1) * np.pi / 4); tt = st
-        while tt < min(stop, n / SR - 0.5):
-            i = int(tt * SR); j = min(len(c), n - i); f = np.clip((stop - tt) / 1.5, 0, 1) * rng.uniform(0.7, 1) * g
-            claps[0, i:i + j] += c[:j] * f * a[0]; claps[1, i:i + j] += c[:j] * f * a[1]
-            tt += 1 / rate * rng.uniform(0.92, 1.08)
-    return tail(claps, 1.2, 0.35, 5000)[:, :n]
+    kit = clap_kit(); out = np.zeros((2, n))
+    for count, d0, d1, lp in ((120, 20, 50, 7000), (420, 50, 120, 4000), (860, 120, 260, 2200)):
+        claps = np.zeros((2, n))
+        for _ in range(count):
+            rate = rng.uniform(3.4, 6.5); st = start + rng.uniform(0, 2.5) ** 1.3; stop = st + 3 + rng.gamma(2.2, 1.8)
+            d = rng.uniform(d0, d1); g = 25.0 / d * rng.uniform(0.5, 1); pan = rng.uniform(-1, 1); c = kit[rng.integers(len(kit))]
+            a = np.cos((pan + 1) * np.pi / 4), np.sin((pan + 1) * np.pi / 4); tt = st + d / 343      # (sound takes its time)
+            while tt < min(stop, n / SR - 0.5):
+                i = int(tt * SR); j = min(len(c), n - i); f = np.clip((stop - tt) / 1.5, 0, 1) * rng.uniform(0.7, 1) * g
+                claps[0, i:i + j] += c[:j] * f * a[0]; claps[1, i:i + j] += c[:j] * f * a[1]
+                tt += 1 / rate * rng.uniform(0.92, 1.08)
+        out += filt(claps, "low", lp, 2)
+    return tail(out, 2.0, 0.6, 4000)[:, :n]
 
 # ---------------------------------------------------------------- the middle: from after the off to about 3 furlongs out (a loop)
 # Owner, 13 Nov: "the commentary isn't great [the made voice]. Some of these clips have crowd and commentary which I'm
 # happy for you to overlay to get the sound." So the commentary is now the real commentators, with their crowds.
-MIDDLE = {"bed": -26.0, "murmur": -31.0, "gallop": -24.5}   # each part's level (dB), here and at the start of the finish
+MIDDLE = {"bed": -21.5, "murmur": -33.0, "gallop": -28.0}   # (owner, 14 Nov: "I can't really hear any PA announcer": the talk up, the rest down)
+TALK_LIFT_DB = 11.0                                           # the commentators brought forward out of their crowds this much   # each part's level (dB), here and at the start of the finish
 MIDDLE_TALK = [            # (clip, from, to, voice from, voice to): the crowd with its commentator, laid end to end
     ("chel", 7.6, 12.4, 8.5, 12.4),                         # Cheltenham: the commentator after the roar
     ("aintree", 0.2, 11.5, 0.2, 8.0),                       # Aintree: its announcer over the crowd, before its finish builds
-    ("japan", 4.0, 16.0, 4.0, 4.0),                         # the Japan Cup crowd early in its race (no commentary): a breather
+    ("japan", 4.0, 10.0, 4.0, 4.0),                         # the Japan Cup crowd early in its race (no commentary): a breather
 ]
 # Where each crowd's horses cross the line (owner, 14 Nov: "What a finish 22 secs, aintree crowd 21, japan cup 38"):
 # in the finish all three are laid so their lines land on ours, so their own build-ups make the crescendo.
 LINES = {"gn": 22.0, "aintree": 21.0, "japan": 38.0}
+def even(x, win=1.5, range_db=6.0):
+    """Rides the level of a stretch so it stays steady (like an engineer's hand on the fader), within range_db."""
+    e = np.sqrt(signal.sosfiltfilt(sos("low", 1 / win, 1), (x ** 2).mean(0)).clip(1e-12))
+    g = np.clip(np.sqrt((x ** 2).mean()) / e, 10 ** (-range_db / 20), 10 ** (range_db / 20))
+    return x * g[None, :]
 def talk_bed(parts, xf=1.0):
     """The clips laid end to end with crossfades, each with its commentator brought forward, all at one level."""
     clips = {"chel": chel, "aintree": aintree, "gn": gn, "japan": japan}
     out = None
     for name, a, b, v0, v1 in parts:
-        x = crowd_eq(cut(clips[name], a, b)); x = lift_voice(x, v0 - a, v1 - a, 6.0, 0.3, 0.5); x = level(x, -20)
+        x = crowd_eq(cut(clips[name], a, b)); x = lift_voice(x, v0 - a, v1 - a, TALK_LIFT_DB, 0.3, 0.5); x = level(x, -20)
         if out is None: out = x; continue
         k = int(xf * SR); r = np.sin(np.linspace(0, np.pi / 2, k)) ** 2
         out = np.concatenate([out[:, :-k], out[:, -k:] * np.sqrt(1 - r) + x[:, :k] * np.sqrt(r), x[:, k:]], axis=1)
-    return out
+    return even(out)
 def make_middle():
     """Owner, 13 Nov: "a flexible looping middle section that can handle the off all the way till the 3f stage or so..
     a slightly more muted crowd, galloping and background PA announcer". One loop: the real crowds with their
     commentators, muted (quieter and softened, as if over the loudspeakers from across the course), the gallop, and the
     crowd waiting under it all so it never drops away."""
     bed = talk_bed(MIDDLE_TALK)
-    L = bed.shape[1] / SR - 1.5; n = int((L + 1.5) * SR)
-    bed = filt(bed, "low", 3200, 2); bed = peak(bed, 1800, 2.5, 1.0)          # muted, the voices kept clear
+    L = bed.shape[1] / SR - 1.5; n = bed.shape[1]
+    bed = filt(bed, "low", 4500, 2); bed = peak(bed, 1800, 3.5, 1.0)          # a little muted, the voices kept clear
     M = level(bed, MIDDLE["bed"]) + level(tile(murmur_loop(), n, 4.0), MIDDLE["murmur"]) + level(tile(gallop_loop(), n), MIDDLE["gallop"])
     return write("middle", loop_of(M, L, 1.5), loop=True)
 
@@ -251,14 +262,14 @@ def make_finish():
         if at < 0: x = x[:, int(-at * SR):]; at = 0.0
         X = np.zeros((2, n)); place(X, x, at); return X, at
     # the start: as the middle (its bed carried on, muted), handing over
-    bed = talk_bed(MIDDLE_TALK); bed = peak(filt(bed, "low", 3200, 2), 1800, 2.5, 1.0)
-    bed = level(tile(loop_of(bed, bed.shape[1] / SR - 1.5, 1.5), n, 0.0), MIDDLE["bed"]) * db([(0, 0), (6, -2), (14, -10), (20, -40), (total, -60)])[None]
+    bed = talk_bed(MIDDLE_TALK[:2]); bed = peak(filt(bed, "low", 4500, 2), 1800, 3.5, 1.0)   # (the commentators: no breather now)
+    bed = level(tile(loop_of(bed, bed.shape[1] / SR - 1.5, 1.5), n, 0.0), MIDDLE["bed"]) * db([(0, 0), (12, 0), (16, -2), (19, -8), (23, -40), (total, -60)])[None]   # (held until the finishes are in: no dip)
     murmur = level(tile(murmur_loop(), n, 11.0), MIDDLE["murmur"]) * db([(0, 0), (12, -4), (24, -14), (FL, -30), (total, -40)])[None]
     # the three finishes, lined up on the line
     J, ja = finish_clip("japan", -19.0, 3.0)
     J = filt(J, "low", 2600, 2) * (1 - np.clip((t - 10) / 18, 0, 1))[None] + J * np.clip((t - 10) / 18, 0, 1)[None]   # far off, then close
     J *= db([(0, -18), (8, -15), (18, -11), (26, -7), (32, -3.5), (FL - 1.2, -1), (FL, 2.5), (FL + 1.2, 2), (FL + 2.5, 0), (FL + 2.8, -60), (total, -60)])[None]
-    G, ga = finish_clip("gn", -19.5, 6.0)
+    G, ga = finish_clip("gn", -19.5, TALK_LIFT_DB)
     G *= db([(0, -60), (ga, -30), (ga + 2.5, -13), (24, -9), (30, -4.5), (34, -1.5), (FL, 0), (FL + 4, -2), (FL + 9, -10), (total, -40)])[None]
     A, aa = finish_clip("aintree", -21.0, 4.0)
     A *= db([(0, -60), (aa, -30), (aa + 2.5, -14), (26, -9), (32, -4), (FL, 0), (FL + 2.0, -1), (FL + 2.2, -60), (total, -60)])[None]
@@ -266,7 +277,7 @@ def make_finish():
     # (a little of the roar to carry the cheer on as the Japan Cup and Aintree clips end just after the line)
     roar = level(tile(roar_loop(), n, 5.0), -21) * db([(0, -60), (FL - 1, -30), (FL + 2, -4), (FL + 5, -9), (FL + 10, -24), (total, -40)])[None]
     M = bed + murmur + J + G + A + hooves + roar
-    claps = applause(n, FL + 1.4); place(M, level(claps[:, int((FL + 1.4) * SR):], -22.5), FL + 1.4)
+    claps = applause(n, FL + 1.4); place(M, level(claps[:, int((FL + 1.4) * SR):], -29.5), FL + 1.4)   # (owner: it was too prominent)
     return write("finish", M, tail_fade=2.0)
 
 # ---------------------------------------------------------------- the loops the race view also keeps

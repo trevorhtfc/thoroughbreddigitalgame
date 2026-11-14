@@ -447,3 +447,8 @@ Owner gave where each crowd's horses cross the line: the Grand National finish a
 build-ups making the crescendo (about 8 dB over the last 20 s, the Japan Cup's surge right on the line), the Grand
 National's cheering and commentary carrying on after it into applause. The middle uses Aintree only before its finish
 builds, then the Japan Cup crowd early in its race as a breather between the commentators.
+
+Owner, 14 Nov: "I can't really hear any PA announcer … the applause is too prominent, it doesn't sound like a big crowd".
+The commentators are now brought forward harder (`TALK_LIFT_DB` 11) and the middle's talk sits above the gallop and the
+crowd (the only clearly spoken commentary in the clips is the Cheltenham commentator's few seconds after the roar, and
+Aintree's announcer); the applause is some 1,400 pairs of hands, mostly far off down the stands, and much quieter.
