@@ -98,7 +98,7 @@ STAND_TREES = [
 # The boundary (owner's light purple): a white wall on both sides, with low planting in front of it. x from, x to, z.
 BOUNDARY = [{"side": "stand", "x": [-125, 420], "z": -73.5}, {"side": "far", "x": [-90, 430], "z": 34 + 39.0}]
 LAWN = {"x": [-100, 345], "z": [-(STAND_BACK - 1), -2.0], "note": "the lawns between the stands and the rail, packed, coloured umbrellas"}
-FESTIVAL = {"x": [345, 3.5 * F], "z": [-62.0, -10.0], "crowd": [-44.0, -3.0],
+FESTIVAL = {"x": [345, 3.5 * F], "z": [-62.0, -10.0], "crowd": [-44.0, -9.0],      # (crowd from -3 until 14 Nov: the tracking car's lane kept clear)
             "note": "stand-side festival pieces from the end of the stands to 3.5f out: food and drink stalls, bars, umbrellas, "
                     "picnic lawns; 10 m back from the rail, leaving a lane for the tracking car; a few shade trees"}
 PADDOCK = {"x": [-100, 330], "z": [-170.0, -60.0], "note": "behind the stands: the parade rings and buildings among trees (barely seen)"}
@@ -120,18 +120,23 @@ FAR_RUNOUT_CROWD = {"x": [-186, -45], "off": [2.0, 27.0], "note": "the crowd rou
 # Ascot's finish-line assembly (assets/models/architecture/finish_line.glb: the winning post with its red loop, the
 # race-time board, hedges and boards) stands on the far rail at the line, facing the stands, as at Ascot.
 FINISH_LINE = {"at": [0.0, 34.0]}
+# Owner (11 Nov, with a Racing TV frame of the July Course: reference/newmarket-july/owner-ref-marquees-in-trees.png):
+# "thin out some of the festival marquee things and bring some of the planting a little further forwards, so it feels
+# the marquees etc. are a bit more embedded in the trees". So: fewer pieces (22 down to 10 with the tier), set back by
+# different amounts, with clumps of big trees in the gaps, round their ends and in front of the deeper ones (FRONT_TREES).
 PAVILIONS = [
-    {"name": "Pavilion 1", "x": [42, 94], "off": [16, 34], "height": 8, "kind": "long marquee"},
-    {"name": "Pavilion 2", "x": [108, 132], "off": [16, 30], "height": 7, "kind": "pagoda marquee"},
-    {"name": "Pavilion 3", "x": [146, 200], "off": [17, 35], "height": 8, "kind": "three-peak marquee"},
-    {"name": "Pavilion 4", "x": [216, 252], "off": [16, 30], "height": 7, "kind": "white pitched-roof pavilion"},
-    {"name": "Pavilion 5", "x": [266, 290], "off": [16, 30], "height": 7, "kind": "pagoda marquee"},
-    {"name": "Pavilion 6", "x": [304, 360], "off": [16, 34], "height": 8, "kind": "long marquee"},
-    {"name": "Pavilion 7", "x": [376, 412], "off": [16, 30], "height": 7, "kind": "white pitched-roof pavilion"},
-    {"name": "Pavilion 8", "x": [428, 452], "off": [16, 30], "height": 7, "kind": "pagoda marquee"},
-    {"name": "Pavilion 9", "x": [468, 524], "off": [17, 35], "height": 8, "kind": "three-peak marquee"},
-    {"name": "Pavilion 10", "x": [540, 576], "off": [16, 30], "height": 7, "kind": "white pitched-roof pavilion"},
+    {"name": "Pavilion 1", "x": [50, 76], "off": [23, 33], "height": 5, "kind": "long marquee"},
+    {"name": "Pavilion 2", "x": [148, 184], "off": [18, 30], "height": 8, "kind": "three-peak marquee"},
+    {"name": "Pavilion 3", "x": [270, 280], "off": [16, 24], "height": 6, "kind": "pagoda marquee"},
+    {"name": "Pavilion 4", "x": [318, 344], "off": [24, 34], "height": 5, "kind": "long marquee"},
+    {"name": "Pavilion 5", "x": [384, 418], "off": [17, 29], "height": 8, "kind": "white pitched-roof pavilion"},
+    {"name": "Pavilion 6", "x": [490, 524], "off": [22, 34], "height": 8, "kind": "three-peak marquee"},
+    {"name": "Pavilion 7", "x": [566, 576], "off": [18, 26], "height": 6, "kind": "pagoda marquee"},
 ]
+# The trees brought forward among them: from just behind the rail crowd (FAR_CROWD ends 12 m beyond the rail) back to
+# the wall. Clumps in the gaps (about one tree per gap metres), one or two at each end of a marquee, and one in front of
+# each marquee set well back, so its crown half-screens it from the stand camera.
+FRONT_TREES = {"front": 14.5, "back": 37.0, "perGap": 11.0, "spacing": 8.5, "scale": [1.45, 2.1], "clearTier": 4.0, "clearFlag": 3.0}
 # The Dyke's face behind the far side (owner: "the dyke should be on the far rail" opposite the grandstands; his sketch:
 # between the two courses, behind the far-side festival). Behind the festival it stands back; up the straight it comes in
 # to the Rowley Mile's distance. Metres beyond the outer rail: foot, crest, back; height. Between the two courses the
@@ -139,16 +144,29 @@ PAVILIONS = [
 BANK_NEAR = {"foot": 96.0, "crest": [108.0, 116.0], "back": 132.0, "height": 4.5, "upTo": 640.0}
 BANK_FAR = {"foot": 12.0, "crest": [28.0, 34.0], "back": 50.0, "height": 4.0, "from": 860.0}
 BANK = {"from": -380.0, "to": 5.5 * F}       # his sketch: the Dyke runs from beyond the post to about 5f out
+# (owner, 14 Nov, on the start of a 7f race: "we are missing some dyke on the far side ... we need to make sure that view is
+# terminated nicely"): the Dyke now runs on up the whole straight, easing down to nothing over BANK_TAPER metres at each end
+BANK["to"] = STRAIGHT - 15.0
+BANK_TAPER = 110.0
 BANK_SKIP = []          # set by site_plan.py: stretches (metres to go) where the Rowley Mile is too close
 KEEP = None             # set by site_plan.py: KEEP(x, z) -> False to leave a tree or board out
 # Advertising boards: far side only. A long sponsor run along the far rail at the finish (in front of the crowd), then
 # short runs dotted up the straight. Each run: metres to go at its middle, how many 6 m boards.
 BOARD_LEN, BOARDS_BEYOND = 6.0, 2.5
-BOARD_RUNS = [(54, 12), (300, 5), (520, 4), (800, 5), (1050, 3), (1300, 4)]     # the first run starts past the finish-line assembly
-# Owner (8 Nov, on the long lens up the straight): Thoroughbred boards along the stand-side festival too, on the inside rail
-STAND_BOARD_RUNS = [(380, 8), (480, 8), (580, 8), (680, 6)]
+BOARD_RUNS = [(54, 12), (300, 5), (520, 4), (800, 5), (1050, 3), (1300, 4)]     # (until 14 Nov: runs of boards, unevenly spaced)
+# Owner (14 Nov): "advert boards then are on the other side opposite the tracking cam ... the adverts need to be spread
+# correctly and evenly": one longer board (BOARD_SCALE, as the Rowley Mile's) every BOARD_EVERY metres along the far rail,
+# from the run-out to the top of the straight, square on to the track (the tracking car looks straight across at them);
+# none at the finish-line assembly, which carries its own. None on the stand side any more: the tracking car runs there.
+BOARD_EVERY, BOARD_SCALE, BOARD_FROM = 70.0, 1.4, -210.0
+STAND_BOARD_RUNS = []          # (until 14 Nov: [(380, 8), (480, 8), (580, 8), (680, 6)] along the stand-side festival's rail)
 # and trees to close the views: a belt across the top of the straight, round the bend
-END_TREES = {"x": [1600, 1950], "z": [-260, 160], "tries": 260, "spacing": 11.0, "scale": [2.0, 2.6]}
+END_TREES = {"x": [1600, 2050], "z": [-260, 200], "tries": 330, "spacing": 11.0, "scale": [2.0, 2.6]}
+# (owner, 14 Nov: every view "terminated nicely") woods along the far side of the leg, beyond the Rowley Mile where it runs
+# on from the junction (the tracking car looks out across them on round races), and across the end of the run-out
+LEG_TREES = {"from": 1882.0, "to": 16 * F + 120, "every": 6.0, "off": [24.0, 130.0], "spacing": 11.0, "scale": [1.8, 2.5]}
+RUNOUT_TREES = {"x": [-470, -345], "z": [-170, 210], "tries": 150, "spacing": 11.0, "scale": [1.8, 2.5]}
+WOODS_BEHIND_DYKE = {"from": 600.0, "every": 5.0, "depth": [6.0, 70.0]}
 BOARD_DESIGNS = ["green", "cream", "navy", "white"]
 # Trees: "a much leafier" course, but only where the cameras look (owner, 8 Nov: lose the trees behind the grandstand,
 # be selective for the key views). The far side is what every camera looks at: big trees among the festival there. On
@@ -210,7 +228,16 @@ def height(d):
 
 
 def bank_at(d):
-    """The Dyke face's cross-profile at d metres to go: set back behind the far-side festival, closer beyond."""
+    """The Dyke face's cross-profile at d metres to go: set back behind the far-side festival, closer beyond; easing down
+    to nothing over BANK_TAPER metres at either end."""
+    B = _bank_at(d)
+    e = min(d - BANK["from"], BANK["to"] - d) / BANK_TAPER
+    if e < 1.0:
+        B["height"] *= max(0.0, 0.5 - 0.5 * math.cos(math.pi * max(e, 0.0)))
+    return B
+
+
+def _bank_at(d):
     if d <= BANK_NEAR["upTo"]:
         return dict(BANK_NEAR)
     if d >= BANK_FAR["from"]:
@@ -284,14 +311,15 @@ def stand_boards():
 
 def boards():
     out, k = [], 0
-    for mid, count in BOARD_RUNS:
-        for j in range(count):
-            d = mid + (j - (count - 1) / 2) * BOARD_LEN
+    d = BOARD_FROM
+    while d < STRAIGHT - 30:
+        if abs(d) > 32:                                   # (the finish-line assembly at the post has its own boards)
             x, z = far(d, BOARDS_BEYOND)
             _, (tx, tz) = course_pt(d)
             # the face turned to the track: towards the horses' right from the far side (0 = facing +z)
-            out.append([round(x, 2), round(z, 2), round(math.degrees(math.atan2(-tz, tx)), 1), BOARD_DESIGNS[k % 4]])
+            out.append([round(x, 2), round(z, 2), round(math.degrees(math.atan2(-tz, tx)), 1), BOARD_DESIGNS[k % 4], BOARD_SCALE])
             k += 1
+        d += BOARD_EVERY
     return out
 
 
@@ -340,13 +368,49 @@ def trees():
     def belt(x0, x1, z0, z1, n, sp=TREE_SPACING, scale=TREE_SCALE):
         for _ in range(n):
             put(g.uniform(x0, x1), g.uniform(z0, z1), sp, scale)
+    # the far side, first the trees brought forward among the marquees (owner, 11 Nov): trunks off the marquees and the
+    # tier, clear of the rail crowd and the banner flags; crowns may hang over a marquee's edge (that's the point)
+    FT = FRONT_TREES
+    pav = [far_rect(p) for p in PAVILIONS]
+    hard = [far_rect(TIER)] + far_stand_rects()
+    flags = []
+    fx = FAR_CROWD["x"][0] + 10
+    while fx < FAR_CROWD["x"][1]:
+        flags.append(fx); fx += 34
+    def put_front(x, z):
+        if z < TRACK_W + FT["front"] or z > TRACK_W + FT["back"] or not (FAR_FESTIVAL["x"][0] + 30 < x < FAR_FESTIVAL["x"][1]):
+            return False
+        if any(rect_hit(x, z, r, 1.5) for r in pav) or any(rect_hit(x, z, r, FT["clearTier"]) for r in hard):
+            return False
+        if z < TRACK_W + 17 and any(abs(x - f) < FT["clearFlag"] for f in flags):
+            return False
+        if not ok(x, z, FT["spacing"]):
+            return False
+        grid.setdefault((int(x // TREE_SPACING), int(z // TREE_SPACING)), []).append((x, z, FT["spacing"]))
+        kind = g.choices(kinds, weights)[0]
+        if kind == "poplar_a": kind = "wide_a"                      # broad crowns only out front (no poplar spires by the rail)
+        out.append([round(x, 2), round(z, 2), kind, round(g.uniform(*FT["scale"]), 2), g.randrange(360)])
+        return True
+    edges = sorted([TIER["x"]] + [p["x"] for p in PAVILIONS])
+    for (a0, a1), (b0, b1) in zip(edges, edges[1:]):                   # clumps in the gaps between the pieces
+        n = max(1, int((b0 - a1) / FT["perGap"]))
+        for _ in range(n * 6):
+            if n <= 0: break
+            if put_front(g.uniform(a1 + 2, b0 - 2), TRACK_W + g.uniform(FT["front"], FT["back"])): n -= 1
+    for p in PAVILIONS:                                                # at each end, and in front of the deeper ones
+        for xe in (p["x"][0], p["x"][1]):
+            for _ in range(8):
+                if put_front(xe + g.uniform(-4, 4), TRACK_W + g.uniform(FT["front"], p["off"][0] + 6)): break
+        if p["off"][0] >= 22:
+            for _ in range(8):
+                if put_front(g.uniform(p["x"][0] + 4, p["x"][1] - 4), TRACK_W + g.uniform(FT["front"], FT["front"] + 2.5)): break
     # the far side (z > TRACK_W): big trees among the festival's marquees, more past the post, then behind the Dyke's face
     belt(FAR_FESTIVAL["x"][0], FAR_FESTIVAL["x"][1], TRACK_W + 14, TRACK_W + 94, 260, 13.0, BIG_TREES)
     belt(-RUN_ON - 80, FAR_FESTIVAL["x"][0], TRACK_W + 10, TRACK_W + 100, 90, 10.0, [1.2, 2.0])
     for d in range(int(BANK["from"]), int(STRAIGHT), 8):
         B = bank_at(d)
-        if g.random() < (0.85 if d < 650 else 0.45):
-            put(*far(d + g.uniform(-4, 4), B["back"] + g.uniform(10, 110 if d < 650 else 80)))
+        if g.random() < 0.85:                       # (owner, 14 Nov: the view from the tracking car "terminated nicely": the
+            put(*far(d + g.uniform(-4, 4), B["back"] + g.uniform(8, 110 if d < 650 else 90)))   # woods behind the Dyke all the way up)
     # the stand side (z < 0): a few shade trees in the festival, then only a thin, open backdrop behind it and on up the
     # straight (owner, 8 Nov: "thin out the whole backdrop to the back of the stand side"); the head-on keeps them
     belt(345, 3.5 * F, -58, -18, 22, 16.0)
@@ -371,6 +435,18 @@ def trees():
     e = END_TREES                                                               # the belt that closes the view up the straight
     for _ in range(e["tries"]):
         put(g.uniform(*e["x"]), g.uniform(*e["z"]), e["spacing"], e["scale"], infill=True)
+    lt = LEG_TREES                                                              # woods along the leg's far side (14 Nov)
+    d = lt["from"]
+    while d < lt["to"]:
+        put(*far(d + g.uniform(-3, 3), g.uniform(*lt["off"])), lt["spacing"], lt["scale"], infill=True); d += lt["every"]
+    ro = RUNOUT_TREES                                                           # and across the end of the run-out
+    for _ in range(ro["tries"]):
+        put(g.uniform(*ro["x"]), g.uniform(*ro["z"]), ro["spacing"], ro["scale"], infill=True)
+    wb = WOODS_BEHIND_DYKE                                                      # the woods behind the Dyke filled in up the straight
+    d = wb["from"]
+    while d < BANK["to"]:
+        B = bank_at(d)
+        put(*far(d + g.uniform(-2, 2), B["back"] + g.uniform(*wb["depth"])), TREE_SPACING + 1.5, BIG_TREES, infill=True); d += wb["every"]
     for bd in BOUNDARY:                                                         # low planting in front of the boundary walls
         sgn = 1 if bd["side"] == "stand" else -1
         x = bd["x"][0] + 2.0
