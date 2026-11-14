@@ -51,17 +51,12 @@ button{font:inherit;cursor:pointer;color:inherit}
 .stats i{font-style:normal;opacity:.7;font-size:13px}
 .stats .t-silk .silk{width:22px;height:30px;display:block;border-radius:2px;box-shadow:0 0 0 1.5px rgba(242,238,231,.7)}
 .stats .prize em{color:#f6dc8f}
-.clock{display:flex;align-items:center;gap:7px;font-size:14px;opacity:.85;padding-left:12px;border-left:1px solid rgba(242,238,231,.26)}
-.clock svg{width:17px;height:17px;fill:var(--tb-on-dark)}
-.clock em{font-style:normal;font-weight:700;font-variant-numeric:tabular-nums}
-.at-ascot .clock{display:none}
 .snd{display:flex;align-items:center;gap:7px;flex:none;border:1px solid rgba(242,238,231,.45);background:transparent;color:var(--tb-on-dark);border-radius:var(--tb-radius);padding:7px 11px;font-size:14px;white-space:nowrap}
 .snd svg{width:18px;height:18px;fill:currentColor}
 .snd:hover{background:rgba(242,238,231,.14)}
 .snd[aria-pressed="true"]{background:rgba(242,238,231,.22);border-color:var(--tb-on-dark)}
 .steps.tight .st span{display:none} .steps.tight .st.current span{display:inline}
 @media (max-width:1240px){ .steps .st span{display:none} .steps .st.current span{display:inline} }
-@media (max-width:1020px){ .clock{display:none} }
 @media (max-width:760px){
   :root{--bar-h:52px}
   .bar{gap:8px}

@@ -21,7 +21,11 @@ def join(*parts):
 STABLES_LANE = [[722, 721], [659, 722], [636, 726], [616, 734], [598, 736], [583, 733], [531, 743], [496, 758], [468, 787], [448, 800]]
 # Only the painted main roads are snapped (each road on its own, its two ends kept where they are so the roads still
 # meet); the lane from the stables past the Jockey Club is a faint track along a fence, so it stays as drawn.
-SNAP = ["fordham", "oldStn", "nmkt", "kingston", "bury"]
+SNAP = ["fordham", "oldStn", "nmkt", "kingston", "bury", "highSt", "station", "avenueW"]
+# The road west of the town that the board's own list (ROAD) stops short of: the Avenue, from the end of Station Road
+# out to the board's left edge.
+ROAD["station"] = ROAD["station"][:-1] + [[250, 340]]
+ROAD["avenueW"] = [[250, 340], [200, 308], [150, 278], [100, 250], [50, 222], [15, 203], [-20, 184]]
 im = np.array(Image.open(f"{HERE}/assets/newmarket/newmarket-board.webp").convert("RGB")).astype(int)
 H, W = im.shape[:2]
 R, G, B = im[..., 0], im[..., 1], im[..., 2]
@@ -68,17 +72,21 @@ for k in SNAP:
     q, mx = snap(ROAD[k]); R2[k] = q; print(f"{k}: moved up to {mx:.1f} px")
 F = lambda k: [list(map(float, x)) for x in R2[k]]
 rv = lambda a: a[::-1]
+# One way round (owner, 14 Nov: "some of the vans are still hitting buildings, horses or each other"). Every road has
+# one direction, the one the strings already walk it in, so nothing ever meets head on: Old Station Road, Bury Road and
+# Newmarket Road lead in to the roundabout; Fordham Road, and the High Street and Station Road out to the Avenue, lead away.
 ROUTES = {
-    "fordhamOldStn": join(F("fordham"), F("oldStn")),
-    "nmktBury": join(rv(F("nmkt")), rv(F("kingston")), F("bury")),
-    "fordhamNmkt": join(F("fordham"), F("kingston"), F("nmkt")),
-    "toTheRaces": join([list(map(float, x)) for x in STABLES_LANE], rv(F("kingston")), rv(F("fordham"))),
+    "oldStnFordham": join(rv(F("oldStn")), rv(F("fordham"))),
+    "nmktFordham": join(rv(F("nmkt")), rv(F("kingston")), rv(F("fordham"))),
+    "buryAvenue": join(rv(F("bury")), F("highSt"), F("station"), F("avenueW")),
+    # the lane from the stables meets the road a little above the corner: straight on up Kingston Road, no doubling back
+    "toTheRaces": join([list(map(float, x)) for x in STABLES_LANE[:-2]], [q for q in rv(F("kingston")) if q[1] < 745], rv(F("fordham"))),
 }
 snapped = {k: simplify(np.array(v)) for k, v in ROUTES.items()}
 ROUTES0 = {
-    "fordhamOldStn": join(ROAD["fordham"], ROAD["oldStn"]),
-    "nmktBury": join(rev(ROAD["nmkt"]), rev(ROAD["kingston"]), ROAD["bury"]),
-    "fordhamNmkt": join(ROAD["fordham"], ROAD["kingston"], ROAD["nmkt"]),
+    "oldStnFordham": join(rev(ROAD["oldStn"]), rev(ROAD["fordham"])),
+    "nmktFordham": join(rev(ROAD["nmkt"]), rev(ROAD["kingston"]), rev(ROAD["fordham"])),
+    "buryAvenue": join(rev(ROAD["bury"]), ROAD["highSt"], ROAD["station"], ROAD["avenueW"]),
     "toTheRaces": join(STABLES_LANE, rev(ROAD["kingston"]), rev(ROAD["fordham"])),
 }
 life = f"{HERE}/src/life.src.js"; L = open(life).read()
@@ -93,4 +101,8 @@ if "--check" in sys.argv:
     pic = Image.open(f"{HERE}/assets/newmarket/newmarket-board.webp").convert("RGB"); d = ImageDraw.Draw(pic)
     for k, r in ROUTES0.items(): d.line([tuple(q) for q in r], fill="#ff2020", width=2)
     for k, r in snapped.items(): d.line([tuple(q) for q in r], fill="#1050ff", width=2)
+    px = pic.load()
+    for y in range(0, H, 2):
+        for x in range(0, W, 2):
+            if road[y, x]: px[x, y] = (255, 255, 0)
     pic.save(out)
