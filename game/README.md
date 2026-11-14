@@ -99,6 +99,34 @@ from the initial suite". The cover no longer offers the 54 ready-made silks to c
   paints the jockey's texture from it (`SilksPaint.texture(spec, 1024, "v2")`); the board's string of horses
   (`js/life.js`, the v1 layout) and your banner on the road to the races (`flyOwn()` in `src/board.src.js`) take them too.
 
+## The leaderboard: the standings and your position on the home screen (14 Nov 2026)
+
+Owner, 14 Nov: "the game should now show the leaderboard on the home screen and your position". Name only, no password.
+
+- **The server** is `server/worker.js`, a small Cloudflare Worker in the same project as the game (`wrangler.jsonc`:
+  `main`, and the D1 database `thoroughbred-leaderboard` bound as `DB`; its tables are `server/schema.sql`, already made).
+  It answers only `/api/...`; every other address is one of the game's files, as before.
+  `POST /api/player` registers a stable name (one stable per name, 3 to 20 letters, a short list of rude words refused),
+  `POST /api/score` posts a finished game, `GET /api/board?season=&view=today|yesterday|best&id=` gives the standings
+  and where this player is. Order: most prize money, then most wins, then whoever finished first.
+- **Who you are** (`js/leaderboard.js`, `tb-player` in the browser): an id and a secret the browser makes up, and the
+  stable's name. The server keeps only a hash of the secret, so nobody else can post under a name. The name is asked
+  for with the colours (the maker, `js/colours.js`); a player who made colours before the leaderboard came is asked on
+  the home screen's panel.
+- **What is sent:** today's card when it is first finished (`noteDaily()` in `js/rules.js`; the server keeps the first
+  finish for a day and accepts only today's or yesterday's date), and every finished random game (`addWeek()`), which
+  counts for the best-ever board. A game that can't be sent waits in `tb-outbox` and goes the next time the game opens.
+- **The boards**, one set per season: Today, Yesterday, Best ever (every stable's best game, daily or random). The
+  home screen's panel (`#menuBoard`, `lbPaint()`) shows the top five and your own row, with "Show all"; the final
+  standings have a line saying where you finished (`#lbLine`, `lbResult()`).
+- **Where the server can't be reached** (no signal, or the game opened somewhere without it, such as the claude.ai
+  preview) the game plays as before and the panel says the leaderboard can't be reached.
+- **Testing it:** `python3 game/tools/stage.py dist`, `npx wrangler d1 execute thoroughbred-leaderboard --local --file
+  server/schema.sql`, then `npx wrangler dev --local` runs the game and the server together with a scratch database.
+- **Honest limits:** the game runs in the player's browser, so a score is what the browser says it is; the server
+  checks only that it is sensible. Clearing the browser's storage makes a new player (the old name stays taken). A
+  name can't yet be carried to a second device.
+
 ## One look
 
 `css/game.css` on top of the house style (`css/components.css`, the Ascot game's styles). Taken from the board: its
@@ -452,3 +480,8 @@ Owner, 14 Nov: "I can't really hear any PA announcer … the applause is too pro
 The commentators are now brought forward harder (`TALK_LIFT_DB` 11) and the middle's talk sits above the gallop and the
 crowd (the only clearly spoken commentary in the clips is the Cheltenham commentator's few seconds after the roar, and
 Aintree's announcer); the applause is some 1,400 pairs of hands, mostly far off down the stands, and much quieter.
+
+Owner, 14 Nov: "I don't feel the excitement evolving". The three real finishes are now made into one crowd, its own ups
+and downs evened out, then shaped (`BUILD`, `BRIGHT`): it starts at the middle's level, far off and muffled, and climbs
+slowly then faster and faster to the line (about 13 dB louder, 19 dB brighter), the gallop coming up with it; the middle
+is quieter so the build has somewhere to go.

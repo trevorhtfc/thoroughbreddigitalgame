@@ -6,3 +6,4 @@ dist/
 reference/architecture/clean-study/*.exr
 assets/models/baked/_ground_*.png
 reference/newmarket/renders/*.exr
+.wrangler/
