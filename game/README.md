@@ -409,13 +409,13 @@ ten races is at their trips (the board's "take another card"). Then "To the Nati
 | Bloodstock Agent | each lot's projected peak, a 30-point range with the truth inside | 20 points | 10 points | Tattersalls |
 | Vet's Report | send a yearling back once you've seen it: once, 80% back | twice, 90% | three times, 100% | Tattersalls |
 | Private Sale | one Book 3 lot before the ring, at the middle of its guide | Books 2–3 | any Book | Tattersalls |
-| Trainer (8 specialists) | the board's cards: a step on the trip or +3 (whichever helps that race), 2 horses | a step and +3, 3 horses | a step and +5, 3 horses | entries; only in races at their trips / ages / sire lines |
-| Master Trainer | a step or +3, 2 horses, any race | a step or +3, 3 horses | a step and +3, 3 horses | entries |
-| Stable Form | +3 on 2 horses | +3 on 4 horses | +2 on every horse | entries |
-| Champion Jockey | best of two runs on the day | best of two, never a stinker | best of three, never a stinker | the races he's booked for: 3 / 4 / 5 |
+| Trainer (see "Trainers at Warren Hill" below) | 2 jobs | 3 jobs | 4 jobs | Warren Hill, and race week |
+| Champion Jockey | +1 in every race he rides | +2 | +3 | 3 / 4 / 5 races |
 | Tempo Setter | more energy left when ridden in front or prominent | more | more | 3 / 4 / 5 races |
 | Late Closer | stronger finish when ridden midfield or held up | stronger | stronger | 3 / 4 / 5 races |
-| Race Reader | a better-judged ride whatever the style, finds gaps | better | better | 3 / 4 / 5 races |
+| Sprint / Mile / Middle-Distance / Staying Jockey | +2 at their trips | +3 | +4 | 3 / 4 / 5 races |
+| Big-Race Jockey | +2 in Group races | +3 | +4 | 3 / 4 / 5 races |
+| Mud Lark | +3 on Softer or Heavy going | +4 | +5 | 3 / 4 / 5 races |
 
 Where the digital game differs from the board, and why:
 - **Trainer cards reach more horses** (2 / 3 / 3, Stable Form 2 / 4 / all) because the board's one horse for three
@@ -588,3 +588,34 @@ Owner, 14 Nov: "I can't really hear any PA announcer … the applause is too pro
 The commentators are now brought forward harder (`TALK_LIFT_DB` 11) and the middle's talk sits above the gallop and the
 crowd (the only clearly spoken commentary in the clips is the Cheltenham commentator's few seconds after the roar, and
 Aintree's announcer); the applause is some 1,400 pairs of hands, mostly far off down the stands, and much quieter.
+
+### Trainers at Warren Hill, and the new jockeys (14 Nov)
+
+Owner, 14 Nov: "let's throw those trainers in there [the yard jobs from the 11 Nov brainstorm]. And then let's add the
+jockeys: boosts to riding styles, and boosts to distances, maybe some others; champion jockey is just an all-over boost."
+
+**Warren Hill** is now a step of the season, between Tattersalls and entries (`phase()` "gallops" while
+`!S.galloped`; it stays open through entries). Developing horses is there too. Each trainer card gives jobs (`TRAINER_JOBS`
+2 / 3 / 4, Master Trainer one more), shown as tokens; tap a horse's job buttons:
+
+| Job | What it does | Notes |
+|---|---|---|
+| Trip work | its best trip a step longer or shorter, at every age, for the season | two steps towards a trip specialist's trips, or with a sire-line card |
+| Settle | a keen horse becomes calm (the engine: keen 8% wins vs 14% calm, about 2–3 points) | free on 2-year-olds with the Juvenile Specialist |
+| Ground work | it also likes the next going on the side you pick | two goings with a sire-line card |
+| Tune-up | +3 on the day in one race you name (`TUNE_UP`) | +5 with a matching speciality (`TUNE_SPECIAL`) |
+| Trainer's eye | shows its rating and best trip at the next age before you develop it | free on every horse with the Slow Burner |
+
+Jobs change the horse itself (what it was is kept, so a job can be undone until race week). Jobs not spent can be used in
+race week, once the going is declared: ground work or a tune-up, on the race-week screen (`weekJobs`). Stable Form places
+no jobs: +1 / +2 / +2 on every horse, Gold with 2 jobs too. The trainer's notes on each horse point out what's worth doing.
+
+**Jockeys** are booked race by race at entries, as before (3 / 4 / 5 rides). A rating boost on the day where they fit
+(`jockeyBoost`: shown in the race-day rating and given to the race engine), or the two riding-style skills in the engine.
+A trip jockey with a trainer of the same trips adds +1 more in those races (`PARTNER_BOOST`). A trip or Big-Race jockey is
+only offered in the draft when the ten races include his kind of race. The Race Reader is gone.
+
+Rules in `js/team.js` (numbers at the top), screens in `js/ui-team.js` (`trainerPanel`, `jobStrip`, `weekJobs`),
+measurements in `race-engine/check/trainer-levers.mjs`; the team harness spends the jobs where they add most and books
+jockeys where they fit.
+
