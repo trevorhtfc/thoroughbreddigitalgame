@@ -82,7 +82,7 @@ document.addEventListener("drop", e => {
 });
 function breedBody() {
   return `<div class="tb-head"><h1 class="tb-h">BREED</h1>
-    <p class="tb-lede" ${onJob() ? "" : "hidden"}>You have ${money(START_BUDGET + (held("powerhouse") ? POWERHOUSE[held("powerhouse").tier] : 0))} to build a stable for this season's ${RACES.length} races, with room for ${STABLE_CAP - RACES.length} spares. ${handOn() ? `Your stud starts with ${HAND.hi + HAND.mid + HAND.lo} mares dealt to you: ${HAND.hi} Blue-blooded, ${HAND.mid} Useful and ${HAND.lo} Moderate. Breed them, buy one more if you like, or send back any you don't want for half her price.` : `Buy mares at the mares sale (pick a pile, then choose one of the ${offerSize()} turned over; up to ${MARE_CAP}), then breed them.`} Keep some money back for Tattersalls, where the sale is made from the mares nobody bred: the cheapest Book 1 yearling starts at ${money(RESERVES[BOOKS[0].min])}. Tap your money at the top to see where it's gone. Every foal arrives as a 2-year-old, and it's a coin flip whether you get a colt or a filly.</p></div>
+    <p class="tb-lede" ${onJob() ? "" : "hidden"}>You have ${money(startBudget() + (held("powerhouse") ? POWERHOUSE[held("powerhouse").tier] : 0))} to build a stable for this season's ${RACES.length} races, with room for ${STABLE_CAP - RACES.length} spares. ${handOn() ? `Your stud starts with ${HAND.hi + HAND.mid + HAND.lo} mares dealt to you: ${HAND.hi} Blue-blooded, ${HAND.mid} Useful and ${HAND.lo} Moderate. Breed them, buy one more if you like, or send back any you don't want for half her price.` : `Buy mares at the mares sale (pick a pile, then choose one of the ${offerSize()} turned over; up to ${MARE_CAP}), then breed them.`} Keep some money back for Tattersalls, where the sale is made from the mares nobody bred: the cheapest Book 1 yearling starts at ${money(RESERVES[BOOKS[0].min])}. Tap your money at the top to see where it's gone. Every foal arrives as a 2-year-old, and it's a coin flip whether you get a colt or a filly.</p></div>
     ${viewTabs("The stud")}
     ${refView(studView)}`;
 }
@@ -586,7 +586,7 @@ function weekCard(r) {
 function resultBody(wins, losses, prize) {
   const complete = Object.keys(S.results).length === RACES.length;
   if (complete) { noteWeek(prize, wins); addWeek(prize, wins); noteDaily(prize, wins); }
-  const spent = START_BUDGET - S.budget, T = titleFor(prize), rungs = TITLES.slice().reverse();
+  const spent = startBudget() - S.budget, T = titleFor(prize), rungs = TITLES.slice().reverse();
   const pct = v => Math.min(100, v / LADDER_TOP * 100);
   const rows = RACES.map((r, k) => { const res = S.results[r.id], h = horse(S.entries[r.id]);
     return `<li class="tr" data-k="${k}"><span class="tr-d">${dayTag(r.day)}</span><span class="tr-p ${res && res.pos === 1 ? "win" : res && res.pos >= 2 && res.pos <= 4 ? "pl" : ""}">${res && res.pos ? ord(res.pos) : "–"}</span>

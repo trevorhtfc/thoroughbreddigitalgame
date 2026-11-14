@@ -562,7 +562,7 @@ async function goHomeFromAscot() {
 
 /* ================= The cover ================= */
 let menuOpen = false, newArmed = false;
-const hasProgress = () => S.dealt || S.step > 1 || S.stable.length > 0 || S.budget !== START_BUDGET;
+const hasProgress = () => S.dealt || S.step > 1 || S.stable.length > 0 || S.budget !== startBudget();
 function openMenu() {
   menuOpen = true; newArmed = false; const m = $("#menu"); m.hidden = false;
   paintMenu(); const v = $("#menuVid"); try { if (v && v.play && !v.dataset.still) v.play().catch(() => {}); } catch (e) {}

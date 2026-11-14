@@ -183,7 +183,9 @@ function lineNote(s, m) {
 
 
 /* ================= The card ================= */
-const START_BUDGET = 1250000, MARE_CAP = 10, STABLE_CAP = 15, LOTS_PER_BOOK = 9;
+// the budget at the start of a season: £1m since the mares hand (14 Nov; it was £1.25m, and the hand is worth about
+// £260k at the mares sale's prices). startBudget() is this game's own, for games begun before
+const START_BUDGET = 1000000, MARE_CAP = 10, STABLE_CAP = 15, LOTS_PER_BOOK = 9;
 // From the site's Tattersalls page code (src/pages/Tattersalls.hju2p.js)
 const TRIP_WEIGHTS = { close: 3, near: 2, mid: 1, far: 0.35, sprinterVsMiddle: 0.1 };
 // CMS newStallion = "Yes" (standard set): a mare one star above gets a slightly better chance in their lots
@@ -494,6 +496,7 @@ let S, CARD;
 // foals etc shouldn't be pre fixed. it should work fresh for each player"). Each roll comes from the game's luck and
 // what is being rolled for, never from the clock, so within one game a roll can't be taken again by reloading the page.
 // (Games saved before this have no luck of their own and go on using the season's number.)
+const startBudget = () => (S && S.start) || START_BUDGET;
 const luckOf = () => S.luck || S.seed;
 const luck = key => seeded(hashStr(luckOf() + "|" + key));
 function ownLuck() {
@@ -513,7 +516,7 @@ const isDaily = () => !!(S && S.mode === "daily");
 const seasonName = (x, lower) => { x = x || S; return x.day ? `${lower ? "d" : "D"}aily card, ${dayText(x.day)}` : `${lower ? "s" : "S"}eason ${x.seed}`; };
 const seasonDone = () => !!S && Object.keys(S.results).length === RACES.length;
 function newCard(seed, day) {
-  S = { seed: seed || Math.floor(Math.random() * 1e6) + 1, luck: Math.floor(Math.random() * 2e9) + 1, mode: day ? "daily" : "random", day: day || null, pileN: {}, step: 1, tab: "stud", budget: START_BUDGET, stable: [], hand: [], usedMares: [], deckPos: 0,
+  S = { seed: seed || Math.floor(Math.random() * 1e6) + 1, luck: Math.floor(Math.random() * 2e9) + 1, mode: day ? "daily" : "random", day: day || null, pileN: {}, step: 1, tab: "stud", budget: START_BUDGET, start: START_BUDGET, stable: [], hand: [], usedMares: [], deckPos: 0,
     selMare: null, foal: null, sale: [], lotN: 0, entries: {}, results: {}, open: null, silks: S ? S.silks : 0, sort: "fee", offer: null, book: 1, catDams: [], v: 8, dealt: false, tallied: false,
     team: { picks: [], offer: null, done: false, choice: {}, used: {}, trains: {}, book: {}, income: 0, incomeLog: [] } };
   CARD = makeCard(S.seed); ownLuck();
@@ -556,7 +559,7 @@ function migrate() {
 }
 // v5: ten races drawn per card from the full programme, and a £2m budget
 function migrate5() {
-  S.budget += START_BUDGET - 1250000;
+  // (the budget change this made has since been undone: it stays as it was)
   const ids = new Set(RACES.map(r => r.id));
   Object.keys(S.entries || {}).forEach(k => { if (!ids.has(k)) delete S.entries[k]; });
   Object.keys(S.results || {}).forEach(k => { if (!ids.has(k)) delete S.results[k]; });
@@ -577,6 +580,7 @@ function migrate7() {
 // v8 (14 Nov): the mares hand. A game already buying mares, or past the stud, keeps the old mares sale
 function migrate8() {
   if (S.step > 1 || studCount() > 0 || S.offer || Object.keys(S.pileN || {}).length) S.mh = { legacy: true };
+  S.start = 1250000;   // every game before v8 started with £1.25m
   S.v = 8; save();
 }
 // Mares in your stud: still to breed from, plus those already used this season

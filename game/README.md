@@ -673,3 +673,38 @@ Owner, 14 Nov: "I don't feel the excitement evolving". The three real finishes a
 and downs evened out, then shaped (`BUILD`, `BRIGHT`): it starts at the middle's level, far off and muffled, and climbs
 slowly then faster and faster to the line (about 13 dB louder, 19 dB brighter), the gallop coming up with it; the middle
 is quieter so the build has somewhere to go.
+
+## Your mares hand (14 Nov 2026, branch `claude/mare-hand`)
+
+Owner, 14 Nov: "I did wonder whether buying mares was quite right ... a deal would be better? ... an opportunity to buy
+an extra one with a choice, at the current price, and then we cut the budget down ... Elite mares would change to be
+able to upgrade your hand". He chose 2 of each grade over 3-2-1, "as most of this game is big races ... we are mainly
+using Blue-blooded, especially for Group 1s".
+
+- The stud opens with six mares dealt from the piles: 2 Blue-blooded, 2 Useful, 2 Moderate (`HAND`, `dealHand` in
+  `js/rules.js`; the hand is this game's luck, so the daily card deals everyone the same).
+- **One more mare** (`EXTRA_MARES`): pick a pile, pay its price, see two, keep one.
+- **Send back** any mare you haven't bred for half her pile's price (`SEND_BACK`; £47,500 / £12,500 / £5,000), booked as
+  "Sent back" in your accounts. That keeps the Buyer's way open: all six back is £130,000 more for Tattersalls.
+- **Elite Mares** now upgrades mares a grade, Moderate → Useful or Useful → Blue-blooded, turning two over from the grade
+  above to keep one in her place: 1 / 2 / 4 upgrades (`ELITE_UP` in `js/team.js`).
+- **Budget £1,000,000** (was £1.25m; the hand is worth £260k at the mares sale's prices). `S.start` keeps each game's
+  own starting budget; save v8 (`migrate8`): a game already buying mares, or past the stud, keeps the old mares sale
+  and its £1.25m (`S.mh.legacy`).
+
+Team harness: `TEAMH.legacy` plays the old sale; with the hand, each strategy keeps the grades it wants and sends the
+rest back (Breeder keeps all and buys a Blue-blooded extra; Planner keeps Blue-blooded and Useful and buys a
+Blue-blooded extra; Balanced keeps only Blue-blooded; Buyer sends all back).
+
+| 40 seasons each, average prize | Breeder | Planner | Balanced | Buyer |
+|---|---|---|---|---|
+| Old mares sale, £1.25m | £162k | £159k | £130k | £41k |
+| Dealt hand, £1.0m | £174k | £192k | £128k | £43k |
+| Dealt hand, £1.1m | £178k | £215k | £130k | £39k |
+
+(± about £20k.) At £1m the four ways of playing come out as before, with planning a little better rewarded.
+
+Card tests at £1m (40 paired seasons, so ± £10–30k): **Elite Mares** as upgrades +£15–35k / +£30–45k by tier for
+Breeder and Planner (it was +£5–13k when it only showed more mares); Gold with 3 upgrades +£40k, with 4 +£25k, both
+within the noise of Silver, so Gold has 4 (lift every Useful and Moderate mare a grade). **Powerhouse** (£150k / £300k /
+£450k more) Planner +£27k / +£31k / +£58k, Breeder +£11–19k, Balanced +£3–18k: not stronger for the smaller budget.

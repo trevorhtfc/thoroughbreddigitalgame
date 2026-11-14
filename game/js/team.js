@@ -192,7 +192,7 @@ const teamSkipped = () => !!(S.team && S.team.skipped);
 const offerSize = () => typeof handOn === "function" && handOn() ? OFFER_SIZE : ELITE_SEE[held("elite") ? held("elite").tier : 0];
 // Elite Mares with the dealt hand (owner, 14 Nov: "Elite mares would change to be able to upgrade your hand"): each
 // upgrade swaps a Moderate or Useful mare you haven't bred for one of two from the grade above
-const ELITE_UP = [0, 1, 2, 3];
+const ELITE_UP = [0, 1, 2, 4];                     // (Gold 4: with 3 it was hardly better than Silver, 14 Nov tests)
 const upgradesLeft = () => handOn() && held("elite") ? ELITE_UP[held("elite").tier] - (mh().up || 0) : 0;
 const gradeUp = name => { const k = PILES.indexOf(pileOf(name)); return k > 0 ? PILES[k - 1] : null; };
 const canUpgrade = name => upgradesLeft() > 0 && S.step === 1 && !S.offer && !S.foal && S.hand.includes(name) && !!gradeUp(name) && pileLeft(gradeUp(name)).length > 0;
