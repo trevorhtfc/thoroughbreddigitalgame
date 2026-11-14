@@ -206,7 +206,7 @@ def applause(n, start):
 # ---------------------------------------------------------------- the middle: from after the off to about 3 furlongs out (a loop)
 # Owner, 13 Nov: "the commentary isn't great [the made voice]. Some of these clips have crowd and commentary which I'm
 # happy for you to overlay to get the sound." So the commentary is now the real commentators, with their crowds.
-MIDDLE = {"bed": -21.5, "murmur": -33.0, "gallop": -28.0}   # (owner, 14 Nov: "I can't really hear any PA announcer": the talk up, the rest down)
+MIDDLE = {"bed": -27.0, "murmur": -38.0, "gallop": -32.0}   # (owner, 14 Nov: "I can't really hear any PA announcer": the talk up, the rest down)
 TALK_LIFT_DB = 11.0                                           # the commentators brought forward out of their crowds this much   # each part's level (dB), here and at the start of the finish
 MIDDLE_TALK = [            # (clip, from, to, voice from, voice to): the crowd with its commentator, laid end to end
     ("chel", 7.6, 12.4, 8.5, 12.4),                         # Cheltenham: the commentator after the roar
@@ -244,40 +244,55 @@ def make_middle():
 
 # ---------------------------------------------------------------- the finish: from about 3 furlongs out to the line and after
 FINISH_LINE_AT = 37.0                                         # the line, this far into finish.mp3 (sounds.json: finish.lineAt)
+# The finish's build (owner, 14 Nov: "I don't feel the excitement evolving"): the crowd's loudness (dB, its level on its
+# own) and brightness (0 muffled and far off, 1 full and close) over the finish, the line at FINISH_LINE_AT. It starts
+# where the middle is and climbs slowly, then faster and faster: about 14 dB to the line.
+BUILD = [(0, -33), (8, -31), (14, -29), (19, -26.5), (24, -23.5), (28, -20.5), (31, -18), (34, -15), (36.2, -13), (37.4, -11.5),
+         (39.5, -13), (43, -17), (47, -23), (51, -30)]
+BRIGHT = [(0, 0.0), (10, 0.05), (18, 0.25), (25, 0.55), (30, 0.8), (33, 1.0), (51, 1.0)]
 def make_finish():
     """Owner, 13 Nov: "the finish sound effect where the crowd get much more animated as does the background PA leading
     to the cheer as they cross the line"; then "overlay [the clips with crowd and commentary] to get the sound"; 14 Nov:
-    where each crowd's line is. Begins as the middle does (the race view crossfades into it about 3f out); then the three
-    real finishes, each laid so its own line lands on ours: the Japan Cup's crowd building from the start, the Grand
-    National finish (crowd and commentary) and Aintree coming in about 20 s out, all rising to the line together; the
-    gallop coming closer; after the line the Grand National's cheering and commentary carry on, ebbing into applause."""
+    where each crowd's line is, and "I don't feel the excitement evolving". Begins as the middle does (the middle's
+    commentators, carried on); the three real finishes, each laid so its own line lands on ours (the Japan Cup from the
+    start, the Grand National with its commentary and Aintree from about 20 s out), made into one crowd and then shaped:
+    far off and muffled to begin with, coming closer and brighter, climbing slowly then faster and faster to the line
+    (BUILD, BRIGHT); the gallop coming up with it; after the line the cheering ebbs into applause."""
     FL = FINISH_LINE_AT; total = FL + 14.0; n = int(total * SR); t = np.arange(n) / SR
     env = lambda pts: np.interp(t, [p[0] for p in pts], [p[1] for p in pts])
     db = lambda pts: 10 ** (env(pts) / 20)
     clips = {"gn": gn, "aintree": aintree, "japan": japan}
-    def finish_clip(name, lvl, lift):
+    def finish_clip(name, lift, fade_in=3.0):
         """The whole clip, its voices brought forward, laid so its line is at FL (anything before 0 cut off)."""
-        x = crowd_eq(clips[name]); x = lift_voice(x, 0.0, x.shape[1] / SR, lift, 0.3, 0.5); x = level(x, lvl)
+        x = crowd_eq(clips[name]); x = lift_voice(x, 0.0, x.shape[1] / SR, lift, 0.3, 0.5); x = level(x, -20)
         at = FL - LINES[name]
         if at < 0: x = x[:, int(-at * SR):]; at = 0.0
+        else: x = fade(x, fade_in, 0)
         X = np.zeros((2, n)); place(X, x, at); return X, at
-    # the start: as the middle (its bed carried on, muted), handing over
-    bed = talk_bed(MIDDLE_TALK[:2]); bed = peak(filt(bed, "low", 4500, 2), 1800, 3.5, 1.0)   # (the commentators: no breather now)
-    bed = level(tile(loop_of(bed, bed.shape[1] / SR - 1.5, 1.5), n, 0.0), MIDDLE["bed"]) * db([(0, 0), (12, 0), (16, -2), (19, -8), (23, -40), (total, -60)])[None]   # (held until the finishes are in: no dip)
-    murmur = level(tile(murmur_loop(), n, 11.0), MIDDLE["murmur"]) * db([(0, 0), (12, -4), (24, -14), (FL, -30), (total, -40)])[None]
-    # the three finishes, lined up on the line
-    J, ja = finish_clip("japan", -19.0, 3.0)
-    J = filt(J, "low", 2600, 2) * (1 - np.clip((t - 10) / 18, 0, 1))[None] + J * np.clip((t - 10) / 18, 0, 1)[None]   # far off, then close
-    J *= db([(0, -18), (8, -15), (18, -11), (26, -7), (32, -3.5), (FL - 1.2, -1), (FL, 2.5), (FL + 1.2, 2), (FL + 2.5, 0), (FL + 2.8, -60), (total, -60)])[None]
-    G, ga = finish_clip("gn", -19.5, TALK_LIFT_DB)
-    G *= db([(0, -60), (ga, -30), (ga + 2.5, -13), (24, -9), (30, -4.5), (34, -1.5), (FL, 0), (FL + 4, -2), (FL + 9, -10), (total, -40)])[None]
-    A, aa = finish_clip("aintree", -21.0, 4.0)
-    A *= db([(0, -60), (aa, -30), (aa + 2.5, -14), (26, -9), (32, -4), (FL, 0), (FL + 2.0, -1), (FL + 2.2, -60), (total, -60)])[None]
-    hooves = level(tile(gallop_loop(), n, 2.5), MIDDLE["gallop"]) * db([(0, 0), (20, 2), (30, 5), (FL - 2, 6), (FL + 1, 3), (FL + 5, -12), (FL + 8, -40), (total, -60)])[None]
-    # (a little of the roar to carry the cheer on as the Japan Cup and Aintree clips end just after the line)
-    roar = level(tile(roar_loop(), n, 5.0), -21) * db([(0, -60), (FL - 1, -30), (FL + 2, -4), (FL + 5, -9), (FL + 10, -24), (total, -40)])[None]
-    M = bed + murmur + J + G + A + hooves + roar
-    claps = applause(n, FL + 1.4); place(M, level(claps[:, int((FL + 1.4) * SR):], -29.5), FL + 1.4)   # (owner: it was too prominent)
+    J, _ = finish_clip("japan", 3.0)
+    G, ga = finish_clip("gn", TALK_LIFT_DB)
+    A, aa = finish_clip("aintree", 4.0)
+    roar = level(tile(roar_loop(), n, 5.0), -20)              # carries the cheer on as the Japan Cup and Aintree clips end
+    # one crowd: the Japan Cup on its own at first, the others joining; each clip ends just after the line
+    crowd = (J * db([(0, -2), (ga, -2), (ga + 4, -4), (FL + 2.5, -4), (FL + 2.8, -60), (total, -60)])[None]
+             + G * db([(0, 0), (FL + 6, 0), (FL + 12, -6), (total, -12)])[None]
+             + A * db([(0, -3), (FL + 2.0, -3), (FL + 2.2, -60), (total, -60)])[None]
+             + roar * db([(0, -60), (FL - 1, -30), (FL + 2, -2), (FL + 6, -4), (total, -10)])[None])
+    crowd = even(crowd, 1.0, 9.0)                             # its own ups and downs taken out: the shape is BUILD's
+    b = env(BRIGHT)[None]
+    lo1, lo2 = filt(crowd, "low", 1100, 2), filt(crowd, "low", 2600, 2)
+    crowd = lo1 * (1 - b) ** 2 + lo2 * 2 * b * (1 - b) + crowd * b ** 2
+    crowd = crowd / max(rms(crowd), 1e-9)
+    # the gain that gives BUILD's loudness at every moment (measured over half a second, smoothed)
+    e = np.sqrt(signal.sosfiltfilt(sos("low", 2.0, 1), (crowd ** 2).mean(0)).clip(1e-12))
+    crowd = crowd / e[None] * db(BUILD)[None]
+    # the middle's commentators carried on at the start, handing over as the finishes come in
+    bed = talk_bed(MIDDLE_TALK[:2]); bed = peak(filt(bed, "low", 4500, 2), 1800, 3.5, 1.0)
+    bed = level(tile(loop_of(bed, bed.shape[1] / SR - 1.5, 1.5), n, 0.0), MIDDLE["bed"]) * db([(0, 0), (12, 0), (17, -3), (21, -10), (25, -40), (total, -60)])[None]
+    murmur = level(tile(murmur_loop(), n, 11.0), MIDDLE["murmur"]) * db([(0, 0), (12, -4), (20, -20), (total, -40)])[None]
+    hooves = level(tile(gallop_loop(), n, 2.5), MIDDLE["gallop"]) * db([(0, 0), (16, 1), (24, 4), (30, 7), (FL - 1.5, 9), (FL + 1, 6), (FL + 5, -10), (FL + 8, -40), (total, -60)])[None]
+    M = crowd + bed + murmur + hooves
+    claps = applause(n, FL + 1.4); place(M, level(claps[:, int((FL + 1.4) * SR):], -29.5), FL + 1.4)
     return write("finish", M, tail_fade=2.0)
 
 # ---------------------------------------------------------------- the loops the race view also keeps

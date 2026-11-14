@@ -591,6 +591,7 @@ function paintMenu(keepScroll) {
   const counts = {}; pastWeeks().forEach(w => counts[w.title] = (counts[w.title] || 0) + 1);
   $("#menuTitles").innerHTML = TITLES.map(t => `<li class="${t.cls} ${counts[t.name] ? "got" : ""}"><b data-n="${counts[t.name] ? "✓ ×" + counts[t.name] : ""}">${t.name}</b><span>${t.min ? money(t.min).replace(",000,000", "m").replace(/,000$/, "k") + "+" : "under " + money(TITLES[TITLES.length - 2].min).replace(/,000$/, "k")}</span></li>`).join("");
   const b = bestWeek(); $("#menuBest").innerHTML = b ? `Your best ${W.bestWord}: <b>${money(b.prize)}</b> · ${titleFor(b.prize).name}` : "";
+  if (window.lbShow) lbShow();   // the leaderboard panel: the standings and your position
   // Two ways to play (owner, 13 Nov): today's card, the same season for everyone and played once, or a random game
   const today = ukDay(), done = dailyLog()[today], ds = dailySave(), dsToday = ds && ds.day === today ? ds : null;
   const stepOf = x => { const k = Math.min(5, x.step || 1); return `Step ${k} of 5`; };

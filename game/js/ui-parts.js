@@ -584,6 +584,7 @@ function resultBody(wins, losses, prize) {
         <div class="fs-pop" id="fsPop"></div>
         <ol class="fs-rows" id="fsRows">${rows}</ol>
         <div class="title-won ${T.cls}" id="fsTitle"><span>Your title</span><b>${T.name}</b><small>${T.note} ${(() => { const nx = TITLES.slice().reverse().find(t => t.min > prize); return nx ? `${money(nx.min - prize)} short of ${nx.name}.` : ""; })()}</small></div>
+        <p class="lb-line" id="lbLine" aria-live="polite"></p>
         <div class="fs-btns"><button class="tb-btn ghost" id="replayTally">Replay the tally</button><button class="tb-btn" id="copy">Copy result</button></div>
         <pre class="share" id="shareText" hidden>${shareText(wins, losses)}</pre>
       </div>
@@ -596,6 +597,7 @@ function resultBody(wins, losses, prize) {
     </section>`;
 }
 function resultAfter(prize) {
+  if (window.lbResult) lbResult();   // where this game stands on the leaderboard
   if (Object.keys(S.results).length === RACES.length && !S.tallied) { S.tallied = true; save(); playTally(); } else finishTally(prize);
 }
 let tallyRun = 0;

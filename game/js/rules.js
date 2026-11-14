@@ -718,13 +718,18 @@ function noteDaily(prize, wins) {
     log[S.day] = { seed: S.seed, prize, wins, races: RACES.length, title: titleFor(prize).name, silks: mySilkN(), colours: MY ? MY.code : undefined, when: Date.now() };
     const days = Object.keys(log).sort(); days.slice(0, Math.max(0, days.length - 400)).forEach(d => delete log[d]);
     localStorage.setItem(DAILY_KEY, JSON.stringify(log)); } catch (e) {}
+  // and it goes on the leaderboard (js/leaderboard.js)
+  try { if (window.lbSubmit) lbSubmit({ season: MEETING.id, kind: "daily", day: S.day, seed: S.seed, prize, wins, title: titleFor(prize).name }); } catch (e) {}
 }
 function pastWeeks() { try { const h = JSON.parse(localStorage.getItem(HIST_KEY) || "[]"); return Array.isArray(h) ? h : []; } catch (e) { return []; } }
 function addWeek(prize, wins) {
   try {
     const h = pastWeeks(); if (h.some(w => w.seed === S.seed && w.prize === prize)) return h;
     h.push({ seed: S.seed, day: S.day || undefined, prize, wins, races: RACES.length, title: titleFor(prize).name, when: Date.now() });
-    localStorage.setItem(HIST_KEY, JSON.stringify(h.slice(-200))); return h;
+    localStorage.setItem(HIST_KEY, JSON.stringify(h.slice(-200)));
+    // a finished random game goes on the leaderboard's best-ever board (the daily card is sent by noteDaily)
+    try { if (!isDaily() && window.lbSubmit) lbSubmit({ season: MEETING.id, kind: "random", day: "", seed: S.seed, prize, wins, title: titleFor(prize).name }); } catch (e) {}
+    return h;
   } catch (e) { return []; }
 }
 function bestWeek() { try { return JSON.parse(localStorage.getItem(BEST_KEY) || "null"); } catch (e) { return null; } }
