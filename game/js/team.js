@@ -131,10 +131,10 @@ for (let t = 1; t <= 3; t++) {
 const teamCard = code => TEAM_CARDS.find(c => c.code === String(code).replace(/-trade$/, "-scout"));
 function cardText(c) {
   if (c.role === "Owner") return OWNER_KINDS[c.kind].text(c.tier);
-  if (c.role === "Jockey") return JOCKEY_KINDS[c.kind].text(c.tier) + ` Rides ${JOCKEY_RIDES[c.tier]} of your races.`;
+  if (c.role === "Jockey") return JOCKEY_KINDS[c.kind].text(c.tier) + ` Rides ${JOCKEY_RIDES[c.tier]} of your races: book him for them at entries.`;
   return trainerText(c.kind, c.tier);
 }
-const cardWhen = c => c.role === "Owner" ? OWNER_KINDS[c.kind].when : c.role === "Trainer" ? (c.kind === "form" && !FORM_JOBS[c.tier] ? "Race day" : "Warren Hill") : "Race day";
+const cardWhen = c => c.role === "Owner" ? OWNER_KINDS[c.kind].when : c.role === "Trainer" ? (c.kind === "form" && !FORM_JOBS[c.tier] ? "Race day" : "Warren Hill") : "Entries";
 const cardName = c => `${c.title} ${TIER_NUM[c.tier]}`;
 
 // ---------- the draft ----------
@@ -481,6 +481,8 @@ const ridesOf = code => RACES.filter(r => (S.team.book || {})[r.id] === code);
 const ridesLeft = c => JOCKEY_RIDES[c.tier] - ridesOf(c.code).length;
 // Book my jockeys: each jockey's rides go where they're worth the most (his lift there × the race's prize), the
 // Champion and the specialists in turn, races already booked by hand left alone
+// rides your jockeys could still have: races with a runner but no jockey of yours, up to the rides left
+const ridesToBook = () => { if (!teamOn()) return 0; const open = RACES.filter(r => S.entries[r.id] && !bookedFor(r)).length; return Math.min(open, jockeyCards().reduce((a, c) => a + Math.max(0, ridesLeft(c)), 0)); };
 function autoBook() {
   const races = RACES.filter(r => S.entries[r.id] && horse(S.entries[r.id]));
   const lift = (c, r) => { const T = teamState(), was = T.book[r.id]; T.book[r.id] = c.code; const b = jockeyBoost(r, horse(S.entries[r.id])).boost + (JOCKEY_KINDS[c.kind].style && jockeySuits(c, horse(S.entries[r.id]), r) ? 3 : 0); if (was) T.book[r.id] = was; else delete T.book[r.id]; return b; };

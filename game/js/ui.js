@@ -292,7 +292,8 @@ const FOOTS = {
     if (atAscot()) return `<span class="f-info">Change your runners before the first race. The going is declared again when you go back.</span>${goBtn("toWeek", W.backToRacing)}`;
     const ph = phase();
     if (ph === "gallops" || ph === "entries") { const left = RACES.length - entered();
-      return `<span class="f-info ${left ? "" : "ready"}">${left ? `${left} race${left === 1 ? "" : "s"} still without a runner.` : `All ${RACES.length} races have a runner.`}</span>${goBtn("toRaces", W.go)}`; }
+      const jb = ridesToBook();
+      return `<span class="f-info ${left ? "" : "ready"}">${left ? `${left} race${left === 1 ? "" : "s"} still without a runner.` : `All ${RACES.length} races have a runner.`}${jb ? ` <b class="f-jk">${jb} jockey ride${jb === 1 ? "" : "s"} not booked: we'll book ${jb === 1 ? "it" : "them"} where ${jb === 1 ? "it helps" : "they help"} most when you go.</b>` : ""}</span>${goBtn("toRaces", W.go)}`; }
     return "";
   },
   stud() {
@@ -388,6 +389,12 @@ function racesDone(instant) {
   const n = $("#dealNext"); n.hidden = false; n.innerHTML = `To the National Stud <span aria-hidden="true">›</span>`;
 }
 function skipDeal() { clearDeal(); $("#dealBody").querySelectorAll(".dc").forEach(c => c.getAnimations().forEach(a => a.finish())); if (D && D.phase === 1) racesDone(); }
+// jockey rides you haven't booked are booked for you as you leave entries (owner, 14 Nov: "jockey cards need to be
+// more clear you have to play them. I forgot and just wasted them")
+function bookForgotten() {
+  if (!ridesToBook()) return;
+  const n = autoBook(); if (n) setTimeout(() => toast(`Your jockeys are booked for ${n} more ride${n === 1 ? "" : "s"}: see them on the race cards`), 900);
+}
 function closeDeal() {
   clearDeal(); D = null; UI.dealing = false; S.dealt = true; teamState(); save();
   // the team is drafted here at the Jockey Club before the stud opens (js/team.js)
@@ -743,8 +750,8 @@ document.addEventListener("click", e => {
     case "toRaces": {
       const left = RACES.length - entered();
       if (left && !t.dataset.sure) { t.dataset.sure = "1"; t.innerHTML = `${left} empty: go anyway <span aria-hidden="true">›</span>`; toast(`${left} race${left === 1 ? " has" : "s have"} no runner. Tap again to go anyway.`); break; }
-      S.galloped = true; goToAscot(); break; }
-    case "toWeek": S.step = 4; UI.tab.jockey = null; save(); closeSheet({ quiet: true }); openSheet("races"); break;
+      S.galloped = true; bookForgotten(); goToAscot(); break; }
+    case "toWeek": bookForgotten(); S.step = 4; UI.tab.jockey = null; save(); closeSheet({ quiet: true }); openSheet("races"); break;
     case "backEntries": if (racesRun()) break; S.step = 3; save(); closeSheet({ quiet: true }); openSheet("jockey", { tab: "entries" }); break;
     case "simAll": { simBusy = true; render();
       (async () => { for (const r of RACES) if (!S.results[r.id]) { await simAndRecord(r.i); raceDone(r.i, true); } })().catch(err => toast(String(err.message || err))).finally(() => { simBusy = false; render(); });

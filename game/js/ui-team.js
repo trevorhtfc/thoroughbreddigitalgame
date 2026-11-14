@@ -167,7 +167,7 @@ function teamAtEntries() {
   const free = jk.some(c => ridesLeft(c) > 0) && RACES.some(r => S.entries[r.id] && !bookedFor(r));
   return `<details class="sect tm-at" ${S.team.openEntries === false ? "" : "open"}><summary class="sect-h"><h2 class="tb-h2">YOUR TRAINER AND JOCKEYS</h2><span>The trainer works at Warren Hill; jockeys are booked race by race</span></summary>
     <div class="tm-hand sm">${tr.map(trRow).join("")}${jk.map(jkRow).join("")}</div>
-    ${free ? `<p class="tm-auto"><button class="tb-btn sm" data-autobook="1">Book my jockeys</button><small>Puts each jockey's rides where they're worth the most. You can change any of them below.</small></p>` : ""}</details>`;
+    ${free ? `<p class="tm-auto"><button class="tb-btn sm" data-autobook="1">Book my jockeys</button><small><b>${ridesToBook()} ride${ridesToBook() === 1 ? "" : "s"} to book.</b> Tap to put each jockey's rides where they're worth the most, or choose a jockey under each race below. Any you leave are booked for you when you go to the races.</small></p>` : ""}</details>`;
 }
 // a job in a few words: "Settle: Copper Falcon"
 function jobLabel(j) {

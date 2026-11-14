@@ -847,3 +847,9 @@ chose to remove it. The Send back buttons and their wording are gone (stud, How 
 switched off (`SEND_BACK_ON = false`). The list under your mares now only appears for Elite Mares' upgrades. (The £1m
 budget was set with the Buyer able to send the hand back for up to £130k; without that the Buyer's way is a little
 harder.)
+
+**Jockeys you forget to book (14 Nov, 22:22).** Owner: "jockey cards need to be more clear you have to play them. I
+forgot and just wasted them". Now: the entries footer says how many rides aren't booked ("7 jockey rides not booked:
+we'll book them where they help most when you go"); leaving entries for the races (and going back to racing from a
+change of runners) books any rides left (`bookForgotten` → `autoBook`; ones you booked yourself are kept); the jockey
+cards say "book him for them at entries" and their tag reads "Entries" (was "Race day").
