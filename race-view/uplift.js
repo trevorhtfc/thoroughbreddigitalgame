@@ -89,7 +89,50 @@ LOOKSET.table = {
   props: { cards: [-200, -590, 4.04], cover: [-640, -110, 4.35], board: [1380, -1420, 3.0] },   // [x, z, turn]
 };
 const LOOK_ID = LOOKSET[q.get("uplift")] ? q.get("uplift") : "soft";      // (the game's look since 12 Nov 2026; the others by name)
-const LOOK = LOOKSET[LOOK_ID];
+// ---------- The weather (owner, 14 Nov 2026) ----------
+// The soft look came out "a little too cold... Chernobyl vibes": a greenish sky, a grey-green veil of haze, blue-green
+// trees. And the weather is to vary (another chat is building that). So the soft look is now a FAMILY: the same ground,
+// trees, hedges and pile, under one of a few kinds of day. Each kind of day is a short list here: its light, sky and
+// haze, and the colours of the grass and the leaves under it. Nothing else in the file knows which day it is.
+//   fine      (the default) a warm clear afternoon: soft blue overhead, a warm horizon, clear air, warm greens
+//   overcast  a bright grey day: no real sun, pale even light, cooler sage greens (close to the look before 14 Nov)
+//   rain      a wet day: a low slate sky, the far side sunk in mist, deep wet greens (the look only: no falling rain)
+// HOW TO CHOOSE IT: add &weather=fine|overcast|rain to the race view's address (the game: on the iframe's address,
+// beside ?game=1). Anything else, or nothing, is "fine". To add a kind of day, add an entry; every field is optional
+// and falls back to the soft look's own.
+const WEATHER = {
+  fine: {
+    label: "Fine", sunCol: [1.3, 1.13, 0.84], ambSky: [0.44, 0.5, 0.58], ambGnd: [0.47, 0.43, 0.31],
+    gndSun: [1.03, 1.01, 0.9], gndShade: [0.58, 0.63, 0.72], litTint: [1.06, 1.03, 0.95], shadeTint: [0.9, 0.94, 1.03], rim: 0.16,
+    sky: { horizon: "#f6ecd4", mid: "#d3e6ea", top: "#8fc0de", glow: [0.62, 0.5, 0.3], cover: 2, edge: "#ffffff", base: "#ffffff", thick: 0 },
+    haze: [0.34, 90, 720, 0.3], hazeCol: "#f0e8d4", hazeSun: "#f8e9c6", vivid: [1.2, 1.15],
+    grass: { turf: "#86b56a", roughA: "#9cc478", roughB: "#bad28a", lawn: "#a6ca80", sand: "#d8d8aa", leaf: ["#3f6c45", "#6b9d57", "#b6d187"], leafFar: "#c9d6ae", heart: "#2e5138",
+      bank: ["#a0c07c", "#97b973", "#a8be78", "#bfc784", "#cbca8c"] },
+  },
+  overcast: {
+    label: "Overcast", sunCol: [0.62, 0.6, 0.54], ambSky: [0.86, 0.9, 0.88], ambGnd: [0.5, 0.48, 0.42],
+    gndSun: [0.97, 0.98, 0.95], gndShade: [0.8, 0.84, 0.84], litTint: [1.01, 1.01, 0.99], shadeTint: [0.96, 0.98, 0.99], rim: 0.04,
+    sky: { horizon: "#ecebdf", mid: "#e2e6e0", top: "#cfd8d7", glow: [0.2, 0.2, 0.18], cover: 2, edge: "#ffffff", base: "#ffffff", thick: 0 },
+    haze: [0.5, 70, 560, 0.05], hazeCol: "#e6e9df", hazeSun: "#eaebde", vivid: [1.15, 1.1],
+    grass: { turf: "#8ab374", roughA: "#98c47c", roughB: "#b5d08c", lawn: "#a9c98c", sand: "#cdd6a4", leaf: ["#3d6e58", "#62996a", "#a6cb92"], leafFar: "#bfd0b4", heart: "#2b4d40",
+      bank: ["#9cbc80", "#93b578", "#a2ba7c", "#b6c388", "#c0c690"] },
+  },
+  rain: {
+    label: "Rain", sunCol: [0.3, 0.3, 0.3], ambSky: [0.74, 0.8, 0.84], ambGnd: [0.42, 0.42, 0.4],
+    gndSun: [0.84, 0.87, 0.86], gndShade: [0.74, 0.78, 0.8], litTint: [1.0, 1.0, 1.0], shadeTint: [0.95, 0.97, 1.0], rim: 0.0,
+    sky: { horizon: "#cfd4cf", mid: "#b3bcbe", top: "#8d999f", glow: [0.08, 0.08, 0.08], cover: 2, edge: "#ffffff", base: "#ffffff", thick: 0 },
+    haze: [0.72, 40, 400, 0.0], hazeCol: "#c6cdca", hazeSun: "#c9cfcb", exposure: 0.97, vivid: [1.25, 1.15],
+    grass: { turf: "#6fa05f", roughA: "#84ad6c", roughB: "#9dbb7a", lawn: "#8db374", sand: "#b3bd8e", leaf: ["#2e5943", "#4c8155", "#83ab74"], leafFar: "#a9b9a8", heart: "#24433a",
+      bank: ["#84a86c", "#7ba164", "#88a668", "#9aad72", "#a3b078"] },
+  },
+};
+const WEATHER_ID = LOOK_ID === "soft" && WEATHER[q.get("weather")] ? q.get("weather") : "fine";
+const LOOK = LOOK_ID === "soft" ? { ...LOOKSET.soft, ...WEATHER[WEATHER_ID] } : LOOKSET[LOOK_ID];
+export const weatherId = LOOK_ID === "soft" ? WEATHER_ID : null, weathers = Object.fromEntries(Object.entries(WEATHER).map(([k, v]) => [k, v.label]));
+// the colours of the grass and leaves (the other looks take the overcast day's, which were the soft look's own)
+const GC = LOOK.grass || WEATHER.overcast.grass;
+// how much the ground's and the leaves' colour is deepened before the view's film curve (AgX) pales it: 1 = not at all
+const GSAT = Number(q.get("gsat") || (LOOK.vivid ? LOOK.vivid[0] : 1)), LSAT = Number(q.get("lsat") || (LOOK.vivid ? LOOK.vivid[1] : 1));
 export const lookId = LOOK_ID, looks = Object.fromEntries(Object.entries(LOOKSET).map(([k, v]) => [k, v.label]));
 
 const M = 3;                       // metres per pixel of the site map
@@ -431,16 +474,21 @@ export function patchGround(mat, which) {
       // (owner, 14 Nov: "a tiny bit grey... some of the grass in particular the middle of ascot... a bit more brightness
       // without losing its stylistic charm": the turf a shade fresher (it was #8fad79); the rough ground inside the
       // course greener and lighter (it was #a3bb8a to #b9c694); the nap lifts more than it darkens; less haze)
-      diffuseColor.rgb = mix(diffuseColor.rgb, ${f3(lin(q.get("turfc") ? "#" + q.get("turfc") : "#8ab374"))} * (lum0 / 0.33) * 1.03, 0.8 * onT);
+      diffuseColor.rgb = mix(diffuseColor.rgb, ${f3(lin(q.get("turfc") ? "#" + q.get("turfc") : GC.turf))} * (lum0 / 0.33) * 1.03, 0.8 * onT);
       ${which === "turf" ? "float hm = 0.0;" : `float hm = sm.g * step(0.5, off);
-      vec3 rough = mix(${f3(lin(q.get("rougha") ? "#" + q.get("rougha") : "#98c47c"))}, ${f3(lin(q.get("roughb") ? "#" + q.get("roughb") : "#b5d08c"))}, smoothstep(0.3, 0.7, n1));
+      vec3 rough = mix(${f3(lin(q.get("rougha") ? "#" + q.get("rougha") : GC.roughA))}, ${f3(lin(q.get("roughb") ? "#" + q.get("roughb") : GC.roughB))}, smoothstep(0.3, 0.7, n1));
       diffuseColor.rgb = mix(diffuseColor.rgb, rough * clamp(lum0 / ${which === "baked" ? "0.5" : "0.33"}, 0.6, 1.12), hm);`}
       // ground that is neither turf nor rough grass (the festival's trodden ground, the lawns): brushed more lightly
       float upPlain = (1.0 - onT) * (1.0 - hm);
-      ${which === "baked" ? `{ // the festival's trodden ground read grey under this light: a little warmer and lighter, with a breath of
-        // the lawn's green in it (only where the bake is sandy; paths and paving keep their grey)
-        float upSand = upPlain * smoothstep(0.03, 0.12, (diffuseColor.r - diffuseColor.b) / max(lum0, 0.05));
-        diffuseColor.rgb = mix(diffuseColor.rgb, ${f3(lin("#cdd6a4"))} * (lum0 / 0.62), ${Number(q.get("sandg") || 0.65).toFixed(2)} * upSand) * (1.0 + 0.06 * upSand); }` : ""}
+      ${which === "turf" || bank ? "" : `{ // plain ground takes the day's colours too, keeping the bake's light and shade: where the
+        // bake is sandy (the festival's trodden ground; it read grey-beige) a warmer, lighter ground with a breath of the
+        // lawn in it; where it is plain grass (lawns, the ground outside the course) the day's lawn green. Paths and
+        // paving, which are grey in the bake, keep their grey.
+        float upWarm = diffuseColor.r / max(diffuseColor.g, 0.01), upChroma = (max(diffuseColor.r, diffuseColor.g) - diffuseColor.b) / max(lum0, 0.05);
+        float upSand = upPlain * smoothstep(0.03, 0.12, upChroma) * smoothstep(0.9, 1.0, upWarm);
+        float upLawn = upPlain * smoothstep(0.05, 0.16, upChroma) * (1.0 - smoothstep(0.86, 0.96, upWarm));
+        diffuseColor.rgb = mix(diffuseColor.rgb, ${f3(lin(GC.sand))} * (lum0 / 0.62), ${Number(q.get("sandg") || 0.65).toFixed(2)} * upSand) * (1.0 + 0.06 * upSand);
+        diffuseColor.rgb = mix(diffuseColor.rgb, ${f3(lin(GC.lawn))} * clamp(lum0 / ${which === "baked" ? "0.5" : "0.64"}, 0.6, 1.15), ${Number(q.get("lawng") || 0.75).toFixed(2)} * upLawn); }`}
       vec2 wv = w + (texture2D(upNoise, w / 400.0).rg - 0.5) * 28.0;
       float a = texture2D(upNoise, wv / 42.0).r, b = texture2D(upNoise, wv / 13.0 + 0.3).g;
       float st = texture2D(upNoise, vec2(wv.x * 0.25, wv.y * 1.5) / 9.0).a;
@@ -460,6 +508,8 @@ export function patchGround(mat, which) {
       if (cu.x > 0.0 && cu.x < 1.0 && cu.y > 0.0 && cu.y < 1.0) { vec4 cs = texture2D(upCrowd, cu);
         diffuseColor.rgb *= mix(vec3(1.0), upCrowdShade, max(min(cs.r, 1.0) * 0.85 * upV, cs.g * 0.5)); } }` : ""}
     diffuseColor.rgb *= mix(upGndShade, upGndSun, upV);
+    ${GSAT !== 1 ? `// (the view's film curve, AgX, drains bright colours towards grey: the ground's colour is deepened to meet it)
+    diffuseColor.rgb = max(mix(vec3(dot(diffuseColor.rgb, UPLUM)), diffuseColor.rgb, ${GSAT.toFixed(2)}), 0.0);` : ""}
     ${q.get("updebug") === "vis" ? "diffuseColor.rgb = vec3(upV);" : ""}
   }`;
   if (BOARD) mat.clippingPlanes = BOARD.planes;              // the table look: the ground stops at the board's edge
@@ -515,8 +565,9 @@ const TONE_CROWD = `
 const TREE_COL = `
   { if (diffuseColor.g > diffuseColor.r * 0.75) {                                  // leaves (the poplars' yellow tips too), not bark
       float upT = smoothstep(2.4, 10.6, vUpH);
-      vec3 upG = mix(${f3(lin("#3d6e58"))}, ${f3(lin("#62996a"))}, smoothstep(0.0, 0.5, upT)); upG = mix(upG, ${f3(lin("#a6cb92"))}, smoothstep(0.5, 1.0, upT));
-      diffuseColor.rgb = upG * 0.97 * clamp(dot(diffuseColor.rgb, UPLUM) / 0.27, 0.6, 1.35); } }`;
+      vec3 upG = mix(${f3(lin(GC.leaf[0]))}, ${f3(lin(GC.leaf[1]))}, smoothstep(0.0, 0.5, upT)); upG = mix(upG, ${f3(lin(GC.leaf[2]))}, smoothstep(0.5, 1.0, upT));
+      diffuseColor.rgb = upG * 0.97 * clamp(dot(diffuseColor.rgb, UPLUM) / 0.27, 0.6, 1.35);
+      diffuseColor.rgb = max(mix(vec3(dot(diffuseColor.rgb, UPLUM)), diffuseColor.rgb, ${LSAT.toFixed(2)}), 0.0); } }`;
 // Their form (owner, 11 Nov: "the trees in the 3d look flat again"): under this look's soft light every side of a crown
 // was nearly the same tone. Each lobe is modelled again: fuller and warmer on the side towards the sun, deeper and
 // cooler away from it, darker underneath where it hangs over the lobe below. Only far off do they ease into flat tones.
@@ -527,7 +578,7 @@ const TREE_FAR = `
     #ifdef USE_FOG
     float upFarT = smoothstep(260.0, 900.0, vFogDepth);
     outgoingLight *= mix(upForm, vec3(0.92), 0.55 * upFarT);
-    outgoingLight = mix(outgoingLight, ${f3(lin("#bfd0b4"))} * (0.62 + 0.38 * smoothstep(2.4, 10.6, vUpH)), 0.4 * upFarT);
+    outgoingLight = mix(outgoingLight, ${f3(lin(GC.leafFar))} * (0.62 + 0.38 * smoothstep(2.4, 10.6, vUpH)), 0.4 * upFarT);
     #else
     outgoingLight *= upForm;
     #endif
@@ -611,7 +662,7 @@ export function dressHedge(mesh, kit, { scene, LAYERS, distToRails, quality }) {
   if (!tufts.length) return;
   mesh.updateWorldMatrix(true, false);
   const g = mesh.geometry, pos = g.attributes.position, col = g.attributes.color, idx = g.index, M = mesh.matrixWorld;
-  if (col) { const dark = new THREE.Color("#2b4d40"); for (let i = 0; i < col.count; i++) { const k = 0.85 + 0.3 * Math.min(Math.max(pos.getY(i) / 3.5, 0), 1); col.setXYZ(i, dark.r * k, dark.g * k, dark.b * k); } col.needsUpdate = true; }
+  if (col) { const dark = new THREE.Color(GC.heart); for (let i = 0; i < col.count; i++) { const k = 0.85 + 0.3 * Math.min(Math.max(pos.getY(i) / 3.5, 0), 1); col.setXYZ(i, dark.r * k, dark.g * k, dark.b * k); } col.needsUpdate = true; }
   const a = new THREE.Vector3(), b = new THREE.Vector3(), c = new THREE.Vector3(), n = new THREE.Vector3(), e = new THREE.Vector3();
   // (tufts to the square metre; fewer on the lighter settings)
   const per = Number(q.get("hedge") || 0.34) * ({ low: 0.5, lightest: 0.3 }[quality] || 1), LIFT = 5, spots = tufts.map(() => []);
@@ -678,7 +729,7 @@ export function dressBoxes(colour, list, kit, { scene, LAYERS, groundY, quality 
     inst.computeBoundingSphere(); scene.add(inst); LAYERS.trees.push(inst);
   });
   console.log("uplift: clipped hedges dressed with", count, "tufts");
-  return "#2b4d40";
+  return GC.heart;
 }
 
 // ---------- The pile ----------
@@ -745,7 +796,7 @@ export function pile(mesh, { nr, nc, scene, LAYERS, quality, make }) {
 export function bankRamp() {
   if (!LOOK.brushed) return null;
   const k = Number(q.get("bankk") || 1.3);
-  return [[0, "#9cbc80"], [1.4, "#93b578"], [3.2, "#a2ba7c"], [4.4, "#b6c388"], [5.2, "#c0c690"]].map(([h, hex]) => [h, lin(hex).map((v) => v * k)]);
+  return [0, 1.4, 3.2, 4.4, 5.2].map((h, i) => [h, lin(GC.bank[i]).map((v) => v * k)]);
 }
 
 // ---------- Far trees as flat pictures ----------
