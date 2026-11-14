@@ -12,7 +12,7 @@
 //   ?uplift=golden      Golden hour: a low sun raking along the stand, long shadows across the turf
 //   ?uplift=storm       Storm light: the stand and the turf lit against a dark slate sky, sun patches drifting through
 //   ?uplift=mist        Misty morning: silver light, the far side fading into layers of haze
-//   &upoff=a,b,...      leave parts out: heath, plants, clouds (their shadows), sky, relight, crowd, turf
+//   &upoff=a,b,...      leave parts out: heath, plants, clouds (their shadows), sky, relight, crowd, turf, wear
 //   &cloudAt=x,z        slide the cloud shadows (metres), for composing a still
 import * as THREE from "three";
 
@@ -113,7 +113,7 @@ const WEATHER = {
     label: "Overcast", sunCol: [0.62, 0.6, 0.54], ambSky: [0.86, 0.9, 0.88], ambGnd: [0.5, 0.48, 0.42],
     gndSun: [0.97, 0.98, 0.95], gndShade: [0.8, 0.84, 0.84], litTint: [1.01, 1.01, 0.99], shadeTint: [0.96, 0.98, 0.99], rim: 0.04,
     sky: { horizon: "#ecebdf", mid: "#e2e6e0", top: "#cfd8d7", glow: [0.2, 0.2, 0.18], cover: 2, edge: "#ffffff", base: "#ffffff", thick: 0 },
-    haze: [0.5, 70, 560, 0.05], hazeCol: "#e6e9df", hazeSun: "#eaebde", vivid: [1.15, 1.1],
+    haze: [0.5, 70, 560, 0.05], hazeCol: "#e6e9df", hazeSun: "#eaebde", vivid: [1.15, 1.1], catcher: ["#3a4a42", 0.24],   // (catcher: the field's own shadows, fainter with no real sun)
     grass: { turf: "#8ab374", roughA: "#98c47c", roughB: "#b5d08c", lawn: "#a9c98c", sand: "#cdd6a4", leaf: ["#3d6e58", "#62996a", "#a6cb92"], leafFar: "#bfd0b4", heart: "#2b4d40",
       bank: ["#9cbc80", "#93b578", "#a2ba7c", "#b6c388", "#c0c690"] },
   },
@@ -121,18 +121,45 @@ const WEATHER = {
     label: "Rain", sunCol: [0.3, 0.3, 0.3], ambSky: [0.74, 0.8, 0.84], ambGnd: [0.42, 0.42, 0.4],
     gndSun: [0.84, 0.87, 0.86], gndShade: [0.74, 0.78, 0.8], litTint: [1.0, 1.0, 1.0], shadeTint: [0.95, 0.97, 1.0], rim: 0.0,
     sky: { horizon: "#cfd4cf", mid: "#b3bcbe", top: "#8d999f", glow: [0.08, 0.08, 0.08], cover: 2, edge: "#ffffff", base: "#ffffff", thick: 0 },
-    haze: [0.72, 40, 400, 0.0], hazeCol: "#c6cdca", hazeSun: "#c9cfcb", exposure: 0.97, vivid: [1.25, 1.15],
+    haze: [0.72, 40, 400, 0.0], hazeCol: "#c6cdca", hazeSun: "#c9cfcb", exposure: 0.97, vivid: [1.25, 1.15], catcher: ["#3a4444", 0.16],
     grass: { turf: "#6fa05f", roughA: "#84ad6c", roughB: "#9dbb7a", lawn: "#8db374", sand: "#b3bd8e", leaf: ["#2e5943", "#4c8155", "#83ab74"], leafFar: "#a9b9a8", heart: "#24433a",
       bank: ["#84a86c", "#7ba164", "#88a668", "#9aad72", "#a3b078"] },
   },
 };
-const WEATHER_ID = LOOK_ID === "soft" && WEATHER[q.get("weather")] ? q.get("weather") : "fine";
+// A summer's day, for quick ground (owner, 14 Nov: "quick more summer weather"): the fine day pushed a little. A stronger
+// sun and deeper shade, a bluer sky, clearer air, and grass a shade drier. A first go.
+WEATHER.summer = {
+  ...WEATHER.fine, label: "Summer", sunCol: [1.42, 1.22, 0.88], gndSun: [1.06, 1.03, 0.9], gndShade: [0.54, 0.6, 0.72], rim: 0.2,
+  sky: { ...WEATHER.fine.sky, horizon: "#f5ecd6", mid: "#c6e0ea", top: "#7db5de", glow: [0.68, 0.54, 0.32] },
+  haze: [0.28, 100, 800, 0.32], catcher: ["#33443c", 0.44],
+  grass: { ...WEATHER.fine.grass, turf: "#8fb768", roughA: "#a6c676", roughB: "#c6d488", lawn: "#aecb7e" },
+};
+// WHICH DAY A RACE GETS: by its going (owner, 14 Nov: "heavy is obviously greyer and quick more summer weather"). The
+// going is on the race view's address (&going=...: the game puts it there as it opens a race, game/js/ui-parts.js and
+// lab.js); &weather=... on the address still names a day outright.
+const DAY_BY_GOING = { Heavy: "rain", Softer: "overcast", Good: "fine", Quicker: "fine", Quick: "summer" };
+const WEATHER_ID = LOOK_ID !== "soft" ? "fine" : WEATHER[q.get("weather")] ? q.get("weather") : DAY_BY_GOING[q.get("going")] || "fine";
 const LOOK = LOOK_ID === "soft" ? { ...LOOKSET.soft, ...WEATHER[WEATHER_ID] } : LOOKSET[LOOK_ID];
 export const weatherId = LOOK_ID === "soft" ? WEATHER_ID : null, weathers = Object.fromEntries(Object.entries(WEATHER).map(([k, v]) => [k, v.label]));
 // the colours of the grass and leaves (the other looks take the overcast day's, which were the soft look's own)
 const GC = LOOK.grass || WEATHER.overcast.grass;
 // how much the ground's and the leaves' colour is deepened before the view's film curve (AgX) pales it: 1 = not at all
 const GSAT = Number(q.get("gsat") || (LOOK.vivid ? LOOK.vivid[0] : 1)), LSAT = Number(q.get("lsat") || (LOOK.vivid ? LOOK.vivid[1] : 1));
+// ---------- The ground, by the going (owner, 14 Nov 2026) ----------
+// "More wear left on the track" on heavier ground. How the turf shows where the field has galloped over it (the wear
+// map: see wearSetup, below), for each going:
+//   gain: how much one horse's passing marks it; cut: how much of a fully worn patch is torn open to the earth, and
+//   col: the earth's colour there (pale and dry on quick ground); stain: how much the grass between the cuts takes that
+//   colour; old: marks already there from earlier races.
+// (the kick-back itself, clods and dust, is in final-furlong.html: KICK_GOING.  &upoff=wear for none of this.)
+const WEAR_BY_GOING = {
+  Heavy:   { gain: 1.5, cut: 0.95, col: "#54412c", stain: 0.4,  old: 0.3 },
+  Softer:  { gain: 1.2, cut: 0.82, col: "#5c4a33", stain: 0.3,  old: 0.16 },
+  Good:    { gain: 0.6, cut: 0.5,  col: "#5f6140", stain: 0.08, old: 0.05 },
+  Quicker: { gain: 0.5, cut: 0.3,  col: "#a8a678", stain: 0.08, old: 0.03 },
+  Quick:   { gain: 0.4, cut: 0.28, col: "#bdb489", stain: 0.1,  old: 0.02 },
+};
+let WEARK = null;                  // the going's entry, once the race view has said which going it is (init)
 export const lookId = LOOK_ID, looks = Object.fromEntries(Object.entries(LOOKSET).map(([k, v]) => [k, v.label]));
 
 const M = 3;                       // metres per pixel of the site map
@@ -273,6 +300,7 @@ const fields = (x, z) => {
 
 export function init(ctx) {
   CTX = ctx;
+  WEARK = LOOK.brushed && has("wear") ? WEAR_BY_GOING[ctx.going] || WEAR_BY_GOING.Good : null;
   // A course whose stands face the other way (the July Course) keeps its own sun on the other side of the track:
   // the look's sun follows, so it still falls on the stands' fronts and their shadow lies behind them, off the course.
   if (ctx.VIEW && ctx.VIEW.sun && ctx.VIEW.sun[2] * U.upSun.value.z < 0) U.upSun.value.z *= -1;
@@ -328,7 +356,8 @@ export function init(ctx) {
   #endif`;
   if (ctx.scene.fog) { ctx.scene.fog.near = LOOK.haze[1]; ctx.scene.fog.far = LOOK.haze[2]; }
   if (has("sky")) newSky(ctx);
-  console.log("uplift look:", LOOK_ID, OFF.filter(Boolean).length ? "without " + OFF.join(",") : "");
+  wearSetup(ctx);
+  console.log("uplift look:", LOOK_ID, LOOK_ID === "soft" ? "weather " + WEATHER_ID + ", going " + (ctx.going || "?") : "", OFF.filter(Boolean).length ? "without " + OFF.join(",") : "");
 }
 // the site map needs to know where the festival's pieces stand, so it is made once the course's files are in
 function site(dressing) {
@@ -413,6 +442,7 @@ export function patchGround(mat, which) {
   const bank = !!(mat.userData && mat.userData.bank);       // a grassy bank (the Dyke): the nap much quieter on its slopes
   const pileU = (mat.userData && mat.userData.pile) || null;   // one layer of the bank's grass pile (see pile(), below)
   const heath = has("heath") && which !== "turf" && !nap, turf = has("turf") && which !== "far" && !nap, crowd = has("crowd"), relight = has("relight");
+  const wearK = nap && which !== "far" && !pileU ? WEARK : null;   // how the turf shows wear, on this going
   const lawn = (CTX.lawn || [0.5988, 0.7357, 0.4041]);
   const body = `
   { vec2 w = vUpP.xz;
@@ -502,7 +532,21 @@ export function patchGround(mat, which) {
       tone *= 1.0 + k * 0.45 * (smoothstep(0.3, 0.7, b) * 2.0 - 1.0);
       tone *= 1.0 + k * 0.25 * (smoothstep(0.3, 0.7, st) * 2.0 - 1.0);
       tone *= 1.0 + gk * (0.08 * (smoothstep(0.3, 0.7, g1) * 2.0 - 1.0) + 0.06 * (smoothstep(0.3, 0.7, g2) * 2.0 - 1.0));
-      diffuseColor.rgb *= tone; }` : ""}
+      diffuseColor.rgb *= tone;
+      ${wearK ? `{ // the turf where the field has galloped over it (and a scatter of older marks): torn open to the earth in
+        // small ragged cuts, more of them the more it has been run over, the grass between them bruised. Far off the
+        // cuts are too small to draw one by one: there the patch just takes their average tone.
+        float wr = ${WEAR ? "texture2D(upWear, (w - upWearArea.xy) / (upWearArea.zw - upWearArea.xy)).r" : "0.0"};
+        float old = ${wearK.old.toFixed(3)} * smoothstep(0.42, 0.8, n3 * 0.6 + g1 * 0.4);
+        float W = clamp(wr * ${wearK.gain.toFixed(3)} + old, 0.0, 1.0) * onT;
+        float d1 = texture2D(upNoise, w / 2.7 + 0.21).b, d2 = texture2D(upNoise, mat2(0.6, -0.8, 0.8, 0.6) * w / 1.1).b;
+        float th = mix(0.97, 0.38, W), cut = smoothstep(th, th + 0.07, d1 * 0.6 + d2 * 0.4);
+        float fw = fwidth(w.x) + fwidth(w.y), fine = 1.0 - smoothstep(0.04, 0.16, fw);
+        cut = mix(W * W * 0.75, cut, fine) * ${wearK.cut.toFixed(3)};
+        // (between the cuts the grass is trodden and stained with the earth; only where this race has been run)
+        diffuseColor.rgb = mix(diffuseColor.rgb, ${f3(lin(wearK.col).map((v) => v * 1.25))}, ${wearK.stain.toFixed(3)} * clamp(wr * ${wearK.gain.toFixed(3)}, 0.0, 1.0) * onT);
+        diffuseColor.rgb = mix(diffuseColor.rgb, ${f3(lin(wearK.col))} * (0.78 + 0.44 * d2), cut);
+        ${q.get("updebug") === "wear" ? "diffuseColor.rgb = vec3(wr, W, cut);" : ""} }` : ""} }` : ""}
     ${relight ? `float upV = upVis(vec3(w.x, vUpP.y, w.y), vec3(0.0, 1.0, 0.0));` : `float upV = 1.0 - upCloud(w);`}
     ${crowd ? `{ vec2 cu = (w - upCrowdArea.xy) / (upCrowdArea.zw - upCrowdArea.xy);        // the people's shadows
       if (cu.x > 0.0 && cu.x < 1.0 && cu.y > 0.0 && cu.y < 1.0) { vec4 cs = texture2D(upCrowd, cu);
@@ -524,11 +568,85 @@ export function patchGround(mat, which) {
     }
     sh.vertexShader = sh.vertexShader.replace("#include <common>", "#include <common>\nvarying vec3 vUpP; varying vec3 vUpN; varying float vUpH;")
       .replace("#include <fog_vertex>", "#include <fog_vertex>\n{ vUpP = (modelMatrix * vec4(transformed, 1.0)).xyz; vUpN = vec3(0.0, 1.0, 0.0); vUpH = 0.0; }");
-    sh.fragmentShader = sh.fragmentShader.replace("#include <common>", "#include <common>\n" + COMMON)
+    sh.fragmentShader = sh.fragmentShader.replace("#include <common>", "#include <common>\n" + COMMON + (wearK && WEAR ? "uniform sampler2D upWear; uniform vec4 upWearArea;\n" : ""))
       .replace("#include <color_fragment>", "#include <color_fragment>\n" + body)
       .replace("#include <fog_fragment>", HAZE);
   });
 }
+
+// ---------- Track wear: the turf remembers where the field has run ----------
+// A picture of the whole course from above, black to begin with (about a metre a pixel; one number a pixel). As the
+// race is run, every horse leaves a soft trail in it; the turf's shader reads it and cuts the grass up there, by the
+// going (WEAR_BY_GOING). The trail is painted from the race's own timeline, so jumping into the middle of a race (a still,
+// a test page) paints everything run so far, and the replay of the finish is run over ground already cut up.
+// Nothing is read back from the graphics card and nothing is uploaded: a few dozen dots are drawn into the picture a frame.
+let WEAR = null;
+function wearSetup({ COURSE, renderer, quality }) {
+  if (!WEARK || quality === "lightest") return;
+  const ring = COURSE.track.surface[0];
+  let x0 = Infinity, x1 = -Infinity, z0 = Infinity, z1 = -Infinity;
+  for (const [x, z] of ring) { x0 = Math.min(x0, x); x1 = Math.max(x1, x); z0 = Math.min(z0, z); z1 = Math.max(z1, z); }
+  x0 -= 12; x1 += 12; z0 -= 12; z1 += 12;
+  const most = (quality === "low" ? 2.2e6 : 4.6e6), cap = Math.min(4096, renderer.capabilities.maxTextureSize);
+  const mpp = Math.max(Number(q.get("wearm") || 0.8), Math.sqrt((x1 - x0) * (z1 - z0) / most), (x1 - x0) / cap, (z1 - z0) / cap);
+  const w = Math.ceil((x1 - x0) / mpp), h = Math.ceil((z1 - z0) / mpp);
+  const rt = new THREE.WebGLRenderTarget(w, h, { format: THREE.RedFormat, type: THREE.UnsignedByteType, depthBuffer: false, stencilBuffer: false, minFilter: THREE.LinearFilter, magFilter: THREE.LinearFilter, generateMipmaps: false });
+  rt.texture.colorSpace = THREE.NoColorSpace;
+  const MAX = 4096, R = Math.max(0.85, mpp * 1.25);          // a trail's half width, metres
+  const geo = new THREE.BufferGeometry(), pos = new Float32Array(MAX * 3);
+  geo.setAttribute("position", new THREE.BufferAttribute(pos, 3).setUsage(THREE.DynamicDrawUsage));
+  const mat = new THREE.ShaderMaterial({
+    uniforms: { area: { value: new THREE.Vector4(x0, z0, x1, z1) }, px: { value: 2 * R / mpp } },
+    vertexShader: "uniform vec4 area; uniform float px; varying float vA; void main(){ vA = position.y; gl_Position = vec4((position.xz - area.xy) / (area.zw - area.xy) * 2.0 - 1.0, 0.0, 1.0); gl_PointSize = px; }",
+    fragmentShader: "varying float vA; void main(){ vec2 d = gl_PointCoord * 2.0 - 1.0; float k = max(1.0 - dot(d, d), 0.0); gl_FragColor = vec4(1.0, 1.0, 1.0, vA * k * k); }",
+    transparent: true, blending: THREE.AdditiveBlending, depthTest: false, depthWrite: false, toneMapped: false, fog: false,
+  });
+  const pts = new THREE.Points(geo, mat); pts.frustumCulled = false;
+  const sc = new THREE.Scene(); sc.add(pts);
+  WEAR = { rt, sc, cam: new THREE.Camera(), geo, pos, n: 0, MAX, R, t: 0, last: null, renderer, mpp };
+  U.upWear = { value: rt.texture }; U.upWearArea = { value: new THREE.Vector4(x0, z0, x1, z1) };
+  wearReset();
+  console.log("uplift wear map:", w, "x", h, "at", mpp.toFixed(2), "m a pixel");
+}
+function wearFlush(clear) {
+  const { renderer, rt, sc, cam, geo } = WEAR;
+  if (!WEAR.n && !clear) return;
+  const was = renderer.getRenderTarget(), auto = renderer.autoClear, col = renderer.getClearColor(new THREE.Color()), al = renderer.getClearAlpha();
+  renderer.setRenderTarget(rt);
+  if (clear) { renderer.setClearColor(0x000000, 0); renderer.clear(true, false, false); renderer.setClearColor(col, al); }
+  if (WEAR.n) {
+    geo.attributes.position.needsUpdate = true; geo.setDrawRange(0, WEAR.n);
+    renderer.autoClear = false; renderer.render(sc, cam); renderer.autoClear = auto;
+  }
+  renderer.setRenderTarget(was);
+  WEAR.n = 0;
+}
+// a fresh course: before the off, and when a still jumps back to an earlier moment
+export function wearReset() { if (WEAR && WEAR.used !== false) { WEAR.t = 0; WEAR.last = null; WEAR.n = 0; WEAR.used = false; wearFlush(true); } }
+// t: the race clock; at(t): every runner then, as [x, z, speed] in the world. Paints what has been run since last time.
+export function wear(t, at) {
+  if (!WEAR || t <= WEAR.t + 1e-4) return;
+  const STEP = 0.12, sp = WEAR.R * 0.5, a0 = 0.4 / 2.1;      // one horse's passing leaves about 0.4 along the middle of its trail
+  let a = WEAR.last || at(WEAR.t);
+  for (let ta = WEAR.t; ta < t - 1e-6;) {
+    const tb = Math.min(t, ta + STEP), b = at(tb);
+    for (let i = 0; i < b.length && i < a.length; i++) {
+      const [ax, az] = a[i], [bx, bz, v] = b[i], d = Math.hypot(bx - ax, bz - az);
+      if (v < 3 || d < 0.02 || d > 6) continue;                // standing in the stalls, pulling up to a walk, or a jump in the timeline
+      const n = Math.max(1, Math.round(d / sp)), k = a0 * (d / n) / sp;
+      for (let j = 1; j <= n; j++) {
+        if (WEAR.n >= WEAR.MAX) wearFlush(false);
+        const f = j / n, o = WEAR.n++ * 3, h = hash2(ax + j, az, 7.7) - 0.5;
+        // (x, strength, z): a little to one side or the other of the horse's middle, as its feet fall
+        WEAR.pos[o] = ax + (bx - ax) * f + (bz - az) / d * h * 0.5; WEAR.pos[o + 1] = k; WEAR.pos[o + 2] = az + (bz - az) * f - (bx - ax) / d * h * 0.5;
+      }
+    }
+    a = b; ta = tb;
+  }
+  WEAR.t = t; WEAR.last = a; WEAR.used = true;
+  wearFlush(false);
+}
+
 // Things lit by the view's own lamps (trees, hedge, boards, crowd, rails, horses): the sun reaches them only where the
 // shadow pictures say it does (so the stand's shadow falls across the crowd, and trees shade each other), their sunlit
 // and shaded sides take different colours, and a thread of sunlight runs round their edges against the light.

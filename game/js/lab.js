@@ -789,7 +789,7 @@ function watch(T, k) {
       card: o <= 4 ? "black" : o <= 10 ? "red" : o <= 20 ? "yellow" : "blue", coat: { body: coat[0], points: coat[1] }, mine: !!h.star };
   });
   const box = document.createElement("div"); box.className = "watch";
-  box.innerHTML = `<iframe src="final-furlong.html?game=1" title="Race Lab race" allow="fullscreen"></iframe><button class="btn ghost x" style="background:rgba(255,255,255,.9)">Back to the lab</button>`;
+  box.innerHTML = `<iframe src="final-furlong.html?game=1&going=${encodeURIComponent(J.race.going)}" title="Race Lab race" allow="fullscreen"></iframe><button class="btn ghost x" style="background:rgba(255,255,255,.9)">Back to the lab</button>`;
   document.body.appendChild(box); document.body.style.overflow = "hidden";
   WATCH = { box, frame: box.querySelector("iframe"), payload: {
     type: "race", course: J.cid, race: J.trip.view, going: J.race.going, seed: J.race.seed, handicap: J.race.handicap,

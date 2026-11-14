@@ -147,6 +147,9 @@ The race itself (the engine, the timeline, the cameras, the models) is unchanged
   running style) and **the result** after the line (the first four with their silks and margins, your horse's place and
   prize, Watch the replay / Back to the racecard / Next race). In the game the show ends on the set piece after the race,
   with the result up, instead of going round again.
+- **Weather and ground by the going** (14 Nov): the day's going sets the race's weather (Heavy grey and flat, through
+  to Quick as a summer's day), how much turf the field throws up (heavy clods on soft ground, a little dust on quick)
+  and how the turf wears where they have run. Details: `claude/weather-and-ground-handover.md` in the project.
 - **Panels in the game's dress** (Crimson Pro, gold hairlines); the controls start tucked away for a clean TV picture
   (the Controls button brings them back); the v1/v2 horse switch is hidden.
 - **The course by name**: the view reads `assets/course/<course>.json`, `-view.json`, `-stalls.json`, `-standards.json`
