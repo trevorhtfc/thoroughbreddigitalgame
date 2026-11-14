@@ -94,19 +94,22 @@ const LOOK_ID = LOOKSET[q.get("uplift")] ? q.get("uplift") : "soft";      // (th
 // trees. And the weather is to vary (another chat is building that). So the soft look is now a FAMILY: the same ground,
 // trees, hedges and pile, under one of a few kinds of day. Each kind of day is a short list here: its light, sky and
 // haze, and the colours of the grass and the leaves under it. Nothing else in the file knows which day it is.
-//   fine      (the default) a warm clear afternoon: soft blue overhead, a warm horizon, clear air, warm greens
+//   fair      (the default) half-way between the cool look and the fine day
+//   fine      a warm clear afternoon: soft blue overhead, a warm horizon, clear air, warm greens
+//   cool      the look as it was live from 12 to 14 Nov: a pale hazy sun, sage greens
 //   overcast  a bright grey day: no real sun, pale even light, cooler sage greens (close to the look before 14 Nov)
 //   rain      a wet day: a low slate sky, the far side sunk in mist, deep wet greens (the look only: no falling rain)
-// HOW TO CHOOSE IT: add &weather=fine|overcast|rain to the race view's address (the game: on the iframe's address,
-// beside ?game=1). Anything else, or nothing, is "fine". To add a kind of day, add an entry; every field is optional
-// and falls back to the soft look's own.
+//   summer    a summer's day, for quick ground: the fine day with a stronger sun and a bluer sky
+// HOW IT IS CHOSEN: by the race's going (DAY_BY_GOING, below: Heavy rain, Softer overcast, Good fair, Quicker fine,
+// Quick summer). &weather=fair|fine|cool|overcast|rain|summer on the race view's address names a day outright. With
+// neither, "fair". To add a kind of day, add an entry; every field is optional and falls back to the soft look's own.
 const WEATHER = {
   fine: {
     label: "Fine", sunCol: [1.3, 1.13, 0.84], ambSky: [0.44, 0.5, 0.58], ambGnd: [0.47, 0.43, 0.31],
-    gndSun: [1.03, 1.01, 0.9], gndShade: [0.58, 0.63, 0.72], litTint: [1.06, 1.03, 0.95], shadeTint: [0.9, 0.94, 1.03], rim: 0.16,
+    gndSun: [1.03, 1.01, 0.9], gndShade: [0.4, 0.46, 0.58], litTint: [1.06, 1.03, 0.95], shadeTint: [0.9, 0.94, 1.03], rim: 0.16,
     sky: { horizon: "#f6ecd4", mid: "#d3e6ea", top: "#8fc0de", glow: [0.62, 0.5, 0.3], cover: 2, edge: "#ffffff", base: "#ffffff", thick: 0 },
-    haze: [0.34, 90, 720, 0.3], hazeCol: "#f0e8d4", hazeSun: "#f8e9c6", vivid: [1.2, 1.15],
-    grass: { turf: "#86b56a", roughA: "#9cc478", roughB: "#bad28a", lawn: "#a6ca80", sand: "#d8d8aa", leaf: ["#3f6c45", "#6b9d57", "#b6d187"], leafFar: "#c9d6ae", heart: "#2e5138",
+    haze: [0.34, 90, 720, 0.3], hazeCol: "#f0e8d4", hazeSun: "#f8e9c6", vivid: [1.2, 1.15], crowdShade: [0.44, 0.48, 0.58],
+    grass: { turf: "#86b56a", roughA: "#9cc478", roughB: "#bad28a", lawn: "#a6ca80", sand: "#edc886", leaf: ["#3f6c45", "#6b9d57", "#b6d187"], leafFar: "#c9d6ae", heart: "#2e5138",
       bank: ["#a0c07c", "#97b973", "#a8be78", "#bfc784", "#cbca8c"] },
   },
   overcast: {
@@ -114,7 +117,7 @@ const WEATHER = {
     gndSun: [0.97, 0.98, 0.95], gndShade: [0.8, 0.84, 0.84], litTint: [1.01, 1.01, 0.99], shadeTint: [0.96, 0.98, 0.99], rim: 0.04,
     sky: { horizon: "#ecebdf", mid: "#e2e6e0", top: "#cfd8d7", glow: [0.2, 0.2, 0.18], cover: 2, edge: "#ffffff", base: "#ffffff", thick: 0 },
     haze: [0.5, 70, 560, 0.05], hazeCol: "#e6e9df", hazeSun: "#eaebde", vivid: [1.15, 1.1], catcher: ["#3a4a42", 0.24],   // (catcher: the field's own shadows, fainter with no real sun)
-    grass: { turf: "#8ab374", roughA: "#98c47c", roughB: "#b5d08c", lawn: "#a9c98c", sand: "#cdd6a4", leaf: ["#3d6e58", "#62996a", "#a6cb92"], leafFar: "#bfd0b4", heart: "#2b4d40",
+    grass: { turf: "#8ab374", roughA: "#98c47c", roughB: "#b5d08c", lawn: "#a9c98c", sand: "#d8c69a", leaf: ["#3d6e58", "#62996a", "#a6cb92"], leafFar: "#bfd0b4", heart: "#2b4d40",
       bank: ["#9cbc80", "#93b578", "#a2ba7c", "#b6c388", "#c0c690"] },
   },
   rain: {
@@ -122,23 +125,47 @@ const WEATHER = {
     gndSun: [0.84, 0.87, 0.86], gndShade: [0.74, 0.78, 0.8], litTint: [1.0, 1.0, 1.0], shadeTint: [0.95, 0.97, 1.0], rim: 0.0,
     sky: { horizon: "#cfd4cf", mid: "#b3bcbe", top: "#8d999f", glow: [0.08, 0.08, 0.08], cover: 2, edge: "#ffffff", base: "#ffffff", thick: 0 },
     haze: [0.72, 40, 400, 0.0], hazeCol: "#c6cdca", hazeSun: "#c9cfcb", exposure: 0.97, vivid: [1.25, 1.15], catcher: ["#3a4444", 0.16],
-    grass: { turf: "#6fa05f", roughA: "#84ad6c", roughB: "#9dbb7a", lawn: "#8db374", sand: "#b3bd8e", leaf: ["#2e5943", "#4c8155", "#83ab74"], leafFar: "#a9b9a8", heart: "#24433a",
+    grass: { turf: "#6fa05f", roughA: "#84ad6c", roughB: "#9dbb7a", lawn: "#8db374", sand: "#c0ae86", leaf: ["#2e5943", "#4c8155", "#83ab74"], leafFar: "#a9b9a8", heart: "#24433a",
       bank: ["#84a86c", "#7ba164", "#88a668", "#9aad72", "#a3b078"] },
   },
 };
+// The look as it was live from 12 to 14 Nov (with the brighter grass of the 14th): kept as one end of the scale.
+WEATHER.cool = {
+  label: "Cool", sunCol: [1.2, 1.08, 0.82], ambSky: [0.52, 0.56, 0.5], ambGnd: [0.44, 0.41, 0.31],
+  gndSun: [1.04, 1.02, 0.94], gndShade: [0.44, 0.5, 0.56], litTint: [1.04, 1.02, 0.96], shadeTint: [0.92, 0.96, 0.98], rim: 0.12,
+  sky: { horizon: "#ebebd6", mid: "#dae5d2", top: "#b4d4cc", glow: [0.42, 0.42, 0.33], cover: 2, edge: "#ffffff", base: "#ffffff", thick: 0 },
+  crowdShade: [0.46, 0.5, 0.56],
+  haze: [0.52, 70, 560, 0.15], hazeCol: "#e9ebd8", hazeSun: "#eeecd4", vivid: [1.0, 1.0],
+  grass: { ...WEATHER.overcast.grass, sand: "#e5c88e" },
+};
+// A day part-way between two others: every number and colour taken that far from a towards b.
+function between(a, b, k) {
+  const hex = (s) => typeof s === "string" && /^#[0-9a-f]{6}$/i.test(s);
+  const mix = (x, y) => {
+    if (typeof x === "number" && typeof y === "number") return x + (y - x) * k;
+    if (hex(x) && hex(y)) { const c = new THREE.Color(x).lerp(new THREE.Color(y), k); return "#" + c.getHexString(); }
+    if (Array.isArray(x) && Array.isArray(y)) return x.map((v, i) => mix(v, y[i]));
+    if (x && y && typeof x === "object" && typeof y === "object") return Object.fromEntries(Object.keys(y).map((key) => [key, key in x ? mix(x[key], y[key]) : y[key]]));
+    return y;
+  };
+  return mix(a, b);
+}
+// The default day (owner, 14 Nov, shown the look as it was beside the fine day: "maybe somewhere between the two as
+// default?"): fair, half-way from the cool look to the fine day. &warm=0..1 moves it, for trying.
+WEATHER.fair = { ...between(WEATHER.cool, WEATHER.fine, Number(q.get("warm") || 0.5)), label: "Fair" };
 // A summer's day, for quick ground (owner, 14 Nov: "quick more summer weather"): the fine day pushed a little. A stronger
-// sun and deeper shade, a bluer sky, clearer air, and grass a shade drier. A first go.
+// sun and deeper shade, a bluer sky, clearer air, and grass a shade drier.
 WEATHER.summer = {
-  ...WEATHER.fine, label: "Summer", sunCol: [1.42, 1.22, 0.88], gndSun: [1.06, 1.03, 0.9], gndShade: [0.54, 0.6, 0.72], rim: 0.2,
+  ...WEATHER.fine, label: "Summer", sunCol: [1.42, 1.22, 0.88], gndSun: [1.06, 1.03, 0.9], gndShade: [0.38, 0.44, 0.58], rim: 0.2,
   sky: { ...WEATHER.fine.sky, horizon: "#f5ecd6", mid: "#c6e0ea", top: "#7db5de", glow: [0.68, 0.54, 0.32] },
   haze: [0.28, 100, 800, 0.32], catcher: ["#33443c", 0.44],
   grass: { ...WEATHER.fine.grass, turf: "#8fb768", roughA: "#a6c676", roughB: "#c6d488", lawn: "#aecb7e" },
 };
-// WHICH DAY A RACE GETS: by its going (owner, 14 Nov: "heavy is obviously greyer and quick more summer weather"). The
-// going is on the race view's address (&going=...: the game puts it there as it opens a race, game/js/ui-parts.js and
-// lab.js); &weather=... on the address still names a day outright.
-const DAY_BY_GOING = { Heavy: "rain", Softer: "overcast", Good: "fine", Quicker: "fine", Quick: "summer" };
-const WEATHER_ID = LOOK_ID !== "soft" ? "fine" : WEATHER[q.get("weather")] ? q.get("weather") : DAY_BY_GOING[q.get("going")] || "fine";
+// WHICH DAY A RACE GETS: by its going (owner, 14 Nov: "heavy is obviously greyer and quick more summer weather"; and
+// the fair day as the default, which Good ground keeps). The going is on the race view's address (&going=...: the game
+// puts it there as it opens a race, game/js/ui-parts.js and lab.js); &weather=... on the address still names a day outright.
+const DAY_BY_GOING = { Heavy: "rain", Softer: "overcast", Good: "fair", Quicker: "fine", Quick: "summer" };
+const WEATHER_ID = LOOK_ID !== "soft" ? "fair" : WEATHER[q.get("weather")] ? q.get("weather") : DAY_BY_GOING[q.get("going")] || "fair";
 const LOOK = LOOK_ID === "soft" ? { ...LOOKSET.soft, ...WEATHER[WEATHER_ID] } : LOOKSET[LOOK_ID];
 export const weatherId = LOOK_ID === "soft" ? WEATHER_ID : null, weathers = Object.fromEntries(Object.entries(WEATHER).map(([k, v]) => [k, v.label]));
 // the colours of the grass and leaves (the other looks take the overcast day's, which were the soft look's own)
@@ -448,7 +475,7 @@ export function patchGround(mat, which) {
   const wearK = nap && which !== "far" && !pileU ? WEARK : null;   // how the turf shows wear, on this going
   const lawn = (CTX.lawn || [0.5988, 0.7357, 0.4041]);
   const body = `
-  { vec2 w = vUpP.xz;
+  { vec2 w = vUpP.xz; float upDbgL = 0.0;
     vec4 sm = texture2D(upSite, (w - upArea.xy) / (upArea.zw - upArea.xy));
     float dist = sm.r * 64.0, off = 1.0 - sm.b;
     float n1 = texture2D(upNoise, w / 520.0).g;
@@ -504,6 +531,7 @@ export function patchGround(mat, which) {
       // its colours: the turf a soft sage (keeping its mown lanes and the bake's shading); the rough ground inside the
       // course a paler sage drifting to straw
       float lum0 = dot(diffuseColor.rgb, UPLUM);
+      upDbgL = lum0 * 0.25;
       // (owner, 14 Nov: "a tiny bit grey... some of the grass in particular the middle of ascot... a bit more brightness
       // without losing its stylistic charm": the turf a shade fresher (it was #8fad79); the rough ground inside the
       // course greener and lighter (it was #a3bb8a to #b9c694); the nap lifts more than it darkens; less haze)
@@ -520,7 +548,9 @@ export function patchGround(mat, which) {
         float upWarm = diffuseColor.r / max(diffuseColor.g, 0.01), upChroma = (max(diffuseColor.r, diffuseColor.g) - diffuseColor.b) / max(lum0, 0.05);
         float upSand = upPlain * smoothstep(0.03, 0.12, upChroma) * smoothstep(0.9, 1.0, upWarm);
         float upLawn = upPlain * smoothstep(0.05, 0.16, upChroma) * (1.0 - smoothstep(0.86, 0.96, upWarm));
-        diffuseColor.rgb = mix(diffuseColor.rgb, ${f3(lin(GC.sand))} * (lum0 / 0.62), ${Number(q.get("sandg") || 0.65).toFixed(2)} * upSand) * (1.0 + 0.06 * upSand);
+        // (owner, 14 Nov: "can we warm up the festival ground": from a greenish cream, which came out stone grey, to a
+        // warm sand, and taken most of the way to it)
+        diffuseColor.rgb = mix(diffuseColor.rgb, ${f3(lin(q.get("sandc") ? "#" + q.get("sandc") : GC.sand))} * (lum0 / 0.62), ${Number(q.get("sandg") || 0.85).toFixed(2)} * upSand) * (1.0 + 0.07 * upSand);
         diffuseColor.rgb = mix(diffuseColor.rgb, ${f3(lin(GC.lawn))} * clamp(lum0 / ${which === "baked" ? "0.5" : "0.64"}, 0.6, 1.15), ${Number(q.get("lawng") || 0.75).toFixed(2)} * upLawn); }`}
       vec2 wv = w + (texture2D(upNoise, w / 400.0).rg - 0.5) * 28.0;
       float a = texture2D(upNoise, wv / 42.0).r, b = texture2D(upNoise, wv / 13.0 + 0.3).g;
@@ -575,8 +605,9 @@ export function patchGround(mat, which) {
     diffuseColor.rgb *= mix(upGndShade, upGndSun, upV);
     ${GSAT !== 1 ? `// (the view's film curve, AgX, drains bright colours towards grey: the ground's colour is deepened to meet it)
     diffuseColor.rgb = max(mix(vec3(dot(diffuseColor.rgb, UPLUM)), diffuseColor.rgb, ${GSAT.toFixed(2)}), 0.0);` : ""}
-    ${q.get("updebug") === "vis" ? "diffuseColor.rgb = vec3(upV);" : ""}
+    ${q.get("updebug") === "vis" ? "diffuseColor.rgb = vec3(upV);" : q.get("updebug") === "shade" ? "diffuseColor.rgb = mix(upGndShade, upGndSun, upV);" : q.get("updebug") === "lum" && nap ? "diffuseColor.rgb = vec3(upDbgL);" : ""}
   }`;
+  if (q.get("updebug") === "src" && which === "baked") console.log("uplift src:" + body);
   if (BOARD) mat.clippingPlanes = BOARD.planes;              // the table look: the ground stops at the board's edge
   return chain(mat, "ground-" + which + (bank ? "-bank" : "") + (pileU ? "-pile" : "") + LOOK_ID + OFF.join(""), (sh) => {
     Object.assign(sh.uniforms, U);
@@ -745,13 +776,26 @@ const TREE_FAR = `
     outgoingLight *= upForm;
     #endif
   }`;
+// Festival canvas: the piece's own pastel (its batch colour) laid on in stripes running up each roof slope, the canvas
+// between them left as it is; walls stay plain. The slope is read from the surface itself, so every face of a pointed
+// roof gets stripes running up it.
+const TENT = `
+  { vec3 upCanvas = diffuseColor.rgb;
+    #include <color_fragment>
+    vec3 upFn = normalize(cross(dFdx(vUpO), dFdy(vUpO))); if (upFn.y < 0.0) upFn = -upFn;
+    vec2 upAcross = normalize(vec2(-upFn.z, upFn.x) + 1e-5);
+    float upRoof = smoothstep(0.12, 0.3, upFn.y) * (1.0 - smoothstep(0.985, 0.999, upFn.y));
+    float upBand = smoothstep(0.42, 0.5, abs(fract(dot(vUpO.xz, upAcross) / ${Number(q.get("stripe") || 1.4).toFixed(2)}) - 0.5) * 2.0);
+    diffuseColor.rgb = mix(upCanvas, diffuseColor.rgb, upRoof * upBand); }`;
 export function patchLit(mat, kind = "") {
   if (mat.userData.up) return mat;
   const relight = has("relight"), crowd = kind === "crowd" && has("crowd"), tree = kind === "tree" && LOOK.trees;
   const baked = mat.isMeshBasicMaterial;                       // baked scenery: unlit colour x Blender's light
   const flat = !!mat.userData.flatTrees;                       // far trees as flat pictures: each point says how high up its tree it is
-  return chain(mat, "lit" + kind + (flat ? "flat" : "") + LOOK_ID + OFF.join(""), (sh) => {
+  const tent = !!mat.userData.tent;                            // festival canvas: striped in its piece's own pastel (see festival())
+  return chain(mat, "lit" + kind + (flat ? "flat" : "") + (tent ? "tent" : "") + LOOK_ID + OFF.join(""), (sh) => {
     Object.assign(sh.uniforms, U);
+    if (tent) sh.vertexShader = sh.vertexShader.replace("#include <common>", "#include <common>\nvarying vec3 vUpO;").replace("#include <begin_vertex>", "#include <begin_vertex>\nvUpO = position;");
     sh.vertexShader = sh.vertexShader.replace("#include <common>", "#include <common>\nvarying vec3 vUpP; varying vec3 vUpN; varying float vUpH;" + (flat ? " attribute float aUpH;" : ""))
       .replace("#include <fog_vertex>", `#include <fog_vertex>
       { vUpP = transpose(mat3(viewMatrix)) * (mvPosition.xyz - viewMatrix[3].xyz); vUpH = ${flat ? "aUpH" : "position.y"};
@@ -766,6 +810,7 @@ export function patchLit(mat, kind = "") {
     let f = sh.fragmentShader.replace("#include <common>", "#include <common>\n" + COMMON).replace("#include <fog_fragment>", HAZE);
     if (relight && baked && mat.lightMap) f = f.replace("reflectedLight.indirectDiffuse *= diffuseColor.rgb;", TONE_BAKED + "\n reflectedLight.indirectDiffuse *= diffuseColor.rgb;");
     if (!baked && tree) f = f.replace("#include <color_fragment>", "#include <color_fragment>\n" + TREE_COL);
+    if (tent) f = f.replace("#include <common>", "#include <common>\nvarying vec3 vUpO;").replace("#include <color_fragment>", TENT);
     if (!baked) f = f.replace("#include <opaque_fragment>", (relight ? TONE_LIT : "") + (crowd ? TONE_CROWD : "") + (tree ? TREE_FAR : "") + "\n#include <opaque_fragment>");
     sh.fragmentShader = f;
   });
@@ -959,6 +1004,82 @@ export function bankRamp() {
   if (!LOOK.brushed) return null;
   const k = Number(q.get("bankk") || 1.3);
   return [0, 1.4, 3.2, 4.4, 5.2].map((h, i) => [h, lin(GC.bank[i]).map((v) => v * k)]);
+}
+
+// ---------- The festival's colours ----------
+// Owner, 14 Nov: "add some pastel colours to the festival tents, marquees etc? Pinks, greens, blues, orangey yellows?
+// In stripes etc? Just to bring a bit more colour to the festival." The festival's pieces are drawn in batches, one a
+// material, every piece sharing the material's colour (cream canvas, sage stripes, cream flags). Here each piece is
+// given its own pastel: the big tops' stripes and the flags take it whole; plain canvas (marquees, pagodas, awnings)
+// takes it as stripes up its roofs. Colours go round in order along the course, so neighbours differ and the row
+// reads as a set rather than a scatter. &upoff=festival for the plain canvas.
+const PASTELS = ["#e58fa3", "#93c48c", "#86b3de", "#f0c765", "#f0a877"];       // pink, green, blue, butter, apricot
+// THE RULE, FOR EVERY COURSE (owner, 14 Nov: "apply this colour item to the overall game such it is default into all
+// courses current and future"): it goes by the material's name in the shared site kit (site_props), so any course
+// that places those pieces gets it without being told, however it places them:
+//   ..._stripe  the piece's pastel, whole (the big tops' stripes)
+//   ..._flag    the piece's pastel, whole
+//   ..._canvas  the piece's pastel as stripes up its roofs; except the pieces in PLAIN_CANVAS, which stay cream
+// Only materials whose names begin "sp_" (the site kit): a grandstand's own canvas roof is left alone. A new tent
+// added to the kit with these material names is coloured the day it is placed; to keep one cream, add its name to
+// PLAIN_CANVAS. A course that bakes its pieces (Ascot) comes through festival(); one that places them live
+// (Newmarket) through festivalInstanced().
+const PLAIN_CANVAS = { big_top: 1, terrace_deck: 1 };
+const canvasKind = (matName) => !/^sp_/.test(matName) ? "" : matName.endsWith("stripe") ? "stripe" : matName.endsWith("flag") ? "flag" : matName.endsWith("canvas") ? "canvas" : "";
+// which pastel: pieces of a kind go round the five in order along the course, each kind starting somewhere of its own
+const pastelAt = (piece, rank) => PASTELS[((piece.length % PASTELS.length) + 1 + rank) % PASTELS.length];
+const overBase = (hex, base, c) => { c.set(hex); return c.setRGB(c.r / Math.max(base.r, 0.02), c.g / Math.max(base.g, 0.02), c.b / Math.max(base.b, 0.02)); };
+export function festival(batch, matName, placed) {
+  if (LOOK_ID !== "soft" || !has("festival") || !placed.length || !batch.setColorAt) return;
+  const kind = canvasKind(matName);
+  if (!kind) return;
+  const base = batch.material.color.clone(), c = new THREE.Color(), white = new THREE.Color(1, 1, 1);
+  const order = placed.slice().sort((a, b) => a[1].x - b[1].x || a[1].z - b[1].z), n = {};
+  let any = false;
+  for (const [id, p] of order) {
+    const rank = (n[p.piece] = (n[p.piece] ?? -1) + 1);
+    if (kind === "canvas" && PLAIN_CANVAS[p.piece]) { batch.setColorAt(id, white); continue; }
+    batch.setColorAt(id, overBase(pastelAt(p.piece, rank), base, c));
+    any = true;
+  }
+  if (kind === "canvas" && any) batch.material.userData.tent = true;
+}
+// The same for pieces placed live, one instanced mesh a piece: list holds each copy as [model, piece, x, z, ...].
+export function festivalInstanced(inst, matName, piece, list) {
+  if (LOOK_ID !== "soft" || !has("festival") || !list.length) return;
+  const kind = canvasKind(matName);
+  if (!kind || (kind === "canvas" && PLAIN_CANVAS[piece])) return;
+  const base = inst.material.color.clone(), c = new THREE.Color();
+  const order = list.map((it, i) => [i, it[2], it[3]]).sort((a, b) => a[1] - b[1] || a[2] - b[2]);
+  order.forEach(([i], rank) => inst.setColorAt(i, overBase(pastelAt(piece, rank), base, c)));
+  if (inst.instanceColor) inst.instanceColor.needsUpdate = true;
+  if (kind === "canvas") inst.material.userData.tent = true;
+}
+
+// ---------- The festival's low planting ----------
+// A course may list low planting as a bush the soft tree kit doesn't carry (Ascot's festival: 1,280 of them, in rows).
+// They went missing under the soft look, leaving only their shadows as rows of dark dots. Each is now two tufts of the
+// trees' own foliage, set low: a soft low hedge, in the one style.
+export function shrubs(kit, tree) {
+  return LOOK.trees && has("low") && !firstGeo(kit, tree + "_crown_far") && !!firstGeo(kit, "tuft_a");
+}
+export function placeShrubs(kit, list, { scene, LAYERS, groundY }) {
+  const tufts = ["tuft_a", "tuft_b", "tuft_c"].map((n) => firstGeo(kit, n)).filter(Boolean), LIFT = 5, spots = tufts.map(() => []);
+  for (const t of list) {
+    const w = 4.9 * t.s;                                    // the bush's width as it was planted
+    for (let k = 0; k < 2; k++) {
+      const h1 = hash2(t.x, t.z, 1.7 + k), h2 = hash2(t.x, t.z, 4.3 + k), s = (w / 2.9) * (0.85 + 0.3 * h1);
+      spots[Math.floor(h2 * tufts.length) % tufts.length].push([t.x + (h1 - 0.5) * w * 0.45, groundY(t.x, t.z) + 0.42 * s, t.z + (h2 - 0.5) * w * 0.45, h1 + h2, s]);
+    }
+  }
+  const m4 = new THREE.Matrix4(), qt = new THREE.Quaternion(), sc = new THREE.Vector3(), p = new THREE.Vector3(), up = new THREE.Vector3(0, 1, 0);
+  tufts.forEach((geo, gi) => {
+    const l = spots[gi]; if (!l.length) return;
+    const inst = new THREE.InstancedMesh(geo, cardMat(), l.length);
+    l.forEach(([x, y, z, r, s], i) => inst.setMatrixAt(i, m4.compose(p.set(x, y - LIFT * s * 0.8, z), qt.setFromAxisAngle(up, r * 6.283), sc.set(s, s * 0.8, s))));
+    inst.computeBoundingSphere(); scene.add(inst); LAYERS.trees.push(inst);
+  });
+  console.log("uplift: low planting,", list.length, "bushes as tufts");
 }
 
 // ---------- Far trees as flat pictures ----------

@@ -1265,7 +1265,7 @@ function placeSiteKit(gltf, info, pieces) {
     }
   }
   const m4 = new THREE.Matrix4();
-  for (const { mat, parts } of byMat.values()) {
+  for (const [matName, { mat, parts }] of byMat) {
     const use = pieces.filter((p) => parts.has(p.piece + "_q" + quarter(p.turn || 0)));
     if (!use.length) continue;
     let nv = 0, ni = 0;
@@ -1274,10 +1274,14 @@ function placeSiteKit(gltf, info, pieces) {
     batch.sortObjects = false;
     const ids = new Map();
     for (const [vkey, g] of parts) ids.set(vkey, batch.addGeometry(g));
+    const placed = [];
     for (const p of use) {
       const id = batch.addInstance(ids.get(p.piece + "_q" + quarter(p.turn || 0)));
       batch.setMatrixAt(id, m4.makeRotationY(Math.PI + (p.turn || 0) * Math.PI / 180).setPosition(p.x, 0, p.z));
+      placed.push([id, p]);
     }
+    // (soft look: pastel colours for the festival's canvas, stripes and flags, each piece its own)
+    if (UPLIFT) UPLIFT.festival(batch, matName, placed);
     batch.castShadow = batch.receiveShadow = false;
     scene.add(batch);
     LAYERS.buildings.push(batch);
@@ -1398,7 +1402,10 @@ function instanceTrees(gltf, list) {
   // (soft look: trees far from the camera are drawn as flat pictures of themselves; trees away from the middle of the
   // course are grouped by where they stand, so each group can change over by itself)
   const flat = UPLIFT && UPLIFT.flatTrees(gltf);
+  // (soft look: low planting listed as a bush the tree kit doesn't have is drawn as tufts of the trees' own foliage)
+  const shrubs = [];
   for (const t of list) {
+    if (t.scrub && UPLIFT && UPLIFT.shrubs(gltf, t.tree)) { shrubs.push(t); continue; }
     t.s0 = t.s;
     if (THIN_BELTS && (t.belt || !isNear(t.x, t.z))) { if ((Math.round(t.x * 7 + t.z * 13) & 1) === 1) continue; t.s *= 1.12; }
     const near = !LITE_TREES && isNear(t.x, t.z);
@@ -1413,6 +1420,7 @@ function instanceTrees(gltf, list) {
       groups.get(key).push(t);
     }
   }
+  if (shrubs.length) UPLIFT.placeShrubs(gltf, shrubs, { scene, LAYERS, groundY });
   const m4 = new THREE.Matrix4(), q = new THREE.Quaternion(), sc = new THREE.Vector3(), p = new THREE.Vector3(), up = new THREE.Vector3(0, 1, 0);
   for (const [key0, ts] of groups) {
     if (key0[0] === "~") { UPLIFT.placeThickets(gltf, key0.slice(1), ts, { scene, LAYERS, groundY, treeMat }); continue; }
@@ -1585,6 +1593,8 @@ function placeScenery(SC, models, treeLib, belts) {
       const geo = mesh.geometry.clone().applyMatrix4(mesh.matrixWorld);
       const inst = new THREE.InstancedMesh(geo, clayOf(mesh.material), list.length);
       list.forEach(([, , x, z, turn, sx, s], i) => inst.setMatrixAt(i, m4.compose(p.set(x, groundY(x, z), z), q.setFromAxisAngle(up, turn * Math.PI / 180), sc.set(sx, s, s))));
+      // (soft look: pastel colours for canvas, stripes and flags, each copy its own, on every course)
+      if (UPLIFT) UPLIFT.festivalInstanced(inst, mesh.material.name || "", piece, list);
       inst.computeBoundingSphere();
       inst.castShadow = true; inst.receiveShadow = true;
       scene.add(inst); LAYERS.buildings.push(inst);
