@@ -593,7 +593,7 @@ function paintMenu(keepScroll) {
   const b = bestWeek(); $("#menuBest").innerHTML = b ? `Your best ${W.bestWord}: <b>${money(b.prize)}</b> · ${titleFor(b.prize).name}` : "";
   if (window.lbShow) lbShow();   // the leaderboard panel: the standings and your position
   // Two ways to play (owner, 13 Nov): today's card, the same season for everyone and played once, or a random game
-  const today = ukDay(), done = dailyLog()[today], ds = dailySave(), dsToday = ds && ds.day === today ? ds : null;
+  const today = ukDay(), done = dailyDone(today), ds = dailySave(), dsToday = ds && ds.day === today ? ds : null;
   const stepOf = x => { const k = Math.min(5, x.step || 1); return `Step ${k} of 5`; };
   const rnd = isDaily() ? randomSave() : (hasProgress() ? S : null);
   const daily = done

@@ -223,16 +223,36 @@ function fieldSize(r) {
   return FIELD_SIZE.other;
 }
 let RACES = [];
-// Draw the card's ten races: two a day, a real mix (at least three of each kind), in race-time order
-function drawRaces(R) {
+// Draw the card's ten races: two a day, in race-time order.
+// The mix (owner, 14 Nov: "a decent mix reg. class. min 3 grp1s, 3 handicaps and then mix inbetween. also a mix of gender
+// races is good. distances being a bit less controlled"): at least three Group 1s and three handicaps, at least two of
+// the races in between (Group 2, Group 3, Listed), at least two fillies' races and one colts' race but no more than five
+// single-sex races in all. Distances are left to chance: a card heavy on one trip is part of the skill. A meeting can
+// change these numbers (MEETING.mix). Cards made before 14 Nov (no S.mix) keep the old draw, so a saved game's races
+// never change under it.
+const MIX = Object.assign({ group1: 3, handicaps: 3, middle: 2, fillies: 2, colts: 1, maxSingleSex: 5 }, MEETING.mix || {});
+const isMiddle = r => r.grade === "Group 2" || r.grade === "Group 3" || r.grade === "Listed";
+function mixOK(pick) {
+  const n = f => pick.filter(f).length;
+  return n(r => r.grade === "Group 1") >= MIX.group1 && n(r => r.grade === "Handicap") >= MIX.handicaps && n(isMiddle) >= MIX.middle
+    && n(r => r.sex === "F") >= MIX.fillies && n(r => r.sex === "C") >= MIX.colts && n(r => !!r.sex) <= MIX.maxSingleSex;
+}
+function drawDays(R) {
+  const pick = [];
+  for (let d = 0; d < DAYS.length; d++) {
+    const day = POOL.filter(r => r.day === d).slice();
+    for (let k = day.length - 1; k > 0; k--) { const j = Math.floor(R.r() * (k + 1)); [day[k], day[j]] = [day[j], day[k]]; }
+    pick.push(...day.slice(0, PER_DAY).sort((a, b) => POOL.indexOf(a) - POOL.indexOf(b)));
+  }
+  return pick;
+}
+function drawRaces(R, mix) {
+  if (mix >= 2) {
+    for (let tries = 0; tries < 20000; tries++) { const pick = drawDays(R); if (mixOK(pick)) return pick; }
+    console.warn("No race mix found that meets every rule: using the old one");
+  }
   for (let tries = 0; tries < 200; tries++) {
-    const pick = [];
-    for (let d = 0; d < DAYS.length; d++) {
-      const day = POOL.filter(r => r.day === d).slice();
-      for (let k = day.length - 1; k > 0; k--) { const j = Math.floor(R.r() * (k + 1)); [day[k], day[j]] = [day[j], day[k]]; }
-      pick.push(...day.slice(0, PER_DAY).sort((a, b) => POOL.indexOf(a) - POOL.indexOf(b)));
-    }
-    const h = pick.filter(isOpenRace).length;
+    const pick = drawDays(R), h = pick.filter(isOpenRace).length;
     if (h >= MIN_HANDICAPS && pick.length - h >= MIN_PATTERN) return pick;
   }
   return POOL.filter((r, k) => k % 7 < 2);
@@ -312,12 +332,12 @@ function dressField(opp, grade, X) {
     Object.assign(opp[k], { sk, a: t.a, b: t.b, silks: t.img });
   });
 }
-function makeCard(seed) {
+function makeCard(seed, mix) {
   const R = rngFrom(seed), used = new Set();
   const nm = () => { for (let k = 0; k < 300; k++) { const n = (R.pick(NAME_A) + " " + R.pick(NAME_B)).toUpperCase(); if (!used.has(n)) { used.add(n); return n; } } return "RUNNER " + used.size; };
   const going = DAYS.map(() => R.pick(MEETING.goings));
   const jockeys = JOCKEYS.concat(MORE_JOCKEYS), trainers = TRAINERS.concat(MORE_TRAINERS);
-  setRaces(drawRaces(R));
+  setRaces(drawRaces(R, mix));
   const races = RACES.map(race => {
     const open = isOpenRace(race), n = open ? R.int(9, 11) : R.int(6, 9), x = R.r(), strength = x < .3 ? "Weak" : x < .7 ? "Average" : "Strong";
     // handicaps are framed so most of the field is closely matched
@@ -533,7 +553,13 @@ const ukDay = t => { const d = t ? new Date(t) : new Date();
   try { const o = {}; new Intl.DateTimeFormat("en-GB", { timeZone: "Europe/London", year: "numeric", month: "2-digit", day: "2-digit" }).formatToParts(d).forEach(x => o[x.type] = x.value); return `${o.year}-${o.month}-${o.day}`; }
   catch (e) { return d.toISOString().slice(0, 10); } };
 // random games are numbered 1 to 1,000,000; the daily cards sit above that, each season (Royal Ascot, Newmarket) with its own
-const dailySeed = day => 1000001 + hashStr("thoroughbred-daily|" + MEETING.id + "|" + day) % 2000000000;
+// The race mix new cards are drawn with (drawRaces). Changing it re-deals today's card: the daily seed carries it, so a
+// daily card saved or finished under the old mix no longer matches the day's seed and is put aside (owner, 14 Nov:
+// "reset todays races to align").
+const CARD_MIX = 2;
+const dailySeed = day => 1000001 + hashStr("thoroughbred-daily|" + (CARD_MIX >= 2 ? "mix" + CARD_MIX + "|" : "") + MEETING.id + "|" + day) % 2000000000;
+// a daily card (a save or a finished one in the log) still counts as that day's card
+const dailyCurrent = x => !!x && x.seed === dailySeed(x.day);
 const dayText = (day, long) => { const [y, m, d] = String(day).split("-").map(Number); return new Date(Date.UTC(y, m - 1, d, 12)).toLocaleDateString("en-GB", { timeZone: "UTC", weekday: long ? "long" : "short", day: "numeric", month: long ? "long" : "short" }); };
 const isDaily = () => !!(S && S.mode === "daily");
 // what a season is called on the screens: "Daily card, Fri 13 Nov" or "Season 123456"
@@ -543,7 +569,7 @@ function newCard(seed, day) {
   S = { seed: seed || Math.floor(Math.random() * 1e6) + 1, luck: Math.floor(Math.random() * 2e9) + 1, mode: day ? "daily" : "random", day: day || null, pileN: {}, step: 1, tab: "stud", budget: START_BUDGET, start: START_BUDGET, stable: [], hand: [], usedMares: [], deckPos: 0,
     selMare: null, foal: null, sale: [], lotN: 0, entries: {}, results: {}, open: null, silks: S ? S.silks : 0, sort: "fee", offer: null, book: 1, catDams: [], v: 8, dealt: false, tallied: false,
     team: { picks: [], offer: null, done: false, choice: {}, used: {}, trains: {}, book: {}, income: 0, incomeLog: [] } };
-  CARD = makeCard(S.seed); ownLuck();
+  S.mix = CARD_MIX; CARD = makeCard(S.seed, S.mix); ownLuck();
   // No starting mares: every mare is bought at the mares sale, choosing one of three
   S.selMare = null;
   save();
@@ -553,11 +579,11 @@ const slotKey = mode => SAVE_KEY + (mode === "daily" ? "-daily" : "");
 function save() { try { localStorage.setItem(slotKey(S.mode), JSON.stringify(S)); localStorage.setItem(MODE_KEY, S.mode === "daily" ? "daily" : "random"); } catch (e) {} }
 const lastMode = () => { try { return localStorage.getItem(MODE_KEY) === "daily" ? "daily" : "random"; } catch (e) { return "random"; } };
 // the saved daily card, if there is one (read without opening it): { day, done, step }
-function dailySave() { try { const v = JSON.parse(localStorage.getItem(slotKey("daily")) || "null"); return v && v.seed && v.day ? v : null; } catch (e) { return null; } }
+function dailySave() { try { const v = JSON.parse(localStorage.getItem(slotKey("daily")) || "null"); return v && v.seed && v.day && dailyCurrent(v) ? v : null; } catch (e) { return null; } }
 function load(mode) {
   mode = mode || "random";
   try { const v = JSON.parse(localStorage.getItem(slotKey(mode)) || "null"); if (v && v.seed && Array.isArray(v.stable)) {
-    S = v; S.open = null; S.mode = mode === "daily" && S.day ? "daily" : "random"; S.pileN = S.pileN || {}; CARD = makeCard(S.seed); ownLuck(); migrate();
+    S = v; S.open = null; S.mode = mode === "daily" && S.day ? "daily" : "random"; S.pileN = S.pileN || {}; CARD = makeCard(S.seed, S.mix); ownLuck(); migrate();
     // left in the middle of an auction: that lot has gone through the ring without you
     if (S.ring) { S.sale = (S.sale || []).filter(x => x.id !== S.ring); S.ring = null; save(); }
     return true; } } catch (e) {}
@@ -791,9 +817,11 @@ const BEST_KEY = "tb-" + MEETING.id + "-best", HIST_KEY = "tb-" + MEETING.id + "
 const MODE_KEY = "tb-" + MEETING.id + "-mode", DAILY_KEY = "tb-" + MEETING.id + "-daily-log";
 // Today's card counts once: the first time a day's card is finished, its result is written here and stays
 function dailyLog() { try { const v = JSON.parse(localStorage.getItem(DAILY_KEY) || "{}"); return v && typeof v === "object" ? v : {}; } catch (e) { return {}; } }
+// the day's finished card, if it was that day's card as dealt now (one finished before a re-deal doesn't count)
+const dailyDone = day => { const e = dailyLog()[day]; return e && dailyCurrent({ seed: e.seed, day }) ? e : null; };
 function noteDaily(prize, wins) {
   if (!isDaily()) return;
-  try { const log = dailyLog(); if (log[S.day]) return;
+  try { const log = dailyLog(); if (dailyDone(S.day)) return;
     log[S.day] = { seed: S.seed, prize, wins, races: RACES.length, title: titleFor(prize).name, silks: mySilkN(), colours: MY ? MY.code : undefined, when: Date.now() };
     const days = Object.keys(log).sort(); days.slice(0, Math.max(0, days.length - 400)).forEach(d => delete log[d]);
     localStorage.setItem(DAILY_KEY, JSON.stringify(log)); } catch (e) {}

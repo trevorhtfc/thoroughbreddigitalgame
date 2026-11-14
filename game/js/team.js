@@ -140,13 +140,17 @@ const teamCards = () => (S.team ? S.team.picks.map(teamCard).filter(Boolean) : [
 const teamPoints = () => teamCards().reduce((a, c) => a + c.tier, 0);
 const teamOn = () => !!(S.team && S.team.done);
 const held = kind => teamOn() ? teamCards().find(c => c.kind === kind && c.role !== "Trainer") : null;
-// A trip jockey is only offered if a race on this card is at one of his trips, a Big-Race Jockey if there's a Group race
-// (the board: "take another"). Trainers are never wasted: every one can do every job.
+// A card is only in the decks if this card of races gives it something to do (the board: "take another"; owner, 14 Nov:
+// "dont however give people trainer cards for specific races of which there are none"): a trip jockey or trip trainer
+// needs a race at one of his trips, the Big-Race Jockey a Group race, the Juvenile Specialist a 2-year-old race, the Slow
+// Burner (his +5 is for 4-year-olds) a race 4-year-olds can run in.
 function cardFits(c) {
-  if (c.role !== "Jockey") return true;
-  const K = JOCKEY_KINDS[c.kind];
+  if (c.role === "Owner") return true;
+  const K = c.role === "Jockey" ? JOCKEY_KINDS[c.kind] : TRAINER_KINDS[c.kind];
   if (K.trips) return RACES.some(r => K.trips.includes(raceTrip(r)));
   if (c.kind === "bigrace") return RACES.some(r => r.grade.startsWith("Group"));
+  if (c.kind === "juvenile") return RACES.some(r => r.ages[1] === 2);
+  if (c.kind === "burner") return RACES.some(r => r.ages[0] <= 4 && r.ages[1] >= 4);
   return true;
 }
 function deckLeft(role, tier) {

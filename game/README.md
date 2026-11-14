@@ -115,6 +115,23 @@ Owner, 13 Nov: "having the daily mix or just a play a random game option is best
 - **Not built yet:** the leaderboard (stable names, scores kept on Cloudflare) and score checking. `noteDaily()` is where a
   finished daily card would be sent from.
 
+### The race mix (14 Nov 2026)
+Owner: "min 3 grp1s, 3 handicaps and then mix inbetween. also a mix of gender races ... distances being a bit less
+controlled ... dont however give people trainer cards for specific races of which there are none", and "reset todays
+races to align".
+- `drawRaces` (js/rules.js) now keeps drawing two races a day until the card has at least 3 Group 1s, 3 handicaps
+  (the Queen Alexandra, a Conditions race, doesn't count as one), 2 races in between (Group 2, Group 3 or Listed),
+  2 fillies' races and 1 colts' race, and no more than 5 single-sex races. Distances are left to chance. The numbers
+  are `MIX`; a meeting file can change them with `mix: { ... }`. About 1 random draw in 11 passes at Ascot and 1 in 900
+  at Newmarket (it has only three handicaps, one each at the July, Cambridgeshire and Future Champions meetings, so
+  every Newmarket card now has all three).
+- New cards carry `S.mix = 2` (`CARD_MIX`); a saved game without it keeps the old draw, so its races never change.
+- The daily seed now includes the mix, so today's card was re-dealt. A daily card saved or finished under the old mix
+  no longer matches the day's seed (`dailyCurrent`) and is put aside: the menu offers the new card. No daily scores
+  had been posted to the leaderboard when this went in.
+- `cardFits` (js/team.js) now covers trainers too: a trip trainer needs a race at his trips, the Juvenile Specialist a
+  2-year-old race, the Slow Burner a race open to 4-year-olds; otherwise the card isn't in the deck.
+
 ## Your colours: every player makes their own (13 Nov 2026, branch `claude/own-colours`)
 
 Owner, 13 Nov: "let's make all new players make their own colours.. and let's also remember their colours? no selection
