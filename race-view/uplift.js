@@ -108,7 +108,7 @@ const WEATHER = {
     gndSun: [1.03, 1.01, 0.9], gndShade: [0.58, 0.63, 0.72], litTint: [1.06, 1.03, 0.95], shadeTint: [0.9, 0.94, 1.03], rim: 0.16,
     sky: { horizon: "#f6ecd4", mid: "#d3e6ea", top: "#8fc0de", glow: [0.62, 0.5, 0.3], cover: 2, edge: "#ffffff", base: "#ffffff", thick: 0 },
     haze: [0.34, 90, 720, 0.3], hazeCol: "#f0e8d4", hazeSun: "#f8e9c6", vivid: [1.2, 1.15],
-    grass: { turf: "#86b56a", roughA: "#9cc478", roughB: "#bad28a", lawn: "#a6ca80", sand: "#d8d8aa", leaf: ["#3f6c45", "#6b9d57", "#b6d187"], leafFar: "#c9d6ae", heart: "#2e5138",
+    grass: { turf: "#86b56a", roughA: "#9cc478", roughB: "#bad28a", lawn: "#a6ca80", sand: "#edc886", leaf: ["#3f6c45", "#6b9d57", "#b6d187"], leafFar: "#c9d6ae", heart: "#2e5138",
       bank: ["#a0c07c", "#97b973", "#a8be78", "#bfc784", "#cbca8c"] },
   },
   overcast: {
@@ -116,7 +116,7 @@ const WEATHER = {
     gndSun: [0.97, 0.98, 0.95], gndShade: [0.8, 0.84, 0.84], litTint: [1.01, 1.01, 0.99], shadeTint: [0.96, 0.98, 0.99], rim: 0.04,
     sky: { horizon: "#ecebdf", mid: "#e2e6e0", top: "#cfd8d7", glow: [0.2, 0.2, 0.18], cover: 2, edge: "#ffffff", base: "#ffffff", thick: 0 },
     haze: [0.5, 70, 560, 0.05], hazeCol: "#e6e9df", hazeSun: "#eaebde", vivid: [1.15, 1.1],
-    grass: { turf: "#8ab374", roughA: "#98c47c", roughB: "#b5d08c", lawn: "#a9c98c", sand: "#cdd6a4", leaf: ["#3d6e58", "#62996a", "#a6cb92"], leafFar: "#bfd0b4", heart: "#2b4d40",
+    grass: { turf: "#8ab374", roughA: "#98c47c", roughB: "#b5d08c", lawn: "#a9c98c", sand: "#d8c69a", leaf: ["#3d6e58", "#62996a", "#a6cb92"], leafFar: "#bfd0b4", heart: "#2b4d40",
       bank: ["#9cbc80", "#93b578", "#a2ba7c", "#b6c388", "#c0c690"] },
   },
   rain: {
@@ -124,7 +124,7 @@ const WEATHER = {
     gndSun: [0.84, 0.87, 0.86], gndShade: [0.74, 0.78, 0.8], litTint: [1.0, 1.0, 1.0], shadeTint: [0.95, 0.97, 1.0], rim: 0.0,
     sky: { horizon: "#cfd4cf", mid: "#b3bcbe", top: "#8d999f", glow: [0.08, 0.08, 0.08], cover: 2, edge: "#ffffff", base: "#ffffff", thick: 0 },
     haze: [0.72, 40, 400, 0.0], hazeCol: "#c6cdca", hazeSun: "#c9cfcb", exposure: 0.97, vivid: [1.25, 1.15],
-    grass: { turf: "#6fa05f", roughA: "#84ad6c", roughB: "#9dbb7a", lawn: "#8db374", sand: "#b3bd8e", leaf: ["#2e5943", "#4c8155", "#83ab74"], leafFar: "#a9b9a8", heart: "#24433a",
+    grass: { turf: "#6fa05f", roughA: "#84ad6c", roughB: "#9dbb7a", lawn: "#8db374", sand: "#c0ae86", leaf: ["#2e5943", "#4c8155", "#83ab74"], leafFar: "#a9b9a8", heart: "#24433a",
       bank: ["#84a86c", "#7ba164", "#88a668", "#9aad72", "#a3b078"] },
   },
 };
@@ -134,7 +134,7 @@ WEATHER.cool = {
   gndSun: [1.04, 1.02, 0.94], gndShade: [0.6, 0.67, 0.64], litTint: [1.04, 1.02, 0.96], shadeTint: [0.92, 0.96, 0.98], rim: 0.12,
   sky: { horizon: "#ebebd6", mid: "#dae5d2", top: "#b4d4cc", glow: [0.42, 0.42, 0.33], cover: 2, edge: "#ffffff", base: "#ffffff", thick: 0 },
   haze: [0.52, 70, 560, 0.15], hazeCol: "#e9ebd8", hazeSun: "#eeecd4", vivid: [1.0, 1.0],
-  grass: { ...WEATHER.overcast.grass },
+  grass: { ...WEATHER.overcast.grass, sand: "#e5c88e" },
 };
 // A day part-way between two others: every number and colour taken that far from a towards b.
 function between(a, b, k) {
@@ -512,7 +512,9 @@ export function patchGround(mat, which) {
         float upWarm = diffuseColor.r / max(diffuseColor.g, 0.01), upChroma = (max(diffuseColor.r, diffuseColor.g) - diffuseColor.b) / max(lum0, 0.05);
         float upSand = upPlain * smoothstep(0.03, 0.12, upChroma) * smoothstep(0.9, 1.0, upWarm);
         float upLawn = upPlain * smoothstep(0.05, 0.16, upChroma) * (1.0 - smoothstep(0.86, 0.96, upWarm));
-        diffuseColor.rgb = mix(diffuseColor.rgb, ${f3(lin(GC.sand))} * (lum0 / 0.62), ${Number(q.get("sandg") || 0.65).toFixed(2)} * upSand) * (1.0 + 0.06 * upSand);
+        // (owner, 14 Nov: "can we warm up the festival ground": from a greenish cream, which came out stone grey, to a
+        // warm sand, and taken most of the way to it)
+        diffuseColor.rgb = mix(diffuseColor.rgb, ${f3(lin(q.get("sandc") ? "#" + q.get("sandc") : GC.sand))} * (lum0 / 0.62), ${Number(q.get("sandg") || 0.85).toFixed(2)} * upSand) * (1.0 + 0.07 * upSand);
         diffuseColor.rgb = mix(diffuseColor.rgb, ${f3(lin(GC.lawn))} * clamp(lum0 / ${which === "baked" ? "0.5" : "0.64"}, 0.6, 1.15), ${Number(q.get("lawng") || 0.75).toFixed(2)} * upLawn); }`}
       vec2 wv = w + (texture2D(upNoise, w / 400.0).rg - 0.5) * 28.0;
       float a = texture2D(upNoise, wv / 42.0).r, b = texture2D(upNoise, wv / 13.0 + 0.3).g;
