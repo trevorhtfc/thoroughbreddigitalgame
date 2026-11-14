@@ -2890,7 +2890,11 @@ const DOCK = (() => {
   const route = [];
   for (let u = 0; u <= DIST; u += 12) route.push(toWorld(u, 0));
   const all = lines.flat().concat(route);
-  const minX = Math.min(...all.map((p) => p[0])), maxX = Math.max(...all.map((p) => p[0])), minZ = Math.min(...all.map((p) => p[1])), maxZ = Math.max(...all.map((p) => p[1]));
+  const minX = Math.min(...all.map((p) => p[0])), maxX = Math.max(...all.map((p) => p[0])), minZ = Math.min(...all.map((p) => p[1]));
+  let maxZ = Math.max(...all.map((p) => p[1]));
+  // the other course where they meet (the Rowley Mile at the July Course's junction): room for its first few hundred metres
+  // beyond this course's own layout, so the fork shows; the rest of it runs off the edge of the map
+  if (NEIGH) maxZ = Math.max(maxZ, ...NEIGH.map.filter(([x, z]) => z <= maxZ + 320 && x >= minX && x <= maxX).map((p) => p[1]));
   const pad = (maxX - minX) * 0.05;
   svg.setAttribute("viewBox", `${minX - pad} ${minZ - pad} ${maxX - minX + pad * 2} ${maxZ - minZ + pad * 2}`);
   svg.setAttribute("preserveAspectRatio", "xMidYMid meet");
