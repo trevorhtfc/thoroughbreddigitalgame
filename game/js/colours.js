@@ -17,6 +17,8 @@ function openColours(opts = {}) {
       <header class="cm-head"><div><div class="cm-k">${CM.first ? "Before your first runner" : "Your colours"}</div><h2 class="cm-t" id="cmTitle">${CM.first ? "Make your colours" : "Change your colours"}</h2>
         <p class="cm-lede">The silks your jockeys wear in every race. Choose a jacket, sleeves and a cap, and two colours for each. They are remembered for every game.</p></div>
         ${CM.first ? "" : `<button class="cm-x" id="cmClose" type="button" aria-label="Close without changing">&times;</button>`}</header>
+      <div class="cm-name"><label class="cm-l" for="cmName">Your stable's name <small>shown on the leaderboard</small></label>
+        <div><input id="cmName" maxlength="20" autocomplete="off" autocapitalize="words" spellcheck="false" placeholder="e.g. Warren Hill Stud" value="${esc2(window.lbName ? lbName() : "")}"><p class="cm-err" id="cmErr" role="alert"></p></div></div>
       <div class="cm-main">
         <aside class="cm-show"><div class="cm-big" id="cmBig"></div><p class="cm-say" id="cmSay"></p><button class="tb-btn ghost cm-dice" id="cmDice" type="button">Surprise me</button></aside>
         <section class="cm-pick">
@@ -68,15 +70,27 @@ function cmClick(e) {
   switch (t.id) {
     case "cmDice": CM.spec = SilksPaint.random(); cmPaint(); break;
     case "cmClose": closeColours(); break;
-    case "cmSave": {
-      const then = CM.then, first = CM.first;
-      if (!setColours(CM.spec)) { toast("Those colours couldn't be saved. Try again."); break; }
-      closeColours(); render(); if (menuOpen) paintMenu(true);
-      toast(first ? "Your colours are registered" : "Your colours are changed");
-      if (then) then();
-      break;
-    }
+    case "cmSave": cmSave(t); break;
   }
+}
+// Saving: the colours are kept on this device; the stable's name is registered with the leaderboard (one stable per
+// name). With no signal the name is kept here and registered the next time the game is opened.
+async function cmSave(btn) {
+  if (!CM || CM.saving) return;
+  const then = CM.then, first = CM.first, inp = CM.box.querySelector("#cmName"), err = CM.box.querySelector("#cmErr"), say = m => { err.textContent = m; if (m) { inp.focus(); try { inp.scrollIntoView({ block: "center" }); } catch (e) {} } };
+  const name = inp ? inp.value : "", lb = !!window.lbRegister, bad = lb ? lbNameProblem(name) : "";
+  if (bad) return say(bad);
+  if (!setColours(CM.spec)) { toast("Those colours couldn't be saved. Try again."); return; }
+  if (lb) {
+    CM.saving = true; btn.disabled = true; say("");
+    const r = await lbRegister(name);
+    if (!CM) return; CM.saving = false; btn.disabled = false;
+    if (r === "taken") return say("That name is taken by another stable. Try another.");
+    if (r === "name") return say("That name can't be used. Try another.");
+  }
+  closeColours(); render(); if (menuOpen) paintMenu(true);
+  toast(first ? "Your colours are registered" : "Your colours are changed");
+  if (then) then();
 }
 addEventListener("keydown", e => { if (e.key === "Escape" && CM && !CM.first) closeColours(); });
 document.addEventListener("click", e => { const b = e.target.closest && e.target.closest("#menuColours"); if (b) openColours(); });
