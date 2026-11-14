@@ -439,3 +439,11 @@ you to overlay to get the sound." The made voice is gone: the middle is now the 
 and the Aintree clip with its announcer, muted, with the gallop; the finish brings in the Grand National finish (crowd
 and commentary) from about 3f out, opening up and rising to the line over the Japan Cup's roar. Each clip's voices are
 brought forward a little out of its crowd (`lift_voice` in `tools/sound/mix_real_sounds.py`).
+
+### 14 Nov 2026: the three finishes lined up
+
+Owner gave where each crowd's horses cross the line: the Grand National finish at 22 s, Aintree at 21 s, the Japan Cup at
+38 s. The finish now lays all three so their lines land on ours (`LINES` in `tools/sound/mix_real_sounds.py`), their own
+build-ups making the crescendo (about 8 dB over the last 20 s, the Japan Cup's surge right on the line), the Grand
+National's cheering and commentary carrying on after it into applause. The middle uses Aintree only before its finish
+builds, then the Japan Cup crowd early in its race as a breather between the commentators.

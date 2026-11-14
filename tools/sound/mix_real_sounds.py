@@ -11,9 +11,9 @@ What it makes (race-view/assets/sound/, read by race-sound.js through sounds.jso
   off.mp3            the off: the stalls opening (1 to 2.5 s of the stalls recording, as it is) laid in at 3 s of the
                      Cheltenham roar, so the doors crash just before "and they're off", the roar blended up through it
   middle.mp3         from after the off to about 3f out (loop): the real crowds with their commentators (Cheltenham,
-                     Aintree), muted, the field galloping (owner, 13 Nov)
-  finish.mp3         from about 3f out: the Grand National finish (crowd and commentary) rising and opening up to the
-                     line FINISH_LINE_AT seconds in, the Japan Cup roar under it, the surge, then applause (owner, 13 Nov)
+                     Aintree before its finish builds) and the Japan Cup crowd early on, muted, the field galloping
+  finish.mp3         from about 3f out: three real finishes (the Grand National with its commentary, Aintree, the Japan
+                     Cup) laid so their own lines land on ours, FINISH_LINE_AT seconds in; then applause (owner, 13-14 Nov)
   crowd-murmur.mp3   the crowd waiting, before the off and after the race (loop): the real crowds, softened and distant
   crowd-excited.mp3  Aintree (loop): a long race passing the stands
   gallop.mp3         the field galloping (loop), for close shots and the slow-motion replay
@@ -204,8 +204,12 @@ def applause(n, start):
 MIDDLE = {"bed": -26.0, "murmur": -31.0, "gallop": -24.5}   # each part's level (dB), here and at the start of the finish
 MIDDLE_TALK = [            # (clip, from, to, voice from, voice to): the crowd with its commentator, laid end to end
     ("chel", 7.6, 12.4, 8.5, 12.4),                         # Cheltenham: the commentator after the roar
-    ("aintree", 0.2, 23.0, 0.2, 8.0),                       # Aintree: its announcer over the crowd (first 8 s)
+    ("aintree", 0.2, 11.5, 0.2, 8.0),                       # Aintree: its announcer over the crowd, before its finish builds
+    ("japan", 4.0, 16.0, 4.0, 4.0),                         # the Japan Cup crowd early in its race (no commentary): a breather
 ]
+# Where each crowd's horses cross the line (owner, 14 Nov: "What a finish 22 secs, aintree crowd 21, japan cup 38"):
+# in the finish all three are laid so their lines land on ours, so their own build-ups make the crescendo.
+LINES = {"gn": 22.0, "aintree": 21.0, "japan": 38.0}
 def talk_bed(parts, xf=1.0):
     """The clips laid end to end with crossfades, each with its commentator brought forward, all at one level."""
     clips = {"chel": chel, "aintree": aintree, "gn": gn, "japan": japan}
@@ -229,33 +233,39 @@ def make_middle():
 
 # ---------------------------------------------------------------- the finish: from about 3 furlongs out to the line and after
 FINISH_LINE_AT = 37.0                                         # the line, this far into finish.mp3 (sounds.json: finish.lineAt)
-GN_IN = 4.5                                                   # the Grand National finish clip (crowd and commentary) starts here
 def make_finish():
     """Owner, 13 Nov: "the finish sound effect where the crowd get much more animated as does the background PA leading
-    to the cheer as they cross the line"; then "overlay [the clips with crowd and commentary] to get the sound". Begins as
-    the middle does (the race view crossfades into it about 3f out); the Grand National finish, crowd and commentary,
-    comes in and opens up, louder and clearer all the way to the line, with the Japan Cup's roar under it; the gallop
-    coming closer; the Japan Cup crowd's surge as they cross; then the roar ebbing into applause."""
+    to the cheer as they cross the line"; then "overlay [the clips with crowd and commentary] to get the sound"; 14 Nov:
+    where each crowd's line is. Begins as the middle does (the race view crossfades into it about 3f out); then the three
+    real finishes, each laid so its own line lands on ours: the Japan Cup's crowd building from the start, the Grand
+    National finish (crowd and commentary) and Aintree coming in about 20 s out, all rising to the line together; the
+    gallop coming closer; after the line the Grand National's cheering and commentary carry on, ebbing into applause."""
     FL = FINISH_LINE_AT; total = FL + 14.0; n = int(total * SR); t = np.arange(n) / SR
     env = lambda pts: np.interp(t, [p[0] for p in pts], [p[1] for p in pts])
     db = lambda pts: 10 ** (env(pts) / 20)
-    # the start: as the middle (its bed carried on, muted), handing over to the Grand National
+    clips = {"gn": gn, "aintree": aintree, "japan": japan}
+    def finish_clip(name, lvl, lift):
+        """The whole clip, its voices brought forward, laid so its line is at FL (anything before 0 cut off)."""
+        x = crowd_eq(clips[name]); x = lift_voice(x, 0.0, x.shape[1] / SR, lift, 0.3, 0.5); x = level(x, lvl)
+        at = FL - LINES[name]
+        if at < 0: x = x[:, int(-at * SR):]; at = 0.0
+        X = np.zeros((2, n)); place(X, x, at); return X, at
+    # the start: as the middle (its bed carried on, muted), handing over
     bed = talk_bed(MIDDLE_TALK); bed = peak(filt(bed, "low", 3200, 2), 1800, 2.5, 1.0)
-    bed = level(tile(loop_of(bed, bed.shape[1] / SR - 1.5, 1.5), n, 9.0), MIDDLE["bed"]) * db([(0, 0), (GN_IN, -1), (GN_IN + 4, -14), (GN_IN + 7, -40), (total, -60)])[None]
+    bed = level(tile(loop_of(bed, bed.shape[1] / SR - 1.5, 1.5), n, 0.0), MIDDLE["bed"]) * db([(0, 0), (6, -2), (14, -10), (20, -40), (total, -60)])[None]
     murmur = level(tile(murmur_loop(), n, 11.0), MIDDLE["murmur"]) * db([(0, 0), (12, -4), (24, -14), (FL, -30), (total, -40)])[None]
-    # the Grand National finish, crowd and commentary: in from GN_IN, rising and opening up to the line
-    g = crowd_eq(cut(gn, 0.0, 32.3)); g = lift_voice(g, 0.0, 32.3, 6.0, 0.3, 0.5)
-    gl = g.shape[1] / SR; tg = np.arange(g.shape[1]) / SR
-    g = fade(g, 2.5, 0.0)
-    muffled = filt(g, "low", 2400, 2); open_ = np.clip((tg - 6) / 18, 0, 1)[None, :]   # muffled to begin with, opening up
-    g = muffled * (1 - open_) + g * open_
-    G = np.zeros((2, n)); place(G, level(g, -19), GN_IN)
-    G *= db([(0, -60), (GN_IN, -9), (GN_IN + 6, -7), (20, -4), (28, -1.5), (FL - 1, 0), (GN_IN + gl - 0.5, 0), (GN_IN + gl, -60), (total, -60)])[None]
-    roar = level(tile(roar_loop(), n, 5.0), -19) * db([(0, -40), (14, -26), (24, -12), (30, -6), (FL - 1, -2), (FL + 1, 0), (FL + 4, -6), (FL + 8, -16), (FL + 12, -30), (total, -40)])[None]
+    # the three finishes, lined up on the line
+    J, ja = finish_clip("japan", -19.0, 3.0)
+    J = filt(J, "low", 2600, 2) * (1 - np.clip((t - 10) / 18, 0, 1))[None] + J * np.clip((t - 10) / 18, 0, 1)[None]   # far off, then close
+    J *= db([(0, -18), (8, -15), (18, -11), (26, -7), (32, -3.5), (FL - 1.2, -1), (FL, 2.5), (FL + 1.2, 2), (FL + 2.5, 0), (FL + 2.8, -60), (total, -60)])[None]
+    G, ga = finish_clip("gn", -19.5, 6.0)
+    G *= db([(0, -60), (ga, -30), (ga + 2.5, -13), (24, -9), (30, -4.5), (34, -1.5), (FL, 0), (FL + 4, -2), (FL + 9, -10), (total, -40)])[None]
+    A, aa = finish_clip("aintree", -21.0, 4.0)
+    A *= db([(0, -60), (aa, -30), (aa + 2.5, -14), (26, -9), (32, -4), (FL, 0), (FL + 2.0, -1), (FL + 2.2, -60), (total, -60)])[None]
     hooves = level(tile(gallop_loop(), n, 2.5), MIDDLE["gallop"]) * db([(0, 0), (20, 2), (30, 5), (FL - 2, 6), (FL + 1, 3), (FL + 5, -12), (FL + 8, -40), (total, -60)])[None]
-    M = bed + murmur + G + roar + hooves
-    # the surge as they cross: the Japan Cup crowd's last swell, its peak (about 2 s into this cut) just after the line
-    surge = fade(crowd_eq(cut(japan, 36.2, 40.6)), 0.6, 0.8); place(M, level(width(surge, 1.25), -15), FL - 1.6)
+    # (a little of the roar to carry the cheer on as the Japan Cup and Aintree clips end just after the line)
+    roar = level(tile(roar_loop(), n, 5.0), -21) * db([(0, -60), (FL - 1, -30), (FL + 2, -4), (FL + 5, -9), (FL + 10, -24), (total, -40)])[None]
+    M = bed + murmur + J + G + A + hooves + roar
     claps = applause(n, FL + 1.4); place(M, level(claps[:, int((FL + 1.4) * SR):], -22.5), FL + 1.4)
     return write("finish", M, tail_fade=2.0)
 
