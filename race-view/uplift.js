@@ -72,7 +72,8 @@ LOOKSET.soft = {
   // (owner, 12 Nov: "the sky is a little too yellow": the horizon and the haze eased from straw towards cream; they were
   // #efecc6 / #dde5cb, glow 0.5 0.45 0.3, haze #efecc6 and #f3edc6)
   sky: { horizon: "#ebebd6", mid: "#dae5d2", top: "#b4d4cc", glow: [0.42, 0.42, 0.33], cover: 2, edge: "#ffffff", base: "#ffffff", thick: 0 },
-  haze: [0.6, 70, 520, 0.15], hazeTop: 0.8, hazeCol: "#e9ebd8", hazeSun: "#eeecd4", exposure: 1.0, clouds: 0.0, catcher: ["#3a4a40", 0.36],
+  // (14 Nov, "a tiny bit grey": the haze thinner, 0.6 to 0.46, and reaching full a little further off, 520 to 600 m)
+  haze: [Number(q.get("hazek") || 0.46), 70, 600, 0.15], hazeTop: 0.8, hazeCol: "#e9ebd8", hazeSun: "#eeecd4", exposure: 1.0, clouds: 0.0, catcher: ["#3a4a40", 0.36],
   crowdShade: [0.6, 0.64, 0.62],
 };
 // The course as a model on a table: the same world under a warm lamp, cut to a board with a painted edge, standing on
@@ -427,18 +428,29 @@ export function patchGround(mat, which) {
       // its colours: the turf a soft sage (keeping its mown lanes and the bake's shading); the rough ground inside the
       // course a paler sage drifting to straw
       float lum0 = dot(diffuseColor.rgb, UPLUM);
-      diffuseColor.rgb = mix(diffuseColor.rgb, ${f3(lin("#8fad79"))} * (lum0 / 0.33), 0.8 * onT);
-      ${which === "turf" ? "" : `float hm = sm.g * step(0.5, off);
-      vec3 rough = mix(${f3(lin("#a3bb8a"))}, ${f3(lin("#b9c694"))}, smoothstep(0.3, 0.7, n1));
+      // (owner, 14 Nov: "a tiny bit grey... some of the grass in particular the middle of ascot... a bit more brightness
+      // without losing its stylistic charm": the turf a shade fresher (it was #8fad79); the rough ground inside the
+      // course greener and lighter (it was #a3bb8a to #b9c694); the nap lifts more than it darkens; less haze)
+      diffuseColor.rgb = mix(diffuseColor.rgb, ${f3(lin(q.get("turfc") ? "#" + q.get("turfc") : "#8ab374"))} * (lum0 / 0.33) * 1.03, 0.8 * onT);
+      ${which === "turf" ? "float hm = 0.0;" : `float hm = sm.g * step(0.5, off);
+      vec3 rough = mix(${f3(lin(q.get("rougha") ? "#" + q.get("rougha") : "#98c47c"))}, ${f3(lin(q.get("roughb") ? "#" + q.get("roughb") : "#b5d08c"))}, smoothstep(0.3, 0.7, n1));
       diffuseColor.rgb = mix(diffuseColor.rgb, rough * clamp(lum0 / ${which === "baked" ? "0.5" : "0.33"}, 0.6, 1.12), hm);`}
+      // ground that is neither turf nor rough grass (the festival's trodden ground, the lawns): brushed more lightly
+      float upPlain = (1.0 - onT) * (1.0 - hm);
+      ${which === "baked" ? `{ // the festival's trodden ground read grey under this light: a little warmer and lighter, with a breath of
+        // the lawn's green in it (only where the bake is sandy; paths and paving keep their grey)
+        float upSand = upPlain * smoothstep(0.03, 0.12, (diffuseColor.r - diffuseColor.b) / max(lum0, 0.05));
+        diffuseColor.rgb = mix(diffuseColor.rgb, ${f3(lin("#cdd6a4"))} * (lum0 / 0.62), ${Number(q.get("sandg") || 0.65).toFixed(2)} * upSand) * (1.0 + 0.06 * upSand); }` : ""}
       vec2 wv = w + (texture2D(upNoise, w / 400.0).rg - 0.5) * 28.0;
       float a = texture2D(upNoise, wv / 42.0).r, b = texture2D(upNoise, wv / 13.0 + 0.3).g;
       float st = texture2D(upNoise, vec2(wv.x * 0.25, wv.y * 1.5) / 9.0).a;
       float g1 = texture2D(upNoise, w / 11.0).b, g2 = texture2D(upNoise, w / 3.6 + 0.6).b;
       // (seen edge-on, by a long lens low over the turf, the clouds pile up into stripes: there the turf's nap eases off)
       float upEdge = smoothstep(0.02, 0.16, normalize(vec3(cameraPosition.x - w.x, cameraPosition.y - vUpP.y, cameraPosition.z - w.y)).y);
-      float k = ${(nap * (bank ? Number(q.get("banknap") || 0.45) : 1)).toFixed(3)} * mix(0.8, 0.45 * mix(${Number(q.get("napfar") || 0.35).toFixed(2)}, 1.0, upEdge), onT), gk = mix(1.0, 0.5, onT);
-      float tone = mix(1.0 - k, 1.0 + k * 0.8, smoothstep(0.34, 0.66, a));
+      // (and far off, where the rough ground's clouds shrink to a repeating ripple, they ease off too)
+      float upFarG = 1.0 - 0.6 * smoothstep(350.0, 900.0, distance(cameraPosition.xz, w));
+      float k = ${(nap * (bank ? Number(q.get("banknap") || 0.45) : 1)).toFixed(3)} * mix(0.8 * mix(0.55, 1.0, upEdge) * upFarG * ${bank ? "1.0" : "mix(1.0, 0.6, upPlain)"}, 0.45 * mix(${Number(q.get("napfar") || 0.35).toFixed(2)}, 1.0, upEdge), onT), gk = mix(1.0, 0.5, onT);
+      float tone = mix(1.0 - k * ${Number(q.get("napdark") || 0.65).toFixed(2)}, 1.0 + k * 0.9, smoothstep(0.34, 0.66, a));
       tone *= 1.0 + k * 0.45 * (smoothstep(0.3, 0.7, b) * 2.0 - 1.0);
       tone *= 1.0 + k * 0.25 * (smoothstep(0.3, 0.7, st) * 2.0 - 1.0);
       tone *= 1.0 + gk * (0.08 * (smoothstep(0.3, 0.7, g1) * 2.0 - 1.0) + 0.06 * (smoothstep(0.3, 0.7, g2) * 2.0 - 1.0));
