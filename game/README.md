@@ -847,3 +847,11 @@ chose to remove it. The Send back buttons and their wording are gone (stud, How 
 switched off (`SEND_BACK_ON = false`). The list under your mares now only appears for Elite Mares' upgrades. (The £1m
 budget was set with the Buyer able to send the hand back for up to £130k; without that the Buyer's way is a little
 harder.)
+
+Owner, 14 Nov (evening): "the sound through the middle of the race is frankly haunting … horrible little pauses
+constantly". The commentary had been short phrases stripped out of their crowds (a thin, ghostly voice), through
+loudspeaker echoes, with gaps between and the crowd dipping under each; the crowd under it heavily muffled and
+swelling. Now the middle is a natural crowd (Aintree and the Japan Cup mid-race, matched and joined smoothly) with the
+commentary running on unbroken over it: the real recordings with their own crowd, joined end to end, the voice brought
+forward and nothing else. The finish's commentary is the same unbroken run, louder and a shade quicker to the line; the
+crowd before the off is the natural crowd too. Measured: the middle's drop-outs 18% of the time → none.
