@@ -179,11 +179,16 @@ def roar_loop():
     n = int(31.0 * SR); M = level(j, -18) + level(tile(g, n), -20.5)
     return width(loop_of(np.concatenate([M, M[:, :int(3 * SR)]], axis=1), 30.5, 2.5), 1.25)
 def gallop_loop():
+    """The field galloping: the recording laid over itself five times at different points, further-off copies duller,
+    so it rolls as a whole field rather than thumping as one horse (owner, 14 Nov: "jittery … jumpy")."""
     x = filt(cut(gal, 0.05, 8.05), "low", 9000, 2)            # (the recording's whine above 10 kHz out)
-    a = loop_of(x, 7.3, 0.6)
-    b = np.roll(a, int(3.1 * SR), axis=1); b = filt(b, "low", 2500, 2); b = width(b[::-1], 1.0)   # the same field further off
-    c = np.roll(a, int(5.2 * SR), axis=1); c = filt(c, "low", 1200, 2)
-    return width(a + 0.55 * b + 0.35 * c, 1.1)
+    a = loop_of(x, 7.3, 0.6); M = a.copy()
+    for shift, lp, g, flip in ((3.1, 2500, 0.6, True), (5.2, 1600, 0.5, False), (1.7, 2000, 0.45, True), (6.3, 1200, 0.4, False)):
+        c = filt(np.roll(a, int(shift * SR), axis=1), "low", lp, 2)
+        M += g * (c[::-1] if flip else c)
+    M = even(width(M, 1.1), 0.5, 4.0)                          # (its stride-to-stride bumps eased)
+    return M
+
 def applause(n, start):
     """Hand claps (made: there's no applause in the recordings), starting 'start' seconds in and tailing off. Owner,
     14 Nov: "the applause is too prominent, it doesn't sound like a big crowd". So it's a big crowd now: some 1,400
@@ -206,7 +211,7 @@ def applause(n, start):
 # ---------------------------------------------------------------- the middle: from after the off to about 3 furlongs out (a loop)
 # Owner, 13 Nov: "the commentary isn't great [the made voice]. Some of these clips have crowd and commentary which I'm
 # happy for you to overlay to get the sound." So the commentary is now the real commentators, with their crowds.
-MIDDLE = {"murmur": -31.0, "stir": -31.5, "gallop": -32.0, "pa": -22.5}   # (owner, 14 Nov: "PA up")   # (owner, 14 Nov: "I can't really hear any PA announcer": the talk up, the rest down)
+MIDDLE = {"murmur": -31.0, "stir": -31.5, "gallop": -32.0, "pa": -24.0}   # (owner, 14 Nov: "PA up")   # (owner, 14 Nov: "I can't really hear any PA announcer": the talk up, the rest down)
 TALK_LIFT_DB = 11.0                                           # the commentators brought forward out of their crowds this much   # each part's level (dB), here and at the start of the finish
 MIDDLE_TALK = [            # (clip, from, to, voice from, voice to): the crowd with its commentator, laid end to end
     ("chel", 8.3, 12.4, 8.5, 12.4),                         # Cheltenham: the commentator after the roar (its roar's tail left out)
@@ -256,12 +261,22 @@ def isolate(x):
     f, tt, Z = signal.stft(x, SR, nperseg=4096, noverlap=4096 - 512)
     mag = np.abs(Z) + 1e-12
     k = 15; smooth = np.exp(signal.convolve(np.log(mag), np.ones((1, 2 * k + 1, 1)) / (2 * k + 1), mode="same"))
-    G = np.clip((mag / smooth) ** 2.2 * 0.5, 0.12, 2.5) * (((f > 160) & (f < 4200))[None, :, None] * 0.9 + 0.1)
+    G = np.clip((mag / smooth) ** 2.2 * 0.5, 0.035, 2.5) * (((f > 160) & (f < 4200))[None, :, None] * 0.95 + 0.05)   # (the wash well down: owner, 14 Nov, "jittery")
     _, y = signal.istft(Z * G, SR, nperseg=4096, noverlap=4096 - 512)
     return y[:, :x.shape[1]]
+def duck_under(bed, pa, depth_db):
+    """The crowd dipped a little, gently, in the voice's range only, while the commentator speaks, as a broadcaster
+    does: the voice comes through and the overall loudness stays even (owner, 14 Nov: "the crowd's got a bit jittery …
+    jumpy rather than a smooth crescendo"). depth_db may change over time (an array)."""
+    e = np.sqrt(signal.sosfiltfilt(sos("low", 1.2, 1), (pa ** 2).mean(0)).clip(0))
+    e = e / max(np.percentile(e, 95), 1e-9)
+    g = 10 ** (-np.clip(e, 0, 1) * depth_db / 20)
+    lo, hi = filt(bed, "low", 300, 2), filt(bed, "high", 4000, 2)
+    mid = bed - lo - hi
+    return lo + hi + mid * g[None, :]
 def pa_snippets():
     clips = {"chel": chel, "aintree": aintree}
-    return [level(fade(isolate(crowd_eq(cut(clips[c], a, b))), 0.08, 0.25).mean(0), -20) for c, a, b in PA_TALK]
+    return [level(fade(even(isolate(crowd_eq(cut(clips[c], a, b))), 0.6, 5.0), 0.35, 0.45).mean(0), -20) for c, a, b in PA_TALK]   # (each phrase evened, eased in and out)
 def tannoy(v):
     """A voice through the course's loudspeakers: a horn speaker's band and honk, a little drive, the speakers further
     along the stand echoing it, the open air."""
@@ -296,7 +311,7 @@ def make_middle():
     well". One loop as long as the crowd waiting (26 s): the crowd, muted; the gallop; the commentator over the
     loudspeakers on top, his phrases spread evenly through it."""
     L = 25.9; n = int((L + 3.0) * SR)
-    M = middle_crowd(n) + level(tile(gallop_loop(), n), MIDDLE["gallop"])
+    M = middle_crowd(n) + level(filt(tile(gallop_loop(), n), "low", 3500, 2), MIDDLE["gallop"])
     snips = pa_snippets(); talk = sum(len(v) for v in snips) / SR
     k = 2; gap = (L - k * talk) / (k * len(snips))             # two rounds of the phrases, evenly spaced, round the loop
     pa = np.zeros((2, n)); at = gap / 2
@@ -304,7 +319,8 @@ def make_middle():
         v = snips[j % len(snips)]; place(pa, tannoy(v), at); at += len(v) / SR + gap
     pa[:, :int(3.0 * SR)] += pa[:, int(L * SR):int((L + 3.0) * SR)]   # (what runs past the loop's end comes round to its start)
     pa[:, int(L * SR):] = pa[:, :n - int(L * SR)]
-    M = M + pa * (10 ** (MIDDLE["pa"] / 20) / max(rms(pa[:, :int(L * SR)]), 1e-9))
+    pa = pa * (10 ** (MIDDLE["pa"] / 20) / max(rms(pa[:, :int(L * SR)]), 1e-9))
+    M = duck_under(M, pa, 4.0) + pa
     return write("middle", loop_of(M, L, 3.0), loop=True)
 
 # ---------------------------------------------------------------- the finish: from about 3 furlongs out to the line and after
@@ -344,22 +360,22 @@ def make_finish():
              + G * db([(0, 0), (FL + 6, 0), (FL + 12, -6), (total, -12)])[None]
              + A * db([(0, -3), (FL + 2.0, -3), (FL + 2.2, -60), (total, -60)])[None]
              + roar * db([(0, -60), (FL - 1, -30), (FL + 2, -2), (FL + 6, -4), (total, -10)])[None])
-    crowd = even(crowd, 1.0, 9.0)                             # its own ups and downs taken out: the shape is BUILD's
+    crowd = even(crowd, 6.0, 5.0)                             # its own big swings eased (slowly: owner, 14 Nov, "jumpy"); the shape is BUILD's
     b = env(BRIGHT)[None]
     lo1, lo2 = filt(crowd, "low", 1100, 2), filt(crowd, "low", 2600, 2)
     crowd = lo1 * (1 - b) ** 2 + lo2 * 2 * b * (1 - b) + crowd * b ** 2
     crowd = crowd / max(rms(crowd), 1e-9)
-    # the gain that gives BUILD's loudness at every moment (measured over half a second, smoothed)
-    e = np.sqrt(signal.sosfiltfilt(sos("low", 2.0, 1), (crowd ** 2).mean(0)).clip(1e-12))
+    # the gain that gives BUILD's loudness, measured slowly so the climb is smooth
+    e = np.sqrt(signal.sosfiltfilt(sos("low", 0.2, 1), (crowd ** 2).mean(0)).clip(1e-12))   # (over about 5 s: a smooth climb, the crowd's own life kept)
     crowd = crowd / e[None] * db(BUILD)[None]
     # the middle's crowd carried on at the start, handing over as the finishes come in
     bed = middle_crowd(n, 7.0) * db([(0, 0), (12, 0), (17, -3), (21, -10), (25, -40), (total, -60)])[None]
-    hooves = level(tile(gallop_loop(), n, 2.5), MIDDLE["gallop"]) * db([(0, 0), (16, 1), (24, 4), (30, 7), (FL - 1.5, 9), (FL + 1, 6), (FL + 5, -10), (FL + 8, -40), (total, -60)])[None]
+    hooves = level(filt(tile(gallop_loop(), n, 2.5), "low", 3500, 2), MIDDLE["gallop"]) * db([(0, 0), (16, 0.5), (24, 2), (30, 3.5), (FL - 1.5, 5), (FL + 1, 3), (FL + 5, -10), (FL + 8, -40), (total, -60)])[None]
     # the commentator over the loudspeakers all the way to the line: louder, and a shade quicker and higher, as it builds
     pa = pa_run(n, 0.3, FL - 0.2, rate=lambda u: 1.0 + 0.09 * np.clip((u - 12) / (FL - 12), 0, 1),
                 gap=lambda u: 0.45 - 0.3 * np.clip((u - 12) / (FL - 12), 0, 1), start=1)
     pa = pa * 10 ** (MIDDLE["pa"] / 20) / max(rms(pa[:, :int(14 * SR)]), 1e-9) * db(PA_BUILD)[None]   # (its start at the middle's level)
-    M = crowd + bed + hooves + pa
+    M = duck_under(crowd + bed + hooves, pa, np.interp(t, [0, 28, FL], [4.0, 3.0, 1.5])) + pa   # (less of a dip as the roar takes over)
     claps = applause(n, FL + 1.4); place(M, level(claps[:, int((FL + 1.4) * SR):], -29.5), FL + 1.4)
     return write("finish", M, tail_fade=2.0)
 

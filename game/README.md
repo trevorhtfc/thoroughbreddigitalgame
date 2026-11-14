@@ -722,3 +722,9 @@ the Cheltenham roar's tail). The middle's crowd is now the long seamless crowd l
 own layer: the clearest commentary in the clips (Cheltenham's commentator after the roar, Aintree's announcer) lifted
 out of its crowd (`isolate`), put through a loudspeaker sound (`tannoy`) and looped on top through the middle (evenly
 spaced) and the finish (louder and a shade quicker and higher towards the line: `PA_BUILD`).
+
+Owner, 14 Nov: "the crowd has got a bit jittery … jumpy rather than a smooth crescendo". Measured: the jumpiness was the
+gallop (one recording's uneven hoofbeats, raised 9 dB towards the line) and the finish's quick automatic level control.
+The gallop is now five copies blended into a rolling field, softened, rising only 5 dB; the finish's level is shaped
+slowly (over ~5 s); the commentary phrases are cleaner and eased in and out, and the crowd dips gently in the voice's
+range while he speaks (`duck_under`) so the overall level stays even. The crowd and gallop's wobble halved (1.5 → 0.7 dB).
