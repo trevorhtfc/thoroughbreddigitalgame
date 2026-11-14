@@ -50,6 +50,45 @@ colours walking out to Warren Hill, the horseboxes away up Fordham Road. Then th
 race view; "Sim" gives the same result straight away. Entries can still be changed before the first race (the Jockey
 Club's entries in an Ascot sheet: "Declarations").
 
+## The board's morning (14 Nov 2026, branch `claude/newmarket-morning`)
+
+Owner, 14 Nov: "leave it to early morning/sunrise and daytime without showing the actual time"; "these people standing
+on horses?"; "there shouldn't really be any still horses?"; "some of the vans are still hitting buildings, horses or
+each other"; "increase the horses on the gallops once it's brightened up a tad at sunrise".
+
+- **The light** (`src/board.src.js`, "the morning"): one cycle of 250 seconds. It opens before sunrise (lamps lit, mist
+  on the heath), the sun comes up over the first third, the day holds its fresh light, and the last 8% eases back round
+  to the next sunrise. No dusk, no night, and no clock in the bar. Inside, time is still an hour (5.6 to 11.6) that the
+  horses and horseboxes go by; `BOARD.setHour(h)` takes an hour of the morning, and the chapters' hours in `js/ui.js`
+  (`CHAPTERS`) are all mornings now.
+- **No painted horses left on the game's board.** `python3 newmarket-live/tools/clean_board.py --game` paints the 32
+  still horses out of the paddocks and yards (a clean patch of the same grass or sand laid over each) and takes them out
+  of the game's copy of the hide-behind map (`assets/newmarket/occlusion.png`). The old living map's own board is not
+  touched. The arrival film (`video/newmarket-arrive.mp4`) still ends on the old painting, so its horses fade away as
+  the live board takes over.
+- **Moving ones in their place** (`src/life.src.js`): `ROUNDS` (ovals in the paddocks, the Tattersalls yard and lawn,
+  the stable yard: loose, ridden or led), the three paddock lines turned into rounds (`loopOf`), a second horse on the
+  ring. Nothing pauses any more.
+- **The lads** walk at the horse's shoulder on the side nearer the viewer (`place()`): on the far side the board's
+  projection drew them standing on its back. The riders themselves were always seated.
+- **The gallops**: the lots come in over the board's left edge, gallop up the Gallops, wheel at the top and come back
+  out along the hedge (`GALLOPS` is one round). A first lot is out from first light; from hour 6.4 (`BRIGHT`) there are
+  four lots of five on the Gallops and four of four up Warren Hill (a phone: three of four, three of three). The first
+  string now walks out along the Avenue instead of across the Gallops.
+- **The roads are one way** (`tools/snap_van_routes.py` writes `VAN_ROUTES`): in by Old Station Road, Newmarket Road and
+  Bury Road; out up Fordham Road, or down the High Street and Station Road to the Avenue. It is the way the strings
+  already walked each road, so nothing meets head on. Everything goes round the roundabout's island (`roundabout()`),
+  not over the monument.
+- **Right of way** (`rightOfWay()`, `meets()`): a horsebox looks three seconds down its route and at where every horse,
+  lad and horsebox on the roads (`ROADIES`, the processions too) will be by then, eases off and waits, or falls in
+  behind a string; one horsebox on the roundabout at a time (`ZONE`); a string halts together behind a standing
+  horsebox (`holdGroups`).
+- **Checked** by running the board on a made-up clock without drawing (`LIFE.noDraw`, `LIFE.__state()`): over a whole
+  morning, and through each procession, no horsebox came within 2 pixels of a horse or 27 of another horsebox.
+  The scripts were in the session's scratch folder (worth keeping as a repo test one day).
+- **Not checked on a real phone or the Mac.** About 65 to 78 horses are in sight at once on a computer (about 50 to 62
+  on a phone, where each horse's animation is worked out every other frame); it was about 35 to 55 before.
+
 ## Two ways to play: today's card and the random game (13 Nov 2026, branch `claude/daily-card`)
 
 Owner, 13 Nov: "having the daily mix or just a play a random game option is best". The cover's buttons (`paintMenu()` in
@@ -252,7 +291,7 @@ as its `files` (one publish takes 255 files and 64 MB; this is 241 files and 35 
 
 Serve the staged folder (`python3 -m http.server`) and play it in a browser. On a machine without a graphics chip, add
 `?nolife=1` (the 3D life on the board is very slow in software rendering, though fine on a real graphics chip). In the
-console: `__setHour(19)` sets the time of day on the board; `LIFE.__advance(10)` moves a procession on 10 seconds.
+console: `__setHour(6)` sets the time of the morning on the board (5.6 before sunrise to 11); `LIFE.__advance(10)` moves a procession on 10 seconds.
 
 ## 7 Nov 2026: the new look and a faster race view in the game (version 7)
 
@@ -417,6 +456,142 @@ the National Stud, Tattersalls, entries at the Jockey Club, the 3D race view):
 - `js/meetings/newmarket-season.js` is the 8 Nov draft (all 36 races over the whole season), kept for the long game.
 - The Race Lab now tests all three courses (Ascot, Rowley Mile, July Course).
 
+## Your team: owner, trainer and jockey cards (10 Nov 2026, first go, branch `claude/team-draft`)
+
+Owner, 10 Nov: "integrate owner, jockey and trainers into your team, which you draft at the start ... a draft from
+bronze, silver, gold decks of each type, 6 points (gold is 3, bronze is 1); they have different skills that give you
+advantages." The cards are the board game's 60 (the Thoroughbred site's CMS collection `TeamCards`), turned into the
+digital game's terms where the board's rules can't work as they are.
+
+**The draft** (at the Jockey Club, straight after the ten races are dealt; `phase()` "team"): pick a deck (Owner,
+Trainer or Jockey; Gold, Silver or Bronze), three of its cards are turned over and you keep one, as at the mares sale.
+Exactly 6 points (Gold 3, Silver 2, Bronze 1), at least one card of each kind (the board's rule). A deck is greyed out
+when it would leave too few points for a kind you haven't got. Race-distance trainer cards only turn up if one of the
+ten races is at their trips (the board's "take another card"). Then "To the National Stud".
+
+| Kind | Bronze | Silver | Gold | Where it works |
+|---|---|---|---|---|
+| Powerhouse | +£150k budget | +£300k | +£450k | at once |
+| Elite Mares | see 3 mares a draw at the mares sale (everyone else 2) | 4 | 5 | the stud |
+| Stallion Owner | three 3★ stallions drawn, keep one: 2 free nominations | 4★ | 5★ | the stud |
+| Pedigree Expert | the true stars of 2 unproven stallions you ask about | 4 | all | the stud and the sales |
+| Sales Scout (was Trade Terms) | brief him for 2 of your races: lots marked by how well they suit them, the rest greyed; 1 bargain of his own (Book 2 or 3, its yearling good enough to win one of them if possible) | 3 races, 2 bargains | 4 races, 4 bargains | Tattersalls |
+| Bloodstock Agent | each lot's projected peak, a 30-point range with the truth inside | 20 points | 10 points | Tattersalls |
+| Vet's Report | send a yearling back once you've seen it: once, 80% back | twice, 90% | three times, 100% | Tattersalls |
+| Private Sale | one Book 3 lot before the ring, at the middle of its guide | Books 2–3 | any Book | Tattersalls |
+| Trainer (see "Trainers at Warren Hill" below) | 2 jobs | 3 jobs | 4 jobs | Warren Hill, and race week |
+| Champion Jockey | +2 in every race he rides | +3 | +4 | 3 / 4 / 5 races |
+| Tempo Setter | more energy left when ridden in front or prominent | more | more | 3 / 4 / 5 races |
+| Late Closer | stronger finish when ridden midfield or held up | stronger | stronger | 3 / 4 / 5 races |
+| Sprint (5f, 6f) / Mile (7f–1m1f) / Staying (1m2f+) Jockey | +3 at their trips | +4 | +6 | 3 / 4 / 5 races |
+| Big-Race Jockey | +3 in Group races | +4 | +6 | 3 / 4 / 5 races |
+| Mud Lark | +5 on Softer or Heavy going | +6 | +8 | 3 / 4 / 5 races |
+
+Where the digital game differs from the board, and why:
+- **Trainer cards reach more horses** (2 / 3 / 3, Stable Form 2 / 4 / all) because the board's one horse for three
+  races becomes ten races here, where a horse runs once (at Ascot). Stable Form III is +2 on every horse, not +3: at +3
+  it was worth about twice any other card (see below).
+- **Owner cards, second round (owner, 10 Nov)**: each pushes you to breeding or the sales, and none pays income ("too
+  computer sim luck based"): Stud Master and Auction Insider are gone. The mares sale turns over 2 mares for everyone.
+  Each lot's yearling is settled (seeded) when the catalogue is made (`fs` on the lot), so the agent's projection is of
+  the real yearling.
+- **Jockey cards** become riding skills in the race engine (new optional runner fields in `race-engine/engine.js`:
+  `formBest`, `noFlop`, `paceTank`, `lateKick`, `reader`; a runner without them races exactly as before, checked
+  440 of 440 races identical, `race-engine/check/team-same.mjs`). A booked jockey also has skill 3 / 4 / 5 (the
+  engine's 1–5; your yard's own jockey is random, as before). What each is worth, measured against rating points
+  (`race-engine/check/team-jockeys.mjs`, a horse 2 below the best in 14, 500 races each): +1 rating ≈ 15→19% wins,
+  +3 ≈ 27%, +5 ≈ 41%; Champion II ≈ +2, III ≈ +3; Tempo Setter ≈ +1.5 / +2.5 / +3.5 for a front-runner or prominent
+  horse; Late Closer ≈ +1.5 / +2.5 / +3.5 for a midfield or hold-up horse; Race Reader ≈ +1 / +1.5 / +2.5 for any.
+  Jockey skill alone (1 to 5) barely matters (14.6% → 16.4%), so the skills carry the cards.
+
+Files: `js/team.js` (rules, numbers at the top), `js/ui-team.js` (the draft and the cards at each place), styles at
+the end of `css/game.css`. Save version 7 (`migrate7`: a season already past the draw goes on without a team).
+`tools/team-harness.js`: whole seasons with a team, played as a sensible player would use the cards (load
+`harness.html`-style: the rules, team.js, ui-team.js and the engine, without the board).
+
+### What the team is worth (team harness, 10 Nov)
+
+Whole Royal Ascot weeks with the real breeding, sale, rival buyers and race engine, cards used as a sensible player
+would (`tools/team-harness.js`). Prize money per week against the same seasons with no team; ± is the standard error.
+
+**Full six-point teams** (20 seasons each). Planner (the best of the old strategies) averages £310k without a team:
+
+| Team | Planner | Breeder | Buyer |
+|---|---|---|---|
+| Stud Master III, Stable Form II, Champion I | **+£238k** | +£206k | +£115k |
+| Auction Insider III, Stable Form II, Race Reader I | +£215k | +£170k | **+£168k** |
+| Elite Mares II, Black Type I, Master Trainer II, Champion I | +£190k | +£129k | +£46k |
+| Powerhouse I, Stable Form III, Champion II | +£173k | +£76k | +£39k |
+| Powerhouse II, Stable Form II, Champion II (all silver) | +£174k | +£82k | +£51k |
+| Two jockeys (Powerhouse II, Stable Form I, Champion II, Late Closer I) | +£170k | +£59k | +£43k |
+| All bronze (six Bronze cards) | +£167k | +£122k | +£65k |
+| Powerhouse III, Stable Form II, Champion I | +£165k | +£87k | +£43k |
+| Powerhouse I, Stable Form I, Champion III, Race Reader I | +£162k | +£87k | +£37k |
+| Elite Mares III, Master Trainer II, Tempo Setter I | +£151k | +£132k | +£29k |
+| Bloodstock Agent I, Miler Specialist III, Tempo Setter II | +£124k | +£54k | +£14k |
+| Auction Insider II, Miler Specialist II, Late Closer II | +£115k | +£83k | +£128k |
+
+**Single cards** on the Planner (12 seasons each, about ±£10–35k): Auction Insider III +£155k, Stud Master III +£146k,
+Tempo Setter II/III +£93k, Stable Form II/III +£83k, Black Type III +£79k, Race Reader III +£79k, Master Trainer III
++£77k, Champion III +£74k; most trainer specialists +£20–95k depending on how many races suit them; Powerhouse only
++£13k / +£31k / +£29k; Staying Specialist +£8–25k; Bloodstock Agent about −£5k (handing a yearling back rarely pays).
+
+### Owner cards, second round, and the starting budget (10 Nov)
+
+Single owner cards on the Planner and Breeder strategies (12 seasons each, ± about £20–50k, so rough), and the same
+seasons with no card, at three starting budgets. The simulated players now put spare money into bidding harder.
+
+| Starting budget | No team (Planner) | Gold Powerhouse | Gold Stallion Owner |
+|---|---|---|---|
+| £1.0m | £146k, about 6 horses | +£153k | +£85–104k |
+| £1.25m | £224k, 7–8 horses | +£86–97k | +£48–53k |
+| £1.5m | £276k, 8–9 horses | +£31–57k (Bronze +£15k, Silver +£36k) | +£7–26k (Silver +£43k) |
+| £1.75m (now) | £308k, 10–12 horses | +£8–63k | about nothing |
+
+At £1.5m: Private Sale III +£35k, Bloodstock Agent III +£26k, Elite Mares III +£13k, Pedigree Expert III +£10k (about
++£130k for a breeder at £1.75m, where it steers him to stallions better than their stars), Trade Terms III and Vet's
+Report III about nothing. Money only matters when it is short: at £1.75m any card that gives or saves money adds little.
+
+### Owner cards at £1.25m, the Sales Scout and your accounts (11 Nov)
+
+Owner, 11 Nov: keep the budget and the prize money as separate pots, but make the money tighter so every decision is
+weighed up; the other auction card should be about "refining the books" (the races you still need horses for, what
+won't be useful, special lots primed for your races); keep the Vet's Report as cash back for a dud; track where the
+money goes, with thresholds.
+
+- **Starting budget £1.25m** (`START_BUDGET`, was £1.75m): about 7–11 horses instead of 10–12.
+- **Sales Scout** replaces Trade Terms (`O{t}-trade` in an old save reads as the scout). Brief him for 2 / 3 / 4 races
+  (the race chips say which you already have a runner for). Each lot then shows the races it suits: the share of the
+  yearlings its pedigree could give (sampled with the breeding engine, by the stars the catalogue shows) that would
+  reach the race's third band (a fair chance of a place) at an age the race allows; 50%+ "Suits", 25–50% "(maybe)",
+  none "Not for your races" (greyed). The Books put his finds first, then the best-suited lots. Briefing him adds 1 /
+  2 / 4 **bargains**: Book 2 or 3 pedigrees that suit one of the races, whose yearling (seeded, like every lot) is good
+  enough to win it (its second band) if one can be found, else to place.
+- **Your accounts** (`js/accounts.js`): the money in the top bar or the footer opens what has gone on mares, stud fees
+  and yearlings (and come back from the vet), and a list of what the rest still buys: 5★ / 4★ / 3★ nominations, a
+  Blue-blooded or Useful mare, the cheapest lot in each Book. A payment that takes you under one of those says so
+  ("Down to £50,000: a 3★ nomination, a Blue-blooded mare and a Book 1 yearling are out of reach now"); at the sales
+  only the Books count.
+
+Single owner cards at £1.25m, 40 seasons for each of four strategies (160 per card, about ±£7–13k), against the same
+seasons with no card (Planner £219k, Breeder £170k, Balanced £171k, Buyer £57k):
+
+| Card | Bronze | Silver | Gold | Who it helps most |
+|---|---|---|---|---|
+| Stallion Owner | +£40k | +£45k | +£72k | breeders (Gold +£115k) |
+| Powerhouse | +£35k | +£49k | +£67k | the Planner (Gold +£122k) |
+| Sales Scout | +£6k | +£37k | +£45k | buyers (Gold +£128k) |
+| Private Sale | −£6k | +£2k | +£39k | buyers (Gold +£64k) |
+| Pedigree Expert | +£35k | +£37k | +£36k | breeders (+£120k at every tier) |
+| Bloodstock Agent | +£24k | +£24k | +£22k | buyers (+£60–70k) |
+| Elite Mares | +£5k | +£13k | +£10k | breeders (+£30–50k) |
+| Vet's Report | −£2k | −£3k | −£3k | nobody |
+
+The Vet's Report sends back about one yearling per use (only those with next to no chance in any race), but the
+money comes back when the best lots have gone, so there is nothing better to spend it on: it needs another shape
+(see the handover notes). Pedigree Expert is the same at every tier and Bloodstock Agent hardly better on Gold: both
+want their tiers spreading. Private Sale I and II and Elite Mares I are weak.
+
 ## The race view's sound: the crowd and the horses (12 Nov 2026)
 
 Owner: "add commentary or at least crowd effects"; crowd effects first, spoken commentary later (the text commentary
@@ -483,6 +658,58 @@ Owner, 14 Nov: "I can't really hear any PA announcer … the applause is too pro
 The commentators are now brought forward harder (`TALK_LIFT_DB` 11) and the middle's talk sits above the gallop and the
 crowd (the only clearly spoken commentary in the clips is the Cheltenham commentator's few seconds after the roar, and
 Aintree's announcer); the applause is some 1,400 pairs of hands, mostly far off down the stands, and much quieter.
+
+### Trainers at Warren Hill, and the new jockeys (14 Nov)
+
+Owner, 14 Nov: "let's throw those trainers in there [the yard jobs from the 11 Nov brainstorm]. And then let's add the
+jockeys: boosts to riding styles, and boosts to distances, maybe some others; champion jockey is just an all-over boost."
+
+**Warren Hill** is now a step of the season, between Tattersalls and entries (`phase()` "gallops" while
+`!S.galloped`; it stays open through entries). Developing horses is there too. Each trainer card gives jobs (`TRAINER_JOBS`
+1 / 2 / 3), shown as tokens; tap a horse's job buttons:
+
+| Job | What it does | Notes |
+|---|---|---|
+| Trip work | its best trip a step longer or shorter, at every age, for the season | two steps towards a trip specialist's trips, or with a sire-line card |
+| Settle | a keen horse becomes calm (the engine: keen 8% wins vs 14% calm, about 2–3 points) | |
+| Ground work | it also likes the next going on the side you pick | two goings with a sire-line card |
+| Tune-up | +3 on the day in one race you name (`TUNE_UP`) | +5 with a matching speciality (`TUNE_SPECIAL`), +4 anywhere with the Master Trainer; the Juvenile Specialist's first in a 2-year-old race is free |
+| Trainer's eye | shows its rating and best trip at the next age before you develop it | free on every horse with the Slow Burner |
+
+Jobs change the horse itself (what it was is kept, so a job can be undone until race week). Jobs not spent can be used in
+race week, once the going is declared: ground work or a tune-up, on the race-week screen (`weekJobs`). Stable Form places
+no jobs: +1 / +2 / +2 on every horse, Gold with 1 job too. The trainer's notes on each horse point out what's worth doing.
+
+**Jockeys** are booked race by race at entries, as before (3 / 4 / 5 rides). A rating boost on the day where they fit
+(`jockeyBoost`: shown in the race-day rating and given to the race engine), or the two riding-style skills in the engine.
+A trip jockey with a trainer of the same trips adds +1 more in those races (`PARTNER_BOOST`). A trip or Big-Race jockey is
+only offered in the draft when the ten races include his kind of race. The Race Reader is gone.
+
+Rules in `js/team.js` (numbers at the top), screens in `js/ui-team.js` (`trainerPanel`, `jobStrip`, `weekJobs`),
+measurements in `race-engine/check/trainer-levers.mjs`; the team harness spends the jobs where they add most and books
+jockeys where they fit.
+
+**What they're worth** (team harness, 15 seasons × four strategies = 60 per card, ±£6–12k; at £1.25m; against the
+same seasons with no card: Planner £198k, Balanced £187k, Breeder £132k, Buyer £92k). The first try (2 / 3 / 4 jobs;
+Champion +1 / +2 / +3, specialists +2 / +3 / +4) had trainers at +£55–120k a week, well above the owner cards
+(+£35k / +£45k / +£70k), and jockeys at +£5–30k, so the jobs came down by one and the jockeys went up:
+
+| Card | Bronze | Silver | Gold |
+|---|---|---|---|
+| Trainers (trip specialists, sire lines, Slow Burner) | +£28–38k | +£50–63k | +£77–94k |
+| Juvenile Specialist (first 2YO tune-up free) | +£38k | +£65k | +£94k |
+| Master Trainer (tune-ups +4 anywhere) | +£30k | +£50k | +£80k |
+| Stable Form | +£29k | +£55k | +£76k |
+| Champion Jockey | +£19k | +£38k | +£62k |
+| Big-Race Jockey | +£23k | +£34k | +£55k |
+| Tempo Setter / Late Closer | +£16k | +£29–35k | +£42–47k |
+| Sprint / Mile / Staying Jockey | +£12–18k | +£22–24k | +£33–39k |
+| Mud Lark | +£12k | +£28k | +£31k |
+
+(The trip jockeys' figures include seasons with few races at their trips; in the draft they only turn up when the card
+has some.) The Juvenile Specialist first gave free settling of 2-year-olds, but every horse is a 2-year-old at Warren
+Hill, so it was a free job on anyone (+£79k on Bronze): now its first tune-up in a 2-year-old race is free. The
+Middle-Distance Jockey was merged into the Staying Jockey (1m2f and further): on their own neither had enough races.
 
 Owner, 14 Nov: "I don't feel the excitement evolving". The three real finishes are now made into one crowd, its own ups
 and downs evened out, then shaped (`BUILD`, `BRIGHT`): it starts at the middle's level, far off and muffled, and climbs

@@ -82,7 +82,7 @@ document.addEventListener("drop", e => {
 });
 function breedBody() {
   return `<div class="tb-head"><h1 class="tb-h">BREED</h1>
-    <p class="tb-lede" ${onJob() ? "" : "hidden"}>You have ${money(START_BUDGET)} to build a stable for this season's ${RACES.length} races, with room for ${STABLE_CAP - RACES.length} spares. Buy mares at the mares sale (pick a pile, then choose one of the three turned over; up to ${MARE_CAP}), then breed them. Keep some money back for Tattersalls, where the sale is made from the mares nobody bred. Every foal arrives as a 2-year-old, and it's a coin flip whether you get a colt or a filly.</p></div>
+    <p class="tb-lede" ${onJob() ? "" : "hidden"}>You have ${money(START_BUDGET + (held("powerhouse") ? POWERHOUSE[held("powerhouse").tier] : 0))} to build a stable for this season's ${RACES.length} races, with room for ${STABLE_CAP - RACES.length} spares. Buy mares at the mares sale (pick a pile, then choose one of the ${offerSize()} turned over; up to ${MARE_CAP}), then breed them. Keep some money back for Tattersalls, where the sale is made from the mares nobody bred: the cheapest Book 1 yearling starts at ${money(RESERVES[BOOKS[0].min])}. Tap your money at the top to see where it's gone. Every foal arrives as a 2-year-old, and it's a coin flip whether you get a colt or a filly.</p></div>
     ${viewTabs("The stud")}
     ${refView(studView)}`;
 }
@@ -120,27 +120,27 @@ function stallionCard(s, m) {
   const prob = m ? pairProblem(s, m) : "", on = S.selStallion === s.name, ln = m && !prob ? lineNote(s, m) : null;
   return `<button class="hc s ${on ? "on" : ""}" data-stallion="${esc2(s.name)}" ${prob ? "disabled" : ""} aria-pressed="${on}"><span class="tick">✓</span>
     <div class="hc-top"><span class="hc-l">S</span><span class="hc-n">${esc2(s.name)}</span></div>
-    <div class="hc-b"><div class="hc-r">${pips(s.shownStars, s.unproven)}<span class="hc-fee">${money(s.fee)}</span></div>
+    <div class="hc-b"><div class="hc-r">${knowsTrue(s.name) ? pips(s.trueStars) : pips(s.shownStars, s.unproven)}<span class="hc-fee">${feeFor(s) < s.fee ? `<s>${money(s.fee)}</s> Free` : money(s.fee)}</span></div>
     ${hcTrip(s)}<div class="hc-meta"><span><b>${s.sireLine} | ${s.sireCode}</b></span><span>Peaks <b>${s.peakAge}</b></span></div>
     <div class="hc-g">${s.groundPreference.join(", ")}</div>
-    <div class="hc-foot">${s.unproven ? `<span class="warn">Unproven: one star either way</span>` : ""}${prob ? `<span class="why">${esc2(prob)}</span>` : ""}${ln ? `<span class="ln ${ln.cls}">${ln.text}</span>` : ""}</div></div></button>`;
+    <div class="hc-foot">${s.unproven ? (knowsTrue(s.name) ? `<span class="warn">Your expert: really ${s.trueStars}★</span>` : `<span class="warn">Unproven: one star either way</span>`) : ""}${prob ? `<span class="why">${esc2(prob)}</span>` : ""}${ln ? `<span class="ln ${ln.cls}">${ln.text}</span>` : ""}</div></div></button>`;
 }
 function studView() {
   const m = S.selMare && byName(S.selMare);
   let rows = STALLIONS.map(s => stallion(s.name)).filter(s => (S.trip || "all") === "all" || band(s.optimumDistance) === S.trip);
   rows.sort(S.sort === "stars" ? (a, b) => b.shownStars - a.shownStars || a.fee - b.fee : S.sort === "trip" ? (a, b) => DISTANCES.indexOf(a.optimumDistance) - DISTANCES.indexOf(b.optimumDistance) || a.fee - b.fee : (a, b) => a.fee - b.fee || b.shownStars - a.shownStars);
   if (m) rows = rows.filter(s => !pairProblem(s, m)).concat(rows.filter(s => pairProblem(s, m)));
-  const st = S.selStallion && stallion(S.selStallion), ok = st && m && !pairProblem(st, m), afford = st && st.fee <= S.budget, ln = ok ? lineNote(st, m) : null;
+  const st = S.selStallion && stallion(S.selStallion), ok = st && m && !pairProblem(st, m), fee = st ? feeFor(st) : 0, afford = st && fee <= S.budget, ln = ok ? lineNote(st, m) : null;
   const trips = [["all", "All"], ["sprint", "Sprint 5–6f"], ["mile", "Mile 7f–1m1f"], ["middle", "Middle 1m2f–1m4f"], ["staying", "Staying 1m6f+"]];
-  if (!m && !studCount()) return `${maresSale()}<section class="sect"><div class="sect-h"><h2 class="tb-h2">YOUR MARES</h2><span>0 of ${MARE_CAP}</span></div>
-    <p class="tb-empty">No mares yet. Buy your first above: pick a pile, then choose one of the three mares turned over.</p></section>`;
-  if (!m) return `<section class="sect"><div class="sect-h"><h2 class="tb-h2">YOUR MARES</h2><span>${studCount()} of ${MARE_CAP} in your stud · ${S.usedMares.length} covered · tap a mare to breed her</span></div>
+  if (!m && !studCount()) return `${teamAtStud()}${maresSale()}<section class="sect"><div class="sect-h"><h2 class="tb-h2">YOUR MARES</h2><span>0 of ${MARE_CAP}</span></div>
+    <p class="tb-empty">No mares yet. Buy your first above: pick a pile, then choose one of the ${offerSize()} mares turned over.</p></section>`;
+  if (!m) return `${teamAtStud()}<section class="sect"><div class="sect-h"><h2 class="tb-h2">YOUR MARES</h2><span>${studCount()} of ${MARE_CAP} in your stud · ${S.usedMares.length} covered · tap a mare to breed her</span></div>
     <div class="grid">${S.hand.map(mareCard).join("") || `<p class="tb-empty">${S.usedMares.length ? "Every mare has been covered. Buy another below, or head to Tattersalls." : "No mares yet. Buy one below."}</p>`}</div></section>
     ${maresSale()}`;
   return `<section class="sect pick-mare"><div class="sect-h"><h2 class="tb-h2">BREEDING ${esc2(m.name).toUpperCase()}</h2><button class="tb-btn ghost sm" id="changeMare">‹ Choose a different mare</button></div>
     <div class="grid one">${mareCard(m.name)}</div></section>
     <div class="tb-bar sticky-bar"><div class="tb-bar-info ${ok && afford ? "ready" : ""}">${!m ? "Pick a mare." : !st ? `Tap a stallion for ${esc2(m.name)}.` : !ok ? esc2(pairProblem(st, m)) + "." :
-      `${esc2(st.name)} × ${esc2(m.name)}. Stud fee ${money(st.fee)}${ln ? ` · <span class="line ${ln.cls}">${ln.text}</span>` : ""}${afford ? "" : " · not enough budget"}${stableFull() ? ` · your stable is full (${STABLE_CAP})` : ""}`}</div>
+      `${esc2(st.name)} × ${esc2(m.name)}. Stud fee ${fee < st.fee ? `<s>${money(st.fee)}</s> free (your own stallion)` : money(st.fee)}${ln ? ` · <span class="line ${ln.cls}">${ln.text}</span>` : ""}${afford ? "" : " · not enough budget"}${stableFull() ? ` · your stable is full (${STABLE_CAP})` : ""}`}</div>
       <div class="tb-bar-btns"><button class="tb-btn" id="breedBtn" ${ok && afford && !S.foal && !stableFull() ? "" : "disabled"}>Breed</button></div></div>
     <section class="sect"><div class="sect-h"><h2 class="tb-h2">STALLIONS</h2>
       <label class="sortby">Sort by <select id="sort"><option value="fee" ${S.sort === "fee" ? "selected" : ""}>Fee</option><option value="stars" ${S.sort === "stars" ? "selected" : ""}>Stars</option><option value="trip" ${S.sort === "trip" ? "selected" : ""}>Trip</option></select></label></div>
@@ -157,7 +157,7 @@ function offerCard(name) {
     <button class="tb-btn block" data-keep="${esc2(name)}">Keep<span class="kn"> ${esc2(m.name)}</span></button></div>`;
 }
 function maresSale() {
-  const full = studCount() >= MARE_CAP;
+  const full = paidMares() >= MARE_CAP;
   const pile = p => {
     const left = pileLeft(p).length, why = full ? "Stud full" : !left ? "None left" : p.price > S.budget ? "Can't afford" : "";
     return `<button class="pile ${p.id}" data-pile="${p.id}" ${why ? "disabled" : ""}>
@@ -168,23 +168,24 @@ function maresSale() {
     return `<section class="sect msale" id="offer"><div class="sect-h"><h2 class="tb-h2">MARES SALE · ${p.name.toUpperCase()}</h2><span>Paid ${money(p.price)}</span></div>
       <p class="offer-h">${S.offer.mares.length} mare${S.offer.mares.length === 1 ? "" : "s"} turned over from the ${p.stars.map(n => n + "★").join("–")} pile. Keep one; the others go back.</p>
       <div class="offers">${S.offer.mares.map(offerCard).join("")}</div></section>`; }
-  return `<section class="sect msale"><div class="sect-h"><h2 class="tb-h2">MARES SALE</h2><span>Pay the price, see three mares from that pile and keep the one you want</span></div>
+  return `<section class="sect msale"><div class="sect-h"><h2 class="tb-h2">MARES SALE</h2><span>Pay the price, see ${offerSize()} mares from that pile and keep the one you want</span></div>
     <div class="piles">${PILES.map(pile).join("")}</div>
     ${full ? `<p class="hint">Your stud is full at ${MARE_CAP} mares.</p>` : ""}</section>`;
 }
 function saleView() {
-  return `<section class="ring"><div class="ring-in"><div class="ring-k">TATTERSALLS</div><div class="ring-t">The sale ring</div>
+  return `${teamAtSales()}<section class="ring"><div class="ring-in"><div class="ring-k">TATTERSALLS</div><div class="ring-t">The sale ring</div>
     <p>Each lot is a foal by a stallion out of a mare. You see the pedigree, not the foal, until it's knocked down to you. Bring a lot into the ring and bid against rival buyers: when the auctioneer's count runs out, the hammer falls.</p></div></section>
     <div class="books" role="tablist">${BOOKS.map(b => { const n = S.sale.filter(l => l.book === b.n).length;
-      return `<button class="book ${S.book === b.n ? "on" : ""}" data-book="${b.n}" role="tab" aria-selected="${S.book === b.n}"><b>${b.name}</b><span>${b.note} · ${n} lot${n === 1 ? "" : "s"}</span></button>`; }).join("")}</div>
+      const f = S.sale.filter(l => l.book === b.n && l.scout).length;
+      return `<button class="book ${S.book === b.n ? "on" : ""}" data-book="${b.n}" role="tab" aria-selected="${S.book === b.n}"><b>${b.name}</b><span>${b.note} · ${n} lot${n === 1 ? "" : "s"}${f ? ` · ${f} scout's find${f === 1 ? "" : "s"}` : ""}</span></button>`; }).join("")}</div>
     ${stableFull() ? `<p class="hint">Your stable is full (${STABLE_CAP} horses), so you can't buy any more.</p>` : ""}
-    <div class="lots">${S.sale.filter(l => l.book === S.book).map(l => { const s = stallion(l.sire), m = byName(l.dam), line = lineNote(s, m);
-      return `<article class="lot"><div class="lot-h"><span class="lot-n">LOT ${l.n}</span><span class="line ${line.cls}">${line.text}</span></div>
+    <div class="lots">${scoutOrder(S.sale.filter(l => l.book === S.book)).map(l => { const s = stallion(l.sire), m = byName(l.dam), line = lineNote(s, m), sc = lotScout(l);
+      return `<article class="lot ${sc.cls}"><div class="lot-h"><span class="lot-n">LOT ${l.n}</span><span class="line ${line.cls}">${line.text}</span></div>
         <div class="ped">
-          <div class="pc s"><span class="pc-l">S</span><div><b>${esc2(s.name)}</b>${pips(s.shownStars, s.unproven)}<small>${s.optimumDistance} · peaks ${s.peakAge}</small></div></div>
+          <div class="pc s"><span class="pc-l">S</span><div><b>${esc2(s.name)}</b>${knowsTrue(s.name) ? pips(s.trueStars) : pips(s.shownStars, s.unproven)}<small>${s.optimumDistance} · peaks ${s.peakAge}</small></div></div>
           <div class="pc m"><span class="pc-l">M</span><div><b>${esc2(m.name)}</b>${pips(m.stars)}<small>${m.optimumDistance} · peaks ${m.peakAge}</small></div></div></div>
-        <div class="lot-foot"><span>Reserve ${money(l.reserve)} · guide ${money(guide(l)[0])}–${money(guide(l)[1])}</span></div>
-        <button class="tb-btn block" data-auction="${l.id}" ${openBid(l) <= S.budget && !S.foal && !stableFull() ? "" : "disabled"}>${openBid(l) <= S.budget ? "Bring into the ring" : "Can't afford the opening bid"}</button></article>`; }).join("") || `<p class="tb-empty">Every lot in this Book has been sold.</p>`}</div>`;
+        ${sc.html}${lotInsight(l)}<div class="lot-foot"><span>Reserve ${money(l.reserve)} · guide ${money(guide(l)[0])}–${money(guide(l)[1])}</span></div>
+        <button class="tb-btn block" data-auction="${l.id}" ${openBid(l) <= canBidTo() && !S.foal && !stableFull() ? "" : "disabled"}>${openBid(l) <= canBidTo() ? "Bring into the ring" : "Can't afford the opening bid"}</button>${lotClaim(l)}</article>`; }).join("") || `<p class="tb-empty">Every lot in this Book has been sold.</p>`}</div>`;
 }
 function stableCard(h, developable) {
   const r = RACES.find(x => S.entries[x.id] === h.id), now = ratingAt(h, h.age), o = outlook(h);
@@ -241,7 +242,7 @@ function renderFoal() {
       <label class="fc-name"><span>Name</span><input id="foalName" value="${esc2(h.name)}" maxlength="18" autocomplete="off"></label>
       <div class="fc-ped fc-wait">by <b>${esc2(h.sire)}</b> out of <b>${esc2(h.dam)}</b></div>
       <div class="fc-facts fc-wait"><span>Rated <b>${ratingAt(h, 2)}</b> as a 2YO</span><span>Best <b>${tripText(tripAt(h, 2))}</b></span><span>Likes <b>${h.grounds.join(", ")}</b></span><span>Projected peak <b>${h.peakAge}YO</b></span><span>Runs <b>${STYLE_NAME[h.style]}</b>, ${h.temper}</span><span><b>${FLEX_NAME[h.flex]}</b></span></div>
-      <div class="fc-btns fc-wait fc-choose">${h.peakAge >= 3 ? `<button class="tb-btn" data-keepdev="${h.peakAge}">Develop to peak (${h.peakAge}YO)</button>` : ""}${h.peakAge === 4 ? `<button class="tb-btn ghost" data-keepdev="3">Develop to 3YO</button>` : ""}<button class="tb-btn ${h.peakAge >= 3 ? "ghost" : ""}" id="keep">${h.peakAge >= 3 ? "Save as a 2YO" : "Save to your stud farm"}</button></div>
+      <div class="fc-btns fc-wait fc-choose">${h.peakAge >= 3 ? `<button class="tb-btn" data-keepdev="${h.peakAge}">Develop to peak (${h.peakAge}YO)</button>` : ""}${h.peakAge === 4 ? `<button class="tb-btn ghost" data-keepdev="3">Develop to 3YO</button>` : ""}<button class="tb-btn ${h.peakAge >= 3 ? "ghost" : ""}" id="keep">${h.peakAge >= 3 ? "Save as a 2YO" : "Save to your stud farm"}</button>${agentButton(F)}</div>
       <p class="fc-small fc-wait">${h.peakAge >= 3 ? `Projected to peak at ${h.peakAge}. Develop now if it won't run as a 2-year-old, or keep it young: you can still develop it later. You only see the new rating once it's done.` : "Projected to peak as a 2-year-old: it's ready to race now."}</p>
       <p class="fc-small fc-wait">${F.how === "bred" ? `Stud fee ${money(F.cost)}. ${esc2(h.dam)} has been covered for this season.` : `Bought for ${money(F.cost)}.`}</p>
     </div></div>`;
@@ -351,7 +352,7 @@ function hcard(h, race, canAct, opts) {
   if (race) {
     const why = whyNot(h, race), c = why ? null : check(h, race);
     if (why || !c.ok) { cant = true; verdict = `<div class="hv no"><b>–</b><span>${esc2(why || c.why)}</span></div>`; }
-    else verdict = `<div class="hv rk-${rkCls(c)}"><b>${c.day}</b><span>${rankText(c)}${c.steps ? ` · −${c.steps * 5} for the trip` : ""}${c.ground ? ` · ${c.ground > 0 ? "+" : "−"}${Math.abs(c.ground)} for the going` : ""}</span></div>`;
+    else verdict = `<div class="hv rk-${rkCls(c)}"><b>${c.day}</b><span>${rankText(c)}${c.steps ? ` · −${c.steps * 5} for the trip` : ""}${c.ground ? ` · ${c.ground > 0 ? "+" : "−"}${Math.abs(c.ground)} for the going` : ""}${teamNote(c)}</span></div>`;
     if (canAct) acts += here ? `<button class="tb-btn ghost" data-unpick="${race.id}">Take out</button>`
       : !cant ? `<button class="tb-btn" data-pick="${h.id}" data-race="${race.id}">${inRace ? "Move here" : "Enter"}</button>` : "";
   }
@@ -401,7 +402,7 @@ function hcardC(h, race, canAct, opts) {
   if (race) {
     const why = whyNot(h, race), c = why ? null : check(h, race);
     if (why || !c.ok) { cant = true; verdict = `<div class="hv no"><b>–</b><span>${esc2(why || c.why)}</span></div>`; }
-    else verdict = `<div class="hv rk-${rkCls(c)}"><b>${c.day}</b><span>${rankText(c)}${c.steps ? ` · −${c.steps * 5} for the trip` : ""}${c.ground ? ` · ${c.ground > 0 ? "+" : "−"}${Math.abs(c.ground)} for the going` : ""}</span></div>`;
+    else verdict = `<div class="hv rk-${rkCls(c)}"><b>${c.day}</b><span>${rankText(c)}${c.steps ? ` · −${c.steps * 5} for the trip` : ""}${c.ground ? ` · ${c.ground > 0 ? "+" : "−"}${Math.abs(c.ground)} for the going` : ""}${teamNote(c)}</span></div>`;
     if (canAct) acts += here ? `<button class="tb-btn ghost" data-unpick="${race.id}">Take out</button>`
       : !cant ? `<button class="tb-btn" data-pick="${h.id}" data-race="${race.id}">${inRace ? "Move here" : "Enter"}</button>` : "";
   }
@@ -424,6 +425,7 @@ function hcardC(h, race, canAct, opts) {
       ${planned ? `<div class="hk-plan">★ Your planned runner for this race</div>` : ""}
       ${verdict}
       ${opts && opts.plan ? "" : entryNote(h, race, inRace, here)}
+      ${opts && opts.train ? jobStrip(h) : ""}
       ${acts ? `<div class="hc2-acts">${acts}</div>` : ""}
       <div class="hc2-end">${opts && opts.plan ? targetBox(h, race) : "<span></span>"}<button class="hc2-card" data-card="${h.id}">Card</button></div>
     </div></article>`;
@@ -461,11 +463,12 @@ function entriesBody(entered) {
     <p class="tb-lede">Pick a race, then enter a horse. Every horse starts as a 2-year-old: develop it to 3 or 4 to change its rating and best trip, though you only see how once it's done, and there's no going back. ${W.entryRule}; each step from its best trip costs 5 points, and every race has a minimum rating. Each horse shows where its rating sits in the field.</p></div>
     <div class="tb-bar"><div class="tb-bar-info ${entered === RACES.length ? "ready" : ""}">${entered === RACES.length ? `All ${RACES.length} races have a runner.` : `${RACES.length - entered} race${RACES.length - entered === 1 ? "" : "s"} still without a runner. An empty race counts as a loss.`}</div>
     <div class="tb-bar-btns"><button class="tb-btn ghost" id="fill">Fill empty races</button><button class="tb-btn ghost" id="clear">Clear</button></div></div>
+    ${teamAtEntries()}
     ${raceBoard(sel)}
     <div class="rsel">${gradeBox(sel)}<div class="rsel-in" style="min-width:0;flex:1 1 auto"><h3>${sel.name}</h3>
       <div class="facts"><span><b>${DAYS[sel.day]}</b></span>${courseName(sel) ? `<span>${courseName(sel)}</span>` : ""}<span><b>${ageOnly(sel)}</b></span>${sexTag(sel)}<span>1st <b>${money(sel.prizes[0])}</b></span>${sel.grade === "Handicap" ? `<span>Max rating <b>${HCAP_MAX}</b></span>` : ""}</div>
       ${bandsLine(sel)}
-      ${(() => { const h = horse(S.entries[sel.id]), c = h && check(h, sel); return h ? `<div class="rsel-run">Your runner: ${silkImg(mySilkN())}<b>${esc2(h.name)}</b>${c && c.ok ? rkChip(c) + `<small class="rk-t">${rankText(c)}</small>` : ""}<button class="tb-btn ghost sm" data-unpick="${sel.id}">Take out</button></div>` : `<div class="rsel-run" style="color:var(--tb-muted)">No runner yet: pick one below.</div>`; })()}</div></div>
+      ${(() => { const h = horse(S.entries[sel.id]), c = h && check(h, sel); return h ? `<div class="rsel-run">Your runner: ${silkImg(mySilkN())}<b>${esc2(h.name)}</b>${c && c.ok ? rkChip(c) + `<small class="rk-t">${rankText(c)}</small>` : ""}<button class="tb-btn ghost sm" data-unpick="${sel.id}">Take out</button></div>` : `<div class="rsel-run" style="color:var(--tb-muted)">No runner yet: pick one below.</div>`; })()}${jockeyPick(sel)}</div></div>
     ${hs.length ? horseCols(hs, sel, true, null, true) : `<p class="tb-empty">No horses yet.</p>`}`;
 }
 function entryCard(r) {
@@ -521,6 +524,7 @@ function weekBody(done) {
     <p class="tb-lede">${W.watchHere}, or sim it for the result straight away. Both run the very same race. The pace forecast comes from the runners' racecards: lots of front-runners make a fast race that suits horses held up, and a race with none will be slow and tactical.</p></div>
     <div class="going-dec ${S.goingShown ? "" : "fresh"}"><b>THE GOING IS DECLARED</b><div class="gd-days">${DAYS.map((d, k) => `<div class="gd" style="--d:${k * 260}ms"><small>${dayTag(k)}</small><span class="gday g-${CARD.going[k]}">${CARD.going[k]}</span></div>`).join("")}</div>
       <p>${(() => { const mine = RACES.filter(r => S.entries[r.id]), liked = mine.filter(r => horse(S.entries[r.id]).grounds.includes(CARD.going[r.day])).length; return mine.length ? `${liked} of your ${mine.length} runners like the ground they'll get.` : ""; })()}</p></div>
+    ${typeof weekJobs === "function" ? weekJobs() : ""}
     <div class="tb-bar"><div class="tb-bar-info ${done === RACES.length ? "ready" : ""}">${done === RACES.length ? `All ${RACES.length} races run.` : `${done} of ${RACES.length} races run.`}</div>
     <div class="tb-bar-btns"><button class="tb-btn ghost" id="backEntries" ${done ? "disabled" : ""} title="${done ? "Entries are closed once the first race is run" : "Change your runners before the first race"}">Change entries</button></div></div>
     ${racesByDay(weekCard)}`;
@@ -552,7 +556,7 @@ function weekCard(r) {
   const report = res && res.report ? `<details class="rep"><summary>Race report · ${res.time.toFixed(2)}s · ${PACE_WORD[res.pace] || ""} pace</summary><ul>${res.report.map(t => `<li>${esc2(t)}</li>`).join("")}</ul></details>` : "";
   return `<article class="race"><div class="race-top">${gradeBox(r)}
     <div style="min-width:0"><h4 class="race-name">${r.name}</h4>
-      <div class="facts">${h && c.ok ? `<span class="mine">${silkImg(mySilkN())}<b>${esc2(h.name)}</b> ${rkChip(c)}<small class="rk-t">${rankText(c)}${h.style ? " · " + styleTag(h) : ""}</small></span>` : `<span class="note">No runner</span>`}<span>${CARD.races[r.i].opp.length + (h ? 1 : 0)} runners</span>${fieldDots(r.i)}</div>
+      <div class="facts">${h && c.ok ? `<span class="mine">${silkImg(mySilkN())}<b>${esc2(h.name)}</b> ${rkChip(c)}<small class="rk-t">${rankText(c)}${h.style ? " · " + styleTag(h) : ""}${bookedFor(r) ? ` · ridden by ${cardName(bookedFor(r))}` : ""}${teamNote(c)}</small></span>` : `<span class="note">No runner</span>`}<span>${CARD.races[r.i].opp.length + (h ? 1 : 0)} runners</span>${fieldDots(r.i)}</div>
       ${res ? "" : forecast}
     </div>${right}</div>${report}</article>`;
 }
@@ -566,7 +570,8 @@ function resultBody(wins, losses, prize) {
   const pct = v => Math.min(100, v / LADDER_TOP * 100);
   const rows = RACES.map((r, k) => { const res = S.results[r.id], h = horse(S.entries[r.id]);
     return `<li class="tr" data-k="${k}"><span class="tr-d">${dayTag(r.day)}</span><span class="tr-p ${res && res.pos === 1 ? "win" : res && res.pos >= 2 && res.pos <= 4 ? "pl" : ""}">${res && res.pos ? ord(res.pos) : "–"}</span>
-      <span class="tr-n"><b>${r.name}</b><small>${h ? esc2(h.name) : "No runner"}</small></span><span class="tr-m">${res && res.prize ? "+" + money(res.prize) : ""}</span></li>`; }).join("");
+      <span class="tr-n"><b>${r.name}</b><small>${h ? esc2(h.name) : "No runner"}${bookedFor(r) ? ` · ${cardName(bookedFor(r))}` : ""}</small></span><span class="tr-m">${res && res.prize ? "+" + money(res.prize) : ""}</span></li>`; }).join("")
+;
   const hist = pastWeeks().slice().sort((a, b) => b.prize - a.prize), counts = {}; hist.forEach(w => counts[w.title] = (counts[w.title] || 0) + 1);
   const rank = hist.findIndex(w => w.seed === S.seed && w.prize === prize) + 1;
   return `<div class="tb-head"><h1 class="tb-h">FINAL STANDINGS</h1>
@@ -606,14 +611,14 @@ function finishTally(prize) {
 }
 function playTally() {
   const run = ++tallyRun, rows = [...document.querySelectorAll(".fs-rows .tr")], fill = $("#fsFill"), pot = $("#fsPot"), pop = $("#fsPop");
-  if (matchMedia("(prefers-reduced-motion: reduce)").matches) { const p = RACES.reduce((a, r) => a + (S.results[r.id] ? S.results[r.id].prize : 0), 0); return finishTally(p); }
+  if (matchMedia("(prefers-reduced-motion: reduce)").matches) { const p = RACES.reduce((a, r) => a + (S.results[r.id] ? S.results[r.id].prize : 0), 0) + teamIncome(); return finishTally(p); }
   let total = 0, k = 0;
   fill.style.transition = "none"; setFill(0); pot.textContent = money(0);
   rows.forEach(r => r.classList.remove("in")); $("#fsTitle").classList.remove("in"); document.querySelectorAll(".fs-rung").forEach(g => g.classList.remove("hit"));
   const step = () => {
     if (run !== tallyRun || !document.body.contains(fill)) return;
     if (k >= rows.length) { setTimeout(() => { if (run === tallyRun) $("#fsTitle").classList.add("in"); }, 300); return; }
-    const r = RACES[k], res = S.results[r.id], add = res && res.prize ? res.prize : 0, from = total, to = total + add, row = rows[k];
+    const r = RACES[k], res = r && S.results[r.id], add = r ? (res && res.prize ? res.prize : 0) : teamIncome(), from = total, to = total + add, row = rows[k];
     row.classList.add("in"); row.scrollIntoView({ block: "nearest", behavior: "smooth" });
     if (!add) { k++; return setTimeout(step, 380); }
     row.classList.add("pay");
@@ -727,7 +732,7 @@ function aucHTML() {
     <div class="auc-panel">
       <div class="auc-top"><h2 class="auc-h">Lot ${l.n}</h2><div class="auc-k">TATTERSALLS · ${b.name.toUpperCase()}</div></div>
       <div class="auc-ped">
-        <div class="pc s"><span class="pc-l">S</span><div><b>${esc2(s.name)}</b>${pips(s.shownStars, s.unproven)}<small>${s.optimumDistance} · peaks ${s.peakAge}</small></div></div>
+        <div class="pc s"><span class="pc-l">S</span><div><b>${esc2(s.name)}</b>${knowsTrue(s.name) ? pips(s.trueStars) : pips(s.shownStars, s.unproven)}<small>${s.optimumDistance} · peaks ${s.peakAge}</small></div></div>
         <div class="pc m"><span class="pc-l">M</span><div><b>${esc2(m.name)}</b>${pips(m.stars)}<small>${m.optimumDistance} · peaks ${m.peakAge}</small></div></div></div>
       <div class="auc-facts"><span><span class="line ${ln.cls}">${ln.text}</span></span><span>Reserve <b>${money(l.reserve)}</b></span><span>Guide <b>${money(guide(l)[0])}–${money(guide(l)[1])}</b></span><span>Budget <b>${money(S.budget)}</b></span></div>
       <div class="auc-now" aria-live="polite"><div class="lbl" id="aucLbl">Opening bid</div><div class="big" id="aucBig">${money(openBid(l))}</div><div class="who" id="aucWho">No bids yet</div></div>
@@ -761,7 +766,7 @@ function aucTick() {
     if (e >= r.wait && (!who || r.wait < who.wait)) who = r;
   }
   if (who) return aucPlace(who.id);
-  if (A.autoOn && A.leader !== "me" && nx <= A.auto && nx <= S.budget && e >= .7) return aucPlace("me");
+  if (A.autoOn && A.leader !== "me" && nx <= A.auto && nx <= canBidTo() && e >= .7) return aucPlace("me");
   const T = aucTimes(), call = e >= T[2] ? 3 : e >= T[1] ? 2 : e >= T[0] ? 1 : 0;
   if (call !== A.call) { A.call = call; if (call === 3) return aucHammer(); aucCall(call); }
   const arc = aucEl("abArc"); if (arc) arc.setAttribute("stroke-dashoffset", (276.5 * (1 - Math.min(1, e / T[2]))).toFixed(1));
@@ -774,7 +779,7 @@ function aucCall(k) {
 function aucPlace(id) {
   if (!A || A.done) return;
   const nx = aucNext();
-  if (id === "me" && (nx > S.budget || A.leader === "me")) return;
+  if (id === "me" && (nx > canBidTo() || A.leader === "me")) return;
   A.price = nx; A.leader = id; A.last = performance.now(); A.call = -1; A.rivals.forEach(r => r.wait = null);
   const name = id === "me" ? "You" : A.rivals.find(r => r.id === id).name;
   A.log.unshift(`${money(nx)} · ${name}`); A.log = A.log.slice(0, 6);
@@ -793,8 +798,8 @@ function aucPaint() {
   const who = aucEl("aucWho");
   who.className = "who " + (me ? "me" : lead ? "them" : "");
   who.textContent = me ? "You're the top bidder" : lead ? `${lead.name} has it` : "No bids yet";
-  const bid = aucEl("aucBid"), can = !A.done && !me && nx <= S.budget;
-  bid.disabled = !can; bid.textContent = A.done ? "Hammer down" : me ? "You hold the bid" : nx > S.budget ? `Can't go to ${money(nx)}` : `Bid ${money(nx)}`;
+  const bid = aucEl("aucBid"), can = !A.done && !me && nx <= canBidTo();
+  bid.disabled = !can; bid.textContent = A.done ? "Hammer down" : me ? "You hold the bid" : nx > canBidTo() ? `Can't go to ${money(nx)}` : `Bid ${money(nx)}`;
   aucEl("autoAmt").textContent = money(A.auto);
   const on = aucEl("autoOn"); on.textContent = A.autoOn ? "On" : "Off"; on.classList.toggle("on", A.autoOn); on.setAttribute("aria-pressed", A.autoOn);
   aucEl("aucLeave").disabled = !A.done && me;
@@ -813,8 +818,9 @@ function aucHammer() {
   } else if (A.leader === "me") {
     // yours the moment the hammer falls (and saved), not when the ring is left
     msg = "SOLD!"; A.outcome = { kind: "won" };
-    S.budget -= A.price; S.sale = S.sale.filter(x => x !== l);
-    breed(l.sire, l.dam, "bought", A.price, l.id);
+    const cost = payFor(A.price);   // less your Trade Terms (js/team.js)
+    S.budget -= cost; if (typeof ledger === "function") ledger("yearlings", cost); S.sale = S.sale.filter(x => x !== l);
+    breed(l.sire, l.dam, "bought", cost, l);
   } else {
     const r = A.rivals.find(x => x.id === A.leader);
     msg = "Sold"; S.sale = S.sale.filter(x => x !== l);

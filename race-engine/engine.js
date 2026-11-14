@@ -270,14 +270,25 @@ export function runRace(race, runners, data, options = {}) {
       keen: String(r.temperament || "calm").toLowerCase() === "keen",
       dayRating: day.rating, shade: day.shade, tripSteps: day.tripSteps, ground: day.ground,
       jockey: r.jockey, instruction: r.instruction,
+      // the team's jockey cards (owner, 10 Nov; all optional, and a horse without them races exactly as before):
+      // formBest (Champion Jockey: form drawn that many times, the best kept), noFlop (never a flop), paceTank (Tempo
+      // Setter: a share more energy when ridden from the front or prominent), lateKick (Late Closer: a stronger final
+      // burst when ridden midfield or held up), reader (Race Reader, 0-1: finds gaps, loses less switching, times the kick)
+      formBest: Math.max(1, Math.round(r.formBest || 1)), noFlop: !!r.noFlop, paceTank: +r.paceTank || 0, lateKick: +r.lateKick || 0,
+      reader: clip(+r.reader || 0, 0, 1),
       z: start.stalls[i].fromInsideRail,
     };
   });
   // form on the day: a small everyday wobble, an occasional big day, a rarer flop
-  for (const c of card) {
+  const formDraw = (c) => {
     let f = rnd.normal(0, P.FORM_SD);
     if (rnd.chance(P.UP_P)) f += rnd.uniform(P.UP_MIN, P.UP_MAX);
-    if (rnd.chance(P.FLOP_P)) f -= rnd.uniform(P.FLOP_MIN, P.FLOP_MAX);
+    if (rnd.chance(P.FLOP_P)) { const flop = rnd.uniform(P.FLOP_MIN, P.FLOP_MAX); if (!c.noFlop) f -= flop; }
+    return f;
+  };
+  for (const c of card) {
+    let f = formDraw(c);
+    for (let k = 1; k < c.formBest; k++) f = Math.max(f, formDraw(c));
     c.form = f;
     c.skill = c.jockey != null ? P.JOCKEY_SKILL[0] + (P.JOCKEY_SKILL[1] - P.JOCKEY_SKILL[0]) * (clip(c.jockey, 1, H.JOCKEY_LEVELS) - 1) / (H.JOCKEY_LEVELS - 1)
       : rnd.uniform(P.JOCKEY_SKILL[0], P.JOCKEY_SKILL[1]);
@@ -345,10 +356,11 @@ export function runRace(race, runners, data, options = {}) {
     vR[i] = PAR * (1 + (R[i] - P.RATING_REF) * S);
     vC[i] = vR[i] * P.COMFORT; ref[i] = (1 - P.COMFORT) * vR[i]; vK0[i] = vR[i] * P.TOP;
     burst[i] = vR[i] * (P.BURST + P.SHADE_TOP * c.shade + P.BURST_STYLE[c.ridden] * pow(D / P.MILE, P.BURST_DIST_EXP));
-    E[i] = E0[i] = (P.TANK * tscale / going.sapping) * (1 - P.SHADE_TANK * c.shade);
+    E[i] = E0[i] = (P.TANK * tscale / going.sapping) * (1 - P.SHADE_TANK * c.shade) * (c.ridden <= 1 ? 1 + c.paceTank : 1);
+    if (c.ridden >= 2 && c.lateKick) burst[i] += vR[i] * c.lateKick;
     settle[i] = P.SETTLE[c.ridden]; follow[i] = P.FOLLOW[c.ridden]; own[i] = vR[i] * P.OWN;
     // when the jockey goes for home; those ridden to be held up wait longer (KICK_STYLE, owner 7 Nov: more coming from the back)
-    kickAt[i] = clip(P.KICK_FROM / P.MILE * D, P.KICK_MIN, P.KICK_MAX) * (P.KICK_STYLE ? P.KICK_STYLE[c.ridden] : 1) + rnd.normal(0, P.JUDGE_SD);
+    kickAt[i] = clip(P.KICK_FROM / P.MILE * D, P.KICK_MIN, P.KICK_MAX) * (P.KICK_STYLE ? P.KICK_STYLE[c.ridden] : 1) + rnd.normal(0, P.JUDGE_SD) * (1 - 0.6 * c.reader);
   }
 
   // --- run it
@@ -427,7 +439,7 @@ export function runRace(race, runners, data, options = {}) {
       const seek = blocked[i] || (trouble && kick[i]);
       const classk = clip(1 + P.CLASS_LOOK * (R[i] - P.RATING_REF), P.CLASS_LOOK_RANGE[0], P.CLASS_LOOK_RANGE[1]);
       let started = false;
-      if (seek && switchT[i] <= 0 && rnd.next() < (kick[i] ? card[i].skill * P.KICK_LOOK : card[i].skill) * classk) {
+      if (seek && switchT[i] <= 0 && rnd.next() < (kick[i] ? card[i].skill * P.KICK_LOOK : card[i].skill) * classk * (1 + card[i].reader)) {
         const prefOut = straight ? rnd.next() < P.PREF_OUT_STRAIGHT : true;
         const dirn = cOut && (prefOut || !cIn) ? 1 : cIn ? -1 : 0;
         if (dirn !== 0) { switchDir[i] = dirn; switchT[i] = P.SWITCH_TIME; started = true; }
@@ -461,7 +473,7 @@ export function runRace(race, runners, data, options = {}) {
         if (settling) want[i] *= card[i].ridden >= 2 ? 1 - P.EASE : 1 + P.PUSH;
         if (blocked[i]) want[i] = Math.min(want[i], vfront[i]);
       }
-      if (switchT[i] > 0 && kick[i]) want[i] *= 1 - P.SWITCH_COST;
+      if (switchT[i] > 0 && kick[i]) want[i] *= 1 - P.SWITCH_COST * (1 - 0.5 * card[i].reader);
       // ---- speed and energy
       const acc = v[i] < P.ACC_START_BELOW ? P.ACC_START : P.ACC * clip(1 + P.CLASS_ACC * (R[i] - P.RATING_REF), P.ACC_CLASS[0], P.ACC_CLASS[1]);
       vNew[i] = v[i] + clip(want[i] - v[i], -P.DECEL * dt, acc * dt);    // applied after every horse has looked round

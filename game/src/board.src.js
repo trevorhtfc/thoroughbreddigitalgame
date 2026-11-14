@@ -384,41 +384,41 @@ function drawSky(dt) {
 }
 
 // ================================================================ the day, the weather and the sounds of the place
-// ---------------------------------------------------------------- the day: one passes every five minutes
-// Most of the cycle is daylight (5:30 to 21:30); the night goes by quickly. The board opens in the early morning,
-// when the mist is lying on the heath and the strings are going out.
-const DAY = 300;
+// ---------------------------------------------------------------- the morning: sunrise, then the fresh light of the day
+// (Owner, 14 Nov: "leave it to early morning/sunrise and daytime without showing the actual time".) The board opens
+// before sunrise, with the lamps still lit and mist lying on the heath; the sun comes up, the strings go out, and the
+// day settles into its fresh light. After a good while it eases round to the next sunrise: no dusk, no night, no clock.
+// Inside, the time is still kept as an hour (5.6 to 11.6), which is what the horses, lads and horseboxes go by.
+const DAY = 250;                                                    // seconds from one sunrise to the next
+const RISE = 0.34, TURN = 0.92;                                     // the sunrise is the first third; the last 8% eases back to it
+const H0 = 5.6, H1 = 8.4, H2 = 11.6;
 let dayT = 0.04;
-const hourAt = (t) => (t < 0.86 ? 5.5 + (t / 0.86) * 16 : 21.5 + ((t - 0.86) / 0.14) * 8) % 24;
+const hourAt = (t) => (t < RISE ? H0 + (t / RISE) * (H1 - H0) : H1 + Math.min(1, (t - RISE) / (TURN - RISE)) * (H2 - H1));
 const hourNow = () => hourAt(dayT);
 const inHours = ([a, b]) => { const h = hourNow(); return h >= a && h < b; };
-// the light through the day: [hour, the colour the board is multiplied by, warm light, lamps, mist, smoke]
+// the light through the morning: [hour, the colour the board is multiplied by, warm light, lamps, mist, smoke]
 const LIGHT = [
-  [0, [70, 78, 128], 0, 1, 0.15, 0.5], [4.8, [70, 78, 128], 0, 1, 0.3, 0.5], [5.6, [168, 160, 196], 0.12, 0.7, 1, 0.9],
-  [6.6, [236, 222, 210], 0.14, 0.1, 1, 1], [8, [255, 255, 255], 0.05, 0, 0.45, 0.8], [9.5, [255, 255, 255], 0, 0, 0, 0.55],
-  [15, [255, 255, 255], 0.1, 0, 0, 0.5], [17.8, [255, 228, 196], 0.24, 0, 0, 0.7], [19.4, [214, 168, 162], 0.18, 0.45, 0.1, 0.9],
-  [20.6, [110, 110, 160], 0.06, 0.95, 0.15, 0.8], [21.5, [70, 78, 128], 0, 1, 0.15, 0.6], [24, [70, 78, 128], 0, 1, 0.15, 0.5],
+  [5.6, [168, 160, 196], 0.12, 0.7, 1, 0.9], [6.6, [236, 222, 210], 0.14, 0.1, 1, 1], [8, [255, 255, 255], 0.05, 0, 0.45, 0.8],
+  [9.5, [255, 255, 255], 0, 0, 0, 0.55], [12, [255, 255, 255], 0.04, 0, 0, 0.5],
 ];
 function lightAt(h) {
   let i = 0; while (i < LIGHT.length - 2 && LIGHT[i + 1][0] <= h) i++;
-  const a = LIGHT[i], b = LIGHT[i + 1], u = (h - a[0]) / (b[0] - a[0] || 1), mix = (x, y) => x + (y - x) * u;
+  const a = LIGHT[i], b = LIGHT[i + 1], u = Math.min(1, Math.max(0, (h - a[0]) / (b[0] - a[0] || 1))), mix = (x, y) => x + (y - x) * u;
   return { rgb: a[1].map((v, k) => Math.round(mix(v, b[1][k]))), warm: mix(a[2], b[2]), lamps: mix(a[3], b[3]), mist: mix(a[4], b[4]), smoke: mix(a[5], b[5]) };
 }
 const shade = document.getElementById("shade"), warm = document.getElementById("warm");
-const clockTime = document.getElementById("clockTime"), clockIcon = document.getElementById("clockIcon");
-const DAYICON = { sunrise: `%%ICON:sunrise%%`, sun: `%%ICON:sun%%`, sunset: `%%ICON:sunset%%`, moon: `%%ICON:moon%%` };
-let L = lightAt(hourNow()), lastIcon = "";
+let L = lightAt(hourNow());
 function stepDay(dt) {
   if (!REDUCED) dayT = (dayT + dt / DAY) % 1;
-  const h = hourNow(); L = lightAt(h);
-  const night = L.rgb[0] < 250;
-  shade.hidden = !night; if (night) shade.style.background = `rgb(${L.rgb.join(",")})`;
+  L = lightAt(hourNow());
+  if (dayT > TURN) {                                                // the day eases round to the next sunrise
+    const u = (dayT - TURN) / (1 - TURN), k = u * u * (3 - 2 * u), D = lightAt(H0), mix = (x, y) => x + (y - x) * k;
+    L = { rgb: L.rgb.map((v, i) => Math.round(mix(v, D.rgb[i]))), warm: mix(L.warm, D.warm), lamps: mix(L.lamps, D.lamps), mist: mix(L.mist, D.mist), smoke: mix(L.smoke, D.smoke) };
+  }
+  const dim = L.rgb[0] < 250;
+  shade.hidden = !dim; if (dim) shade.style.background = `rgb(${L.rgb.join(",")})`;
   warm.style.opacity = L.warm.toFixed(3);
   wisps.style.filter = `brightness(${(0.45 + 0.55 * L.rgb[0] / 255).toFixed(3)})`;
-  const hh = Math.floor(h), mm = Math.floor((h - hh) * 60 / 5) * 5;
-  clockTime.textContent = `${String(hh).padStart(2, "0")}:${String(mm).padStart(2, "0")}`;
-  const icon = h >= 5 && h < 7.5 ? "sunrise" : h >= 7.5 && h < 18 ? "sun" : h >= 18 && h < 21 ? "sunset" : "moon";
-  if (icon !== lastIcon) { clockIcon.innerHTML = DAYICON[icon]; lastIcon = icon; }
 }
 
 // ---------------------------------------------------------------- mist lying on the heath and the paddocks at dawn
@@ -440,7 +440,7 @@ function drawMist(dt) {
   }
 }
 
-// ---------------------------------------------------------------- lamps: windows and the street lamps, lit at dusk
+// ---------------------------------------------------------------- lamps: windows and the street lamps, still lit before sunrise
 // (assets/atmos.json: tools/atmos.py found the windows on the board)
 const lampC = document.getElementById("lamps"), lx = lampC.getContext("2d");
 let LAMPS = [];
@@ -676,7 +676,7 @@ const Sound = (() => {
       setTimeout(() => { stops.forEach((f) => f()); bus.disconnect(); }, 900);
     } };
   }
-  // always there while sound is on: the breeze, birds by day, an owl at night
+  // always there while sound is on: the breeze and the birds (the owl only before sunrise)
   function runBed() {
     const bus = gainAt(out, 0.7), stop = breeze(bus, 0.06), timers = [];
     const loop = () => { if (!S.on) return; const h = hourNow(), t = now() + 0.05;
@@ -883,7 +883,7 @@ const API = window.BOARD = {
   MW, MH, REDUCED, ROAD, PLACES, RACES, placeOf, medalAt, routeFor, join, rev,
   get scale() { return scale; }, view, stage, holder,
   inHours, hourNow,
-  setHour: (h) => { const t = h >= 5.5 && h < 21.5 ? (h - 5.5) / 16 * 0.86 : 0.86 + (((h - 21.5 + 24) % 24) / 8) * 0.14; dayT = t % 1; },
+  setHour: (h) => { h = Math.min(H2 - 0.4, Math.max(H0, h)); dayT = h <= H1 ? (h - H0) / (H1 - H0) * RISE : RISE + (h - H1) / (H2 - H1) * (TURN - RISE); },   // an hour of the morning (5.6 sunrise to 11)
   holdDay: false, covered: false, blocked: false, states: {},
   setStates, choose, hover, trail, clearTrail, leanTo, panTo, paintPic, fit,
   get chosen() { return chosen; },

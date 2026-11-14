@@ -13,6 +13,21 @@ const B = window.BOARD;
 const { MW, MH, REDUCED, ROAD, inHours, join, rev } = B;
 let renderer = null, lost = false;
 const RB = [632, 294];                                             // the roundabout at the top of the High Street
+// The roundabout has a monument on its island, so nothing goes straight over the middle: every route that reaches it
+// is taken round the island instead, clockwise as traffic goes, from the road it came in by to the road it leaves by.
+const RING = { x: 632, z: 292, rx: 19, rz: 13 };
+function roundabout(pts) {
+  const rad = (q) => Math.hypot((q[0] - RING.x) / RING.rx, (q[1] - RING.z) / RING.rz);
+  const i = pts.findIndex((q) => rad(q) < 2.1); if (i <= 0) return pts;
+  let j = i; while (j + 1 < pts.length && rad(pts[j + 1]) < 2.1) j++;
+  if (j >= pts.length - 1) return pts;
+  const ang = (q) => Math.atan2((q[1] - RING.z) / RING.rz, (q[0] - RING.x) / RING.rx);
+  let a = ang(pts[i - 1]), b = ang(pts[j + 1]); while (b <= a + 0.5) b += 6.2832;
+  const trim = Math.min(0.7, (b - a) * 0.3); a += trim; b -= trim;   // it joins the ring a little way round, and peels off before its road
+  const n = Math.max(1, Math.ceil((b - a) / 0.4)), arc = [];
+  for (let k = 0; k <= n; k++) { const t = a + (b - a) * k / n; arc.push([RING.x + RING.rx * Math.cos(t), RING.z + RING.rz * Math.sin(t)]); }
+  return [...pts.slice(0, i), ...arc, ...pts.slice(j + 1)];
+}
 // ---------------------------------------------------------------- the moving things, drawn in the board's own projection
 // world: x = board x, z = board y (both pixels), y = height in pixels. The board is drawn as if from the south with
 // heights straight up the page, so a point lands on the board at (x, z - y). Nearer the viewer = further south, higher.
@@ -56,9 +71,10 @@ function addShadow(obj, len, wid) {
 // ---- routes: the owner's red (strings), blue (horseboxes) and pink (yards and paddocks) lines, kept to the roads
 const P = (pts, closed = false) => { const c = new THREE.CatmullRomCurve3(pts.map(([x, z]) => new THREE.Vector3(x, 0, z)), closed, "centripetal"); c.L = c.getLength(); return c; };
 const STRINGS = [
-  // from the National Stud, down Bury Road, round by Exeter Road and out across the Gallops
+  // from the National Stud, down Bury Road, round by Exeter Road and out along the Avenue beside the Gallops (it used to
+  // cut across the Gallops themselves, through the lots at work there: AVENUE_W is filled in below, from the van routes)
   { route: join([[905, 262], [874, 247], [847, 228], [818, 208], [790, 194]], [[780, 198], [740, 222], [700, 250], [660, 280], RB], [[630, 262], [629, 236]], ROAD.exeter.slice(1),
-      [[270, 282], [230, 258], [190, 236], [150, 214], [110, 195], [70, 180], [30, 166], [-20, 152]]), n: 6, silk: "ballydoyle-navy", start: 0 },
+      [[250, 298], [215, 305]]), n: 6, silk: "ballydoyle-navy", start: 0, avenue: true },
   // from Tattersalls, up Kingston Road, down the High Street, out along Station Road onto Warren Hill
   { route: join([[752, 517], [729, 520], [702, 535], [671, 548], [640, 556], [606, 563], [574, 562]], [[590, 530], [605, 495], [618, 460], [626, 420], [629, 380], [630, 340], RB],
       ROAD.highSt.slice(1), ROAD.station.slice(1), [[215, 348], [170, 335], [120, 322], [70, 310], [-20, 292]]), n: 6, silk: "godolphin", start: 30 },
@@ -69,22 +85,43 @@ const STRINGS = [
 // the horseboxes' routes: the roads, slid onto the middle of the painted road (tools/snap_van_routes.py)
 // VAN_ROUTES (made by tools/snap_van_routes.py: do not edit by hand)
 const VAN_ROUTES = {
-  fordhamOldStn: [[630.0,-14.0],[626.6,34.0],[626.2,106.0],[621.0,144.9],[627.6,184.0],[629.7,256.0],[633.1,279.8],[631.9,291.9],[636.5,292.5],[647.9,291.2],[656.2,295.1],[677.6,315.7],[717.6,342.9],[745.2,366.6],[802.2,412.4],[834.2,434.9],[878.8,470.5],[928.0,506.3],[956.7,523.0],[985.2,537.9],[1060.4,582.0],[1140.6,624.0],[1191.8,643.9],[1413.2,736.4],[1441.5,746.5],[1451.1,746.4],[1465.1,743.7]],
-  nmktBury: [[98.4,1071.2],[115.7,1066.1],[151.9,1061.5],[169.5,1057.5],[209.2,1044.4],[253.8,1025.4],[283.5,1016.0],[295.6,1010.8],[308.5,1002.1],[340.8,970.2],[355.4,952.1],[363.5,943.8],[370.7,938.5],[389.3,927.9],[398.2,918.5],[445.7,840.6],[450.5,828.1],[452.0,819.1],[450.9,809.9],[448.0,800.0],[467.9,788.0],[475.7,777.0],[501.0,712.3],[513.1,685.4],[558.7,595.9],[574.2,556.1],[591.7,524.9],[604.9,488.2],[625.4,450.3],[632.4,420.7],[638.9,363.2],[638.2,339.2],[630.2,306.0],[632.0,294.0],[634.9,290.6],[643.9,284.2],[658.9,280.5],[669.9,275.4],[707.9,251.3],[739.7,228.9],[806.5,188.8],[840.7,165.3],[929.6,115.5],[979.6,82.8],[1028.6,46.9],[1062.6,26.7],[1099.9,-7.2],[1107.7,-12.0],[1119.4,-17.4]],
-  fordhamNmkt: [[630.0,-14.0],[626.6,34.0],[626.2,106.0],[621.0,144.9],[621.9,153.9],[626.6,175.0],[627.8,187.0],[629.7,256.0],[633.1,279.8],[630.2,303.1],[630.4,309.0],[637.2,333.2],[639.2,354.2],[638.2,372.2],[633.7,411.4],[629.5,435.8],[623.0,456.0],[603.7,490.9],[590.5,527.6],[574.2,556.1],[558.7,595.9],[519.4,672.2],[503.2,707.1],[475.7,777.0],[467.9,788.0],[462.5,791.7],[449.7,797.6],[449.4,804.5],[451.5,813.0],[451.8,822.1],[449.5,831.2],[445.7,840.6],[399.9,915.9],[394.2,923.6],[386.6,929.7],[370.7,938.5],[363.5,943.8],[334.6,976.8],[313.2,997.9],[301.0,1007.7],[286.7,1014.9],[253.8,1025.4],[212.0,1043.3],[169.5,1057.5],[151.9,1061.5],[115.7,1066.1],[98.4,1071.2]],
-  toTheRaces: [[722.0,721.0],[659.0,722.0],[636.0,726.0],[616.0,734.0],[598.0,736.0],[583.0,733.0],[531.0,743.0],[496.0,758.0],[468.0,787.0],[448.0,800.0],[467.9,788.0],[475.7,777.0],[503.2,707.1],[519.4,672.2],[558.7,595.9],[574.2,556.1],[590.5,527.6],[603.7,490.9],[623.0,456.0],[629.5,435.8],[633.7,411.4],[638.2,372.2],[639.2,354.2],[637.2,333.2],[630.4,309.0],[630.2,303.1],[633.1,279.8],[629.7,256.0],[627.8,187.0],[626.6,175.0],[621.9,153.9],[621.0,144.9],[626.2,106.0],[626.6,34.0],[630.0,-14.0]],
+  oldStnFordham: [[1465.1,743.7],[1451.1,746.4],[1441.5,746.5],[1413.2,736.4],[1189.0,642.8],[1140.6,624.1],[1060.3,582.3],[987.6,539.4],[956.7,522.9],[920.2,501.4],[836.6,436.8],[799.6,410.8],[779.1,393.1],[745.3,366.5],[719.1,340.8],[677.6,315.7],[656.2,295.1],[650.8,292.0],[644.9,291.1],[632.0,294.0],[633.1,279.8],[629.8,256.0],[629.8,226.0],[628.0,187.0],[621.0,144.9],[626.2,106.0],[626.6,34.0],[630.0,-14.0]],
+  nmktFordham: [[98.4,1071.2],[115.7,1066.1],[151.9,1061.6],[169.4,1057.4],[212.0,1043.3],[247.9,1026.8],[286.7,1014.8],[300.9,1007.7],[313.2,997.9],[334.6,976.8],[363.5,943.8],[370.7,938.5],[386.6,929.7],[394.2,923.6],[399.9,915.9],[445.7,840.6],[450.6,828.2],[452.2,819.2],[451.0,809.9],[448.0,800.0],[467.7,787.9],[475.4,776.8],[486.4,751.2],[495.6,725.9],[507.0,682.6],[511.7,675.0],[526.9,655.9],[548.0,618.0],[562.5,587.2],[573.7,555.9],[590.4,527.6],[604.4,488.0],[609.8,477.3],[623.0,456.0],[628.6,438.7],[637.8,375.2],[639.2,354.2],[637.1,333.2],[630.4,309.0],[630.2,303.1],[633.1,279.8],[629.8,256.0],[628.4,193.0],[626.7,175.0],[621.9,153.9],[621.0,144.9],[626.2,106.0],[626.6,34.0],[630.0,-14.0]],
+  buryAvenue: [[1119.4,-17.4],[1107.7,-12.0],[1099.9,-7.2],[1062.6,26.7],[1028.6,46.9],[979.6,82.8],[929.5,115.4],[840.7,165.4],[806.5,188.8],[739.6,228.9],[710.4,249.7],[669.9,275.4],[661.8,279.5],[641.2,285.5],[634.9,290.6],[626.0,301.0],[619.0,306.5],[597.4,316.9],[526.1,361.4],[496.4,375.9],[459.4,402.3],[437.4,419.7],[429.5,424.4],[420.9,427.2],[408.0,426.2],[388.3,421.8],[335.1,393.9],[263.3,352.1],[252.2,341.9],[225.7,333.5],[197.4,316.6],[165.6,299.9],[133.5,278.1],[101.4,261.8],[49.0,232.5],[-1.9,200.8],[-17.4,185.4]],
+  toTheRaces: [[722.0,721.0],[659.0,722.0],[636.0,726.0],[616.0,734.0],[598.0,736.0],[583.0,733.0],[531.0,743.0],[496.0,758.0],[490.6,740.0],[499.1,714.6],[504.1,691.1],[507.0,682.6],[511.7,675.0],[526.9,655.9],[549.4,615.3],[562.5,587.2],[573.7,555.9],[591.6,524.8],[605.7,485.3],[624.3,453.2],[629.7,432.8],[637.8,375.2],[639.2,354.2],[637.1,333.2],[630.4,309.0],[630.2,303.1],[633.1,279.8],[629.8,256.0],[628.4,193.0],[626.7,175.0],[621.9,153.9],[621.0,144.9],[626.2,106.0],[626.6,34.0],[630.0,-14.0]],
 };
 // /VAN_ROUTES
-const VANS = [VAN_ROUTES.fordhamOldStn, VAN_ROUTES.nmktBury, VAN_ROUTES.fordhamNmkt];
-const GALLOPS = [[-20, 190], [60, 178], [130, 165], [200, 150], [270, 135], [340, 118], [410, 104], [480, 92], [536, 84]];
+// One way round (owner, 14 Nov: "some of the vans are still hitting buildings, horses or each other"): every road has one
+// direction, the one the strings already walk it in, so nothing meets head on. In by Old Station Road, Newmarket Road
+// and Bury Road; out up Fordham Road, or down the High Street and Station Road to the Avenue.
+const VANS = [VAN_ROUTES.oldStnFordham, VAN_ROUTES.nmktFordham, VAN_ROUTES.buryAvenue];
+const AVENUE_W = VAN_ROUTES.buryAvenue.filter(([x, z]) => x < 204 && z < 310);   // the Avenue, from Exeter Road's end to the board's edge
+for (const s of STRINGS) { if (s.avenue) s.route = s.route.concat(AVENUE_W); s.route = roundabout(s.route); }
+// The Gallops: the lots come in over the board's edge, gallop up the field, wheel round at the top and come back out
+// along the hedge, so nothing appears or fades in the middle of the heath.
+const GALLOPS = [[-20, 178], [60, 171], [130, 162], [200, 150], [270, 137], [340, 123], [410, 109], [480, 96], [530, 88], [553, 76], [550, 62], [530, 55],
+  [480, 60], [410, 74], [340, 88], [270, 102], [200, 116], [130, 129], [60, 142], [-20, 156]];
 const WARREN = [[262, 448], [205, 428], [152, 407], [110, 390], [60, 377], [10, 366], [-20, 360]];
 const LONER = [[135, 786], [164, 783], [197, 760], [225, 743], [258, 726], [274, 734], [279, 769], [295, 803], [317, 850], [315, 877], [306, 889], [285, 903],
   [256, 910], [188, 917], [177, 927], [101, 957], [63, 983], [20, 1005], [-20, 1022]];
-const PADDOCK = [
-  { pts: [[1022, 129], [1075, 93], [1105, 82], [1129, 78], [1159, 79], [1190, 87], [1227, 106], [1254, 127]], coat: 2 },
-  { pts: [[1315, 209], [1282, 246], [1266, 256], [1248, 259], [1234, 254], [1220, 242], [1205, 217], [1196, 193]], coat: 0 },
-  { pts: [[1027, 423], [1140, 392], [1257, 361]], coat: 3 },
+const PADDOCK = [                                                   // w: how far the way back lies from the way out
+  { pts: [[1022, 129], [1075, 93], [1105, 82], [1129, 78], [1159, 79], [1190, 87], [1227, 106], [1254, 127]], coat: 2, w: 14 },
+  { pts: [[1315, 209], [1282, 246], [1266, 256], [1248, 259], [1234, 254], [1220, 242], [1205, 217], [1196, 193]], coat: 0, w: -11 },
+  { pts: [[1027, 423], [1140, 392], [1257, 361]], coat: 3, w: 9 },
 ];
+// Where the painted horses stood (they are painted out of the game's board: newmarket-live/tools/clean_board.py --game),
+// moving ones go round instead. [centre x, z, half length, half width, turn, how many, kind], kind: loose, ridden or led.
+const ROUNDS = [
+  [800, 96, 60, 22, 0.05, 3, "loose"], [852, 100, 38, 24, -0.2, 2, "loose"], [905, 180, 36, 15, 0.35, 2, "loose"],   // the paddocks by Bury Road
+  [1270, 188, 62, 20, 0.33, 2, "ridden"], [1222, 301, 30, 9, 0, 1, "loose"],                                            // the Stud's paddocks
+  [985, 449, 42, 9, -0.35, 2, "loose"], [1305, 447, 34, 12, 0.1, 1, "loose"], [1292, 576, 30, 10, 0, 1, "ridden"],
+  [215, 712, 70, 24, -0.2, 1, "ridden"],                                                                               // the hack below Palace House
+  [838, 575, 26, 9, 0.35, 2, "led"], [858, 722, 30, 13, -0.2, 1, "ridden"],                                             // Tattersalls: the yard and the lawn
+  [860, 868, 85, 11, -0.2, 2, "led"],                                                                                  // round the stable yard
+];
+const PATH_WEST = [[776, 612], [769, 634], [763, 656], [757, 680]];   // the sandy path west of Tattersalls: a horse led up and down
+// a there-and-back line made into a round, so a horse never turns on the spot (w: how far apart the two sides are)
+const loopOf = (pts, w = 12) => pts.concat(rev(pts).map(([x, z]) => [x, z + w]));
 const YARD_TRIPS = [                                               // led out of one stable and into another
   [[962, 870], [925, 866], [890, 864], [850, 866], [815, 870], [785, 878], [756, 892]],
   [[790, 905], [805, 925], [830, 938], [860, 943], [900, 940], [940, 932], [985, 922], [1030, 905], [1068, 886]],
@@ -98,9 +135,9 @@ const PEOPLE_TRIPS = [
 const movers = [];
 let horseProto = null, peopleProto = null, silkList = [], maskTex = null, clipsByName = {}, horseScale = 1, personScale = 1;
 const silkTex = new Map(), texLoader = new THREE.TextureLoader();
+function silkTexture(id) { if (!silkTex.has(id)) { const t = texLoader.load(`assets/silks-3d/${id}.png`); t.flipY = false; t.colorSpace = THREE.SRGBColorSpace; silkTex.set(id, t); } return silkTex.get(id); }
 // colours a player made themselves: painted here, in the little horses' own layout (silks-paint.js)
 function ownTexture(spec) { const id = "own:" + window.SilksPaint.encode(spec); if (!silkTex.has(id)) { const t = new THREE.CanvasTexture(window.SilksPaint.texture(spec, 512, "v1")); t.flipY = false; t.colorSpace = THREE.SRGBColorSpace; silkTex.set(id, t); } return silkTex.get(id); }
-function silkTexture(id) { if (!silkTex.has(id)) { const t = texLoader.load(`assets/silks-3d/${id}.png`); t.flipY = false; t.colorSpace = THREE.SRGBColorSpace; silkTex.set(id, t); } return silkTex.get(id); }
 const COATS = [["#6e4026", "#1d1714"], ["#4a2e1c", "#17110d"], ["#9a4f28", "#5f2e14"], ["#2b2523", "#141110"], ["#8f8d88", "#5d5b56"], ["#7a4a2a", "#1d1714"]];
 let nHorse = 0;
 function makeHorse({ silk: silkId, rider = true, coat: coatIx } = {}) {
@@ -168,14 +205,14 @@ function makeVan(k) {
     const w = new THREE.Mesh(new THREE.CylinderGeometry(2.1, 2.1, 1.4, 12).rotateX(Math.PI / 2), dark); w.position.set(x, 2.1, z); g.add(w);
   }
   g.scale.setScalar(0.95); scene.add(g); addShadow(g, 28, 12);
-  return { obj: g, mats: [body, roof, dark, glass], keepLeft: 4, van: true };   // in its own lane, inside the painted road
+  return { obj: g, mats: [body, roof, dark, glass], keepLeft: 1, van: true, rank: k };   // down the middle: the roads are one way
 }
-const tmpN = new THREE.Vector3();
+const tmpN = new THREE.Vector3(), tmpS = new THREE.Vector3(), tmpD = new THREE.Vector3(), tmpQ = new THREE.Vector3();
 function place(m, p, dir, alpha, t = 0) {
   m.obj.position.copy(p);
   if (dir) {
     m.obj.rotation.y = Math.atan2(-dir.z, dir.x);                 // the models face +x
-    if (m.keepLeft) { tmpN.set(dir.z, 0, -dir.x).normalize().multiplyScalar(m.keepLeft); m.obj.position.add(tmpN); }   // drive on the left
+    if (m.keepLeft) { tmpN.set(dir.z, 0, -dir.x).normalize().multiplyScalar(m.keepLeft); m.obj.position.add(tmpN); }   // on the left of the road
   }
   if (m.person && !REDUCED) m.obj.position.y = Math.abs(Math.sin(t * 7)) * 0.6;
   if (m.obj.userData.ground) m.obj.userData.ground.value = m.obj.position.z;
@@ -184,55 +221,123 @@ function place(m, p, dir, alpha, t = 0) {
   m.obj.visible = s.visible = alpha > 0.01;
   for (const mt of m.mats) mt.opacity = alpha;
   s.material.opacity = alpha;
-  if (m.lead) {                                                    // the lad at the horse's near side, a step ahead
-    const d = dir ? dir.clone().normalize() : new THREE.Vector3(1, 0, 0);
-    const q = p.clone().add(new THREE.Vector3(d.z, 0, -d.x).multiplyScalar(-6)).add(d.clone().multiplyScalar(4));
+  if (m.lead) {
+    // The lad walks at the horse's shoulder on whichever side is nearer the viewer. The board is drawn from the south
+    // with heights going straight up the page, so a lad on the far side was drawn standing on the horse's back
+    // (owner, 14 Nov: "these people standing on horses?"). When the horse turns he crosses in front of its nose.
+    const d = tmpD.copy(m.dir || tmpD.set(1, 0, 0)), side = tmpS.set(d.z, 0, -d.x);
+    if (side.z < 0) side.negate();                                 // the side nearer the viewer
+    const flip = m.sideWas && m.sideWas.dot(side) < 0 && Math.abs(side.z) < 0.25;
+    if (flip) side.negate();                                       // heading nearly north or south: he stays where he is
+    m.sideWas = (m.sideWas || new THREE.Vector3()).copy(side);
+    m.sideNow = m.sideNow ? m.sideNow.lerp(side, 0.06) : side.clone();
+    const k = Math.min(1, m.sideNow.length());                     // less than 1 while he is crossing over
+    const q = tmpQ.copy(m.obj.position).setY(0).addScaledVector(m.sideNow, 6.5).addScaledVector(d, 5 + (1 - k) * 9);
     place(m.lead, q, d, alpha, t);
   }
 }
+const hide = (m, t) => { m.path = null; m.spd = 0; place(m, m.obj.position, null, 0, t); };
 // a journey: legs along routes (or pauses); it repeats after a rest. Fades in and out where it starts and ends in the open.
-function journey(m, legs, { start = 0, rest = 8, fadeIn = true, fadeOut = true, hours = null } = {}) {
+// road: it uses the roads, so the horseboxes look out for it. group: a string, which halts together.
+function journey(m, legs, { start = 0, rest = 8, fadeIn = true, fadeOut = true, hours = null, road = false, group = null } = {}) {
   const ls = legs.map((l) => ({ ...l, dur: l.pause ?? l.curve.L / l.speed })), total = ls.reduce((a, l) => a + l.dur, 0);
   let last = null, lastDir = null, clock = -start;
+  if (road) ROADIES.push(m);
+  if (group) group.members.push(m);
   movers.push({ m, step(t, dt) {
-    // between runs, wait for the right time of day (the strings go out in the morning; nobody works at night)
+    // between runs, wait for the right time of the morning (the strings go out at sunrise)
     const idle = clock < 0 || clock % (total + rest) > total;
-    if (idle && hours && !inHours(hours)) { place(m, m.obj.position, null, 0, t); return; }
-    if (!(m.van && blocked(m))) clock += dt;
-    if (clock < 0) { place(m, m.obj.position, null, 0, t); return; }
+    if (idle && hours && !inHours(hours)) { hide(m, t); return; }
+    if (m.van) { m.go = ease(m.go ?? 1, rightOfWay(m), dt * 2.5); clock += dt * m.go; }
+    else if (!(group && group.hold)) clock += dt;
+    if (clock < 0) { hide(m, t); return; }
     const tau = clock % (total + rest);
-    if (tau > total) { place(m, m.obj.position, null, 0, t); return; }
+    if (tau > total) { hide(m, t); return; }
     let acc = 0;
     for (const l of ls) {
       if (tau <= acc + l.dur) {
         const a = Math.min(fadeIn ? Math.min(1, tau / 1.2) : 1, fadeOut ? Math.min(1, (total - tau) / 1.2) : 1);
         if (l.pause != null) { if (m.act) setGait(m, "stand", 0); if (last) place(m, last, lastDir, a, t); return; }
         const u = (tau - acc) / l.dur, p = l.curve.getPointAt(u), d = l.curve.getTangentAt(u);
-        if (m.act) setGait(m, l.gait, l.speed);
+        const held = group && group.hold;
+        if (m.act) setGait(m, held ? "stand" : l.gait, l.speed);
+        m.path = m.path || {}; m.path.curve = l.curve; m.path.s = u * l.curve.L; m.cruise = l.speed; m.spd = held ? 0 : l.speed * (m.van ? m.go : 1);
         last = p; lastDir = d; place(m, p, d, a, t); return;
       }
       acc += l.dur;
     }
   } });
 }
-// a horsebox waits while anyone on foot or hoof is just ahead of it in its lane
-const tmpV = new THREE.Vector3();
-function blocked(van) {
-  if (!van.dir || !van.obj.visible) return false;
-  for (const mv of movers) {
-    const o = mv.m; if (o === van || o.van || !o.obj.visible) continue;
-    tmpV.subVectors(o.obj.position, van.obj.position).setY(0);
-    const along = tmpV.dot(van.dir), side = Math.abs(tmpV.x * van.dir.z - tmpV.z * van.dir.x);
-    if (along > 2 && along < 40 && side < 10) return true;
-  }
-  return false;
+const ease = (v, to, step) => v + Math.max(-step, Math.min(step, to - v));
+
+// ---- right of way (owner, 14 Nov: "some of the vans are still hitting buildings, horses or each other")
+// Everything on the roads is in ROADIES. A horsebox looks a few seconds down its own route, and at where everything
+// near it will be by then: if it would come up against a horse, a lad or another horsebox ahead of it, it eases off
+// and waits, and falls in behind a string going its way. Only one horsebox is on the roundabout at a time.
+const ROADIES = [], GROUPS = [];
+const ZONE = { x: 632, z: 292, rx: 52, rz: 40 };                   // the roundabout and the mouths of its roads
+let zoneOwner = null;
+const inZone = (q) => Math.hypot((q.x - ZONE.x) / ZONE.rx, (q.z - ZONE.z) / ZONE.rz) < 1;
+const A0 = new THREE.Vector3(), A1 = new THREE.Vector3(), B0 = new THREE.Vector3(), tmpV = new THREE.Vector3();
+// where a thing will be in tau seconds, going at v: along its route if it has one
+function ahead(m, tau, v, out) {
+  if (m.path && m.path.curve) return m.path.curve.getPointAt(Math.min(1, Math.max(0, (m.path.s + v * tau) / m.path.curve.L)), out);
+  out.copy(m.obj.position); if (m.dir) out.addScaledVector(m.dir, v * tau); return out;
 }
-function circuit(m, curve, speed, phase, gait = "walk", hours = null) {
+// how many seconds until a, driving on, comes up against b ahead of it (Infinity if it won't in the next three)
+function meets(a, b) {
+  tmpV.subVectors(b.obj.position, a.obj.position).setY(0);
+  if (tmpV.length() > 170) return Infinity;
+  if (a.dir && b.dir && a.dir.dot(b.dir) > 0.3 && tmpV.dot(a.dir) < 0) return Infinity;   // it is behind, going my way: its look-out, not mine
+  const gap = b.van ? 34 : 24, vb = b.spd || 0;
+  for (let tau = 0; tau <= 3.01; tau += 0.5) {
+    ahead(a, tau, a.cruise, A0); ahead(b, tau, vb, B0); B0.y = A0.y = 0;
+    if (A0.distanceTo(B0) >= gap) continue;
+    ahead(a, tau + 0.3, a.cruise, A1); A1.y = 0;
+    if (A1.sub(A0).dot(B0.sub(A0)) >= 0) return tau;               // and ahead of me when I get there
+  }
+  return Infinity;
+}
+// 1 = drive on, 0 = wait, and in between as something ahead gets nearer
+function rightOfWay(van) {
+  if (!van.path || !van.obj.visible) { if (zoneOwner === van) zoneOwner = null; return 1; }
+  ahead(van, 0, 0, A0); const inNow = inZone(A0); ahead(van, 1.4, van.cruise, A1); const wants = inNow || inZone(A1);
+  if (zoneOwner === van && !wants) zoneOwner = null;
+  if (wants && !zoneOwner) zoneOwner = van;
+  if (wants && zoneOwner !== van && !inNow) return 0;
+  let first = Infinity;
+  for (const o of ROADIES) {
+    if (o === van || !o.obj.visible) continue;
+    const tau = meets(van, o);
+    if (tau === Infinity) continue;
+    if (o.van && van.rank < o.rank && meets(o, van) < Infinity) continue;   // each would wait for the other: the first of them goes
+    if (tau < first) first = tau;
+  }
+  return first >= 3 ? 1 : first <= 1 ? 0 : (first - 1) / 2;
+}
+// a string halts, all together, rather than walk into the back of a horsebox standing in its way
+function holdGroups() {
+  for (const g of GROUPS) {
+    g.hold = false;
+    for (const h of g.members) {
+      if (!h.obj.visible || !h.dir) continue;
+      for (const o of ROADIES) {
+        if (!o.van || !o.obj.visible) continue;
+        tmpV.subVectors(o.obj.position, h.obj.position).setY(0);
+        const along = tmpV.dot(h.dir), side = Math.abs(tmpV.x * h.dir.z - tmpV.z * h.dir.x);
+        if (along > 4 && along < 30 && side < 9) { g.hold = true; break; }
+      }
+      if (g.hold) break;
+    }
+  }
+}
+const newGroup = () => { const g = { members: [], hold: false }; GROUPS.push(g); return g; };
+function circuit(m, curve, speed, phase, gait = "walk") {
   movers.push({ m, step(t) {
-    if (hours && !inHours(hours)) { place(m, m.obj.position, null, 0, t); return; }
-    const u = ((phase + t * speed / curve.L) % 1 + 1) % 1;
-    if (m.act) setGait(m, gait, speed);
-    place(m, curve.getPointAt(u), curve.getTangentAt(u), 1, t);
+    const u = ((phase + t * speed / curve.L) % 1 + 1) % 1, d = curve.getTangentAt(u);
+    if (speed < 0) d.negate();                                     // going round the other way
+    if (m.act) setGait(m, gait, Math.abs(speed));
+    place(m, curve.getPointAt(u), d, 1, t);
   } });
 }
 const oval = (cx, cz, rx, rz, turn = 0, n = 24) => { const c = Math.cos(turn), s = Math.sin(turn);
@@ -273,33 +378,46 @@ async function startLife() {
   horseScale = 20 / Math.max(size.x, size.z);                      // a horse on the board is about 20 pixels nose to tail
   personScale = 12 / 1.8;                                          // and a person about 12 pixels tall
 
+  // a phone gets a lighter board: fewer of the horses that are always in sight, and smaller lots on the gallops
+  const few = phone;
   // strings walking out to the heath, off the left edge, then round again
-  for (const s of STRINGS) { const c = P(s.route); for (let i = 0; i < s.n; i++) { const h = makeHorse({ silk: s.silk }); h.keepLeft = 4; journey(h, [{ curve: c, speed: 15, gait: "walk" }], { start: s.start + i * 1.7, rest: 26, hours: [5.8, 11.5] }); } }
-  // the Gallops and Warren Hill: lots working in a line
-  const gal = P(GALLOPS), war = P(WARREN), lone = P(LONER);
-  // morning is the busy time on the gallops: two more lots on each, and the afternoon lots are smaller
-  for (let lot = 0; lot < 3; lot++) {
-    const n = lot === 2 ? 3 : 5, hours = lot === 2 ? [6, 17] : [6, 11.5];
-    for (let i = 0; i < n; i++) journey(makeHorse(), [{ curve: P(GALLOPS.map(([x, z]) => [x, z + (i % 2) * 8 + lot * 3])), speed: 70 - i, gait: "gallop" }], { start: 4 + lot * 9 + i * 1.1, rest: 24, hours });
+  for (const s of STRINGS) { const c = P(s.route), g = newGroup(); for (let i = 0; i < s.n; i++) { const h = makeHorse({ silk: s.silk }); h.keepLeft = 4; journey(h, [{ curve: c, speed: 15, gait: "walk" }], { start: s.start + i * 1.7, rest: 20, hours: [5.75, 11.5], road: true, group: g }); } }
+  // The Gallops and Warren Hill: lots working in pairs. A first lot is out in the half light; once it has brightened
+  // up a little the heath fills (owner, 14 Nov: "increase the horses on the gallops once it's brightened up a tad").
+  const lone = P(LONER), BRIGHT = 6.4;
+  const galLots = few ? 3 : 4, galN = few ? 4 : 5, galLen = P(GALLOPS).L / 66;
+  for (let lot = 0; lot < galLots; lot++)
+    for (let i = 0; i < galN; i++) journey(makeHorse(), [{ curve: P(GALLOPS.map(([x, z], k) => (i % 2 ? (k < 9 ? [x, z - 7] : k < 12 ? [x - 7, z] : [x, z + 7]) : [x, z]))), speed: 66 - (i >> 1), gait: "gallop" }],
+      { start: 3 + lot * (galLen + 7) / galLots + (i >> 1) * 0.9, rest: 7, hours: [lot ? BRIGHT : 5.8, 11.5] });
+  const warLots = few ? 3 : 4, warN = few ? 3 : 4, warLen = P(WARREN).L / 54;
+  for (let lot = 0; lot < warLots; lot++)
+    for (let i = 0; i < warN; i++) journey(makeHorse(), [{ curve: P(WARREN.map(([x, z]) => [x, z + (i % 2) * 7 + (lot % 2) * 3])), speed: 54, gait: "gallop" }],
+      { start: 6 + lot * (warLen + 9) / warLots + (i >> 1) * 0.9, rest: 9, hours: [lot ? BRIGHT : 5.9, 11.5] });
+  journey(makeHorse(), [{ curve: lone, speed: 46, gait: "gallop" }], { start: 9, rest: 12, hours: [6, 11.5] });
+  // horseboxes: in by Old Station Road, Newmarket Road and Bury Road, out up Fordham Road and along the Avenue
+  VANS.forEach((r, i) => journey(makeVan(i), [{ curve: P(roundabout(r)), speed: 28 }], { start: i * 16 + 4, rest: 12 + i * 5, hours: [6.2, 11.5], road: true }));
+  // The paddocks and yards. Nothing stands still (owner, 14 Nov: "there shouldn't really be any still horses"): the
+  // loose horses amble round and round their paddocks, the led and ridden ones go round the yards and the lawns.
+  let nRound = 0;
+  const round = (curve, kind, speed, phase, coat, back) => {
+    const h = makeHorse({ rider: kind === "ridden", coat }); if (kind === "led") h.lead = makePerson();
+    circuit(h, curve, back ? -speed : speed, phase, "walk");
+  };
+  for (const pd of PADDOCK) round(P(loopOf(pd.pts, pd.w ?? 12), true), "loose", 6.5, Math.random(), pd.coat);
+  journey(makeHorse({ rider: false, coat: 4 }), [{ curve: P([[1333, 431], [1390, 452], [1466, 482]]), speed: 7, gait: "walk" }], { start: 5, rest: 6 });
+  for (const [cx, cz, rx, rz, turn, n, kind] of ROUNDS) {
+    const c = P(oval(cx, cz, rx, rz, turn), true), back = nRound++ % 2 === 1, k = few ? Math.ceil(n / 2) : n;
+    for (let i = 0; i < k; i++) round(c, kind, kind === "loose" ? 6 + (i % 2) : kind === "led" ? 9 : 11, i / k + 0.13 * nRound, nRound + i * 2, back);
   }
-  for (let lot = 0; lot < 3; lot++) {
-    const n = lot === 2 ? 3 : 4, hours = lot === 2 ? [6, 17] : [6, 11.5];
-    for (let i = 0; i < n; i++) journey(makeHorse(), [{ curve: P(WARREN.map(([x, z]) => [x, z + (i % 2) * 7 + lot * 3])), speed: 54, gait: "gallop" }], { start: 14 + lot * 8 + i * 1.0, rest: 22, hours });
-  }
-  journey(makeHorse(), [{ curve: lone, speed: 46, gait: "gallop" }], { start: 9, rest: 16, hours: [6, 19] });
-  // horseboxes in from the top and the bottom of the board, out along Bury Road and Old Station Road
-  VANS.forEach((r, i) => journey(makeVan(i), [{ curve: P(r), speed: 26 + (i % 3) * 4 }], { start: i * 16 + 4, rest: 14 + i * 5, hours: [6.5, 21] }));
-  // the paddocks: loose horses wandering along, a rest, and back
-  for (const pd of PADDOCK) { const c = P(pd.pts), b = P(rev(pd.pts));
-    journey(makeHorse({ rider: false, coat: pd.coat }), [{ curve: c, speed: 6, gait: "walk" }, { pause: 7 }, { curve: b, speed: 6, gait: "walk" }, { pause: 9 }], { start: Math.random() * 20, rest: 0, fadeIn: false, fadeOut: false }); }
-  journey(makeHorse({ rider: false, coat: 4 }), [{ curve: P([[1333, 431], [1390, 452], [1466, 482]]), speed: 7, gait: "walk" }], { start: 5, rest: 12 });
-  // the yards: horses led from one stable to another, a horse ridden round the lunge ring, people about
+  round(P(loopOf(PATH_WEST, 9), true), "led", 8, 0.2, 2);
+  // the yards: horses led from one stable to another, horses ridden round the ring, people about
   YARD_TRIPS.forEach((tr, i) => { const h = makeHorse({ rider: false }); h.lead = makePerson();
-    journey(h, [{ curve: P(tr), speed: 9, gait: "walk" }], { start: 3 + i * 14, rest: 10 + i * 4, hours: [6, 20] }); });
-  circuit(makeHorse(), P([[1281, 847], [1241, 870], [1242, 883], [1260, 908], [1346, 896], [1370, 887], [1345, 852], [1305, 843]], true), 13, 0, "walk", [7, 19]);
+    journey(h, [{ curve: P(tr), speed: 9, gait: "walk" }], { start: 3 + i * 9, rest: 3 + i * 2 }); });
+  const ring = P([[1281, 847], [1241, 870], [1242, 883], [1260, 908], [1346, 896], [1370, 887], [1345, 852], [1305, 843]], true);
+  for (let i = 0; i < 2; i++) circuit(makeHorse(), ring, 13, i / 2, "walk");
   const parade = P(oval(1168, 752, 53, 26, 0.26), true);
-  for (let i = 0; i < 3; i++) { const h = makeHorse({ rider: false }); h.lead = makePerson(); circuit(h, parade, 9, i / 3, "walk", [8, 18]); }
-  PEOPLE_TRIPS.forEach((tr, i) => journey(makePerson(), [{ curve: P(tr), speed: 7, gait: "walk" }, { pause: 3 }, { curve: P(rev(tr)), speed: 7, gait: "walk" }], { start: i * 2.3, rest: 4 + i, fadeIn: false, fadeOut: false, hours: [5.5, 21] }));
+  for (let i = 0; i < 3; i++) { const h = makeHorse({ rider: false }); h.lead = makePerson(); circuit(h, parade, 9, i / 3, "walk"); }
+  PEOPLE_TRIPS.forEach((tr, i) => journey(makePerson(), [{ curve: P(tr), speed: 7, gait: "walk" }, { pause: 3 }, { curve: P(rev(tr)), speed: 7, gait: "walk" }], { start: i * 2.3, rest: 4 + i, fadeIn: false, fadeOut: false }));
 
   window.__lifeReady = true;
   // a check hook: stand a horse at a board point (it shows whether buildings in front of it hide it)
@@ -314,6 +432,9 @@ if (location.hash === "#routes") {
   STRINGS.forEach((s) => line(s.route, "#e0102a")); [GALLOPS, WARREN, LONER].forEach((r) => line(r, "#00a040"));
   [...PADDOCK.map((p) => p.pts), ...YARD_TRIPS, ...PEOPLE_TRIPS].forEach((r) => line(r, "#ff30d0"));
   line(oval(1168, 752, 53, 26, 0.26), "#ff8000", true);
+  for (const [cx, cz, rx, rz, turn] of ROUNDS) line(oval(cx, cz, rx, rz, turn), "#ff8000", true);
+  PADDOCK.forEach((pd) => line(loopOf(pd.pts, pd.w), "#ff8000", true)); line(loopOf(PATH_WEST, 9), "#ff8000", true);
+  VANS.forEach((r) => line(roundabout(r), "#00e0ff"));
   for (const k of ["jockey>stud", "stud>tatts", "tatts>stables", "stables>warren", "warren>jockey", "jockey>races", "races>palace"]) line(B.routeFor(...k.split(">")), "#ffd24a");
   setTimeout(() => document.querySelectorAll("#glow .site").forEach((z) => z.classList.add("hot")), 50);
 }
@@ -327,34 +448,53 @@ const PROC = {
   boxes: { route: () => VAN_ROUTES.toTheRaces, n: 3, gap: 2.6, speed: 70, make: (i) => makeVan(i) },
 };
 const shots = [];
+const LITE = document.documentElement.classList.contains("lite");
+let tick = 0;
 function procession(kind, opts = {}) {
   const P0 = PROC[kind]; if (!P0 || !horseProto) return 0;
-  const curve = P(P0.route()), dur = curve.L / P0.speed;
+  const curve = P(roundabout(P0.route())), dur = curve.L / P0.speed;
   for (let i = 0; i < P0.n; i++) {
-    const m = P0.make(i, opts); if (m.act) setGait(m, "walk", P0.speed); if (m.van) m.keepLeft = 6; else m.keepLeft = 3;
+    const m = P0.make(i, opts); if (m.act) setGait(m, "walk", P0.speed); if (m.van) { m.keepLeft = 1; m.rank = 10 + i; } else m.keepLeft = 3;
+    m.path = { curve, s: 0 }; m.cruise = P0.speed; ROADIES.push(m);                // on the roads: the horseboxes look out for it
     shots.push({ m, curve, speed: P0.speed, t: -i * P0.gap, dur, gait: P0.speed > 26 && m.act ? "gallop" : "walk" });
   }
   return (dur + P0.n * P0.gap) * 1000;
 }
 function stepShots(t, dt) {
   for (let k = shots.length - 1; k >= 0; k--) {
-    const s = shots[k]; s.t += dt;
-    if (s.t < 0) { place(s.m, s.m.obj.position, null, 0, t); continue; }
-    if (s.t > s.dur) { place(s.m, s.m.obj.position, null, 0, t); s.m.obj.visible = false; shots.splice(k, 1); continue; }
+    const s = shots[k], m = s.m;
+    if (m.van && s.t >= 0) { m.go = ease(m.go ?? 1, rightOfWay(m), dt * 2.5); s.t += dt * m.go; } else s.t += dt;
+    if (s.t < 0) { place(m, m.obj.position, null, 0, t); m.spd = 0; continue; }
+    if (s.t > s.dur) { place(m, m.obj.position, null, 0, t); m.obj.visible = false; shots.splice(k, 1); const r = ROADIES.indexOf(m); if (r >= 0) ROADIES.splice(r, 1); if (zoneOwner === m) zoneOwner = null; continue; }
     const u = s.t / s.dur, a = Math.min(1, s.t / 1.0, (s.dur - s.t) / 1.0);
-    if (s.m.act) setGait(s.m, s.gait, s.speed);
-    place(s.m, s.curve.getPointAt(u), s.curve.getTangentAt(u), a, t);
-    if (s.m.mixer) s.m.mixer.update(dt);
+    if (m.act) setGait(m, s.gait, s.speed);
+    m.path.s = u * s.curve.L; m.spd = s.speed * (m.van ? m.go : 1);
+    place(m, s.curve.getPointAt(u), s.curve.getTangentAt(u), a, t);
+    if (m.mixer) m.mixer.update(dt);
   }
 }
-window.LIFE = { procession, __advance: (secs) => { stepShots(0, secs); return shots.map((s) => [Math.round(s.m.obj.position.x), Math.round(s.m.obj.position.z), s.m.obj.visible]); } };   // __advance: a checking aid
+// __advance, __state and noDraw are checking aids: __state lists everything that moves (kind, where, which way, in sight)
+window.LIFE = { procession, noDraw: false,
+  __advance: (secs) => { stepShots(0, secs); return shots.map((s) => [Math.round(s.m.obj.position.x), Math.round(s.m.obj.position.z), s.m.obj.visible]); },
+  __state: () => [...movers.map((mv) => mv.m), ...shots.map((s) => s.m)].flatMap((m) => [m, m.lead].filter(Boolean)).map((m) => ({ kind: m.van ? "van" : m.person ? "person" : "horse", road: ROADIES.includes(m), x: +m.obj.position.x.toFixed(1), z: +m.obj.position.z.toFixed(1),
+    dx: m.dir ? +m.dir.x.toFixed(3) : 0, dz: m.dir ? +m.dir.z.toFixed(3) : 0, seen: m.obj.visible, spd: m.spd || 0, gait: m.gait || "" })) };
 B.addFrame((t, dt) => {
   if (!renderer || lost) return;
   // nothing to draw while the board is out of sight: at Ascot, or under a sheet on a phone (where the sheet fills the screen)
   if (document.body.classList.contains("at-ascot") || B.covered) return;   // still behind a sheet, like the board
-  for (const mv of movers) { mv.step(t, dt); if (mv.m.mixer && mv.m.obj.visible) mv.m.mixer.update(dt); }
+  holdGroups();
+  // on a phone each horse's legs are worked out every other frame (half of them one frame, half the next): at 20 pixels
+  // long nobody can tell, and it pays for the extra horses now on the board
+  tick++;
+  for (let i = 0; i < movers.length; i++) {
+    const mv = movers[i], m = mv.m; mv.step(t, dt);
+    if (!m.mixer) continue;
+    if (!m.obj.visible) { m.owed = 0; continue; }
+    m.owed = (m.owed || 0) + dt;
+    if (!LITE || ((tick + i) & 1) === 0) { m.mixer.update(m.owed); m.owed = 0; }
+  }
   stepShots(t, dt);
-  renderer.render(scene, cam);
+  if (!window.LIFE.noDraw) renderer.render(scene, cam);
 });
 // ?nolife=1 leaves the board without its 3D life (for checking the game quickly on a machine without a graphics chip)
 if (!new URLSearchParams(location.search).has("nolife")) startLife().catch((e) => { console.warn("Newmarket life didn't start", e); });
