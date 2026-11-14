@@ -715,3 +715,10 @@ Owner, 14 Nov: "I don't feel the excitement evolving". The three real finishes a
 and downs evened out, then shaped (`BUILD`, `BRIGHT`): it starts at the middle's level, far off and muffled, and climbs
 slowly then faster and faster to the line (about 13 dB louder, 19 dB brighter), the gallop coming up with it; the middle
 is quieter so the build has somewhere to go.
+
+Owner, 14 Nov: "a weird step at 36-37 secs … it needs blending; can we turn the PA up more … even if it means looping what
+you have … PA up at the start as well". The step was the middle loop's stitched pieces (the bright Japan Cup crowd into
+the Cheltenham roar's tail). The middle's crowd is now the long seamless crowd loops, muted, and the commentary is its
+own layer: the clearest commentary in the clips (Cheltenham's commentator after the roar, Aintree's announcer) lifted
+out of its crowd (`isolate`), put through a loudspeaker sound (`tannoy`) and looped on top through the middle (evenly
+spaced) and the finish (louder and a shade quicker and higher towards the line: `PA_BUILD`).

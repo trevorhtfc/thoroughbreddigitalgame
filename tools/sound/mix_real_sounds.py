@@ -206,12 +206,12 @@ def applause(n, start):
 # ---------------------------------------------------------------- the middle: from after the off to about 3 furlongs out (a loop)
 # Owner, 13 Nov: "the commentary isn't great [the made voice]. Some of these clips have crowd and commentary which I'm
 # happy for you to overlay to get the sound." So the commentary is now the real commentators, with their crowds.
-MIDDLE = {"bed": -27.0, "murmur": -38.0, "gallop": -32.0}   # (owner, 14 Nov: "I can't really hear any PA announcer": the talk up, the rest down)
+MIDDLE = {"murmur": -31.0, "stir": -31.5, "gallop": -32.0, "pa": -22.5}   # (owner, 14 Nov: "PA up")   # (owner, 14 Nov: "I can't really hear any PA announcer": the talk up, the rest down)
 TALK_LIFT_DB = 11.0                                           # the commentators brought forward out of their crowds this much   # each part's level (dB), here and at the start of the finish
 MIDDLE_TALK = [            # (clip, from, to, voice from, voice to): the crowd with its commentator, laid end to end
-    ("chel", 7.6, 12.4, 8.5, 12.4),                         # Cheltenham: the commentator after the roar
+    ("chel", 8.3, 12.4, 8.5, 12.4),                         # Cheltenham: the commentator after the roar (its roar's tail left out)
     ("aintree", 0.2, 11.5, 0.2, 8.0),                       # Aintree: its announcer over the crowd, before its finish builds
-    ("japan", 4.0, 10.0, 4.0, 4.0),                         # the Japan Cup crowd early in its race (no commentary): a breather
+    ("japan", 4.0, 14.0, 4.0, 4.0),                         # the Japan Cup crowd early in its race (no commentary): a breather
 ]
 # Where each crowd's horses cross the line (owner, 14 Nov: "What a finish 22 secs, aintree crowd 21, japan cup 38"):
 # in the finish all three are laid so their lines land on ours, so their own build-ups make the crescendo.
@@ -221,26 +221,91 @@ def even(x, win=1.5, range_db=6.0):
     e = np.sqrt(signal.sosfiltfilt(sos("low", 1 / win, 1), (x ** 2).mean(0)).clip(1e-12))
     g = np.clip(np.sqrt((x ** 2).mean()) / e, 10 ** (-range_db / 20), 10 ** (range_db / 20))
     return x * g[None, :]
-def talk_bed(parts, xf=1.0):
-    """The clips laid end to end with crossfades, each with its commentator brought forward, all at one level."""
+def match_tone(parts):
+    """Gives a set of crowd pieces one tone (owner, 14 Nov: "a weird step … it needs blending"): each piece's long-run
+    spectrum is nudged, within 6 dB and smoothly across frequency, towards the pieces' average."""
+    f = np.fft.rfftfreq(8192, 1 / SR)
+    specs = [signal.welch(x.mean(0), SR, nperseg=8192)[1] + 1e-14 for x in parts]
+    target = np.exp(np.mean([np.log(p) for p in specs], axis=0))
+    out = []
+    for x, p in zip(parts, specs):
+        g = 0.5 * np.log10(target / p) * 10                    # dB to apply, then smoothed over about a third of an octave
+        lf = np.log2(np.maximum(f, 20)); sm = np.array([g[np.abs(lf - l) < 1 / 6].mean() for l in lf])
+        sm = np.clip(sm, -6, 6); n = x.shape[1]; F = np.fft.rfftfreq(n, 1 / SR)
+        G = 10 ** (np.interp(F, f, sm) / 20)
+        out.append(np.fft.irfft(np.fft.rfft(x, axis=1) * G[None, :], n, axis=1))
+    return out
+def talk_bed(parts, xf=2.5):
+    """The clips laid end to end with long crossfades, each with its commentator brought forward, matched in tone, all
+    at one level."""
     clips = {"chel": chel, "aintree": aintree, "gn": gn, "japan": japan}
-    out = None
+    xs = []
     for name, a, b, v0, v1 in parts:
-        x = crowd_eq(cut(clips[name], a, b)); x = lift_voice(x, v0 - a, v1 - a, TALK_LIFT_DB, 0.3, 0.5); x = level(x, -20)
-        if out is None: out = x; continue
-        k = int(xf * SR); r = np.sin(np.linspace(0, np.pi / 2, k)) ** 2
+        x = crowd_eq(cut(clips[name], a, b)); x = lift_voice(x, v0 - a, v1 - a, TALK_LIFT_DB, 0.3, 0.5); xs.append(level(x, -20))
+    xs = [level(x, -20) for x in match_tone(xs)]
+    out = xs[0]; k = int(xf * SR); r = np.sin(np.linspace(0, np.pi / 2, k)) ** 2
+    for x in xs[1:]:
         out = np.concatenate([out[:, :-k], out[:, -k:] * np.sqrt(1 - r) + x[:, :k] * np.sqrt(r), x[:, k:]], axis=1)
     return even(out)
+
+# ---------------------------------------------------------------- the commentator over the loudspeakers (owner, 14 Nov: "PA up")
+PA_TALK = [("chel", 8.45, 12.4), ("aintree", 0.2, 4.1), ("aintree", 4.1, 8.0)]   # the clearest commentary in the clips
+def isolate(x):
+    """The commentator lifted out of his crowd: what stands above the crowd's smooth wash (a voice's harmonics) kept,
+    the wash turned well down."""
+    f, tt, Z = signal.stft(x, SR, nperseg=4096, noverlap=4096 - 512)
+    mag = np.abs(Z) + 1e-12
+    k = 15; smooth = np.exp(signal.convolve(np.log(mag), np.ones((1, 2 * k + 1, 1)) / (2 * k + 1), mode="same"))
+    G = np.clip((mag / smooth) ** 2.2 * 0.5, 0.12, 2.5) * (((f > 160) & (f < 4200))[None, :, None] * 0.9 + 0.1)
+    _, y = signal.istft(Z * G, SR, nperseg=4096, noverlap=4096 - 512)
+    return y[:, :x.shape[1]]
+def pa_snippets():
+    clips = {"chel": chel, "aintree": aintree}
+    return [level(fade(isolate(crowd_eq(cut(clips[c], a, b))), 0.08, 0.25).mean(0), -20) for c, a, b in PA_TALK]
+def tannoy(v):
+    """A voice through the course's loudspeakers: a horn speaker's band and honk, a little drive, the speakers further
+    along the stand echoing it, the open air."""
+    v = filt(v, "high", 300, 3); v = filt(v, "low", 4000, 3); v = peak(v, 1700, 5, 1.2)
+    v = np.tanh(v / (np.abs(v).max() + 1e-9) * 1.8) / np.tanh(1.8)
+    n = len(v) + int(0.8 * SR); out = np.zeros((2, n))
+    for dly, g, lp, pan in ((0.0, 1.0, 4000, 0.1), (0.09, 0.42, 3000, -0.45), (0.21, 0.28, 2400, 0.55), (0.36, 0.16, 1900, -0.6)):
+        sv = signal.sosfilt(sos("low", lp, 2), v) * g; i = int(dly * SR)
+        a = np.cos((pan + 1) * np.pi / 4), np.sin((pan + 1) * np.pi / 4)
+        out[0, i:i + len(sv)] += sv * a[0] * 1.41; out[1, i:i + len(sv)] += sv * a[1] * 1.41
+    return tail(out, 1.4, 0.45, 3200)
+def pa_run(n, t0, t1, rate=lambda t: 1.0, gap=lambda t: 0.45, start=0):
+    """The commentary snippets one after another from t0 to t1 seconds (cycling), each sped up by rate(t) (a shade
+    faster and higher as it gets exciting), gap(t) between them."""
+    snips = pa_snippets(); out = np.zeros((2, n)); at = t0; i = start
+    while True:
+        v = snips[i % len(snips)]; r = rate(at)
+        if r != 1.0: v = np.interp(np.arange(0, len(v) - 1, r), np.arange(len(v)), v)
+        if at + len(v) / SR > t1: break
+        place(out, tannoy(v), at); at += len(v) / SR + gap(at); i += 1
+    return out
+
+def middle_crowd(n, start=0.0):
+    """The middle's crowd: the crowd waiting and a muffled Aintree, both long seamless loops (owner, 14 Nov: "a weird
+    step … it needs blending": no stitched pieces any more; the talk is the loudspeaker layer above it)."""
+    a = level(tile(murmur_loop(), n, 4.0 + start), MIDDLE["murmur"])
+    b = level(filt(tile(excited_loop(), n, 9.0 + start), "low", 2200, 2), MIDDLE["stir"])
+    return a + b
 def make_middle():
     """Owner, 13 Nov: "a flexible looping middle section that can handle the off all the way till the 3f stage or so..
-    a slightly more muted crowd, galloping and background PA announcer". One loop: the real crowds with their
-    commentators, muted (quieter and softened, as if over the loudspeakers from across the course), the gallop, and the
-    crowd waiting under it all so it never drops away."""
-    bed = talk_bed(MIDDLE_TALK)
-    L = bed.shape[1] / SR - 1.5; n = bed.shape[1]
-    bed = filt(bed, "low", 4500, 2); bed = peak(bed, 1800, 3.5, 1.0)          # a little muted, the voices kept clear
-    M = level(bed, MIDDLE["bed"]) + level(tile(murmur_loop(), n, 4.0), MIDDLE["murmur"]) + level(tile(gallop_loop(), n), MIDDLE["gallop"])
-    return write("middle", loop_of(M, L, 1.5), loop=True)
+    a slightly more muted crowd, galloping and background PA announcer"; 14 Nov: "turn the PA up … at the start as
+    well". One loop as long as the crowd waiting (26 s): the crowd, muted; the gallop; the commentator over the
+    loudspeakers on top, his phrases spread evenly through it."""
+    L = 25.9; n = int((L + 3.0) * SR)
+    M = middle_crowd(n) + level(tile(gallop_loop(), n), MIDDLE["gallop"])
+    snips = pa_snippets(); talk = sum(len(v) for v in snips) / SR
+    k = 2; gap = (L - k * talk) / (k * len(snips))             # two rounds of the phrases, evenly spaced, round the loop
+    pa = np.zeros((2, n)); at = gap / 2
+    for j in range(k * len(snips)):
+        v = snips[j % len(snips)]; place(pa, tannoy(v), at); at += len(v) / SR + gap
+    pa[:, :int(3.0 * SR)] += pa[:, int(L * SR):int((L + 3.0) * SR)]   # (what runs past the loop's end comes round to its start)
+    pa[:, int(L * SR):] = pa[:, :n - int(L * SR)]
+    M = M + pa * (10 ** (MIDDLE["pa"] / 20) / max(rms(pa[:, :int(L * SR)]), 1e-9))
+    return write("middle", loop_of(M, L, 3.0), loop=True)
 
 # ---------------------------------------------------------------- the finish: from about 3 furlongs out to the line and after
 FINISH_LINE_AT = 37.0                                         # the line, this far into finish.mp3 (sounds.json: finish.lineAt)
@@ -249,6 +314,7 @@ FINISH_LINE_AT = 37.0                                         # the line, this f
 # where the middle is and climbs slowly, then faster and faster: about 14 dB to the line.
 BUILD = [(0, -33), (8, -31), (14, -29), (19, -26.5), (24, -23.5), (28, -20.5), (31, -18), (34, -15), (36.2, -13), (37.4, -11.5),
          (39.5, -13), (43, -17), (47, -23), (51, -30)]
+PA_BUILD = [(0, 0), (14, 0), (24, 2.5), (31, 5), (36.8, 7.5), (37.4, -30), (51, -30)]   # the commentator over the middle's level (dB)
 BRIGHT = [(0, 0.0), (10, 0.05), (18, 0.25), (25, 0.55), (30, 0.8), (33, 1.0), (51, 1.0)]
 def make_finish():
     """Owner, 13 Nov: "the finish sound effect where the crowd get much more animated as does the background PA leading
@@ -286,12 +352,14 @@ def make_finish():
     # the gain that gives BUILD's loudness at every moment (measured over half a second, smoothed)
     e = np.sqrt(signal.sosfiltfilt(sos("low", 2.0, 1), (crowd ** 2).mean(0)).clip(1e-12))
     crowd = crowd / e[None] * db(BUILD)[None]
-    # the middle's commentators carried on at the start, handing over as the finishes come in
-    bed = talk_bed(MIDDLE_TALK[:2]); bed = peak(filt(bed, "low", 4500, 2), 1800, 3.5, 1.0)
-    bed = level(tile(loop_of(bed, bed.shape[1] / SR - 1.5, 1.5), n, 0.0), MIDDLE["bed"]) * db([(0, 0), (12, 0), (17, -3), (21, -10), (25, -40), (total, -60)])[None]
-    murmur = level(tile(murmur_loop(), n, 11.0), MIDDLE["murmur"]) * db([(0, 0), (12, -4), (20, -20), (total, -40)])[None]
+    # the middle's crowd carried on at the start, handing over as the finishes come in
+    bed = middle_crowd(n, 7.0) * db([(0, 0), (12, 0), (17, -3), (21, -10), (25, -40), (total, -60)])[None]
     hooves = level(tile(gallop_loop(), n, 2.5), MIDDLE["gallop"]) * db([(0, 0), (16, 1), (24, 4), (30, 7), (FL - 1.5, 9), (FL + 1, 6), (FL + 5, -10), (FL + 8, -40), (total, -60)])[None]
-    M = crowd + bed + murmur + hooves
+    # the commentator over the loudspeakers all the way to the line: louder, and a shade quicker and higher, as it builds
+    pa = pa_run(n, 0.3, FL - 0.2, rate=lambda u: 1.0 + 0.09 * np.clip((u - 12) / (FL - 12), 0, 1),
+                gap=lambda u: 0.45 - 0.3 * np.clip((u - 12) / (FL - 12), 0, 1), start=1)
+    pa = pa * 10 ** (MIDDLE["pa"] / 20) / max(rms(pa[:, :int(14 * SR)]), 1e-9) * db(PA_BUILD)[None]   # (its start at the middle's level)
+    M = crowd + bed + hooves + pa
     claps = applause(n, FL + 1.4); place(M, level(claps[:, int((FL + 1.4) * SR):], -29.5), FL + 1.4)
     return write("finish", M, tail_fade=2.0)
 
