@@ -549,6 +549,7 @@ const Sound = (() => {
   const S = { on: false };
   const now = () => ac.currentTime;
   function init() {
+    try { if (navigator.audioSession) navigator.audioSession.type = "playback"; } catch (e) {}   // (iPhone/iPad: play with the silent switch on)
     ac = new (window.AudioContext || window.webkitAudioContext)();
     const comp = ac.createDynamicsCompressor(); comp.threshold.value = -18; comp.ratio.value = 3; comp.connect(ac.destination);
     out = ac.createGain(); out.gain.value = 0.8; out.connect(comp);

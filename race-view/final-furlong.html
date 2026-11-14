@@ -3280,7 +3280,8 @@ const SND = await (async () => {
   let S;
   try {
     S = await RaceSound.create({ on: startOn,
-      shared: () => { try { return GAME && parent.BOARD && parent.BOARD.Sound.ctx ? parent.BOARD.Sound.ctx() : null; } catch { return null; } },
+      // the page that opened the race (the game, the Race Lab) lets the sound out with the player's tap: play through it
+      shared: () => { try { return GAME ? ((parent.BOARD && parent.BOARD.Sound.ctx && parent.BOARD.Sound.ctx()) || parent.__raceAudio || null) : null; } catch { return null; } },
       onChange: (s) => { btn.setAttribute("aria-pressed", String(s.on)); btn.classList.toggle("locked", s.locked); btn.title = s.locked ? "Tap to let the sound play" : "Sound: the crowd and the horses"; } });
   } catch (e) { console.warn("race sound unavailable", e); btn.hidden = true; return null; }
   btn.setAttribute("aria-pressed", String(S.on));
