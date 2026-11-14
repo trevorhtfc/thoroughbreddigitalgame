@@ -821,3 +821,23 @@ game").** The hand isn't dealt in one go: the stud shows the board's three Weath
 "WEATHERBYS / MARES / 4&5 Stars", as on the Thoroughbred site's Step 03 page). Tap a deck and its top mare turns over
 and joins your stud, two from each (`drawHandMare`; "Draw the rest for me" deals what's left). You can't close the stud
 until all six are drawn. The extra mare is drawn from the same decks (two turned over, keep one).
+
+## Jockeys and the draft, 14 Nov evening (playtest)
+
+Owner: "she took a silver trainer but then was only able to get bronze owner and jockey ... also the jockeys are maybe
+a bit under used as they can be specific races and maybe you don't have enough races in the schedule to use them".
+
+- **The draft:** the points rule was right (after a Silver trainer every Owner and Jockey deck is open). A double tap,
+  or a second trainer, leaves only 2 points. Now a second tap within 1.2s is ignored; the card you've just drawn has
+  "Tapped the wrong deck? Put it back" (`putBack`; the deck order is fixed for the game, so you can't fish for a better
+  card); and a line under the points says what's left ("4 points left for an owner and a jockey: Gold + Bronze, or Silver
+  + Silver"). "a owner" → "an owner".
+- **Jockeys:** on 200 cards a Sprint Jockey had 2.7 sprints at Ascot (1.9 at Newmarket) and the Staying Jockey 1.4 at
+  Newmarket, for 3 / 4 / 5 rides. Now the trip specialists and the Mud Lark are +1 in any race outside their speciality
+  (`ANYWHERE_BOOST`), so no ride is wasted (not the Big-Race Jockey: most races are Group races, and with it he beat the
+  Champion); specialists are only dealt when the card has at least 2 of their races (`SPECIALIST_MIN`); and entries has
+  **Book my jockeys** (`autoBook`: each ride where his lift × the race's prize is biggest; the harness uses it too).
+- Tests (30 paired seasons, ± about £17–24k), Silver specialists +£22–36k against the Champion's +£32–36k; Gold Mile
+  Jockey +£49–81k.
+- Also: the page's source (`src/index.src.html`) had fallen behind the built page again (the money tumble and How to
+  play were added to `index.html` only); they're in the source now. **Edit the source, then run tools/build.py.**

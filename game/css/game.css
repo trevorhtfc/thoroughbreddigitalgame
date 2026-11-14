@@ -808,3 +808,9 @@ details.mh .hint{margin:0 0 6px}
 .tb-note{width:38px;height:20px;border-radius:2px;background:linear-gradient(135deg,#f6efd9,#e6dab7);box-shadow:inset 0 0 0 2px #3d7153,inset 0 0 0 4px #f6efd9,inset 0 0 0 5px rgba(61,113,83,.5),0 3px 6px rgba(0,0,0,.25)}
 .tb-note::after{content:"";position:absolute;left:50%;top:50%;width:10px;height:8px;margin:-4px 0 0 -5px;border-radius:50%;background:radial-gradient(circle,#3d7153 0 35%,rgba(61,113,83,.35) 36% 60%,transparent 61%)}
 .tb-chip{border-radius:2px;background:linear-gradient(90deg,#e0603f,#f29a76);box-shadow:0 0 6px rgba(224,96,63,.6)}
+
+/* the draft: points left in words, put back; entries: book my jockeys (14 Nov evening) */
+.tm-left{margin:6px 0 0;font-size:13.5px;color:var(--tb-ink)}
+.tm-back{margin-top:8px;align-self:center}
+.tm-auto{display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px;margin:12px 0 0}
+.tm-auto small{font-size:12.5px;color:var(--tb-muted)}

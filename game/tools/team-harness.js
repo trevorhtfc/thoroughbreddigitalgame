@@ -182,12 +182,13 @@
       H.forEach(h => h.age = 2); if (!doJob(b.k, b.h, b.o)) break; log.jobs = (log.jobs || 0) + 1;
     }
     H.forEach(h => h.age = 2); enter();
-    // jockeys: booked where the prize is biggest and his speciality fits the horse and race
-    for (const c of jockeyCards()) {
+    // jockeys: the game's own "Book my jockeys" (each ride where it's worth the most), or (TEAMH.oldBook) the 14 Nov
+    // afternoon way, only where his speciality fits
+    if (TEAMH.oldBook) for (const c of jockeyCards()) {
       const opts = RACES.filter(r => S.entries[r.id] && !bookedFor(r) && jockeySuits(c, horse(S.entries[r.id]), r))
         .map(r => ({ r, v: bestAt(horse(S.entries[r.id]), r).p * r.prizes[0] })).sort((a, b) => b.v - a.v);
       for (const o of opts.slice(0, JOCKEY_RIDES[c.tier])) bookJockey(o.r.id, c.code);
-    }
+    } else autoBook();
     // 5) race week: the real race engine
     const out = { strat: name, seed, team: (team || []).join(" "), prize: 0, horses: H.length, budgetLeft: S.budget, wins: 0, runners: 0, ...log };
     S.step = 4;

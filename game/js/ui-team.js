@@ -35,7 +35,18 @@ function cardFit(c) {
 function teamPips() {
   const p = teamPoints(), roles = new Set(teamCards().map(c => c.role));
   return `<div class="tm-sum"><div class="tm-pips" aria-label="${p} of ${TEAM_POINTS} points">${Array.from({ length: TEAM_POINTS }, (_, k) => `<i class="${k < p ? "on" : ""}"></i>`).join("")}</div>
-    <span><b>${p} of ${TEAM_POINTS}</b> points</span>${TEAM_ROLES.map(r => `<span class="tm-role ${ROLE_CLS[r]} ${roles.has(r) ? "got" : ""}">${roles.has(r) ? "✓" : "·"} ${r}</span>`).join("")}</div>`;
+    <span><b>${p} of ${TEAM_POINTS}</b> points</span>${TEAM_ROLES.map(r => `<span class="tm-role ${ROLE_CLS[r]} ${roles.has(r) ? "got" : ""}">${roles.has(r) ? "✓" : "·"} ${r}</span>`).join("")}</div>
+    ${p > 0 && p < TEAM_POINTS ? `<p class="tm-left">${pointsLeftWords()}</p>` : ""}`;
+}
+// what the points left still allow, in words: "4 points left for an owner and a jockey: Gold + Bronze, or Silver + Silver"
+function pointsLeftWords() {
+  const left = TEAM_POINTS - teamPoints(), need = TEAM_ROLES.filter(r => !teamCards().some(c => c.role === r));
+  const tn = t => TIER_NAME[t];
+  let ways = "";
+  if (need.length === 2) ways = left === 2 ? "Bronze + Bronze" : left === 3 ? "Silver + Bronze" : left === 4 ? "Gold + Bronze, or Silver + Silver" : left === 5 ? "Gold + Silver" : "";
+  if (need.length === 1) ways = left >= 3 ? "up to Gold" : left === 2 ? "Silver, or Bronze and one more Bronze card" : "Bronze";
+  const who = need.map(r => (r === "Owner" ? "an " : "a ") + r.toLowerCase()).join(" and ");
+  return `<b>${left} point${left === 1 ? "" : "s"} left</b>${need.length ? ` for ${who}${ways ? `: ${ways}` : ""}` : ": any deck"}.`;
 }
 // (the card you've just drawn shows big at the top for a couple of minutes, then joins the rest)
 const justDrew = () => !!UI.drew && Date.now() - UI.drew < 120000;
@@ -59,7 +70,7 @@ function drawnCard() {
   const T = teamState(); if (!justDrew() || !T.last) return "";
   const c = teamCard(T.last);
   return `<section class="sect tm-offer" id="tmOffer"><div class="sect-h"><h2 class="tb-h2">YOU DREW</h2><span>${c.role} · ${TIER_NAME[c.tier]}</span></div>
-    <div class="tm-hand one">${tcard(c, { fit: cardFit(c) })}</div></section>`;
+    <div class="tm-hand one">${tcard(c, { fit: cardFit(c), extra: T.gone ? "" : `<button class="tb-btn ghost sm tm-back" data-putback="1">Tapped the wrong deck? Put it back</button>` })}</div></section>`;
 }
 // ---------- the team at work, place by place ----------
 const panel = out => out.length ? `<section class="sect tm-at"><div class="sect-h"><h2 class="tb-h2">YOUR OWNER'S CARDS</h2></div><div class="tm-hand sm">${out.join("")}</div></section>` : "";
@@ -151,9 +162,12 @@ function teamAtEntries() {
   if (!teamOn() || teamSkipped()) return "";
   const tr = trainerCards(), jk = jockeyCards();
   const trRow = c => tcard(c, { cls: "sm", extra: `<p class="tc-do">${jobsAll().length ? `Jobs done: ${jobsAll().map(jobLabel).join(", ")}. ` : ""}${jobsLeft() ? `<b>${jobsLeft()}</b> job${jobsLeft() === 1 ? "" : "s"} left: spend ${jobsLeft() === 1 ? "it" : "them"} at Warren Hill, or keep ${jobsLeft() === 1 ? "it" : "them"} for race week.` : c.kind === "form" && !FORM_JOBS[c.tier] ? "Working on every horse." : "Every job is spent."}</p>${jobsLeft() && !atAscot() ? `<button class="tb-btn ghost sm" data-guide="warren">Go to Warren Hill</button>` : ""}` });
-  const jkRow = c => tcard(c, { cls: "sm", extra: `<p class="tc-do">Booked for <b>${ridesOf(c.code).length} of ${JOCKEY_RIDES[c.tier]}</b> rides${ridesOf(c.code).length ? ": " + ridesOf(c.code).map(r => r.name.replace(/ Stakes$/, "")).join(", ") : ". Book him in a race below."}</p>` });
+  const suits = c => { const K = JOCKEY_KINDS[c.kind]; return K.trips ? RACES.filter(r => K.trips.includes(raceTrip(r))).length : c.kind === "bigrace" ? RACES.filter(r => r.grade.startsWith("Group")).length : null; };
+  const jkRow = c => tcard(c, { cls: "sm", extra: `<p class="tc-do">Booked for <b>${ridesOf(c.code).length} of ${JOCKEY_RIDES[c.tier]}</b> rides${ridesOf(c.code).length ? ": " + ridesOf(c.code).map(r => r.name.replace(/ Stakes$/, "")).join(", ") : ". Book him in a race below."}${suits(c) != null ? ` ${suits(c)} of your races ${suits(c) === 1 ? "is" : "are"} his speciality${c.kind === "bigrace" ? "" : `; in the others he's still ${ANYWHERE_BOOST[c.tier]} better`}.` : ""}</p>` });
+  const free = jk.some(c => ridesLeft(c) > 0) && RACES.some(r => S.entries[r.id] && !bookedFor(r));
   return `<details class="sect tm-at" ${S.team.openEntries === false ? "" : "open"}><summary class="sect-h"><h2 class="tb-h2">YOUR TRAINER AND JOCKEYS</h2><span>The trainer works at Warren Hill; jockeys are booked race by race</span></summary>
-    <div class="tm-hand sm">${tr.map(trRow).join("")}${jk.map(jkRow).join("")}</div></details>`;
+    <div class="tm-hand sm">${tr.map(trRow).join("")}${jk.map(jkRow).join("")}</div>
+    ${free ? `<p class="tm-auto"><button class="tb-btn sm" data-autobook="1">Book my jockeys</button><small>Puts each jockey's rides where they're worth the most. You can change any of them below.</small></p>` : ""}</details>`;
 }
 // a job in a few words: "Settle: Copper Falcon"
 function jobLabel(j) {
@@ -218,7 +232,7 @@ function jockeyPick(r) {
   const cur = bookedFor(r), h = horse(S.entries[r.id]);
   if (!h && !cur) return `<div class="tm-jk"><span>Jockey</span><small>Enter a runner, then book one of your jockeys for it.</small></div>`;
   return `<div class="tm-jk"><span>Jockey</span><select class="tm-sel" data-bookrace="${r.id}"><option value="">Your yard's own jockey</option>${jk.map(c => { const left = ridesLeft(c) + (cur && cur.code === c.code ? 1 : 0);
-    return `<option value="${c.code}" ${cur && cur.code === c.code ? "selected" : ""} ${left > 0 ? "" : "disabled"}>${cardName(c)} (${left} ride${left === 1 ? "" : "s"} left)${!jockeySuits(c, h, r) ? (JOCKEY_KINDS[c.kind].style ? " · doesn't suit its style" : " · nothing extra here") : ""}</option>`; }).join("")}</select></div>`;
+    return `<option value="${c.code}" ${cur && cur.code === c.code ? "selected" : ""} ${left > 0 ? "" : "disabled"}>${cardName(c)} (${left} ride${left === 1 ? "" : "s"} left)${!jockeySuits(c, h, r) ? (JOCKEY_KINDS[c.kind].style ? " · doesn't suit its style" : c.kind === "bigrace" ? " · nothing extra here" : ` · +${ANYWHERE_BOOST[c.tier]} here`) : ""}</option>`; }).join("")}</select></div>`;
 }
 // what the team does for a horse in a race, in words (for the horse cards' verdict line)
 function teamNote(c) {

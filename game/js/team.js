@@ -47,6 +47,12 @@ const JOCKEY_RIDES = [0, 3, 4, 5];                       // how many of your rac
 const JOCKEY_LEVEL = [0, 3, 4, 5];                       // his skill in the race engine (1 to 5); your own yard's is random
 const CHAMPION_BOOST = [0, 2, 3, 4];                     // Champion Jockey: in every race he rides
 const SPECIAL_BOOST = [0, 3, 4, 6];                      // trip, big-race and going specialists: where they shine
+// (owner, 14 Nov: "the jockeys are maybe a bit under used as they can be specific races and maybe you don't have enough
+// races in the schedule"): a specialist still lifts a horse in any race he rides, a little, so no ride is wasted
+const ANYWHERE_BOOST = [0, 1, 1, 1];   // (not the Big-Race Jockey: most races on a card are Group races, so he was
+                                         // worth more than the Champion with it, 14 Nov tests)
+// specialists are only dealt when the card has at least this many of their races
+const SPECIALIST_MIN = 2;
 const PARTNER_BOOST = 1;
 const MUD_EXTRA = 2;                                     // the Mud Lark: this much more than the other specialists (the going is a gamble)                                 // a trainer and jockey of the same trip, in races at that trip
 // The style jockeys in the race engine (race-engine/engine.js: paceTank, lateKick), measured with
@@ -77,11 +83,11 @@ const JOCKEY_KINDS = {
   champion: { title: "Champion Jockey", text: t => `The best in the weighing room: every horse he rides runs ${CHAMPION_BOOST[t]} better, whatever the race.` },
   tempo: { title: "Tempo Setter", style: "front", text: t => `Judges the pace from the front: a front-runner or prominent horse saves ${["", "a little", "plenty of", "lots of"][t]} energy for the finish.` },
   closer: { title: "Late Closer", style: "back", text: t => `Times his run from behind: a midfield or hold-up horse finishes ${["", "a little", "much", "far"][t]} stronger.` },
-  speed: { title: "Sprint Jockey", trips: TRIPS.speed, text: t => `Quick out of the stalls and sharp in a finish: ${SPECIAL_BOOST[t]} better in ${tripWords(TRIPS.speed)} races.` },
-  miler: { title: "Mile Jockey", trips: TRIPS.miler, text: t => `At home over a mile: ${SPECIAL_BOOST[t]} better in ${tripWords(TRIPS.miler)} races.` },
-  staying: { title: "Staying Jockey", trips: TRIPS.middle.concat(TRIPS.staying), text: t => `Patient and strong in a long finish: ${SPECIAL_BOOST[t]} better in races of 1m2f and further.` },
+  speed: { title: "Sprint Jockey", trips: TRIPS.speed, text: t => `Quick out of the stalls and sharp in a finish: ${SPECIAL_BOOST[t]} better in ${tripWords(TRIPS.speed)} races, ${ANYWHERE_BOOST[t]} better anywhere else.` },
+  miler: { title: "Mile Jockey", trips: TRIPS.miler, text: t => `At home over a mile: ${SPECIAL_BOOST[t]} better in ${tripWords(TRIPS.miler)} races, ${ANYWHERE_BOOST[t]} better anywhere else.` },
+  staying: { title: "Staying Jockey", trips: TRIPS.middle.concat(TRIPS.staying), text: t => `Patient and strong in a long finish: ${SPECIAL_BOOST[t]} better in races of 1m2f and further, ${ANYWHERE_BOOST[t]} better anywhere else.` },
   bigrace: { title: "Big-Race Jockey", text: t => `Never better than on the big day: ${SPECIAL_BOOST[t]} better in Group races, nothing extra in the others.` },
-  mudlark: { title: "Mud Lark", text: t => `Loves it when the rain comes: ${SPECIAL_BOOST[t] + MUD_EXTRA} better on Softer or Heavy going. You book him before the going is declared.` },
+  mudlark: { title: "Mud Lark", text: t => `Loves it when the rain comes: ${SPECIAL_BOOST[t] + MUD_EXTRA} better on Softer or Heavy going, ${ANYWHERE_BOOST[t]} better on firmer. You book him before the going is declared.` },
 };
 // The board's trainer cards (TeamCards, role Trainer), now specialities: every trainer can do every job, the
 // speciality makes some of them stronger (owner, 11 Nov brainstorm, "yard jobs").
@@ -147,8 +153,8 @@ const held = kind => teamOn() ? teamCards().find(c => c.kind === kind && c.role 
 function cardFits(c) {
   if (c.role === "Owner") return true;
   const K = c.role === "Jockey" ? JOCKEY_KINDS[c.kind] : TRAINER_KINDS[c.kind];
-  if (K.trips) return RACES.some(r => K.trips.includes(raceTrip(r)));
-  if (c.kind === "bigrace") return RACES.some(r => r.grade.startsWith("Group"));
+  if (K.trips) return RACES.filter(r => K.trips.includes(raceTrip(r))).length >= (c.role === "Jockey" ? SPECIALIST_MIN : 1);
+  if (c.kind === "bigrace") return RACES.filter(r => r.grade.startsWith("Group")).length >= SPECIALIST_MIN;
   if (c.kind === "juvenile") return RACES.some(r => r.ages[1] === 2);
   if (c.kind === "burner") return RACES.some(r => r.ages[0] <= 4 && r.ages[1] >= 4);
   return true;
@@ -163,7 +169,7 @@ function deckProblem(role, tier) {
   if (T.done) return "Your team is picked";
   if (tier > left) return `Only ${left} point${left === 1 ? "" : "s"} left`;
   const missing = TEAM_ROLES.filter(r => r !== role && !roles.has(r)).length;
-  if (left - tier < missing) return `Keep a point for ${TEAM_ROLES.filter(r => r !== role && !roles.has(r)).map(r => "a " + r.toLowerCase()).join(" and ")}`;
+  if (left - tier < missing) return `Keep a point for ${TEAM_ROLES.filter(r => r !== role && !roles.has(r)).map(r => (r === "Owner" ? "an " : "a ") + r.toLowerCase()).join(" and ")}`;
   if (!deckLeft(role, tier).length) return "None left";
   return "";
 }
@@ -176,6 +182,13 @@ function drawDeck(role, tier, rnd) {
   T.picks.push(left[0]); T.last = left[0]; T.offer = null;
   if (teamPoints() >= TEAM_POINTS) finishTeam();
   save(); return left[0];
+}
+// Put back the card you've just drawn (a mis-tap), while you're still at the Jockey Club. The deck order is fixed for the
+// game, so drawing from that deck again turns the same card over
+function putBack() {
+  const T = teamState(); if (!T.last || T.gone || T.picks[T.picks.length - 1] !== T.last) return false;
+  if (T.done) { const p = held("powerhouse"); if (p) S.budget -= POWERHOUSE[p.tier]; T.done = false; }
+  T.picks.pop(); T.last = T.picks[T.picks.length - 1] || null; save(); return true;
 }
 // (games saved part-way through the old draft, with three cards turned over: the first is kept)
 function keepTeamCard(code) {
@@ -466,6 +479,18 @@ function trainFor(h, race) {
 const jockeyCards = () => teamOn() ? teamCards().filter(c => c.role === "Jockey") : [];
 const ridesOf = code => RACES.filter(r => (S.team.book || {})[r.id] === code);
 const ridesLeft = c => JOCKEY_RIDES[c.tier] - ridesOf(c.code).length;
+// Book my jockeys: each jockey's rides go where they're worth the most (his lift there × the race's prize), the
+// Champion and the specialists in turn, races already booked by hand left alone
+function autoBook() {
+  const races = RACES.filter(r => S.entries[r.id] && horse(S.entries[r.id]));
+  const lift = (c, r) => { const T = teamState(), was = T.book[r.id]; T.book[r.id] = c.code; const b = jockeyBoost(r, horse(S.entries[r.id])).boost + (JOCKEY_KINDS[c.kind].style && jockeySuits(c, horse(S.entries[r.id]), r) ? 3 : 0); if (was) T.book[r.id] = was; else delete T.book[r.id]; return b; };
+  const T = teamState(); T.book = T.book || {}; let n = 0;
+  const offers = [];
+  for (const c of jockeyCards()) for (const r of races) if (!T.book[r.id]) { const b = lift(c, r); if (b > 0) offers.push({ c, r, w: b * r.prizes[0] }); }
+  offers.sort((a, b) => b.w - a.w);
+  for (const o of offers) if (!T.book[o.r.id] && ridesLeft(o.c) > 0) { T.book[o.r.id] = o.c.code; n++; }
+  save(); return n;
+}
 function bookJockey(raceId, code) {
   const T = teamState(); T.book = T.book || {};
   if (!code) { delete T.book[raceId]; save(); return true; }
@@ -489,6 +514,7 @@ function jockeyBoost(race, h) {
   else if (K.trips && K.trips.includes(trip)) b = SPECIAL_BOOST[c.tier];
   else if (c.kind === "bigrace" && race.grade.startsWith("Group")) b = SPECIAL_BOOST[c.tier];
   else if (c.kind === "mudlark" && going && (going === "Softer" || going === "Heavy")) b = SPECIAL_BOOST[c.tier] + MUD_EXTRA;
+  else if (!K.style && c.kind !== "bigrace") b = ANYWHERE_BOOST[c.tier];   // the style jockeys' skills are in the race engine (jockeyFields)
   if (K.trips && K.trips.includes(trip) && trainerSpecs().some(t => t.spec === "trip" && t.trips.includes(trip))) b += PARTNER_BOOST;
   return { boost: b, why: b ? `+${b} ${cardName(c)}` : "" };
 }
