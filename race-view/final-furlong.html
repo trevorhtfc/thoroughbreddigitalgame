@@ -782,6 +782,10 @@ function inRing(r, x, z) {
 }
 const SURF = COURSE.track.surface;
 const onTrack = (x, z) => inRing(SURF[0], x, z) && !SURF.slice(1).some((h) => inRing(h, x, z));
+// Another course's track where this one meets it (the July Course's junction with the Rowley Mile, owner 14 Nov): its turf,
+// its rails and its line on the little map; nothing else of it (course file -> neighbour).
+const NEIGH = COURSE.neighbour || null;
+const onNeigh = NEIGH ? (x, z) => inRing(NEIGH.surface, x, z) : () => false;
 function distToRails(x, z) {
   let best = Infinity;
   for (const line of COURSE.rails.lines) {
@@ -929,6 +933,29 @@ function buildTurf(colour) {
   m.renderOrder = -2;
   LAYERS.ground.push(m);
   scene.add(m);
+  if (NEIGH) {                                           // the other course's turf: under this course's where they overlap
+    // mown in soft lanes along its length (owner, 14 Nov: "yes" to a mown look so the fork reads against the rough):
+    // eight lanes across, light and dark in turn, as vertex colours across the strip (half a lane between vertices)
+    const pos = [], col = [], idx = [], N = 16;
+    NEIGH.inside.forEach(([ax, az], i) => {
+      const [bx, bz] = NEIGH.outer[i];
+      for (let k = 0; k <= N; k++) {
+        const f = k / N, px = ax + (bx - ax) * f, pz = az + (bz - az) * f;
+        pos.push(px, groundY(px, pz), pz);
+        const v = k % 2 ? 1 + 0.09 * (((k - 1) / 2) % 2 ? -1 : 1) : 1;      // lane middles light or dark, edges between
+        col.push(v, v, v);
+      }
+      if (i) for (let k = 0; k < N; k++) { const a = (i - 1) * (N + 1) + k, b = i * (N + 1) + k; idx.push(a, b, a + 1, a + 1, b, b + 1); }
+    });
+    const ng = new THREE.BufferGeometry(); ng.setAttribute("position", new THREE.Float32BufferAttribute(pos, 3));
+    ng.setAttribute("color", new THREE.Float32BufferAttribute(col, 3)); ng.setIndex(idx);
+    ng.computeVertexNormals(); ng.computeBoundingSphere();
+    const nm = new THREE.Mesh(ng, turfLook(groundDetail(new THREE.MeshBasicMaterial({ color: colour, vertexColors: true, side: THREE.DoubleSide, ...GROUND_UNDER })), "turf"));
+    nm.position.y = -0.03;
+    nm.renderOrder = LEGACY_GROUND ? -2.5 : -1.9;        // after this course's turf with the stencil (first drawn wins), before it without
+    LAYERS.ground.push(nm);
+    scene.add(nm);
+  }
 }
 
 // The winning line and the furlongs (owner, 7 Nov): a strip of turf cut a shade paler straight across the track at the
@@ -978,7 +1005,8 @@ function placeProps(gltf) {
   const SKIP = COURSE.rails.skip || [[-16.7, 16.3, -COURSE.rails.gap]];          // [x from, x to, z]
   const gap = (x, z) => SKIP.some(([x0, x1, zz]) => Math.abs(z - zz) < 1.5 && x > x0 && x < x1);
   const spots = [];
-  for (const line of COURSE.rails.lines) {
+  const railLines = COURSE.rails.lines.map((l) => [l, onTrack]).concat(NEIGH && NEIGH.rails ? NEIGH.rails.map((l) => [l, onNeigh]) : []);
+  for (const [line, onTurf] of railLines) {
     // walk the line in 3 m steps
     const pts = [];
     let carry = 0;
@@ -991,7 +1019,7 @@ function placeProps(gltf) {
     // which way round: the module's track side (local -z) must face the turf
     const [p0, p1] = [pts[0], pts[1]];
     const dx = p1[0] - p0[0], dz = p1[1] - p0[1];
-    const flip = !onTrack(p0[0] + dx * 0.5 + dz * 1.0, p0[1] + dz * 0.5 - dx * 1.0);
+    const flip = !onTurf(p0[0] + dx * 0.5 + dz * 1.0, p0[1] + dz * 0.5 - dx * 1.0);
     for (let i = 0; i + 1 < pts.length; i++) {
       let [a, b] = [pts[i], pts[i + 1]];
       if (flip) [a, b] = [b, a];
@@ -2870,12 +2898,17 @@ const DOCK = (() => {
   const route = [];
   for (let u = 0; u <= DIST; u += 12) route.push(toWorld(u, 0));
   const all = lines.flat().concat(route);
-  const minX = Math.min(...all.map((p) => p[0])), maxX = Math.max(...all.map((p) => p[0])), minZ = Math.min(...all.map((p) => p[1])), maxZ = Math.max(...all.map((p) => p[1]));
+  const minX = Math.min(...all.map((p) => p[0])), maxX = Math.max(...all.map((p) => p[0])), minZ = Math.min(...all.map((p) => p[1]));
+  let maxZ = Math.max(...all.map((p) => p[1]));
+  // the other course where they meet (the Rowley Mile at the July Course's junction): room for its first few hundred metres
+  // beyond this course's own layout, so the fork shows; the rest of it runs off the edge of the map
+  if (NEIGH) maxZ = Math.max(maxZ, ...NEIGH.map.filter(([x, z]) => z <= maxZ + 320 && x >= minX && x <= maxX).map((p) => p[1]));
   const pad = (maxX - minX) * 0.05;
   svg.setAttribute("viewBox", `${minX - pad} ${minZ - pad} ${maxX - minX + pad * 2} ${maxZ - minZ + pad * 2}`);
   svg.setAttribute("preserveAspectRatio", "xMidYMid meet");
   const unit = (maxX - minX) / 170;                                        // about one screen pixel at desktop size
   const pathOf = (pts) => "M" + pts.map((p) => p[0].toFixed(1) + " " + p[1].toFixed(1)).join("L");
+  if (NEIGH) el("path", { d: pathOf(NEIGH.map), fill: "none", stroke: "#ddd3b6", "stroke-width": unit * 4, "stroke-linejoin": "round", "stroke-linecap": "round" }, svg);   // the other course
   for (const l of lines) el("path", { d: pathOf(l), fill: "none", stroke: "#cbbd97", "stroke-width": unit * 4, "stroke-linejoin": "round", "stroke-linecap": "round" }, svg);
   el("path", { d: pathOf(route), fill: "none", stroke: "#1f5a38", "stroke-width": unit * 2.4, "stroke-linejoin": "round", "stroke-linecap": "round", opacity: 0.85 }, svg);
   const [sx, sz] = toWorld(0, 0);
