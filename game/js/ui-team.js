@@ -20,6 +20,7 @@ function tcard(c, opts = {}) {
 }
 // A word on how a card fits this season's ten races (so the draft is a real choice)
 function cardFit(c) {
+  if (c.role === "Owner") return "";   // (owner cards have no trips: this crashed the draft once an owner card was drawn, 14 Nov)
   const trips = c.role === "Trainer" ? TRAINER_KINDS[c.kind].trips : JOCKEY_KINDS[c.kind].trips;
   if (trips) { const n = RACES.filter(r => trips.includes(raceTrip(r))).length; return `${n} of your ${RACES.length} races ${n === 1 ? "is" : "are"} at these trips.`; }
   if (c.role === "Trainer" && c.kind === "juvenile") { const n = RACES.filter(r => r.ages[1] === 2).length; return `${n} of your races ${n === 1 ? "is" : "are"} for 2-year-olds.`; }
