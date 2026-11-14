@@ -2,7 +2,7 @@
    make their own colours", from the base templates: 25 jackets, 12 sleeves, 10 caps, each with a colour and a second
    colour from a fixed palette).
 
-   The pattern rules below are tools/silks/make_silks.py's, line for line (body_mask, sleeve_mask, cap_mask), so a
+   The pattern rules below are tools/silks/make_silks.py's, line for line (four kept their old names on 14 Nov when the owner reshaped them: 'inverted chevron' is Bars, 'cross of lorraine' Cross, 'four spots' Spot, 'peak' Stripe, so saved colours still read) (body_mask, sleeve_mask, cap_mask), so a
    player's silks follow exactly the same rules as the 54 ready-made ones. KEEP THE TWO IN STEP: a pattern changed
    there must be changed here.
 
@@ -23,15 +23,15 @@
   ];
   // The templates, numbered as on the owner's sheets, then the extra patterns that are not on them
   const JACKETS = [["plain", "Plain"], ["strip", "Strip"], ["braces", "Braces"], ["belt", "Belt"], ["hoops", "Hooped"], ["chevron", "Chevron"],
-    ["chevrons", "Chevrons"], ["seams", "Seams"], ["crossbelts", "Cross belts"], ["cross of lorraine", "Cross of Lorraine"], ["check", "Checks"],
+    ["chevrons", "Chevrons"], ["seams", "Seams"], ["crossbelts", "Cross belts"], ["cross of lorraine", "Cross"], ["check", "Checks"],
     ["diamond", "Diamond"], ["diamonds", "Diamonds"], ["quartered", "Quartered"], ["epaulets", "Epaulettes"], ["star", "Star"], ["stars", "Stars"],
     ["spots", "Spots"], ["stripes", "Stripes"], ["disc", "Disc"], ["diabolo", "Diabolo"], ["inverted triangle", "Inverted triangle"],
     ["large spots", "Large spots"], ["triple diamond", "Triple diamond"], ["hollow box", "Hollow box"],
-    ["sash", "Sash"], ["halved", "Halved"], ["inverted chevron", "Inverted chevron"], ["panel", "Panel"], ["three spots", "Three spots"]];
+    ["sash", "Sash"], ["halved", "Halved"], ["inverted chevron", "Bars"], ["panel", "Panel"], ["three spots", "Three spots"]];
   const SLEEVES = [["plain", "Plain"], ["armlets", "Armlet"], ["hoops", "Hooped"], ["stripes", "Striped"], ["chevrons", "Chevrons"], ["seams", "Seams"],
     ["stars", "Stars"], ["spots", "Spots"], ["halved", "Halved"], ["diabolo", "Diabolo"], ["diamonds", "Diamonds"], ["check", "Check"], ["cuffs", "Cuffs"]];
   const CAPS = [["plain", "Plain"], ["hooped", "Hooped"], ["striped", "Striped"], ["check", "Check"], ["spots", "Spots"], ["quartered", "Quartered"],
-    ["star", "Star"], ["diamond", "Diamond"], ["stars", "Stars"], ["diamonds", "Diamonds"], ["halved", "Halved"], ["four spots", "Four spots"], ["peak", "Peak"]];
+    ["star", "Star"], ["diamond", "Diamond"], ["stars", "Stars"], ["diamonds", "Diamonds"], ["halved", "Halved"], ["four spots", "Spot"], ["peak", "Stripe"]];
 
   const PI = Math.PI, abs = Math.abs, floor = Math.floor, hypot = Math.hypot, min = Math.min, max = Math.max;
   const mod = (a, n) => ((a % n) + n) % n;
@@ -60,7 +60,7 @@
       case "sash": return abs(L - (2 * h - 1)) < 0.34;
       case "crossbelts": return abs(L - (2 * h - 1)) < 0.26 || abs(L + (2 * h - 1)) < 0.26;
       case "chevron": return abs(h - (0.25 + 0.78 * abs(L))) < 0.15;
-      case "inverted chevron": return abs(h - (0.95 - 0.7 * abs(L))) < 0.15;
+      case "inverted chevron": return min(abs(h - 0.17), abs(h - 0.37), abs(h - 0.57), abs(h - 0.77)) < 0.028 && abs(L) < 0.7;   // "Bars" (owner, 14 Nov)
       case "chevrons": return odd((h - 0.6 * abs(L)) * 5);
       case "braces": return abs(abs(L) - 0.5) < 0.12;
       case "halved": return L > 0;
@@ -76,7 +76,7 @@
       case "seams": return abs(abs(L) - 1) < 0.07 || h > 0.95;
       case "check": return mod(floor(u * 16) + floor(h * 6), 2) === 1;
       case "strip": return abs(L) < 0.24;
-      case "cross of lorraine": return (abs(L) < 0.13 && abs(Y) < 0.82) || (abs(Y - 0.36) < 0.1 && abs(L) < 0.36) || (abs(Y + 0.06) < 0.1 && abs(L) < 0.56);
+      case "cross of lorraine": return (abs(L) < 0.14 && abs(Y - 0.05) < 0.78) || (abs(Y - 0.15) < 0.14 && abs(L) < 0.62);   // "Cross" (owner, 14 Nov)
       case "diamonds": { const P = u * 12, Q = Y * 1.9; return mod(floor(P + Q) + floor(P - Q), 2) === 1; }
       case "stars": { const x = u * 4 * 1.5, y = (Y + 10) * 1.5; return star(cellX(x, y), cellY(y), 0.4); }
       case "diabolo": return abs(L) < abs(2 * h - 1) * 0.98;
@@ -115,10 +115,10 @@
       case "striped": return odd(u * 12);
       case "hooped": return odd(v * 5);
       case "spots": return spots(u * 8, v * 2.2, 0.27);
-      case "four spots": { const X = (u - 0.5) * 3.2, Yc = (0.5 - v) * 1.1; return hypot(abs(X) - 0.2, abs(Yc) - 0.17) < 0.13; }
+      case "four spots": return hypot((u - 0.5) * 3.2, (0.55 - v) * 1.1) < 0.3;   // "Spot" (owner, 14 Nov)
       case "star": return star((u - 0.5) * 3.2, (0.55 - v) * 1.1, 0.42);
       case "diamond": return abs(u - 0.5) * 3.2 + abs(v - 0.5) * 1.3 < 0.45;
-      case "peak": return v > 0.85 && abs(u - 0.5) < 0.18;
+      case "peak": return abs(v * Math.sin(2 * PI * u)) < 0.14;   // "Stripe" (owner, 14 Nov): over the crown, front to back
       case "check": return mod(floor(u * 8) + floor(v * 3), 2) === 1;
       case "stars": { const a1 = mod(u * 6, 1) - 0.5, a2 = mod(u * 3 + 0.5, 1) - 0.5;
         return star(a1 * 2 * PI * 0.72 / 6 * 3.2, (v - 0.72) * 3.2, 0.42) || star(a2 * 2 * PI * 0.36 / 3 * 3.2, (v - 0.36) * 3.2, 0.42); }
@@ -182,7 +182,8 @@
         else if (P.cap.p === "halved") on = dx > 0;
         else if (P.cap.p === "stars") on = star(cellX(dx * 2.2 + 0.5, dy * 2.2), cellY(dy * 2.2), 0.4);
         else if (P.cap.p === "diamonds") { const p = dx * 2.6, q = dy * 2.6; on = mod(floor(p + q) + floor(p - q), 2) === 1; }
-        else if (P.cap.p === "peak") on = dy > 0.8;
+        else if (P.cap.p === "peak") on = abs(dx) < 0.2;
+        else if (P.cap.p === "four spots") on = hypot(dx, dy - 0.5) < 0.3;
         else on = capMask(P.cap.p, u, v);
         const c = on ? P.cap.b : P.cap.a;
         return rr > 1 - 0.022 ? shade(c, 0.86) : c;                 // the cap's edge, a shade darker

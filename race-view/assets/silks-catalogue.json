@@ -4,325 +4,325 @@
    "id": "aga-khan",
    "name": "Aga Khan",
    "description": "Green, red epaulets",
-   "colour": "#1f9a35"
+   "colour": "#3f9745"
   },
   {
    "id": "alcohol-free",
    "name": "Alcohol Free",
    "description": "Purple, ice blue chevron, ice blue cap",
-   "colour": "#4a33b8"
+   "colour": "#614a82"
   },
   {
    "id": "amo-2",
    "name": "Amo 2",
-   "description": "Dark purple, white cap",
-   "colour": "#3a1580"
+   "description": "Dark purple, white cap, dark purple star",
+   "colour": "#49276d"
   },
   {
    "id": "ballydoyle-navy",
    "name": "Ballydoyle Navy",
    "description": "Navy",
-   "colour": "#20335a"
+   "colour": "#333f52"
   },
   {
    "id": "ballydoyle-orange",
    "name": "Ballydoyle Orange",
    "description": "Royal blue, orange disc, royal blue and orange striped sleeves, royal blue and orange striped cap",
-   "colour": "#1d4ae6"
+   "colour": "#2156a6"
   },
   {
    "id": "ballydoyle-pink",
    "name": "Ballydoyle Pink",
    "description": "Pink",
-   "colour": "#f08ef0"
+   "colour": "#eea1c7"
   },
   {
    "id": "ballydoyle-purple",
    "name": "Ballydoyle Purple",
    "description": "Dark purple, dark purple and white striped sleeves",
-   "colour": "#3a1580"
+   "colour": "#49276d"
   },
   {
    "id": "black-white",
    "name": "Black & White",
-   "description": "Black, white hooped band",
-   "colour": "#17191a"
+   "description": "Black, white hooped band, black cap, white spot",
+   "colour": "#1d1d1d"
   },
   {
    "id": "bradsell",
    "name": "Bradsell",
    "description": "Red, red and white striped sleeves, red and white striped cap",
-   "colour": "#f0281c"
+   "colour": "#ed2f24"
   },
   {
    "id": "cheveley-park",
    "name": "Cheveley Park",
    "description": "Red, white sash, royal blue cap",
-   "colour": "#f0281c"
+   "colour": "#ed2f24"
   },
   {
    "id": "circus-maximus",
    "name": "Circus Maximus",
    "description": "Navy, ice blue crossbelts, navy and ice blue diabolo sleeves, white cap",
-   "colour": "#20335a"
+   "colour": "#333f52"
   },
   {
    "id": "clipper-logistics",
    "name": "Clipper Logistics",
    "description": "Silver",
-   "colour": "#c6c8ca"
+   "colour": "#b3b4b6"
   },
   {
    "id": "desert-crown",
    "name": "Desert Crown",
    "description": "Royal blue, lemon chevron, lemon cap, royal blue spots",
-   "colour": "#1d4ae6"
+   "colour": "#2156a6"
   },
   {
    "id": "doha",
    "name": "Doha",
-   "description": "Silver and gold hoops, maroon cap",
-   "colour": "#c6c8ca"
+   "description": "Silver, gold bars, maroon cap, gold spot",
+   "colour": "#b3b4b6"
   },
   {
    "id": "ebts-guard",
    "name": "Ebts Guard",
-   "description": "Royal blue, red sleeves, royal blue cap, red peak",
-   "colour": "#1d4ae6"
+   "description": "Royal blue, red seams, royal blue and red seams sleeves, royal blue cap, red stripe",
+   "colour": "#2156a6"
   },
   {
    "id": "flamin-rib",
    "name": "Flamin Rib",
-   "description": "Navy, ice blue diamond, navy and ice blue striped sleeves, navy cap, ice blue diamond",
-   "colour": "#20335a"
+   "description": "Navy, ice blue triple diamond, navy and ice blue striped sleeves, navy cap, ice blue diamond",
+   "colour": "#333f52"
   },
   {
    "id": "glen-sheil",
    "name": "Glen Sheil",
    "description": "Beige, beige sleeves, navy armlets, navy cap",
-   "colour": "#ece0b0"
+   "colour": "#e1d6aa"
   },
   {
    "id": "godolphin",
    "name": "Godolphin",
    "description": "Royal blue",
-   "colour": "#1d4ae6"
+   "colour": "#2156a6"
   },
   {
    "id": "highclere",
    "name": "Highclere",
    "description": "Ice blue, ice blue sleeves, navy armlets, navy cap",
-   "colour": "#bff5ee"
+   "colour": "#b7e5f1"
   },
   {
    "id": "judmonte",
    "name": "Judmonte",
    "description": "Mint green, pink sash, white sleeves, pink cap",
-   "colour": "#6df096"
+   "colour": "#64c3ac"
   },
   {
    "id": "king-power",
    "name": "King Power",
    "description": "Royal blue, white hooped band, royal blue and white striped sleeves, royal blue and white striped cap",
-   "colour": "#1d4ae6"
+   "colour": "#2156a6"
   },
   {
    "id": "lake-forest",
    "name": "Lake Forest",
-   "description": "Royal blue, royal blue cap, white peak",
-   "colour": "#1d4ae6"
+   "description": "Royal blue, white seams, royal blue and white seams sleeves, royal blue cap, white stripe",
+   "colour": "#2156a6"
   },
   {
    "id": "liberty-lane",
    "name": "Liberty Lane",
-   "description": "Lemon, three black spots, lemon cap, four black spots",
-   "colour": "#e6f232"
+   "description": "Lemon, three black spots, lemon cap, black spots",
+   "colour": "#f2e93f"
   },
   {
    "id": "lord-riddleford",
    "name": "Lord Riddleford",
-   "description": "Purple, mint green sleeves, mint green cap",
-   "colour": "#4a33b8"
+   "description": "Purple and orange quartered, mint green sleeves, mint green cap",
+   "colour": "#614a82"
   },
   {
    "id": "maroon-classic",
    "name": "Maroon Classic",
-   "description": "Maroon, maroon cap, white star",
-   "colour": "#9a1f45"
+   "description": "Maroon, white sleeves, maroon cap, white star",
+   "colour": "#9f3a5a"
   },
   {
    "id": "masrshamn",
    "name": "Masrshamn",
    "description": "White, white and black striped sleeves, white cap, black star",
-   "colour": "#f2f4f2"
+   "colour": "#eff5f5"
   },
   {
    "id": "middleham-park",
    "name": "Middleham Park",
    "description": "Ice blue, orange epaulets",
-   "colour": "#bff5ee"
+   "colour": "#b7e5f1"
   },
   {
    "id": "mill-reef",
    "name": "Mill Reef",
-   "description": "Black, lemon hooped band, black and lemon striped sleeves, black and lemon striped cap",
-   "colour": "#17191a"
+   "description": "Black, lemon cross, black cap, lemon stripe",
+   "colour": "#1d1d1d"
   },
   {
    "id": "nashwa",
    "name": "Nashwa",
    "description": "Mint green, mint green and white striped sleeves",
-   "colour": "#6df096"
+   "colour": "#64c3ac"
   },
   {
    "id": "nathaniel",
    "name": "Nathaniel",
    "description": "Navy, lemon hooped band, lemon cap",
-   "colour": "#20335a"
+   "colour": "#333f52"
   },
   {
    "id": "night-of-thunder",
    "name": "Night Of Thunder",
    "description": "White, red sash, red and white striped cap",
-   "colour": "#f2f4f2"
+   "colour": "#eff5f5"
   },
   {
    "id": "oppenheimer",
    "name": "Oppenheimer",
-   "description": "Black, red cap",
-   "colour": "#17191a"
+   "description": "Black and white halved, white sleeves, red cap",
+   "colour": "#1d1d1d"
   },
   {
    "id": "orange-black",
    "name": "Orange & Black",
    "description": "Orange, black sleeves, black cap",
-   "colour": "#f0982c"
+   "colour": "#f0a53f"
   },
   {
    "id": "phoenix-of-spain",
    "name": "Phoenix of Spain",
    "description": "Navy, pink crossbelts, pink cap",
-   "colour": "#20335a"
+   "colour": "#333f52"
   },
   {
    "id": "pink-white",
    "name": "Pink & White",
    "description": "White, pink hooped band, pink cap",
-   "colour": "#f2f4f2"
+   "colour": "#eff5f5"
   },
   {
    "id": "pink-white-blue",
    "name": "Pink, White & Blue",
    "description": "White, royal blue sleeves, pink armlets, pink cap",
-   "colour": "#f2f4f2"
+   "colour": "#eff5f5"
   },
   {
    "id": "poetic-flare",
    "name": "Poetic Flare",
-   "description": "White, white and dark purple quartered cap",
-   "colour": "#f2f4f2"
+   "description": "White, dark purple strip, white cap, dark purple check",
+   "colour": "#eff5f5"
   },
   {
    "id": "purple-pink",
    "name": "Purple & Pink",
    "description": "Dark purple, pink sleeves, pink cap",
-   "colour": "#3a1580"
+   "colour": "#49276d"
   },
   {
    "id": "qatar",
    "name": "Qatar",
-   "description": "Maroon and gold hoops",
-   "colour": "#9a1f45"
+   "description": "Maroon, gold bars, maroon cap, gold spot",
+   "colour": "#9f3a5a"
   },
   {
    "id": "red-white",
    "name": "Red & White",
    "description": "White, red hooped band, red cap",
-   "colour": "#f2f4f2"
+   "colour": "#eff5f5"
   },
   {
    "id": "red-white-black",
    "name": "Red, White & Black",
    "description": "Red, white sleeves, black cap",
-   "colour": "#f0281c"
+   "colour": "#ed2f24"
   },
   {
    "id": "royal",
    "name": "Royal",
-   "description": "Dark purple and gold hoops, red and gold striped sleeves, black cap",
-   "colour": "#3a1580"
+   "description": "Dark purple, gold bars, red sleeves, black cap, gold spot",
+   "colour": "#49276d"
   },
   {
    "id": "sea-the-stars",
    "name": "Sea The Stars",
    "description": "Lemon, indigo cap, lemon star",
-   "colour": "#e6f232"
+   "colour": "#f2e93f"
   },
   {
    "id": "shadwell",
    "name": "Shadwell",
    "description": "Royal blue, white epaulets, white and royal blue striped cap",
-   "colour": "#1d4ae6"
+   "colour": "#2156a6"
   },
   {
    "id": "silkiewilie",
    "name": "Silkiewilie",
-   "description": "Ice blue, navy seams, ice blue and navy striped sleeves, ice blue cap, navy peak",
-   "colour": "#bff5ee"
+   "description": "Ice blue, navy seams, ice blue and navy striped sleeves, ice blue cap, navy stripe",
+   "colour": "#b7e5f1"
   },
   {
    "id": "starlust",
    "name": "Starlust",
    "description": "Pink, mint green chevron, pink and mint green halved sleeves, mint green and pink halved cap",
-   "colour": "#f08ef0"
+   "colour": "#eea1c7"
   },
   {
    "id": "strawbridge",
    "name": "Strawbridge",
    "description": "White, mint green hooped band, mint green sleeves, mint green cap, white star",
-   "colour": "#f2f4f2"
+   "colour": "#eff5f5"
   },
   {
    "id": "stradivarius",
    "name": "Stradivarius",
    "description": "Black, lemon cap",
-   "colour": "#17191a"
+   "colour": "#1d1d1d"
   },
   {
    "id": "swingalong",
    "name": "Swingalong",
    "description": "Navy, three lemon spots",
-   "colour": "#20335a"
+   "colour": "#333f52"
   },
   {
    "id": "wantan-2",
    "name": "Wantan 2",
    "description": "Gold, royal blue sleeves, royal blue cap",
-   "colour": "#e4c84c"
+   "colour": "#e9bc65"
   },
   {
    "id": "watnan",
    "name": "Watnan",
    "description": "Royal blue, gold sleeves, red cap",
-   "colour": "#1d4ae6"
+   "colour": "#2156a6"
   },
   {
    "id": "white-blue",
    "name": "White & Blue",
    "description": "White, royal blue hooped band",
-   "colour": "#f2f4f2"
+   "colour": "#eff5f5"
   },
   {
    "id": "wimbledon-hawkeye",
    "name": "Wimbledon Hawkeye",
    "description": "Lemon, lemon and black striped sleeves",
-   "colour": "#e6f232"
+   "colour": "#f2e93f"
   },
   {
    "id": "yellow-black-epilite",
    "name": "Yellow Black Epilite",
    "description": "Lemon, black epaulets",
-   "colour": "#e6f232"
+   "colour": "#f2e93f"
   }
  ],
  "catalogue": [
@@ -801,7 +801,7 @@
    },
    {
     "number": 10,
-    "name": "Cross of Lorraine",
+    "name": "Cross",
     "pattern": "cross of lorraine",
     "id": "catalogue-body-cross-of-lorraine"
    },

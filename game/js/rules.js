@@ -291,6 +291,27 @@ function rngFrom(seed) { const r = seeded(seed); return { r, int: (a, b) => a + 
 function groundsFor(R) { const s = R.int(0, 3), n = R.int(2, 3); return GROUND_ORDER.slice(s, s + n); }
 // How the rest of each AI field is spread across the race's four rating bands, top to bottom, by race strength; every field also has one runner in the top band and one in the bottom
 let FIELD_W = { open: { Weak: [0.3, 2, 4, 2], Average: [0.6, 3, 4, 1.5], Strong: [1.2, 4, 3, 1] }, pattern: { Weak: [0.5, 2, 3, 3], Average: [1, 2, 3, 2], Strong: [2, 3, 2, 1] } };
+// The opposition's colours by stable size (owner, 14 Nov 2026): each of the 54 ready-made silks has a tier, 1 the big
+// powerful stables to 4 the small owners (silks/silks.json "tier", in SILK3D order; set on the owner's crib sheet). In the
+// bigger races the better horses lean towards the big stables' colours: "the bigger the races the more in tune to the tier
+// one cards… not to rule out tier 2s and below… just more weighted"; handicaps and conditions races stay random. SILK_PULL
+// is how much more likely a tier 1 and a tier 2 silk is for the top-rated runner (tiers 3 and 4 count 1): in a Group 1
+// the top-rated runner wears tier 1 colours about 60% of the time, tier 2 25%, tier 3 or 4 15%; Group 2 45/25/30,
+// Group 3 35/25/40, Listed 25/27/48 (pure chance is 19/26/55). The pull fades down the field to nothing for the
+// lowest-rated. No colours are worn twice in one field.
+const SILK_TIER = [1, 2, 3, 1, 1, 2, 1, 4, 2, 2, 2, 3, 1, 2, 4, 3, 3, 1, 3, 1, 3, 2, 1, 4, 3, 4, 3, 4, 3, 3, 3, 2, 4, 4, 4, 3, 3, 4, 2, 4, 4, 2, 2, 1, 3, 2, 4, 3, 2, 3, 1, 4, 3, 2];
+const SILK_PULL = { "Group 1": [12, 3.6], "Group 2": [4.5, 1.8], "Group 3": [2.6, 1.35], "Listed": [1.55, 1.2] };
+function dressField(opp, grade, X) {
+  const pull = SILK_PULL[grade] || [1, 1], free = SILKS.map((_, k) => k), n = opp.length;
+  const order = opp.map((o, k) => [o.rating + X.r() * 0.5, k]).sort((x, y) => y[0] - x[0]);   // best first, ties broken at random
+  order.forEach(([, k], rank) => {
+    const q = n > 1 ? Math.pow(1 - rank / (n - 1), 1.2) : 1;            // 1 for the top-rated, fading to 0 for the lowest
+    const w = free.map(j => { const t = SILK_TIER[j]; return t === 1 ? 1 + (pull[0] - 1) * q : t === 2 ? 1 + (pull[1] - 1) * q : 1; });
+    let y = X.r() * w.reduce((a, b) => a + b), i = 0; while (i < w.length - 1 && y >= w[i]) { y -= w[i]; i++; }
+    const sk = free.splice(i, 1)[0], t = SILKS[sk];
+    Object.assign(opp[k], { sk, a: t.a, b: t.b, silks: t.img });
+  });
+}
 function makeCard(seed) {
   const R = rngFrom(seed), used = new Set();
   const nm = () => { for (let k = 0; k < 300; k++) { const n = (R.pick(NAME_A) + " " + R.pick(NAME_B)).toUpperCase(); if (!used.has(n)) { used.add(n); return n; } } return "RUNNER " + used.size; };
@@ -324,6 +345,8 @@ function makeCard(seed) {
       opp.splice(X.int(0, opp.length), 0, { id: race.id + "-" + nextId++, name, rating: X.int(b[d], top[d]),
         sk, a: s.a, b: s.b, silks: s.img, grounds: groundsFor(X), coat: X.pick(COATS), jockey: X.pick(jockeys), trainer: X.pick(trainers) });
     }
+    // The colours, on their own stream so the rest of the card draws as before (owner, 14 Nov: tiers)
+    dressField(opp, race.grade, rngFrom(hashStr(seed + ":silks:" + race.id)));
     // Each is bred for this trip: the race is one of its two best distances.
     opp.forEach(o => { const up = X.r() < .5, lo = Math.max(0, Math.min(DISTANCES.length - 2, up ? race.step : race.step - 1));
       Object.assign(o, rollRacecard(X.r), { trip: [lo, lo + 1] }); });
@@ -397,8 +420,9 @@ function fieldFor(i) {
   const race = RACES[i], C = CARD.races[i], mk = mySilkN(), me0 = mySilks();
   const list = C.opp.map((o, k) => {
     let sk = o.sk;
-    if (sk === mk) sk = (mk + 1 + k) % SILKS.length;   // nobody else wears your colours
-    if (sk === mk) sk = (sk + 1) % SILKS.length;
+    if (sk === mk) {                                    // nobody else wears your colours: the first set nobody in the field has
+      const taken = new Set(C.opp.map(x => x.sk)); sk = SILKS.findIndex((_, j) => j !== mk && !taken.has(j));
+    }
     const t = SILKS[sk];
     return { ...o, sk, a: t.a, b: t.b, silks: t.img, trip: o.trip.map(x => DISTANCES[x]), goings: o.grounds };
   });

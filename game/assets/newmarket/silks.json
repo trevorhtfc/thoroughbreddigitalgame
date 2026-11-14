@@ -1,26 +1,26 @@
 {
-  "_about": "Traditional racing silks for the 3D jockey and racecard icons. Each set is body, sleeves and cap: a colour plus an optional pattern in a second colour. Read from the menu artwork in assets/silks, where the strip on the left is the sleeves, the semicircle at the top is the cap and the rest is the body. Palette colours are sampled from that artwork. tools/silks/make_silks.py paints them; patterns are listed in tools/README.md. All 54 menu silks are here; 'menu' is the game's file for the same silks (ascot-game/img/silks/sNN.webp).",
+  "_about": "Traditional racing silks for the 3D jockey and racecard icons. Each set is body, sleeves and cap: a colour plus an optional pattern in a second colour. Read from the menu artwork in assets/silks, where the strip on the left is the sleeves, the semicircle at the top is the cap and the rest is the body. Palette colours are sampled from that artwork (re-sampled 14 Nov 2026 from the icons themselves, at the owner's ask: the 3D had been bolder and brighter than his art). tools/silks/make_silks.py paints them; patterns are listed in tools/README.md. All 54 menu silks are here; 'menu' is the game's file for the same silks (ascot-game/img/silks/sNN.webp). 'tier' (owner, 14 Nov 2026): how big the stable is, 1 the powerhouses to 4 the small owners; in Group and Listed races the better horses lean towards tier 1 and 2 colours (game/js/rules.js, SILK_TIER).",
   "palette": {
-    "white": "#f2f4f2",
-    "black": "#17191a",
-    "royal blue": "#1d4ae6",
-    "navy": "#20335a",
+    "white": "#eff5f5",
+    "black": "#1d1d1d",
+    "royal blue": "#2156a6",
+    "navy": "#333f52",
     "dark blue": "#1f2f5e",
-    "indigo": "#2c1aa8",
-    "ice blue": "#bff5ee",
-    "purple": "#4a33b8",
-    "mint green": "#6df096",
-    "red": "#f0281c",
-    "pink": "#f08ef0",
-    "orange": "#f0982c",
-    "lemon": "#e6f232",
-    "gold": "#e4c84c",
+    "indigo": "#49276d",
+    "ice blue": "#b7e5f1",
+    "purple": "#614a82",
+    "mint green": "#64c3ac",
+    "red": "#ed2f24",
+    "pink": "#eea1c7",
+    "orange": "#f0a53f",
+    "lemon": "#f2e93f",
+    "gold": "#e9bc65",
     "grey": "#9a9a98",
-    "green": "#1f9a35",
-    "dark purple": "#3a1580",
-    "maroon": "#9a1f45",
-    "beige": "#ece0b0",
-    "silver": "#c6c8ca",
+    "green": "#3f9745",
+    "dark purple": "#49276d",
+    "maroon": "#9f3a5a",
+    "beige": "#e1d6aa",
+    "silver": "#b3b4b6",
     "test cap": "#2fae4a",
     "test body front": "#e2b21c",
     "test body back": "#d8d8d4",
@@ -49,7 +49,8 @@
       },
       "cap": {
         "colour": "green"
-      }
+      },
+      "tier": 1
     },
     {
       "id": "alcohol-free",
@@ -65,7 +66,8 @@
       },
       "cap": {
         "colour": "ice blue"
-      }
+      },
+      "tier": 2
     },
     {
       "id": "amo-2",
@@ -78,8 +80,11 @@
         "colour": "dark purple"
       },
       "cap": {
-        "colour": "white"
-      }
+        "colour": "white",
+        "pattern": "star",
+        "colour2": "dark purple"
+      },
+      "tier": 3
     },
     {
       "id": "ballydoyle-navy",
@@ -93,7 +98,8 @@
       },
       "cap": {
         "colour": "navy"
-      }
+      },
+      "tier": 1
     },
     {
       "id": "ballydoyle-orange",
@@ -113,7 +119,8 @@
         "colour": "royal blue",
         "pattern": "striped",
         "colour2": "orange"
-      }
+      },
+      "tier": 1
     },
     {
       "id": "ballydoyle-pink",
@@ -127,7 +134,8 @@
       },
       "cap": {
         "colour": "pink"
-      }
+      },
+      "tier": 2
     },
     {
       "id": "ballydoyle-purple",
@@ -143,7 +151,8 @@
       },
       "cap": {
         "colour": "dark purple"
-      }
+      },
+      "tier": 1
     },
     {
       "id": "black-white",
@@ -158,8 +167,11 @@
         "colour": "black"
       },
       "cap": {
-        "colour": "black"
-      }
+        "colour": "black",
+        "pattern": "four spots",
+        "colour2": "white"
+      },
+      "tier": 4
     },
     {
       "id": "bradsell",
@@ -177,7 +189,8 @@
         "colour": "red",
         "pattern": "striped",
         "colour2": "white"
-      }
+      },
+      "tier": 2
     },
     {
       "id": "cheveley-park",
@@ -193,7 +206,8 @@
       },
       "cap": {
         "colour": "royal blue"
-      }
+      },
+      "tier": 2
     },
     {
       "id": "circus-maximus",
@@ -211,7 +225,8 @@
       },
       "cap": {
         "colour": "white"
-      }
+      },
+      "tier": 2
     },
     {
       "id": "clipper-logistics",
@@ -225,7 +240,8 @@
       },
       "cap": {
         "colour": "silver"
-      }
+      },
+      "tier": 3
     },
     {
       "id": "desert-crown",
@@ -243,7 +259,8 @@
         "colour": "lemon",
         "pattern": "spots",
         "colour2": "royal blue"
-      }
+      },
+      "tier": 1
     },
     {
       "id": "doha",
@@ -251,31 +268,39 @@
       "menu": "s14",
       "body": {
         "colour": "silver",
-        "pattern": "hoops",
+        "pattern": "inverted chevron",
         "colour2": "gold"
       },
       "sleeves": {
         "colour": "silver"
       },
       "cap": {
-        "colour": "maroon"
-      }
+        "colour": "maroon",
+        "pattern": "four spots",
+        "colour2": "gold"
+      },
+      "tier": 2
     },
     {
       "id": "ebts-guard",
       "name": "Ebts Guard",
       "menu": "s15",
       "body": {
-        "colour": "royal blue"
+        "colour": "royal blue",
+        "pattern": "seams",
+        "colour2": "red"
       },
       "sleeves": {
-        "colour": "red"
+        "colour": "royal blue",
+        "pattern": "seams",
+        "colour2": "red"
       },
       "cap": {
         "colour": "royal blue",
         "pattern": "peak",
         "colour2": "red"
-      }
+      },
+      "tier": 4
     },
     {
       "id": "flamin-rib",
@@ -283,7 +308,7 @@
       "menu": "s16",
       "body": {
         "colour": "navy",
-        "pattern": "diamond",
+        "pattern": "triple diamond",
         "colour2": "ice blue"
       },
       "sleeves": {
@@ -295,7 +320,8 @@
         "colour": "navy",
         "pattern": "diamond",
         "colour2": "ice blue"
-      }
+      },
+      "tier": 3
     },
     {
       "id": "glen-sheil",
@@ -311,7 +337,8 @@
       },
       "cap": {
         "colour": "navy"
-      }
+      },
+      "tier": 3
     },
     {
       "id": "godolphin",
@@ -325,7 +352,8 @@
       },
       "cap": {
         "colour": "royal blue"
-      }
+      },
+      "tier": 1
     },
     {
       "id": "highclere",
@@ -341,7 +369,8 @@
       },
       "cap": {
         "colour": "navy"
-      }
+      },
+      "tier": 3
     },
     {
       "id": "judmonte",
@@ -357,7 +386,8 @@
       },
       "cap": {
         "colour": "pink"
-      }
+      },
+      "tier": 1
     },
     {
       "id": "king-power",
@@ -377,23 +407,29 @@
         "colour": "royal blue",
         "pattern": "striped",
         "colour2": "white"
-      }
+      },
+      "tier": 3
     },
     {
       "id": "lake-forest",
       "name": "Lake Forest",
       "menu": "s22",
       "body": {
-        "colour": "royal blue"
+        "colour": "royal blue",
+        "pattern": "seams",
+        "colour2": "white"
       },
       "sleeves": {
-        "colour": "royal blue"
+        "colour": "royal blue",
+        "pattern": "seams",
+        "colour2": "white"
       },
       "cap": {
         "colour": "royal blue",
         "pattern": "peak",
         "colour2": "white"
-      }
+      },
+      "tier": 2
     },
     {
       "id": "liberty-lane",
@@ -409,23 +445,27 @@
       },
       "cap": {
         "colour": "lemon",
-        "pattern": "four spots",
+        "pattern": "spots",
         "colour2": "black"
-      }
+      },
+      "tier": 1
     },
     {
       "id": "lord-riddleford",
       "name": "Lord Riddleford",
       "menu": "s24",
       "body": {
-        "colour": "purple"
+        "colour": "purple",
+        "pattern": "quartered",
+        "colour2": "orange"
       },
       "sleeves": {
         "colour": "mint green"
       },
       "cap": {
         "colour": "mint green"
-      }
+      },
+      "tier": 4
     },
     {
       "id": "maroon-classic",
@@ -435,13 +475,14 @@
         "colour": "maroon"
       },
       "sleeves": {
-        "colour": "maroon"
+        "colour": "white"
       },
       "cap": {
         "colour": "maroon",
         "pattern": "star",
         "colour2": "white"
-      }
+      },
+      "tier": 3
     },
     {
       "id": "masrshamn",
@@ -459,7 +500,8 @@
         "colour": "white",
         "pattern": "star",
         "colour2": "black"
-      }
+      },
+      "tier": 4
     },
     {
       "id": "middleham-park",
@@ -475,7 +517,8 @@
       },
       "cap": {
         "colour": "ice blue"
-      }
+      },
+      "tier": 3
     },
     {
       "id": "mill-reef",
@@ -483,19 +526,18 @@
       "menu": "s28",
       "body": {
         "colour": "black",
-        "pattern": "hooped band",
+        "pattern": "cross of lorraine",
         "colour2": "lemon"
       },
       "sleeves": {
-        "colour": "black",
-        "pattern": "stripes",
-        "colour2": "lemon"
+        "colour": "black"
       },
       "cap": {
         "colour": "black",
-        "pattern": "striped",
+        "pattern": "peak",
         "colour2": "lemon"
-      }
+      },
+      "tier": 4
     },
     {
       "id": "nashwa",
@@ -511,7 +553,8 @@
       },
       "cap": {
         "colour": "mint green"
-      }
+      },
+      "tier": 3
     },
     {
       "id": "nathaniel",
@@ -527,7 +570,8 @@
       },
       "cap": {
         "colour": "lemon"
-      }
+      },
+      "tier": 3
     },
     {
       "id": "night-of-thunder",
@@ -545,21 +589,25 @@
         "colour": "red",
         "pattern": "striped",
         "colour2": "white"
-      }
+      },
+      "tier": 3
     },
     {
       "id": "oppenheimer",
       "name": "Oppenheimer",
       "menu": "s32",
       "body": {
-        "colour": "black"
+        "colour": "black",
+        "pattern": "halved",
+        "colour2": "white"
       },
       "sleeves": {
-        "colour": "black"
+        "colour": "white"
       },
       "cap": {
         "colour": "red"
-      }
+      },
+      "tier": 2
     },
     {
       "id": "orange-black",
@@ -573,7 +621,8 @@
       },
       "cap": {
         "colour": "black"
-      }
+      },
+      "tier": 4
     },
     {
       "id": "phoenix-of-spain",
@@ -589,7 +638,8 @@
       },
       "cap": {
         "colour": "pink"
-      }
+      },
+      "tier": 4
     },
     {
       "id": "pink-white",
@@ -605,7 +655,8 @@
       },
       "cap": {
         "colour": "pink"
-      }
+      },
+      "tier": 4
     },
     {
       "id": "pink-white-blue",
@@ -621,23 +672,27 @@
       },
       "cap": {
         "colour": "pink"
-      }
+      },
+      "tier": 3
     },
     {
       "id": "poetic-flare",
       "name": "Poetic Flare",
       "menu": "s37",
       "body": {
-        "colour": "white"
+        "colour": "white",
+        "pattern": "strip",
+        "colour2": "dark purple"
       },
       "sleeves": {
         "colour": "white"
       },
       "cap": {
         "colour": "white",
-        "pattern": "quartered",
+        "pattern": "check",
         "colour2": "dark purple"
-      }
+      },
+      "tier": 3
     },
     {
       "id": "purple-pink",
@@ -651,7 +706,8 @@
       },
       "cap": {
         "colour": "pink"
-      }
+      },
+      "tier": 4
     },
     {
       "id": "qatar",
@@ -659,15 +715,18 @@
       "menu": "s39",
       "body": {
         "colour": "maroon",
-        "pattern": "hoops",
+        "pattern": "inverted chevron",
         "colour2": "gold"
       },
       "sleeves": {
         "colour": "maroon"
       },
       "cap": {
-        "colour": "maroon"
-      }
+        "colour": "maroon",
+        "pattern": "four spots",
+        "colour2": "gold"
+      },
+      "tier": 2
     },
     {
       "id": "red-white",
@@ -683,7 +742,8 @@
       },
       "cap": {
         "colour": "red"
-      }
+      },
+      "tier": 4
     },
     {
       "id": "red-white-black",
@@ -697,7 +757,8 @@
       },
       "cap": {
         "colour": "black"
-      }
+      },
+      "tier": 4
     },
     {
       "id": "royal",
@@ -705,17 +766,18 @@
       "menu": "s42",
       "body": {
         "colour": "dark purple",
-        "pattern": "hoops",
+        "pattern": "inverted chevron",
         "colour2": "gold"
       },
       "sleeves": {
-        "colour": "red",
-        "pattern": "stripes",
-        "colour2": "gold"
+        "colour": "red"
       },
       "cap": {
-        "colour": "black"
-      }
+        "colour": "black",
+        "pattern": "four spots",
+        "colour2": "gold"
+      },
+      "tier": 2
     },
     {
       "id": "sea-the-stars",
@@ -731,7 +793,8 @@
         "colour": "indigo",
         "pattern": "star",
         "colour2": "lemon"
-      }
+      },
+      "tier": 2
     },
     {
       "id": "shadwell",
@@ -749,7 +812,8 @@
         "colour": "white",
         "pattern": "striped",
         "colour2": "royal blue"
-      }
+      },
+      "tier": 1
     },
     {
       "id": "silkiewilie",
@@ -769,7 +833,8 @@
         "colour": "ice blue",
         "pattern": "peak",
         "colour2": "navy"
-      }
+      },
+      "tier": 3
     },
     {
       "id": "starlust",
@@ -789,7 +854,8 @@
         "colour": "mint green",
         "pattern": "halved",
         "colour2": "pink"
-      }
+      },
+      "tier": 2
     },
     {
       "id": "strawbridge",
@@ -807,7 +873,8 @@
         "colour": "mint green",
         "pattern": "star",
         "colour2": "white"
-      }
+      },
+      "tier": 4
     },
     {
       "id": "stradivarius",
@@ -821,7 +888,8 @@
       },
       "cap": {
         "colour": "lemon"
-      }
+      },
+      "tier": 3
     },
     {
       "id": "swingalong",
@@ -837,7 +905,8 @@
       },
       "cap": {
         "colour": "navy"
-      }
+      },
+      "tier": 2
     },
     {
       "id": "wantan-2",
@@ -851,7 +920,8 @@
       },
       "cap": {
         "colour": "royal blue"
-      }
+      },
+      "tier": 3
     },
     {
       "id": "watnan",
@@ -865,7 +935,8 @@
       },
       "cap": {
         "colour": "red"
-      }
+      },
+      "tier": 1
     },
     {
       "id": "white-blue",
@@ -881,7 +952,8 @@
       },
       "cap": {
         "colour": "white"
-      }
+      },
+      "tier": 4
     },
     {
       "id": "wimbledon-hawkeye",
@@ -897,7 +969,8 @@
       },
       "cap": {
         "colour": "lemon"
-      }
+      },
+      "tier": 3
     },
     {
       "id": "yellow-black-epilite",
@@ -913,7 +986,8 @@
       },
       "cap": {
         "colour": "lemon"
-      }
+      },
+      "tier": 2
     }
   ]
 }
