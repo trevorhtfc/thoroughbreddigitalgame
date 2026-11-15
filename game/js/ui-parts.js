@@ -294,6 +294,7 @@ function cardPayload(h, age) {
     outlook: { arrows: "", words: "" }, verdict: null,
     // your trainer's work on it, as medals and a boost on the card (owner, 15 Nov: "see the trainer cards directly boost / change the horses")
     training: typeof cardTraining === "function" ? cardTraining(h) : [],
+    kinds: typeof isBeginner === "function" && isBeginner(),   // Beginner: the bars blocked into Sprint, Mile, Middle, Staying
     baseCardUrl: "img/base.webp", portraitUrl: `img/p${String(h.portrait || 1).padStart(2, "0")}.webp` };
 }
 let cardFrame = null, cardQueue = [], cardReady = false;

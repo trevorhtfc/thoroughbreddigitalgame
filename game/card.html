@@ -155,6 +155,7 @@ body{display:flex;align-items:center;justify-content:center;font-family:"Figtree
           <path id="ghostLine" d="" fill="none" stroke="#22363a" stroke-opacity=".72" stroke-width="8" stroke-dasharray="16 13" stroke-linecap="round" stroke-linejoin="round"/>
           <g id="peakMark" opacity="0"></g>
         </g>
+        <g id="kinds"></g>
         <g id="bars"></g>
         <g id="verdict" opacity="0"></g>
         <g id="legend" opacity="0">
@@ -219,7 +220,23 @@ function setWindow(h){
   if(!idx.length) return;
   const lo=Math.min(...idx), hi=Math.max(...idx);
   WIN=Math.max(0, Math.min(DIST.length-NWIN, Math.round((lo+hi)/2 - (NWIN-1)/2)));
-  bars.forEach((b,i)=>{ b.lab.textContent=DIST[WIN+i]; });
+  bars.forEach((b,i)=>{ b.lab.textContent=h.kinds ? "" : DIST[WIN+i]; });
+  drawKinds(h);
+}
+/* Beginner (owner, 15 Nov night: "show the same actual graph but rather than specific distance we can block the
+   background sections into sprint mile etc"): the bars stay, their distance labels go, and the background behind them
+   is blocked into the kinds of trip, each named underneath */
+const KIND_OF = [0,0,1,1,1,2,2,3,3], KIND_NAME = ["Sprint","Mile","Middle","Staying"], KIND_FILL = ["#22363a","#b7975a"];
+function drawKinds(h){
+  const g=$("kinds"); g.innerHTML=""; if(!h || !h.kinds) return;
+  let start=0;
+  for(let i=1;i<=NWIN;i++){
+    if(i<NWIN && KIND_OF[WIN+i]===KIND_OF[WIN+start]) continue;
+    const k=KIND_OF[WIN+start], x0=X0+SLOT*start+6, x1=X0+SLOT*i-6, cx=(x0+x1)/2;
+    const r=document.createElementNS(NS,"rect"); set(r,{x:x0,y:BASE-HMAX-40,width:x1-x0,height:HMAX+40+70,rx:18,fill:KIND_FILL[k%2],"fill-opacity":k%2?.16:.08});
+    const tx=document.createElementNS(NS,"text"); set(tx,{x:cx,y:BASE+52,"text-anchor":"middle","font-size":i-start>1?44:38,"font-weight":700,fill:"#22363a","letter-spacing":"1"}); tx.textContent=KIND_NAME[k];
+    g.append(r,tx); start=i;
+  }
 }
 function profile(h){ return fullProfile(h).slice(WIN, WIN+NWIN); }
 function fullProfile(h){
