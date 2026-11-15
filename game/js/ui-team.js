@@ -88,7 +88,9 @@ function showReveal(code) {
 }
 function closeReveal() { const el = document.getElementById("tmReveal"); if (el) el.remove(); }
 // ---------- the team at work, place by place ----------
-const panel = out => out.length ? `<section class="sect tm-at"><div class="sect-h"><h2 class="tb-h2">YOUR OWNER'S CARDS</h2></div><div class="tm-hand sm">${out.join("")}</div></section>` : "";
+// folded away unless a card needs you to act (owner, 15 Nov: the screens were too long on a phone; the Team button at the
+// top shows the whole team at any time)
+const panel = (out, open, note) => out.length ? `<details class="sect tm-at fold" ${open ? "open" : ""}><summary class="sect-h"><h2 class="tb-h2">YOUR OWNER'S CARDS</h2><span>${note || `${out.length} card${out.length === 1 ? "" : "s"} at work here · tap to see`}</span></summary><div class="tm-hand sm">${out.join("")}</div></details>` : "";
 // Pedigree Expert: ask about an unproven stallion (Gold knows them all)
 function expertBit() {
   const c = held("pedigree"); if (!c) return "";
@@ -107,7 +109,8 @@ function teamAtStud() {
     out.push(tcard(so, { cls: "sm", extra: own ? `<p class="tc-do">Your stallion: <b>${esc2(own)}</b> · ${ownedFreeLeft()} of ${OWNED_FREE} free nominations left</p>`
       : `<p class="tc-do">Keep one as your own:</p><div class="tm-own">${ownerDraw().map(n => { const x = stallion(n); return `<button class="tb-btn ghost" data-own="${esc2(n)}"><b>${esc2(n)}</b><small>${x.shownStars}★${x.unproven ? " unproven" : ""} · best ${x.optimumDistance} · peaks ${x.peakAge}</small></button>`; }).join("")}</div>` })); }
   const pe = expertBit(); if (pe) out.push(pe);
-  return panel(out);
+  const act = so && !ownedStallion();
+  return panel(out, act, act ? "Choose your own stallion" : "");
 }
 function teamAtSales() {
   if (!teamOn() || teamSkipped()) return "";
@@ -117,7 +120,8 @@ function teamAtSales() {
   if (vt) out.push(tcard(vt, { cls: "sm", extra: `<p class="tc-do">${vetLeft()} of ${VET_USES[vt.tier]} left: offered when a yearling is knocked down to you.</p>` }));
   if (pv) out.push(tcard(pv, { cls: "sm", extra: `<p class="tc-do">${S.team.used.private ? "Used." : "Look for <b>Private sale</b> on the lots it can buy."}</p>` }));
   const pe = expertBit(); if (pe) out.push(pe);
-  return panel(out);
+  const act = sc && !scoutState().briefed;
+  return panel(out, act, act ? "Brief your Sales Scout" : "");
 }
 // Sales Scout: tick the races you still need a horse for, then brief him (his finds join the Books)
 const shortRace = r => r.name.replace(/ Stakes$| Handicap$/, "");
@@ -180,9 +184,9 @@ function teamAtEntries() {
   const suits = c => { const K = JOCKEY_KINDS[c.kind]; return K.trips ? RACES.filter(r => K.trips.includes(raceTrip(r))).length : c.kind === "bigrace" ? RACES.filter(r => r.grade.startsWith("Group")).length : null; };
   const jkRow = c => tcard(c, { cls: "sm", extra: `<p class="tc-do">Booked for <b>${ridesOf(c.code).length} of ${JOCKEY_RIDES[c.tier]}</b> rides${ridesOf(c.code).length ? ": " + ridesOf(c.code).map(r => r.name.replace(/ Stakes$/, "")).join(", ") : ". Book him in a race below."}${suits(c) != null ? ` ${suits(c)} of your races ${suits(c) === 1 ? "is" : "are"} his speciality${c.kind === "bigrace" ? "" : `; in the others he's still ${ANYWHERE_BOOST[c.tier]} better`}.` : ""}</p>` });
   const free = jk.some(c => ridesLeft(c) > 0) && RACES.some(r => S.entries[r.id] && !bookedFor(r));
-  return `<details class="sect tm-at" ${S.team.openEntries === false ? "" : "open"}><summary class="sect-h"><h2 class="tb-h2">YOUR TRAINER AND JOCKEYS</h2><span>The trainer works at Warren Hill; jockeys are booked race by race</span></summary>
-    <div class="tm-hand sm">${tr.map(trRow).join("")}${jk.map(jkRow).join("")}</div>
-    ${free ? `<p class="tm-auto"><button class="tb-btn sm" data-autobook="1">Book my jockeys</button><small><b>${ridesToBook()} ride${ridesToBook() === 1 ? "" : "s"} to book.</b> Tap to put each jockey's rides where they're worth the most, or choose a jockey under each race below. Any you leave are booked for you when you go to the races.</small></p>` : ""}</details>`;
+  return `<details class="sect tm-at fold"><summary class="sect-h"><h2 class="tb-h2">YOUR TRAINER AND JOCKEYS</h2><span>${jk.length ? `${jk.reduce((a, c) => a + ridesOf(c.code).length, 0)} ride${jk.reduce((a, c) => a + ridesOf(c.code).length, 0) === 1 ? "" : "s"} booked` : "Your cards"} · tap to see</span></summary>
+    <div class="tm-hand sm">${tr.map(trRow).join("")}${jk.map(jkRow).join("")}</div></details>
+    ${free ? `<p class="tm-auto"><button class="tb-btn sm" data-autobook="1">Book my jockeys</button><small><b>${ridesToBook()} ride${ridesToBook() === 1 ? "" : "s"} to book.</b> Puts each jockey where he's worth the most, or choose one under each race. Any left are booked for you when you go.</small></p>` : ""}`;
 }
 // a job in a few words: "Settle: Copper Falcon"
 function jobLabel(j) {
@@ -200,10 +204,10 @@ function jobTokens() {
 function trainerPanel() {
   if (!teamOn() || teamSkipped() || !trainerCards().length) return "";
   const tr = trainerCards();
-  return `<section class="sect tm-at jb-panel"><div class="sect-h"><h2 class="tb-h2">YOUR TRAINER</h2>${jobTokens()}</div>
+  return `<details class="sect tm-at jb-panel fold"><summary class="sect-h"><h2 class="tb-h2">YOUR TRAINER</h2>${jobTokens()}</summary>
     <div class="jb-top"><div class="tm-hand sm">${tr.map(c => tcard(c, { cls: "sm" })).join("")}</div>
       <ul class="jb-how">${Object.values(JOB_INFO).map(x => `<li><b>${x.name}</b> ${x.what}.</li>`).join("")}
-        <li class="jb-keep">Jobs you don't spend here can be used in race week, once the going is declared: ground work or a tune-up.</li></ul></div></section>`;
+        <li class="jb-keep">Open a horse below to give it a job. Jobs you don't spend here can be used in race week, once the going is declared: ground work or a tune-up.</li></ul></div></details>`;
 }
 // the job strip on a horse's card at Warren Hill
 function jobStrip(h) {

@@ -82,13 +82,13 @@ document.addEventListener("drop", e => {
 });
 function breedBody() {
   return `<div class="tb-head"><h1 class="tb-h">BREED</h1>
-    <p class="tb-lede" ${onJob() ? "" : "hidden"}>You have ${money(startBudget() + (held("powerhouse") ? POWERHOUSE[held("powerhouse").tier] : 0))} to build a stable for this season's ${RACES.length} races, with room for ${STABLE_CAP - RACES.length} spares. ${handOn() ? `Your stud starts with ${HAND.hi + HAND.mid + HAND.lo} mares dealt to you: ${HAND.hi} Blue-blooded, ${HAND.mid} Useful and ${HAND.lo} Moderate. Breed them, and buy one more if you like.` : `Buy mares at the mares sale (pick a pile, then choose one of the ${offerSize()} turned over; up to ${MARE_CAP}), then breed them.`} Keep some money back for Tattersalls, where the sale is made from the mares nobody bred: the cheapest Book 1 yearling starts at ${money(RESERVES[BOOKS[0].min])}. Tap your money at the top to see where it's gone. Every foal arrives as a 2-year-old, and it's a coin flip whether you get a colt or a filly.</p></div>
+    <p class="tb-lede short" ${onJob() ? "" : "hidden"}>${S.stable.length ? `<b>${money(S.budget)}</b> left · ${S.stable.length} horse${S.stable.length === 1 ? "" : "s"} for ${RACES.length} races.` : `<b>${money(S.budget)}</b> to build a stable for ${RACES.length} races.`} ${!handDone() ? "Draw your mares, then breed them." : S.hand.length ? "Tap a mare, then a stallion, to breed her." : "Every mare is covered: on to Tattersalls when you're ready."} Keep some back for Tattersalls.</p></div>
     ${viewTabs("The stud")}
     ${refView(studView)}`;
 }
 function saleBody() {
   return `<div class="tb-head"><h1 class="tb-h">TATTERSALLS</h1>
-    <p class="tb-lede" ${onJob() ? "" : "hidden"}>Your last chance to strengthen the stable before the races. The catalogue is made from the mares nobody bred, each lot by a stallion drawn at random.</p></div>
+    <p class="tb-lede short" ${onJob() ? "" : "hidden"}>Your last chance to buy before the races: <b>${money(S.budget)}</b> left.</p></div>
     ${viewTabs("The sale ring")}
     ${refView(saleView)}`;
 }
@@ -138,17 +138,29 @@ function studView() {
   if (!m) return `${teamAtStud()}<section class="sect"><div class="sect-h"><h2 class="tb-h2">YOUR MARES</h2><span>${studCount()} of ${MARE_CAP} in your stud · ${S.usedMares.length} covered · tap a mare to breed her</span></div>
     <div class="grid">${S.hand.map(mareCard).join("") || `<p class="tb-empty">${S.usedMares.length ? (extraLeft() > 0 ? "Every mare has been covered. Buy another below, or head to Tattersalls." : "Every mare has been covered: on to Tattersalls.") : "No mares yet. Buy one below."}</p>`}</div>
     ${handList()}</section>
-    ${maresSale()}`;
-  return `<section class="sect pick-mare"><div class="sect-h"><h2 class="tb-h2">BREEDING ${esc2(m.name).toUpperCase()}</h2><button class="tb-btn ghost sm" id="changeMare">‹ Choose a different mare</button></div>
-    <div class="grid one">${mareCard(m.name)}</div></section>
-    <div class="tb-bar sticky-bar"><div class="tb-bar-info ${ok && afford ? "ready" : ""}">${!m ? "Pick a mare." : !st ? `Tap a stallion for ${esc2(m.name)}.` : !ok ? esc2(pairProblem(st, m)) + "." :
-      `${esc2(st.name)} × ${esc2(m.name)}. Stud fee ${fee < st.fee ? `<s>${money(st.fee)}</s> free (your own stallion)` : money(st.fee)}${ln ? ` · <span class="line ${ln.cls}">${ln.text}</span>` : ""}${afford ? "" : " · not enough budget"}${stableFull() ? ` · your stable is full (${STABLE_CAP})` : ""}`}</div>
-      <div class="tb-bar-btns"><button class="tb-btn" id="breedBtn" ${ok && afford && !S.foal && !stableFull() ? "" : "disabled"}>Breed</button></div></div>
+    ${maresSale()}${studFoals()}`;
+  // the mare you're breeding, then the stallions; tap one and its Breed button (and an X to let go) opens right under it
+  // (owner, 15 Nov: "the breed button or an X should sit close as you select the stallion")
+  const strip = ok ? breedStrip(st, m) : "";
+  return `<section class="sect pick-mare"><div class="sect-h"><h2 class="tb-h2">BREEDING ${esc2(m.name).toUpperCase()}</h2><button class="tb-btn ghost sm" id="changeMare">‹ A different mare</button></div>
+    <div class="pm-row">${mareCard(m.name)}<p class="pm-help">${st && !ok ? esc2(pairProblem(st, m)) + "." : `Tap a stallion below for ${esc2(m.name)}. Its <b>Breed</b> button opens under it.`}</p></div></section>
     <section class="sect"><div class="sect-h"><h2 class="tb-h2">STALLIONS</h2>
       <label class="sortby">Sort by <select id="sort"><option value="fee" ${S.sort === "fee" ? "selected" : ""}>Fee</option><option value="stars" ${S.sort === "stars" ? "selected" : ""}>Stars</option><option value="trip" ${S.sort === "trip" ? "selected" : ""}>Trip</option></select></label></div>
     <div class="filters">${trips.map(x => `<button class="tb-chip ${(S.trip || "all") === x[0] ? "on" : ""}" data-trip="${x[0]}">${x[1]}</button>`).join("")}</div>
-    <div class="grid">${rows.map(s => stallionCard(s, m)).join("")}</div>
+    <div class="grid stal">${rows.map(s => stallionCard(s, m) + (strip && s.name === st.name ? strip : "")).join("")}</div>
     <p class="hint">Outcross (a different sire line) adds 1–3 to the foal's rating. The same line can take up to 4 off, and the same family up to 7. Unproven stallions may turn out a star better or worse than their stud-book rating.</p></section>`;
+}
+// the foals bred so far, as tidy rows (develop them here too)
+function studFoals() {
+  const bred = S.stable.filter(h => h.how === "bred"); if (!bred.length) return "";
+  return `<section class="sect"><div class="sect-h"><h2 class="tb-h2">YOUR FOALS</h2><span>${bred.length}</span></div>${horseRows(bred, null, false)}</section>`;
+}
+// the Breed strip under the chosen stallion
+function breedStrip(st, m) {
+  const fee = feeFor(st), ln = lineNote(st, m), why = fee > S.budget ? "Not enough budget" : stableFull() ? `Your stable is full (${STABLE_CAP})` : "";
+  return `<div class="bstrip" id="bstrip"><div class="bs-t"><b>${esc2(st.name)} <i>×</i> ${esc2(m.name)}</b>
+      <span>Stud fee ${fee < st.fee ? `<s>${money(st.fee)}</s> free (your own stallion)` : `<b>${money(fee)}</b>`}${ln ? ` · <span class="line ${ln.cls}">${ln.text}</span>` : ""}${why ? ` · <em>${why}</em>` : ""}</span></div>
+    <div class="bs-b"><button class="tb-btn" id="breedBtn" type="button" ${!why && !S.foal ? "" : "disabled"}>Breed</button><button class="bs-x" id="unStallion" type="button" aria-label="Let go of ${esc2(st.name)}">×</button></div></div>`;
 }
 function offerCard(name) {
   const m = byName(name);
@@ -214,7 +226,7 @@ function maresSale() {
 }
 function saleView() {
   return `${teamAtSales()}<section class="ring"><div class="ring-in"><div class="ring-k">TATTERSALLS</div><div class="ring-t">The sale ring</div>
-    <p>Each lot is a foal by a stallion out of a mare. You see the pedigree, not the foal, until it's knocked down to you. Bring a lot into the ring and bid against rival buyers: when the auctioneer's count runs out, the hammer falls.</p></div></section>
+    <p>Choose a Book, then bring a lot into the ring and bid.</p></div></section>
     <div class="books" role="tablist">${BOOKS.map(b => { const n = S.sale.filter(l => l.book === b.n).length;
       const f = S.sale.filter(l => l.book === b.n && l.scout).length;
       return `<button class="book ${S.book === b.n ? "on" : ""}" data-book="${b.n}" role="tab" aria-selected="${S.book === b.n}"><b>${b.name}</b><span>${b.note} · ${n} lot${n === 1 ? "" : "s"}${f ? ` · ${f} scout's find${f === 1 ? "" : "s"}` : ""}</span></button>`; }).join("")}</div>
@@ -500,7 +512,7 @@ function entriesBody(entered) {
   const score = h => { const c = whyNot(h, sel) ? null : check(h, sel); return c && c.ok ? 1000 + c.day : ratingAt(h, h.age); };
   const hs = S.stable.slice().sort((a, b) => (S.entries[sel.id] === b.id) - (S.entries[sel.id] === a.id) || score(b) - score(a));
   return `<div class="tb-head"><h1 class="tb-h">DEVELOP AND ENTER</h1>
-    <p class="tb-lede">Pick a race, then enter a horse. Every horse starts as a 2-year-old: develop it to 3 or 4 to change its rating and best trip, though you only see how once it's done, and there's no going back. ${W.entryRule}; each step from its best trip costs 5 points, and every race has a minimum rating. Each horse shows where its rating sits in the field.</p></div>
+    <p class="tb-lede short">Pick a race, then enter a horse. ${W.entryRule}.</p></div>
     <div class="tb-bar"><div class="tb-bar-info ${entered === RACES.length ? "ready" : ""}">${entered === RACES.length ? `All ${RACES.length} races have a runner.` : `${RACES.length - entered} race${RACES.length - entered === 1 ? "" : "s"} still without a runner. An empty race counts as a loss.`}</div>
     <div class="tb-bar-btns"><button class="tb-btn ghost" id="fill">Fill empty races</button><button class="tb-btn ghost" id="clear">Clear</button></div></div>
     ${teamAtEntries()}
@@ -509,7 +521,8 @@ function entriesBody(entered) {
       <div class="facts"><span><b>${DAYS[sel.day]}</b></span>${courseName(sel) ? `<span>${courseName(sel)}</span>` : ""}<span><b>${ageOnly(sel)}</b></span>${sexTag(sel)}<span>1st <b>${money(sel.prizes[0])}</b></span>${sel.grade === "Handicap" ? `<span>Max rating <b>${HCAP_MAX}</b></span>` : ""}</div>
       ${bandsLine(sel)}
       ${(() => { const h = horse(S.entries[sel.id]), c = h && check(h, sel); return h ? `<div class="rsel-run">Your runner: ${silkImg(mySilkN())}<b>${esc2(h.name)}</b>${c && c.ok ? rkChip(c) + `<small class="rk-t">${rankText(c)}</small>` : ""}<button class="tb-btn ghost sm" data-unpick="${sel.id}">Take out</button></div>` : `<div class="rsel-run" style="color:var(--tb-muted)">No runner yet: pick one below.</div>`; })()}${jockeyPick(sel)}</div></div>
-    ${hs.length ? horseCols(hs, sel, true, null, true) : `<p class="tb-empty">No horses yet.</p>`}`;
+    <h3 class="hr-for">Your horses for the ${esc2(sel.name)}</h3>
+    ${hs.length ? horseRows(hs, sel, true) : `<p class="tb-empty">No horses yet.</p>`}`;
 }
 function entryCard(r) {
   const id = S.entries[r.id], h = id && horse(id), c = h && check(h, r), open = S.open === r.id;
@@ -561,7 +574,7 @@ function fillEmpty() {
 function weekBody(done) {
   setTimeout(() => { if (!S.goingShown) { S.goingShown = true; save(); } }, 50);
   return `<div class="tb-head"><h1 class="tb-h">${W.weekHead}</h1>
-    <p class="tb-lede">${W.watchHere}, or sim it for the result straight away. Both run the very same race. The pace forecast comes from the runners' racecards: lots of front-runners make a fast race that suits horses held up, and a race with none will be slow and tactical.</p></div>
+    <p class="tb-lede short">${W.watchHere}, or sim it for the result straight away.</p></div>
     <div class="going-dec ${S.goingShown ? "" : "fresh"}"><b>THE GOING IS DECLARED</b><div class="gd-days">${DAYS.map((d, k) => `<div class="gd" style="--d:${k * 260}ms"><small>${dayTag(k)}</small><span class="gday g-${CARD.going[k]}">${CARD.going[k]}</span></div>`).join("")}</div>
       <p>${(() => { const mine = RACES.filter(r => S.entries[r.id]), liked = mine.filter(r => horse(S.entries[r.id]).grounds.includes(CARD.going[r.day])).length; return mine.length ? `${liked} of your ${mine.length} runners like the ground they'll get.` : ""; })()}</p></div>
     ${typeof weekJobs === "function" ? weekJobs() : ""}

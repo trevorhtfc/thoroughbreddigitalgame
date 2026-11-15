@@ -142,9 +142,11 @@ function paintBar() {
     return `<button class="st ${cls}" type="button" data-step="${s.n}" ${cls === "current" ? 'aria-current="step"' : ""} title="${s.name}"><b>${s.n}</b><span>${s.name}</span></button>`;
   }).join("");
   const n = S.stable.length;
-  $("#tally").innerHTML = S.step <= 3
-    ? `<span class="t-silk">${silkImg(mySilkN())}</span><span title="Horses in your stable"><svg viewBox="0 0 512 512">${ICON.stable}</svg><em>${n}</em><i>/${STABLE_CAP}</i></span><button type="button" class="t-money" data-accounts="1" title="Your budget: open your accounts"><svg viewBox="0 0 512 512">${ICON["two-coins"]}</svg><em data-budget>${money(TB.tick ? TB.tick.to : S.budget)}</em><i class="t-meter" aria-hidden="true"><b style="width:${Math.max(0, Math.min(100, S.budget / tbStart() * 100)).toFixed(1)}%"></b></i></button>`
-    : `<span class="t-silk">${silkImg(mySilkN())}</span><span title="Wins: ${winsNow()} from ${racesRun()} of ${RACES.length} races run"><svg viewBox="0 0 512 512">${ICON["laurels-trophy"]}</svg><em>${winsNow()}</em><i> win${winsNow() === 1 ? "" : "s"}</i></span><span class="t-money prize" title="Prize money won (a separate pot from your budget)"><svg viewBox="0 0 512 512">${ICON["trophy-cup"]}</svg><em>${money(prizeWon())}</em></span>`;
+  const tm = teamCards().length ? `<button type="button" class="t-team" data-teampop="1" title="Your team: owner, trainer and jockeys"><span class="tt-fan" aria-hidden="true">${teamCards().slice(0, 4).map(c => `<i class="${ROLE_CLS[c.role]}"></i>`).join("")}</span><em>Team</em></button>` : "";
+  const str = `<button type="button" class="t-string" data-stables="1" title="Your string: ${n} horse${n === 1 ? "" : "s"}"><svg viewBox="0 0 512 512">${ICON.stable}</svg><em>${n}</em><i>/${STABLE_CAP}</i></button>`;
+  $("#tally").innerHTML = tm + (S.step <= 3
+    ? `<span class="t-silk">${silkImg(mySilkN())}</span>${S.stable.length ? str : ""}<button type="button" class="t-money" data-accounts="1" title="Your budget: open your accounts"><svg viewBox="0 0 512 512">${ICON["two-coins"]}</svg><em data-budget>${money(TB.tick ? TB.tick.to : S.budget)}</em><i class="t-meter" aria-hidden="true"><b style="width:${Math.max(0, Math.min(100, S.budget / tbStart() * 100)).toFixed(1)}%"></b></i></button>`
+    : `<span class="t-silk">${silkImg(mySilkN())}</span><span title="Wins: ${winsNow()} from ${racesRun()} of ${RACES.length} races run"><svg viewBox="0 0 512 512">${ICON["laurels-trophy"]}</svg><em>${winsNow()}</em><i> win${winsNow() === 1 ? "" : "s"}</i></span><span class="t-money prize" title="Prize money won (a separate pot from your budget)"><svg viewBox="0 0 512 512">${ICON["trophy-cup"]}</svg><em>${money(prizeWon())}</em></span>`);
   fitBar(); refreshAccounts();
 }
 // if the five steps' names don't fit beside the tally (a narrow window, or the fonts still loading), only the
@@ -268,15 +270,15 @@ const SHEETS = {
     if (S.step === 1) return breedBody();
     const bred = S.stable.filter(h => h.how === "bred");
     return `<div class="tb-head"><h1 class="tb-h">THE COVERING SEASON IS OVER</h1><p class="tb-lede">Your mares and the foals they produced. Once you went to Tattersalls the stud closed for the season.</p></div>
-      ${bred.length ? cardGroups(bred, null, false) : `<p class="tb-empty">You didn't breed any foals this season.</p>`}`;
+      ${bred.length ? horseRows(bred, null, false) : `<p class="tb-empty">You didn't breed any foals this season.</p>`}`;
   },
   tatts() { return saleBody(); },
   stables() {
     const tab = UI.tab.stables || "string";
     const bar = `<div class="vtabs" role="tablist"><button class="vtab ${tab === "string" ? "on" : ""}" data-stab="string" role="tab">Your string<i>${S.stable.length}</i></button><button class="vtab ${tab === "plan" ? "on" : ""}" data-stab="plan" role="tab">Race planner<i>${RACES.filter(r => (S.targets || {})[r.id] && horse(S.targets[r.id])).length}/${RACES.length}</i></button></div>`;
     if (tab === "plan") return bar + plannerView();
-    return bar + `<div class="tb-head"><p class="tb-lede">${needs()}. ${S.step <= 2 ? "Every foal arrives as a 2-year-old." : "Develop them on Warren Hill, then enter them at the Jockey Club."}</p></div>
-      ${S.stable.length ? horseCols(S.stable, null, false, { plan: false }, false) : `<p class="tb-empty">No horses yet.</p>`}`;
+    return bar + `<div class="tb-head"><p class="tb-lede short">${needs()}.${canDevAny() ? " Develop a horse here at any time before race week." : ""}</p></div>
+      ${S.stable.length ? horseRows(S.stable, null, false) : `<p class="tb-empty">No horses yet.</p>`}`;
   },
   warren() { return gallopsBody(); },
   palace() { return museumBody(); },
@@ -298,6 +300,13 @@ const FOOTS = {
   },
   stud() {
     if (S.step !== 1) return "";
+    // breeding a mare: the footer carries the Breed button too, always in reach (owner, 15 Nov)
+    const m = !S.confirmSale && handDone() && S.selMare && byName(S.selMare), st = m && S.selStallion && stallion(S.selStallion);
+    if (m && !S.foal) {
+      const ok = st && !pairProblem(st, m), fee = st ? feeFor(st) : 0, can = ok && fee <= S.budget && !stableFull();
+      return ok ? `<span class="f-info"><b>${esc2(st.name)} × ${esc2(m.name)}</b> · stud fee ${money(fee)} · <button type="button" class="f-acct" data-accounts="1"><span data-budget>${money(S.budget)}</span> left</button></span>${goBtn("unStallion", "×", { ghost: true })}${goBtn("breedFoot", `Breed ${esc2(m.name)}`, { off: !can })}`
+        : `<span class="f-info">Tap a stallion for <b>${esc2(m.name)}</b> · <button type="button" class="f-acct" data-accounts="1"><span data-budget>${money(S.budget)}</span> left</button></span>${goBtn("changeMare", "A different mare", { ghost: true })}`;
+    }
     return S.confirmSale
       ? `<span class="f-info"><b>Close the stud?</b> Once you go to Tattersalls you can't come back to breed.${S.hand.length ? ` Your ${S.hand.length} unused mare${S.hand.length === 1 ? "" : "s"} may turn up in the sale.` : ""}</span>${goBtn("saleNo", "Stay at the stud", { ghost: true })}${goBtn("saleYes", "Go to Tattersalls", { off: S.foal || S.offer })}`
       : `<span class="f-info">${studCount()} mare${studCount() === 1 ? "" : "s"} · ${S.stable.length} horse${S.stable.length === 1 ? "" : "s"} · <button type="button" class="f-acct" data-accounts="1"><span data-budget>${money(S.budget)}</span> left</button></span>${goBtn("toSale", handDone() ? "Close the stud and go to the sales" : "Draw your mares first", { off: S.foal || S.offer || !handDone() })}`;  },
@@ -339,7 +348,7 @@ const still = () => matchMedia("(prefers-reduced-motion: reduce)").matches;
 function raceFace(r) {
   const g = GRADE[r.grade];
   return `<div class="rf ${g.cls}"><div class="rf-top"><b>${g.short === "Hcap" ? "HANDICAP" : g.short === "Cond" ? "CONDITIONS" : r.grade.toUpperCase()}</b><span>${r.dist}${courseName(r) ? ` · ${courseName(r).split(" ")[0]}` : ""}</span></div>
-    <div class="rf-n ${r.name.length > 24 ? "long" : ""}">${r.name}</div><div class="rf-f"><span>${ageOnly(r)} · ${r.sex === "C" ? "♂ Colts" : r.sex === "F" ? (r.ages[0] >= 4 ? "♀ F&M" : "♀ Fillies") : "⚥ Open"}</span><span>1st ${money(r.prizes[0])}</span></div></div>`;
+    <div class="rf-n ${r.name.length > 24 ? "long" : ""}">${r.name}</div><div class="rf-f"><span>${ageOnly(r)} · ${r.sex === "C" ? "♂<em> Colts</em>" : r.sex === "F" ? (r.ages[0] >= 4 ? "♀<em> F&M</em>" : "♀<em> Fillies</em>") : "⚥<em> Open</em>"}</span><span>1st ${money(r.prizes[0])}</span></div></div>`;
 }
 const cardBack = (k, t) => `<div class="dc-back"><span>${k}<b>${t}</b></span></div>`;
 function dealCard(face, backHTML, cls) { return `<div class="dc ${cls || ""}"><div class="dc-in">${backHTML}<div class="dc-face">${face}</div></div></div>`; }
@@ -404,7 +413,7 @@ function closeDeal() {
 // the Jockey Club's tabs (your team appears once it's picked)
 function jockeyTabs(tab) {
   const ph = phase(), canEnter = S.step >= 3 && S.step <= 4 && !racesRun();
-  const tabs = [["programme", "The programme"], ["plan", "Race planner"]].concat(canEnter ? [["entries", "Entries"]] : []).concat(teamOn() && !teamSkipped() ? [["team", "Your team"]] : []);
+  const tabs = [["programme", "The programme"], ["plan", "Race planner"]].concat(canEnter ? [["entries", "Entries"]] : []);   // (your team is the Team button in the bar now, at every step: owner, 15 Nov)
   return `<div class="vtabs" role="tablist">${tabs.map(([k, t]) => `<button class="vtab ${tab === k ? "on" : ""}" data-jtab="${k}" role="tab" aria-selected="${tab === k}">${t}${k === "entries" ? `<i>${entered()}/${RACES.length}</i>` : k === "plan" ? `<i>${RACES.filter(r => (S.targets || {})[r.id] && horse(S.targets[r.id])).length}/${RACES.length}</i>` : k === "team" ? `<i>${teamCards().length}</i>` : ""}</button>`).join("")}</div>`;
 }
 
@@ -414,9 +423,9 @@ function jockeyTabs(tab) {
 function gallopsBody() {
   const young = S.stable.filter(h => h.age < 4), grown = S.stable.filter(h => h.age >= 4);
   if (!S.stable.length) return `<p class="tb-empty">No horses in training yet.</p>`;
-  return `${trainerPanel()}<div class="tb-head"><p class="tb-lede">Every horse arrives as a 2-year-old. Work one up the hill to develop it to 3 or 4: its rating and best trip change, and you only see how once it's done. There's no going back, and a horse can only run in races for its age. The projected peak is the age it should be at its best.</p></div>
+  return `${trainerPanel()}<div class="tb-head"><p class="tb-lede short">Develop a horse to 3 or 4 to change its rating and best trip. There's no going back.</p></div>
     <div class="gal-sum"><span><b>${young.length}</b> could still develop</span><span><b>${grown.length}</b> fully grown</span><span><b>${S.stable.filter(h => h.age === h.peakAge).length}</b> at their projected peak</span></div>
-    ${horseCols(S.stable, null, true, { plan: true, train: true }, false)}`;
+    ${horseRows(S.stable, null, true, { train: true })}`;
 }
 
 /* ----- Palace House: your trophies and your history ----- */
@@ -691,7 +700,8 @@ document.addEventListener("click", e => {
   if (d.stab) { UI.tab.stables = d.stab; render(); sheetTop(); return; }
   if (d.tab) { S.tab = d.tab; save(); render(); return; }
   if (d.mare) { if (S.selMare !== d.mare) { S.selMare = d.mare; S.selStallion = null; save(); render(); sheetTop(); } return; }
-  if (d.stallion) { S.selStallion = S.selStallion === d.stallion ? null : d.stallion; save(); render(); return; }
+  if (d.stallion) { S.selStallion = S.selStallion === d.stallion ? null : d.stallion; save(); render();
+    const b = document.getElementById("bstrip"); if (b) b.scrollIntoView({ block: "nearest", behavior: still() ? "auto" : "smooth" }); return; }
   if (d.trip) { S.trip = d.trip; save(); render(); return; }
   if (d.pile) { drawPile(d.pile); save(); render(); BOARD.Sound.whinny(); return; }
   if (d.mdraw) { const n = d.mdraw === "all" ? (dealHand(), null) : drawHandMare(d.mdraw); UI.mareDrew = n;
@@ -707,7 +717,9 @@ document.addEventListener("click", e => {
   if (d.plantarget) { if (S.planSel) { const h = horse(d.plantarget), r = RACES.find(x => x.id === S.planSel); setTarget(S.planSel, d.plantarget); S.planSel = null; render(); toast(`${h.name} targeted at the ${r.name}`); } return; }
   if (d.unplan) { setTarget(d.unplan, null); return; }
   if (d.planmore) { S.planOpen = S.planOpen === d.planmore ? null : d.planmore; render(); return; }
-  if (d.selrace) { S.selRace = d.selrace; save(); render(); return; }
+  if (d.selrace) { S.selRace = d.selrace; save(); render();
+    // on a phone the chosen race's panel is below the board of races: bring it up (owner, 15 Nov)
+    const rs = document.querySelector(".rsel"); if (rs && rs.getBoundingClientRect().top > innerHeight * 0.55) rs.scrollIntoView({ block: "start", behavior: still() ? "auto" : "smooth" }); return; }
   if (d.card) { const h = horse(d.card); if (h) showHorseCard(h); return; }
   if (d.keepdev) {
     const F = S.foal; if (!F) return;
@@ -728,7 +740,7 @@ document.addEventListener("click", e => {
     case "toMenu": openMenu(); break;
     case "snd": { const on = !BOARD.Sound.on; BOARD.Sound.set(on); t.setAttribute("aria-pressed", String(on)); $("#sndIcon").innerHTML = on ? ICON.speaker : ICON["speaker-off"]; break; }
     case "shClose": closeSheet(); break;
-    case "breedBtn": { const s = stallion(S.selStallion); if (!s || feeFor(s) > S.budget || stableFull() || pairProblem(s, byName(S.selMare))) break; breed(s.name, S.selMare, "bred", feeFor(s)); save(); render(); BOARD.Sound.whinny(); break; }
+    case "breedBtn": case "breedFoot": { const s = stallion(S.selStallion); if (!s || feeFor(s) > S.budget || stableFull() || pairProblem(s, byName(S.selMare))) break; breed(s.name, S.selMare, "bred", feeFor(s)); save(); render(); BOARD.Sound.whinny(); break; }
     case "keep": keepFoal(($("#foalName") || {}).value); render(); break;
     case "closeDev": { const b = $("#devCard"); if (b) b.remove(); cardFrame = null; break; }
     case "changeMare": S.selMare = null; S.selStallion = null; save(); render(); sheetTop(); break;
