@@ -130,7 +130,7 @@
       const limit = Math.min(Math.round(Math.max(l.reserve * P.bidUpTo * keen, Math.min(share, l.reserve * 4)) / 5000) * 5000, canBidTo());
       if (limit < l.reserve) continue;
       tried++;
-      const ap = appeal(l), bids = RIVALS.map(r => ({ r, c: Math.random() < r.keen(l) ? l.reserve * ap * r.want(l) * (.7 + Math.random() * .9) : 0 })).sort((a, b) => b.c - a.c), top = bids[0].c;
+      const ap = appeal(l), bids = RIVALS.map(r => ({ r, c: rivalCeil(r, l, ap, Math.random) })).sort((a, b) => b.c - a.c), top = bids[0].c;
       let price = l.reserve; if (top >= l.reserve) { while (price <= top) price += incFor(price); }
       S.sale = S.sale.filter(x => x !== l);
       if (price <= limit) {

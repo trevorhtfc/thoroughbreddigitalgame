@@ -310,7 +310,8 @@ function pedigreeChance(sire, dam, race, n) {
 }
 // what the scout says about a lot: the races it suits (likely or possible), or nothing for your races
 function lotSuits(l) {
-  const rs = scoutRaces(); if (!rs.length) return null;
+  // a colt is no use for a fillies' race (and the other way round): the catalogue shows the lot's sex
+  const rs = scoutRaces().filter(r => !r.sex || r.sex === lotSex(l)); if (!rs.length) return null;
   const list = rs.map(r => ({ r, p: pedigreeChance(l.sire, l.dam, r) })).filter(x => x.p >= SCOUT_MAYBE).sort((a, b) => b.p - a.p);
   return { list, best: list.length ? list[0].p : 0 };
 }
@@ -349,14 +350,15 @@ function scoutFind(race, taken) {
   const pick = pool[Math.floor(rnd() * pool.length)];
   // his find really is one: its yearling (settled now, like every lot's) is good enough to win the race if one of
   // this pedigree's can be, or at least to place
-  let fs = 0;
+  // (the find's sex is kept on the lot: the catalogue shows it and the foal knocked down is that colt or filly)
+  let fs = 0, fsex;
   const tryFor = (bar, n) => { for (let k = 0; k < n; k++) {
     const f0 = 1 + Math.floor(rnd() * 2e9), R = seeded(f0), f = breedPure(pick.s, pick.m, R), sex = R() < .5 ? "F" : "C";
-    if (foalFits(f, race, sex, bar)) { fs = f0; return true; }
+    if (foalFits(f, race, sex, bar)) { fs = f0; fsex = sex; return true; }
   } return false; };
   if (!tryFor(race.bands[1], 300) && !tryFor(scoutBar(race), 200)) tryFor(needFor(race), 100) || (fs = 1 + Math.floor(rnd() * 2e9));
   S.lotN = (S.lotN || 0) + 1;
-  return { id: "lot" + S.lotN, n: S.lotN, book: pick.book.n, sire: pick.s.name, dam: pick.m.name, reserve: RESERVES[pick.s.shownStars + pick.m.stars] || 10000, fs, scout: race.id };
+  return { id: "lot" + S.lotN, n: S.lotN, book: pick.book.n, sire: pick.s.name, dam: pick.m.name, reserve: RESERVES[pick.s.shownStars + pick.m.stars] || 10000, fs, scout: race.id, ...(fsex ? { sex: fsex } : {}) };
 }
 
 // Private Sale: one lot before the ring, at the middle of its guide

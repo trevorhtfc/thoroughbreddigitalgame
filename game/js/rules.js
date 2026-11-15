@@ -791,7 +791,10 @@ function breed(sireName, damName, how, cost, lotRef) {
   const rnd = lot && lot.fs != null ? seeded(lot.fs) : luck("foal|" + sireName + "|" + damName);
   const s = stallion(sireName), m = byName(damName), f = breedPure(s, m, rnd);
   let id = "h" + hashStr(luckOf() + "|foal|" + sireName + "|" + damName).toString(36); while (S.stable.some(x => x.id === id)) id += "x";
-  const h = { id, name: newName(rnd), sex: rnd() < .5 ? "F" : "C", sire: s.name, dam: m.name,
+  // a lot's sex was shown in the catalogue, so a bought foal is that colt or filly (the coin is still tossed, so the
+  // rest of the foal is the same as ever)
+  const name = newName(rnd), toss = rnd() < .5 ? "F" : "C", sex = lot ? lotSex(lot) : toss;
+  const h = { id, name, sex, sire: s.name, dam: m.name,
     peakAge: f.peakAge, r: f.r, d: f.d, grounds: f.grounds, age: 2, portrait: 1 + Math.floor(rnd() * 12), coat: COATS[Math.floor(rnd() * COATS.length)], how, cost };
   h.verdict = verdictFor(h);
   Object.assign(h, rollRacecard(rnd));
@@ -874,13 +877,34 @@ const incFor = p => p < 50000 ? 5000 : p < 200000 ? 10000 : 25000;
 const openBid = l => l.reserve;
 const guide = l => [l.reserve, round5k(l.reserve * 1.6)];
 // How hard the rivals chase the best Books (Book 1 cooled from 1.45, Book 2 from 1.15 on 6 Nov 2026, with the dearer
-// Blue-blooded mares: buying a top horse is now a real option beside breeding one)
-const BOOK_HEAT = [1.3, 1.1];
+// Blue-blooded mares: buying a top horse is now a real option beside breeding one; cooled again on 15 Nov, from 1.3
+// and 1.1, with the rest of the ring: owner, "the rival bidders a maybe a tad aggressive.. bring them down a little")
+const BOOK_HEAT = [1.2, 1.04];
+// 15 Nov: the ring calmed by about 15% all round. Each rival is a little less likely to want a lot at all (RIVAL_KEEN)
+// and stops a little sooner (their limit is the reserve × appeal × want × somewhere between RIVAL_SPREAD's two ends,
+// was 0.7 to 1.6). Typical hammer prices, as multiples of the reserve: Book 1 about 2.0 → 1.7, Book 2 1.6 → 1.4,
+// Book 3 1.45 → 1.35, and more lots now go at or near the reserve when nobody else is keen.
+const RIVAL_KEEN = .9, RIVAL_SPREAD = [.68, 1.46];
+// how far one rival will go for a lot (0 if they sit this one out); rnd is the lot's own luck, called in the same order
+function rivalCeil(r, l, ap, rnd) {
+  return rnd() < r.keen(l) * RIVAL_KEEN ? l.reserve * ap * r.want(l) * (RIVAL_SPREAD[0] + rnd() * (RIVAL_SPREAD[1] - RIVAL_SPREAD[0])) : 0;
+}
+// A lot's sex is in the catalogue (owner, 15 Nov: "at auction you know the horse's gender"). It's this game's own luck
+// for the pedigree, settled the first time it's asked for and kept on the lot, so the foal knocked down to you is that
+// colt or filly (breed() below). The daily card deals everyone the same.
+function lotSex(l) {
+  if (!l) return null;
+  if (l.sex !== "C" && l.sex !== "F") l.sex = luck("lotsex|" + l.sire + "|" + l.dam)() < .5 ? "F" : "C";
+  return l.sex;
+}
+// rivals pay a little more for a colt, as at the real yearling sales
+const SEX_PULL = { C: 1.06, F: .95 };
 function appeal(l, rnd) {
   const s = stallion(l.sire), m = byName(l.dam), ln = lineNote(s, m).cls;
   let a = 1 + (ln === "out" ? .12 : ln === "in2" ? -.15 : 0);
   if (s.unproven) a *= .85 + (rnd || Math.random)() * .4;   // rivals take a punt on unproven sires
   // the best pedigrees draw the deepest pockets: Book 1 is fought over, Book 2 a little
   a *= l.book === 1 ? BOOK_HEAT[0] : l.book === 2 ? BOOK_HEAT[1] : 1;
+  a *= SEX_PULL[lotSex(l)] || 1;
   return a;
 }

@@ -91,7 +91,7 @@ function cardFor(id) {
     case "tatts":
       c.kicker = "The sale ring";
       if (st === "locked") { c.status = "The sales are in the autumn, once you leave the stud"; c.text = "Bid against rival buyers for yearlings out of the mares nobody bred."; c.cta = "Enter the sale ring"; }
-      else if (ph === "sales") { c.text = `<b>${S.sale.length}</b> lots in three Books. You see the pedigree, not the yearling, until it's knocked down to you. Budget <b>${money(S.budget)}</b>.`; c.cta = "Enter the sale ring"; }
+      else if (ph === "sales") { c.text = `<b>${S.sale.length}</b> lots in three Books. You see the pedigree and whether it's a colt or a filly, not the yearling itself, until it's knocked down to you. Budget <b>${money(S.budget)}</b>.`; c.cta = "Enter the sale ring"; }
       else if (st === "open") { c.status = `${S.sale.length} lot${S.sale.length === 1 ? "" : "s"} still to sell`; c.text = "The sale goes on: you can still buy any lots that are left."; c.cta = "Back to the sale ring"; }
       else { c.status = "The sales are over"; c.text = `You bought ${S.stable.filter(h => h.how === "bought").length} yearling${S.stable.filter(h => h.how === "bought").length === 1 ? "" : "s"} here.`; c.cta = ""; }
       break;
