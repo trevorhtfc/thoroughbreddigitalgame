@@ -87,13 +87,16 @@ function pnSummary(h) {
   if (c4 === "up") s += `, and improve again at 4 into a ${pnLevel(r[2])} ${t4 !== t3 ? t4 : "horse"}.`;
   else if (c4 === "hold") s += `, and hold ${p.p} form at 4.`;
   else s += `, then go back a little at 4.`;
+  // the stayer's boost (rules.js, breedFoal): built into the rating at any age the trip reaches 1m6f or 2m+
+  const sb = h.stay ? Math.max(...h.stay) : 0;
+  if (sb) s += ` A real stayer: +${sb} built into ${p.p} rating at ${DISTANCES[Math.max(...d[h.stay.indexOf(sb)])]}.`;
   return s;
 }
 function pnOutlook(h) {
   const r = h.r, ch = (a, b) => b - a >= 3 ? ["up", "Improves"] : a - b >= 3 ? ["down", "Goes back"] : ["hold", "Holds"];
   const disc = a => { const x = r[a - 2], pk = a === h.peakAge;
     return `<div class="pn-od ${pk ? "pk" : ""}"><span class="pn-dia" aria-hidden="true"></span><span class="pn-disc t-${pnTier(x)}">${a}YO</span><span class="pn-pk">${pk ? "Peak" : ""}</span>
-      <b>${pnLevel(x).replace(/^./, c => c.toUpperCase())}</b><small>${pnTypeShort(h.d[a - 2])}</small><small class="pn-trip">${tripText(h.d[a - 2])}</small></div>`; };
+      <b>${pnLevel(x).replace(/^./, c => c.toUpperCase())}</b><small>${pnTypeShort(h.d[a - 2])}</small><small class="pn-trip">${tripText(h.d[a - 2])}</small>${h.stay && h.stay[a - 2] ? `<small class="pn-stay" title="Stayer's boost built into the rating">Stayer +${h.stay[a - 2]}</small>` : ""}</div>`; };
   const link = (a, b) => { const [k, w] = ch(r[a - 2], r[b - 2]); return `<div class="pn-ol ${k}"><i aria-hidden="true"></i><span>${w}</span></div>`; };
   return `<section class="pn-out" aria-label="Outlook"><div class="pn-ok">${pnHe(h).P} outlook</div>
     <div class="pn-orow" role="img" aria-label="${esc2(pnSummary(h))}">${disc(2)}${link(2, 3)}${disc(3)}${link(3, 4)}${disc(4)}</div>
@@ -128,7 +131,7 @@ function pnPaths(h, mode) {
   const all = byAge.flatMap(x => x.rows).filter(o => o.v !== "x"), best = all.length ? all.reduce((m, o) => pnValue(o) > pnValue(m) ? o : m) : null;
   const ageSub = a => { const x = h.r[a - 2], now = foal ? a === 2 : a === h.age, ty = pnTypeShort(h.d[a - 2]).toLowerCase();
     const lead = now ? "Now" : a === h.peakAge ? `${p.P} peak` : x < h.r[a - 3] - 2 ? "Past " + p.p + " best" : "Holds " + p.p + " form";
-    return `${lead} · a ${pnLevel(x)} ${ty === "middle distance" ? "middle-distance horse" : ty}`; };
+    return `${lead} · a ${pnLevel(x)} ${ty === "middle distance" ? "middle-distance horse" : ty}${h.stay && h.stay[a - 2] ? ` · stayer's boost +${h.stay[a - 2]} built in` : ""}`; };
   const devBtn = a => foal
     ? (a === 2 ? `<button class="tb-btn ghost sm" type="button" data-fkeep="1">Keep ${p.o} a 2-year-old</button>` : `<button class="tb-btn ${best && best.age === a ? "" : "ghost"} sm" type="button" data-keepdev="${a}">Develop to ${a}</button>`)
     : (a === h.age ? "" : `<button class="tb-btn ${best && best.age === a ? "" : "ghost"} sm" type="button" data-devto="${h.id}:${a}">Develop to ${a}${pnNewmarket() ? " for the season" : ""}</button>`);
