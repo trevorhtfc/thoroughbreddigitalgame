@@ -1158,6 +1158,11 @@ body.modal-open{overflow:hidden}
 .ring-t{font-family:var(--serif);font-weight:700;font-size:34px;line-height:1.1;margin:4px 0 6px}
 .ring p{margin:0;max-width:60ch;font-size:15px;opacity:.9}
 .lot-h{display:flex;justify-content:space-between;align-items:center;gap:8px}
+/* a lot's sex, in the catalogue and in the ring (15 Nov) */
+.lot-sex{display:inline-block;font-size:12px;font-weight:800;letter-spacing:.02em;padding:2px 8px;border-radius:2px;color:#fff;white-space:nowrap;font-family:var(--tb-body)}
+.lot-sex.C{background:#2f5f8a}.lot-sex.F{background:#9c3d6b}
+.lot-h .lot-sex{margin-right:auto}
+.lot-sex.big{font-size:13px;padding:3px 9px;vertical-align:middle;margin-left:6px;position:relative;top:-3px}
 .pc{display:grid;grid-template-columns:34px 1fr;gap:8px;align-items:start;min-width:0}
 .pc-l{display:grid;place-items:center;height:34px;border-radius:2px;font-family:var(--tb-display);font-weight:500;font-size:22px;color:#fdf1cf;background:#135a3e}
 .pc.m .pc-l{background:#2c6479}

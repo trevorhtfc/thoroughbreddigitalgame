@@ -25,7 +25,7 @@ function htSteps() {
         : `You start with <b>${money(START_BUDGET)}</b>. Buy mares from the piles (${two} are turned over each time and you keep one), then send each to a stallion. A mare can be at most one star above her stallion; an outcross breeds best, the same family worst, and an unproven stallion may be a star better or worse than he looks.`,
       after: cards("Owner") },
     { place: "tatts", when: CHAPTERS.sales.season, title: "Buy at Tattersalls",
-      text: `The yearlings out of the mares nobody bred are sold in three Books. Bid against five rival buyers: you see the pedigree, not the yearling, until it's yours. Once you leave the stud there's no going back.` },
+      text: `The yearlings out of the mares nobody bred are sold in three Books. Bid against five rival buyers: you see the pedigree and whether it's a colt or a filly, but not the yearling itself until it's yours. Once you leave the stud there's no going back.` },
     { place: "warren", when: CHAPTERS.gallops.season, title: "Train on Warren Hill",
       text: `Your string are 2-year-olds now. Your trainer's jobs get them ready: a step longer or shorter in trip, settling a keen horse, handling another going, a tune-up for a big race. Bring on any horse who needs it to 3 or 4.`,
       after: cards("Trainer") },

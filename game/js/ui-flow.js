@@ -120,7 +120,7 @@ const HEADLINES = {
     `Keep money back for Tattersalls: Book 1 lots start at ${money(RESERVES[BOOKS[0].min])}. Once you leave for the sales, the stud is closed.`] }),
   sales: () => ({ place: "tatts", t: "The Yearling Sales", pts: [
     "The lots are yearlings out of the mares nobody bred, each by a stallion drawn at random.",
-    "You see the pedigree, not the yearling, until it's knocked down to you.",
+    "You see the pedigree and whether it's a colt or a filly, but not the yearling itself, until it's knocked down to you.",
     "Bring a lot into the ring and bid against the rival buyers: when the count runs out, the hammer falls.",
     `You have <b>${money(S.budget)}</b> left. This is the last chance to buy before the races.`] }),
   gallops: () => ({ place: "warren", t: "Into training", pts: [

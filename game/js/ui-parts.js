@@ -224,6 +224,11 @@ function maresSale() {
     <div class="piles">${PILES.map(pile).join("")}</div>
     ${full ? `<p class="hint">Your stud is full at ${MARE_CAP} mares.</p>` : ""}</section>`;
 }
+// a lot's colt / filly tag, in the catalogue and in the ring
+function lotSexTag(l, big) {
+  const x = lotSex(l);
+  return `<span class="lot-sex ${x}${big ? " big" : ""}">${x === "F" ? "♀ Filly" : "♂ Colt"}</span>`;
+}
 function saleView() {
   return `${teamAtSales()}<section class="ring"><div class="ring-in"><div class="ring-k">TATTERSALLS</div><div class="ring-t">The sale ring</div>
     <p>Choose a Book, then bring a lot into the ring and bid.</p></div></section>
@@ -232,7 +237,7 @@ function saleView() {
       return `<button class="book ${S.book === b.n ? "on" : ""}" data-book="${b.n}" role="tab" aria-selected="${S.book === b.n}"><b>${b.name}</b><span>${b.note} · ${n} lot${n === 1 ? "" : "s"}${f ? ` · ${f} scout's find${f === 1 ? "" : "s"}` : ""}</span></button>`; }).join("")}</div>
     ${stableFull() ? `<p class="hint">Your stable is full (${STABLE_CAP} horses), so you can't buy any more.</p>` : ""}
     <div class="lots">${scoutOrder(S.sale.filter(l => l.book === S.book)).map(l => { const s = stallion(l.sire), m = byName(l.dam), line = lineNote(s, m), sc = lotScout(l);
-      return `<article class="lot ${sc.cls}"><div class="lot-h"><span class="lot-n">LOT ${l.n}</span><span class="line ${line.cls}">${line.text}</span></div>
+      return `<article class="lot ${sc.cls}"><div class="lot-h"><span class="lot-n">LOT ${l.n}</span>${lotSexTag(l)}<span class="line ${line.cls}">${line.text}</span></div>
         <div class="ped">
           <div class="pc s"><span class="pc-l">S</span><div><b>${esc2(s.name)}</b>${knowsTrue(s.name) ? pips(s.trueStars) : pips(s.shownStars, s.unproven)}<small>${s.optimumDistance} · peaks ${s.peakAge}</small></div></div>
           <div class="pc m"><span class="pc-l">M</span><div><b>${esc2(m.name)}</b>${pips(m.stars)}<small>${m.optimumDistance} · peaks ${m.peakAge}</small></div></div></div>
@@ -763,7 +768,7 @@ function openAuction(id) {
   // who is interested in this lot and how far each will go is this game's own luck (fixed once the game is dealt, so
   // leaving the page and coming back can't change it); how long they hesitate before each bid is left to chance
   const rnd = luck("ring|" + l.sire + "|" + l.dam), ap = appeal(l, rnd);
-  const rivals = RIVALS.map(r => ({ ...r, ceil: rnd() < r.keen(l) ? l.reserve * ap * r.want(l) * (.7 + rnd() * .9) : 0, wait: null }));
+  const rivals = RIVALS.map(r => ({ ...r, ceil: rivalCeil(r, l, ap, rnd), wait: null }));
   A = { rnd, l, price: null, leader: null, start: performance.now(), last: performance.now(), rivals, log: [], call: -1, done: false, auto: 0, autoOn: false, ang: Math.random() * 6.28 };
   A.auto = Math.min(S.budget, round5k(guide(l)[0]));
   S.ring = l.id; save();   // the lot is in the ring: leave the page now and it has gone when you come back (no going back)
@@ -775,7 +780,7 @@ function aucHTML() {
   const l = A.l, s = stallion(l.sire), m = byName(l.dam), ln = lineNote(s, m), b = BOOKS.find(x => x.n === l.book);
   const seat = r => `<div class="seat" id="seat-${r.id}" style="left:${r.seat[0]}%;top:${r.seat[1]}%;--c:${r.c}"><span class="seat-bub"></span><span class="seat-dot"></span><span class="seat-tag">${esc2(r.name.split(" ")[0])}</span></div>`;
   return `<div class="auc-scene"><div class="auc-img" role="img" aria-label="The Tattersalls sale ring from above"></div>
-      <div class="auc-board" aria-hidden="true"><div class="ab-l">LOT ${l.n} · BOOK ${l.book}</div><div class="ab-p" id="abP">—</div><div class="ab-w" id="abW">OPENING</div></div>
+      <div class="auc-board" aria-hidden="true"><div class="ab-l">LOT ${l.n} · ${lotSex(l) === "F" ? "FILLY" : "COLT"}</div><div class="ab-p" id="abP">—</div><div class="ab-w" id="abW">OPENING</div></div>
       <div class="auc-lot" id="aucLot" aria-hidden="true">LOT ${l.n}</div>
       <svg class="auc-clock" id="aucClock" viewBox="0 0 100 100" aria-hidden="true"><circle class="track" cx="50" cy="50" r="44"/><circle class="arc" id="abArc" cx="50" cy="50" r="44" stroke-dasharray="276.5" stroke-dashoffset="276.5"/></svg>
       <div class="auc-call" id="aucCall" aria-live="assertive"></div>
@@ -783,7 +788,7 @@ function aucHTML() {
       <div class="seat me" id="seat-me" style="left:${ME_SEAT[0]}%;top:${ME_SEAT[1]}%"><span class="seat-bub"></span>${silkImg(mySilkN())}<span class="tri"></span></div>
     </div>
     <div class="auc-panel">
-      <div class="auc-top"><h2 class="auc-h">Lot ${l.n}</h2><div class="auc-k">TATTERSALLS · ${b.name.toUpperCase()}</div></div>
+      <div class="auc-top"><h2 class="auc-h">Lot ${l.n} ${lotSexTag(l, true)}</h2><div class="auc-k">TATTERSALLS · ${b.name.toUpperCase()}</div></div>
       <div class="auc-ped">
         <div class="pc s"><span class="pc-l">S</span><div><b>${esc2(s.name)}</b>${knowsTrue(s.name) ? pips(s.trueStars) : pips(s.shownStars, s.unproven)}<small>${s.optimumDistance} · peaks ${s.peakAge}</small></div></div>
         <div class="pc m"><span class="pc-l">M</span><div><b>${esc2(m.name)}</b>${pips(m.stars)}<small>${m.optimumDistance} · peaks ${m.peakAge}</small></div></div></div>

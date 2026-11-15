@@ -74,7 +74,7 @@
       const limit = Math.min(Math.round(l.reserve * P.bidUpTo / 5000) * 5000, S.budget);
       if (limit < l.reserve) continue;
       log.lotsTried++;
-      const ap = appeal(l), top = Math.max(0, ...RIVALS.map(r => Math.random() < r.keen(l) ? l.reserve * ap * r.want(l) * (.7 + Math.random() * .9) : 0));
+      const ap = appeal(l), top = Math.max(0, ...RIVALS.map(r => rivalCeil(r, l, ap, Math.random)));
       let price = l.reserve; if (top >= l.reserve) { while (price <= top) price += incFor(price); }
       if (price <= limit) {
         S.budget -= price; log.spentSale += price; log.bought++;
