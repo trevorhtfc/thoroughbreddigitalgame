@@ -62,9 +62,11 @@ const PROFILES = PROFILE_ROWS.map(row => {
 // hidden true stars of the unproven ones are rolled in the same order as before (games already under way don't change)
 // Night of Thunder and No Nay Never: 5★ in the digital game (owner, 15 Nov 2026; 4★ in the board game's CMS)
 const STANDARD_STALLIONS = new Set(["Paddington", "Little Big Bear", "Modern Games", "City of Troy", "Baaeed", "Auguste Rodin", "Chaldean", "Native Trail", "King of Steel", "Starman", "Lope De Vega", "Kingman", "New Bay", "Stradivarius", "Harry Angel", "Havana Grey", "Nathaniel", "Night of Thunder", "Mehmas", "Camelot", "Golden Horn", "Study Of Man", "Mayson", "Too Darn Hot", "Australia", "Ulysses", "Sea The Stars", "Dubawi", "Authorised", "Frankel"]);
-// Stallions taken out of the digital game (owner, 15 Nov 2026: Wootten Bassett has died). His profile row stays so
-// byName still knows him, but he stands at no stud and sires no lots
-const RETIRED = new Set(["Wootten Bassett"]);
+// Stallions taken out of the digital game (owner, 15 Nov 2026: Wootten Bassett has died; Siyouni, Dark Angel and
+// Blackbeard dropped as near-copies of Justify, Mehmas and Little Big Bear). Their profile rows stay so byName still
+// knows them, but they stand at no stud and sire no lots. Blackbeard was the last expansion stallion to roll hidden
+// stars, so taking him out leaves every other stallion's hidden stars as they were
+const RETIRED = new Set(["Wootten Bassett", "Siyouni", "Dark Angel", "Blackbeard"]);
 const STALLIONS = PROFILES.filter(p => p.isStallion && !RETIRED.has(p.name)), MARES = PROFILES.filter(p => !p.isStallion);
 const byName = n => PROFILES.find(p => p.name === n);
 // An unproven stallion is really a star better or worse this game. The standard stallions draw from the game's own luck
