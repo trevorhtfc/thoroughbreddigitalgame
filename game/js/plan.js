@@ -297,7 +297,22 @@ function pnGrid() {
   return `<div class="pg"><div class="pg-in">${head}${rows}${foot}</div></div>
     <p class="pn-hint">Tap a square to flag that horse for that race. A small number means the age it would race at: develop it to that age at Warren Hill or from its card. Tap a horse for its card.</p>`;
 }
+// the planner's key points, the first time it opens in a season (the same pop-up as each step's, js/ui-flow.js)
+function pnPlanTips(force) {
+  S.seenTips = S.seenTips || {};
+  if (!force && (S.seenTips.plan || tipsOff())) return;
+  S.seenTips.plan = 1; save();
+  kpShow(`<div class="kp-k">Your race planner</div><h2 id="kpT">Which horse for which race</h2>
+    <ol class="kp-l">
+      <li><b>Your string</b> at the top: gold, silver and bronze rings show how good each horse will be at its best. A <b>?</b> means it still needs a race.</li>
+      <li>Each race shows the horse you've <b>flagged</b> for it. Tap a race to see everyone who could run, with stars for their chance.</li>
+      <li><b>Develop to 3</b> means it would race as a 3-year-old: do it here, from its card, or at Warren Hill.</li>
+      <li>Stuck? <b>Flag the trainer's picks</b> fills every race for you. Flags are only a plan: you enter your runners at entries.</li>
+    </ol>
+    <div class="kp-b"><button class="tb-btn" type="button" data-kpok="1">Got it <span aria-hidden="true">›</span></button></div>`);
+}
 function pnPlanner() {
+  if (S.stable.length && !(S.seenTips && S.seenTips.plan)) setTimeout(() => { if (document.querySelector(".pn") && !document.querySelector(".foal-wrap")) pnPlanTips(); }, 500);
   if (!S.stable.length) return `<section class="pn"><p class="tb-empty">No horses yet. Every horse you breed or buy drops in here, with the races it could run.</p></section>`;
   const T = pnFlags(), flagged = RACES.filter(r => horse(T[r.id])).length;
   const fresh = UI.pn.fresh && (UI.sheet === "stud" || UI.sheet === "tatts") && horse(UI.pn.fresh);
@@ -306,7 +321,7 @@ function pnPlanner() {
     banner = `<div class="pn-fresh"><img src="img/p${String(fresh.portrait || 1).padStart(2, "0")}.webp" alt=""><span><b>${esc2(fresh.name)} is in your planner.</b> ${fl.length ? `Flagged for ${fl.map(r => esc2(r.name)).join(" and ")}.` : `Nothing flagged yet: find ${pnHe(fresh).o} below, or let your trainer pick.`}</span></div>`; }
   const nmRules = pnNewmarket() ? `<div class="pn-info"><span><b>Newmarket:</b> a horse stays one age all season and can run once at each meeting. Developing it moves it up an age for every meeting.</span></div>` : "";
   return `<section class="pn">${banner}${pnString()}${nmRules}
-    <div class="pn-tools"><button class="tb-btn sm pn-gold" type="button" data-ppicks="1">${PN_FLAG} Flag the trainer's picks</button><span><b>${flagged} of ${RACES.length}</b> races flagged</span></div>
+    <div class="pn-tools"><button class="tb-btn sm pn-gold" type="button" data-ppicks="1">${PN_FLAG} Flag the trainer's picks</button><span><b>${flagged} of ${RACES.length}</b> races flagged</span><button class="pn-how" type="button" data-ptips="1">How this works</button></div>
     ${pnKey()}
     ${pnWide() ? pnGrid() : `<div class="pn-all"><span>Tap a race to open it</span><button type="button" data-pall="1">Open all</button><button type="button" data-pall="0">Close all</button></div>
       ${pnGroups().map(g => `<div class="pn-g"><h4>${esc2(g.t)}</h4>${g.sub ? `<p>${esc2(g.sub)}</p>` : ""}</div>${g.races.map(pnRace).join("")}`).join("")}`}
@@ -326,14 +341,18 @@ function pnHorseCard(h) {
       <div class="fc-facts"><span>Rated <b>${ratingAt(h, h.age)}</b></span><span>Best <b>${tripText(tripAt(h, h.age))}</b></span><span>Likes <b>${h.grounds.join(", ")}</b></span>${h.style ? `<span>Runs <b>${STYLE_NAME[h.style]}</b>, ${h.temper}</span>` : ""}</div>
       ${pnOutlook(h)}
       <div id="pnHcOpts">${pnPaths(h, "horse")}</div>
-      <div class="fc-btns"><button class="tb-btn" id="closeDev" type="button">Done</button></div></div></div>`;
+      <div class="pn-bar" id="pnCardBar">${pnCardBar(h)}</div></div></div>`;
   document.body.appendChild(box);
   wireCard();
   toCard({ type: "show", horse: cardPayload(h, h.age), animate: true });
 }
 function pnRefreshCard() {
   const o = $("#pnHcOpts"), f = $("#pnOpts"); if (!o || !f) return;
-  const h = horse(f.dataset.h); if (h) o.innerHTML = pnPaths(h, "horse");
+  const h = horse(f.dataset.h); if (h) { o.innerHTML = pnPaths(h, "horse"); const b = $("#pnCardBar"); if (b) b.innerHTML = pnCardBar(h); }
+}
+function pnRefreshFoal() {
+  if (!S.foal) return; const o = $("#pnFoalOpts"), b = $("#pnFoalBar");
+  if (o) o.innerHTML = pnPaths(S.foal.h, "foal"); if (b) b.innerHTML = pnFoalBar(S.foal.h);
 }
 
 /* ================= The new foal: its outlook and its options under the card ================= */
@@ -353,12 +372,27 @@ function pnFoal() {
       <div class="fc-facts fc-wait"><span>Rated <b>${ratingAt(h, 2)}</b> as a 2YO</span><span>Best <b>${tripText(tripAt(h, 2))}</b></span><span>Likes <b>${h.grounds.join(", ")}</b></span><span>Runs <b>${STYLE_NAME[h.style]}</b>, ${h.temper}</span></div>
       <div class="fc-wait">${pnOutlook(h)}</div>
       <div class="fc-wait fc-choose" id="pnFoalOpts">${pnPaths(h, "foal")}</div>
-      <div class="fc-btns fc-wait fc-choose"><button class="tb-btn" id="keep" type="button">Decide later: save ${p.o} as a 2-year-old</button>${agentButton(F)}</div>
+      <div class="pn-bar fc-wait fc-choose" id="pnFoalBar">${pnFoalBar(h)}</div>
+      ${agentButton(F) ? `<div class="fc-btns fc-wait fc-choose">${agentButton(F)}</div>` : ""}
       <p class="fc-small fc-wait">${F.how === "bred" ? `Stud fee ${money(F.cost)}. ${esc2(h.dam)} has been covered for this season.` : `Bought for ${money(F.cost)}.`}</p>
     </div></div>`;
   wireCard();
   toCard({ type: "reveal", horse: cardPayload(h, 2) });
   setTimeout(() => { const f = box.querySelector(".foal"); if (f) f.classList.add("done"); }, 9000);
+}
+
+// the foal's buttons, kept in reach at the foot of the screen: save it as it is, or develop it to its best age
+function pnFoalBar(h) {
+  const p = pnHe(h), ages = [2, 3, 4], all = ages.flatMap(a => RACES.map(r => pnOpt(h, r, [a])).filter(o => o && o.v !== "x"));
+  const best = all.length ? all.reduce((m, o) => pnValue(o) > pnValue(m) ? o : m) : null, n = pnFoalFlags().length;
+  const dev = best && best.age > 2 ? `<button class="tb-btn" type="button" data-keepdev="${best.age}">Develop to ${best.age}<small>the best path</small></button>` : "";
+  return `<span class="pn-barinfo">${PN_FLAG}<b>${n ? `${n} flagged` : "No flags yet"}</b></span>
+    <button class="tb-btn ${dev ? "ghost" : ""}" id="keep" type="button">${dev ? `Decide later<small>save as a 2-year-old</small>` : `Save ${p.o}<small>as a 2-year-old</small>`}</button>${dev}`;
+}
+// the horse card's buttons, in reach too
+function pnCardBar(h) {
+  const n = pnFlagsOf(h).length;
+  return `<span class="pn-barinfo">${PN_FLAG}<b>${n ? `${n} flagged` : "No flags yet"}</b></span><button class="tb-btn" type="button" data-pclose="1">Back to the planner</button>`;
 }
 
 /* ================= Wiring it in ================= */
@@ -381,12 +415,22 @@ if (!PLAN_OLD) {
     save();
   };
   // the planner's way back: to the stud, or to the sale ring
-  const back = (orig, label) => function () {
+  // (with mares still to breed, or lots still to buy, going back is the likely next step, so it's the main button)
+  const back = (orig, label, more) => function () {
     const f = orig.apply(this, arguments);
-    return S.view === "plan" && !S.foal && S.step <= 2 ? `<button class="tb-btn ghost" type="button" data-pview="job">${label}</button>` + f : f;
+    if (!(S.view === "plan" && !S.foal && S.step <= 2)) return f;
+    const m = more(), main = !!m;
+    return `<button class="tb-btn ${main ? "" : "ghost"}" type="button" data-pview="job">${label}${m ? `<small>${m}</small>` : ""}</button>` + (main ? f.replace(/class="tb-btn\s*"/g, 'class="tb-btn ghost"') : f);
   };
-  FOOTS.stud = back(FOOTS.stud, "Back to the stud");
-  FOOTS.tatts = back(FOOTS.tatts, "Back to the sale ring");
+  FOOTS.stud = back(FOOTS.stud, "Back to the stud", () => { const n = typeof handDone === "function" && !handDone() ? 1 : S.hand.length; return n ? (handDone() ? `${n} mare${n === 1 ? "" : "s"} to breed` : "draw your mares") : ""; });
+  FOOTS.tatts = back(FOOTS.tatts, "Back to the sale ring", () => S.sale && S.sale.length && S.stable.length < STABLE_CAP ? `${S.sale.length} lots left` : "");
+  // the key points of each step, as the new screens have them (js/ui-flow.js HEADLINES)
+  const hl = HEADLINES;
+  const _breed = hl.breed, _sales = hl.sales, _gallops = hl.gallops, _entries = hl.entries;
+  hl.breed = () => { const H = _breed(); H.pts.splice(2, 0, "Each foal shows <b>its outlook and every race it could run</b>. Flag the ones you like: your race planner opens next, then <b>Back to the stud</b> for the next mare."); return H; };
+  hl.sales = () => { const H = _sales(); H.pts.splice(3, 0, "A yearling you buy shows its outlook and races just like a foal, then goes into your race planner."); return H; };
+  hl.gallops = () => { const H = _gallops(); H.pts[0] = "Every horse arrives as a 2-year-old. A race for 3-year-olds needs it <b>developed to 3</b>: your race planner says which do (<b>Develop to 3</b>), and there's no going back."; return H; };
+  hl.entries = () => { const H = _entries(); H.pts[H.pts.length - 1] = "<b>Fill empty races</b> enters your flagged horses from the race planner first, then the best free horse for every race still without a runner."; return H; };
   // a new size of screen may want the other planner (the grid on a computer, the list on a phone)
   let pnWas = pnWide();
   addEventListener("resize", () => { const w = pnWide(); if (w !== pnWas) { pnWas = w; if (document.querySelector(".pn")) render(); } });
@@ -399,6 +443,7 @@ document.addEventListener("click", e => {
   if (d.rmore) { UI.pn.more[d.rmore] = !UI.pn.more[d.rmore]; render(); return; }
   if (d.pall) { RACES.forEach(r => { UI.pn.open[r.id] = d.pall === "1"; }); render(); return; }
   if (d.pstring) { try { localStorage.setItem("tb-string", pnStringOpen() ? "closed" : "open"); } catch (err) {} render(); return; }
+  if (d.ptips) { pnPlanTips(true); return; }
   if (d.pclose) { const b = $("#devCard"); if (b) b.remove(); cardFrame = null; return; }
   if (d.pview) { S.view = d.pview; UI.pn.fresh = null; save(); render(); sheetTop(); return; }
   if (d.pflag) { const [rid, hid] = d.pflag.split(":"), h = horse(hid), r = RACES.find(x => x.id === rid); if (!h || !r) return;
@@ -406,9 +451,9 @@ document.addEventListener("click", e => {
     toast(pnFlagged(h, r) ? `${h.name} flagged for the ${r.name}${was && was !== h ? ` (in place of ${was.name})` : ""}` : `Flag taken off the ${r.name}`);
     render(); pnRefreshCard(); return; }
   if (d.ffl) { const fl = pnFoalFlags(), i = fl.indexOf(d.ffl); if (i >= 0) fl.splice(i, 1); else fl.push(d.ffl); save();
-    const o = $("#pnFoalOpts"); if (o && S.foal) o.innerHTML = pnPaths(S.foal.h, "foal"); return; }
+    pnRefreshFoal(); return; }
   if (d.fpicks) { if (!S.foal) return; const h = S.foal.h, picks = pnPicksFor(h, true); S.foal.flags = picks.map(o => o.r.id); save();
-    const o = $("#pnFoalOpts"); if (o) o.innerHTML = pnPaths(h, "foal");
+    pnRefreshFoal();
     toast(picks.length ? `Your trainer's picks: ${picks.map(o => shortRace(o.r)).join(", ")}` : `Your trainer can't find a race for ${pnHe(h).o} yet`); return; }
   if (d.hpicks) { const h = horse(d.hpicks); if (!h) return; const picks = pnPicksFor(h, false); picks.forEach(o => { pnFlags()[o.r.id] = h.id; }); save();
     toast(picks.length ? `Your trainer's picks: ${picks.map(o => shortRace(o.r)).join(", ")}` : `Your trainer can't find a race for ${pnHe(h).o} yet`); render(); pnRefreshCard(); return; }

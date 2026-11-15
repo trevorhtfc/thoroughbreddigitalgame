@@ -1267,3 +1267,14 @@ details.fold > summary > span{font-size:13px}
 @media (max-width:700px){.foal.pn-foal,.foal.pn-hc{grid-template-columns:minmax(0,1fr)}}
 .pn-foal .fc-in,.pn-hc .fc-in{min-width:0}
 .pn-foal .fc-in,.pn-hc .fc-in{grid-template-columns:minmax(0,1fr)}
+/* the foal's and the horse card's buttons, kept in reach at the foot of the screen */
+.pn-bar{position:sticky;bottom:-24px;z-index:3;display:flex;align-items:center;flex-wrap:wrap;gap:8px;margin:4px -12px -12px;padding:10px 12px calc(12px + env(safe-area-inset-bottom,0px));background:var(--tb-bg);border-top:1px solid var(--tb-line);box-shadow:0 -8px 16px rgba(40,30,15,.08)}
+.pn-bar .tb-btn{flex:1 1 140px;display:grid;justify-items:center;gap:0;padding:9px 12px;font-size:15px;line-height:1.15;white-space:normal}
+.pn-bar .tb-btn small{font-size:11.5px;font-weight:600;opacity:.85}
+.pn-barinfo{flex:1 0 100%;display:flex;align-items:center;justify-content:center;gap:6px;font-size:12.5px;color:var(--tb-muted)}
+.pn-barinfo .cloth{fill:var(--tb-gold)}
+.pn-barinfo b{color:var(--tb-ink)}
+@media (min-width:701px){.pn-barinfo{flex:0 0 auto}.pn-bar{margin:4px -16px -16px;padding:12px 16px 14px}}
+#go .tb-btn:has(small){flex-direction:column;gap:0;line-height:1.15}
+#go .tb-btn small{display:block;font-size:11.5px;font-weight:600;opacity:.85;margin-top:1px}
+.pn-how{margin-left:auto;border:0;background:none;padding:4px 0;color:var(--tb-green);font:inherit;font-weight:800;font-size:12.5px;cursor:pointer;text-decoration:underline;text-underline-offset:3px}

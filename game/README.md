@@ -921,3 +921,14 @@ Keep the old as a backup: **`?planner=old`** brings back the old planner and foa
 - **Stars:** 3 = top on ratings in that field, 2 = 2nd or 3rd, 1 = further down; a trainer face = trip work gets it in;
   a cross = can't run (said why in a few words). "Best idea" = the most prize money × chance.
 - Developing a horse past a flagged race's age takes that flag off (with a toast).
+
+- **Clear at each step (15 Nov, evening; owner: integrate the step-by-step clarity of the phone and iPad review):**
+  - The foal pop-up's buttons sit in a bar pinned to the foot of the screen: the flag count, **Decide later** (save as
+    a 2-year-old) and **Develop to N, the best path**.
+  - The horse card has the same bar: the flag count and **Back to the planner**.
+  - In the planner at the stud and the sales, the likely next step is the main button: **Back to the stud · 4 mares to
+    breed** / **Back to the sale ring · N lots left**. "Close the stud" / "Leave the sales" become secondary.
+  - The planner gets its own key points the first time it opens in a season (the same pop-up as each step's), and a
+    **How this works** link brings them back.
+  - The steps' key points (`HEADLINES`) now speak of the foal's options, the planner, Develop to 3 and flags at entries.
+  - The horse rows' planned-race tag is a flag (⚑).
