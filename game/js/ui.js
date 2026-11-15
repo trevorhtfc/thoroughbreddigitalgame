@@ -623,16 +623,17 @@ function paintMenu(keepScroll) {
   const b = bestWeek(); $("#menuBest").innerHTML = b ? `Your best ${W.bestWord}: <b>${money(b.prize)}</b> · ${titleFor(b.prize).name}` : "";
   if (window.lbShow) lbShow();   // the leaderboard panel: the standings and your position
   // Two ways to play (owner, 13 Nov): today's card, the same season for everyone and played once, or a random game
-  const today = ukDay(), done = dailyDone(today), ds = dailySave(), dsToday = ds && ds.day === today ? ds : null;
+  const today = ukDay(), doneM = dailyDone(today, "plus"), doneB = dailyDone(today, "beginner");
+  const dsM = dailySave("plus"), dsB = dailySave("beginner"), started = x => x && x.day === today && (x.dealt || x.step > 1);
+  const going = !doneM && started(dsM) || !doneB && started(dsB);
+  const bit = (w, d, s) => d ? `${w}: ${money(d.prize)}` : started(s) ? `${w}: under way` : `${w}: to play`;
   const stepOf = x => { const k = Math.min(5, x.step || 1); return `Step ${k} of 5`; };
   const rnd = isDaily() ? randomSave() : (hasProgress() ? S : null);
-  const daily = done
-    ? `<button class="tb-btn" id="menuDaily">Today's card: ${money(done.prize)}<small>${done.title} · played ${dayText(today)} · a new card at midnight</small></button>`
-    : dsToday && (dsToday.dealt || dsToday.step > 1)
-      ? `<button class="tb-btn" id="menuDaily">Continue today's card<small>${dayText(today, true)} · ${stepOf(dsToday)}</small></button>`
-      : `<button class="tb-btn" id="menuDaily">Play today's card<small>${dayText(today, true)} · the same races for everyone · one go</small></button>`;
+  const daily = doneM && doneB
+    ? `<button class="tb-btn" id="menuDaily">Today's card: played<small>${bit("Simple/Plus", doneM)} · ${bit("Beginner", doneB)} · a new card at midnight</small></button>`
+    : `<button class="tb-btn" id="menuDaily">${going ? "Continue today's card" : "Play today's card"}<small>${dayText(today, true)} · ${doneM || doneB || going ? `${bit("Simple/Plus", doneM, dsM)} · ${bit("Beginner", doneB, dsB)}` : "the same races for everyone · one go each in Beginner and Simple/Plus"}</small></button>`;
   const random = rnd
-    ? `<button class="tb-btn ghost" id="menuRandom">Random game<small>Continue · ${stepOf(rnd).toLowerCase()}</small></button><button class="tb-btn ghost" id="menuNew">${newArmed ? "Tap again to confirm" : "New random game"}<small>${newArmed ? "Season " + rnd.seed + " will be lost" : "New races and mares"}</small></button>`
+    ? `<button class="tb-btn ghost" id="menuRandom">Continue your random game<small>${({ beginner: "Beginner", simple: "Simple" }[rnd.play] || "Plus")} · ${stepOf(rnd).toLowerCase()}</small></button><button class="tb-btn ghost" id="menuNew">New random game<small>Choose Beginner, Simple or Plus</small></button>`
     : `<button class="tb-btn ghost" id="menuRandom">Play a random game<small>Any time, as often as you like</small></button>`;
   $("#menuGo").innerHTML = daily + random;
 }
@@ -649,19 +650,45 @@ function freshSeason(day) {
 }
 // From the cover: open today's card (started now if it hasn't been; a finished one opens on its result; an unfinished
 // card from an earlier day is put away), or the random game. The game not being played stays saved as it was.
-function playDaily() {
-  const today = ukDay(), ds = dailySave(), silks = S.silks;
-  if (isDaily() && S.day === today) return;
+function playDaily(play) {
+  play = play || playPref();
+  const today = ukDay(), ds = dailySave(play), silks = S.silks;
+  if (isDaily() && S.day === today && dailyTrack(S.play) === dailyTrack(play)) { takePlayPref(); save(); return; }
   clearTable();
-  if (ds && ds.day === today && load("daily")) { save(); return; }
+  if (ds && ds.day === today && load("daily", play)) { takePlayPref(); save(); return; }
   newCard(dailySeed(today), today); S.silks = silks; S.at = "newmarket"; save();
+}
+// "How do you want to play?" before a new game: Beginner, Simple or Plus (the cover's switch is only the default)
+function choosePlay(then, note, daily) {
+  const pp = playPref(), opts = [
+    ["beginner", "Beginner", "5 races, half the budget, no team cards. The gentlest start."],
+    ["simple", "Simple", "10 races: breed, buy and race. No team cards."],
+    ["plus", "Plus", "10 races, with your team of owner, trainer and jockey cards."]];
+  UI.cpThen = then;
+  kpShow(`<div class="kp-k">A new game</div><h2 id="kpT">How do you want to play?</h2>
+    ${note ? `<p class="cp-note">${esc2(note)}</p>` : ""}
+    <div class="cp">${opts.map(([k, w, d]) => { const st = daily ? dailyState(k) : ""; return `<button class="cp-o ${k === pp ? "on" : ""}" type="button" data-cplay="${k}"><b>${w}</b><small>${d}</small>${st ? `<em class="cp-st">${st}</em>` : ""}<span aria-hidden="true">›</span></button>`; }).join("")}</div>
+    <p class="cp-foot">Each way to play has its own leaderboard.</p>`, "cp-kp");
+}
+// where today's card stands for a way to play (Simple and Plus share one go)
+function dailyState(play) {
+  const today = ukDay(), d = dailyDone(today, play), s = dailySave(play);
+  if (d) return `Played today: ${money(d.prize)} · see your result`;
+  if (s && s.day === today && (s.dealt || s.step > 1)) return `Under way${dailyTrack(play) === "main" ? ` in ${s.play === "simple" ? "Simple" : "Plus"}` : ""}: continue`;
+  return "";
 }
 function playRandom() {
   if (!isDaily()) return;
-  const silks = S.silks; clearTable();
-  if (!load("random")) { newCard(); S.silks = silks; S.at = "newmarket"; }
+  const silks = S.silks, started = !!randomSave(); clearTable();
+  // a saved random game that was never really started is put away for a fresh one, so it's the way to play chosen on the
+  // cover (owner, 15 Nov night: Beginner chosen after a finished daily card, and the old unstarted game came back with
+  // ten races)
+  if (!started || !load("random")) { newCard(); S.silks = silks; S.at = "newmarket"; }
+  else takePlayPref();
   save();
 }
+// an open game that hasn't got going yet takes the way to play chosen on the cover (Beginner, Simple or Plus)
+function takePlayPref() { const pp = playPref(); if (S && S.play !== pp && playOpen()) setPlay(pp); }
 // Simple or Plus: remembered, and taken up by the open game if its team isn't drafted and nothing is bred yet
 document.addEventListener("click", e => {
   const b = e.target.closest && e.target.closest("#menu [data-play]"); if (!b || b.dataset.play === playPref()) return;
@@ -735,6 +762,7 @@ document.addEventListener("click", e => {
     const b = document.getElementById("bstrip"); if (b) b.scrollIntoView({ block: "nearest", behavior: still() ? "auto" : "smooth" }); return; }
   if (d.trip) { S.trip = d.trip; save(); render(); return; }
   if (d.pile) { drawPile(d.pile); save(); render(); BOARD.Sound.whinny(); return; }
+  if (d.cplay) { try { localStorage.setItem(PLAY_KEY, d.cplay); } catch (err) {} kpClose(); const f = UI.cpThen; UI.cpThen = null; if (f) f(); paintMenu(true); return; }
   if (d.mdraw) { const n = d.mdraw === "all" ? (dealHand(), null) : drawHandMare(d.mdraw); UI.mareDrew = n;
     if (n) { const m = byName(n); toast(`${m.name} (${m.stars}★) joins your stud`); }
     if (handDone()) setTimeout(() => toast("Your mares are in. Tap one to send her to a stallion"), n ? 1600 : 0);
@@ -827,10 +855,19 @@ document.addEventListener("click", e => {
     case "closeWatch": closeWatch(); break;
     case "menuContinue": if (needColours(() => leaveMenu())) break; leaveMenu(); break;
     // a player's first game: how to play, then their colours, then the season
-    case "menuDaily": if (needHowTo(() => $("#menuDaily").click()) || needColours(() => $("#menuDaily").click())) break; playDaily(); newArmed = false; render(); leaveMenu(); break;
-    case "menuRandom": if (needHowTo(() => $("#menuRandom").click()) || needColours(() => $("#menuRandom").click())) break; playRandom(); newArmed = false; render(); leaveMenu(); break;
-    case "menuNew": if (!newArmed) { newArmed = true; paintMenu(true); break; }
-      playRandom(); freshSeason(); newArmed = false; render(); paintMenu(true); toast("A new random season is drawn"); break;
+    // (owner, 15 Nov night: "You need a new game vs continue game on random game mode and then to confirm which mode"):
+    // a game that hasn't started yet asks how you want to play first
+    case "menuDaily": { if (needHowTo(() => $("#menuDaily").click()) || needColours(() => $("#menuDaily").click())) break;
+      choosePlay(() => { playDaily(playPref()); newArmed = false; render(); leaveMenu(); }, "Today's card: the same races for everyone. You get one go in Beginner, and one in Simple or Plus.", true);
+      break; }
+    case "menuRandom": { if (needHowTo(() => $("#menuRandom").click()) || needColours(() => $("#menuRandom").click())) break;
+      const go = () => { playRandom(); newArmed = false; render(); leaveMenu(); };
+      if (randomSave()) go(); else choosePlay(go);
+      break; }
+    case "menuNew": { if (needHowTo(() => $("#menuNew").click()) || needColours(() => $("#menuNew").click())) break;
+      const r = randomSave();
+      choosePlay(() => { freshSeason(); newArmed = false; render(); leaveMenu(); toast("A new random season is drawn"); }, r ? `Your random game under way (season ${r.seed}) will be lost.` : "");
+      break; }
     case "aucBid": aucPlace("me"); break;
     case "aucLeave": aucLeave(); break;
     case "autoMinus": if (A) { A.auto = Math.max(openBid(A.l), A.auto - incFor(A.auto - 1)); aucPaint(); } break;
@@ -857,8 +894,8 @@ addEventListener("keydown", (e) => {
 document.body.insertAdjacentHTML("afterbegin", `<svg width="0" height="0" style="position:absolute" aria-hidden="true"><symbol id="pip" viewBox="0 0 40 40"><g fill="currentColor"><path d="M20 5 L35 20 L20 35 L5 20Z"/><circle cx="20" cy="3.6" r="3.2"/><circle cx="20" cy="36.4" r="3.2"/><circle cx="3.6" cy="20" r="3.2"/><circle cx="36.4" cy="20" r="3.2"/></g><circle cx="20" cy="20" r="4" fill="#fffdf7"/></symbol></svg>`);
 function boot() {
   // open on the game last played; a daily card from an earlier day comes back only if it was finished (its result)
-  const dsv = lastMode() === "daily" ? dailySave() : null;
-  if (!(dsv && (dsv.day === ukDay() || Object.keys(dsv.results || {}).length === RACES.length) && load("daily")) && !load("random")) { newCard(); S.at = "newmarket"; save(); }
+  const dp = lastDailyPlay(), dsv = lastMode() === "daily" ? dailySave(dp) : null;
+  if (!(dsv && (dsv.day === ukDay() || Object.keys(dsv.results || {}).length === (dsv.play === "beginner" ? 5 : RACES.length)) && load("daily", dp)) && !load("random")) { newCard(); S.at = "newmarket"; save(); }
   BOARD.cardFor = cardFor;
   BOARD.onEnter = (id) => {
     const st = placeStates()[id];

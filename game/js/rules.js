@@ -655,14 +655,19 @@ function setPlay(p) {
 // each way to play has its own leaderboard (server/worker.js: "royal-ascot" is Plus, "royal-ascot-simple" is Simple)
 const boardFor = play => MEETING.id + (play === "simple" ? "-simple" : play === "beginner" ? "-beginner" : "");
 // Two saved games a season: the random game, and today's card (so starting one never loses the other)
-const slotKey = mode => SAVE_KEY + (mode === "daily" ? "-daily" : "");
-function save() { try { localStorage.setItem(slotKey(S.mode), JSON.stringify(S)); localStorage.setItem(MODE_KEY, S.mode === "daily" ? "daily" : "random"); } catch (e) {} }
-const lastMode = () => { try { return localStorage.getItem(MODE_KEY) === "daily" ? "daily" : "random"; } catch (e) { return "random"; } };
+// Today's card has two goes (owner, 15 Nov night: "we should also be able to attempt today's card in beginner mode even
+// if we have completed the plus mode ... simple should be attached to plus"): one shared by Simple and Plus, and one for
+// Beginner, each with its own save and its own place in the daily log
+const dailyTrack = play => play === "beginner" ? "beginner" : "main";
+const slotKey = (mode, play) => SAVE_KEY + (mode === "daily" ? "-daily" + (play === "beginner" ? "-beginner" : "") : "");
+function save() { try { localStorage.setItem(slotKey(S.mode, S.play), JSON.stringify(S)); localStorage.setItem(MODE_KEY, S.mode === "daily" ? (S.play === "beginner" ? "daily-beginner" : "daily") : "random"); } catch (e) {} }
+const lastMode = () => { try { return String(localStorage.getItem(MODE_KEY) || "").startsWith("daily") ? "daily" : "random"; } catch (e) { return "random"; } };
+const lastDailyPlay = () => { try { return localStorage.getItem(MODE_KEY) === "daily-beginner" ? "beginner" : "plus"; } catch (e) { return "plus"; } };
 // the saved daily card, if there is one (read without opening it): { day, done, step }
-function dailySave() { try { const v = JSON.parse(localStorage.getItem(slotKey("daily")) || "null"); return v && v.seed && v.day && dailyCurrent(v) ? v : null; } catch (e) { return null; } }
-function load(mode) {
+function dailySave(play) { try { const v = JSON.parse(localStorage.getItem(slotKey("daily", play)) || "null"); return v && v.seed && v.day && dailyCurrent(v) ? v : null; } catch (e) { return null; } }
+function load(mode, play) {
   mode = mode || "random";
-  try { const v = JSON.parse(renamed(localStorage.getItem(slotKey(mode)) || "null")); if (v && v.seed && Array.isArray(v.stable)) {
+  try { const v = JSON.parse(renamed(localStorage.getItem(slotKey(mode, play)) || "null")); if (v && v.seed && Array.isArray(v.stable)) {
     S = v; S.open = null; S.mode = mode === "daily" && S.day ? "daily" : "random"; S.pileN = S.pileN || {}; S.play = S.play || "plus"; CARD = makeCard(S.seed, S.mix); ownLuck(); migrate();
     // left in the middle of an auction: that lot has gone through the ring without you
     if (S.ring) { S.sale = (S.sale || []).filter(x => x.id !== S.ring); S.ring = null; save(); }
@@ -907,11 +912,12 @@ const MODE_KEY = "tb-" + MEETING.id + "-mode", DAILY_KEY = "tb-" + MEETING.id + 
 // Today's card counts once: the first time a day's card is finished, its result is written here and stays
 function dailyLog() { try { const v = JSON.parse(localStorage.getItem(DAILY_KEY) || "{}"); return v && typeof v === "object" ? v : {}; } catch (e) { return {}; } }
 // the day's finished card, if it was that day's card as dealt now (one finished before a re-deal doesn't count)
-const dailyDone = day => { const e = dailyLog()[day]; return e && dailyCurrent({ seed: e.seed, day }) ? e : null; };
+const dailyKeyFor = (day, play) => day + (play === "beginner" ? "|beginner" : "");
+const dailyDone = (day, play) => { const e = dailyLog()[dailyKeyFor(day, play)]; return e && dailyCurrent({ seed: e.seed, day }) ? e : null; };
 function noteDaily(prize, wins) {
   if (!isDaily()) return;
-  try { const log = dailyLog(); if (dailyDone(S.day)) return;
-    log[S.day] = { seed: S.seed, prize, wins, races: RACES.length, title: titleFor(prize).name, silks: mySilkN(), colours: MY ? MY.code : undefined, when: Date.now() };
+  try { const log = dailyLog(); if (dailyDone(S.day, S.play)) return;
+    log[dailyKeyFor(S.day, S.play)] = { seed: S.seed, prize, wins, races: RACES.length, title: titleFor(prize).name, silks: mySilkN(), colours: MY ? MY.code : undefined, when: Date.now() };
     const days = Object.keys(log).sort(); days.slice(0, Math.max(0, days.length - 400)).forEach(d => delete log[d]);
     localStorage.setItem(DAILY_KEY, JSON.stringify(log)); } catch (e) {}
   // and it goes on the leaderboard (js/leaderboard.js)
