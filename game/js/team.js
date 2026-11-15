@@ -258,7 +258,7 @@ function closeSales() {}
 // Each lot's yearling is settled when the catalogue is made (seeded), so the agent's projection is of the real yearling
 function lotFoal(l) {
   // the same yearling breed() will give (rules.js): this game's foal of the pair, or a scout's find's own
-  return breedPure(stallion(l.sire), byName(l.dam), l.fs != null ? seeded(l.fs) : luck("foal|" + l.sire + "|" + l.dam));
+  return breedFoal(stallion(l.sire), byName(l.dam), l.fs != null ? seeded(l.fs) : luck("foal|" + l.sire + "|" + l.dam));
 }
 // what a yearling costs you, and the dearest hammer price your budget covers (Trade Terms used to take a share off)
 const payFor = price => price;
@@ -305,7 +305,7 @@ function pedigreeChance(sire, dam, race, n) {
   const key = [sire, dam, race.id, n, knowsTrue(sire) ? 1 : 0].join("|"); if (SCOUT_MEMO[key] != null) return SCOUT_MEMO[key];
   const s0 = stallion(sire), s = { ...s0, trueStars: knowsTrue(sire) ? s0.trueStars : s0.shownStars }, m = byName(dam), R = seeded(hashStr(key));
   let ok = 0;
-  for (let k = 0; k < n; k++) { const f = breedPure(s, m, R), sex = R() < .5 ? "F" : "C"; if (foalFits(f, race, sex)) ok++; }
+  for (let k = 0; k < n; k++) { const f = breedFoal(s, m, R), sex = R() < .5 ? "F" : "C"; if (foalFits(f, race, sex)) ok++; }
   return (SCOUT_MEMO[key] = ok / n);
 }
 // what the scout says about a lot: the races it suits (likely or possible), or nothing for your races
@@ -353,7 +353,7 @@ function scoutFind(race, taken) {
   // (the find's sex is kept on the lot: the catalogue shows it and the foal knocked down is that colt or filly)
   let fs = 0, fsex;
   const tryFor = (bar, n) => { for (let k = 0; k < n; k++) {
-    const f0 = 1 + Math.floor(rnd() * 2e9), R = seeded(f0), f = breedPure(pick.s, pick.m, R), sex = R() < .5 ? "F" : "C";
+    const f0 = 1 + Math.floor(rnd() * 2e9), R = seeded(f0), f = breedFoal(pick.s, pick.m, R), sex = R() < .5 ? "F" : "C";
     if (foalFits(f, race, sex, bar)) { fs = f0; fsex = sex; return true; }
   } return false; };
   if (!tryFor(race.bands[1], 300) && !tryFor(scoutBar(race), 200)) tryFor(needFor(race), 100) || (fs = 1 + Math.floor(rnd() * 2e9));
