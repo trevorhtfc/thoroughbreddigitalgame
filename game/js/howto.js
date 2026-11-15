@@ -11,7 +11,7 @@ const howToSeen = () => { try { return !!localStorage.getItem(HT_SEEN); } catch 
 function needHowTo(again) { if (howToSeen() || HT) return false; openHowTo({ then: again }); return true; }
 
 function htSteps() {
-  const teamOn = typeof TEAM_POINTS !== "undefined", rides = typeof JOCKEY_RIDES !== "undefined" ? JOCKEY_RIDES : [0, 3, 4, 5];
+  const teamOn = typeof TEAM_POINTS !== "undefined" && !(typeof playPref === "function" && playPref() === "simple"), rides = typeof JOCKEY_RIDES !== "undefined" ? JOCKEY_RIDES : [0, 3, 4, 5];
   const pts = teamOn ? TEAM_POINTS : 6, two = OFFER_SIZE === 2 ? "two" : OFFER_SIZE === 3 ? "three" : OFFER_SIZE;
   const cards = (role) => teamOn ? `<p class="ht-team ${ROLE_CLS[role]}"><img src="img/team/${role[0]}3.webp" alt=""><span><b>Your ${role.toLowerCase()}${role === "Jockey" ? "s" : ""}</b> ${HT_TEAM[role]}</span></p>` : "";
   return [
@@ -27,10 +27,11 @@ function htSteps() {
     { place: "tatts", when: CHAPTERS.sales.season, title: "Buy at Tattersalls",
       text: `The yearlings out of the mares nobody bred are sold in three Books. Bid against five rival buyers: you see the pedigree and whether it's a colt or a filly, but not the yearling itself until it's yours. Once you leave the stud there's no going back.` },
     { place: "warren", when: CHAPTERS.gallops.season, title: "Train on Warren Hill",
-      text: `Your string are 2-year-olds now. Your trainer's jobs get them ready: a step longer or shorter in trip, settling a keen horse, handling another going, a tune-up for a big race. Bring on any horse who needs it to 3 or 4.`,
+      text: teamOn ? `Your string are 2-year-olds now. Your trainer's jobs get them ready: a step longer or shorter in trip, settling a keen horse, handling another going, a tune-up for a big race. Bring on any horse who needs it to 3 or 4.`
+        : `Your string are 2-year-olds now. Bring on any horse who needs it to 3 or 4: a horse can only run in races for its age, and its rating and best trip change as it grows up.`,
       after: cards("Trainer") },
     { place: "jockey", when: CHAPTERS.entries.season, title: "Make your entries",
-      text: `${W.entryRule}. Each step away from a horse's best trip costs 5 from its rating, and the going counts ${W.goingCounts}: up to +5 on ground it likes, down to −10 three steps off. Book your jockeys for the rides that suit them.`,
+      text: `${W.entryRule}. Each step away from a horse's best trip costs 5 from its rating, and the going counts ${W.goingCounts}: up to +5 on ground it likes, down to −10 three steps off.${teamOn ? " Book your jockeys for the rides that suit them." : ""}`,
       after: cards("Jockey") },
     { place: "races", when: W.when, title: MEETING.id === "newmarket" ? "Race through the season" : "Race at Royal Ascot",
       text: `${MEETING.id === "newmarket" ? "Two races at each of five meetings on the Rowley Mile and the July Course" : "Ten races over five days, two a day"}. Watch each one in 3D or sim it. Rating, trip, going and pace decide a race, and a horse's running style meets the pace: front-runners suit a slow race, hold-up horses a fast one.` },
@@ -44,6 +45,7 @@ const HT_TEAM = {
   Jockey: "ride the races you book them for: the Champion anywhere, the others at their trips, their style of race, big races or soft ground.",
 };
 
+const simpleHT = () => typeof playPref === "function" && playPref() === "simple";
 function openHowTo(opts = {}) {
   if (HT) return;
   const steps = htSteps(), first = !!opts.then;
@@ -54,7 +56,8 @@ function openHowTo(opts = {}) {
   box.innerHTML = `<div class="ht-in">
       <header class="ht-head">
         <div><div class="ht-k">How to play · Thoroughbred ${esc2(W.gameTitle || "")}</div><h2 class="ht-t" id="htTitle">How the season goes</h2>
-        <p class="ht-lede">One season, start to finish: draw your races, pick your team, breed and buy your string, train them and send them racing. The aim is simple: <b>win as much prize money as you can</b>.</p></div>
+        <p class="ht-lede">One season, start to finish: draw your races, ${simpleHT() ? "" : "pick your team, "}breed and buy your string, train them and send them racing. The aim is simple: <b>win as much prize money as you can</b>.</p>
+        <p class="ht-lede ht-play">${simpleHT() ? "You're playing <b>Simple</b>: breed, buy and race. <b>Plus</b> adds a team of owner, trainer and jockey cards; switch on the cover." : "You're playing <b>Plus</b>, with a team of owner, trainer and jockey cards. <b>Simple</b> leaves the team out; switch on the cover."}</p></div>
         ${first ? "" : `<button class="ht-x" id="htClose" type="button" aria-label="Close">&times;</button>`}
       </header>
       <ol class="ht-steps">${steps.map((s, i) => `<li class="ht-step ${s.team ? "is-team" : ""}">

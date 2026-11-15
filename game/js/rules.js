@@ -576,11 +576,37 @@ function newCard(seed, day) {
   S = { seed: seed || Math.floor(Math.random() * 1e6) + 1, luck: Math.floor(Math.random() * 2e9) + 1, mode: day ? "daily" : "random", day: day || null, pileN: {}, step: 1, tab: "stud", budget: START_BUDGET, start: START_BUDGET, stable: [], hand: [], usedMares: [], deckPos: 0,
     selMare: null, foal: null, sale: [], lotN: 0, entries: {}, results: {}, open: null, silks: S ? S.silks : 0, sort: "fee", offer: null, book: 1, catDams: [], v: 8, dealt: false, tallied: false,
     team: { picks: [], offer: null, done: false, choice: {}, used: {}, trains: {}, book: {}, income: 0, incomeLog: [] } };
+  S.play = playPref(); if (S.play === "simple") S.team = noTeam();
   S.mix = CARD_MIX; CARD = makeCard(S.seed, S.mix); ownLuck();
   // No starting mares: every mare is bought at the mares sale, choosing one of three
   S.selMare = null;
   save();
 }
+// Two ways to play (owner, 15 Nov): Simple (breed, buy and race: no team) and Plus (with the owner, trainer and jockey
+// cards). Chosen on the cover and remembered on this phone or computer ("tb-play"); every game keeps the way it was
+// started in (S.play). Someone new starts on Simple; anyone who has played before starts on Plus, as they had it.
+const PLAY_KEY = "tb-play";
+function playPref() {
+  try {
+    const v = localStorage.getItem(PLAY_KEY); if (v === "simple" || v === "plus") return v;
+    const played = Object.keys(localStorage).some(k => /^tb-game-|^tb-.*-history$/.test(k));
+    const p = played ? "plus" : "simple"; localStorage.setItem(PLAY_KEY, p); return p;
+  } catch (e) { return "simple"; }
+}
+const isSimple = () => !!(S && S.play === "simple");
+// a game with no team: the draft is skipped and every team screen stays away (js/team.js teamSkipped)
+const noTeam = () => ({ picks: [], offer: null, done: true, gone: true, skipped: true, simple: true, choice: {}, used: {}, trains: {}, book: {}, income: 0, incomeLog: [] });
+// The open game can still change its way of playing until its team is drafted or its first horse is in the stable
+const playOpen = () => !!(S && S.step === 1 && !S.stable.length && !S.foal && !(S.team && S.team.picks && S.team.picks.length) && !(S.team && S.team.gone && !S.team.skipped));
+function setPlay(p) {
+  p = p === "plus" ? "plus" : "simple";
+  try { localStorage.setItem(PLAY_KEY, p); } catch (e) {}
+  if (!S || S.play === p || !playOpen()) return false;
+  S.play = p; S.team = p === "simple" ? noTeam() : { picks: [], offer: null, done: false, choice: {}, used: {}, trains: {}, book: {}, income: 0, incomeLog: [] };
+  save(); return true;
+}
+// each way to play has its own leaderboard (server/worker.js: "royal-ascot" is Plus, "royal-ascot-simple" is Simple)
+const boardFor = play => MEETING.id + (play === "simple" ? "-simple" : "");
 // Two saved games a season: the random game, and today's card (so starting one never loses the other)
 const slotKey = mode => SAVE_KEY + (mode === "daily" ? "-daily" : "");
 function save() { try { localStorage.setItem(slotKey(S.mode), JSON.stringify(S)); localStorage.setItem(MODE_KEY, S.mode === "daily" ? "daily" : "random"); } catch (e) {} }
@@ -590,7 +616,7 @@ function dailySave() { try { const v = JSON.parse(localStorage.getItem(slotKey("
 function load(mode) {
   mode = mode || "random";
   try { const v = JSON.parse(localStorage.getItem(slotKey(mode)) || "null"); if (v && v.seed && Array.isArray(v.stable)) {
-    S = v; S.open = null; S.mode = mode === "daily" && S.day ? "daily" : "random"; S.pileN = S.pileN || {}; CARD = makeCard(S.seed, S.mix); ownLuck(); migrate();
+    S = v; S.open = null; S.mode = mode === "daily" && S.day ? "daily" : "random"; S.pileN = S.pileN || {}; S.play = S.play || "plus"; CARD = makeCard(S.seed, S.mix); ownLuck(); migrate();
     // left in the middle of an auction: that lot has gone through the ring without you
     if (S.ring) { S.sale = (S.sale || []).filter(x => x.id !== S.ring); S.ring = null; save(); }
     return true; } } catch (e) {}
@@ -841,7 +867,7 @@ function noteDaily(prize, wins) {
     const days = Object.keys(log).sort(); days.slice(0, Math.max(0, days.length - 400)).forEach(d => delete log[d]);
     localStorage.setItem(DAILY_KEY, JSON.stringify(log)); } catch (e) {}
   // and it goes on the leaderboard (js/leaderboard.js)
-  try { if (window.lbSubmit) lbSubmit({ season: MEETING.id, kind: "daily", day: S.day, seed: S.seed, prize, wins, title: titleFor(prize).name }); } catch (e) {}
+  try { if (window.lbSubmit) lbSubmit({ season: boardFor(S.play), kind: "daily", day: S.day, seed: S.seed, prize, wins, title: titleFor(prize).name }); } catch (e) {}
 }
 function pastWeeks() { try { const h = JSON.parse(localStorage.getItem(HIST_KEY) || "[]"); return Array.isArray(h) ? h : []; } catch (e) { return []; } }
 function addWeek(prize, wins) {
@@ -850,7 +876,7 @@ function addWeek(prize, wins) {
     h.push({ seed: S.seed, day: S.day || undefined, prize, wins, races: RACES.length, title: titleFor(prize).name, when: Date.now() });
     localStorage.setItem(HIST_KEY, JSON.stringify(h.slice(-200)));
     // a finished random game goes on the leaderboard's best-ever board (the daily card is sent by noteDaily)
-    try { if (!isDaily() && window.lbSubmit) lbSubmit({ season: MEETING.id, kind: "random", day: "", seed: S.seed, prize, wins, title: titleFor(prize).name }); } catch (e) {}
+    try { if (!isDaily() && window.lbSubmit) lbSubmit({ season: boardFor(S.play), kind: "random", day: "", seed: S.seed, prize, wins, title: titleFor(prize).name }); } catch (e) {}
     return h;
   } catch (e) { return []; }
 }

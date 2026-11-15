@@ -589,6 +589,12 @@ function paintMenu(keepScroll) {
   }
   // the season on show (Royal Ascot or Newmarket), its words, and the switch between them
   document.querySelectorAll("#menu [data-season]").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.season === MEETING.id)));
+  // Simple or Plus (owner, 15 Nov): the choice is remembered; a game already under way keeps the way it was started
+  const pp = playPref();
+  document.querySelectorAll("#menu [data-play]").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.play === pp)));
+  const pn = $("#menuPlayNote"), word = x => x === "simple" ? "Simple" : "Plus";
+  if (pn) { const diff = S && S.play && S.play !== pp && hasProgress(); pn.hidden = !diff; pn.innerHTML = diff ? `Your game under way is <b>${word(S.play)}</b>: it stays that way. Your next new game will be <b>${word(pp)}</b>.` : ""; }
+  const hb = $("#menuHow span"); if (hb) hb.textContent = pp === "simple" ? "· the season step by step" : "· the season step by step, and your team";
   if (W.coverKicker) $("#menuKick").textContent = W.coverKicker;
   $("#menuWord").textContent = W.gameTitle || "Ascot";
   if (W.coverLede) $("#menuLede").innerHTML = W.coverLede;
@@ -641,6 +647,14 @@ function playRandom() {
   if (!load("random")) { newCard(); S.silks = silks; S.at = "newmarket"; }
   save();
 }
+// Simple or Plus: remembered, and taken up by the open game if its team isn't drafted and nothing is bred yet
+document.addEventListener("click", e => {
+  const b = e.target.closest && e.target.closest("#menu [data-play]"); if (!b || b.dataset.play === playPref()) return;
+  const now = setPlay(b.dataset.play);
+  if (now) toast(b.dataset.play === "simple" ? "Simple: no team this season. Breed, buy and race." : "Plus: you'll draft your team at the Jockey Club.");
+  else toast(b.dataset.play === "simple" ? "Your next new game will be Simple" : "Your next new game will be Plus");
+  LB.view = LB.view || "today"; paintMenu(true);
+});
 // Switching season: each is its own game (rules, save, history), so the page opens afresh on the other one's cover
 document.addEventListener("click", e => {
   const b = e.target.closest && e.target.closest("#menu [data-season]"); if (!b || b.dataset.season === MEETING.id) return;

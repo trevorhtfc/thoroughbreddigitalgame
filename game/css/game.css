@@ -466,6 +466,11 @@ body.sheet-open .tb-toast{bottom:calc(var(--foot-h,0px) + 12px)}
 .menu-season button[aria-pressed=true]{background:#e8cf8e;color:#1f3a33}
 .menu-season button:not([aria-pressed=true]):hover{background:rgba(232,207,142,.14)}
 @media (max-width:560px){.menu-season{width:100%}.menu-season button{flex:1;padding:9px 12px;font-size:12px}}
+/* Simple or Plus (15 Nov): the same switch as the seasons, just under it */
+.menu-play{margin-top:-8px}
+.menu-playnote{margin:-6px 0 16px;font-size:13px;line-height:1.4;color:#f2eee7;max-width:440px}
+.menu-playnote b{color:#e8cf8e}
+.ht-play{font-size:14px!important;opacity:.9}
 
 /* ================= Your team (js/team.js, js/ui-team.js): owner, trainer and jockey cards ================= */
 .r-own{--role:#6b2226;--role-lt:#f3e3e1}.r-trn{--role:#2d6a4c;--role-lt:#e2efe7}.r-jky{--role:#16233d;--role-lt:#e1e6ef}

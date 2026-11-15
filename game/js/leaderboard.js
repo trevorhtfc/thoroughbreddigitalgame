@@ -5,7 +5,7 @@
        today's card      one go a day, the first finish counts (rules.js: noteDaily)
        yesterday         the day before's final result
        best ever         every stable's best game of this season, daily or random
-   Each season (Royal Ascot, Newmarket) has its own boards. A finished game that can't be sent (no signal, no name
+   Each season (Royal Ascot, Newmarket) has its own boards, and so does each way to play (Simple, Plus: 15 Nov). A finished game that can't be sent (no signal, no name
    yet) waits in the browser and goes the next time the game is opened. */
 const LB = { view: "today", all: false, data: {}, state: {}, busy: false };
 const LB_PLAYER = "tb-player", LB_OUT = "tb-outbox", LB_API = "/api";
@@ -73,11 +73,14 @@ async function lbFlush() {
   } finally { LB.busy = false; }
 }
 // ----- the standings -----
-async function lbLoad(view, fresh) {
-  const k = MEETING.id + "|" + view, had = LB.data[k];
+// the board on show: the way to play chosen on the cover (Simple and Plus each have their own boards), or a game's own
+const lbBoard = () => typeof boardFor === "function" ? boardFor(playPref()) : MEETING.id;
+async function lbLoad(view, fresh, season) {
+  season = season || lbBoard();
+  const k = season + "|" + view, had = LB.data[k];
   if (had && !fresh && Date.now() - had.at < 30000) return had;
   LB.state[k] = "loading";
-  const r = await lbCall(`/board?season=${encodeURIComponent(MEETING.id)}&view=${view}&top=20&id=${encodeURIComponent(lbPlayer().id)}`);
+  const r = await lbCall(`/board?season=${encodeURIComponent(season)}&view=${view}&top=20&id=${encodeURIComponent(lbPlayer().id)}`);
   if (r.status === 200 && r.data.ok) { LB.data[k] = { ...r.data, at: Date.now() }; LB.state[k] = "ok"; }
   else LB.state[k] = "down";
   return LB.data[k] || null;
@@ -92,7 +95,7 @@ function lbRow(r) { return `<li class="${r.me ? "me" : ""}"><span class="lb-n">$
 // The panel on the home screen
 function lbPaint() {
   const box = document.getElementById("menuBoard"); if (!box) return;
-  const k = MEETING.id + "|" + LB.view, d = LB.data[k], st = LB.state[k], p = lbPlayer();
+  const k = lbBoard() + "|" + LB.view, d = LB.data[k], st = LB.state[k], p = lbPlayer();
   const tabs = LB_VIEWS.map(([id, name]) => `<button type="button" class="lb-tab ${LB.view === id ? "on" : ""}" data-lbview="${id}" aria-pressed="${LB.view === id}">${name}</button>`).join("");
   let body;
   if (!d) body = `<p class="lb-note">${st === "down" ? "The leaderboard can't be reached just now." : "Fetching the standings…"}</p>`;
@@ -107,7 +110,7 @@ function lbPaint() {
   }
   // no stable name yet (colours made before the leaderboard came, or the name was taken meanwhile): ask here
   const join = !p.name && hasColours() ? `<form class="lb-join" id="lbJoin"><label for="lbNameIn">Name your stable to join the leaderboard</label><div><input id="lbNameIn" maxlength="20" autocomplete="off" autocapitalize="words" spellcheck="false" placeholder="Stable name"><button class="mc-change" type="submit">Join</button></div><p class="lb-err" id="lbErr" role="alert"></p></form>` : "";
-  box.innerHTML = `<div class="lb-head"><div class="mc-h">Leaderboard <small>${W.gameTitle || ""}</small></div><div class="lb-tabs" role="group" aria-label="Which board">${tabs}</div></div>${body}${join}`;
+  box.innerHTML = `<div class="lb-head"><div class="mc-h">Leaderboard <small>${W.gameTitle || ""} · ${typeof playPref === "function" && playPref() === "simple" ? "Simple" : "Plus"}</small></div><div class="lb-tabs" role="group" aria-label="Which board">${tabs}</div></div>${body}${join}`;
 }
 async function lbShow(fresh) {
   if (!document.getElementById("menuBoard")) return;
@@ -118,7 +121,7 @@ async function lbResult() {
   const el = document.getElementById("lbLine"); if (!el || typeof S === "undefined" || !S) return;
   const view = isDaily() ? (S.day === ukDay() ? "today" : S.day === ukDay(Date.now() - 864e5) ? "yesterday" : null) : "best"; if (!view) return;
   if (!lbPlayer().name) { el.innerHTML = `Name your stable on the home screen to put this on the leaderboard.`; return; }
-  const d = await lbLoad(view, true), el2 = document.getElementById("lbLine"); if (!el2) return;
+  const d = await lbLoad(view, true, typeof boardFor === "function" ? boardFor(S.play) : MEETING.id), el2 = document.getElementById("lbLine"); if (!el2) return;
   if (!d) { el2.textContent = "The leaderboard can't be reached just now. Your result will be sent when it can."; return; }
   if (!d.me) { el2.textContent = ""; return; }
   el2.innerHTML = view === "best" ? `Your best ${MEETING.id === "royal-ascot" ? "week" : "season"} is <b>${lbOrd(d.me.rank)}</b> of ${d.count} on the best-ever board.` : `${view === "today" ? "Today's" : "Yesterday's"} card: you are <b>${lbOrd(d.me.rank)}</b> of ${d.count} stable${d.count === 1 ? "" : "s"}.`;

@@ -866,3 +866,22 @@ places, it's really not clear". Now nothing on the page moves: your team sits at
 and an Owner / Trainer / Jockey slot that each card drops into; it stays pinned as you scroll), with the nine decks below
 in three columns (Owners, Trainers, Jockeys; Gold, Silver, Bronze). A drawn card turns over in front of everything
 (`showReveal`): "Add to my team", or "Wrong deck? Put it back". Decks you can't take say why in two or three words.
+
+
+## Simple and Plus (15 Nov 2026)
+
+Owner, 15 Nov: "introduce a simple mode vs a plus mode (just removes the team element)".
+
+- **The cover** has a second switch under the seasons: **Simple** ("Breed, buy and race") or **Plus** ("With your team
+  of cards"). It is remembered on the device (`tb-play`). Someone new starts on Simple; anyone with a saved game or
+  history starts on Plus.
+- **Every game keeps the way it was started** (`S.play`; saves from before are Plus). A game can still switch until its
+  team is drafted or its first horse is in the stable (`playOpen`, `setPlay` in `js/rules.js`). After that the cover
+  says "Your game under way is Plus: it stays that way. Your next new game will be Simple."
+- **Simple** is a game with the team skipped (`noTeam()`: the same state old saves get in `migrate7`). There's no draft
+  at the Jockey Club, no team button, no trainer jobs or jockey bookings. Warren Hill is still where horses are
+  developed. How to play leaves out the team step and the team cards.
+- **Leaderboards:** each way to play has its own boards. Scores go to `boardFor(S.play)`: `royal-ascot` / `newmarket`
+  for Plus (where every score so far sits) and `royal-ascot-simple` / `newmarket-simple` for Simple
+  (`server/worker.js` SEASONS). The cover's board follows the switch ("Leaderboard Ascot · Simple").
+- **Today's card** is still one go a day, in whichever way you play it.

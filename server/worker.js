@@ -8,7 +8,8 @@
 // The game runs in the player's browser, so a score is what the browser says it is. This checks what it can (a
 // sensible prize, the right day, one finish per day's card, a name's owner) but a determined cheat could still post a
 // false score: the thorough answer, replaying a game's choices here, is for later.
-const SEASONS = ["royal-ascot", "newmarket"], RACES = 10, PRIZE_CAP = 12000000;
+// each season's boards, and the Simple game's own boards (no team cards: owner, 15 Nov); "royal-ascot" is the Plus game
+const SEASONS = ["royal-ascot", "newmarket", "royal-ascot-simple", "newmarket-simple"], RACES = 10, PRIZE_CAP = 12000000;
 const json = (data, status = 200) => new Response(JSON.stringify(data), { status, headers: { "content-type": "application/json; charset=utf-8", "cache-control": "no-store" } });
 const bad = (error, status = 400) => json({ ok: false, error }, status);
 const ukDay = (t) => { const o = {}; new Intl.DateTimeFormat("en-GB", { timeZone: "Europe/London", year: "numeric", month: "2-digit", day: "2-digit" }).formatToParts(new Date(t)).forEach((x) => (o[x.type] = x.value)); return `${o.year}-${o.month}-${o.day}`; };
