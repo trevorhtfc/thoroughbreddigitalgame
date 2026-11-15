@@ -131,6 +131,9 @@ body { background: #5f8a44; color: var(--green-ink); font-family: var(--body); o
 .plate .snd .on, .plate .snd[aria-pressed="true"] .off { display: none; }
 .plate .snd[aria-pressed="true"] .on { display: inline; }
 .plate .snd.locked { animation: sndpulse 1.4s ease-in-out infinite; }
+/* the terraces shortcut (owner, 15 Nov): straight to the view from among the crowd, and back to the TV picture */
+.plate .terr { margin-left: -10px; }
+.plate .terr[aria-pressed="true"] { background: var(--green); color: var(--cream); border-color: var(--green); }
 @keyframes sndpulse { 50% { box-shadow: 0 0 0 5px rgba(183, 144, 66, 0.45); } }
 @media (max-width: 600px) { .plate .snd { width: 30px; height: 30px; } .plate .snd svg { width: 17px; height: 17px; } }
 .group { display: flex; gap: 4px; align-items: center; }
@@ -290,6 +293,7 @@ body.pre .dock { display: none; }
   </div>
   <div class="togo"><strong id="toRun">5f</strong><span>to run</span></div>
   <button id="snd" class="snd" type="button" aria-pressed="false" aria-label="Sound" title="Sound: the crowd and the horses"><svg viewBox="0 0 512 512" aria-hidden="true"><path class="on" d="m275.5 96l-96 96h-96v128h96l96 96zm51.46 27.668l-4.66 17.387c52.066 13.95 88.2 61.04 88.2 114.945s-36.134 100.994-88.2 114.945l4.66 17.387C386.81 372.295 428.5 317.962 428.5 256c0-61.963-41.69-116.295-101.54-132.332m-12.425 46.365l-4.658 17.387C340.96 195.748 362.5 223.822 362.5 256s-21.54 60.252-52.623 68.58l4.658 17.387C353.402 331.552 380.5 296.237 380.5 256s-27.098-75.552-65.965-85.967m-12.424 46.363l-4.657 17.387C307.55 236.49 314.5 245.547 314.5 256s-6.95 19.51-17.047 22.217l4.658 17.387c17.884-4.792 30.39-21.09 30.39-39.604s-12.506-34.812-30.39-39.604"/><path class="off" d="m275.5 96l-96 96h-96v128h96l96 96zm50.863 89.637l-12.726 12.726L371.273 256l-57.636 57.637l12.726 12.726L384 268.727l57.637 57.636l12.726-12.726L396.727 256l57.636-57.637l-12.726-12.726L384 243.273z"/></svg></button>
+  <button id="terr" class="snd terr" type="button" aria-pressed="false" aria-label="Watch from the terraces" title="Watch from the terraces (tap again for the TV picture)" hidden><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2 21h20v-2H2zm1-4h18v-3h-4v-3h-4V8H9v3H5v3H3z" opacity=".9"/><circle cx="6.5" cy="12" r="1.5"/><circle cx="11" cy="9" r="1.5"/><circle cx="15" cy="9" r="1.5"/><circle cx="19" cy="12" r="1.5"/><circle cx="11" cy="5.2" r="1.5"/></svg></button>
 </div>
 
 <div class="bar">
@@ -2160,6 +2164,42 @@ const state = {
 };
 if (state.phase === "replay") state.t = REPLAY[0] + (REPLAY[1] - REPLAY[0]) * Number(params.get("rt") || 0);   // ?rt=0..1 for checking
 let snap = true, lastShot = null;
+// The terraces in the TV director's cut (owner, 15 Nov: "switch to the terraces view in director mode from time to
+// time"): in most races (raceDirector.terraces.chance, seeded by the race) one spell of 'seconds' from among the crowd,
+// while the leader is within 'range' metres of the spectator and inside the way he faces ('pan'): as the field passes
+// the stands mid-race in a long race, else as they thunder past the stands in the last furlong, cutting back to the
+// grandstand camera 'finishKeep' metres out so that the finish itself is still the grandstand camera's (owner, 4 Nov). Worked out once from the timeline, so a race always cuts the same.
+const TERR_CUT = (() => {
+  const id = Object.keys(RCAMS).find((k) => RCAMS[k].kind === "terrace"), c = id && RCAMS[id];
+  const o = Object.assign({ chance: 0.65, seconds: 5, range: 300, finishKeep: 70, midRace: 700 }, DIR_.terraces || {});
+  if (!c || !c.at || o.chance <= 0) return null;
+  let h = 2166136261;
+  for (const ch of `${SEED}:${RACE_ID}:${COURSE_ID}:terraces`) h = Math.imul(h ^ ch.charCodeAt(0), 16777619) >>> 0;
+  if ((h % 1000) / 1000 >= o.chance) return null;
+  const [ex, , ez] = c.at, [fx, fz] = c.face || [0, -1], lim = THREE.MathUtils.degToRad((c.pan || 70) + 12), dt = timeline.dt;   // (the picture reaches past the turn)
+  const ok = timeline.frames.map((f, i) => {
+    const u = leaderAt(f), d = DIST - u;
+    if (i * dt < PRE.holdAfterOff + 3 || d < o.finishKeep || u > DIST) return false;
+    const [x, z] = toWorld(u, 0), dx = x - ex, dz = z - ez;
+    return Math.hypot(dx, dz) <= o.range && Math.abs(Math.atan2(fx * dz - fz * dx, fx * dx + fz * dz)) <= lim;
+  });
+  const runs = [];
+  for (let i = 0; i < ok.length; i++) if (ok[i]) { let j = i; while (j + 1 < ok.length && ok[j + 1]) j++; runs.push([i, j]); i = j; }
+  const len = Math.round(o.seconds / dt), dAt = (i) => DIST - leaderAt(timeline.frames[i]);
+  const long = runs.filter(([a, b]) => b - a >= len * 0.6);
+  if (!long.length) return null;
+  // a pass of the stands mid-race if there is one (centred on the field's nearest point), else the run up the straight
+  const mid = long.find(([, b]) => dAt(b) > o.midRace);
+  let a, b;
+  if (mid) {
+    let best = mid[0], bd = Infinity;
+    for (let i = mid[0]; i <= mid[1]; i++) { const [x, z] = toWorld(leaderAt(timeline.frames[i]), 0), dd = Math.hypot(x - ex, z - ez); if (dd < bd) { bd = dd; best = i; } }
+    a = Math.max(mid[0], best - (len >> 1)); b = Math.min(mid[1], a + len);
+  } else { const r = long[long.length - 1]; b = r[1]; a = Math.max(r[0], b - len); }
+  return { id, t0: a * dt, t1: b * dt };
+})();
+window.__terraceCut = TERR_CUT; window.__toWorld = toWorld;           // checking aids
+let tvDrawing = false;                                                // the TV picture in the corner never cuts to the terraces
 // The TV director: which camera, from the leader's distance to go (courses/ascot-view.json -> raceDirector).
 function aheadOf(eye, u) {                                           // is a point still in front of a horse at u?
   const r = railAt(DIST - u), [x, z] = toWorld(u, 0);
@@ -2168,6 +2208,7 @@ function aheadOf(eye, u) {                                           // is a poi
 function directorShot(d, leadU) {
   if (state.cam !== "auto" && RCAMS[state.cam] && state.cam !== "sideon") return state.cam;
   if (d < 0) return "grandstand";                                    // past the line: stay on the grandstand camera
+  if (TERR_CUT && !tvDrawing && state.phase === "race" && state.t >= TERR_CUT.t0 && state.t < TERR_CUT.t1) return TERR_CUT.id;
   // one path (Newmarket): the tracking car down the leg and round the bend, the drone along the stand side up the straight,
   // the head-on long lens from beyond the line for a stretch, then the stand camera to the line (raceDirector.path)
   if (PATH) {
@@ -2318,8 +2359,14 @@ function cameraTarget(now) {
   // On the straight course the grandstand camera keeps the whole field until it closes in (owner, 8 Nov: the groups
   // spread across the track; framing only the leaders lost the rest), and frame 'all' never narrows.
   const straightNow = RACE.course === "straight" || (ON_STRAIGHT && DIST - leadU > LOOP.length) || (PATH && DIST - leadU < PATH.home);
-  const span = c.frame === "all" ? Infinity : moving ? THREE.MathUtils.clamp(4 + 9 * camera.aspect, 12, 26) : camera.aspect < 1 && !straightNow ? 6 : Infinity;
-  const pts = c.frame === "leaders" ? field.filter((p, i) => i < 2 || leadU - p.u <= (c.window || 12))
+  // (owner, 15 Nov: "never zoom into just one group for the whole race"): the moving cameras keep a longer stretch
+  // behind the leader (about 15 lengths on a wide screen, was 8), and every so often in the TV director's cut every
+  // camera opens out to the whole field for a few seconds (raceDirector.breathe: [every, for] seconds), so the ones at
+  // the back are seen; only the last 300 m stays on the leaders
+  const B = DIR_.breathe || [15, 5], tb = state.t - 9;
+  const breathe = state.cam === "auto" && state.phase === "race" && c.frame !== "leaders" && tb > 0 && tb % B[0] < B[1] && DIST - leadU > 300;
+  const span = c.frame === "all" || breathe ? Infinity : moving ? THREE.MathUtils.clamp(8 + 16 * camera.aspect, 18, 40) : camera.aspect < 1 && !straightNow ? 16 : Infinity;
+  let pts = c.frame === "leaders" ? field.filter((p, i) => i < 2 || leadU - p.u <= (c.window || 12))
     : field.filter((p, i) => i < 3 || leadU - p.u <= span);
   const lead = field[0];
   const r = railAt(DIST - leadU), run = new THREE.Vector3(r.tx, 0, r.tz);
@@ -2358,7 +2405,15 @@ function cameraTarget(now) {
     state.ahead += (want - state.ahead) * (1 - Math.exp(-(state.dt || 0.016) * 0.7));   // ease, never jump
     eye = eyeAt(state.ahead);
   } else eye = eyeAt(0);
-  let look = centre, fov = fitFov(eye, centre, pts, R);
+  // if they don't all fit at the widest zoom, the ones at the back go first: the leaders are never lost
+  let look = centre;
+  if (pts.length > 3 && fitFov(eye, centre, pts, R) >= R[1] * 0.98) {
+    let k = pts.length;
+    while (k > 3) { k--; const c2 = new THREE.Box3().setFromPoints(pts.slice(0, k)).getCenter(new THREE.Vector3()).addScaledVector(run, c.leadRoom || 0); if (fitFov(eye, c2, pts.slice(0, k), R) < R[1] * 0.98) break; }
+    pts = pts.slice(0, k);
+    look = new THREE.Box3().setFromPoints(pts).getCenter(new THREE.Vector3()).addScaledVector(run, c.leadRoom || 0);
+  }
+  let fov = fitFov(eye, look, pts, R);
   // closing in: over the last stretch the camera eases from the whole field to the leading group, so
   // the finish is as tight as possible, with no cut ([start, end] metres out, and the group's window)
   if (c.closeIn) {
@@ -2366,7 +2421,7 @@ function cameraTarget(now) {
     if (k > 0) {
       const grp = field.filter((p, i) => i < 2 || leadU - p.u <= Math.min(win, span));
       const gc = new THREE.Box3().setFromPoints(grp).getCenter(new THREE.Vector3()).addScaledVector(run, c.leadRoom || 0);
-      look = centre.clone().lerp(gc, k);
+      look = look.clone().lerp(gc, k);
       fov = THREE.MathUtils.lerp(fitFov(eye, look, pts, R), fitFov(eye, look, grp, R), k);
     }
   }
@@ -2461,8 +2516,15 @@ const finButtons = [["story", "Storybook"], ["plain", "Plain 3D"]].map(([id, lab
   const b = button(finEl, label, () => { storybook = id === "story"; try { localStorage.setItem("tb-finish", id); } catch {} syncButtons(); }, "finish-" + id);
   b.dataset.fin = id; return b;
 });
+// the terraces shortcut on the name plate (owner, 15 Nov: "a shortcut button for that view outside the controls hub")
+const terrBtn = document.getElementById("terr"), TERR_ID = camChoices.map(([id]) => id).find((id) => RCAMS[id] && RCAMS[id].kind === "terrace");
+if (terrBtn && TERR_ID) {
+  terrBtn.hidden = false;
+  terrBtn.onclick = () => { state.cam = state.cam === TERR_ID ? "auto" : TERR_ID; snap = true; syncButtons(); };
+}
 function syncButtons() {
   camButtons.forEach((b) => b.setAttribute("aria-pressed", b.dataset.cam === state.cam));
+  if (terrBtn) terrBtn.setAttribute("aria-pressed", state.cam === TERR_ID);
   finButtons.forEach((b) => b.setAttribute("aria-pressed", (b.dataset.fin === "story") === storybook));
   const on = storybook && !LOOKS.lookId && !STANDS.standId;
   document.documentElement.classList.toggle("story", on);
@@ -2904,7 +2966,7 @@ function updateTV(now, dt) {
     aspect: camera.aspect, fov: camera.fov, pos: camera.position.clone(), q: camera.quaternion.clone(), focus: focus.clone() };
   state.cam = "auto"; snap = TV.snap; lastShot = TV.lastShot; state.lookOff = TV.lookOff; state.ahead = TV.ahead; state.aheadFor = TV.aheadFor;
   camera.aspect = TV.cam.aspect; camera.fov = TV.cam.fov; focus.copy(TV.focus);
-  updateCamera(now, dt);
+  tvDrawing = true; updateCamera(now, dt); tvDrawing = false;
   TV.cam.position.copy(camera.position); TV.cam.quaternion.copy(camera.quaternion); TV.cam.fov = camera.fov;
   TV.cam.updateProjectionMatrix(); TV.cam.updateMatrixWorld(); TV.focus.copy(focus);
   TV.snap = snap; TV.lastShot = lastShot; TV.lookOff = state.lookOff; TV.ahead = state.ahead; TV.aheadFor = state.aheadFor;

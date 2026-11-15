@@ -14,7 +14,7 @@
  "FOLLOW": [
   1.0,
   0.92,
-  0.6,
+  0.75,
   0.3
  ],
  "OWN": 0.9914324899588062,
@@ -27,8 +27,8 @@
  "KEEN_BURN": 0.35,
  "FORM_SD": 2.5,
  "JUDGE_SD": 60.0,
- "BURST": 0.02,
- "BURST_DIST": 220,
+ "BURST": 0.03,
+ "BURST_DIST": 300,
  "RUN_BOOST": [
   [
    0.0,
@@ -79,9 +79,9 @@
   0.76
  ],
  "KICK_REACH": [
-  0.8,
-  0.87,
-  0.96,
+  0.88,
+  0.92,
+  0.97,
   1
  ],
  "CHECK_DV_BY_COURSE": {
@@ -102,7 +102,7 @@
  "CLASS_ACC": 0.0,
  "PACE_ROUND_SCALE": 0.6,
  "BURST_DIST_EXP": 1.4,
- "DRAFT": 0.0,
+ "DRAFT": 0.2,
  "DRAFT_LEN": 8.0,
  "BREAK_MIN": 0.05,
  "BREAK_MAX": 0.2,
