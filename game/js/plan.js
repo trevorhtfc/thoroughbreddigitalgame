@@ -356,7 +356,14 @@ function pnPlanTips(force) {
 // the main race planner"): an Enter view comes first and is the default then (js/entries.js)
 const pnCanEnter = () => !ENTRIES_OLD && S.step >= 3 && S.step <= 4 && !racesRun();
 const PN_VIEWS_PLAN = [["grid", "Grid"], ["race", "By race"], ["horse", "By horse"]];
-const pnViews = () => pnCanEnter() ? [["enter", "Enter"]].concat(PN_VIEWS_PLAN) : PN_VIEWS_PLAN;
+// at entries: By race (develop, train and enter, race by race), By horse (the same, horse by horse), Grid, and Jockeys as
+// the last step before the races (owner, 15 Nov night)
+const pnViews = () => pnCanEnter() ? [["race", "By race"], ["horse", "By horse"], ["grid", "Grid"]].concat(typeof enJockeysOn === "function" && enJockeysOn() ? [["jockeys", "Jockeys"]] : []) : PN_VIEWS_PLAN;
+// one line under the tabs saying what this view is for
+const PN_HINT = {
+  plan: { grid: "Every horse against every race. Tap a square to flag that horse for that race.", race: "Day by day: the horse flagged for each race. Tap “Choose” to pick one.", horse: "Your string, best first, with the races each one is flagged for." },
+  enter: { race: "Race by race, in day order: develop the horse to the right age, use your trainer, then enter it. Entered races drop to the foot.", horse: "Horse by horse: what each needs for its flagged race, and the button to do it.", grid: "Every horse against every race. Tap a square to flag; enter from By race or By horse.", jockeys: "The last step before the races: which of your jockeys helps which runner most." },
+};
 const pnViewKey = () => pnCanEnter() ? "tb-pnview-e" : "tb-pnview";
 const pnView = () => { const vs = pnViews(), def = vs[0][0]; try { const v = localStorage.getItem(pnViewKey()); return vs.some(x => x[0] === v) ? v : def; } catch (e) { return def; } };
 const pnViewBar = () => { const v = pnView();
@@ -402,8 +409,10 @@ function pnPlanner() {
     banner = `<div class="pn-fresh"><img src="img/p${String(fresh.portrait || 1).padStart(2, "0")}.webp" alt=""><span><b>${esc2(fresh.name)} is in your planner.</b> ${fl.length ? `Flagged for ${fl.map(r => esc2(r.name)).join(" and ")}.` : `Nothing flagged yet: find ${pnHe(fresh).o} below, or let your trainer pick.`}</span></div>`; }
   const nmRules = pnNewmarket() ? `<div class="pn-info"><span><b>Newmarket:</b> a horse stays one age all season and can run once at each meeting. Developing it moves it up an age for every meeting.</span></div>` : "";
   const view = pnView();
-  if (view === "enter") return `<section class="pn pn-enter">${banner}${nmRules}${pnViewBar()}${enBody()}</section>`;
-  return `<section class="pn">${banner}${view === "horse" ? "" : pnString()}${nmRules}${pnViewBar()}
+  const hint = `<p class="pn-hint">${(PN_HINT[pnCanEnter() ? "enter" : "plan"] || {})[view] || ""}</p>`;
+  if (pnCanEnter() && view !== "grid") return `<section class="pn pn-enter">${banner}${nmRules}${pnViewBar()}${hint}
+    ${view === "jockeys" ? enJockeys() : view === "horse" ? `${enTop()}${enByHorse()}` : enBody()}</section>`;
+  return `<section class="pn">${banner}${view === "horse" ? "" : pnString()}${nmRules}${pnViewBar()}${hint}
     <div class="pn-tools"><button class="tb-btn sm pn-gold" type="button" data-ppicks="1">${PN_FLAG} Flag the trainer's picks</button><span><b>${flagged} of ${RACES.length}</b> races flagged</span><button class="pn-how" type="button" data-ptips="1">How this works</button></div>
     ${pnKey()}
     ${view === "race" ? pnByRace() : view === "horse" ? pnByHorse() : pnWide() ? pnGrid() : `<div class="pn-all"><span>Tap a race to open it</span><button type="button" data-pall="1">Open all</button><button type="button" data-pall="0">Close all</button></div>

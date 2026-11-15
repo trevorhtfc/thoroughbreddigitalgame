@@ -276,7 +276,7 @@ const SHEETS = {
     if (tab === "entries" && !ENTRIES_OLD) tab = "plan";
     const bar = jockeyTabs(tab);
     if (tab === "entries" && canEnter) return bar + (ENTRIES_OLD ? entriesBody(entered()) : enBody());
-    if (tab === "plan") return bar + `<p class="tb-lede sh-lede">${canEnter && !ENTRIES_OLD ? "Develop, train and enter your horses race by race (Enter), or look at the plan as a grid, by race or by horse." : typeof PLAN_OLD !== "undefined" && !PLAN_OLD ? "Flag the horse you plan to run in each race. A flag is only a plan: you enter your runners at entries." : "Map out which horse is for which race. A target is only a plan: it doesn't enter the horse. Drag a race onto a horse, or tap a race to see how every horse fits it."}</p>` + plannerView();
+    if (tab === "plan") return bar + `<p class="tb-lede sh-lede">${canEnter && !ENTRIES_OLD ? "Everything for your runners in one place: develop, train and enter them By race or By horse, see the whole plan as a Grid, then book your jockeys." : typeof PLAN_OLD !== "undefined" && !PLAN_OLD ? "Flag the horse you plan to run in each race. A flag is only a plan: you enter your runners at entries." : "Map out which horse is for which race. A target is only a plan: it doesn't enter the horse. Drag a race onto a horse, or tap a race to see how every horse fits it."}</p>` + plannerView();
     return bar + programmeBody();
   },
   stud() {
