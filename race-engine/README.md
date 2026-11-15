@@ -17,6 +17,7 @@ It follows the test bench's rules exactly (`tools/race-bench/racebench.py`), one
 | `check/table.mjs` | Sets the two side by side in `check/results/compare.md`. |
 | `check/one.mjs` | Runs one race and prints the result and events: `node check/one.mjs r1m 14 seed`. |
 | `check/effort.mjs` | When jockeys start pushing and driving, by place and pace: `node check/effort.mjs s1m 200`. |
+| `check/balance.mjs` | Is the game balanced? Fields like the game's (12–25 runners on the straight, 9–16 round, four rating bands): wins by riding style, where the winner was 3f and 2f out, pace collapses, the best horse's wins, switches. `node check/balance.mjs 300 [keys]`, `COURSE=newmarket`/`july`, `CENTRE=113` for Group-class fields. |
 
 ## Using it
 
@@ -69,7 +70,7 @@ node check/table.mjs                       # the side-by-side table
 
 ## Changing the rules
 
-Tune in the bench first (`tools/race-bench`), then copy the numbers into `settings.json` → `bench` and re-run the comparison. A rule change goes into both `racebench.py` and `engine.js`.
+Until 15 Nov 2026: tune in the bench first (`tools/race-bench`), then copy the numbers into `settings.json` → `bench` and re-run the comparison; a rule change went into both `racebench.py` and `engine.js`. **From 15 Nov the engine has rules the bench doesn't** (`settings.json` → `balance`, below), so the bench no longer reproduces the engine's races. Its settings file is still kept equal to `bench` (so `compare.mjs` runs), but tuning is now done on the engine itself: `check/balance.mjs` and the Race Lab.
 
 ## 7 Nov 2026: more horses coming from the back
 
@@ -122,3 +123,63 @@ that went for home early has nothing left for the climb and comes back to the cl
 (`tools/race-bench/nmdip.py`, a flat Newmarket against the same races with the Dip): see the table in
 `tools/race-bench/README.md`. The par times at Newmarket (`courses/newmarket-standards.json`) are set so that the
 winning times, Dip included, come out at rough real Rowley Mile times (`tools/race-bench/nmcalibrate.py`).
+
+## 15 Nov 2026: balance, traffic and pace collapses
+
+The owner: "a very front runner friendly game … horses at the back struggle to get involved. Pace collapses are rare.
+Traffic is over the top visually … horses switching 5 or 6 times and seemingly getting physically stuck on others. We
+just need to make sure the game is nice and balanced with horses winning in lots of different ways."
+
+What was wrong (measured with `check/balance.mjs`, fields like the game's):
+
+- **The pace didn't follow the class of the field.** The pace came from the course's par time alone, so a Group 1 field
+  (ratings round 113) cruised at a pace that cost it almost nothing: nobody tired, and the horses in front stayed there.
+  In Group-class fields front-runners and prominent horses won 1.3–1.6 times their share on the round course, hold-up
+  horses 0.3–0.7, and a fast pace cost the leaders nothing (on the pace 1.00, off it 0.99).
+- **A strong pace taxed everyone the same.** Every horse ran at the pace, wherever it was, so the leaders never paid
+  more for setting it than the ones tucked in behind.
+- **Traffic**: a horse looked for a way out whenever anyone was in front of it (not only a slower one), picked a side at
+  random each time, and then the steering pulled it straight back in behind the horse it had just gone round. The average
+  horse switched 2–6 times a race, the worst 18–27 times. Horses ran into the backs of others and were checked again and
+  again.
+
+What changed (`settings.json` → `balance`, and five `bench` numbers; all in `engine.js`):
+
+| | |
+|---|---|
+| The pace follows the class | `CLASS_PACE` 1: the field's middle race-day rating sets the pace, as it sets real winning times (Group 1s run faster). A Group 1 now races like any other race. |
+| Cover | `DRAFT` 0 → 0.2: a horse tucked in behind another saves a fifth of its effort. Leaders and horses stuck wide pay. |
+| A stronger, longer final sprint | `BURST` 0.02 → 0.03 over the last 300 m (was 220), for horses with something left. |
+| Midfield nearer the pace | `FOLLOW` midfield 0.6 → 0.75 (they had been almost as far back as the hold-up horses on the round course, without their final sprint). |
+| Judging the line | `KICK_REACH` [0.8, 0.87, 0.96, 1] → [0.88, 0.92, 0.97, 1]; on the straight course its own (`KICK_REACH_STRAIGHT` [0.97, 0.96, 0.97, 1]) and the hold-up horses' sprint (`BURST_STYLE_STRAIGHT` [0, 0, 0, 0.013]). |
+| Keeping in touch | `TOUCH_M` 24: before the run for home a horse more than 24 m off the leader goes at least the pace, so a long race doesn't string out beyond reach. |
+| Traffic | A horse looks for a way out only when it is held up, or in the run for home when the one ahead is going slower than it wants (`SLOW_AHEAD`); before the run for home it sits behind a slower one for 3 s first (`BLOCK_WAIT`). It keeps going the same way (back to the other side only 30% of the time, `SIDE_CHANGE`; on the straight its first switch is to the side with fewer horses), rests 3 s between switches (`SWITCH_REST`), is less keen with each (`SWITCH_TIRE`), holds its new line (`HOLD_LINE_S`; in the run for home for good) and never steers back into a lane that's taken. It eases up behind a slower horse from 1.5 m off its quarters (`TRACK_GAP`, `CLOSE_RATE`) instead of running into it. |
+
+Tried and left out: horses sitting further off a strong pace (`LAG`: it only left them too far back), an extra saving
+for an uncontested leader (made no difference), lighter hills at Newmarket (no difference).
+
+Before → after, Ascot, 300 races per distance, fields like the game's (rating centre 100):
+
+| | Before | After |
+|---|---|---|
+| Wins ÷ share, front / prominent / midfield / hold-up, straight 5f–1m | 1.01–1.20 / 1.00–1.12 / 1.00–1.28 / **0.57–0.87** | 0.81–1.08 / 1.01–1.25 / 0.86–1.22 / 0.81–1.15 |
+| The same, round 1m–2m6f | 0.86–1.15 / 1.08–1.36 / **0.63–0.90** / 0.73–1.10 | 0.57–1.11 / 0.97–1.19 / 0.81–1.20 / 0.76–1.35 |
+| Winner leading 2f out, round 1m4f–2m6f | 41–51% | 31–40% |
+| Winner in the back half 3f out, round 1m4f–2m6f | 18–23% | 26–35% |
+| Wins ÷ share on the pace / off it, slow pace | 1.62 / 0.56 | 1.48 / 0.66 |
+| … even pace | 1.15 / 0.86 | 1.00 / 1.00 |
+| … strong pace | 0.91 / 1.11 | 0.79 / 1.26 |
+| … fast pace | 0.78 / 1.40 | 0.74 / 1.48 |
+| Group-class fields (centre 113), on / off the pace, even / fast | 1.37 / 0.65, 1.00 / 0.99 | 0.90–1.00 / 1.00–1.09, 0.52–0.80 / 1.38–1.85 |
+| Switches a horse a race, straight / round | 1.8–3.4 / 4.3–6.3 | 0.4–0.6 / 1.1–1.5 |
+| Horses switching 3 times or more | 27–83% | 3–19% |
+| Most switches by one horse | 18–27 | 5–8 |
+| Best horse wins | 44–57% | 41–51% |
+
+(The best horse wins this often because the game deals one runner from the top band, often 9 or more points clear.)
+
+Still leaning: at Newmarket (both courses) front-runners win about 0.55–0.8 of their share over a mile and further,
+and hold-up horses 1.2–1.65 over 1m–1m2f on the Rowley Mile. The Race Lab can try numbers there.
+
+New in each runner's result (for checking): `switches`, `sideChanges`, `heldSeconds` (time tracking or held behind a
+slower horse), `bumpedSeconds` (time pressed against one), `energyAtKick` and `energyLeft` (shares of its tank).

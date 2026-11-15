@@ -108,7 +108,7 @@ const sign = (v) => (v > 0 ? 1 : v < 0 ? -1 : 0);
 // The settings file in sections; the rules read them as one flat set of names.
 export function flatSettings(S) {
   const P = {};
-  for (const sec of ["bench", "benchDefaults", "rules"]) for (const [k, v] of Object.entries(S[sec])) if (!k.startsWith("_")) P[k] = v;
+  for (const sec of ["bench", "benchDefaults", "rules", "balance"]) for (const [k, v] of Object.entries(S[sec] || {})) if (!k.startsWith("_")) P[k] = v;
   P.PPL = S.pointsPerLength; P.HORSE = S.horse; P.EFFORT = S.effort; P.EVENTS = S.events; P.AFTER = S.afterLine; P.FIELD = S.testField;
   return P;
 }
@@ -258,6 +258,10 @@ export function runRace(race, runners, data, options = {}) {
   const ppl = P.PPL[std.key] ?? 2.0;
   const S = P.LENGTH / (ppl * D);                              // speed per rating point, as a share of par
   const CHECK_DV = P.CHECK_DV_BY_COURSE[straight ? "straight" : "round"];
+  // cover (a horse tucked in behind another saves a little energy): its own figure on the straight course if set
+  const draft = straight && P.DRAFT_STRAIGHT != null ? P.DRAFT_STRAIGHT : P.DRAFT;
+  const kickReach = straight && P.KICK_REACH_STRAIGHT ? P.KICK_REACH_STRAIGHT : P.KICK_REACH;   // the straight course's own, if set
+  const burstStyle = straight && P.BURST_STYLE_STRAIGHT ? P.BURST_STYLE_STRAIGHT : P.BURST_STYLE;
   const H = P.HORSE;
 
   // --- the runners as they go to post
@@ -341,21 +345,28 @@ export function runRace(race, runners, data, options = {}) {
   const paceScale = straight ? 1 : P.PACE_ROUND_SCALE;          // bends steady the pace: less extreme both ways
   const paceA = P.PACE.map((p) => 1 + (p - 1) * paceScale);
   const paceNoise = 1 + rnd.normal(0, P.PACE_NOISE);
+  // the pace follows the class of the field (owner, 15 Nov: a classy field cruised at a pace that cost it nothing, so its
+  // leaders never came back): the field's middle race-day rating sets the pace, as it sets real winning times
+  const fieldRef = card.reduce((s, c) => s + c.dayRating, 0) / n;
+  const classK = 1 + (P.CLASS_PACE ?? 0) * (fieldRef - P.RATING_REF) * S;
 
   // --- each horse's numbers for the race
   const x = new Float64Array(n).fill(-data.stalls.horseStandsBehind), z = new Float64Array(n), v = new Float64Array(n), vz = new Float64Array(n);
   const E = new Float64Array(n), fin = new Float64Array(n).fill(NaN), finV = new Float64Array(n);
+  const finE = new Float64Array(n), kickE = new Float64Array(n).fill(NaN);   // energy left at the line and at the kick (a share of the tank), for checking
   const vp = new Float64Array(n), vR = new Float64Array(n), vC = new Float64Array(n), ref = new Float64Array(n), vK0 = new Float64Array(n), burst = new Float64Array(n);
+  const blockRun = new Float64Array(n);   // seconds held up without a break
+  const lineT = new Float64Array(n);   // until when a horse holds the line it switched to
   const settle = new Float64Array(n), follow = new Float64Array(n), own = new Float64Array(n), kickAt = new Float64Array(n), R = new Float64Array(n), E0 = new Float64Array(n);
   const switchT = new Float64Array(n), switchDir = new Float64Array(n), since = new Float64Array(n).fill(9), lost = new Float64Array(n), blockedT = new Float64Array(n);
   for (const c of card) {
     const i = c.i, gi = groupInfo[c.group];
     z[i] = c.z;
     R[i] = c.dayRating + c.form + P.RUN_BOOST[gi.pace][c.ridden];
-    vp[i] = (PAR * paceA[gi.pace] * (1 - P.GROUP_WATCH) + PAR * paceA[paceAll] * P.GROUP_WATCH) * paceNoise;
+    vp[i] = (PAR * paceA[gi.pace] * (1 - P.GROUP_WATCH) + PAR * paceA[paceAll] * P.GROUP_WATCH) * paceNoise * classK;
     vR[i] = PAR * (1 + (R[i] - P.RATING_REF) * S);
     vC[i] = vR[i] * P.COMFORT; ref[i] = (1 - P.COMFORT) * vR[i]; vK0[i] = vR[i] * P.TOP;
-    burst[i] = vR[i] * (P.BURST + P.SHADE_TOP * c.shade + P.BURST_STYLE[c.ridden] * pow(D / P.MILE, P.BURST_DIST_EXP));
+    burst[i] = vR[i] * (P.BURST + P.SHADE_TOP * c.shade + burstStyle[c.ridden] * pow(D / P.MILE, P.BURST_DIST_EXP));
     E[i] = E0[i] = (P.TANK * tscale / going.sapping) * (1 - P.SHADE_TANK * c.shade) * (c.ridden <= 1 ? 1 + c.paceTank : 1);
     if (c.ridden >= 2 && c.lateKick) burst[i] += vR[i] * c.lateKick;
     settle[i] = P.SETTLE[c.ridden]; follow[i] = P.FOLLOW[c.ridden]; own[i] = vR[i] * P.OWN;
@@ -372,6 +383,7 @@ export function runRace(race, runners, data, options = {}) {
   const xcap = new Float64Array(n), vcap = new Float64Array(n), effort = new Uint8Array(n), vNew = new Float64Array(n), arrive = new Float64Array(n), projected = new Int32Array(n), spare = new Float64Array(n), holdV = new Float64Array(n);
   const order = Array.from({ length: n }, (_, i) => i);
   const events = [], kickedAt = new Float64Array(n).fill(NaN);
+  const nSw = new Int32Array(n), nRev = new Int32Array(n), heldS = new Float64Array(n), bumpS = new Float64Array(n);   // switches, changes of side, seconds held up (for the result)
   const ev = { leader: -1, cand: -1, candT: 0, lastSwitch: new Float64Array(n).fill(-99), room: new Float64Array(n), roomFrom: new Float64Array(n).fill(NaN), roomLast: [], spells: [], weak: new Uint8Array(n) };
   const pushFrame = () => keepFrames && frames.push(Array.from({ length: n }, (_, i) => [
     +x[i].toFixed(3), +(z[i] - MID).toFixed(3), +v[i].toFixed(3), effort[i], +atan2(vz[i], Math.max(v[i], 1)).toFixed(4)]));
@@ -401,10 +413,13 @@ export function runRace(race, runners, data, options = {}) {
       let w = x[i] < P.EARLY ? vp[i] * (1 - settle[i]) : cruise;
       // KICK_REACH (owner, 7 Nov): below 1, a jockey sets his horse alight as if the line were nearer than it is, so it
       // empties before the post and comes back to the closers in the last furlong
-      const T = Math.max(toGo, 1) / Math.max(v[i], P.HOLD_MIN_SPEED) * (P.KICK_REACH ? P.KICK_REACH[card[i].ridden] : 1);
+      const T = Math.max(toGo, 1) / Math.max(v[i], P.HOLD_MIN_SPEED) * (kickReach ? kickReach[card[i].ridden] : 1);
       const hold = vC[i] + ref[i] * Math.sqrt(Math.max(E[i], 0) / (ref[i] * T));
       kick[i] = toGo <= kickAt[i] ? 1 : 0;
       inB[i] = kick[i] && toGo <= P.BURST_DIST && E[i] > P.BURST_NEEDS ? 1 : 0;
+      // keeping in touch (owner, 15 Nov: horses at the back struggled to get involved): before the run for home a horse
+      // more than TOUCH_M metres behind the leader goes at least the pace, so the field doesn't string out for miles
+      if (!kick[i] && P.TOUCH_M && x[i] > P.EARLY && x[order[0]] - x[i] > P.TOUCH_M) w = Math.max(w, vp[i]);
       if (kick[i]) w = Math.min(vK0[i], hold) + (inB[i] ? burst[i] : 0);
       gr[i] = grade ? grade(toGo) : 0;
       w *= 1 - P.HILL_SLOW * Math.max(gr[i], 0);
@@ -415,14 +430,18 @@ export function runRace(race, runners, data, options = {}) {
     for (let i = 0; i < n; i++) {
       if (!live[i]) continue;
       const toGo = D - x[i];
-      let vf = Infinity, occOut = false, occIn = false, trouble = false, rep = 0, inlane = false, sideOut = false, sideIn = false, alongside = false, covered = false;
+      let vf = Infinity, vSee = Infinity, occOut = false, occIn = false, trouble = false, rep = 0, crowdOut = 0, crowdIn = 0, inlane = false, sideOut = false, sideIn = false, alongside = false, covered = false;
       const zo = z[i] + P.LANE_STEP, zi = z[i] - P.LANE_STEP;
       for (let j = 0; j < n; j++) {
         if (j === i || !live[j]) continue;
         const dx = x[j] - x[i], dz = z[j] - z[i], adz = Math.abs(dz), adx = Math.abs(dx);
         if (dx > 0 && dx < BL && adz < BW && v[j] < vf) vf = v[j];
+        // easing up behind a slower one before reaching it (owner, 15 Nov: horses seemed to get physically stuck on
+        // others): from TRACK_GAP metres off its quarters, closing no faster than CLOSE_RATE m/s a metre of gap
+        if (P.TRACK_GAP && dx >= BL && dx < BL + P.TRACK_GAP && adz < BW) { const cap = v[j] + P.CLOSE_RATE * (dx - BL); if (cap < vf) vf = cap; }
         if (dx > -P.GAP_BEHIND && dx < P.GAP_AHEAD) { if (Math.abs(z[j] - zo) < BW) occOut = true; if (Math.abs(z[j] - zi) < BW) occIn = true; }
-        if (dx > 0 && dx < P.SEE_AHEAD && adz < BW) trouble = true;
+        if (dx > 0 && dx < P.SEE_AHEAD && adz < BW) { trouble = true; if (v[j] < vSee) vSee = v[j]; }
+        if (adx < P.SEE_AHEAD) { if (dz > 0 && dz < 4) crowdOut++; else if (dz < 0 && dz > -4) crowdIn++; }
         if (adx < BL && adz < P.REPEL_W) rep += -sign(dz + 1e-6) * (P.REPEL_W - adz) * P.REPEL_GAIN;
         if (dx > 0 && dx < P.FAN_LOOK && adz < P.FAN_LANE_W) inlane = true;
         if (adx < BL && dz > 0 && dz < SW) sideOut = true;
@@ -433,16 +452,28 @@ export function runRace(race, runners, data, options = {}) {
       vfront[i] = vf;
       blocked[i] = Number.isFinite(vf) && want[i] > vf + P.BLOCK_MARGIN && x[i] > P.BLOCK_FROM ? 1 : 0;
       freeWant[i] = want[i];
-      if (blocked[i]) { want[i] = Math.min(want[i], vf); blockedT[i] += dt; }
+      if (blocked[i]) { want[i] = Math.min(want[i], vf); blockedT[i] += dt; blockRun[i] += dt; } else blockRun[i] = 0;
       // looking for a gap: the lane a horse-width to each side must be clear from a little behind to a length or so ahead
       const cOut = !occOut && zo > Z0 && zo < Z1, cIn = !occIn && zi > Z0 && zi < Z1;
-      const seek = blocked[i] || (trouble && kick[i]);
-      const classk = clip(1 + P.CLASS_LOOK * (R[i] - P.RATING_REF), P.CLASS_LOOK_RANGE[0], P.CLASS_LOOK_RANGE[1]);
+      // a horse looks for a way round only when it is held up, or in the run for home when the one ahead in its lane is
+      // going slower than it wants (owner, 15 Nov: horses switching 5 or 6 times): not merely because one is in front
+      const slowAhead = P.SLOW_AHEAD == null ? trouble : trouble && vSee < freeWant[i] - P.SLOW_AHEAD;
+      // before the run for home a jockey sits and waits behind a slower one for a while (BLOCK_WAIT s) before pulling out
+      const seek = kick[i] ? blocked[i] || slowAhead : blocked[i] && blockRun[i] >= (P.BLOCK_WAIT || 0);
+      const classk = clip(1 + P.CLASS_LOOK * (R[i] - (P.CLASS_PACE ? fieldRef : P.RATING_REF)), P.CLASS_LOOK_RANGE[0], P.CLASS_LOOK_RANGE[1]);
       let started = false;
-      if (seek && switchT[i] <= 0 && rnd.next() < (kick[i] ? card[i].skill * P.KICK_LOOK : card[i].skill) * classk * (1 + card[i].reader)) {
-        const prefOut = straight ? rnd.next() < P.PREF_OUT_STRAIGHT : true;
-        const dirn = cOut && (prefOut || !cIn) ? 1 : cIn ? -1 : 0;
-        if (dirn !== 0) { switchDir[i] = dirn; switchT[i] = P.SWITCH_TIME; started = true; }
+      // a rest after each switch, and a little less keen with every one (a jockey picks his way through once or twice)
+      const tire = 1 / (1 + (P.SWITCH_TIRE || 0) * nSw[i]);
+      if (seek && switchT[i] <= -(P.SWITCH_REST || 0) && rnd.next() < (kick[i] ? card[i].skill * P.KICK_LOOK : card[i].skill) * classk * (1 + card[i].reader) * tire) {
+        // which way: the way it went last time; else, on the straight course, the side with fewer horses near it (round
+        // the bends, out); back the other way only now and then (SIDE_CHANGE), and only when its own side is shut
+        let pref;
+        if (P.SIDE_CHANGE != null && nSw[i]) pref = switchDir[i];
+        else if (straight) pref = P.SIDE_CHANGE != null ? (crowdOut < crowdIn ? 1 : crowdIn < crowdOut ? -1 : rnd.next() < P.PREF_OUT_STRAIGHT ? 1 : -1) : rnd.next() < P.PREF_OUT_STRAIGHT ? 1 : -1;
+        else pref = 1;
+        let dirn = pref > 0 ? (cOut ? 1 : cIn ? -1 : 0) : (cIn ? -1 : cOut ? 1 : 0);
+        if (dirn !== 0 && nSw[i] && dirn !== switchDir[i] && P.SIDE_CHANGE != null && rnd.next() >= P.SIDE_CHANGE) dirn = 0;
+        if (dirn !== 0) { if (nSw[i] && dirn !== switchDir[i]) nRev[i]++; nSw[i]++; switchDir[i] = dirn; switchT[i] = P.SWITCH_TIME; started = true; lineT[i] = t + (P.HOLD_LINE_S || 0); }
       }
       if (!started) switchT[i] -= dt;
       if (started && kick[i] && blocked[i] && t - ev.lastSwitch[i] > EV.SWITCH_GAP_S) {
@@ -458,6 +489,12 @@ export function runRace(race, runners, data, options = {}) {
         tz = toGo > join ? Z0 + (z[i] - Z0) * P.CHUTE_AIM : Z0;
         if (toGo < home && rank[i] >= P.LEADERS_ON_RAIL) tz = z[i];
       }
+      // after a switch a horse holds its new line for a while, and in the run for home it keeps it (owner, 15 Nov: the
+      // steering pulled horses straight back in behind the one they'd just gone round)
+      if (P.HOLD_LINE_S && (t < lineT[i] || (kick[i] && nSw[i] && !(rank[i] < P.LEADERS_ON_RAIL && !straight)))) tz = z[i];
+      else if (P.HOLD_LINE_S && straight && kick[i]) tz = z[i] + (tz - z[i]) * 0.2;
+      // and, once it has had to switch, never steers back into a lane that's taken (it would only be held up against the horse there)
+      if (P.HOLD_LINE_S && nSw[i] && ((tz < z[i] - 0.05 && !cIn) || (tz > z[i] + 0.05 && !cOut))) tz = z[i];
       let az = clip((tz - z[i]) * P.STEER_GAIN, -P.STEER_MAX, P.STEER_MAX);
       const fanSide = straight ? (z[i] >= tz ? 1 : -1) : 1;
       const clearFan = fanSide > 0 ? cOut : cIn;
@@ -475,10 +512,10 @@ export function runRace(race, runners, data, options = {}) {
       }
       if (switchT[i] > 0 && kick[i]) want[i] *= 1 - P.SWITCH_COST * (1 - 0.5 * card[i].reader);
       // ---- speed and energy
-      const acc = v[i] < P.ACC_START_BELOW ? P.ACC_START : P.ACC * clip(1 + P.CLASS_ACC * (R[i] - P.RATING_REF), P.ACC_CLASS[0], P.ACC_CLASS[1]);
+      const acc = v[i] < P.ACC_START_BELOW ? P.ACC_START : P.ACC * clip(1 + P.CLASS_ACC * (R[i] - (P.CLASS_PACE ? fieldRef : P.RATING_REF)), P.ACC_CLASS[0], P.ACC_CLASS[1]);
       vNew[i] = v[i] + clip(want[i] - v[i], -P.DECEL * dt, acc * dt);    // applied after every horse has looked round
       const over = Math.max(vNew[i] - (inB[i] ? burst[i] : 0) - vC[i], 0), q = over / ref[i];
-      E[i] -= ref[i] * q * q * dt * (covered ? 1 - P.DRAFT : 1) + (card[i].keen && vp[i] < own[i] && !kick[i] ? P.KEEN_BURN : 0) * dt;
+      E[i] -= ref[i] * q * q * dt * (covered ? 1 - draft : 1) + (card[i].keen && vp[i] < own[i] && !kick[i] ? P.KEEN_BURN : 0) * dt;
       // uphill costs energy; downhill is no free pass (balance): a smaller cost (owner, 8 Nov)
       E[i] -= (P.HILL_UP * Math.max(gr[i], 0) + P.HILL_DOWN * Math.max(-gr[i], 0)) * vNew[i] * dt;
       let k = 0;
@@ -513,6 +550,8 @@ export function runRace(race, runners, data, options = {}) {
     for (let i = 0; i < n; i++) {
       if (!live[i]) continue;
       held[i] = blocked[i] || Number.isFinite(vcap[i]) ? 1 : 0;
+      if (held[i] && x[i] > P.BLOCK_FROM) heldS[i] += dt;
+      if (Number.isFinite(vcap[i]) && x[i] > P.BLOCK_FROM) bumpS[i] += dt;
       since[i] = held[i] ? 0 : since[i] + dt;
       if (kick[i] && since[i] < P.LOST_RECOVER_S) {
         const l = Math.max(freeWant[i] - v[i], 0) * dt;
@@ -521,12 +560,13 @@ export function runRace(race, runners, data, options = {}) {
         if (!Number.isNaN(ev.roomFrom[i])) ev.room[i] += l;
       } else closeRoom(i);
 
-      if (kick[i] && Number.isNaN(kickedAt[i])) kickedAt[i] = t;
+      if (kick[i] && Number.isNaN(kickedAt[i])) { kickedAt[i] = t; kickE[i] = E[i] / E0[i]; }
     }
     for (let i = 0; i < n; i++) x[i] += v[i] * dt / (1 + kap[i] * (z[i] - Z0));
     t = Math.round((t + dt) * 1e6) / 1e6;
     for (let i = 0; i < n; i++) if (live[i] && x[i] >= D) {
       fin[i] = t - (x[i] - D) / Math.max(v[i], P.FINISH_MIN_SPEED); finV[i] = v[i];
+      finE[i] = E[i] / E0[i];
       if (fin[i] < winT) winT = fin[i];
       closeRoom(i);
       lastT = Math.max(lastT, fin[i]);
@@ -606,6 +646,8 @@ export function runRace(race, runners, data, options = {}) {
       behind: +lenAt(i).toFixed(2),                                                    // lengths behind the winner
       style: H.STYLES[c.style], ridden: H.STYLES[c.ridden], group: c.group,
       dayRating: c.dayRating, form: +c.form.toFixed(2), lostLengths: +(lost[i] / P.LENGTH).toFixed(2),
+      switches: nSw[i], sideChanges: nRev[i], heldSeconds: +heldS[i].toFixed(1), bumpedSeconds: +bumpS[i].toFixed(1),
+      energyAtKick: +kickE[i].toFixed(3), energyLeft: +finE[i].toFixed(3),
     };
   });
   // the events, in order, with the kicks that mattered and only the weakening that cost places
