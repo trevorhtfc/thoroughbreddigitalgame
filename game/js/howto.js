@@ -11,18 +11,18 @@ const howToSeen = () => { try { return !!localStorage.getItem(HT_SEEN); } catch 
 function needHowTo(again) { if (howToSeen() || HT) return false; openHowTo({ then: again }); return true; }
 
 function htSteps() {
-  const teamOn = typeof TEAM_POINTS !== "undefined" && !(typeof playPref === "function" && playPref() === "simple"), rides = typeof JOCKEY_RIDES !== "undefined" ? JOCKEY_RIDES : [0, 3, 4, 5];
+  const teamOn = typeof TEAM_POINTS !== "undefined" && !(typeof playPref === "function" && playPref() !== "plus"), rides = typeof JOCKEY_RIDES !== "undefined" ? JOCKEY_RIDES : [0, 3, 4, 5];
   const pts = teamOn ? TEAM_POINTS : 6, two = OFFER_SIZE === 2 ? "two" : OFFER_SIZE === 3 ? "three" : OFFER_SIZE;
   const cards = (role) => teamOn ? `<p class="ht-team ${ROLE_CLS[role]}"><img src="img/team/${role[0]}3.webp" alt=""><span><b>Your ${role.toLowerCase()}${role === "Jockey" ? "s" : ""}</b> ${HT_TEAM[role]}</span></p>` : "";
   return [
     { place: "jockey", when: CHAPTERS.draw.season, title: "The draw",
-      text: `The Jockey Club draws your ten races for ${W.whereLong}: a mix of Group races, handicaps and races for 2-year-olds, different every season. This is what you are building a stable to win.` },
+      text: `The Jockey Club draws your ${racesWordFor(typeof playPref === "function" ? playPref() : "")} races for ${W.whereLong}: a mix of Group races, handicaps and races for 2-year-olds, different every season. This is what you are building a stable to win.` },
     teamOn && { place: "jockey", when: CHAPTERS.team.season, title: "Draft your team", team: true,
       text: `Before the stud opens, draw the people behind your stable from the Bronze, Silver and Gold decks. You have <b>${pts} points</b>: Gold costs 3, Silver 2 and Bronze 1, and you need at least one owner, one trainer and one jockey. Tap a deck and its top card is yours.` },
     { place: "stud", when: CHAPTERS.breed.season, title: "Breed at the National Stud",
       text: typeof HAND !== "undefined"
-        ? `You start with <b>${money(START_BUDGET)}</b>. Draw your mares from the three Weatherbys decks, two of each grade: ${PILES.map(p => p.name).join(", ").replace(/, ([^,]*)$/, " and $1")}. Send them to the stallions, and buy one more if you like. A mare can be at most one star above her stallion; an outcross breeds best, the same family worst, and an unproven stallion may be a star better or worse than he looks.`
-        : `You start with <b>${money(START_BUDGET)}</b>. Buy mares from the piles (${two} are turned over each time and you keep one), then send each to a stallion. A mare can be at most one star above her stallion; an outcross breeds best, the same family worst, and an unproven stallion may be a star better or worse than he looks.`,
+        ? `You start with <b>${money(typeof playPref === "function" && playPref() === "beginner" ? BEGINNER_BUDGET : START_BUDGET)}</b>. Draw your mares from the three Weatherbys decks, two of each grade: ${PILES.map(p => p.name).join(", ").replace(/, ([^,]*)$/, " and $1")}. Send them to the stallions, and buy one more if you like. A mare can be at most one star above her stallion; an outcross breeds best, the same family worst, and an unproven stallion may be a star better or worse than he looks.`
+        : `You start with <b>${money(typeof playPref === "function" && playPref() === "beginner" ? BEGINNER_BUDGET : START_BUDGET)}</b>. Buy mares from the piles (${two} are turned over each time and you keep one), then send each to a stallion. A mare can be at most one star above her stallion; an outcross breeds best, the same family worst, and an unproven stallion may be a star better or worse than he looks.`,
       after: cards("Owner") },
     { place: "tatts", when: CHAPTERS.sales.season, title: "Buy at Tattersalls",
       text: `The yearlings out of the mares nobody bred are sold in three Books. Bid against five rival buyers: you see the pedigree and whether it's a colt or a filly, but not the yearling itself until it's yours. Once you leave the stud there's no going back.` },
@@ -45,7 +45,7 @@ const HT_TEAM = {
   Jockey: "ride the races you book them for: the Champion anywhere, the others at their trips, their style of race, big races or soft ground.",
 };
 
-const simpleHT = () => typeof playPref === "function" && playPref() === "simple";
+const simpleHT = () => typeof playPref === "function" && playPref() !== "plus";
 function openHowTo(opts = {}) {
   if (HT) return;
   const steps = htSteps(), first = !!opts.then;
@@ -65,7 +65,7 @@ function openHowTo(opts = {}) {
           <div class="ht-txt"><div class="ht-when"><span class="ht-n">${i + 1}</span>${esc2(SHEET_TITLE[s.place] || W.where)} · ${esc2(s.when)}</div>
             <h3>${s.title}</h3><p>${s.text}</p>${s.after || ""}</div></li>`).join("")}</ol>
       <section class="ht-two">
-        <div><h3>Today's card</h3><p>The same ten races for everyone, changing at midnight. One go: your first finish goes on the leaderboard against every other stable. The mares, foals and sales are your own.</p></div>
+        <div><h3>Today's card</h3><p>The same ${racesWordFor(typeof playPref === "function" ? playPref() : "")} races for everyone, changing at midnight. One go: your first finish goes on the leaderboard against every other stable. The mares, foals and sales are your own.</p></div>
         <div><h3>A random game</h3><p>A fresh season any time, as often as you like. Your best goes on the best-ever board.</p></div>
       </section>
       <footer class="ht-foot"><button class="tb-btn" id="htGo" type="button">${first ? (hasColours() ? "Start the season" : "On to your colours") : "Got it"} <span aria-hidden="true">›</span></button></footer>

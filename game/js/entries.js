@@ -46,7 +46,7 @@ function enBody() {
 // can be applied to"): each horse, its race, the job, and its stars before and after
 function enTrainer(jobs) {
   if (!enTrainerOn()) return "";
-  const rows = jobs.map(({ r, h, o }) => {
+  const rowsAll = jobs.map(({ r, h, o }) => {
     const before = o.v === "t" ? null : o.v, after = o.v === "t" ? o.tv : o.tune.v, dev = o.age > h.age;
     const what = o.v === "t" ? `Trip work, ${o.dir > 0 ? "longer" : "shorter"}: gets ${pnHe(h).o} in` : `Tune-up +${o.tune.b}`;
     const btn = o.v === "t" ? (dev ? `<button class="tb-btn ghost sm" type="button" data-devto="${h.id}:${o.age}">Develop to ${o.age} first</button>` : `<button class="tb-btn sm pn-gold" type="button" data-job="trip" data-h="${h.id}" data-dir="${o.dir}">Do it</button>`)
@@ -54,7 +54,9 @@ function enTrainer(jobs) {
     return `<li><button class="en-face sm" type="button" data-card="${h.id}">${pnFace(h, "sm")}</button>
       <span class="en-tjw"><b>${esc2(h.name)}</b><small>${raceTag(r)} · ${esc2(dayTag(r.day))}${dev ? ` · develop to ${o.age}` : ""}</small></span>
       <span class="en-tjd">${what}</span>
-      <span class="en-tjs">${before ? pnStars(before, "sm") : `<i class="pn-x sm" aria-label="Can't run"></i>`}<span aria-hidden="true">→</span>${pnStars(after, "sm")}</span>${btn}</li>`; }).join("");
+      <span class="en-tjs">${before ? pnStars(before, "sm") : `<i class="pn-x sm" aria-label="Can't run"></i>`}<span aria-hidden="true">→</span>${pnStars(after, "sm")}</span>${btn}</li>`; });
+  // the two that matter most first; the rest fold away so the races stay near the top of a phone
+  const rows = rowsAll.slice(0, 2).join("") + (rowsAll.length > 2 ? `</ul><details class="en-tmore"><summary>Show ${rowsAll.length - 2} more</summary><ul class="en-tjobs">${rowsAll.slice(2).join("")}</ul></details><ul class="en-tjobs">` : "");
   return `<section class="en-tr"><div class="en-trh"><i class="pn-trface" aria-hidden="true"></i><div class="en-trt"><b>Your trainer: ${trainerCards().map(c => esc2(cardName(c))).join(" · ")}</b>${jobTokens()}</div></div>
     ${!jobsLeft() ? `<p class="en-trn">All his jobs are spent.</p>` : rows ? `<p class="en-trn"><b>Where a job would help:</b></p><ul class="en-tjobs">${rows}</ul>` : `<p class="en-trn">No race below needs a trip-work or tune-up job right now.</p>`}
     <p class="en-trn sm">Settling a keen horse, ground work and his eye are at <button class="pn-how" type="button" data-gowarren="1">Warren Hill ›</button></p></section>`;

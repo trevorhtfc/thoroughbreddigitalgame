@@ -110,7 +110,7 @@ function lbPaint() {
   }
   // no stable name yet (colours made before the leaderboard came, or the name was taken meanwhile): ask here
   const join = !p.name && hasColours() ? `<form class="lb-join" id="lbJoin"><label for="lbNameIn">Name your stable to join the leaderboard</label><div><input id="lbNameIn" maxlength="20" autocomplete="off" autocapitalize="words" spellcheck="false" placeholder="Stable name"><button class="mc-change" type="submit">Join</button></div><p class="lb-err" id="lbErr" role="alert"></p></form>` : "";
-  box.innerHTML = `<div class="lb-head"><div class="mc-h">Leaderboard <small>${W.gameTitle || ""} · ${typeof playPref === "function" && playPref() === "simple" ? "Simple" : "Plus"}</small></div><div class="lb-tabs" role="group" aria-label="Which board">${tabs}</div></div>${body}${join}`;
+  box.innerHTML = `<div class="lb-head"><div class="mc-h">Leaderboard <small>${W.gameTitle || ""} · ${typeof playPref === "function" ? ({ beginner: "Beginner", simple: "Simple" }[playPref()] || "Plus") : "Plus"}</small></div><div class="lb-tabs" role="group" aria-label="Which board">${tabs}</div></div>${body}${join}`;
 }
 async function lbShow(fresh) {
   if (!document.getElementById("menuBoard")) return;

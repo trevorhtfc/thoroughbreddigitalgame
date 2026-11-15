@@ -374,10 +374,11 @@ function pnPlanTips(force) {
 // At entries the planner also takes your entries (owner, 15 Nov evening: "training and entries should just be put into
 // the main race planner"): an Enter view comes first and is the default then (js/entries.js)
 const pnCanEnter = () => !ENTRIES_OLD && S.step >= 3 && S.step <= 4 && !racesRun();
-const PN_VIEWS_PLAN = [["grid", "Grid"], ["race", "By race"], ["horse", "By horse"]];
+// (on a phone the grid is a list of every race, so it's called that there)
+const PN_VIEWS_PLAN_F = () => [["grid", pnWide() ? "Grid" : "All races"], ["race", "By race"], ["horse", "By horse"]];
 // at entries: By race (develop, train and enter, race by race), By horse (the same, horse by horse), Grid, and Jockeys as
 // the last step before the races (owner, 15 Nov night)
-const pnViews = () => pnCanEnter() ? [["race", "By race"], ["horse", "By horse"], ["grid", "Grid"]].concat(typeof enJockeysOn === "function" && enJockeysOn() ? [["jockeys", "Jockeys"]] : []) : PN_VIEWS_PLAN;
+const pnViews = () => pnCanEnter() ? [["race", "By race"], ["horse", "By horse"], ["grid", pnWide() ? "Grid" : "All races"]].concat(typeof enJockeysOn === "function" && enJockeysOn() ? [["jockeys", "Jockeys"]] : []) : PN_VIEWS_PLAN_F();
 // one line under the tabs saying what this view is for
 const PN_HINT = {
   plan: { grid: "Every horse against every race. Tap a square to flag that horse for that race.", race: "Day by day: the horse flagged for each race. Tap “Choose” to pick one.", horse: "Your string, best first, with the races each one is flagged for." },

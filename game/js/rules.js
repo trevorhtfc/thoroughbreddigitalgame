@@ -277,11 +277,23 @@ function drawDays(R) {
   for (let d = 0; d < DAYS.length; d++) {
     const day = POOL.filter(r => r.day === d).slice();
     for (let k = day.length - 1; k > 0; k--) { const j = Math.floor(R.r() * (k + 1)); [day[k], day[j]] = [day[j], day[k]]; }
-    pick.push(...day.slice(0, PER_DAY).sort((a, b) => POOL.indexOf(a) - POOL.indexOf(b)));
+    pick.push(...day.slice(0, perDay()).sort((a, b) => POOL.indexOf(a) - POOL.indexOf(b)));
   }
   return pick;
 }
+// Beginner (owner, 15 Nov night: "a beginner mode as a precursor to simple mode? 5 races? no team? a separate beginner
+// leaderboard? ... and obvs half the budget"): one race a day (a meeting at Newmarket), at least one Group 1 and one
+// handicap among them
+const isBeginner = () => !!(S && S.play === "beginner");
+const perDay = () => isBeginner() ? 1 : PER_DAY;
+const MIX_BEGINNER = { group1: 1, handicaps: 1, middle: 0, fillies: 0, colts: 0, maxSingleSex: 2 };
+const racesWordFor = p => p === "beginner" ? "five" : "ten";
 function drawRaces(R, mix) {
+  if (isBeginner()) {
+    MIX = MIX_BEGINNER;
+    for (let tries = 0; tries < 20000; tries++) { const pick = drawDays(R); if (mixOK(pick)) return pick; }
+    return drawDays(R);
+  }
   if (mix >= 2) {
     MIX = mixRules(mix);
     for (let tries = 0; tries < 20000; tries++) { const pick = drawDays(R); if (mixOK(pick)) return pick; }
@@ -605,7 +617,8 @@ function newCard(seed, day) {
   S = { seed: seed || Math.floor(Math.random() * 1e6) + 1, luck: Math.floor(Math.random() * 2e9) + 1, mode: day ? "daily" : "random", day: day || null, pileN: {}, step: 1, tab: "stud", budget: START_BUDGET, start: START_BUDGET, stable: [], hand: [], usedMares: [], deckPos: 0,
     selMare: null, foal: null, sale: [], lotN: 0, entries: {}, results: {}, open: null, silks: S ? S.silks : 0, sort: "fee", offer: null, book: 1, catDams: [], v: 8, dealt: false, tallied: false,
     team: { picks: [], offer: null, done: false, choice: {}, used: {}, trains: {}, book: {}, income: 0, incomeLog: [] } };
-  S.play = playPref(); if (S.play === "simple") S.team = noTeam();
+  S.play = playPref(); if (S.play !== "plus") S.team = noTeam();
+  if (S.play === "beginner") S.budget = S.start = BEGINNER_BUDGET;
   S.mix = CARD_MIX; CARD = makeCard(S.seed, S.mix); ownLuck();
   // No starting mares: every mare is bought at the mares sale, choosing one of three
   S.selMare = null;
@@ -617,25 +630,30 @@ function newCard(seed, day) {
 const PLAY_KEY = "tb-play";
 function playPref() {
   try {
-    const v = localStorage.getItem(PLAY_KEY); if (v === "simple" || v === "plus") return v;
+    const v = localStorage.getItem(PLAY_KEY); if (v === "simple" || v === "plus" || v === "beginner") return v;
     const played = Object.keys(localStorage).some(k => /^tb-game-|^tb-.*-history$/.test(k));
     const p = played ? "plus" : "simple"; localStorage.setItem(PLAY_KEY, p); return p;
   } catch (e) { return "simple"; }
 }
-const isSimple = () => !!(S && S.play === "simple");
+// (Beginner is Simple with five races and half the money: everything Simple leaves out, it leaves out too)
+const isSimple = () => !!(S && (S.play === "simple" || S.play === "beginner"));
+const BEGINNER_BUDGET = START_BUDGET / 2;
 // a game with no team: the draft is skipped and every team screen stays away (js/team.js teamSkipped)
 const noTeam = () => ({ picks: [], offer: null, done: true, gone: true, skipped: true, simple: true, choice: {}, used: {}, trains: {}, book: {}, income: 0, incomeLog: [] });
 // The open game can still change its way of playing until its team is drafted or its first horse is in the stable
 const playOpen = () => !!(S && S.step === 1 && !S.stable.length && !S.foal && !(S.team && S.team.picks && S.team.picks.length) && !(S.team && S.team.gone && !S.team.skipped));
 function setPlay(p) {
-  p = p === "plus" ? "plus" : "simple";
+  p = p === "plus" || p === "beginner" ? p : "simple";
   try { localStorage.setItem(PLAY_KEY, p); } catch (e) {}
   if (!S || S.play === p || !playOpen()) return false;
-  S.play = p; S.team = p === "simple" ? noTeam() : { picks: [], offer: null, done: false, choice: {}, used: {}, trains: {}, book: {}, income: 0, incomeLog: [] };
+  const was = S.play;
+  S.play = p; S.team = p !== "plus" ? noTeam() : { picks: [], offer: null, done: false, choice: {}, used: {}, trains: {}, book: {}, income: 0, incomeLog: [] };
+  // into or out of Beginner: its own race card (five races) and budget
+  if ((was === "beginner") !== (p === "beginner")) { S.budget = S.start = p === "beginner" ? BEGINNER_BUDGET : START_BUDGET; S.entries = {}; S.targets = {}; CARD = makeCard(S.seed, S.mix); ownLuck(); }
   save(); return true;
 }
 // each way to play has its own leaderboard (server/worker.js: "royal-ascot" is Plus, "royal-ascot-simple" is Simple)
-const boardFor = play => MEETING.id + (play === "simple" ? "-simple" : "");
+const boardFor = play => MEETING.id + (play === "simple" ? "-simple" : play === "beginner" ? "-beginner" : "");
 // Two saved games a season: the random game, and today's card (so starting one never loses the other)
 const slotKey = mode => SAVE_KEY + (mode === "daily" ? "-daily" : "");
 function save() { try { localStorage.setItem(slotKey(S.mode), JSON.stringify(S)); localStorage.setItem(MODE_KEY, S.mode === "daily" ? "daily" : "random"); } catch (e) {} }
@@ -882,7 +900,8 @@ function develop(id) {
 
 /* ================= The ambition: prize money earns a title ================= */
 const TITLES = MEETING.titles;
-const titleFor = prize => TITLES.find(t => prize >= t.min);
+// Beginner: half the races and half the money, so half the prize money to each title
+const titleFor = prize => { const k = isBeginner() ? 0.5 : 1; return TITLES.find(t => prize >= t.min * k); };
 const BEST_KEY = "tb-" + MEETING.id + "-best", HIST_KEY = "tb-" + MEETING.id + "-history", SAVE_KEY = "tb-game-" + MEETING.id;
 const MODE_KEY = "tb-" + MEETING.id + "-mode", DAILY_KEY = "tb-" + MEETING.id + "-daily-log";
 // Today's card counts once: the first time a day's card is finished, its result is written here and stays

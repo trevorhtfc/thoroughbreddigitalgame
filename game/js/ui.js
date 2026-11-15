@@ -90,7 +90,7 @@ function cardFor(id) {
       else if (ph === "team") { c.text = `Draft your team: an owner, a trainer and jockeys, <b>${teamPoints()} of ${TEAM_POINTS}</b> points picked.`; c.cta = "Draft your team"; }
       else if (ph === "gallops" || ph === "entries") { c.text = `${ENTRIES_OLD ? "Make your entries" : "Develop, train and enter your horses, race by race"}: ${W.entryRule.toLowerCase()}. <b>${n} of ${RACES.length}</b> races have a runner.`; c.cta = "Make entries"; c.off = false; }
       else if (ph === "week" || ph === "standings") { c.text = `The programme, with your results so far: <b>${racesRun()} of ${RACES.length}</b> run.`; c.cta = "The programme"; }
-      else { c.text = "Your ten races and the race planner: map out which horse is for which race."; c.cta = "The programme"; }
+      else { c.text = `Your ${racesWordFor(S.play)} races and the race planner: map out which horse is for which race.`; c.cta = "The programme"; }
       break;
     case "stud":
       c.kicker = "Mares, stallions and foals";
@@ -336,7 +336,7 @@ const FOOTS = {
   },
   palace() { return phase() !== "home" ? "" : isDaily()
     ? `<span class="f-info">That's ${S.day === ukDay() ? "today's" : "that day's"} card played: it counts once. A new card at midnight, and a random game any time.</span>${goBtn("again", "Play a random game")}`
-    : `<span class="f-info">A new season: new races, new mares, the same ${money(START_BUDGET)}.</span>${goBtn("again", "Start a new season")}`; },
+    : `<span class="f-info">A new season: new races, new mares, the same ${money(startBudget())}.</span>${goBtn("again", "Start a new season")}`; },
   races() {
     if (S.step === 4) { const done = racesRun();
       return `<span class="f-info ${done === RACES.length ? "ready" : ""}">${done === RACES.length ? `All ${RACES.length} races run.` : `${done} of ${RACES.length} races run · ${money(prizeWon())} won`}</span>${goBtn("simAll", "Sim the rest", { ghost: true, off: done === RACES.length || simBusy })}${goBtn("toResult", "See the final standings", { off: done < RACES.length })}`; }
@@ -348,7 +348,7 @@ const FOOTS = {
 /* ----- The Jockey Club: the draw, the programme ----- */
 function programmeBody() {
   const going = goingKnown();
-  return `<div class="tb-head"><p class="tb-lede">${W.lede === "Your ten races at Royal Ascot, two a day over five days" ? W.lede + ": Group races, Listed races and big handicaps." : W.lede} Each needs a minimum rating to run, and handicaps take horses rated ${HCAP_MAX} or less. ${going ? "The going has been declared." : W.goingWhen}</p></div>
+  return `<div class="tb-head"><p class="tb-lede">${isBeginner() ? `Your five races at ${W.where}, one a day: Group races, Listed races and big handicaps.` : W.lede === "Your ten races at Royal Ascot, two a day over five days" ? W.lede + ": Group races, Listed races and big handicaps." : W.lede} Each needs a minimum rating to run, and handicaps take horses rated ${HCAP_MAX} or less. ${going ? "The going has been declared." : W.goingWhen}</p></div>
     <div class="prog">${DAYS.map((d, k) => `<section class="prog-day"><h3>${d}${going ? ` <span class="gday g-${CARD.going[k]}">${CARD.going[k]}</span>` : ""}</h3>
       ${RACES.filter(r => r.day === k).map(r => { const res = S.results[r.id], h = horse(S.entries[r.id]), t = (S.targets || {})[r.id] && horse(S.targets[r.id]);
         return `<div class="prog-r">${raceFace(r)}<div class="prog-who">${h ? `${silkImg(mySilkN())}<b>${esc2(h.name)}</b>` : t ? `<span class="plan">Planned: ${esc2(t.name)}</span>` : `<span class="none">No runner yet</span>`}
@@ -367,7 +367,7 @@ const cardBack = (k, t) => `<div class="dc-back"><span>${k}<b>${t}</b></span></d
 function dealCard(face, backHTML, cls) { return `<div class="dc ${cls || ""}"><div class="dc-in">${backHTML}<div class="dc-face">${face}</div></div></div>`; }
 function drawBody() {
   return `<div class="deal in-sheet" id="deal"><div class="deal-in">
-      <div class="deal-head"><div><div class="deal-k" id="dealKicker">${seasonName()} · the draw</div><h2 class="deal-t" id="dealTitle">Your ten races</h2></div><button class="deal-skip" id="dealSkip" type="button">Skip</button></div>
+      <div class="deal-head"><div><div class="deal-k" id="dealKicker">${seasonName()} · the draw</div><h2 class="deal-t" id="dealTitle">Your ${racesWordFor(S.play)} races</h2></div><button class="deal-skip" id="dealSkip" type="button">Skip</button></div>
       <div class="deal-body" id="dealBody"></div>
       <div class="deal-foot"><p class="deal-sum" id="dealSum"></p><button class="tb-btn" id="dealNext" type="button" hidden></button></div>
     </div><div class="deal-deck" id="dealDeck" aria-hidden="true"><i></i><i></i><i></i></div></div>`;
@@ -570,7 +570,7 @@ async function arriveAscot(withFilm) {
   const there = () => { document.body.classList.remove("at-newmarket"); document.body.classList.add("at-ascot"); $("#ascot").hidden = false; $("#ascot").style.backgroundImage = `url(${W.still})`; paintBar(); paintGuide(); };
   // the Newmarket season has no film to the races: the racecourse is on the board, so the races simply open
   if (withFilm && W.film) {
-    const f = film(W.film, { caption: `<span>${MEETING.month} ${MEETING.year}</span><b>${W.where}</b><i>Five days · ten races</i>`, sound: true, fadeIn: true, poster: W.still });
+    const f = film(W.film, { caption: `<span>${MEETING.month} ${MEETING.year}</span><b>${W.where}</b><i>Five days · ${racesWordFor(S.play)} races</i>`, sound: true, fadeIn: true, poster: W.still });
     setTimeout(there, 550);                                          // once the film has faded up over the board
     await f;
   }
@@ -607,9 +607,9 @@ function paintMenu(keepScroll) {
   // Simple or Plus (owner, 15 Nov): the choice is remembered; a game already under way keeps the way it was started
   const pp = playPref();
   document.querySelectorAll("#menu [data-play]").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.play === pp)));
-  const pn = $("#menuPlayNote"), word = x => x === "simple" ? "Simple" : "Plus";
+  const pn = $("#menuPlayNote"), word = x => ({ beginner: "Beginner", simple: "Simple" }[x] || "Plus");
   if (pn) { const diff = S && S.play && S.play !== pp && hasProgress(); pn.hidden = !diff; pn.innerHTML = diff ? `Your game under way is <b>${word(S.play)}</b>: it stays that way. Your next new game will be <b>${word(pp)}</b>.` : ""; }
-  const hb = $("#menuHow span"); if (hb) hb.textContent = pp === "simple" ? "· the season step by step" : "· the season step by step, and your team";
+  const hb = $("#menuHow span"); if (hb) hb.textContent = pp !== "plus" ? "· the season step by step" : "· the season step by step, and your team";
   if (W.coverKicker) $("#menuKick").textContent = W.coverKicker;
   $("#menuWord").textContent = W.gameTitle || "Ascot";
   if (W.coverLede) $("#menuLede").innerHTML = W.coverLede;
@@ -637,7 +637,7 @@ function paintMenu(keepScroll) {
   $("#menuGo").innerHTML = daily + random;
 }
 // the saved random game, if it has been started (read without opening it)
-function randomSave() { try { const v = JSON.parse(localStorage.getItem(slotKey("random")) || "null"); return v && v.seed && (v.dealt || v.step > 1 || (v.stable || []).length || v.budget !== START_BUDGET) ? v : null; } catch (e) { return null; } }
+function randomSave() { try { const v = JSON.parse(localStorage.getItem(slotKey("random")) || "null"); return v && v.seed && (v.dealt || v.step > 1 || (v.stable || []).length || v.budget !== (v.start || START_BUDGET)) ? v : null; } catch (e) { return null; } }
 // a new season from the cover or Palace House: whatever was open goes, and the season starts at Newmarket
 function clearTable() {
   if (A) { clearInterval(A.timer); cancelAnimationFrame(A.raf); A.box.remove(); A = null; document.body.style.overflow = ""; }
@@ -666,8 +666,9 @@ function playRandom() {
 document.addEventListener("click", e => {
   const b = e.target.closest && e.target.closest("#menu [data-play]"); if (!b || b.dataset.play === playPref()) return;
   const now = setPlay(b.dataset.play);
-  if (now) toast(b.dataset.play === "simple" ? "Simple: no team this season. Breed, buy and race." : "Plus: you'll draft your team at the Jockey Club.");
-  else toast(b.dataset.play === "simple" ? "Your next new game will be Simple" : "Your next new game will be Plus");
+  const P = b.dataset.play;
+  if (now) toast(P === "beginner" ? "Beginner: five races, half the budget, no team. A gentle start." : P === "simple" ? "Simple: no team this season. Breed, buy and race." : "Plus: you'll draft your team at the Jockey Club.");
+  else toast(`Your next new game will be ${P === "beginner" ? "Beginner" : P === "simple" ? "Simple" : "Plus"}`);
   LB.view = LB.view || "today"; paintMenu(true);
 });
 // Switching season: each is its own game (rules, save, history), so the page opens afresh on the other one's cover
