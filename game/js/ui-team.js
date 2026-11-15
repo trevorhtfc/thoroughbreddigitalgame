@@ -125,6 +125,10 @@ function teamAtSales() {
 }
 // Sales Scout: tick the races you still need a horse for, then brief him (his finds join the Books)
 const shortRace = r => r.name.replace(/ Stakes$| Handicap$/, "");
+// a race named with its class and trip, wherever only its name was shown (owner, 15 Nov: "I can't remember which race
+// is which distance, class etc"): "St James's Palace · G1 · 1m"
+const raceBits = r => `${GRADE[r.grade].short} · ${r.dist}`;
+const raceTag = r => `${esc2(shortRace(r))} <span class="rbits">· ${raceBits(r)}</span>`;
 function scoutCard(c) {
   const T = scoutState(), max = SCOUT_RACES[c.tier];
   if (T.briefed) return tcard(c, { cls: "sm wide", extra: `<p class="tc-do">Shopping for: <b>${scoutRaces().map(shortRace).join(", ")}</b>. ${T.found && T.found.length ? `His ${T.found.length === 1 ? "find is" : T.found.length + " finds are"} marked <b>Scout's find</b> in the Books.` : ""} Lots that don't suit them are greyed out.</p>` });

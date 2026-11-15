@@ -31,8 +31,8 @@ function hrow(h, race, canAct, opts = {}) {
   const T = S.targets || {}, targets = RACES.filter(r => T[r.id] === h.id);
   const tags = [];
   if (here) tags.push(`<span class="hr-tag here">Your runner here</span>`);
-  (race ? (inRace ? [inRace] : []) : runs).forEach(r => tags.push(`<span class="hr-tag in">Entered: ${esc2(shortRace(r))}</span>`));
-  if (!here && !runs.length) targets.forEach(r => tags.push(`<span class="hr-tag tg" title="Flagged in your race planner">⚑ ${esc2(shortRace(r))}</span>`));
+  (race ? (inRace ? [inRace] : []) : runs).forEach(r => tags.push(`<span class="hr-tag in">Entered: ${raceTag(r)}</span>`));
+  if (!here && !runs.length) targets.forEach(r => tags.push(`<span class="hr-tag tg" title="Flagged in your race planner">⚑ ${raceTag(r)}</span>`));
   if (opts.train && typeof jobsOn === "function" && teamOn()) jobsOn(h).forEach(j => tags.push(`<span class="hr-tag jb">${JOB_INFO[j.k].name}</span>`));
   const dev = canDev(h) ? `<button class="tb-btn ghost sm" data-develop="${h.id}" title="Develop to ${h.age + 1}: its rating and best trip change, and there's no going back">Develop to ${h.age + 1}YO</button>` : "";
   const today = race && goingKnown() ? CARD.going[race.day] : null;

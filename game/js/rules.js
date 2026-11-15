@@ -215,7 +215,8 @@ function lineNote(s, m) {
 /* ================= The card ================= */
 // the budget at the start of a season: £1m since the mares hand (14 Nov; it was £1.25m, and the hand is worth about
 // £260k at the mares sale's prices). startBudget() is this game's own, for games begun before
-const START_BUDGET = 1000000, MARE_CAP = 10, STABLE_CAP = 15, LOTS_PER_BOOK = 9;
+// (owner, 15 Nov evening: "money wise we just don't have enough ... so many 80/90 rated horses": £1.25m)
+const START_BUDGET = 1250000, MARE_CAP = 10, STABLE_CAP = 15, LOTS_PER_BOOK = 9;
 // From the site's Tattersalls page code (src/pages/Tattersalls.hju2p.js)
 const TRIP_WEIGHTS = { close: 3, near: 2, mid: 1, far: 0.35, sprinterVsMiddle: 0.1 };
 // CMS newStallion = "Yes" (standard and expansion): a mare one star above gets a slightly better chance in their lots

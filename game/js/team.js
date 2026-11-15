@@ -454,6 +454,20 @@ function undoJob(i) {
   S.team.jobs.splice(i, 1); save(); return true;
 }
 const jobsOn = h => jobsAll().map((j, i) => ({ ...j, i })).filter(j => j.h === h.id);
+// The trainer's work on a horse, for its card (card.html draws a medal for each, in the trainer card's tier, and adds a
+// boost to the rating): Stable Form on every horse; a tune-up as a note for its race; trip, ground and settle work as a
+// medal only (the horse itself has already changed: its trip, its going, its temperament)
+function cardTraining(h) {
+  if (!teamOn() || teamSkipped() || !trainerCards().length) return [];
+  const tr = trainerCards(), lvl = Math.max(...tr.map(c => c.tier)), out = [];
+  for (const c of tr) if (c.kind === "form") out.push({ cardCode: c.code, tierLevel: c.tier, boost: FORM_BOOST[c.tier] });
+  for (const j of jobsOn(h)) {
+    if (j.k === "eye") continue;
+    if (j.k === "tune") { const r = raceOf(j.race); out.push({ cardCode: "tune-" + j.race, tierLevel: lvl, note: r ? `+${tuneBoost(h, r)} tune-up for the ${shortRace(r)}` : "Tuned up" }); continue; }
+    out.push({ cardCode: j.k + "-" + j.i, tierLevel: lvl });
+  }
+  return out;
+}
 // what a horse would be at its next age (the trainer's eye)
 const nextAge = h => h.age < 4 ? { age: h.age + 1, rating: ratingAt(h, h.age + 1), trip: tripAt(h, h.age + 1) } : null;
 // the trainer's notes on a horse: what's worth doing

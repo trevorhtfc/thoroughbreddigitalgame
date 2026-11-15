@@ -6,6 +6,16 @@
 // The rules and the state are js/rules.js; the screens' pieces are js/ui-parts.js.
 // =====================================================================================================================
 
+// Entries and Warren Hill as one step (owner, 15 Nov evening); ?entries=old brings back the two steps, ?entries=new the one
+const ENTRIES_OLD = (() => {
+  try {
+    const q = location.search;
+    if (/[?&]entries=old/.test(q)) localStorage.setItem("tb-entries", "old");
+    if (/[?&]entries=new/.test(q)) localStorage.removeItem("tb-entries");
+    return localStorage.getItem("tb-entries") === "old";
+  } catch (e) { return false; }
+})();
+
 /* ================= The season, chapter by chapter ================= */
 // where you are in the season decides which place is next, what each place offers and what the board says
 const CHAPTERS = {
@@ -78,7 +88,7 @@ function cardFor(id) {
       c.kicker = "Racing's rule-makers";
       if (ph === "draw") { c.text = W.drawText; c.cta = "See the programme"; }
       else if (ph === "team") { c.text = `Draft your team: an owner, a trainer and jockeys, <b>${teamPoints()} of ${TEAM_POINTS}</b> points picked.`; c.cta = "Draft your team"; }
-      else if (ph === "gallops" || ph === "entries") { c.text = `Make your entries: ${W.entryRule.toLowerCase()}. <b>${n} of ${RACES.length}</b> races have a runner.`; c.cta = "Make entries"; c.off = false; }
+      else if (ph === "gallops" || ph === "entries") { c.text = `${ENTRIES_OLD ? "Make your entries" : "Develop, train and enter your horses, race by race"}: ${W.entryRule.toLowerCase()}. <b>${n} of ${RACES.length}</b> races have a runner.`; c.cta = "Make entries"; c.off = false; }
       else if (ph === "week" || ph === "standings") { c.text = `The programme, with your results so far: <b>${racesRun()} of ${RACES.length}</b> run.`; c.cta = "The programme"; }
       else { c.text = "Your ten races and the race planner: map out which horse is for which race."; c.cta = "The programme"; }
       break;
@@ -260,10 +270,13 @@ const SHEETS = {
     if (!S.dealt) return drawBody();
     if (phase() === "team" || UI.tab.jockey === "team") return (phase() === "team" ? "" : jockeyTabs("team")) + draftBody();
     const ph = phase(), canEnter = S.step >= 3 && S.step <= 4 && !racesRun();
-    const tab = UI.tab.jockey || (canEnter && (ph === "entries" || ph === "gallops" || atAscot()) ? "entries" : "programme");
+    // entries live in the race planner since 15 Nov evening (owner: "training and entries should just be put into the main
+    // race planner"): its Enter view (js/entries.js); ?entries=old keeps the separate Entries tab
+    let tab = UI.tab.jockey || (canEnter && (ph === "entries" || ph === "gallops" || atAscot()) ? (ENTRIES_OLD ? "entries" : "plan") : "programme");
+    if (tab === "entries" && !ENTRIES_OLD) tab = "plan";
     const bar = jockeyTabs(tab);
-    if (tab === "entries" && canEnter) return bar + entriesBody(entered());
-    if (tab === "plan") return bar + `<p class="tb-lede sh-lede">${typeof PLAN_OLD !== "undefined" && !PLAN_OLD ? "Flag the horse you plan to run in each race. A flag is only a plan: you enter your runners at entries." : "Map out which horse is for which race. A target is only a plan: it doesn't enter the horse. Drag a race onto a horse, or tap a race to see how every horse fits it."}</p>` + plannerView();
+    if (tab === "entries" && canEnter) return bar + (ENTRIES_OLD ? entriesBody(entered()) : enBody());
+    if (tab === "plan") return bar + `<p class="tb-lede sh-lede">${canEnter && !ENTRIES_OLD ? "Develop, train and enter your horses race by race (Enter), or look at the plan as a grid, by race or by horse." : typeof PLAN_OLD !== "undefined" && !PLAN_OLD ? "Flag the horse you plan to run in each race. A flag is only a plan: you enter your runners at entries." : "Map out which horse is for which race. A target is only a plan: it doesn't enter the horse. Drag a race onto a horse, or tap a race to see how every horse fits it."}</p>` + plannerView();
     return bar + programmeBody();
   },
   stud() {
@@ -413,8 +426,10 @@ function closeDeal() {
 // the Jockey Club's tabs (your team appears once it's picked)
 function jockeyTabs(tab) {
   const ph = phase(), canEnter = S.step >= 3 && S.step <= 4 && !racesRun();
-  const tabs = [["programme", "The programme"], ["plan", "Race planner"]].concat(canEnter ? [["entries", "Entries"]] : []);   // (your team is the Team button in the bar now, at every step: owner, 15 Nov)
-  return `<div class="vtabs" role="tablist">${tabs.map(([k, t]) => `<button class="vtab ${tab === k ? "on" : ""}" data-jtab="${k}" role="tab" aria-selected="${tab === k}">${t}${k === "entries" ? `<i>${entered()}/${RACES.length}</i>` : k === "plan" ? `<i>${RACES.filter(r => (S.targets || {})[r.id] && horse(S.targets[r.id])).length}/${RACES.length}</i>` : k === "team" ? `<i>${teamCards().length}</i>` : ""}</button>`).join("")}</div>`;
+  const tabs = ENTRIES_OLD ? [["programme", "The programme"], ["plan", "Race planner"]].concat(canEnter ? [["entries", "Entries"]] : [])
+    : [["programme", "The programme"], ["plan", canEnter ? "Plan and enter" : "Race planner"]];
+  if (!ENTRIES_OLD && tab === "entries") tab = "plan";   // (your team is the Team button in the bar now, at every step: owner, 15 Nov)
+  return `<div class="vtabs" role="tablist">${tabs.map(([k, t]) => `<button class="vtab ${tab === k ? "on" : ""}" data-jtab="${k}" role="tab" aria-selected="${tab === k}">${t}${k === "entries" ? `<i>${entered()}/${RACES.length}</i>` : k === "plan" ? (canEnter && !ENTRIES_OLD ? `<i title="Entered">${entered()}/${RACES.length}</i>` : `<i>${RACES.filter(r => (S.targets || {})[r.id] && horse(S.targets[r.id])).length}/${RACES.length}</i>`) : k === "team" ? `<i>${teamCards().length}</i>` : ""}</button>`).join("")}</div>`;
 }
 
 /* ----- National Stud and Tattersalls: the Ascot game's own screens (js/ui-parts.js), in the sheet ----- */
@@ -704,7 +719,8 @@ document.addEventListener("click", e => {
   if (d.claim) { claimLot(d.claim); render(); return; }
   if (d.accounts) { toggleAccounts(); return; }
   if (d.job) { const h = horse(d.h), k = d.job, o = { dir: d.dir ? +d.dir : undefined, side: d.side, race: d.race };
-    if (h && doJob(k, h, o)) { const j = jobsAll()[jobsAll().length - 1];
+    const before = h && cardPayload(h);
+    if (h && doJob(k, h, o)) { if (typeof showTrained === "function") setTimeout(() => showTrained(h, before, jobsAll()[jobsAll().length - 1]), 0); const j = jobsAll()[jobsAll().length - 1];
       toast(k === "trip" ? `${h.name}: best trip now ${tripText(tripAt(h, h.age))}` : k === "settle" ? `${h.name} has learned to settle` : k === "ground" ? `${h.name} now handles ${j.add.join(" and ")} too` : k === "tune" ? `${h.name} is tuned up: +${tuneBoost(h, raceOf(o.race))} in the ${raceOf(o.race).name}` : `Your trainer has looked ${h.name} over`); }
     render(); return; }
   if (d.unjob) { if (undoJob(+d.unjob)) toast("Job undone"); render(); return; }
@@ -769,8 +785,11 @@ document.addEventListener("click", e => {
       S.confirmSale = false; S.step = 2; S.book = 1; S.view = "job"; newCatalogue(); save();
       story("stud", "tatts", "sales", { procession: "yearlings" }); break;
     case "toEnter": if (S.step !== 2 || S.foal) break;
-      S.step = 3; S.galloped = false; S.view = "job"; save();
-      story("tatts", "warren", "gallops", { procession: "gallops" }); break;
+      // one step since 15 Nov (owner: "the trainer and entries need consolidating"): the sales lead straight to entries at
+      // the Jockey Club, where horses are developed, trained and entered race by race (js/entries.js). ?entries=old keeps
+      // the two steps (Warren Hill, then entries)
+      S.step = 3; S.galloped = !ENTRIES_OLD; S.view = "job"; save();
+      if (ENTRIES_OLD) story("tatts", "warren", "gallops", { procession: "gallops" }); else story("tatts", "jockey", "entries"); break;
     case "doneGallops": S.galloped = true; save(); story("warren", "jockey", "entries"); break;
     case "fill": fillEmpty(); render(); break;
     case "clear": S.entries = {}; save(); render(); break;

@@ -329,6 +329,7 @@ function effective(h, extra){
   let shift=0, boost=0, pShift=0, pBoost=0; const notes=[];
   for (const t of list){
     if (!entryActive(t,h)) continue;
+    if (t.note){ notes.push(t.note); continue; }    // the digital game's own words (a tune-up for one race)
     if (t.conditionType==="raceDistance"){          // only counts in its races: shown as a note, not on the bars
       const bits=[t.boost?`+${t.boost}`:"", t.shift?`1 step ${t.shift<0?"shorter":"longer"}`:""].filter(Boolean).join(", ");
       if (bits) notes.push(`${bits} in ${(t.conditionValues||[]).join(" / ")} races`);
