@@ -1449,3 +1449,33 @@ details.fold > summary > span{font-size:13px}
 .enj-k:disabled{opacity:.45;cursor:default}
 .enj-now{font-size:12px;color:#4a4940}
 @media (max-width:560px){ .enj-h{margin-left:0} .enh-top > .tb-btn{display:none} }
+.en-nextbar{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px;margin:16px 0 4px;padding:12px 14px;border-radius:12px;background:#fbf3dc;border:1px solid #e3d3a6;font-size:13.5px}
+.en-nextbar.ready{background:#e7f0e9;border-color:#cfe0d3;color:#2f5a3c}
+.en-nextbar .tb-btn{flex:none}
+@media (max-width:560px){ .en-nextbar .tb-btn{width:100%;justify-content:center} }
+/* Simple: the mares hand deals itself (owner, 15 Nov night) */
+.mdeal.auto .mdeck{cursor:default}
+.mdeal.auto .mdeck.dealing .mstack{animation:mdealPulse .9s ease-out}
+.mdeal.auto .mdeck.done{opacity:.55}
+@keyframes mdealPulse{0%{transform:translateY(0)}35%{transform:translateY(-8px) rotate(-2deg)}100%{transform:translateY(0)}}
+@media (prefers-reduced-motion:reduce){ .mdeal.auto .mdeck.dealing .mstack{animation:none} }
+/* stud / sale ring ↔ race planner: two big tabs (owner, 15 Nov night) */
+.vtabs.big{display:grid;grid-template-columns:1fr 1fr;gap:8px;padding-top:8px;padding-bottom:8px;border-bottom:0}
+.vtabs.big .vtab{display:flex;align-items:center;gap:10px;min-height:58px;padding:8px 12px;border:2px solid #d7ccb4;border-radius:12px;background:#fff;color:var(--tb-ink);text-align:left;letter-spacing:normal;text-transform:none;font-size:inherit;box-shadow:none}
+.vtabs.big .vtab::after{display:none}
+.vtabs.big .vtab.on{background:var(--tb-band);border-color:var(--tb-band);color:#fff}
+.vtabs.big .vtab:not(.on){border-color:var(--tb-gold);background:#fffaf0}
+.vtabs.big .vtab:not(.on):hover{background:#fbf3dc}
+.vt-i{flex:none;display:grid;place-items:center;width:34px;height:34px;border-radius:50%;background:rgba(0,0,0,.06);font-size:18px}
+.vtab.on .vt-i{background:rgba(255,255,255,.18)}
+.vt-t{display:grid;min-width:0}
+.vt-t b{font-family:var(--tb-display);font-weight:700;font-size:14px;letter-spacing:.08em;text-transform:uppercase}
+.vt-t small{font-size:12.5px;font-weight:600;opacity:.85}
+.pn-backbar{display:flex;align-items:center;gap:10px;width:100%;margin:0 0 12px;padding:10px 14px;border-radius:12px;border:2px solid var(--tb-gold);background:#fbf3dc;font:inherit;color:var(--tb-ink);text-align:left;cursor:pointer}
+.pn-backbar span{font-size:22px;line-height:1;color:var(--tb-green)}
+.pn-backbar b{font-family:var(--tb-display);font-size:14px;letter-spacing:.08em;text-transform:uppercase;color:var(--tb-green)}
+.pn-backbar small{margin-left:auto;font-size:12.5px;font-weight:700;color:#7a4a08}
+@media (max-width:480px){ .vtabs.big .vtab{min-height:54px;padding:6px 8px;gap:7px} .vt-i{width:28px;height:28px;font-size:15px} .vt-t b{font-size:12px;letter-spacing:.05em} .vt-t small{font-size:11.5px} }
+.vt-i svg{width:20px;height:20px;fill:currentColor}
+.vt-i .pn-fl{width:18px;height:18px;color:currentColor}.vt-i .pn-fl .cloth{fill:var(--tb-gold)}
+.tb-btn.must-read,.tb-btn.must-read:disabled{opacity:1;background:#e9e3d3;border-color:#d7ccb4;color:#5b5442;cursor:default}

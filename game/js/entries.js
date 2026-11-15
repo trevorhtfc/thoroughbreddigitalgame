@@ -28,11 +28,11 @@ function enState() {
 }
 function enTop() {
   const { todo, done, jobs, needDev } = enState(), helps = jobs.length;
-  return `<div class="en-steps" aria-label="The steps"><span class="${needDev ? "on" : "ok"}"><b>1</b>Develop</span><i aria-hidden="true">›</i><span class="${enTrainerOn() && jobsLeft() && helps ? "on" : "ok"}"><b>2</b>Train</span><i aria-hidden="true">›</i><span class="${todo.length ? "on" : "ok"}"><b>3</b>Enter</span>${enJockeysOn() ? `<i aria-hidden="true">›</i><span class="${todo.length ? "" : "on"}"><b>4</b>Jockeys</span>` : ""}<i aria-hidden="true">›</i><span><b>${enJockeysOn() ? 5 : 4}</b>${esc2(W.where)}</span></div>
+  return `<div class="en-steps" aria-label="The steps"><span class="${needDev ? "on" : "ok"}"><b>1</b>Develop</span><i aria-hidden="true">›</i>${enTrainerOn() ? `<span class="${jobsLeft() && helps ? "on" : "ok"}"><b>2</b>Train</span><i aria-hidden="true">›</i>` : ""}<span class="${todo.length ? "on" : "ok"}"><b>${enTrainerOn() ? 3 : 2}</b>Enter</span>${enJockeysOn() ? `<i aria-hidden="true">›</i><span class="${todo.length ? "" : "on"}"><b>${enTrainerOn() ? 4 : 3}</b>Jockeys</span>` : ""}<i aria-hidden="true">›</i><span><b>${3 + (enTrainerOn() ? 1 : 0) + (enJockeysOn() ? 1 : 0)}</b>${esc2(W.where)}</span></div>
     <div class="en-sum"><span class="${todo.length ? "need" : "ok"}"><b>${done.length} of ${RACES.length}</b> entered</span>${needDev ? `<span><b>${needDev}</b> need${needDev === 1 ? "s" : ""} developing</span>` : ""}${enTrainerOn() && helps ? `<span><i class="pn-tr xs" aria-hidden="true"></i><b>${helps}</b> a trainer job would help</span>` : ""}
       <span class="en-btns"><button class="tb-btn ghost sm" id="fill" type="button">Fill empty races</button>${done.length ? `<button class="tb-btn ghost sm" id="clear" type="button">Clear</button>` : ""}</span></div>
     ${enTrainer(jobs)}
-    ${enJockeysOn() && done.length ? `<p class="en-next"><b>Last step before the races:</b> book your jockeys. <button class="tb-btn sm" type="button" data-pview="jockeys">Jockeys ›</button></p>` : ""}`;
+    ${enJockeysOn() && done.length ? `<p class="en-next"><b>Last step before the races:</b> book your jockeys. <button class="tb-btn sm" type="button" data-pnv="jockeys">Jockeys ›</button></p>` : ""}`;
 }
 function enBody() {
   const { todo, done, items } = enState();
@@ -80,8 +80,8 @@ function enAct(h, r, o, head) {
   const dev = o.age > h.age, trip = o.v === "t", stars = trip ? o.tv : o.v, at = o.c;
   let say;
   if (trip) say = `Outside ${p.p} best trip (${tripText(tripAt(h, o.age))}). Trip work from your trainer gets ${p.o} in${dev ? ` once developed to ${o.age}` : ""}: ${ord(at.rank)} of ${at.of} on ratings.`;
-  else if (dev) say = `Develop to ${o.age}: rated <b>${ratingAt(h, h.age)} → ${ratingAt(h, o.age)}</b>, best ${tripText(tripAt(h, o.age))}. Then ${ord(at.rank)} of ${at.of} on ratings.`;
-  else if (ready) say = `Ready as a ${h.age}-year-old: ${ord(now.rank)} of ${now.of} on ratings${now.steps ? `, −${now.steps * 5} for the trip` : ""}.`;
+  else if (dev) say = `Develop to ${o.age}: rated <b>${ratingAt(h, h.age)} → ${ratingAt(h, o.age)}</b>, best ${tripText(tripAt(h, o.age))}. Then rated <b>${at.day}</b> in this race (top class ${r.bands[0]}+), ${ord(at.rank)} of ${at.of}.`;
+  else if (ready) say = `Ready as a ${h.age}-year-old: rated <b>${now.day}</b> in this race (top class ${r.bands[0]}+)${now.steps ? `, −${now.steps * 5} for the trip` : ""}, ${ord(now.rank)} of ${now.of}.`;
   else say = esc2(now.why || "Can't run as he is");
   if (o.tune) say += ` A tune-up (+${o.tune.b}) would make ${p.o} ${ord(o.tune.rank)}.`;
   const other = RACES.find(x => x !== r && pnFlagged(h, x) && !S.entries[x.id]);
@@ -113,7 +113,7 @@ function enIn(r) {
     <div class="en-inb"><div class="en-inr"><b>${esc2(r.name)}</b><span class="g ${g.cls}">${g.short}</span>${pnDistNeed(r)}</div>
       <div class="en-inh"><button class="en-face sm" type="button" data-card="${h.id}">${pnFace(h, "sm")}</button><button type="button" class="pn-nm" data-card="${h.id}">${esc2(h.name)}</button>
         ${c && c.ok ? `${rkChip(c)}<small class="rk-t">${rankText(c)}${teamNote(c)}</small>` : `<small class="en-warn">${esc2((c && c.why) || "Can't run")}</small>`}</div>
-      ${enJockeysOn() ? `<small class="enj-now">${bookedFor(r) ? `Jockey: <b>${esc2(cardName(bookedFor(r)))}</b>` : `No jockey booked yet: <button class="pn-how" type="button" data-pview="jockeys">Jockeys ›</button>`}</small>` : ""}</div>
+      ${enJockeysOn() ? `<small class="enj-now">${bookedFor(r) ? `Jockey: <b>${esc2(cardName(bookedFor(r)))}</b>` : `No jockey booked yet: <button class="pn-how" type="button" data-pnv="jockeys">Jockeys ›</button>`}</small>` : ""}</div>
     <button class="tb-btn ghost sm" type="button" data-unpick="${r.id}">Take out</button>
   </div>`;
 }
@@ -188,3 +188,14 @@ document.addEventListener("click", e => {
   e.stopPropagation(); const [rid, code] = t.dataset.jbook.split(":");
   if (!bookJockey(rid, code || null)) toast("He has no rides left"); render();
 }, true);
+
+// the next step, at the foot of every planner view at entries (owner, 15 Nov night: "you need a next step button at the
+// bottom of the races to progress"): book your jockeys (Plus), then go racing
+function enNext(view) {
+  if (atAscot()) return `<div class="en-nextbar"><span>Change your runners before the first race.</span>${goBtn("toWeek", W.backToRacing)}</div>`;
+  const left = RACES.length - entered();
+  const say = left ? `<b>${left} race${left === 1 ? " has" : "s have"} no runner yet.</b> An empty race earns nothing.` : `<b>All ${RACES.length} races have a runner.</b>`;
+  if (enJockeysOn() && view !== "jockeys" && !left)
+    return `<div class="en-nextbar"><span>${say} Next: book your jockeys.</span><button class="tb-btn" type="button" data-pnv="jockeys">Book your jockeys <span aria-hidden="true">›</span></button></div>`;
+  return `<div class="en-nextbar ${left ? "" : "ready"}"><span>${say}${left ? " Enter them above, or go anyway." : " Next step:"}</span>${goBtn("toRaces", W.go)}</div>`;
+}

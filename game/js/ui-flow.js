@@ -160,7 +160,23 @@ function kpShow(html, cls) {
   el.addEventListener("click", e => { if (e.target === el) kpClose(); });
   document.body.appendChild(el);
   const b = el.querySelector(".kp-b [data-kpok]"); if (b) setTimeout(() => b.focus({ preventScroll: true }), 50);
+  if (b) requestAnimationFrame(() => mustRead(scrollerIn(el.querySelector(".kp"), el), b));
 }
+// Read it before you go on (owner, 15 Nov night: "people want to just skip on without scrolling so where you need people
+// to read info make them scroll before they can press next"): the Next button of a panel that scrolls stays locked, saying
+// "Scroll down to read on", until the panel has been scrolled to its foot. A panel that fits the screen isn't held up.
+function mustRead(scroller, btn) {
+  if (!scroller || !btn || btn.dataset.mustRead) return;
+  btn.dataset.mustRead = "1";
+  const label = btn.innerHTML;
+  const done = () => { btn.disabled = false; btn.classList.remove("must-read"); btn.innerHTML = label; scroller.removeEventListener("scroll", check); };
+  const check = () => { if (scroller.scrollTop + scroller.clientHeight >= scroller.scrollHeight - 30) done(); };
+  if (scroller.scrollHeight <= scroller.clientHeight + 30) return;
+  btn.disabled = true; btn.classList.add("must-read"); btn.innerHTML = `Scroll down to read on <span aria-hidden="true">↓</span>`;
+  scroller.addEventListener("scroll", check, { passive: true });
+}
+// the element that actually scrolls in a pop-up
+const scrollerIn = (...els) => els.find(el => el && el.scrollHeight > el.clientHeight + 4 && /(auto|scroll)/.test(getComputedStyle(el).overflowY)) || null;
 function kpClose() { const el = document.getElementById("kp"); if (el) el.remove(); }
 function paintInfo() { const b = document.getElementById("shInfo"); if (b) b.hidden = !sheetHeadline(); }
 

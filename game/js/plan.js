@@ -54,10 +54,12 @@ function pnTripFix(h, r, age) {
 // one race, one horse, at the ages given: { r, age, c, v } where v is 3, 2 or 1 stars, "t" (a trainer job gets it in) or
 // "x" (can't run, c.why says why)
 const PN_WIN = { 3: .4, 2: .18, 1: .06, t: .04, x: 0 };
-// Stars from where the race-day rating sits: top rated, or up to the race's top class (its first band: 120 in a Group 1,
-// 110 in a Group 2, 105 in a Group 3 or Listed race, 100 in a handicap) is Strong. Owner, 15 Nov: a 121 three-year-old at
-// his best trip in the Commonwealth Cup, 3rd of 10, "120 is gold rated ... should clearly be a 3* option".
-const pnV = (r, day, rank) => rank === 1 || day >= r.bands[0] ? 3 : rank <= 3 ? 2 : 1;
+// Stars are the horse's class against the race's own classes (its rating bands, as the board game's race-day colour cards):
+// at or above the top band is Strong (3), the second band Good (2), anything lower Outside (1). Its place in the field is
+// shown too, but doesn't set the stars (owner, 15 Nov night: a star miler 1* in a mile race and 2* in a longer one, with
+// the 1* as "best idea", "makes no sense"). Bands: Group 1 120/115, Group 2 110/105, Group 3 and Listed 105/100,
+// handicaps and conditions 100/95.
+const pnV = (r, day) => day >= r.bands[0] ? 3 : day >= r.bands[1] ? 2 : 1;
 // the trainer whose speciality fits a race (a Miler Specialist in a mile race), for the words
 const pnTuneWho = r => { const t = typeof trainerSpecs === "function" && trainerSpecs().find(k => k.spec === "trip" && k.trips.includes(raceTrip(r))); return t ? "your " + t.title : "your trainer"; };
 // A tune-up from your trainer (Plus, jobs left, none named for this race yet): the stars it would bring, if more.
@@ -78,8 +80,8 @@ function pnChance(r, day) {
   const going = goingKnown() ? CARD.going[r.day] : null, k = 4.5, me = Math.exp((day - 100) / k);
   return me / (me + CARD.races[r.i].opp.reduce((a, x) => a + Math.exp((oppDay(x, going) - 100) / k), 0));
 }
-const pnValue = o => o.v === "x" ? 0 : o.r.prizes[0] * (o.v === "t" ? pnChance(o.r, o.c.day) * .7
-  : o.tune ? Math.max(pnChance(o.r, o.c.day), pnChance(o.r, o.c.day + o.tune.b) * .8) : pnChance(o.r, o.c.day));
+// "Best idea": the most stars first (a trainer job counts a little under the real thing), then the prize times the chance
+const pnValue = o => o.v === "x" ? 0 : pnEff(o) * 1e6 + o.r.prizes[0] * pnChance(o.r, o.c.day + (o.tune ? o.tune.b : 0));
 function pnOpt(h, r, ages) {
   let best = null;
   for (const a of ages) {
@@ -140,13 +142,12 @@ function pnFoalFlags() { const F = S.foal; if (!F) return []; F.flags = F.flags 
 function pnRowComment(h, o, isBest) {
   const p = pnHe(h);
   if (o.v === "x") return o.c && o.c.why ? `${o.c.why.replace(/\.$/, "")}.` : `Can't run here.`;
-  const where = `${ord(o.c.rank)} of ${o.c.of} on ratings`, big = o.r.grade === "Group 1";
-  if (o.v === "t") return `Outside ${p.p} best trip. Trip work from your trainer would get ${p.o} in: ${where}.`;
-  const tune = o.tune ? ` A tune-up from ${o.tune.who} (+${o.tune.b}) would make ${p.o} ${ord(o.tune.rank)} of ${o.tune.of}${o.tune.v === 3 ? ": a strong chance" : ""}.` : "";
-  const top = o.c.rank === 1 ? "should be top rated" : `is top class for this race (${where})`;
-  if (o.v === 3) return isBest ? `${big ? "The big one. " : ""}${p.S} ${top}: go for it.` : `${p.S} ${top}${big ? "" : ", for a smaller prize"}.`;
-  if (o.v === 2) return `A real chance: ${where}.${tune}`;
-  return `An outside chance: ${where}.${tune}`;
+  const r = o.r, day = o.c.day, b = r.bands, where = `${ord(o.c.rank)} of ${o.c.of} on ratings`, big = r.grade === "Group 1";
+  const tune = o.tune ? ` A tune-up from ${o.tune.who} (+${o.tune.b}) would make ${p.o} ${["", "Outside", "Good", "Strong"][o.tune.v]}.` : "";
+  if (o.v === "t") return `Outside ${p.p} best trip. Trip work from your trainer would get ${p.o} in: rated ${day}, ${["", "an outside chance", "a good chance", "a strong chance"][o.tv]} (${where}).`;
+  if (o.v === 3) return `${isBest && big ? "The big one. " : ""}Rated ${day} here: top class for this race (${b[0]}+), ${where}.${isBest ? " Go for it." : ""}`;
+  if (o.v === 2) return `Rated ${day} here: one class below the best (${b[1]}+; top class is ${b[0]}+). ${where}.${tune}`;
+  return `Rated ${day} here: below this race's top classes (${b[1]}+ for a good chance). ${where}.${tune}`;
 }
 // why a horse can't run, in a few words
 function pnWhy(o) {
@@ -367,7 +368,7 @@ const PN_HINT = {
 const pnViewKey = () => pnCanEnter() ? "tb-pnview-e" : "tb-pnview";
 const pnView = () => { const vs = pnViews(), def = vs[0][0]; try { const v = localStorage.getItem(pnViewKey()); return vs.some(x => x[0] === v) ? v : def; } catch (e) { return def; } };
 const pnViewBar = () => { const v = pnView();
-  return `<div class="pn-views" role="tablist" aria-label="Planner view">${pnViews().map(([k, w]) => `<button type="button" role="tab" class="${v === k ? "on" : ""}" aria-selected="${v === k}" data-pview="${k}">${w}</button>`).join("")}</div>`; };
+  return `<div class="pn-views" role="tablist" aria-label="Planner view">${pnViews().map(([k, w]) => `<button type="button" role="tab" class="${v === k ? "on" : ""}" aria-selected="${v === k}" data-pnv="${k}">${w}</button>`).join("")}</div>`; };
 const pnFace = (h, cls = "") => `<span class="pn-ring ${cls} t-${pnTier(pnPeak(h))}"><img src="img/p${String(h.portrait || 1).padStart(2, "0")}.webp" alt=""></span>`;
 // By race: one column a day (a meeting at Newmarket), each race a tile with the horse flagged for it
 function pnByRace() {
@@ -409,14 +410,18 @@ function pnPlanner() {
     banner = `<div class="pn-fresh"><img src="img/p${String(fresh.portrait || 1).padStart(2, "0")}.webp" alt=""><span><b>${esc2(fresh.name)} is in your planner.</b> ${fl.length ? `Flagged for ${fl.map(r => esc2(r.name)).join(" and ")}.` : `Nothing flagged yet: find ${pnHe(fresh).o} below, or let your trainer pick.`}</span></div>`; }
   const nmRules = pnNewmarket() ? `<div class="pn-info"><span><b>Newmarket:</b> a horse stays one age all season and can run once at each meeting. Developing it moves it up an age for every meeting.</span></div>` : "";
   const view = pnView();
+  // at the stud or the sales: a plain way back to the mares or the sale ring, at the top of the planner too
+  const backTop = S.step <= 2 && (UI.sheet === "stud" || UI.sheet === "tatts") && S.view === "plan"
+    ? `<button class="pn-backbar" type="button" data-pview="job"><span aria-hidden="true">‹</span><b>Back to ${S.step === 1 ? "the stud" : "the sale ring"}</b><small>${S.step === 1 ? (typeof handDone === "function" && !handDone() ? "draw your mares" : S.hand.length ? `${S.hand.length} mare${S.hand.length === 1 ? "" : "s"} still to breed` : "all your mares are bred") : `${S.sale.length} lots still for sale`}</small></button>` : "";
   const hint = `<p class="pn-hint">${(PN_HINT[pnCanEnter() ? "enter" : "plan"] || {})[view] || ""}</p>`;
   if (pnCanEnter() && view !== "grid") return `<section class="pn pn-enter">${banner}${nmRules}${pnViewBar()}${hint}
-    ${view === "jockeys" ? enJockeys() : view === "horse" ? `${enTop()}${enByHorse()}` : enBody()}</section>`;
-  return `<section class="pn">${banner}${view === "horse" ? "" : pnString()}${nmRules}${pnViewBar()}${hint}
+    ${view === "jockeys" ? enJockeys() : view === "horse" ? `${enTop()}${enByHorse()}` : enBody()}${enNext(view)}</section>`;
+  return `<section class="pn">${backTop}${banner}${view === "horse" ? "" : pnString()}${nmRules}${pnViewBar()}${hint}
     <div class="pn-tools"><button class="tb-btn sm pn-gold" type="button" data-ppicks="1">${PN_FLAG} Flag the trainer's picks</button><span><b>${flagged} of ${RACES.length}</b> races flagged</span><button class="pn-how" type="button" data-ptips="1">How this works</button></div>
     ${pnKey()}
     ${view === "race" ? pnByRace() : view === "horse" ? pnByHorse() : pnWide() ? pnGrid() : `<div class="pn-all"><span>Tap a race to open it</span><button type="button" data-pall="1">Open all</button><button type="button" data-pall="0">Close all</button></div>
       ${pnGroups().map(g => `<div class="pn-g"><h4>${esc2(g.t)}</h4>${g.sub ? `<p>${esc2(g.sub)}</p>` : ""}</div>${g.races.map(pnRace).join("")}`).join("")}`}
+    ${pnCanEnter() ? enNext(view) : ""}
   </section>`;
 }
 
@@ -554,7 +559,8 @@ document.addEventListener("click", e => {
   if (d.ropen) { UI.pn.open[d.ropen] = !UI.pn.open[d.ropen]; render(); return; }
   if (d.rmore) { UI.pn.more[d.rmore] = !UI.pn.more[d.rmore]; render(); return; }
   if (d.pall) { RACES.forEach(r => { UI.pn.open[r.id] = d.pall === "1"; }); render(); return; }
-  if (d.pview) { try { localStorage.setItem(pnViewKey(), d.pview); } catch (err) {} render(); return; }
+  // (the view tabs are data-pnv: data-pview is the stud's and the sale's own "job" / "plan" switch, kept as it was)
+  if (d.pnv) { try { localStorage.setItem(pnViewKey(), d.pnv); } catch (err) {} render(); return; }
   if (d.pgo) { try { localStorage.setItem(pnViewKey(), "grid"); } catch (err) {} UI.pn.open[d.pgo] = true; render();
     const el = document.querySelector(`[data-prow="${d.pgo}"], .pn-race[data-race="${d.pgo}"]`);
     if (el) { el.scrollIntoView({ block: "center", behavior: "smooth" }); el.classList.add("pn-hl"); setTimeout(() => el.classList.remove("pn-hl"), 2200); } return; }

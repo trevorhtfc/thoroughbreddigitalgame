@@ -19,9 +19,15 @@ function stableSection() {
       ${S.stable.length ? cardGroups(S.stable, null, false) : `<p class="tb-empty">No horses yet. Your first foal will appear here.</p>`}</section>`;
 }
 // Reference views on the stud and sale steps
+// (owner, 15 Nov night: "people can't see how to return to mares: make that tab arrangement much clearer from race
+// planner back to stud or auction and back and forth"): two big tabs, each saying what's waiting there
 function viewTabs(job) {
   const v = S.view === "plan" ? "plan" : "job", planned = RACES.filter(r => (S.targets || {})[r.id] && horse(S.targets[r.id])).length;
-  return `<div class="vtabs" role="tablist"><button class="vtab ${v === "job" ? "on" : ""}" id="vjob" role="tab" aria-selected="${v === "job"}">${job}</button><button class="vtab ${v === "plan" ? "on" : ""}" id="vplan" role="tab" aria-selected="${v === "plan"}">Race planner<i>${planned}/${RACES.length}</i></button></div>`;
+  const left = S.step === 1 ? (typeof handDone === "function" && !handDone() ? "Draw your mares" : S.hand.length ? `${S.hand.length} mare${S.hand.length === 1 ? "" : "s"} still to breed` : "All your mares are bred")
+    : `${S.sale.length} lot${S.sale.length === 1 ? "" : "s"} still for sale`;
+  return `<div class="vtabs big" role="tablist">
+    <button class="vtab ${v === "job" ? "on" : ""}" id="vjob" role="tab" aria-selected="${v === "job"}"><span class="vt-i" aria-hidden="true"><svg viewBox="0 0 512 512">${ICON[S.step === 1 ? "horse-head" : "gavel"] || ""}</svg></span><span class="vt-t"><b>${job}</b><small>${left}</small></span></button>
+    <button class="vtab ${v === "plan" ? "on" : ""}" id="vplan" role="tab" aria-selected="${v === "plan"}"><span class="vt-i" aria-hidden="true">${typeof PN_FLAG !== "undefined" ? PN_FLAG : "⚑"}</span><span class="vt-t"><b>Race planner</b><small>${planned} of ${RACES.length} races flagged</small></span></button></div>`;
 }
 function goingStrip() {
   return `<div class="going"><b>THE GOING</b>${DAYS.map((d, k) => `<span class="gday g-${CARD.going[k]}"><small>${dayTag(k)}</small>${CARD.going[k]}</span>`).join("")}
@@ -181,14 +187,33 @@ const mareStack = (id, n) => `<span class="mstack">${n > 1 ? '<span class="mback
 const mareFace = (name, cls) => mareCard(name).replace(/^<button class="hc m[^"]*" data-mare="[^"]*" aria-pressed="[^"]*">/, `<div class="hc m ${cls || ""}">`).replace(/<\/button>$/, "</div>");
 function dealView() {
   const drawn = mh().hand || [], left = PILES.reduce((a, p) => a + Math.max(0, (HAND[p.id] || 0) - handDrawn(p.id)), 0);
-  return `<section class="sect mdeal"><div class="sect-h"><h2 class="tb-h2">DRAW YOUR MARES</h2><span>${drawn.length} of ${HAND.hi + HAND.mid + HAND.lo} drawn</span></div>
-    <p class="hint">Your stud starts with two mares from each of the Weatherbys decks. Tap a deck to turn over its top card: she's yours.</p>
-    <div class="mdecks">${PILES.map(p => { const k = (HAND[p.id] || 0) - handDrawn(p.id);
-      return `<button class="mdeck ${p.id}" data-mdraw="${p.id}" ${k > 0 ? "" : "disabled"} aria-label="Draw from the ${p.name} deck">${mareStack(p.id, Math.min(3, pileLeft(p).length))}
-        <b>${p.name}</b><small>${k > 0 ? `${k} to draw` : "Done"}</small></button>`; }).join("")}</div>
+  // Simple: the hand deals itself, a card at a time, from the decks (owner, 15 Nov night: "you've still got clicking on
+  // the mares? it should just be a draw graphic"). Plus keeps tapping a deck to draw
+  const auto = typeof isSimple === "function" && isSimple();
+  if (auto) dealNext();
+  return `<section class="sect mdeal ${auto ? "auto" : ""}"><div class="sect-h"><h2 class="tb-h2">${auto ? "YOUR MARES" : "DRAW YOUR MARES"}</h2><span>${drawn.length} of ${HAND.hi + HAND.mid + HAND.lo} drawn</span></div>
+    <p class="hint">${auto ? "Your stud starts with two mares from each of the Weatherbys decks. They're being dealt now." : "Your stud starts with two mares from each of the Weatherbys decks. Tap a deck to turn over its top card: she's yours."}</p>
+    <div class="mdecks">${PILES.map(p => { const k = (HAND[p.id] || 0) - handDrawn(p.id), inner = `${mareStack(p.id, Math.min(3, pileLeft(p).length))}
+        <b>${p.name}</b><small>${k > 0 ? `${k} to draw` : "Done"}</small>`;
+      return auto ? `<div class="mdeck ${p.id} ${UI.dealFrom === p.id && k >= 0 ? "dealing" : ""} ${k > 0 ? "" : "done"}">${inner}</div>`
+        : `<button class="mdeck ${p.id}" data-mdraw="${p.id}" ${k > 0 ? "" : "disabled"} aria-label="Draw from the ${p.name} deck">${inner}</button>`; }).join("")}</div>
     ${drawn.length ? `<div class="grid mdrawn">${drawn.map(n => mareFace(n, n === UI.mareDrew ? "flipin" : "")).join("")}</div>` : ""}
-    ${left > 1 ? `<p class="mdeal-all"><button class="tb-btn ghost sm" data-mdraw="all">Draw the rest for me</button></p>` : ""}</section>`;
+    ${auto ? (left > 1 ? `<p class="mdeal-all"><button class="tb-btn ghost sm" data-mdraw="all">Skip the deal</button></p>` : "") : left > 1 ? `<p class="mdeal-all"><button class="tb-btn ghost sm" data-mdraw="all">Draw the rest for me</button></p>` : ""}</section>`;
 }
+// the next card of a self-dealing hand: from the best deck still owed a card, every 0.9 seconds while the stud is open
+function dealNext() {
+  if (UI.dealTimer || handDone()) return;
+  UI.dealTimer = setTimeout(() => {
+    UI.dealTimer = null;
+    if (S.step !== 1 || handDone() || UI.sheet !== "stud") return;
+    const p = PILES.find(q => handDrawn(q.id) < (HAND[q.id] || 0) && pileLeft(q).length);
+    const n = p ? drawHandMare(p.id) : (dealHand(), null);
+    UI.mareDrew = n; UI.dealFrom = p ? p.id : null;
+    render();
+    if (handDone()) { UI.dealFrom = null; setTimeout(() => toast("Your mares are in. Tap one to send her to a stallion"), 900); }
+  }, (mh().hand || []).length ? 900 : 600);
+}
+
 // Elite Mares: upgrade a mare a grade (owner, 14 Nov evening: no sending mares back, so this is only for the upgrades)
 function handList() {
   if (!handOn() || S.offer || !S.hand.length) return "";

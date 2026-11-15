@@ -80,6 +80,8 @@ function openHowTo(opts = {}) {
     const w = p.pic[2] * 1.15; BOARD.paintPic(el, [Math.max(p.pic[0], w / 2 + 2), p.pic[1], w], 0.5);
   }));
   box.addEventListener("click", e => { const t = e.target.closest("button"); if (!t) return; if (t.id === "htGo" || t.id === "htClose") closeHowTo(t.id === "htGo"); });
+  // the first time, before a game: read it through before going on (ui-flow.js mustRead)
+  if (first && typeof mustRead === "function") requestAnimationFrame(() => mustRead(scrollerIn(box.querySelector(".ht-in"), box), box.querySelector("#htGo")));
   const go = box.querySelector("#htGo"); try { (box.querySelector("#htClose") || go).focus({ preventScroll: true }); } catch (e) {}
 }
 function closeHowTo(carryOn) {
