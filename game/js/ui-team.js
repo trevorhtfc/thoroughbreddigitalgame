@@ -127,7 +127,7 @@ function teamAtSales() {
 const shortRace = r => r.name.replace(/ Stakes$| Handicap$/, "");
 // a race named with its class and trip, wherever only its name was shown (owner, 15 Nov: "I can't remember which race
 // is which distance, class etc"): "St James's Palace · G1 · 1m"
-const raceBits = r => `${GRADE[r.grade].short} · ${r.dist}`;
+const raceBits = r => `${GRADE[r.grade].short} · ${distShow(r)}`;
 const raceTag = r => `${esc2(shortRace(r))} <span class="rbits">· ${raceBits(r)}</span>`;
 function scoutCard(c) {
   const T = scoutState(), max = SCOUT_RACES[c.tier];

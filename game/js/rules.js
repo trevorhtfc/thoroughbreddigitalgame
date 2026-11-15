@@ -433,7 +433,15 @@ function stallion(name) { const s = byName(name), shown = s.base > 0 ? s.base : 
 /* ================= Eligibility and the race-day rating ================= */
 // The going is declared in race week, after the entries (as on the board)
 const goingKnown = () => S.step >= 4;
-const tripText = (d) => d.length ? (d.length === 1 ? DISTANCES[d[0]] : DISTANCES[d[0]] + "–" + DISTANCES[d[d.length - 1]]) : "";
+// Beginner shows trips as four kinds instead of distances (owner, 15 Nov night: "rather than races, stallions and mares
+// showing specific distances we could simplify"): Sprint 5f–6f, Mile 7f–1m1f, Middle distance 1m2f–1m4f, Staying 1m6f+
+const TRIP_KIND = [0, 0, 1, 1, 1, 2, 2, 3, 3], TRIP_KINDS = ["Sprint", "Mile", "Middle distance", "Staying"];
+const kindOf = i => TRIP_KIND[Math.max(0, Math.min(DISTANCES.length - 1, i))];
+const kindsText = d => { const ks = [...new Set(d.map(kindOf))].sort((a, b) => a - b); return ks.length === 1 ? TRIP_KINDS[ks[0]] : TRIP_KINDS[ks[0]] + "–" + TRIP_KINDS[ks[ks.length - 1]]; };
+const tripText = (d) => d.length ? (isBeginner() ? kindsText(d) : d.length === 1 ? DISTANCES[d[0]] : DISTANCES[d[0]] + "–" + DISTANCES[d[d.length - 1]]) : "";
+// a race's trip, and a stallion's or mare's distance ("1m4f"), as the screens show it
+const distShow = r => isBeginner() ? TRIP_KINDS[kindOf(r.step)] : r.dist;
+const distWord = name => { if (!isBeginner()) return name; const i = DISTANCES.indexOf(String(name || "").trim()); return i >= 0 ? TRIP_KINDS[kindOf(i)] : name; };
 const ratingAt = (h, age) => h.r[Math.min(4, age) - 2];
 const tripAt = (h, age) => h.d[Math.min(4, age) - 2];
 function check(h, race) {
@@ -441,11 +449,14 @@ function check(h, race) {
   if (race.sex && h.sex !== race.sex) return { hidden: true };
   if (race.grade === "Handicap" && ratingAt(h, h.age) > HCAP_MAX) return { why: `Rated ${ratingAt(h, h.age)}: too high for a handicap (max ${HCAP_MAX})` };
   const best = tripAt(h, h.age), lo = Math.min(...best), hi = Math.max(...best);
-  const steps0 = race.step < lo ? lo - race.step : race.step > hi ? race.step - hi : 0;
+  // (Beginner: the same, counted in kinds of trip: a Mile horse is never marked down in a Mile race, one kind away is −5,
+  // two or more and it can't run)
+  const kLo = kindOf(lo), kHi = kindOf(hi), rKind = kindOf(race.step);
+  const steps0 = isBeginner() ? (rKind < kLo ? kLo - rKind : rKind > kHi ? rKind - kHi : 0) : race.step < lo ? lo - race.step : race.step > hi ? race.step - hi : 0;
   // your trainer (js/team.js): a tune-up for this race, Stable Form (trip work and the rest change the horse itself)
   const train = typeof trainFor === "function" ? trainFor(h, race, steps0) : { boost: 0, shift: 0, cards: [] };
   const steps = Math.max(0, steps0 - train.shift);
-  if (steps > 3) return { why: `More than 3 steps from its best trip (${tripText(best)})` };
+  if (steps > (isBeginner() ? 1 : 3)) return { why: isBeginner() ? `The wrong kind of trip: a ${tripText(best).toLowerCase()} horse` : `More than 3 steps from its best trip (${tripText(best)})` };
   const eff = ratingAt(h, h.age) + train.boost - steps * 5;
   if (eff < needFor(race)) return { eff, steps, train, why: `Rated ${eff} here: this race needs ${needFor(race)}+` };
   // Before race week the going isn't known, so the race-day rating is the rating at this trip; then the ground counts too
@@ -518,7 +529,8 @@ const CARD_ODDS = { black: [0, 4], red: [5, 10], yellow: [11, 20], blue: [25, 10
 const ODDS_LADDER = [[1, 3], [2, 5], [1, 2], [4, 7], [8, 13], [4, 6], [8, 11], [4, 5], [10, 11], [1, 1], [6, 5], [5, 4], [11, 8], [6, 4], [13, 8], [7, 4], [15, 8], [2, 1], [9, 4], [5, 2], [11, 4], [3, 1], [10, 3], [7, 2], [4, 1], [9, 2], [5, 1], [11, 2], [6, 1], [13, 2], [7, 1], [15, 2], [8, 1], [17, 2], [9, 1], [10, 1], [11, 1], [12, 1], [14, 1], [16, 1], [18, 1], [20, 1], [25, 1], [33, 1], [40, 1], [50, 1], [66, 1], [100, 1]];
 function dayFigure(h, race) {
   const lo = DISTANCES.indexOf(h.trip[0]), hi = DISTANCES.indexOf(h.trip[1]);
-  const steps = race.step < lo ? lo - race.step : race.step > hi ? race.step - hi : 0;
+  const k0 = kindOf(lo), k1 = kindOf(hi), rk = kindOf(race.step);
+  const steps = isBeginner() ? (rk < k0 ? k0 - rk : rk > k1 ? rk - k1 : 0) : race.step < lo ? lo - race.step : race.step > hi ? race.step - hi : 0;
   return h.rating - steps * 5 + groundPts(h.goings, CARD.going[race.day]);
 }
 function marketFor(i) {

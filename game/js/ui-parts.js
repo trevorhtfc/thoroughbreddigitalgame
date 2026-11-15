@@ -48,7 +48,7 @@ const KEY_NAMES = ["black", "red", "yellow", "blue"];
 function raceChip(r) {
   const g = GRADE[r.grade], tg = (S.targets || {})[r.id], th = tg && horse(tg), sel = S.planSel === r.id;
   return `<button class="pq ${sel ? "sel" : ""} ${th ? "has" : ""}" data-plansel="${r.id}" draggable="true" aria-pressed="${sel}" title="${r.name}${th ? " · target: " + th.name : ""}">
-    <span class="pq-t"><b class="g ${g.cls}">${g.short}</b><span>${r.dist}</span><span>${ageOnly(r)}</span><span class="sx-i ${r.sex || "O"}">${r.sex === "C" ? "♂" : r.sex === "F" ? "♀" : "⚥"}</span></span>
+    <span class="pq-t"><b class="g ${g.cls}">${g.short}</b><span>${distShow(r)}</span><span>${ageOnly(r)}</span><span class="sx-i ${r.sex || "O"}">${r.sex === "C" ? "♂" : r.sex === "F" ? "♀" : "⚥"}</span></span>
     <span class="pq-n">${r.name.replace(/ Stakes$/, "")}</span>
     <span class="pq-b" title="Race-day rating bands, as in the board game: ${r.bands.map((b, k) => `${KEY_NAMES[k]} ${b}+`).join(", ")}">${r.bands.map((b, k) => `<i class="k-${KEY_NAMES[k]}">${b}</i>`).join("")}${r.grade === "Handicap" ? `<em title="Handicap: horses rated ${HCAP_MAX} or less">≤${HCAP_MAX}</em>` : ""}</span>
     ${th ? `<span class="pq-who">★ ${esc2(th.name)}</span>` : ""}</button>`;
@@ -114,7 +114,9 @@ function pips(n, variable) {
   let o = ""; for (let i = 1; i <= 5; i++) o += `<svg class="${i <= n ? "" : "off"}"><use href="#pip"/></svg>`;
   return `<span class="pips" role="img" aria-label="${n} star ability">${o}</span>`;
 }
-const hcTrip = x => `<div class="hc-trip"><span>${x.minDistance}</span><i>|</i><b>${x.optimumDistance}</b><i>|</i><span>${x.maxDistance}</span></div>`;
+// (Beginner: the kind of trip it's best at, and how far its range runs, in plain words)
+const hcTrip = x => isBeginner() ? `<div class="hc-trip kind"><b>${distWord(x.optimumDistance)}</b>${distWord(x.minDistance) !== distWord(x.maxDistance) ? `<small>can run ${distWord(x.minDistance).toLowerCase()} to ${distWord(x.maxDistance).toLowerCase()}</small>` : ""}</div>`
+  : `<div class="hc-trip"><span>${x.minDistance}</span><i>|</i><b>${x.optimumDistance}</b><i>|</i><span>${x.maxDistance}</span></div>`;
 function mareCard(name) {
   const m = byName(name), on = S.selMare === name;
   return `<button class="hc m ${on ? "on" : ""}" data-mare="${esc2(name)}" aria-pressed="${on}"><span class="tick">✓</span>
@@ -138,7 +140,8 @@ function studView() {
   rows.sort(S.sort === "stars" ? (a, b) => b.shownStars - a.shownStars || a.fee - b.fee : S.sort === "trip" ? (a, b) => DISTANCES.indexOf(a.optimumDistance) - DISTANCES.indexOf(b.optimumDistance) || a.fee - b.fee : (a, b) => a.fee - b.fee || b.shownStars - a.shownStars);
   if (m) rows = rows.filter(s => !pairProblem(s, m)).concat(rows.filter(s => pairProblem(s, m)));
   const st = S.selStallion && stallion(S.selStallion), ok = st && m && !pairProblem(st, m), fee = st ? feeFor(st) : 0, afford = st && fee <= S.budget, ln = ok ? lineNote(st, m) : null;
-  const trips = [["all", "All"], ["sprint", "Sprint 5–6f"], ["mile", "Mile 7f–1m1f"], ["middle", "Middle 1m2f–1m4f"], ["staying", "Staying 1m6f+"]];
+  const trips = isBeginner() ? [["all", "All"], ["sprint", "Sprint"], ["mile", "Mile"], ["middle", "Middle distance"], ["staying", "Staying"]]
+    : [["all", "All"], ["sprint", "Sprint 5–6f"], ["mile", "Mile 7f–1m1f"], ["middle", "Middle 1m2f–1m4f"], ["staying", "Staying 1m6f+"]];
   if (!m && !studCount()) return `${teamAtStud()}${maresSale()}<section class="sect"><div class="sect-h"><h2 class="tb-h2">YOUR MARES</h2><span>0 of ${MARE_CAP}</span></div>
     <p class="tb-empty">${handOn() ? `No mares left to breed.${extraLeft() > 0 ? " You can still buy one more above." : ""} Tattersalls is next.` : `No mares yet. Buy your first above: pick a pile, then choose one of the ${offerSize()} mares turned over.`}</p></section>`;
   if (!m) return `${teamAtStud()}<section class="sect"><div class="sect-h"><h2 class="tb-h2">YOUR MARES</h2><span>${studCount()} of ${MARE_CAP} in your stud · ${S.usedMares.length} covered · tap a mare to breed her</span></div>
@@ -264,8 +267,8 @@ function saleView() {
     <div class="lots">${scoutOrder(S.sale.filter(l => l.book === S.book)).map(l => { const s = stallion(l.sire), m = byName(l.dam), line = lineNote(s, m), sc = lotScout(l);
       return `<article class="lot ${sc.cls}"><div class="lot-h"><span class="lot-n">LOT ${l.n}</span>${lotSexTag(l)}<span class="line ${line.cls}">${line.text}</span></div>
         <div class="ped">
-          <div class="pc s"><span class="pc-l">S</span><div><b>${esc2(s.name)}</b>${knowsTrue(s.name) ? pips(s.trueStars) : pips(s.shownStars, s.unproven)}<small>${s.optimumDistance} · peaks ${s.peakAge}</small></div></div>
-          <div class="pc m"><span class="pc-l">M</span><div><b>${esc2(m.name)}</b>${pips(m.stars)}<small>${m.optimumDistance} · peaks ${m.peakAge}</small></div></div></div>
+          <div class="pc s"><span class="pc-l">S</span><div><b>${esc2(s.name)}</b>${knowsTrue(s.name) ? pips(s.trueStars) : pips(s.shownStars, s.unproven)}<small>${distWord(s.optimumDistance)} · peaks ${s.peakAge}</small></div></div>
+          <div class="pc m"><span class="pc-l">M</span><div><b>${esc2(m.name)}</b>${pips(m.stars)}<small>${distWord(m.optimumDistance)} · peaks ${m.peakAge}</small></div></div></div>
         ${sc.html}${lotInsight(l)}<div class="lot-foot"><span>Reserve ${money(l.reserve)} · guide ${money(guide(l)[0])}–${money(guide(l)[1])}</span></div>
         <button class="tb-btn block" data-auction="${l.id}" ${openBid(l) <= canBidTo() && !S.foal && !stableFull() ? "" : "disabled"}>${openBid(l) <= canBidTo() ? "Bring into the ring" : "Can't afford the opening bid"}</button>${lotClaim(l)}</article>`; }).join("") || `<p class="tb-empty">Every lot in this Book has been sold.</p>`}</div>`;
 }
@@ -350,7 +353,7 @@ function showDevelop(h, fromAge) {
 }
 
 /* ----- Step 2: develop and enter ----- */
-function gradeBox(r) { const g = GRADE[r.grade]; return `<div class="grade ${g.cls}"><div><b>${g.short}</b>${r.dist}</div></div>`; }
+function gradeBox(r) { const g = GRADE[r.grade]; return `<div class="grade ${g.cls}"><div><b>${g.short}</b>${distShow(r)}</div></div>`; }
 // Who can run: age, and colts / fillies / open
 const ageOnly = r => r.ageLabel.replace(/ (colts|fillies).*$/, "");
 function sexTag(r) {
@@ -463,7 +466,7 @@ function raceBoard(sel) {
   return `<div class="rb">${DAYS.map((d, k) => `<div class="rb-day"><h3>${d}</h3>${RACES.filter(r => r.day === k).map(r => {
     const h = horse(S.entries[r.id]), c = h && check(h, r), g = GRADE[r.grade];
     return `<button class="rb-r ${r.id === sel.id ? "on" : ""} ${h ? "has" : ""}" data-selrace="${r.id}" aria-pressed="${r.id === sel.id}">
-      <span class="t"><span class="g ${g.cls}">${g.short}</span>${r.dist} · ${ageOnly(r)} <span class="sx-i ${r.sex || "O"}" title="${r.sex === "C" ? "Colts only" : r.sex === "F" ? "Fillies only" : "Open to colts and fillies"}">${r.sex === "C" ? "♂" : r.sex === "F" ? "♀" : "⚥"}</span></span><span class="n">${r.name}</span>
+      <span class="t"><span class="g ${g.cls}">${g.short}</span>${distShow(r)} · ${ageOnly(r)} <span class="sx-i ${r.sex || "O"}" title="${r.sex === "C" ? "Colts only" : r.sex === "F" ? "Fillies only" : "Open to colts and fillies"}">${r.sex === "C" ? "♂" : r.sex === "F" ? "♀" : "⚥"}</span></span><span class="n">${r.name}</span>
       <span class="w">${h ? `${c && c.ok ? `<i class="rk ${rkCls(c)}">${c.day}</i>` : ""}<em>${esc2(h.name)}</em>` : (S.targets || {})[r.id] && horse(S.targets[r.id]) ? `<span class="plan">Planned: ${esc2(horse(S.targets[r.id]).name)}</span>` : "No runner yet"}</span></button>`; }).join("")}</div>`).join("")}</div>`;
 }
 function showHorseCard(h) {
@@ -573,7 +576,7 @@ function picker(r) {
     .sort((a, b) => (b.c.ok ? 1 : 0) - (a.c.ok ? 1 : 0) || (b.c.day || b.c.eff || 0) - (a.c.day || a.c.eff || 0));
   if (!rows.length) return `<div class="picker"><p>None of your horses can run in this race (${r.ageLabel}). Develop a horse to the right age, or breed more.</p></div>`;
   const usedIn = h => clashFor(h, r);
-  return `<div class="picker"><p>${r.ageLabel}, ${r.dist}.</p><div class="opts">
+  return `<div class="picker"><p>${r.ageLabel}, ${distShow(r)}.</p><div class="opts">
     ${rows.map(({ h, c }) => { const u = usedIn(h), sel = S.entries[r.id] === h.id;
       return `<button class="opt ${sel ? "sel" : ""}" data-pick="${h.id}" data-race="${r.id}" ${c.ok ? "" : "disabled"}>
         ${c.ok ? rkChip(c) : `<span class="deck none">Can't run</span>`}
@@ -817,8 +820,8 @@ function aucHTML() {
     <div class="auc-panel">
       <div class="auc-top"><h2 class="auc-h">Lot ${l.n} ${lotSexTag(l, true)}</h2><div class="auc-k">TATTERSALLS · ${b.name.toUpperCase()}</div></div>
       <div class="auc-ped">
-        <div class="pc s"><span class="pc-l">S</span><div><b>${esc2(s.name)}</b>${knowsTrue(s.name) ? pips(s.trueStars) : pips(s.shownStars, s.unproven)}<small>${s.optimumDistance} · peaks ${s.peakAge}</small></div></div>
-        <div class="pc m"><span class="pc-l">M</span><div><b>${esc2(m.name)}</b>${pips(m.stars)}<small>${m.optimumDistance} · peaks ${m.peakAge}</small></div></div></div>
+        <div class="pc s"><span class="pc-l">S</span><div><b>${esc2(s.name)}</b>${knowsTrue(s.name) ? pips(s.trueStars) : pips(s.shownStars, s.unproven)}<small>${distWord(s.optimumDistance)} · peaks ${s.peakAge}</small></div></div>
+        <div class="pc m"><span class="pc-l">M</span><div><b>${esc2(m.name)}</b>${pips(m.stars)}<small>${distWord(m.optimumDistance)} · peaks ${m.peakAge}</small></div></div></div>
       <div class="auc-facts"><span><span class="line ${ln.cls}">${ln.text}</span></span><span>Reserve <b>${money(l.reserve)}</b></span><span>Guide <b>${money(guide(l)[0])}–${money(guide(l)[1])}</b></span><span>Budget <b data-budget>${money(S.budget)}</b></span></div>
       <div class="auc-now" aria-live="polite"><div class="lbl" id="aucLbl">Opening bid</div><div class="big" id="aucBig">${money(openBid(l))}</div><div class="who" id="aucWho">No bids yet</div></div>
       <button class="tb-btn block auc-bid" id="aucBid">Bid</button>

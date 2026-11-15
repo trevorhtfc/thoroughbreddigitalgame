@@ -167,11 +167,11 @@ function pnRowComment(h, o, isBest) {
 function pnWhy(o) {
   const w = (o.c && o.c.why) || "";
   if (/too high for a handicap/.test(w)) return "too good for a handicap";
-  if (/steps from its best trip/.test(w)) return "the wrong trip";
+  if (/steps from its best trip|wrong kind of trip/.test(w)) return "the wrong trip";
   const m = w.match(/Rated (\d+) here: this race needs (\d+)/); if (m) return `rated ${m[1]}, needs ${m[2]}+`;
   return w ? w.toLowerCase() : "can't run";
 }
-function pnMeta(r) { return `${esc2(dayTag(r.day))} · ${r.dist} · ${esc2(r.ageLabel)} · ${money(r.prizes[0])}`; }
+function pnMeta(r) { return `${esc2(dayTag(r.day))} · ${distShow(r)} · ${esc2(r.ageLabel)} · ${money(r.prizes[0])}`; }
 function pnPaths(h, mode) {
   const foal = mode === "foal", p = pnHe(h), ages = pnAgesFrom(h, foal);
   const flags = new Set(foal ? pnFoalFlags() : pnFlagsOf(h).map(r => r.id));
@@ -254,7 +254,7 @@ function pnPicksAll() {
 
 /* ================= The race planner ================= */
 // a race's trip in bold and the rating it takes to run (owner, 15 Nov: "distance need bolding ... showing the ratings required?")
-const pnDistNeed = r => `<b class="pn-dist">${r.dist}</b><span class="pn-need" title="${r.grade === "Handicap" ? `Rated ${needFor(r)} to ${HCAP_MAX} to run` : `Rated ${needFor(r)}+ to run`}">${r.grade === "Handicap" ? `${needFor(r)}–${HCAP_MAX}` : `${needFor(r)}+`}</span>`;
+const pnDistNeed = r => `<b class="pn-dist">${distShow(r)}</b><span class="pn-need" title="${r.grade === "Handicap" ? `Rated ${needFor(r)} to ${HCAP_MAX} to run` : `Rated ${needFor(r)}+ to run`}">${r.grade === "Handicap" ? `${needFor(r)}–${HCAP_MAX}` : `${needFor(r)}+`}</span>`;
 const pnWide = () => innerWidth >= 1000;
 function pnGroups() {
   if (pnNewmarket()) return DAYS.map((d, k) => ({ t: d, sub: "", races: RACES.filter(r => r.day === k) })).filter(g => g.races.length);
@@ -308,7 +308,7 @@ function pnRace(r) {
   const sum = fh ? `<span class="pn-sum1">${PN_FLAG}<b>${esc2(fh.name)}</b>${fo ? pnStars(fo.v, "sm") : ""}</span>`
     : fits.length ? `<span class="pn-sum1 amber">No flag yet · ${fits.length} could run</span>` : `<span class="pn-sum1 none">Nobody yet</span>`;
   const shown = UI.pn.more[r.id] ? fits : fits.slice(0, 2), rest = fits.length - shown.length;
-  const empty = `<p class="pn-empty">Nobody can run here yet. It's for ${esc2(r.ageLabel)} over ${r.dist}, rated ${needFor(r)}+${r.grade === "Handicap" ? ` and no more than ${HCAP_MAX}` : ""}.</p>`;
+  const empty = `<p class="pn-empty">Nobody can run here yet. It's for ${esc2(r.ageLabel)} over ${distShow(r)}, rated ${needFor(r)}+${r.grade === "Handicap" ? ` and no more than ${HCAP_MAX}` : ""}.</p>`;
   return `<article class="pn-race ${open ? "open" : ""}" data-race="${r.id}">
     <button class="pn-rh" type="button" data-ropen="${r.id}" aria-expanded="${open}">
       <span class="pn-r1"><i class="pn-dot ${dot}" aria-hidden="true"></i><span class="pn-rname">${esc2(r.name)}</span><span class="g ${g.cls}">${g.short}</span><span class="pn-rinfo">${pnDistNeed(r)}${pnNewmarket() ? `<span class="pn-agel">${esc2(r.ageLabel)}</span>` : ""}</span><i class="pn-chev" aria-hidden="true"></i></span>
@@ -409,7 +409,7 @@ function pnByHorse() {
   return `<div class="ph">${hs.map(h => {
     const t = pnTier(pnPeak(h)), s = pnStatus(h), fl = pnFlagsOf(h).sort((a, b) => a.day - b.day || a.i - b.i);
     const chips = fl.map(r => { const o = pnOpt(h, r, pnAgesFrom(h));
-      return `<span class="ph-r">${PN_FLAG}<b>${esc2(shortRace(r))}</b><span class="g ${GRADE[r.grade].cls}">${GRADE[r.grade].short}</span><small>${esc2(dayTag(r.day))} · <b>${r.dist}</b>${o && o.age > h.age ? ` · develop to ${o.age}` : ""}</small>${o ? pnStars(o.v === "t" ? o.tv : o.v, "sm") : ""}</span>`; }).join("");
+      return `<span class="ph-r">${PN_FLAG}<b>${esc2(shortRace(r))}</b><span class="g ${GRADE[r.grade].cls}">${GRADE[r.grade].short}</span><small>${esc2(dayTag(r.day))} · <b>${distShow(r)}</b>${o && o.age > h.age ? ` · develop to ${o.age}` : ""}</small>${o ? pnStars(o.v === "t" ? o.tv : o.v, "sm") : ""}</span>`; }).join("");
     let alt = "";
     if (!fl.length) { const others = RACES.map(r => pnOpt(h, r, pnAgesFrom(h))).filter(o => o && o.v !== "x");
       if (others.length) { const b = others.reduce((m, o) => pnValue(o) > pnValue(m) ? o : m); alt = `<span class="ph-best">Best fit: <b>${raceTag(b.r)}</b> ${pnStars(b.v === "t" ? b.tv : b.v, "sm")}</span>`; } }

@@ -360,7 +360,7 @@ let D = null;
 const still = () => matchMedia("(prefers-reduced-motion: reduce)").matches;
 function raceFace(r) {
   const g = GRADE[r.grade];
-  return `<div class="rf ${g.cls}"><div class="rf-top"><b>${g.short === "Hcap" ? "HANDICAP" : g.short === "Cond" ? "CONDITIONS" : r.grade.toUpperCase()}</b><span>${r.dist}${courseName(r) ? ` · ${courseName(r).split(" ")[0]}` : ""}</span></div>
+  return `<div class="rf ${g.cls}"><div class="rf-top"><b>${g.short === "Hcap" ? "HANDICAP" : g.short === "Cond" ? "CONDITIONS" : r.grade.toUpperCase()}</b><span>${distShow(r)}${courseName(r) ? ` · ${courseName(r).split(" ")[0]}` : ""}</span></div>
     <div class="rf-n ${r.name.length > 24 ? "long" : ""}">${r.name}</div><div class="rf-f"><span>${ageOnly(r)} · ${r.sex === "C" ? "♂<em> Colts</em>" : r.sex === "F" ? (r.ages[0] >= 4 ? "♀<em> F&M</em>" : "♀<em> Fillies</em>") : "⚥<em> Open</em>"}</span><span>1st ${money(r.prizes[0])}</span></div></div>`;
 }
 const cardBack = (k, t) => `<div class="dc-back"><span>${k}<b>${t}</b></span></div>`;
