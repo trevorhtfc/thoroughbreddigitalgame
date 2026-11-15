@@ -263,7 +263,7 @@ const SHEETS = {
     const tab = UI.tab.jockey || (canEnter && (ph === "entries" || ph === "gallops" || atAscot()) ? "entries" : "programme");
     const bar = jockeyTabs(tab);
     if (tab === "entries" && canEnter) return bar + entriesBody(entered());
-    if (tab === "plan") return bar + `<p class="tb-lede sh-lede">Map out which horse is for which race. A target is only a plan: it doesn't enter the horse. Drag a race onto a horse, or tap a race to see how every horse fits it.</p>` + plannerView();
+    if (tab === "plan") return bar + `<p class="tb-lede sh-lede">${typeof PLAN_OLD !== "undefined" && !PLAN_OLD ? "Flag the horse you plan to run in each race. A flag is only a plan: you enter your runners at entries." : "Map out which horse is for which race. A target is only a plan: it doesn't enter the horse. Drag a race onto a horse, or tap a race to see how every horse fits it."}</p>` + plannerView();
     return bar + programmeBody();
   },
   stud() {

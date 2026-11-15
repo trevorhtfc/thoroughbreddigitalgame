@@ -885,3 +885,39 @@ Owner, 15 Nov: "introduce a simple mode vs a plus mode (just removes the team el
   for Plus (where every score so far sits) and `royal-ascot-simple` / `newmarket-simple` for Simple
   (`server/worker.js` SEASONS). The cover's board follows the switch ("Leaderboard Ascot · Simple").
 - **Today's card** is still one go a day, in whichever way you play it.
+
+
+## The new race planner and every horse's options (15 Nov 2026, `js/plan.js`)
+
+Owner, 15 Nov: the ages and races were "a bit tricky to get your head around". Designed with him on a canvas
+(https://claude.ai/artifact/5MTLPb3ZUq6wvm9SCzNnKT), then "push this through ... ensure all the ui is coordinated nicely".
+Keep the old as a backup: **`?planner=old`** brings back the old planner and foal pop-up (remembered on the device);
+**`?planner=new`** undoes it.
+
+- **A new foal** (bred, or knocked down at Tattersalls) keeps the card and its facts. Underneath, in order:
+  - **its outlook**: three discs (2YO, 3YO, 4YO) in the card's tiers, Improves / Holds / Goes back between them, the
+    peak marked in gold, and a one-line summary written from the card's numbers (`pnSummary`);
+  - **its options**: every race on the card it could run, age by age (race at 2, develop to 3, develop to 4). Each race
+    has stars for its chance, a trainer's line and a Flag;
+  - **Flag the trainer's picks**;
+  - a develop button at the foot of each age, and **Decide later** (save it as a 2-year-old).
+- **A flag is a race target** (`S.targets`, one horse per race), so entries' "Fill empty races" uses them. Keeping a
+  foal turns its flags into targets.
+- **Then the planner opens** at the stud or the sales, with **Back to the stud / Back to the sale ring** in the footer.
+  The same planner is the Race planner tab everywhere.
+  - **Your string:** faces ringed gold / silver / bronze / plain by peak rating, with flagged or "Needs a race" or "Fits
+    nothing" under each. It folds away (`tb-string`).
+  - **Flag the trainer's picks** (`pnPicksAll`): the best horse for each race not flagged yet. Each horse runs once at
+    Ascot; at Newmarket, once a meeting and at one age.
+  - **On a phone:** races grouped by age (Ascot) or meeting (Newmarket). Each folds to one line with its flagged horse in
+    full and its stars. Open, up to two horses, one per line, each with:
+    - ✓ Ready / Develop to N (Newmarket: "for the season") / Trainer: trip work (Plus, with jobs left);
+    - where else it fits;
+    - its Flag.
+  - **On a computer** (1000px and wider): the grid, every horse against every race. Tap a square to flag it; a small
+    number is the age it would race at.
+- **Tap any horse** (a face, a name, a grid header) for its card: the outlook, then its options from its age now, with
+  the develop buttons.
+- **Stars:** 3 = top on ratings in that field, 2 = 2nd or 3rd, 1 = further down; a trainer face = trip work gets it in;
+  a cross = can't run (said why in a few words). "Best idea" = the most prize money × chance.
+- Developing a horse past a flagged race's age takes that flag off (with a toast).
