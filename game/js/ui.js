@@ -795,7 +795,16 @@ document.addEventListener("click", e => {
     case "clear": S.entries = {}; save(); render(); break;
     case "toRaces": {
       const left = RACES.length - entered();
-      if (left && !t.dataset.sure) { t.dataset.sure = "1"; t.innerHTML = `${left} empty: go anyway <span aria-hidden="true">›</span>`; toast(`${left} race${left === 1 ? " has" : "s have"} no runner. Tap again to go anyway.`); break; }
+      // (owner, 15 Nov night: a tester tapped through to the races with nothing entered) never with no runner at all, and
+      // with races still empty only on a second tap at least a second after the first (a double tap isn't a decision)
+      if (!entered()) { toast("Enter at least one horse first: tap Enter (or Develop and enter) under a race");
+        if (typeof pnCanEnter === "function" && pnCanEnter()) { try { localStorage.setItem(pnViewKey(), "race"); } catch (err) {} UI.tab.jockey = "plan"; if (UI.sheet !== "jockey") { closeSheet({ quiet: true }); openSheet("jockey", { tab: "plan" }); } else render();
+          setTimeout(() => { const r = document.querySelector(".en-race"); if (r) r.scrollIntoView({ block: "start", behavior: "smooth" }); }, 300); }
+        break; }
+      const at = +t.dataset.sure || 0, now = Date.now();
+      if (left && !(at && now - at > 1000 && now - at < 15000)) { if (!at || now - at >= 15000) t.dataset.sure = String(now);
+        document.querySelectorAll("#toRaces").forEach(b => { b.dataset.sure = t.dataset.sure; b.innerHTML = `${left} empty: go anyway <span aria-hidden="true">›</span>`; });
+        toast(`${left} race${left === 1 ? " has" : "s have"} no runner, and an empty race earns nothing. Tap “go anyway” again if you're sure.`); break; }
       S.galloped = true; bookForgotten(); goToAscot(); break; }
     case "toWeek": bookForgotten(); S.step = 4; UI.tab.jockey = null; save(); closeSheet({ quiet: true }); openSheet("races"); break;
     case "backEntries": if (racesRun()) break; S.step = 3; save(); closeSheet({ quiet: true }); openSheet("jockey", { tab: "entries" }); break;

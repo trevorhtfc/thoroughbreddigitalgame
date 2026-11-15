@@ -82,6 +82,20 @@ function pnChance(r, day) {
 }
 // "Best idea": the most stars first (a trainer job counts a little under the real thing), then the prize times the chance
 const pnValue = o => o.v === "x" ? 0 : pnEff(o) * 1e6 + o.r.prizes[0] * pnChance(o.r, o.c.day + (o.tune ? o.tune.b : 0));
+// "Big purse" (owner, 15 Nov night: "two trainer recommendations .. best rating and another could be big purse .. or perfect
+// fit could be both"): the richest race where the horse is still at least a Good chance
+const pnPurseValue = o => o.v === "x" ? 0 : o.r.prizes[0] * pnChance(o.r, o.c.day + (o.tune ? o.tune.b : 0)) * (o.v === "t" ? .8 : 1);
+// the two recommendations from a horse's options: best (the most stars, "Best fit"), and purse when a bigger-prize race
+// is worth more to you ("Big purse"); when there's no such race the best is a "Perfect fit"
+function pnRecs(all) {
+  if (!all.length) return { best: null, purse: null, perfect: false };
+  const best = all.reduce((m, o) => pnValue(o) > pnValue(m) ? o : m);
+  // the richest race where it's still at least a Good chance (2★), bigger than the best fit's prize
+  const rich = all.filter(o => o !== best && pnStarsShown(o) >= 2 && o.r.prizes[0] > best.r.prizes[0]);
+  const purse = rich.length ? rich.reduce((m, o) => o.r.prizes[0] > m.r.prizes[0] || (o.r.prizes[0] === m.r.prizes[0] && pnValue(o) > pnValue(m)) ? o : m) : null;
+  return { best, purse, perfect: !purse };
+}
+const pnStarsShown = o => o.v === "t" ? o.tv : o.v;
 function pnOpt(h, r, ages) {
   let best = null;
   for (const a of ages) {
@@ -162,7 +176,8 @@ function pnPaths(h, mode) {
   const foal = mode === "foal", p = pnHe(h), ages = pnAgesFrom(h, foal);
   const flags = new Set(foal ? pnFoalFlags() : pnFlagsOf(h).map(r => r.id));
   const byAge = ages.map(a => ({ a, rows: RACES.map(r => pnOpt(h, r, [a])).filter(Boolean).sort((x, y) => pnScore(y) - pnScore(x) || y.r.prizes[0] - x.r.prizes[0]) }));
-  const all = byAge.flatMap(x => x.rows).filter(o => o.v !== "x"), best = all.length ? all.reduce((m, o) => pnValue(o) > pnValue(m) ? o : m) : null;
+  const all = byAge.flatMap(x => x.rows).filter(o => o.v !== "x"), recs = pnRecs(all), best = recs.best, purse = recs.purse;
+  const recLabel = o => o === best ? (recs.perfect ? "Perfect fit" : "Best fit") : o === purse ? "Big purse" : "";
   const ageSub = a => { const x = h.r[a - 2], now = foal ? a === 2 : a === h.age, ty = pnTypeShort(h.d[a - 2]).toLowerCase();
     const lead = now ? "Now" : a === h.peakAge ? `${p.P} peak` : x < h.r[a - 3] - 2 ? "Past " + p.p + " best" : "Holds " + p.p + " form";
     return `${lead} · a ${pnLevel(x)} ${ty === "middle distance" ? "middle-distance horse" : ty}${h.stay && h.stay[a - 2] ? ` · stayer's boost +${h.stay[a - 2]} built in` : ""}`; };
@@ -170,12 +185,12 @@ function pnPaths(h, mode) {
     ? (a === 2 ? `<button class="tb-btn ghost sm" type="button" data-fkeep="1">Keep ${p.o} a 2-year-old</button>` : `<button class="tb-btn ${best && best.age === a ? "" : "ghost"} sm" type="button" data-keepdev="${a}">Develop to ${a}</button>`)
     : (a === h.age ? "" : `<button class="tb-btn ${best && best.age === a ? "" : "ghost"} sm" type="button" data-devto="${h.id}:${a}">Develop to ${a}${pnNewmarket() ? " for the season" : ""}</button>`);
   const row = o => {
-    const on = flags.has(o.r.id), isBest = best && o === best, g = GRADE[o.r.grade];
+    const on = flags.has(o.r.id), isBest = best && o === best, isPurse = purse && o === purse, g = GRADE[o.r.grade];
     const other = !foal ? null : horse(pnFlags()[o.r.id]);
     return `<div class="pn-row v${o.v} ${on ? "on" : ""}">
       <div class="pn-v">${pnStars(o.v)}${o.v === "t" ? pnStars(o.tv, "sm") : ""}${o.tune ? pnTuneMark(o) : ""}<span>${o.v === "x" ? "Can't run" : o.v === "t" ? "Trainer job" : ["", "Outside", "Good", "Strong"][o.v]}</span></div>
-      <div class="pn-rt"><div class="pn-rn"><b>${esc2(o.r.name)}</b><span class="g ${g.cls}">${g.short}</span>${isBest ? `<em class="pn-best">Best idea</em>` : ""}</div>
-        <div class="pn-meta">${pnMeta(o.r)}</div><p class="pn-say">${esc2(pnRowComment(h, o, isBest))}</p>
+      <div class="pn-rt"><div class="pn-rn"><b>${esc2(o.r.name)}</b><span class="g ${g.cls}">${g.short}</span>${isBest || isPurse ? `<em class="pn-best ${isPurse ? "purse" : recs.perfect ? "perfect" : ""}">${recLabel(o)}</em>` : ""}</div>
+        <div class="pn-meta">${pnMeta(o.r)}</div><p class="pn-say">${esc2(pnRowComment(h, o, isBest))}${isPurse ? ` The big purse: ${money(o.r.prizes[0])} to the winner, for a smaller chance than ${p.p} best fit.` : isBest && recs.perfect && all.length > 1 ? " The best chance and the best prize for the chance: a perfect fit." : ""}</p>
         ${other && o.v !== "x" ? `<p class="pn-note">Flagged now: ${esc2(other.name)}. Your flag would take its place.</p>` : ""}</div>
       ${o.v === "x" ? "" : `<button class="pn-flag ${on ? "on" : ""}" type="button" ${foal ? `data-ffl="${o.r.id}"` : `data-pflag="${o.r.id}:${h.id}"`} aria-pressed="${on}" aria-label="${on ? "Remove the flag" : "Flag this race"}">${PN_FLAG}<span>${on ? "Flagged" : "Flag"}</span></button>`}
     </div>`; };
@@ -189,6 +204,9 @@ function pnPaths(h, mode) {
   const nf = flags.size;
   return `<section class="pn-opts" id="pnOpts" data-h="${h.id}" data-mode="${mode}">
     <div class="pn-oh"><h3>${p.P} options</h3><p>Every race on your card ${p.s} could run, at each age. <b>Flag the ones you like</b>: they show in your race planner.</p></div>
+    ${best ? `<div class="pn-recs">${[[best, recs.perfect ? "Perfect fit" : "Best fit", recs.perfect ? "perfect" : "", recs.perfect ? "The most stars, and the best prize for the chance" : "The most stars: the best chance of winning"], ...(purse ? [[purse, "Big purse", "purse", `The richest race where ${p.s}'s still a good chance`]] : [])].map(([o, label, cls, why]) => { const on = flags.has(o.r.id);
+      return `<div class="pn-rec ${cls}"><em class="pn-best ${cls}">${label}</em><div class="pn-rect"><b>${esc2(o.r.name)}</b><small>${raceBits(o.r)} · ${money(o.r.prizes[0])} · ${o.age > (foal ? 2 : h.age) ? `develop to ${o.age}` : `as a ${o.age}-year-old`}</small><small class="why">${why}</small></div>${pnStars(pnStarsShown(o), "sm")}
+        <button class="pn-flag ${on ? "on" : ""}" type="button" ${foal ? `data-ffl="${o.r.id}"` : `data-pflag="${o.r.id}:${h.id}"`} aria-pressed="${on}">${PN_FLAG}<span>${on ? "Flagged" : "Flag"}</span></button></div>`; }).join("")}</div>` : ""}
     <div class="pn-tp"><i class="pn-trface" aria-hidden="true"></i><span><b>Not sure where to start?</b> Your trainer flags ${p.p} strongest chances for you.</span>
       <button class="tb-btn sm pn-gold" type="button" ${foal ? `data-fpicks="1"` : `data-hpicks="${h.id}"`}>${PN_FLAG} Flag the trainer's picks</button></div>
     ${pnKey()}

@@ -1479,3 +1479,15 @@ details.fold > summary > span{font-size:13px}
 .vt-i svg{width:20px;height:20px;fill:currentColor}
 .vt-i .pn-fl{width:18px;height:18px;color:currentColor}.vt-i .pn-fl .cloth{fill:var(--tb-gold)}
 .tb-btn.must-read,.tb-btn.must-read:disabled{opacity:1;background:#e9e3d3;border-color:#d7ccb4;color:#5b5442;cursor:default}
+/* the two recommendations (owner, 15 Nov night) */
+.pn-best.perfect{background:linear-gradient(135deg,#8a6420,#e8c770 40%,#c99a3c);color:#2a210b}
+.pn-best.purse{background:#2f5a3c;color:#fff}
+.pn-recs{display:grid;gap:8px;margin:0 0 12px}
+.pn-rec{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:12px;background:#fffaf0;border:2px solid var(--tb-gold)}
+.pn-rec.purse{border-color:#2f5a3c;background:#f1f7f2}
+.pn-rec > .pn-best{flex:none}
+.pn-rect{flex:1;min-width:0;display:grid;gap:2px}
+.pn-rect b{font-family:var(--tb-serif);font-size:16px}
+.pn-rect small{font-size:12px;color:var(--tb-muted)}
+.pn-rect small.why{color:#4a4940;font-weight:600}
+@media (max-width:480px){ .pn-rec{flex-wrap:wrap} .pn-rec > .pn-best{order:-1} }
