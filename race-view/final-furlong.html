@@ -3050,26 +3050,34 @@ const DOCK = (() => {
   try { if (localStorage.getItem("tb-dock") === "0" || params.get("dock") === "0") show(false); } catch {}
 
   // --- course map: the whole layout in grey, the race's own route in green, a dot per runner in its colours
-  const lines = PATH ? [PATH.pts] : [LOOP.pts.concat([LOOP.pts[0]]), [[0, 0], [COURSE.straightMile.length || 1609.3, 0]], [COURSE.roundMileSpur.from, COURSE.roundMileSpur.to]];
+  // (a course with several routes, York: the whole layout from all its routes, not only this race's)
+  const lines = COURSE.routes ? Object.values(COURSE.routes).map((r) => r.pathRail.points)
+    : PATH ? [PATH.pts] : [LOOP.pts.concat([LOOP.pts[0]]), [[0, 0], [COURSE.straightMile.length || 1609.3, 0]], [COURSE.roundMileSpur.from, COURSE.roundMileSpur.to]];
   const route = [];
   for (let u = 0; u <= DIST; u += 12) route.push(toWorld(u, 0));
-  const all = lines.flat().concat(route);
+  // the map turned to read as the course's own plan (VIEW.mapTurn, degrees: York 180, its home straight along the
+  // bottom running left to right with the stands below, as the racing papers' plans); everything is drawn inside a
+  // group turned by it, so the runners' dots turn with it
+  const MT = VIEW.mapTurn || 0, mc = Math.cos(MT * Math.PI / 180), ms = Math.sin(MT * Math.PI / 180);
+  const turnPt = (p) => [p[0] * mc - p[1] * ms, p[0] * ms + p[1] * mc];
+  const all = lines.flat().concat(route).map(turnPt);
   const minX = Math.min(...all.map((p) => p[0])), maxX = Math.max(...all.map((p) => p[0])), minZ = Math.min(...all.map((p) => p[1]));
   let maxZ = Math.max(...all.map((p) => p[1]));
   // the other course where they meet (the Rowley Mile at the July Course's junction): room for its first few hundred metres
   // beyond this course's own layout, so the fork shows; the rest of it runs off the edge of the map
-  if (NEIGH) maxZ = Math.max(maxZ, ...NEIGH.map.filter(([x, z]) => z <= maxZ + 320 && x >= minX && x <= maxX).map((p) => p[1]));
+  if (NEIGH && !MT) maxZ = Math.max(maxZ, ...NEIGH.map.filter(([x, z]) => z <= maxZ + 320 && x >= minX && x <= maxX).map((p) => p[1]));
   const pad = (maxX - minX) * 0.05;
   svg.setAttribute("viewBox", `${minX - pad} ${minZ - pad} ${maxX - minX + pad * 2} ${maxZ - minZ + pad * 2}`);
   svg.setAttribute("preserveAspectRatio", "xMidYMid meet");
+  const mapG = el("g", MT ? { transform: `rotate(${MT})` } : {}, svg);
   const unit = (maxX - minX) / 170;                                        // about one screen pixel at desktop size
   const pathOf = (pts) => "M" + pts.map((p) => p[0].toFixed(1) + " " + p[1].toFixed(1)).join("L");
-  if (NEIGH) el("path", { d: pathOf(NEIGH.map), fill: "none", stroke: "#ddd3b6", "stroke-width": unit * 4, "stroke-linejoin": "round", "stroke-linecap": "round" }, svg);   // the other course
-  for (const l of lines) el("path", { d: pathOf(l), fill: "none", stroke: "#cbbd97", "stroke-width": unit * 4, "stroke-linejoin": "round", "stroke-linecap": "round" }, svg);
-  el("path", { d: pathOf(route), fill: "none", stroke: "#1f5a38", "stroke-width": unit * 2.4, "stroke-linejoin": "round", "stroke-linecap": "round", opacity: 0.85 }, svg);
+  if (NEIGH) el("path", { d: pathOf(NEIGH.map), fill: "none", stroke: "#ddd3b6", "stroke-width": unit * 4, "stroke-linejoin": "round", "stroke-linecap": "round" }, mapG);   // the other course
+  for (const l of lines) el("path", { d: pathOf(l), fill: "none", stroke: "#cbbd97", "stroke-width": unit * 4, "stroke-linejoin": "round", "stroke-linecap": "round" }, mapG);
+  el("path", { d: pathOf(route), fill: "none", stroke: "#1f5a38", "stroke-width": unit * 2.4, "stroke-linejoin": "round", "stroke-linecap": "round", opacity: 0.85 }, mapG);
   const [sx, sz] = toWorld(0, 0);
-  el("circle", { cx: sx, cy: sz, r: unit * 3.2, fill: "#f4ead2", stroke: "#1f5a38", "stroke-width": unit * 1.2 }, svg);           // the start
-  el("rect", { x: -unit * 1.2, y: -unit * 6, width: unit * 2.4, height: unit * 12, fill: "#b5523b" }, svg);                     // the winning post
+  el("circle", { cx: sx, cy: sz, r: unit * 3.2, fill: "#f4ead2", stroke: "#1f5a38", "stroke-width": unit * 1.2 }, mapG);           // the start
+  el("rect", { x: -unit * 1.2, y: -unit * 6, width: unit * 2.4, height: unit * 12, fill: "#b5523b" }, mapG);                     // the winning post
   const dots = [];
   for (let i = 0; i < RUNNERS; i++) dots.push(el("circle", { r: unit * 6.5, fill: silkFor(i).colour, stroke: "#fff", "stroke-width": unit * 1.6 }, svg));
 
@@ -3138,7 +3146,7 @@ const DOCK = (() => {
       lastDots = tn;
       now.forEach((h, i) => { const [x, z] = toWorld(Math.max(0, Math.min(h[0], DIST + 60)), h[1]); dots[i].setAttribute("cx", x.toFixed(1)); dots[i].setAttribute("cy", z.toFixed(1)); });
       const order = now.map((h, i) => [h[0], i]).sort((a, b) => b[0] - a[0]);
-      if (dots.length && lastTop !== order[0][1]) { lastTop = order[0][1]; svg.appendChild(dots[lastTop]); }   // the leader's dot on top
+      if (dots.length && lastTop !== order[0][1]) { lastTop = order[0][1]; dots[lastTop].parentNode.appendChild(dots[lastTop]); }   // the leader's dot on top
       // the order strip and the pace: a few times a second
       if (performance.now() - lastOrder < 200 && !params.has("still")) return;
       lastOrder = performance.now();

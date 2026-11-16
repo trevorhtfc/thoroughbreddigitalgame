@@ -140,6 +140,18 @@ def perimeter(S, C, W, sp, rnd=None):
     r7 = R["chute7f"]
     belt("chute7f", r7.d1 - 5, r7.d1 - 220, depth=(25, 40))                                  # G4: along the 7f chute
 
+    # inside the 1m6f spur (the tracking car is outside it, looking in across the track): boards 14 m inside the inside
+    # rail and a belt of trees behind them, so the long races' early pictures end in planting, not open common
+    lo, hi = d_x(-140, 1500, 2900), rf.d1 - 2; k = 0
+    for d in np.arange(lo, hi, 6.0):
+        (bx, bz), nrm = rf.at(d, -W - 14.0)
+        boards.append([r2(bx), r2(bz), r2(math.degrees(math.atan2(nrm[0], nrm[1]))), DESIGNS[k % 4], 1.4]); k += 1
+    for d in np.arange(lo, hi, 6.0):
+        for _ in range(2):
+            (x, z), _n = rf.at(d + rnd.uniform(-3, 3), -W - rnd.uniform(22, 45))
+            tree(x, z, rnd.uniform(1.1, 1.6), belt=1)
+    taken.append(LineString([tuple(rf.at(d_, -W - 14.0)[0]) for d_ in np.arange(lo, hi, 5.0)]).buffer(4.0))
+
     # ------------------------------------------------------------------ light blue: shallow banks with pockets of trees
     def bank(route, da, db, a, b, h, pockets, step=5.0):
         r = R[route]; lo, hi = sorted((da, db)); L = hi - lo
@@ -178,6 +190,7 @@ def perimeter(S, C, W, sp, rnd=None):
         tree(x - tx * back, z - tz * back, rnd.uniform(1.1, 1.6), belt=1)
 
     # ------------------------------------------------------------------ OSM: woods, fields, houses, roads, hedges
+    filler0 = len(trees)                                   # (the trees from here to filler1 are OSM filler: thinned below)
     osm = load_osm()
     box = Polygon([(-760, -520), (1500, -520), (1500, 1150), (-760, 1150)])
     def poly_of(rs):
@@ -249,7 +262,7 @@ def perimeter(S, C, W, sp, rnd=None):
                 if ln.length < 5: continue
                 road = ln.buffer(w / 2, cap_style=2).difference(keep_out)
                 for g in getattr(road, "geoms", [road]):
-                    if g.area > 20 and box.intersects(g): S.flat("#b9b4a6", list(g.exterior.coords)[:-1], 0.025)
+                    if g.area > 20 and box.intersects(g) and g.distance(turf) < 300: S.flat("#b9b4a6", list(g.exterior.coords)[:-1], 0.025)
                 if h in ("primary", "trunk", "unclassified"):
                     for s in np.arange(0, ln.length, 16.0):
                         q = ln.interpolate(s); q2 = ln.interpolate(min(s + 1, ln.length))
@@ -259,6 +272,7 @@ def perimeter(S, C, W, sp, rnd=None):
                             if box.contains(Point(x, z)) and free(x, z) and rnd.random() < 0.8:
                                 tree(x, z, rnd.uniform(1.0, 1.5))
 
+    filler1 = len(trees)
     # ------------------------------------------------------------------ light purple: the car parks, as a lighter festival
     def park(poly, seed_pieces, balloons=0, face=(0.0, 1.0), strip=70.0):
         """a car park on race day, as a lighter festival: a strip along the side facing the course (marquees, a big top,
@@ -285,7 +299,7 @@ def perimeter(S, C, W, sp, rnd=None):
                 x, z = rnd.uniform(x0, x1), rnd.uniform(z0, z1)
                 if ok(x, z, 4.0):
                     sp("balloon_pod", x, z, rnd.uniform(0, 360), people=0.3); placed.append((x, z, 4.0)); break
-        for _ in range(int(front.area * 0.06)):                                    # a thinner crowd
+        for _ in range(int(front.area * 0.025)):                                   # a thinner crowd
             x, z = rnd.uniform(x0, x1), rnd.uniform(z0, z1)
             if front.contains(Point(x, z)) and not S.blocked(x, z):
                 S.person(x, 0.0, z, round(rnd.uniform(-3.14, 3.14), 2))
@@ -332,4 +346,20 @@ def perimeter(S, C, W, sp, rnd=None):
     for _ in range(70):
         zz = rnd.uniform(-90, 110); x = rnd.uniform(1262, 1320)
         if not turf.buffer(22).contains(Point(x, zz)): tree(x, zz, rnd.uniform(1.1, 1.6), belt=1, dy=max(0.0, 4.0 * math.sin(math.pi * min(max((x - 1250) / 40, 0), 1)) ** 0.8 - 0.3))
-    return trees, boards, banks
+    # ------------------------------------------------------------------ tailored to the cameras (owner, 16 Nov: "lots of
+    # planting that seems to be well beyond graphic scope... tailor all planting to the views / cameras")
+    # Every race camera is on the course or close to it, low down (3 to 16 m up), and the near belts hide what is behind
+    # them. So: everything within 130 m of the turf stays; from 110 to 300 m a fifth stays, a little bigger, as the
+    # skyline over the near belts; beyond 300 m nothing (the far ground is bare grass under the haze).
+    from shapely.prepared import prep
+    near, far = prep(turf.buffer(110.0)), prep(turf.buffer(300.0))
+    # Only the filler from the map is thinned: the planting set out for the owner's zones (belts, banks and their
+    # pockets, the car parks' tree lines, the mound at the far end) stays whole, as it is there to close the views.
+    kept = trees[:filler0] + trees[filler1:]
+    for t in trees[filler0:filler1]:
+        q = Point(t[0], t[1])
+        if near.contains(q): kept.append(t)
+        elif far.contains(q) and rnd.random() < 0.22:
+            t[3] = r2(t[3] * 1.15); kept.append(t)
+    print("   perimeter trees:", len(trees), "->", len(kept))
+    return kept, boards, banks

@@ -240,7 +240,7 @@ def york_scenery(W, ground, C):
         for (a, fa), (b, fb) in zip(pts[:-1], pts[1:]):
             if d <= b: return fa + (fb - fa) * (d - a) / (b - a)
         return 46
-    rail.people(S, -128, 300, 15.6, 47.0, 0.16, lambda d: front(d) - 1.0)        # the lawn back to the stands (the set back)
+    rail.people(S, -128, 300, 15.6, 47.0, 0.12, lambda d: front(d) - 1.0)        # the lawn back to the stands (the set back)
     # the Clock Tower on top of the festival bank, facing the course, and its people
     piece, x, z, turn, sc = CLOCK_TOWER
     put(piece, x, z, turn, sc, dens=1.2, pad=3.0)
@@ -410,6 +410,9 @@ def main():
     view["_about"] = ("The race view's cameras and dressing for York. Written by tools/course/york/to_race_view.py; don't edit by hand. "
                       "World axes as york.json (left-handed: the stands on -z).")
     view["races"]["_default"] = "1m2f"
+    # the dock's course map turned to read as the course's plan (owner, 16 Nov: "looks upside down"): the home straight
+    # along the bottom, running left to right to the post, the stands below it, the top bend on the right
+    view["mapTurn"] = 180
     NM.write("york-view.json", view, 1)
 
     # ---- scenery: the stands, the Clock Tower and the festival side (phase 4), and the finish-line kit on the inside rail

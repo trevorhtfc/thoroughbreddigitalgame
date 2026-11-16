@@ -554,5 +554,6 @@
   "holdAfterOff": 4.0,
   "passAt": 8,
   "hideAfter": 350
- }
+ },
+ "mapTurn": 180
 }
