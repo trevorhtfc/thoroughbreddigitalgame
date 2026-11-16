@@ -74,8 +74,8 @@ def route_bits(route, W):
 #   2 (blue) the pavilions, turned further, from the line into the bend;
 #   1 (light blue) the big pavilion, turned furthest, round the bend.
 # Placed end to end from the big pavilion southwards (_chain). Set back from the outer rail (z -26.4): about 12 m at the
-# big pavilion, 14-20 m at the pavilions, 19 m to 30 m round the Ebor stand, 36 m at the Knavesmire stand (a step back
-# and lower, as the owner's photo), 44 m at the end stand.
+# big pavilion, 14-20 m at the pavilions, 19 m to 30 m round the Ebor stand's bend, then 30 m on one straight line
+# along the Ebor stand's straight run, the Knavesmire stand (a step lower) and the end stand.
 EBOR_KINK, EBOR_LEFT, EBOR_RIGHT = 24.0, 27.0, 29.0          # as build_york_stands.py's ebor_stand (its json says so too)
 
 
@@ -98,14 +98,15 @@ def _chain():
     X, Z = left[0] + EBOR_LEFT * math.cos(k), left[1] - EBOR_LEFT * math.sin(k)
     out.append(("york_stand_north", round(X, 2), round(Z, 2), 0.0, 1.0))
     end = (X + EBOR_RIGHT, Z)
-    # the Knavesmire stand, 8 m on and a step (6 m) further back
-    zk = Z - 6.0
+    # the Knavesmire stand and the end stand on the same front line as the Ebor stand's straight run (owner, 16 Nov
+    # evening: "aligning 1 2 and 3 in a neat line"): the step between them is in height only
+    zk = Z
     links.append((end, (end[0] + 8.0, zk)))
     out.append(("york_stand_south", round(end[0] + 8.0 + 22.0, 2), round(zk, 2), 0.0, 1.0))
     end = (end[0] + 8.0 + 44.0, zk)
     # the end stand, 12 m on
-    links.append((end, (end[0] + 12.0, -70.0)))
-    out.append(("york_end_stand", round(end[0] + 12.0 + 66.5, 2), -70.0, 0.0, 1.0))
+    links.append((end, (end[0] + 12.0, Z)))
+    out.append(("york_end_stand", round(end[0] + 12.0 + 66.5, 2), round(Z, 2), 0.0, 1.0))
     return out, links
 STANDS, LINKS = _chain()
 CLOCK_TOWER = ("york_clock_tower", 88.0, 52.0, 180.0, 1.0)
@@ -235,7 +236,7 @@ def york_scenery(W, ground, C):
     rail.people(S, -128, 300, 1.2, 9.1, 0.95)                                    # the rail crowd, facing the track
     rail.people(S, -128, 300, 9.1, 15.6, 0.45)
     def front(d):                                      # roughly how far back the stand fronts are (the set back), by metres to go
-        pts = [(-130, 11), (-60, 12), (-40, 14), (-15, 18), (9, 30), (38, 30), (46, 36), (90, 36), (102, 44), (300, 44)]
+        pts = [(-130, 11), (-60, 12), (-40, 14), (-15, 18), (9, 30), (300, 30)]
         for (a, fa), (b, fb) in zip(pts[:-1], pts[1:]):
             if d <= b: return fa + (fb - fa) * (d - a) / (b - a)
         return 46
