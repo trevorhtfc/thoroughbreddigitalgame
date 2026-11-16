@@ -58,6 +58,120 @@ def route_bits(route, W):
     return tan, right, outer, strip
 
 
+# ------------------------------------------------------------------------------------------------ the stands and the festival
+# Owner, 16 Nov (left to right as seen from the infield, so north first; pieces from tools/blender/build_york_stands.py):
+# 1 the big pavilion (the July old pavilion, four balconied storeys, red roof, clock gable), turned with the top bend;
+# 2 Ascot's tall blocks and iron lace mixed; 3 the grand canopy over the terrace profile in two cranked runs with a lawn
+# terrace in front, one a little taller; 4 the Rowley Mile's Victorian stand, longer than the plan; 5 the festival side
+# banking up away from the course to the Clock Tower (the judge's box with Ascot's belfry on it).
+# Each: piece, x, z (the middle of its front, on the ground; z < 0 the stand side), turn (degrees, 0 = facing +z, the
+# track), scale. Fronts about 10 m behind the outer rail, a lawn between.
+STANDS = [
+    ("york_big_pavilion", -96.0, -46.0, 35.0, 1.0),
+    ("york_pavilions", -36.0, -41.0, 12.0, 1.0),
+    ("york_stand_north", 24.0, -37.0, 6.0, 0.94),      # the crank: the north run turned a little towards the post,
+    ("york_stand_south", 101.0, -38.0, 0.0, 1.07),     # the south run square to the straight and a little taller
+    ("york_end_stand", 222.0, -37.0, 0.0, 1.0),
+]
+CLOCK_TOWER = ("york_clock_tower", 88.0, 52.0, 180.0, 1.0)
+BANK = {"x": [-20.0, 290.0], "z": [9.0, 66.0], "height": 3.5, "fadeX": 45.0, "back": 150.0,
+        "note": "the festival side's bank (owner, 16 Nov): rising from the rail lawn to the Clock Tower, then easing back down"}
+
+
+def bank_h(x, z):
+    """The festival bank's height at (x, z): 0 on the course and the stand side."""
+    (x0, x1), (z0, z1) = BANK["x"], BANK["z"]
+    if z <= z0: return 0.0
+    sm = lambda t: (lambda u: u * u * (3 - 2 * u))(min(max(t, 0.0), 1.0))
+    up = sm((z - z0) / (z1 - z0)) * (1.0 - sm((z - z1) / BANK["back"]))
+    side = sm((x - x0) / BANK["fadeX"]) * sm((x1 - x) / BANK["fadeX"])
+    return BANK["height"] * up * side
+
+
+def ground_grid(cell=10.0):
+    x0, x1, z0, z1 = -200.0, 460.0, -60.0, 300.0
+    nx, nz = int((x1 - x0) / cell) + 1, int((z1 - z0) / cell) + 1
+    h = [round(bank_h(x0 + i * cell, z0 + j * cell), 2) for j in range(nz) for i in range(nx)]
+    return {"x0": x0, "z0": z0, "cell": cell, "nx": nx, "nz": nz, "h": h,
+            "note": "York's ground: flat, but for the festival side's bank rising to the Clock Tower (tools/course/york/to_race_view.py BANK)."}
+
+
+def york_scenery(W, ground):
+    import random
+    S = NM.Scene(16, ground)
+    rnd = random.Random(16)
+    info = json.loads((REPO / "assets/models/architecture/york_stands.json").read_text())["pieces"]
+    spots = json.loads((REPO / "assets/models/architecture/site_props_spots.json").read_text())["pieces"]
+    sizes = NM.SP_SIZE
+
+    def put(piece, x, z, turn, sc=1.0, dens=1.5, pad=1.0):
+        pi = info[piece]
+        S.piece("york_stands", piece, x, z, turn, sc, sc)
+        S.footprint(pi, x, z, turn, 1.0, sc, pad)
+        S.stand_people(pi, x, z, turn, 1.0, sc, dens)
+    # the stands, a paved apron in front of each, and the lawn back from the rail packed with racegoers
+    for piece, x, z, turn, sc in STANDS:
+        put(piece, x, z, turn, sc, dens=1.45)
+        hw = info[piece]["width"] / 2 * sc
+        a = math.radians(turn); ca, sa = math.cos(a), math.sin(a)
+        to_w = lambda u, v: (x + u * ca - v * sa, z - (u * sa + v * ca))
+        S.flat("#e4d8c2", [to_w(-hw - 3, -9), to_w(hw + 3, -9), to_w(hw + 3, 1), to_w(-hw - 3, 1)], 0.03)
+    S.flat("#d9c9a8", [(-95, -W - 0.6), (300, -W - 0.6), (300, -W - 4.6), (-95, -W - 4.6)], 0.025)     # the rail walk
+    S.fill(-90, 300, -W - 9.5, -W - 1.6, 0.95, NM.face(0, 1))                 # the rail crowd, facing the track
+    S.fill(-90, 300, -W - 16.0, -W - 9.5, 0.45, NM.face(0, 1))
+    # the Clock Tower on top of the festival bank, facing the course, and its people
+    piece, x, z, turn, sc = CLOCK_TOWER
+    put(piece, x, z, turn, sc, dens=1.2, pad=3.0)
+    # the festival side: the rail lawn's crowd; covered and open seating along it; terrace decks, kiosks and pergolas up
+    # the bank; long rows of white marquees either side of the tower; a big top; flags along the front
+    S.fill(-15, 290, 1.4, 7.5, 0.8, NM.face(0, -1))
+    def sp(piece, x, z, turn=180.0, sxf=1.0, sc=1.0, people=0.85):
+        S.piece("site_props", piece, x, z, turn, sxf, sc)
+        w, d = sizes[piece]
+        S.nogo.append([(x - w / 2 * sxf * sc - 0.5, z - d / 2 * sc - 0.5), (x + w / 2 * sxf * sc + 0.5, z - d / 2 * sc - 0.5),
+                       (x + w / 2 * sxf * sc + 0.5, z + d / 2 * sc + 0.5), (x - w / 2 * sxf * sc - 0.5, z + d / 2 * sc + 0.5)])
+        ca_, sa_ = math.cos(math.radians(turn)), math.sin(math.radians(turn))
+        for kind in ("seats", "stand"):
+            for lx, ly, lz in spots.get(piece, {}).get(kind, []):
+                if rnd.random() < people:
+                    S.person(x + lx * ca_ - ly * sa_, lz, z - (lx * sa_ + ly * ca_), NM.face(0, -1))
+    x = -6.0
+    while x < 285:                                                             # seating along the rail lawn
+        sp(rnd.choice(["stand_covered", "stand_open", "stand_covered"]), x, 12.0); x += rnd.uniform(26, 34)
+    x = 0.0
+    while x < 282:                                                             # flags at the front
+        sp("banner_flag", x, 9.0, people=0); x += 30.0
+    x = 4.0
+    while x < 280:                                                             # the lower bank: decks, kiosks, pergolas
+        if not 66 < x < 112:
+            sp(rnd.choice(["terrace_deck", "kiosk_awning", "pergola_picnic", "pagoda_kiosk", "kiosk_row_arched", "terrace_deck"]),
+               x + rnd.uniform(-2, 2), 24.0 + rnd.uniform(-2, 2))
+        x += rnd.uniform(14, 19)
+    for x0, x1 in ((-8.0, 66.0), (114.0, 282.0)):                               # the white marquees either side of the tower
+        x = x0
+        while x < x1 - 10:
+            piece = "marquee_peaks" if (int(x) // 25) % 3 else "marquee_clearspan"
+            w = sizes[piece][0]
+            sp(piece, x + w / 2, 40.0, people=0); x += w + 3.0
+    sp("big_top", 210.0, 64.0, people=0)
+    sp("big_top", -4.0, 62.0, people=0)
+    for x in (40.0, 140.0, 255.0):
+        sp("viewing_tower", x, 56.0)
+    S.fill(-15, 290, 15.0, 70.0, 0.32)                                         # racegoers all over the bank
+    # trees: a belt behind the stands, and the infield's trees beyond the festival
+    trees = []
+    kinds = ("oak_a", "oak_b", "oak_c", "wide_a", "wide_b")
+    x = -160.0
+    while x < 380:
+        trees.append([NM.r2(x), NM.r2(-118 - rnd.uniform(0, 30)), rnd.choice(kinds), NM.r2(rnd.uniform(1.1, 1.5)), rnd.randrange(360), 1])
+        x += rnd.uniform(9, 14)
+    for _ in range(140):
+        tx, tz = rnd.uniform(-60, 360), rnd.uniform(95, 260)
+        if not S.blocked(tx, tz):
+            trees.append([NM.r2(tx), NM.r2(tz), rnd.choice(kinds), NM.r2(rnd.uniform(1.0, 1.5)), rnd.randrange(360)])
+    return S, trees
+
+
 def main():
     C = json.loads((REPO / "courses/york-draft.json").read_text())
     W = C["trackWidth"]
@@ -95,6 +209,7 @@ def main():
         "rails": {"gap": GAP, "lines": rails, "skip": [[-16.3, 16.7, GAP]]},
         "straightMile": {"length": C["home"], "furlongPoles": poles},
         "winningPost": [0, 0],
+        "ground": ground_grid(),
     }
     NM.write("york.json", course)
 
@@ -144,15 +259,16 @@ def main():
     # track (the tracking car's side, the drone's 'across') turn round with the course's hand in the view; the fixed ones
     # (world positions) are mirrored here: York's stands are on -z
     sun = [-110, 49.5, 35.2]
-    cams = NM.cameras(W, +1, [0, 14, W + 28], ([-8, 6.5, 0.8], [0, 6.0, W * 0.65]), -C["runOut"] + 12, sun)
+    cams = NM.cameras(W, +1, [0, 16, W + 15], ([-8, 6.5, 0.8], [0, 6.0, W * 0.65]), -C["runOut"] + 12, sun)
     mz = lambda p: [p[0], p[1], r2(-p[2])]
     cams["grandstand"]["at"] = mz(cams["grandstand"]["at"])
     cams["headon"]["at"] = mz(cams["headon"]["at"])
     cams["sideon"]["at"], cams["sideon"]["look"] = mz(cams["sideon"]["at"]), mz(cams["sideon"]["look"])
     cams["sideon"]["fov"] = [46, 46]
     cams["track_straight"]["raise"] = []
-    prelude = {"label": "The runners", "seconds": 9, "eye": [[-40, 14, -(W + 31)], [-30, 13, -(W + 28)]],
-               "at": [[480, 2, -W * 0.1], [490, 2, -W * 0.2]], "fov": 42, "list": [7, 0.6], "cardAfter": 3.5}
+    # the racecard view: over the infield's rail lawn by the post, looking across at the stands and up the run-in
+    prelude = {"label": "The runners", "seconds": 9, "eye": [[-60, 16, 26], [-45, 15, 24]],
+               "at": [[150, 6, -60], [165, 6, -62]], "fov": 46, "list": [7, 0.6], "cardAfter": 3.5}
     postlude = NM.overview_after(prelude)
     director = {"tracking": True, "grandstand": 2 * F}
     menu = {"straight": [["track_straight", "Tracking"], ["grandstand", "Stand"], ["headon", "Head-on"], ["drone_straight", "Drone"]],
@@ -168,11 +284,11 @@ def main():
     view["races"]["_default"] = "1m2f"
     NM.write("york-view.json", view, 1)
 
-    # ---- scenery: the finish-line kit on the inside (infield) rail at the line, facing the stands across the track; the
-    # rest comes in the next phases (edges and borders, then the stands and the festival)
-    scen = NM.scenery_file(type("S", (), {"pieces": [], "boxes": {}, "flats": {}, "people": []}), [], [], [], ["finish_line"],
-                           {"at": [0, GAP], "turn": 180}, poles)
+    # ---- scenery: the stands, the Clock Tower and the festival side (phase 4), and the finish-line kit on the inside rail
+    S, trees = york_scenery(W, course["ground"])
+    scen = NM.scenery_file(S, trees, [], [], ["york_stands", "site_props", "finish_line"], {"at": [0, GAP], "turn": 180}, poles)
     NM.write("york-scenery.json", scen)
+    print("  ", len(S.pieces), "pieces,", len(S.people) // 4, "people,", len(trees), "trees")
     print("turf area %.0f m2, %d rail lines, %d starts" % (turf.area, len(rails), len(starts)))
 
 
