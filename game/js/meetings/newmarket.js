@@ -30,7 +30,8 @@ window.MEETINGS["newmarket"] = {
   // The going from 16 Nov 2026, drawn afresh for each meeting (they are months apart): the chances of Heavy, Softer, Good,
   // Quicker, Quick. Owner: the first and last meetings (April, October) "a little higher chance of heavy and softer but
   // still typical group is quicker or good"; the July Festival the same as Royal Ascot.
-  goingOdds: [[7, 17, 32, 30, 14], [3, 11, 30, 34, 22], [2, 9, 25, 33, 31], [3, 11, 30, 34, 22], [7, 17, 32, 30, 14]],
+  // (16 Nov, later: Heavy up to 15% in April and October and 10% in May and September, the rest scaled to suit)
+  goingOdds: [[15, 17, 30, 26, 12], [10, 12, 28, 31, 19], [2, 9, 25, 33, 31], [10, 12, 28, 31, 19], [15, 17, 30, 26, 12]],
   // Each race's course: its files are assets/course/<file>.json, -view.json, -stalls.json, -standards.json.
   // straightUpTo: races up to this many furlongs are run on the straight; views: the race in the view file, by furlongs.
   courses: {

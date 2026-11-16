@@ -946,7 +946,8 @@ chance of heavy and softer but still typically quicker or good; the July Cup the
   so the races and fields are exactly as before.
 - Royal Ascot: Tuesday Heavy 2%, Softer 9%, Good 25%, Quicker 33%, Quick 31%, drifting a little drier through the week
   (Saturday Heavy 0.5%, Softer 5.5%); Heavy at some point in about 3% of weeks; about one change of going a week.
-- Newmarket, each meeting drawn afresh: Craven and Future Champions 7 / 17 / 32 / 30 / 14; Guineas and Cambridgeshire
-  3 / 11 / 30 / 34 / 22; the July Festival as Royal Ascot.
+- Newmarket, each meeting drawn afresh (Heavy / Softer / Good / Quicker / Quick): Craven and Future Champions
+  15 / 17 / 30 / 26 / 12; Guineas and Cambridgeshire 10 / 12 / 28 / 31 / 19 (owner, later on 16 Nov: Heavy up to 15% and
+  10%); the July Festival as Royal Ascot.
 - Games started before this keep their old going (`S.ground` unset); the daily card uses the new going from 17 Nov, so
   everyone on 16 Nov's card has the same ground.
