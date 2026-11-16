@@ -799,6 +799,12 @@ document.addEventListener("click", e => {
     // on a phone the chosen race's panel is below the board of races: bring it up (owner, 15 Nov)
     const rs = document.querySelector(".rsel"); if (rs && rs.getBoundingClientRect().top > innerHeight * 0.55) rs.scrollIntoView({ block: "start", behavior: still() ? "auto" : "smooth" }); return; }
   if (d.card) { const h = horse(d.card); if (h) showHorseCard(h); return; }
+  // race week: your runner's card, to look at (owner, 16 Nov: "on the race week page we need to be able to see the horses cards")
+  if (d.wcard) { const h = horse(d.wcard), r = raceOf(d.wrace), c = h && r && check(h, r);
+    if (h) { if (typeof pnHorseCard === "function" && !PLAN_OLD) pnHorseCard(h, null, { look: true, back: "Back to race week",
+      extra: r && c && c.ok ? `<div class="pn-devd">In the <b>${esc2(r.name)}</b> (${esc2(dayTag(r.day))}): rated <b>${c.day}</b> on the day, ${rankText(c)}.</div>` : "" });
+      else showHorseCard(h); }
+    return; }
   if (d.keepdev) {
     const F = S.foal; if (!F) return;
     const id = F.h.id; keepFoal(($("#foalName") || {}).value);

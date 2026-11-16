@@ -657,7 +657,7 @@ function weekCard(r) {
   const report = res && res.report ? `<details class="rep"><summary>Race report · ${res.time.toFixed(2)}s · ${PACE_WORD[res.pace] || ""} pace</summary><ul>${res.report.map(t => `<li>${esc2(t)}</li>`).join("")}</ul></details>` : "";
   return `<article class="race"><div class="race-top">${gradeBox(r)}
     <div style="min-width:0"><h4 class="race-name">${r.name}</h4>
-      <div class="facts">${h && c.ok ? `<span class="mine">${silkImg(mySilkN())}<b>${esc2(h.name)}</b> ${rkChip(c)}<small class="rk-t">${rankText(c)}${h.style ? " · " + styleTag(h) : ""}${bookedFor(r) ? ` · ridden by ${cardName(bookedFor(r))}` : ""}${teamNote(c)}</small></span>` : `<span class="note">No runner</span>`}<span>${CARD.races[r.i].opp.length + (h ? 1 : 0)} runners</span>${fieldDots(r.i)}</div>
+      <div class="facts">${h && c.ok ? `<span class="mine"><button class="wk-card" type="button" data-wcard="${h.id}" data-wrace="${r.id}" title="See ${esc2(h.name)}'s card">${silkImg(mySilkN())}<b>${esc2(h.name)}</b><i>Card</i></button> ${rkChip(c)}<small class="rk-t">${rankText(c)}${h.style ? " · " + styleTag(h) : ""}${bookedFor(r) ? ` · ridden by ${cardName(bookedFor(r))}` : ""}${teamNote(c)}</small></span>` : `<span class="note">No runner</span>`}<span>${CARD.races[r.i].opp.length + (h ? 1 : 0)} runners</span>${fieldDots(r.i)}</div>
       ${res ? "" : forecast}
     </div>${right}</div>${report}</article>`;
 }

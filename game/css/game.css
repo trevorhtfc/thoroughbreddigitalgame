@@ -1731,3 +1731,8 @@ details.fold > summary > span{font-size:13px}
 .pn-dayg{min-width:0}
 .pn-line .pn-also{display:block;text-align:left}
 .pn-line .pn-also .rbits{display:inline;float:none;margin:0}
+/* race week: your runner's name opens its card */
+.wk-card{display:inline-flex;align-items:center;gap:6px;padding:2px 8px 2px 2px;border:1px solid var(--tb-line);border-radius:999px;background:#fff;font:inherit;color:inherit;cursor:pointer;max-width:100%}
+.wk-card b{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.wk-card i{font-style:normal;font-size:11px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--tb-green);border-left:1px solid var(--tb-line);padding-left:6px}
+.wk-card:hover{border-color:var(--tb-green)}

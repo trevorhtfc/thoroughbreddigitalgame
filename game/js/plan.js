@@ -482,16 +482,19 @@ function pnHorseCard(h, fromAge, opts = {}) {
   box.addEventListener("click", e => { if (e.target === box) { box.remove(); cardFrame = null; } });
   const p = pnHe(h), t = pnTier(pnPeak(h));
   // on a phone the card sits small beside the name, so the races are in view (big first only while it develops or trains)
-  box.innerHTML = `<div class="foal pn-hc ${dev || tr ? "" : "compact"}" role="dialog" aria-label="${esc2(h.name)}">${cardBox()}
-    <div class="fc-in"><div class="pn-hctop"><span class="pn-tiertag t-${t}">${pnTierWord[t]} · ${pnLevel(pnPeak(h))}</span><button class="tb-btn ghost sm" type="button" data-pclose="1">${pnCanEnter() ? "Back to entries" : "Back to the planner"}</button></div>
+  // opts.look: just the horse, for looking at (race week: no developing or flags once the runners are in)
+  const look = !!opts.look, backWord = look ? (opts.back || "Close") : pnCanEnter() ? "Back to entries" : "Back to the planner";
+  box.innerHTML = `<div class="foal pn-hc ${dev || tr || look ? "" : "compact"}" role="dialog" aria-label="${esc2(h.name)}">${cardBox()}
+    <div class="fc-in"><div class="pn-hctop"><span class="pn-tiertag t-${t}">${pnTierWord[t]} · ${pnLevel(pnPeak(h))}</span><button class="tb-btn ghost sm" type="button" data-pclose="1">${backWord}</button></div>
       ${tr ? `<div class="pn-devd tr"><i class="pn-trface" aria-hidden="true"></i><span>${pnJobWords(h, opts.job)}</span></div>` : ""}
       ${dev ? `<div class="pn-devd">Developed to ${h.age}: rated <b>${ratingAt(h, fromAge)} → ${ratingAt(h, h.age)}</b>, best <b>${tripText(tripAt(h, h.age))}</b></div>` : ""}
       <div class="fc-kicker">${h.age}-year-old ${h.sex === "F" ? "filly" : "colt"}</div><div class="fc-dev"><b>${esc2(h.name)}</b></div>
       <div class="fc-ped">by <b>${esc2(h.sire)}</b> out of <b>${esc2(h.dam)}</b></div>
       <div class="fc-facts"><span>Rated <b>${ratingAt(h, h.age)}</b></span><span>Best <b>${tripText(tripAt(h, h.age))}</b></span><span>Likes <b>${h.grounds.join(", ")}</b></span>${h.style ? `<span>Runs <b>${STYLE_NAME[h.style]}</b>, ${h.temper}</span>` : ""}</div>
+      ${look && opts.extra ? opts.extra : ""}
       ${pnOutlook(h)}
-      <div id="pnHcOpts">${pnPaths(h, "horse")}</div>
-      <div class="pn-bar" id="pnCardBar">${pnCardBar(h)}</div></div></div>`;
+      ${look ? `<div class="pn-bar"><button class="tb-btn" type="button" data-pclose="1">${backWord}</button></div>` : `<div id="pnHcOpts">${pnPaths(h, "horse")}</div>
+      <div class="pn-bar" id="pnCardBar">${pnCardBar(h)}</div>`}</div></div>`;
   document.body.appendChild(box);
   wireCard();
   if (tr) { toCard({ type: "show", horse: opts.before, animate: false }); setTimeout(() => toCard({ type: "trained", horse: cardPayload(h) }), 650); }
