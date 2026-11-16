@@ -1696,3 +1696,33 @@ details.fold > summary > span{font-size:13px}
 @media (max-width:360px){ .dl-day:not(.n1) .rf-top .lg{display:none} .dl-day:not(.n1) .rf-top .sh{display:inline} }
 .rf-lad span{overflow:visible;line-height:1.25;padding-bottom:1px}
 .rf{grid-template-rows:auto 1fr auto auto}
+
+/* ----- the planner's races: criteria in one clear row, the trip as a little ladder (owner, 16 Nov) ----- */
+.pn-mlad{display:inline-flex;align-items:center;gap:1.5px;flex:none;vertical-align:middle}
+.pn-mlad i{width:6px;height:9px;border-radius:1.5px;background:#e3dccb}
+.pn-mlad i.gap{margin-left:3px}
+.pn-mlad i.on{background:#b5cfbe}
+.pn-mlad i.hit{background:var(--tb-green)}
+.pn-crit{display:flex;flex-wrap:wrap;align-items:center;gap:5px 7px;margin-top:6px;font-size:12.5px}
+.pn-crit .pn-dist{font-size:14px;margin-left:-1px}
+.pn-cc{display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border-radius:999px;background:#f1ece0;color:var(--tb-ink);font-weight:700;font-size:12px;white-space:nowrap;line-height:1.3}
+.pn-cc .sx-svg{width:13px;height:13px}
+.pn-cc.sx.C{background:#e4edf6;color:#2f5f8a}.pn-cc.sx.F{background:#f6e6ee;color:#9c3d6b}.pn-cc.sx.O{background:#eeebe3;color:#55544c}
+.pn-cc.pz{background:none;padding-left:2px;color:var(--tb-muted)}
+.pn-rh{display:block;text-align:left}
+.pn-rh .pn-r1 .pn-chev{margin-left:auto}
+.pn-alsofl{display:block;margin-top:4px;font-size:12px;color:#8a5a12;line-height:1.35}
+.pn-alsofl b{color:#5b3f0c}
+.pr-t .pn-alsofl{padding:0 2px}
+.en-rh + .pn-crit{margin-top:4px}
+/* By race tiles: slim day headings */
+@media (max-width:999px){ .pr-d h4{background:none;color:var(--tb-green);padding:4px 2px;font-size:12px;letter-spacing:.18em;margin:8px 0 4px} }
+.pn-crit{gap:6px 10px}
+.pn-cg{display:inline-flex;align-items:center;gap:6px;flex-wrap:nowrap;min-width:0}
+.pn-mlad i{width:7px;height:10px}
+.g.full{width:auto;padding:1px 7px;font-size:11px;letter-spacing:.03em;white-space:nowrap}
+.pr{grid-template-columns:repeat(auto-fit,minmax(0,1fr))}
+.pr-d,.pr-t{min-width:0}
+.pr-t .pn-cg{flex-wrap:wrap;row-gap:4px}
+.pr-t .pn-crit{gap:5px 8px}
+.pr-h{flex-wrap:wrap;row-gap:3px}

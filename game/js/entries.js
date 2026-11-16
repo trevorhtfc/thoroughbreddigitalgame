@@ -63,8 +63,8 @@ function enTrainer(jobs) {
 }
 
 const enHead = r => { const g = GRADE[r.grade];
-  return `<div class="en-rh"><span class="en-day">${esc2(dayTag(r.day))}</span><span class="pn-rname">${esc2(r.name)}</span><span class="g ${g.cls}">${g.short}</span></div>
-    <div class="en-rm">${pnDistNeed(r)}<span class="pn-agel">${esc2(r.ageLabel)}</span><span class="pn-agel">1st ${money(r.prizes[0])}</span></div>`; };
+  return `<div class="en-rh"><span class="en-day">${esc2(dayTag(r.day))}</span><span class="pn-rname">${esc2(r.name)}</span><span class="g ${g.cls} full">${r.grade}</span></div>
+    ${pnCrit(r)}`; };
 
 function enRace({ r, fits }) {
   const main = fits[0], rest = fits.slice(1);

@@ -258,7 +258,17 @@ function pnPicksAll() {
 
 /* ================= The race planner ================= */
 // a race's trip in bold and the rating it takes to run (owner, 15 Nov: "distance need bolding ... showing the ratings required?")
-const pnDistNeed = r => `<b class="pn-dist">${distShow(r)}</b><span class="pn-need" title="${r.grade === "Handicap" ? `Rated ${needFor(r)} to ${HCAP_MAX} to run` : `Rated ${needFor(r)}+ to run`}">${r.grade === "Handicap" ? `${needFor(r)}–${HCAP_MAX}` : `${needFor(r)}+`}</span>`;
+// the trip as a little ladder of every trip (as on the race cards), its own step dark and its kind tinted (owner, 16 Nov:
+// "distance should always be presented by the kind of graphic")
+const pnMiniLad = r => { const k = kindOf(r.step);
+  return `<span class="pn-mlad" aria-hidden="true">${DISTANCES.map((d, i) => `<i class="${kindOf(i) === k ? "on" : ""}${i === r.step ? " hit" : ""}${i && kindOf(i) !== kindOf(i - 1) ? " gap" : ""}"></i>`).join("")}</span>`; };
+// a race's criteria in one row: trip, the rating it needs, age, sex and prize (owner, 16 Nov: "the race criteria needs to pop
+// out with sex, age and class")
+function pnCrit(r) {
+  const x = r.sex === "C" ? "C" : r.sex === "F" ? "F" : "O", w = x === "C" ? "Colts" : x === "F" ? (r.ages[0] >= 4 ? "Fillies & mares" : "Fillies") : "Colts & fillies";
+  return `<div class="pn-crit"><span class="pn-cg">${pnDistNeed(r)}</span><span class="pn-cg"><span class="pn-cc">${esc2(r.ageLabel.replace(/ .*$/, ""))}</span><span class="pn-cc sx ${x}">${sexSvg(x)}${w}</span><span class="pn-cc pz">${money(r.prizes[0])}</span></span></div>`;
+}
+const pnDistNeed = r => `${pnMiniLad(r)}<b class="pn-dist">${distShow(r)}</b><span class="pn-need" title="${r.grade === "Handicap" ? `Rated ${needFor(r)} to ${HCAP_MAX} to run` : `Rated ${needFor(r)}+ to run`}">${r.grade === "Handicap" ? `${needFor(r)}–${HCAP_MAX}` : `${needFor(r)}+`}</span>`;
 const pnWide = () => innerWidth >= 1000;
 function pnGroups() {
   if (pnNewmarket()) return DAYS.map((d, k) => ({ t: d, sub: "", races: RACES.filter(r => r.day === k) })).filter(g => g.races.length);
@@ -305,17 +315,23 @@ function pnLine(h, r, o) {
     <button class="pn-flag ${on ? "on" : ""}" type="button" data-pflag="${r.id}:${h.id}" aria-pressed="${on}" aria-label="${on ? `Remove ${esc2(h.name)}'s flag` : `Flag ${esc2(h.name)} for the ${esc2(r.name)}`}">${PN_FLAG}<span>${on ? "Flagged" : "Flag"}</span></button>
   </div>`;
 }
+// a horse flagged for more than one race: say so wherever one of them shows (owner, 16 Nov)
+function pnAlsoFl(h, r) {
+  const o = pnFlagsOf(h).filter(x => x.id !== r.id);
+  return o.length ? `<span class="pn-alsofl">${pnNewmarket() ? "Also runs in" : "Also flagged for"} ${o.map(x => `<b>${esc2(shortRace(x))}</b> (${esc2(dayTag(x.day))})`).join(", ")}${pnNewmarket() ? "" : ": it can only run once"}</span>` : "";
+}
 function pnRace(r) {
   const fits = pnFits(r), T = pnFlags(), fh = horse(T[r.id]), open = !!UI.pn.open[r.id], g = GRADE[r.grade];
   const fo = fh && pnOpt(fh, r, pnAgesFrom(fh));
   const dot = fh ? (fo && fo.v === 3 ? "strong" : "ok") : "open";
-  const sum = fh ? `<span class="pn-sum1">${PN_FLAG}<b>${esc2(fh.name)}</b>${fo ? pnStars(fo.v, "sm") : ""}</span>`
+  const sum = fh ? `<span class="pn-sum1">${PN_FLAG}<b>${esc2(fh.name)}</b>${fo ? pnStars(fo.v, "sm") : ""}</span>${pnAlsoFl(fh, r)}`
     : fits.length ? `<span class="pn-sum1 amber">No flag yet · ${fits.length} could run</span>` : `<span class="pn-sum1 none">Nobody yet</span>`;
   const shown = UI.pn.more[r.id] ? fits : fits.slice(0, 2), rest = fits.length - shown.length;
   const empty = `<p class="pn-empty">Nobody can run here yet. It's for ${esc2(r.ageLabel)} over ${distShow(r)}, rated ${needFor(r)}+${r.grade === "Handicap" ? ` and no more than ${HCAP_MAX}` : ""}.</p>`;
   return `<article class="pn-race ${open ? "open" : ""}" data-race="${r.id}">
     <button class="pn-rh" type="button" data-ropen="${r.id}" aria-expanded="${open}">
-      <span class="pn-r1"><i class="pn-dot ${dot}" aria-hidden="true"></i><span class="pn-rname">${esc2(r.name)}</span><span class="g ${g.cls}">${g.short}</span><span class="pn-rinfo">${pnDistNeed(r)}${pnNewmarket() ? `<span class="pn-agel">${esc2(r.ageLabel)}</span>` : ""}</span><i class="pn-chev" aria-hidden="true"></i></span>
+      <span class="pn-r1"><i class="pn-dot ${dot}" aria-hidden="true"></i><span class="pn-rname">${esc2(r.name)}</span><span class="g ${g.cls} full">${r.grade}</span><i class="pn-chev" aria-hidden="true"></i></span>
+      ${pnCrit(r)}
       ${open ? "" : sum}
     </button>
     ${open ? `<div class="pn-rbody">${fits.length ? shown.map(x => pnLine(x.h, r, x.o)).join("") : empty}
@@ -401,9 +417,9 @@ function pnByRace() {
   const tile = r => {
     const g = GRADE[r.grade], eh = horse(S.entries[r.id]), fh = eh || horse(T[r.id]), fo = fh && pnOpt(fh, r, pnAgesFrom(fh)), n = fh ? 0 : pnFits(r).length;
     return `<div class="pr-t ${fh ? "on" : n ? "need" : "none"}">
-      <div class="pr-h"><span class="pn-rname">${esc2(r.name)}</span><span class="g ${g.cls}">${g.short}</span></div>
-      <div class="pr-m">${pnDistNeed(r)}<span class="pn-agel">${esc2(r.ageLabel)}</span><span class="pn-agel">${money(r.prizes[0])}</span></div>
-      ${fh ? `<button class="pr-who" type="button" data-card="${fh.id}">${pnFace(fh, "sm")}<span class="pr-wn"><b>${esc2(fh.name)}</b><small>${fo ? pnStars(fo.v === "t" ? fo.tv : fo.v, "sm") : ""}${eh ? `<span class="pr-in">✓ Entered</span>` : fo ? (fo.age > fh.age ? `Develop to ${fo.age}` : `Runs at ${fo.age}`) : ""}</small></span></button>`
+      <div class="pr-h"><span class="pn-rname">${esc2(r.name)}</span><span class="g ${g.cls} full">${r.grade}</span></div>
+      ${pnCrit(r)}
+      ${fh ? `<button class="pr-who" type="button" data-card="${fh.id}">${pnFace(fh, "sm")}<span class="pr-wn"><b>${esc2(fh.name)}</b><small>${fo ? pnStars(fo.v === "t" ? fo.tv : fo.v, "sm") : ""}${eh ? `<span class="pr-in">✓ Entered</span>` : fo ? (fo.age > fh.age ? `Develop to ${fo.age}` : `Runs at ${fo.age}`) : ""}</small></span></button>${eh ? "" : pnAlsoFl(fh, r)}`
         : `<button class="pr-open" type="button" data-pgo="${r.id}">${n ? `No flag yet · ${n} could run <b>Choose ›</b>` : "Nobody can run here yet"}</button>`}
     </div>`;
   };
