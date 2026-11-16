@@ -64,15 +64,40 @@ def route_bits(route, W):
 # 2 Ascot's tall blocks and iron lace mixed; 3 the grand canopy over the terrace profile in two cranked runs with a lawn
 # terrace in front, one a little taller; 4 the Rowley Mile's Victorian stand, longer than the plan; 5 the festival side
 # banking up away from the course to the Clock Tower (the judge's box with Ascot's belfry on it).
-# Each: piece, x, z (the middle of its front, on the ground; z < 0 the stand side), turn (degrees, 0 = facing +z, the
-# track), scale. Fronts about 10 m behind the outer rail, a lawn between.
-STANDS = [
-    ("york_big_pavilion", -96.0, -46.0, 35.0, 1.0),
-    ("york_pavilions", -36.0, -41.0, 12.0, 1.0),
-    ("york_stand_north", 24.0, -37.0, 6.0, 0.94),      # the crank: the north run turned a little towards the post,
-    ("york_stand_south", 101.0, -38.0, 0.0, 1.07),     # the south run square to the straight and a little taller
-    ("york_end_stand", 222.0, -37.0, 0.0, 1.0),
-]
+# Each: piece, x, z (the middle of its front, on the ground; z < 0 the stand side), turn (degrees, 0 = facing +z, the track;
+# positive = turned with the top bend), scale.
+# Owner, 16 Nov evening, on the aerial view (north to the right): the top bend starts at the winning post (no straight past
+# the line), and the stands are set back from the course by a wide lawn (the light green), narrowing round the bend:
+#   4 (light orange) the end stand, square to the straight, furthest back;
+#   3 (pink) the two grandstands with the kink built in: the south run square to the straight, the north run turned with
+#     the bend (as the real Ebor stand, about 13 degrees) so it comes forward towards the line;
+#   2 (blue) the pavilions, turned further, from the line into the bend;
+#   1 (light blue) the big pavilion, turned furthest, round the bend.
+# Placed end to end from the OpenStreetMap footprints (Bustardthorpe, Knavesmire, Ebor, Gimcrack, Melrose stands): the set
+# back from the outer rail (z -26.4) is about 46 m at the end stand, 42 m at the south grandstand, 38 m to 24 m along the
+# north one, 24 m to 14 m along the pavilions and about 12 m at the big pavilion.
+def _chain():
+    out, end = [], None
+    # (piece, width at scale, turn, scale, front z at the south end or None to abut the previous piece's north end, gap)
+    spec = [("york_end_stand", 133.0, 0.0, 1.0, -72.5, None),
+            ("york_stand_south", 77.0 * 1.07, 0.0, 1.07, -68.5, 7.0),
+            ("york_stand_north", 63.0 * 0.94, 13.0, 0.94, -64.0, 1.5),
+            ("york_pavilions", 56.0, 22.0, 1.0, None, 1.0),
+            ("york_big_pavilion", 56.0, 30.0, 1.0, None, 1.0)]
+    x_south = 280.0                                          # the end stand's south end, up the straight
+    for piece, w, turn, sc, zs, gap in spec:
+        a = math.radians(turn); ux, uz = math.cos(a), -math.sin(a)     # along the front, towards the south end (+x)
+        if end is None:
+            sx, sz = x_south, zs
+        elif zs is not None:
+            sx, sz = end[0] - gap, zs
+        else:
+            sx, sz = end[0] - gap * ux, end[1] - gap * uz
+        cx, cz = sx - ux * w / 2, sz - uz * w / 2
+        out.append((piece, round(cx, 2), round(cz, 2), turn, sc))
+        end = (sx - ux * w, sz - uz * w)                      # its north end
+    return out[::-1]
+STANDS = _chain()
 CLOCK_TOWER = ("york_clock_tower", 88.0, 52.0, 180.0, 1.0)
 BANK = {"x": [-20.0, 290.0], "z": [9.0, 66.0], "height": 3.5, "fadeX": 45.0, "back": 150.0,
         "note": "the festival side's bank (owner, 16 Nov): rising from the rail lawn to the Clock Tower, then easing back down"}
@@ -96,7 +121,55 @@ def ground_grid(cell=10.0):
             "note": "York's ground: flat, but for the festival side's bank rising to the Clock Tower (tools/course/york/to_race_view.py BANK)."}
 
 
-def york_scenery(W, ground):
+class OuterRail:
+    """The outer (stand-side) rail by metres to go: up the straight, and past the post round the top bend (the round course's
+    run-out to its end, then the 2m loop's, which goes on round the bend)."""
+    def __init__(self, C, W):
+        self.C, self.W = C, W
+        self.circuit = C["measured"]["checks"]["the circuit (inside rail), m"]
+        self.lines = []
+        for name in ("round", "loop"):
+            r = C["routes"][name]
+            tan, right, outer, strip = route_bits(r, W + GAP)
+            self.lines.append((r["d0"], r["spacing"], outer, tan, right))
+
+    def at(self, d):
+        """(x, z), the running direction (tx, tz) and the outward normal (away from the track) at d metres to go"""
+        if d >= self.lines[0][0]:
+            d0, sp, outer, tan, right = self.lines[0]
+        else:
+            d0, sp, outer, tan, right = self.lines[1]; d = d + self.circuit
+        f = (d - d0) / sp; i = max(0, min(len(outer) - 2, int(f))); k = f - i
+        p = [outer[i][j] + (outer[i + 1][j] - outer[i][j]) * k for j in (0, 1)]
+        t = tan[i]; n = right[i]
+        return p, t, n
+
+    def place(self, d, back, extra=0.0):
+        """a piece's (x, z, turn) with the middle of its front 'back' metres behind the rail at d, square to it"""
+        (x, z), (tx, tz), (nx, nz) = self.at(d)
+        turn = math.degrees(math.atan2(tz, -tx)) + extra               # 0 = facing +z on the straight (running towards -x)
+        return x + nx * back, z + nz * back, turn
+
+    def strip(self, d0, d1, b0, b1, step=4.0):
+        """a band b0..b1 metres behind the rail from d0 to d1 metres to go, as one polygon"""
+        a, b = [], []
+        d = d0
+        while d <= d1 + 1e-6:
+            (x, z), _, (nx, nz) = self.at(d)
+            a.append((x + nx * b0, z + nz * b0)); b.append((x + nx * b1, z + nz * b1)); d += step
+        return a + b[::-1]
+
+    def people(self, S, d0, d1, b0, b1, density, upto=None):
+        """racegoers over a band behind the rail, facing the track (upto(d): no further back than this)"""
+        for u, v in S.spots(d0, d1, b0, b1, density):
+            if upto and v > upto(u): continue
+            (x, z), _, (nx, nz) = self.at(u)
+            px, pz = x + nx * v, z + nz * v
+            if not S.blocked(px, pz):
+                S.person(px, 0.0, pz, NM.face(-nx, -nz))
+
+
+def york_scenery(W, ground, C):
     import random
     S = NM.Scene(16, ground)
     rnd = random.Random(16)
@@ -110,21 +183,28 @@ def york_scenery(W, ground):
         S.footprint(pi, x, z, turn, 1.0, sc, pad)
         S.stand_people(pi, x, z, turn, 1.0, sc, dens)
     # the stands, a paved apron in front of each, and the lawn back from the rail packed with racegoers
+    rail = OuterRail(C, W)
     for piece, x, z, turn, sc in STANDS:
         put(piece, x, z, turn, sc, dens=1.45)
         hw = info[piece]["width"] / 2 * sc
         a = math.radians(turn); ca, sa = math.cos(a), math.sin(a)
         to_w = lambda u, v: (x + u * ca - v * sa, z - (u * sa + v * ca))
         S.flat("#e4d8c2", [to_w(-hw - 3, -9), to_w(hw + 3, -9), to_w(hw + 3, 1), to_w(-hw - 3, 1)], 0.03)
-    S.flat("#d9c9a8", [(-95, -W - 0.6), (300, -W - 0.6), (300, -W - 4.6), (-95, -W - 4.6)], 0.025)     # the rail walk
-    S.fill(-90, 300, -W - 9.5, -W - 1.6, 0.95, NM.face(0, 1))                 # the rail crowd, facing the track
-    S.fill(-90, 300, -W - 16.0, -W - 9.5, 0.45, NM.face(0, 1))
+    S.flat("#d9c9a8", rail.strip(-130, 300, 0.2, 4.2), 0.025)                    # the rail walk, round the bend too
+    rail.people(S, -128, 300, 1.2, 9.1, 0.95)                                    # the rail crowd, facing the track
+    rail.people(S, -128, 300, 9.1, 15.6, 0.45)
+    def front(d):                                      # roughly how far back the stand fronts are (the set back), by metres to go
+        pts = [(-130, 11), (-60, 12), (-40, 14), (0, 24), (57, 38), (60, 42), (145, 42), (150, 46), (300, 46)]
+        for (a, fa), (b, fb) in zip(pts[:-1], pts[1:]):
+            if d <= b: return fa + (fb - fa) * (d - a) / (b - a)
+        return 46
+    rail.people(S, -128, 300, 15.6, 47.0, 0.16, lambda d: front(d) - 1.0)        # the lawn back to the stands (the set back)
     # the Clock Tower on top of the festival bank, facing the course, and its people
     piece, x, z, turn, sc = CLOCK_TOWER
     put(piece, x, z, turn, sc, dens=1.2, pad=3.0)
     # the festival side: the rail lawn's crowd; covered and open seating along it; terrace decks, kiosks and pergolas up
     # the bank; long rows of white marquees either side of the tower; a big top; flags along the front
-    S.fill(-15, 290, 1.4, 7.5, 0.8, NM.face(0, -1))
+    S.fill(-4, 290, 1.4, 7.5, 0.8, NM.face(0, -1))
     def sp(piece, x, z, turn=180.0, sxf=1.0, sc=1.0, people=0.85):
         S.piece("site_props", piece, x, z, turn, sxf, sc)
         w, d = sizes[piece]
@@ -163,7 +243,7 @@ def york_scenery(W, ground):
     kinds = ("oak_a", "oak_b", "oak_c", "wide_a", "wide_b")
     x = -160.0
     while x < 380:
-        trees.append([NM.r2(x), NM.r2(-118 - rnd.uniform(0, 30)), rnd.choice(kinds), NM.r2(rnd.uniform(1.1, 1.5)), rnd.randrange(360), 1])
+        trees.append([NM.r2(x), NM.r2(-132 - rnd.uniform(0, 30)), rnd.choice(kinds), NM.r2(rnd.uniform(1.1, 1.5)), rnd.randrange(360), 1])
         x += rnd.uniform(9, 14)
     for _ in range(140):
         tx, tz = rnd.uniform(-60, 360), rnd.uniform(95, 260)
@@ -179,7 +259,8 @@ def main():
     for name, r in C["routes"].items():
         tan, right, outer, strip = route_bits(r, W)
         strips.append(strip)
-        bends = [[b[0], b[1], abs(b[2])] for b in r["bends"]]
+        # the race engine's bends: the top bend past the post (the run-out) is left out; it starts at the line
+        bends = [[b[0], b[1], abs(b[2])] for b in r["bends"] if b[0] > 25.0]
         home = min([b[1] for b in bends], default=0.0)
         routes_out[name] = {"pathRail": {"d0": r["d0"], "spacing": r["spacing"], "points": r["insideRail"]},
                             "path": {"bends": bends, "home": home,
@@ -259,7 +340,7 @@ def main():
     # track (the tracking car's side, the drone's 'across') turn round with the course's hand in the view; the fixed ones
     # (world positions) are mirrored here: York's stands are on -z
     sun = [-110, 49.5, 35.2]
-    cams = NM.cameras(W, +1, [0, 16, W + 15], ([-8, 6.5, 0.8], [0, 6.0, W * 0.65]), -C["runOut"] + 12, sun)
+    cams = NM.cameras(W, +1, [0, 16, W + 15], ([-8, 6.5, 0.8], [0, 6.0, W * 0.65]), -70.0, sun)
     mz = lambda p: [p[0], p[1], r2(-p[2])]
     cams["grandstand"]["at"] = mz(cams["grandstand"]["at"])
     cams["headon"]["at"] = mz(cams["headon"]["at"])
@@ -278,6 +359,7 @@ def main():
         TRACK_W = W; RUN_ON = C["runOut"]; STRAIGHT = C["home"]
     view = NM.view_file("york", L, {"name": "York"}, stalls, -1, cams, prelude, postlude, director, menu)
     view["homeStraight"]["centreZ"] = -W / 2
+    view["lanesStraight"]["x"][0] = 0.0                                # the mown lanes stop at the line: the bend starts there
     view["treeDetail"]["centre"] = [150, -W / 2]
     view["_about"] = ("The race view's cameras and dressing for York. Written by tools/course/york/to_race_view.py; don't edit by hand. "
                       "World axes as york.json (left-handed: the stands on -z).")
@@ -285,7 +367,7 @@ def main():
     NM.write("york-view.json", view, 1)
 
     # ---- scenery: the stands, the Clock Tower and the festival side (phase 4), and the finish-line kit on the inside rail
-    S, trees = york_scenery(W, course["ground"])
+    S, trees = york_scenery(W, course["ground"], C)
     scen = NM.scenery_file(S, trees, [], [], ["york_stands", "site_props", "finish_line"], {"at": [0, GAP], "turn": 180}, poles)
     NM.write("york-scenery.json", scen)
     print("  ", len(S.pieces), "pieces,", len(S.people) // 4, "people,", len(trees), "trees")

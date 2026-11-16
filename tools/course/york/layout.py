@@ -40,7 +40,8 @@ OSM = json.loads((REPO / "reference/york/osm-york.json").read_text())
 # top bend joins the back straight) and the 2m start (just before the post): see the checks printed by main().
 POST_LAT = 53.94078
 TRACK_W = 26.0          # the game's track width (OSM's turf measures about 22-30 m along the straight: printed by main())
-RUN_OUT = 90.0          # the straight carries on past the post before the top bend (owner may want more for the head-on camera)
+RUN_OUT = 90.0          # how far the routes carry on past the post: round the top bend, which starts at the line (owner,
+                        # 16 Nov: no straight past the winning post; the post is at the very end of the straight, as the plans)
 TRIPS = {"5f": 5, "6f": 6, "7f": 7, "1m": 8, "1m1f": 9, "1m2f": 10, "1m4f": 12, "1m6f": 14, "2m": 16}
 ROUTE = {"5f": "straight", "6f": "straight", "7f": "chute7f", "1m4f": "far", "1m6f": "far", "2m": "loop"}   # the rest: "round"
 STEP = 5.0              # the inside rail sampled every STEP metres
@@ -112,7 +113,10 @@ JOIN7 = d_on_ring(ll(53.933008, -1.093063)) + 0.0      # the 7f chute joins the 
 JOINF = d_on_ring(ll(SPUR_JOIN_LAT, -1.101370))        # the 1m6f chute joins the back straight
 
 def runout_pts():
-    return [POST + RUN * k for k in np.arange(RUN_OUT, 0, -2.0)]
+    """past the post: the round course's inside rail into the top bend (no straight run-out). The post stands a little
+    under a metre off OSM's inner edge, so that offset is eased out over the first 30 m."""
+    off = POST - LOOP.at(S_POST)[0]
+    return [ring_back(-k) + off * max(0.0, 1.0 - k / 30.0) for k in np.arange(RUN_OUT, 0, -2.0)]
 
 def route_points(name):
     """inside rail from the end of the run-out, through the post, back to the route's far end: in reverse running order
