@@ -38,7 +38,7 @@ exec(_july("old_pavilion").replace('roof="slate", wall="paint"', 'roof=ROOF_MAT,
 exec(_july("judges_box"))
 
 # materials the borrowed pieces use that the Rowley palette hasn't got (the July Course's own colours)
-EXTRA = {"paint": "#f4e6d0", "deck": "#dcc4a2", "stone": "#f2e4cc", "tile": "#cf8f73", "screen": "#2f3340",
+EXTRA = {"canopy": "#9aa1ab", "canopy_under": "#6d7480", "teal": "#7fa7aa", "paint": "#f4e6d0", "deck": "#dcc4a2", "stone": "#f2e4cc", "tile": "#cf8f73", "screen": "#2f3340",
          "clock_face": "#fbf5ea", "clock_dark": "#2a2c30", "pot": "#d08a6c"}
 for k, v in EXTRA.items():
     if k not in MATS:
@@ -71,20 +71,123 @@ def big_pavilion(L=52.0):
 
 
 # ------------------------------------------------------------------------------------------ 2: the smaller pavilions
-def pavilion_mix():
-    """Ascot's ironwork and tall-block profiles mixed, as along the Ascot stand: a four-storey tall block, a run of iron
-    lace, and a three-storey tall block with a room on its roof. Mixed heights, no slivers (every length 5 bays or more):
-    56 m, about the plan's footprint."""
-    runs = [("block", 5, {"storeys": 4}), ("iron", 6, {"levels": 3}), ("block", 5, {"storeys": 3, "roof_room": True})]
-    L = sum(n for _, n, _ in runs) * BAY
+def pavilion_pair():
+    """Owner, 16 Nov evening: the pavilion mix was too big, "reduce to 2 stands or make them a bit smaller and cuter".
+    Two small buildings side by side from Ascot's kit: an iron-lace pavilion of two levels and a three-storey tall
+    block with a room on its roof, a little lane between them. About 31 m in all."""
+    nb, gap, D = 4, 3.0, 14.0
+    w = nb * BAY
+    L = 2 * w + gap
     x = -L / 2
-    for i, (kind, n, kw) in enumerate(runs):
-        party = tuple(p for p, ok in (("left", i > 0), ("right", i < len(runs) - 1)) if ok)
-        seg = dict({"x0": x, "x1": x + n * BAY, "depth": 20.0, "party": party}, **kw)
-        (block if kind == "block" else ironwork)(seg)
-        x += n * BAY
-    # a flight of steps on the front of the middle block, out onto the lawn
-    return {"width": round(L, 2), "depth": 20.0, "height": round(P + 4 * S + 4.0, 2)}
+    ironwork({"x0": x, "x1": x + w, "depth": D, "levels": 2, "party": ()})
+    K.hip_roof(x - 0.3, x + w + 0.3, -0.5, D + 0.3, P + 2 * S + 0.35, 2.4, 0.4)       # a little hipped roof
+    block({"x0": x + w + gap, "x1": x + L, "depth": D, "storeys": 3, "party": (), "roof_room": True})
+    return {"width": round(L, 2), "depth": D, "height": round(P + 3 * S + 3.6 + 1.0, 2)}
+
+
+# ------------------------------------------------------------------------------------------ 3: the two grandstands
+def canopy_grandstand(L, tiers, tower=False, link=0.0):
+    """York's two big stands (owner, 16 Nov evening, with photos of the Ebor and Knavesmire stands: "this is the
+    proportion we want", "this nice step between the 2 stands"): tall and fairly short, as the real ones, in our hand.
+    From the lawn back:
+      - open standing steps rising from the lawn (the crowd right down to the rail lawn);
+      - a raked seating deck over a glazed concourse;
+      - balconied tiers stacked one over another, a glazed wall behind;
+      - an open band of white frame and cross braces under the roof;
+      - the deep canopy, thin at its front edge, tipping up towards the course and reaching out over the deck,
+        with a pale teal fascia.
+    tiers: balcony tiers (the Ebor stand 4, the Knavesmire stand 2: the step between them). tower: a brick stair tower
+    at the left end (the Ebor stand's, as the photo). link: a low glazed link with steps off the left end, filling
+    the step between the two stands. Origin: the middle of the front (the foot of the steps) on the ground."""
+    h = L / 2
+    R, tr, rs = 9, 1.0, 0.34                                     # the standing steps
+    yS = R * tr                                                   # their back: the concourse front
+    prof = [(0.0, -1.0)]
+    for i in range(R):
+        prof += [(i * tr, 0.2 + i * rs), ((i + 1) * tr, 0.2 + i * rs)]
+        area(-h + 0.3, h - 0.3, i * tr + 0.1, (i + 1) * tr - 0.1, 0.2 + i * rs)
+    prof += [(yS, -1.0)]
+    K.prism_x("steps", -h, h, prof)
+    zd = 0.2 + R * rs + 1.2                                       # the seating deck's front, over the concourse
+    yW = yS + 7.0                                                 # the glazed wall behind the balconies
+    D = yW + 16.0                                                 # the back of the building
+    # the concourse under the deck: glazed, recessed
+    K.box("wall", -h, h, yS + 1.2, D, -1.0, zd)
+    K.screen(-h, h, yS + 1.15, 0.0, zd - 0.6)
+    K.box("trim", -h, h, yS - 0.1, yS + 1.2, zd - 0.45, zd)
+    # the raked seating deck: rows from the deck's front edge back to the glazed wall
+    rows, dtr, drs = 6, (yW - yS) / 6, 0.42
+    prof = [(yS, zd - 0.5)]
+    for i in range(rows):
+        prof += [(yS + i * dtr, zd + i * drs), (yS + (i + 1) * dtr, zd + i * drs)]
+        K.box("seat", -h + 0.4, h - 0.4, yS + (i + 1) * dtr - 0.45, yS + (i + 1) * dtr - 0.12, zd + i * drs, zd + i * drs + 0.42)
+        area(-h + 0.4, h - 0.4, yS + i * dtr + 0.05, yS + (i + 1) * dtr - 0.5, zd + i * drs)
+    prof += [(yW, zd - 0.5)]
+    K.prism_x("concrete", -h, h, prof)
+    K.box("glass", -h + 0.2, h - 0.2, yS - 0.02, yS + 0.08, zd, zd + 1.0)              # a glass rail to the deck
+    K.box("trim", -h, h, yS - 0.06, yS + 0.12, zd + 1.0, zd + 1.12)
+    # the balcony tiers
+    zb0 = zd + rows * drs + 2.4
+    SB = 3.7
+    yB = yW - 2.2                                                 # balcony front
+    K.box("wall", -h, h, yW, D, zd, zb0 + tiers * SB)
+    for k in range(tiers):
+        z = zb0 + k * SB
+        K.box("trim", -h, h, yB - 0.15, yW, z - 0.3, z)                         # the slab
+        K.box("glass", -h + 0.1, h - 0.1, yB - 0.02, yB + 0.06, z, z + 1.0)     # glass balustrade
+        K.box("trim", -h, h, yB - 0.08, yB + 0.12, z + 1.0, z + 1.12)
+        K.screen(-h, h, yW - 0.05, z, SB - 0.45)
+        area(-h + 0.4, h - 0.4, yB + 0.35, yW - 0.3, z)
+    zT = zb0 + tiers * SB                                         # the top of the tiers
+    K.box("trim", -h, h, yB - 0.15, D, zT - 0.3, zT)
+    # the open band of frame and braces under the roof
+    zR = zT + 4.2                                                 # the canopy's back edge (it rises towards the front)
+    yF, zF, th = yS - 2.0, zR + 5.0, 0.6                          # its front edge: out over the deck and the top steps
+    yU0, zU0, yU1, zU1 = yF + 0.4, zF - 1.3, D + 0.8, zR - 0.6     # its underside, front to back
+    under = lambda y: zU0 + (zU1 - zU0) * (y - yU0) / (yU1 - yU0)
+    nb = max(2, round(L / 8.0))
+    for i in range(nb + 1):
+        x = -h + L * i / nb
+        K.box("trim", x - 0.32, x + 0.32, yB - 0.6, yB, zd, under(yB) + 0.1)   # the big front frame columns
+        K.box("trim", x - 0.25, x + 0.25, D - 0.5, D, zT, zR)
+        if i < nb and not K.far:
+            xa, xb = x + 0.3, x + L / nb - 0.3
+            strut("trim", (xa, yB - 0.3, zT + 0.2), (xb, yB - 0.3, zR + 0.9), r=0.09)
+            strut("trim", (xb, yB - 0.3, zT + 0.2), (xa, yB - 0.3, zR + 0.9), r=0.09)
+    K.box("trim", -h, h, yB - 0.6, yB, zT + 0.0, zT + 0.35)
+    K.box("glass", -h, h, yW + 1.5, yW + 1.6, zT, zR - 0.2)                     # a glazed back to the band
+    # the canopy: front edge well out over the deck, tipping up towards the course
+    K.prism_x("canopy", -h - 1.2, h + 1.2, [(yF, zF), (D + 0.8, zR + 0.3), (D + 0.8, zR + 0.3 + th), (yF, zF + th)])
+    K.prism_x("canopy_under", -h - 1.2, h + 1.2, [(yU0, zU0), (yU1, zU1), (D + 0.8, zR + 0.3), (yF, zF)])
+    K.box("teal", -h - 1.25, h + 1.25, yF - 0.25, yF + 0.05, zF - 1.35, zF + th + 0.2)        # the fascia
+    for x in (-h - 1.2, h + 1.2):                                                            # the canopy's thin ends
+        K.prism_x("teal", x - 0.08, x + 0.08, [(yF, zF + th + 0.2), (D + 0.8, zR + 0.3 + th + 0.1), (D + 0.8, zR + 0.2), (yF, zF + th - 0.1)])
+    # the ends: closed side walls up the tiers
+    K.box("wall", -h - 0.25, -h, yW, D, zd, zT)
+    K.box("wall", h, h + 0.25, yW, D, zd, zT)
+    top = zF + th + 0.2
+    if tower:                                                     # the brick stair tower at the left end
+        tx0, tx1 = -h - 6.5, -h - 0.3
+        K.box("brick", tx0, tx1, yS + 2.0, D - 1.0, -1.0, zR + 0.5)
+        K.box("trim", tx0 - 0.15, tx1 + 0.15, yS + 1.85, D - 0.85, zR + 0.5, zR + 0.9)
+        for k in range(int((zR - 3) // 3.7)):
+            K.box("glass", tx0 + 1.8, tx1 - 1.8, yS + 1.95, yS + 2.05, 2.5 + k * 3.7, 4.6 + k * 3.7)
+        K.door((tx0 + tx1) / 2, yS + 2.0, 0.0, 1.6, 2.6)
+    if link > 0:                                                  # the low link and steps off the left end (the step)
+        lx0, lx1 = -h - link, -h
+        prof = [(0.0, -1.0)]
+        for i in range(R):
+            prof += [(i * tr, 0.2 + i * rs), ((i + 1) * tr, 0.2 + i * rs)]
+            area(lx0 + 0.3, lx1 - 0.3, i * tr + 0.1, (i + 1) * tr - 0.1, 0.2 + i * rs)
+        prof += [(yS, -1.0)]
+        K.prism_x("steps", lx0, lx1, prof)
+        K.box("wall", lx0, lx1, yS + 1.2, D - 2.0, -1.0, zd + 4.0)
+        K.screen(lx0, lx1, yS + 1.15, 0.0, zd + 3.2)
+        K.box("trim", lx0 - 0.2, lx1, yS + 0.6, D - 1.8, zd + 4.0, zd + 4.4)
+        K.balustrade(lx0, lx1, yS + 0.8, zd + 4.4, h=1.0, mat="trim", spacing=0.3, piers=False)
+        area(lx0 + 0.4, lx1 - 0.4, yS + 1.2, D - 2.5, zd + 4.4)
+    info = {"width": round(L, 2), "depth": round(D + 0.8, 2), "height": round(top, 2)}
+    return info
 
 
 # ------------------------------------------------------------------------------------------ 5: the Clock Tower
@@ -120,11 +223,11 @@ def clock_tower():
 # ------------------------------------------------------------------------------------------ build and export
 PIECES = [
     ("york_big_pavilion", lambda: big_pavilion(52.0)),
-    ("york_pavilions", pavilion_mix),
-    # 3: the grand canopy over the terrace profile, behind a lawn terrace (the Rowley Mile's grand pavilion stand), in two
-    # cranked runs; the second with a stair drum at the crank. Height variation: placed at different scales in the layout.
-    ("york_stand_north", lambda: grand_pavilion_stand(18, 14, 1.0, 0.2)),                  # 63 m
-    ("york_stand_south", lambda: grand_pavilion_stand(22, 14, 1.0, 0.2, drum=True)),       # 77 m, the drum at its left end
+    ("york_pavilions", pavilion_pair),
+    # 3: the two grandstands (owner, 16 Nov evening, with photos): the Ebor stand tall with four balconied tiers and a
+    # brick stair tower, the Knavesmire stand a step lower with two, a low link between; each under its own deep canopy
+    ("york_stand_north", lambda: canopy_grandstand(44.0, 4, tower=True)),
+    ("york_stand_south", lambda: canopy_grandstand(46.0, 2, link=7.0)),
     # 4: the Rowley Mile's Victorian stand, longer than the plan's
     ("york_end_stand", lambda: grand_pavilion_stand(34, 10, 1.0, 0.28, end_pavilion=True, roof="hipped")),   # 119 m + 14 m
     ("york_clock_tower", clock_tower),

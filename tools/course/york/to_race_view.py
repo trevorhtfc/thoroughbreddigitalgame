@@ -73,30 +73,30 @@ def route_bits(route, W):
 #     the bend (as the real Ebor stand, about 13 degrees) so it comes forward towards the line;
 #   2 (blue) the pavilions, turned further, from the line into the bend;
 #   1 (light blue) the big pavilion, turned furthest, round the bend.
-# Placed end to end from the OpenStreetMap footprints (Bustardthorpe, Knavesmire, Ebor, Gimcrack, Melrose stands): the set
-# back from the outer rail (z -26.4) is about 46 m at the end stand, 42 m at the south grandstand, 38 m to 24 m along the
-# north one, 24 m to 14 m along the pavilions and about 12 m at the big pavilion.
+# Placed end to end from the big pavilion southwards (_chain). Set back from the outer rail (z -26.4): about 12 m at the
+# big pavilion, 14-20 m at the pavilions, 17 m to 26 m along the Ebor stand, 34 m at the Knavesmire stand (a step back
+# and lower, as the owner's photo), 44 m at the end stand.
 def _chain():
-    out, end = [], None
-    # (piece, width at scale, turn, scale, front z at the south end or None to abut the previous piece's north end, gap)
-    spec = [("york_end_stand", 133.0, 0.0, 1.0, -72.5, None),
-            ("york_stand_south", 77.0 * 1.07, 0.0, 1.07, -68.5, 7.0),
-            ("york_stand_north", 63.0 * 0.94, 13.0, 0.94, -64.0, 1.5),
-            ("york_pavilions", 56.0, 22.0, 1.0, None, 1.0),
-            ("york_big_pavilion", 56.0, 30.0, 1.0, None, 1.0)]
-    x_south = 280.0                                          # the end stand's south end, up the straight
-    for piece, w, turn, sc, zs, gap in spec:
-        a = math.radians(turn); ux, uz = math.cos(a), -math.sin(a)     # along the front, towards the south end (+x)
-        if end is None:
-            sx, sz = x_south, zs
-        elif zs is not None:
-            sx, sz = end[0] - gap, zs
-        else:
-            sx, sz = end[0] - gap * ux, end[1] - gap * uz
-        cx, cz = sx - ux * w / 2, sz - uz * w / 2
-        out.append((piece, round(cx, 2), round(cz, 2), turn, sc))
-        end = (sx - ux * w, sz - uz * w)                      # its north end
-    return out[::-1]
+    """From the big pavilion (owner: "1 looks good", kept where it was) southwards up the straight, each piece's north
+    end a gap from the last one's south end. Owner, 16 Nov evening, with photos of the Ebor and Knavesmire stands: 2
+    smaller (two little stands), 3 shorter and in the real proportion, "this nice step between the 2 stands"."""
+    out = [("york_big_pavilion", -79.56, -14.83, 30.0, 1.0)]
+    a = math.radians(30.0); end = (-79.56 + 28.0 * math.cos(a), -14.83 - 28.0 * math.sin(a))   # its south end
+    # (piece, width, turn, front z at the south end or None to follow on, gap before it (room for a tower or link
+    # sticking out at its north end))
+    spec = [("york_pavilions", 31.0, 22.0, None, 2.0),
+            ("york_stand_north", 44.0, 13.0, None, 8.0),         # the Ebor stand: its stair tower in the gap
+            ("york_stand_south", 46.0, 0.0, -60.0, 8.0),         # the Knavesmire stand, a step back and lower: link in the gap
+            ("york_end_stand", 133.0, 0.0, -70.0, 14.0)]
+    for piece, w, turn, zs, gap in spec:
+        t = math.radians(turn); ux, uz = math.cos(t), -math.sin(t)      # along the front, towards the south end (+x)
+        nx_, nz_ = end[0] + gap * ux, end[1] + gap * uz                  # its north end
+        cx, cz = nx_ + ux * w / 2, nz_ + uz * w / 2
+        if zs is not None:
+            cz = zs
+        out.append((piece, round(cx, 2), round(cz, 2), turn, 1.0))
+        end = (cx + ux * w / 2, cz + uz * w / 2)
+    return out
 STANDS = _chain()
 CLOCK_TOWER = ("york_clock_tower", 88.0, 52.0, 180.0, 1.0)
 BANK = {"x": [-20.0, 290.0], "z": [9.0, 66.0], "height": 3.5, "fadeX": 45.0, "back": 150.0,
@@ -194,7 +194,7 @@ def york_scenery(W, ground, C):
     rail.people(S, -128, 300, 1.2, 9.1, 0.95)                                    # the rail crowd, facing the track
     rail.people(S, -128, 300, 9.1, 15.6, 0.45)
     def front(d):                                      # roughly how far back the stand fronts are (the set back), by metres to go
-        pts = [(-130, 11), (-60, 12), (-40, 14), (0, 24), (57, 38), (60, 42), (145, 42), (150, 46), (300, 46)]
+        pts = [(-130, 11), (-60, 12), (-40, 14), (-15, 17), (26, 26), (32, 33), (85, 33), (92, 43), (300, 43)]
         for (a, fa), (b, fb) in zip(pts[:-1], pts[1:]):
             if d <= b: return fa + (fb - fa) * (d - a) / (b - a)
         return 46
