@@ -17,7 +17,7 @@ at 0, the straight course's far end at about +1220), z +infield; the back straig
   banks     light blue: shallow grassy banks (as the Dyke, about half its height), with pockets of trees on them
   fields    pink: the farmers' fields round the chutes (OSM farmland), hedged
   parks     light purple: the car parks, as a lighter festival: marquees, a big top, kiosks, the balloon pods,
-            flags and boards, a thinner crowd on trodden ground
+            flags and boards, a thinner crowd on trodden ground; no cars (owner: "we dont need them")
   the rest  OSM woods filled with trees; leafy suburbs (garden trees) where OSM has houses; roads with trees along
             them; field hedges; and at the far end of the straight course a mound with boards and trees across the
             head-on camera's view.
@@ -260,10 +260,9 @@ def perimeter(S, C, W, sp, rnd=None):
                                 tree(x, z, rnd.uniform(1.0, 1.5))
 
     # ------------------------------------------------------------------ light purple: the car parks, as a lighter festival
-    CARS = ["#c9c9c4", "#ecebe5", "#5d6066", "#3f4d66", "#8c4a46", "#6d86a3", "#2f3134", "#cbbf9f", "#c9c9c4", "#ecebe5"]
-    def park(poly, seed_pieces, balloons=0, face=(0.0, 1.0), strip=55.0):
-        """a car park on race day: a festival strip along the side facing the course (marquees, a big top, kiosks,
-        flags, a thinner crowd on trodden ground), and rows of parked cars on the grass behind it"""
+    def park(poly, seed_pieces, balloons=0, face=(0.0, 1.0), strip=70.0):
+        """a car park on race day, as a lighter festival: a strip along the side facing the course (marquees, a big top,
+        kiosks, flags, a thinner crowd on trodden ground), a loose line of trees behind it"""
         poly = poly.difference(turf.buffer(14.0))
         g = max(getattr(poly, "geoms", [poly]), key=lambda q: q.area)
         front = g.intersection(turf.buffer(14.0 + strip))
@@ -290,22 +289,16 @@ def perimeter(S, C, W, sp, rnd=None):
             x, z = rnd.uniform(x0, x1), rnd.uniform(z0, z1)
             if front.contains(Point(x, z)) and not S.blocked(x, z):
                 S.person(x, 0.0, z, round(rnd.uniform(-3.14, 3.14), 2))
-        # the cars: rows across the face, in pairs nose to nose with an aisle between, a few spaces empty
-        back = g.difference(turf.buffer(14.0 + strip + 6.0)).buffer(-3.0)
-        ux, uz = -fz, fx                                                           # along a row
-        yaw = math.atan2(-fz, fx)                                                  # a car's length along the face
-        cx, cz = back.centroid.x, back.centroid.y
-        R_ = math.hypot(back.bounds[2] - back.bounds[0], back.bounds[3] - back.bounds[1])
+        # (owner, 16 Nov evening: "lets remove the cars we dont need them") behind the strip, a loose line of trees
+        # closes the view; the rest stays grass
         n = 0
-        for k in range(-int(R_ / 6), int(R_ / 6) + 1):
-            off = k * 6.2 + (3.5 if k % 2 else 0.0)                                 # pairs of rows, 7 m aisles
-            for j in np.arange(-R_, R_, 2.7):
-                x, z = cx + fx * off + ux * j, cz + fz * off + uz * j
-                if rnd.random() < 0.16 or not back.contains(Point(x, z)): continue
-                c = rnd.choice(CARS)
-                S.box(c, x, z, 4.3, 1.8, 0.25, 0.95, yaw)
-                S.box("#4a5260", x - fx * 0.25, z - fz * 0.25, 2.3, 1.56, 0.95, 1.42, yaw)
-                n += 1
+        edge = turf.buffer(14.0 + strip + 10.0).exterior
+        for s_ in np.arange(0, edge.length, 9.0):
+            q = edge.interpolate(s_)
+            for _ in range(2):
+                x, z = q.x + rnd.uniform(-5, 5), q.y + rnd.uniform(-5, 5)
+                if g.contains(Point(x, z)) and free(x, z) and rnd.random() < 0.8:
+                    tree(x, z, rnd.uniform(1.1, 1.6), belt=1); n += 1
         taken.append(g)
         return g, n
     kit = [("big_top", 1, 11.0), ("marquee_peaks", 3, 13.0), ("marquee_clearspan", 2, 11.0), ("kiosk_row_arched", 3, 6.0),
@@ -313,7 +306,7 @@ def perimeter(S, C, W, sp, rnd=None):
            ("pergola_picnic", 2, 5.0), ("banner_flag", 8, 1.0)]
     lp1, n1 = park(Polygon([(428, -45), (893, -45), (893, -120), (760, -230), (428, -230)]), kit, face=(0.0, 1.0))
     lp2, n2 = park(Polygon([(-262, 0), (-262, 320), (-420, 300), (-560, -40), (-330, -70)]), kit, balloons=4, face=(1.0, 0.0))
-    print("   car parks:", n1, "and", n2, "cars")
+    print("   car parks: trees behind the strips", n1, "and", n2)
     # boards along the car parks' fronts, facing the course
     for g, (fx, fz) in ((lp1, (0.0, 1.0)), (lp2, (0.8, 0.6))):
         ring = LineString(list(g.exterior.coords)); k = 0
