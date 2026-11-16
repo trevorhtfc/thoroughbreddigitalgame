@@ -12,7 +12,7 @@
 import { runRace, makeRandom, raceDayRating, flatSettings } from "../assets/engine/engine.js";
 
 // The three courses the game races on: Ascot (Royal Ascot) and Newmarket's Rowley Mile and July Course (the Newmarket season)
-const RACECOURSES = [{ id: "ascot", name: "Ascot", short: "Ascot" }, { id: "newmarket", name: "Rowley Mile", short: "Rowley" }, { id: "newmarket-july", name: "July Course", short: "July" }];
+const RACECOURSES = [{ id: "ascot", name: "Ascot", short: "Ascot" }, { id: "newmarket", name: "Rowley Mile", short: "Rowley" }, { id: "newmarket-july", name: "July Course", short: "July" }, { id: "york", name: "York", short: "York" }];
 const SETUP_KEY = "tb-lab-setup-v1", GAME_KEY = "tb-game-royal-ascot";
 const $ = (s, el = document) => el.querySelector(s);
 const esc = (v) => String(v == null ? "" : v).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
@@ -56,7 +56,7 @@ try {
   document.querySelector("main").innerHTML = `<div class="card empty"><h2>The race engine didn't load</h2><p>${esc(e.message)}</p></div>`;
   throw e;
 }
-const LADDER = BASE.horse.TRIP_LADDER, LADDER_F = BASE.horse.TRIP_LADDER_FURLONGS, MAX_RUNNERS = Math.min(...RACECOURSES.map((rc) => CDATA[rc.id].stalls.maxRunners));
+const LADDER = BASE.horse.TRIP_LADDER, LADDER_F = BASE.horse.TRIP_LADDER_FURLONGS, MAX_RUNNERS = Math.min(...RACECOURSES.filter((rc) => rc.id !== "york").map((rc) => CDATA[rc.id].stalls.maxRunners));   // York takes 22: its races are cut to that (buildJob)
 // Every race set-up on every course: key "<course id>:<race in its view file>" (older tests and set-ups, from before
 // Newmarket was added, name Ascot's races alone: "mile" is "ascot:mile")
 const TRIPS = [].concat(...RACECOURSES.map((rc) => Object.entries(CDATA[rc.id].view.races).filter(([, v]) => v && typeof v === "object" && v.course)
@@ -183,7 +183,7 @@ function buildJob(T, k) {
     const used = new Set(list.map((h) => h.name)), silks = new Set(list.map((h) => h.silk)), want = Math.min(MAX_RUNNERS, st.size) - list.length;
     for (let j = 0; j < want; j++) list.push(randomOpp(rnd, st, rungOf(trip.distance), used, silks));
   }
-  list = list.slice(0, MAX_RUNNERS);
+  list = list.slice(0, Math.min(MAX_RUNNERS, CDATA[trip.cid || "ascot"].stalls.maxRunners));
   if (st.draw === "random") for (let i = list.length - 1; i > 0; i--) { const j = Math.floor(rnd.next() * (i + 1)); [list[i], list[j]] = [list[j], list[i]]; }
   return {
     k, ci, r, c, V: vv, trip,

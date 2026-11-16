@@ -17,7 +17,7 @@ def add(src, dst):
     if not src.exists(): raise SystemExit(f"missing {src}")
     take.append((src, out / dst))
 # the game
-for f in ["index.html", "card.html", "css/components.css", "css/game.css", "js/meetings/royal-ascot.js", "js/meetings/newmarket.js", "js/rules.js", "js/team.js", "js/accounts.js", "js/tumble.js", "js/board.js", "js/ui-parts.js", "js/ui-team.js", "js/ui.js", "js/ui-flow.js", "js/plan.js", "js/entries.js", "js/colours.js", "js/howto.js", "js/leaderboard.js", "js/life.js"]:
+for f in ["index.html", "card.html", "css/components.css", "css/game.css", "js/meetings/royal-ascot.js", "js/meetings/newmarket.js", "js/meetings/york.js", "js/rules.js", "js/team.js", "js/accounts.js", "js/tumble.js", "js/board.js", "js/ui-parts.js", "js/ui-team.js", "js/ui.js", "js/ui-flow.js", "js/plan.js", "js/entries.js", "js/colours.js", "js/howto.js", "js/leaderboard.js", "js/life.js"]:
     add(game / f, f)
 # the Race Lab (lab.html): test the race engine on any course, distance, going, field and tactics
 for f in ["lab.html", "css/lab.css", "js/lab.js", "js/lab-worker.js"]:
@@ -54,7 +54,10 @@ for c in ["newmarket", "newmarket-july"]:
         add(A / "course" / f, "assets/course/" + f)
     gl = A / "course" / f"{c}-ground-light.jpg"            # the model look's baked ground light (bake_newmarket_ground.py)
     if gl.exists(): add(gl, "assets/course/" + gl.name)
-for f in ["rowley_stands", "july_stands", "site_props", "finish_line"]:
+# York (the York season, js/meetings/york.js): the course's files (tools/course/york/to_race_view.py) and its stands
+for f in ["york.json", "york-view.json", "york-stalls.json", "york-standards.json", "york-scenery.json"]:
+    add(A / "course" / f, "assets/course/" + f)
+for f in ["rowley_stands", "july_stands", "york_stands", "site_props", "finish_line"]:
     for g in [f + ".json", f + "-geometry.txt"]:
         add(A / "architecture" / g, "assets/architecture/" + g)
 # the 3D silks and their icons: every set but the pattern catalogue's test swatches

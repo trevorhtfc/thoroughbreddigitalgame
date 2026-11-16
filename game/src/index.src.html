@@ -101,7 +101,7 @@
   <div class="menu-in">
     <div class="menu-head">
       <!-- the two seasons (owner, 10 Nov): each has its own saved game, history, titles and (later) leaderboard -->
-      <div class="menu-season" role="group" aria-label="Choose your season"><button data-season="royal-ascot">Royal Ascot<small>One week in June</small></button><button data-season="newmarket">Newmarket<small>Five meetings, April to October</small></button></div>
+      <div class="menu-season" role="group" aria-label="Choose your season"><button data-season="royal-ascot">Royal Ascot<small>One week in June</small></button><button data-season="newmarket">Newmarket<small>Five meetings, April to October</small></button><button data-season="york">York<small>May and August</small></button></div>
       <!-- two ways to play (owner, 15 Nov): Simple leaves the team out; Plus has the owner, trainer and jockey cards -->
       <div class="menu-season menu-play" role="group" aria-label="How to play"><button data-play="simple">Simple<small>Breed, buy and race</small></button><button data-play="plus">Plus<small>With your team of cards</small></button></div>
       <p class="menu-playnote" id="menuPlayNote" hidden></p>
@@ -126,12 +126,14 @@
 <script>(() => {
   const q = new URLSearchParams(location.search).get("season"); let m = q || "";
   try { if (q) localStorage.setItem("tb-season", q); m = m || localStorage.getItem("tb-season") || ""; } catch (e) {}
-  window.MEETING_ID = m === "newmarket" ? "newmarket" : "royal-ascot";
+  window.MEETING_ID = m === "newmarket" || m === "york" ? m : "royal-ascot";
   document.documentElement.dataset.season = window.MEETING_ID;
   if (window.MEETING_ID === "newmarket") document.title = "Thoroughbred Newmarket";
+  if (window.MEETING_ID === "york") document.title = "Thoroughbred York";
 })();</script>
 <script src="js/meetings/royal-ascot.js"></script>
 <script src="js/meetings/newmarket.js"></script>
+<script src="js/meetings/york.js"></script>
 <script src="silks-paint.js"></script><!-- paints a player's own colours (shared with the race view) -->
 <script src="js/rules.js"></script>
 <script src="js/team.js"></script>

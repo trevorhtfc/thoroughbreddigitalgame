@@ -33,8 +33,8 @@ function htSteps() {
     { place: "jockey", when: CHAPTERS.entries.season, title: "Make your entries",
       text: `${W.entryRule}. Each step away from a horse's best trip costs 5 from its rating, and the going counts ${W.goingCounts}: up to +5 on ground it likes, down to −10 three steps off.${teamOn ? " Book your jockeys for the rides that suit them." : ""}`,
       after: cards("Jockey") },
-    { place: "races", when: W.when, title: MEETING.id === "newmarket" ? "Race through the season" : "Race at Royal Ascot",
-      text: `${isBeginner() ? (MEETING.id === "newmarket" ? "One race at each of five meetings on the Rowley Mile and the July Course" : "Five races over five days, one a day") : MEETING.id === "newmarket" ? "Two races at each of five meetings on the Rowley Mile and the July Course" : "Ten races over five days, two a day"}. Watch each one in 3D or sim it. Rating, trip, going and pace decide a race, and a horse's running style meets the pace: front-runners suit a slow race, hold-up horses a fast one.` },
+    { place: "races", when: W.when, title: W.howTitle || (MEETING.id === "newmarket" ? "Race through the season" : "Race at Royal Ascot"),
+      text: `${W.howLine ? (isBeginner() ? W.howLineBeginner : W.howLine) : isBeginner() ? (MEETING.id === "newmarket" ? "One race at each of five meetings on the Rowley Mile and the July Course" : "Five races over five days, one a day") : MEETING.id === "newmarket" ? "Two races at each of five meetings on the Rowley Mile and the July Course" : "Ten races over five days, two a day"}. Watch each one in 3D or sim it. Rating, trip, going and pace decide a race, and a horse's running style meets the pace: front-runners suit a slow race, hold-up horses a fast one.` },
     { place: "palace", when: "Home", title: "Count the prize money",
       text: `Prize money is its own pot: what you spent doesn't count against it. It climbs a ladder of titles, from ${TITLES[TITLES.length - 1].name} to <b>${TITLES[0].name}</b> at ${money(TITLES[0].min)}, and your titles, best ${W.bestWord}s and winners hang in Palace House.` },
   ].filter(Boolean);
