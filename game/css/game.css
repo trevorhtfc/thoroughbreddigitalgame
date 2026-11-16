@@ -1540,3 +1540,62 @@ details.fold > summary > span{font-size:13px}
 .hc-trip.kind{display:grid;justify-items:center;gap:0;line-height:1.2}
 .hc-trip.kind b{font-size:1.05em}
 .hc-trip.kind small{font-size:.78em;font-weight:600;color:var(--tb-muted)}
+
+/* ----- race cards, redone (owner, 16 Nov: "text, icons etc all over the place"): the card grows to fit its words
+   instead of cutting them off; the sex is a drawn symbol, not a typed ♂ that sits off the line on an iPhone ----- */
+.dl-day .dc{height:auto;min-height:0}
+.dl-day .dc-in{height:100%}
+.dl-day .dc-face{position:relative;inset:auto;height:100%}
+.dl-day .dc-face > .rf{height:100%;min-height:124px}
+.rf{min-width:0}
+.rf-top{gap:8px;min-width:0}
+.rf-top b{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-transform:uppercase}
+.rf-top span{flex:0 0 auto;white-space:nowrap}
+.rf-top em{font-style:normal;opacity:.8}
+.rf-n{flex:1 1 auto;min-height:0;overflow-wrap:break-word;hyphens:manual}
+.rf-f{flex-wrap:wrap;align-items:center;row-gap:2px;column-gap:8px}
+.rf-f span{white-space:nowrap}
+.rf-f span:first-child{overflow:visible}
+.rf-c{display:inline-flex;align-items:center;gap:6px}
+.rf-sx{display:inline-flex;align-items:center;gap:3px;font-style:normal;line-height:1}
+.rf-sx em{font-style:normal}
+.rf-sx.C{color:#2f5f8a}.rf-sx.F{color:#9c3d6b}.rf-sx.O{color:#6b6a60}
+.sx-svg{width:14px;height:14px;flex:0 0 auto;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.rf-p{margin-left:auto}
+.rf-p em{font-style:normal;font-weight:600}
+.prog-r .rf{min-height:118px}
+@media (max-width:1100px) and (min-width:761px){
+  .dl-day .dc{height:auto}
+  .dl-day .dc-face > .rf{min-height:140px}
+  .rf-f{flex-direction:row}
+}
+/* phones: the day's name sits above its cards, so the cards get the whole width */
+@media (max-width:760px){
+  .dl-grid{gap:12px}
+  .dl-day{grid-template-columns:repeat(2,minmax(0,1fr));gap:6px 8px}
+  .dl-day.n1{grid-template-columns:minmax(0,1fr)}
+  .dl-day h4{grid-column:1/-1;flex-direction:row;align-items:center;gap:8px;margin:0;font-size:12px;letter-spacing:.16em}
+  .dl-day .dc{height:auto}
+  .dl-day .dc-face > .rf{min-height:0}
+  .rf-top{padding:4px 8px}.rf-top b{font-size:12px;letter-spacing:.05em}.rf-top span{font-size:12px}
+  .rf-n{font-size:15px;line-height:1.12;padding:6px 8px}.rf-n.long{font-size:14px}
+  .dl-day.n1 .rf-n,.dl-day.n1 .rf-n.long{font-size:17px}
+  .rf-f{font-size:11.5px;padding:4px 8px 6px}
+  .rf-f em{display:inline}
+  .rf-sx em,.rf-p em{display:none}
+  .dl-day.n1 .rf-sx em,.dl-day.n1 .rf-p em{display:inline}
+}
+@media (max-width:360px){
+  .dl-day{grid-template-columns:repeat(2,minmax(0,1fr));gap:6px}
+  .dl-day.n1{grid-template-columns:minmax(0,1fr)}
+  .rf-top{padding:4px 6px}.rf-top b{font-size:11px;letter-spacing:.03em}.rf-top span{font-size:11px}
+  .rf-n{font-size:13.5px;padding:5px 6px}.rf-n.long{font-size:12.5px}
+  .rf-f{font-size:11px;padding:3px 6px 5px}
+}
+/* the programme's cards are full width on a phone: room for the words */
+@media (max-width:760px){
+  .prog-r .rf{min-height:0}
+  .prog-r .rf-n,.prog-r .rf-n.long{font-size:17px;padding:8px}
+  .prog-r .rf-sx em,.prog-r .rf-p em{display:inline}
+}
+.sx-i .sx-svg{width:11px;height:11px;stroke-width:2}

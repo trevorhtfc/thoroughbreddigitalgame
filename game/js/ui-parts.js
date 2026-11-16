@@ -48,7 +48,7 @@ const KEY_NAMES = ["black", "red", "yellow", "blue"];
 function raceChip(r) {
   const g = GRADE[r.grade], tg = (S.targets || {})[r.id], th = tg && horse(tg), sel = S.planSel === r.id;
   return `<button class="pq ${sel ? "sel" : ""} ${th ? "has" : ""}" data-plansel="${r.id}" draggable="true" aria-pressed="${sel}" title="${r.name}${th ? " · target: " + th.name : ""}">
-    <span class="pq-t"><b class="g ${g.cls}">${g.short}</b><span>${distShow(r)}</span><span>${ageOnly(r)}</span><span class="sx-i ${r.sex || "O"}">${r.sex === "C" ? "♂" : r.sex === "F" ? "♀" : "⚥"}</span></span>
+    <span class="pq-t"><b class="g ${g.cls}">${g.short}</b><span>${distShow(r)}</span><span>${ageOnly(r)}</span><span class="sx-i ${r.sex || "O"}">${sexSvg(r.sex || "O")}</span></span>
     <span class="pq-n">${r.name.replace(/ Stakes$/, "")}</span>
     <span class="pq-b" title="Race-day rating bands, as in the board game: ${r.bands.map((b, k) => `${KEY_NAMES[k]} ${b}+`).join(", ")}">${r.bands.map((b, k) => `<i class="k-${KEY_NAMES[k]}">${b}</i>`).join("")}${r.grade === "Handicap" ? `<em title="Handicap: horses rated ${HCAP_MAX} or less">≤${HCAP_MAX}</em>` : ""}</span>
     ${th ? `<span class="pq-who">★ ${esc2(th.name)}</span>` : ""}</button>`;
@@ -467,7 +467,7 @@ function raceBoard(sel) {
   return `<div class="rb">${DAYS.map((d, k) => `<div class="rb-day"><h3>${d}</h3>${RACES.filter(r => r.day === k).map(r => {
     const h = horse(S.entries[r.id]), c = h && check(h, r), g = GRADE[r.grade];
     return `<button class="rb-r ${r.id === sel.id ? "on" : ""} ${h ? "has" : ""}" data-selrace="${r.id}" aria-pressed="${r.id === sel.id}">
-      <span class="t"><span class="g ${g.cls}">${g.short}</span>${distShow(r)} · ${ageOnly(r)} <span class="sx-i ${r.sex || "O"}" title="${r.sex === "C" ? "Colts only" : r.sex === "F" ? "Fillies only" : "Open to colts and fillies"}">${r.sex === "C" ? "♂" : r.sex === "F" ? "♀" : "⚥"}</span></span><span class="n">${r.name}</span>
+      <span class="t"><span class="g ${g.cls}">${g.short}</span>${distShow(r)} · ${ageOnly(r)} <span class="sx-i ${r.sex || "O"}" title="${r.sex === "C" ? "Colts only" : r.sex === "F" ? "Fillies only" : "Open to colts and fillies"}">${sexSvg(r.sex || "O")}</span></span><span class="n">${r.name}</span>
       <span class="w">${h ? `${c && c.ok ? `<i class="rk ${rkCls(c)}">${c.day}</i>` : ""}<em>${esc2(h.name)}</em>` : (S.targets || {})[r.id] && horse(S.targets[r.id]) ? `<span class="plan">Planned: ${esc2(horse(S.targets[r.id]).name)}</span>` : "No runner yet"}</span></button>`; }).join("")}</div>`).join("")}</div>`;
 }
 function showHorseCard(h) {

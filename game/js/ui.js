@@ -20,7 +20,7 @@ const ENTRIES_OLD = (() => {
 // where you are in the season decides which place is next, what each place offers and what the board says
 const CHAPTERS = {
   draw:      { step: 1, place: "jockey", season: "Winter", title: W.programme, hour: 10.5,
-               line: W.drawLine },
+               line: bw(W.drawLine) },
   team:      { step: 1, place: "jockey", season: "Winter", title: "Your team", hour: 11.5,
                line: "Draft your owner, trainer and jockeys: six points from the Bronze, Silver and Gold decks." },
   breed:     { step: 1, place: "stud", season: "Spring", title: "The covering season", hour: 8,
@@ -32,7 +32,7 @@ const CHAPTERS = {
   entries:   { step: 3, place: "jockey", season: "May", title: "Entries", hour: 9.5,
                line: W.entriesLine },
   week:      { step: 4, place: "races", season: W.when, title: W.weekTitle, hour: 9,
-               line: W.weekLine },
+               line: bw(W.weekLine) },
   standings: { step: 5, place: "races", season: W.when, title: "The final standings", hour: 10, line: "" },
   home:      { step: 5, place: "palace", season: "Summer", title: "Home to Newmarket", hour: 6.2,
                line: `${W.titleFrom} hangs in Palace House.` },
@@ -86,7 +86,7 @@ function cardFor(id) {
   switch (id) {
     case "jockey":
       c.kicker = "Racing's rule-makers";
-      if (ph === "draw") { c.text = W.drawText; c.cta = "See the programme"; }
+      if (ph === "draw") { c.text = bw(W.drawText); c.cta = "See the programme"; }
       else if (ph === "team") { c.text = `Draft your team: an owner, a trainer and jockeys, <b>${teamPoints()} of ${TEAM_POINTS}</b> points picked.`; c.cta = "Draft your team"; }
       else if (ph === "gallops" || ph === "entries") { c.text = `${ENTRIES_OLD ? "Make your entries" : "Develop, train and enter your horses, race by race"}: ${W.entryRule.toLowerCase()}. <b>${n} of ${RACES.length}</b> races have a runner.`; c.cta = "Make entries"; c.off = false; }
       else if (ph === "week" || ph === "standings") { c.text = `The programme, with your results so far: <b>${racesRun()} of ${RACES.length}</b> run.`; c.cta = "The programme"; }
@@ -127,7 +127,7 @@ function cardFor(id) {
       break; }
     case "races":
       c.kicker = `${W.where} · ${W.when}`;
-      if (st === "locked") { c.status = W.lockedStatus; c.text = W.lockedText; c.cta = W.go; }
+      if (st === "locked") { c.status = W.lockedStatus; c.text = bw(W.lockedText); c.cta = W.go; }
       else if (ph === "gallops" || ph === "entries") {
         c.text = `<b>${n} of ${RACES.length}</b> races have a runner. Once you leave for ${W.venue} your entries are lodged and the going is declared.`;
         c.cta = W.go;
@@ -358,10 +358,22 @@ function programmeBody() {
 // the draw: the ten races dealt onto the Jockey Club's table
 let D = null;
 const still = () => matchMedia("(prefers-reduced-motion: reduce)").matches;
+// the sex of a race as a drawn symbol (a typed ♂ ♀ ⚥ sits on a different line from the text on an iPhone)
+const SEX_SVG = {
+  C: '<circle cx="6" cy="10" r="4"/><path d="M9 7l4.5-4.5M9.5 2.5h4v4"/>',
+  F: '<circle cx="8" cy="6" r="4"/><path d="M8 10v5M5.5 12.5h5"/>',
+  O: '<circle cx="7" cy="8" r="3.6"/><path d="M9.6 5.4l3.6-3.6M10 1.8h3.2V5M7 11.6v3.6M5 13.4h4"/>' };
+const sexSvg = x => `<svg class="sx-svg" viewBox="0 0 16 16" aria-hidden="true">${SEX_SVG[x] || SEX_SVG.O}</svg>`;
 function raceFace(r) {
-  const g = GRADE[r.grade];
-  return `<div class="rf ${g.cls}"><div class="rf-top"><b>${g.short === "Hcap" ? "HANDICAP" : g.short === "Cond" ? "CONDITIONS" : r.grade.toUpperCase()}</b><span>${distShow(r)}${courseName(r) ? ` · ${courseName(r).split(" ")[0]}` : ""}</span></div>
-    <div class="rf-n ${r.name.length > 24 ? "long" : ""}">${r.name}</div><div class="rf-f"><span>${ageOnly(r)} · ${r.sex === "C" ? "♂<em> Colts</em>" : r.sex === "F" ? (r.ages[0] >= 4 ? "♀<em> F&M</em>" : "♀<em> Fillies</em>") : "⚥<em> Open</em>"}</span><span>1st ${money(r.prizes[0])}</span></div></div>`;
+  const g = GRADE[r.grade], x = r.sex === "C" ? "C" : r.sex === "F" ? "F" : "O";
+  const grade = g.short === "Hcap" ? "Handicap" : g.short === "Cond" ? "Conditions" : r.grade;
+  const trip = isBeginner() ? ["Sprint", "Mile", "Middle", "Staying"][kindOf(r.step)] : r.dist;
+  const sexWord = x === "C" ? "Colts" : x === "F" ? (r.ages[0] >= 4 ? "F & M" : "Fillies") : "Open";
+  const sexTitle = x === "C" ? "Colts only" : x === "F" ? (r.ages[0] >= 4 ? "Fillies and mares" : "Fillies only") : "Open to colts and fillies";
+  const course = courseName(r) ? courseName(r).split(" ")[0] : "";
+  return `<div class="rf ${g.cls}"><div class="rf-top"><b>${grade}</b><span>${trip}${course ? `<em> · ${course}</em>` : ""}</span></div>
+    <div class="rf-n ${r.name.length > 22 ? "long" : ""}">${r.name}</div>
+    <div class="rf-f"><span class="rf-c">${ageOnly(r)}<i class="rf-sx ${x}" title="${sexTitle}">${sexSvg(x)}<em>${sexWord}</em></i></span><span class="rf-p"><em>1st </em>${money(r.prizes[0])}</span></div></div>`;
 }
 const cardBack = (k, t) => `<div class="dc-back"><span>${k}<b>${t}</b></span></div>`;
 function dealCard(face, backHTML, cls) { return `<div class="dc ${cls || ""}"><div class="dc-in">${backHTML}<div class="dc-face">${face}</div></div></div>`; }
@@ -390,7 +402,7 @@ function dealRaces(instant) {
   if (!instant) D.phase = 1;
   $("#dealSum").classList.remove("on"); $("#dealNext").hidden = true; $("#dealSkip").hidden = false;
   $("#dealDeck").classList.remove("gone");
-  $("#dealBody").innerHTML = `<div class="dl-grid">${DAYS.map((d, k) => `<div class="dl-day"><h4>${dayTag(k)}</h4>
+  $("#dealBody").innerHTML = `<div class="dl-grid">${DAYS.map((d, k) => `<div class="dl-day n${RACES.filter(r => r.day === k).length}"><h4>${dayTag(k)}</h4>
     ${RACES.filter(r => r.day === k).map(r => dealCard(raceFace(r), cardBack(W.cardBack, "Race"), GRADE[r.grade].cls)).join("")}</div>`).join("")}</div>`;
   const cards = [...$("#dealBody").querySelectorAll(".dc")];
   if (instant || still()) { cards.forEach(c => c.classList.add("up")); if (!instant) racesDone(); return; }
@@ -405,7 +417,7 @@ function racesDone(instant) {
   $("#dealBody").querySelectorAll(".dc").forEach(c => c.classList.add("up"));
   const g1 = RACES.filter(r => r.grade === "Group 1").length, open = RACES.filter(isOpenRace).length, other = RACES.length - g1 - open;
   const top = Math.max(...RACES.map(r => r.prizes[0])), low = Math.min(...RACES.map(r => r.prizes[0]));
-  $("#dealSum").innerHTML = `<b>${g1} Group 1${g1 === 1 ? "" : "s"}</b>, ${other} other Group or Listed race${other === 1 ? "" : "s"} and ${open} handicap${open === 1 ? "" : "s"}. Winners' prizes from ${money(low)} to ${money(top)}. You have ${money(START_BUDGET)} to build a stable for them: breed at the National Stud first, then buy at Tattersalls.`;
+  $("#dealSum").innerHTML = `<b>${g1} Group 1${g1 === 1 ? "" : "s"}</b>, ${other} other Group or Listed race${other === 1 ? "" : "s"} and ${open} handicap${open === 1 ? "" : "s"}. Winners' prizes from ${money(low)} to ${money(top)}. You have ${money(isBeginner() ? BEGINNER_BUDGET : START_BUDGET)} to build a stable for them: breed at the National Stud first, then buy at Tattersalls.`;
   $("#dealSum").classList.add("on");
   $("#dealDeck").classList.add("gone"); $("#dealSkip").hidden = true;
   const n = $("#dealNext"); n.hidden = false; n.innerHTML = `To the National Stud <span aria-hidden="true">›</span>`;

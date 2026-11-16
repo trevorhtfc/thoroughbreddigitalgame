@@ -285,6 +285,8 @@ function drawDays(R) {
 // leaderboard? ... and obvs half the budget"): one race a day (a meeting at Newmarket), at least one Group 1 and one
 // handicap among them
 const isBeginner = () => !!(S && S.play === "beginner");
+// the meeting's words say ten races, two a day: Beginner has five, one a day
+const bw = t => typeof t === "string" && isBeginner() ? t.replace(/\bten races\b/g, "five races").replace(/\bTen races\b/g, "Five races").replace(/\btwo a day\b/g, "one a day").replace(/\btwo at each\b/g, "one at each") : t;
 const perDay = () => isBeginner() ? 1 : PER_DAY;
 const MIX_BEGINNER = { group1: 1, handicaps: 1, middle: 0, fillies: 0, colts: 0, maxSingleSex: 2 };
 const racesWordFor = p => p === "beginner" ? "five" : "ten";
