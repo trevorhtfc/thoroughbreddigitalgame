@@ -932,3 +932,21 @@ Keep the old as a backup: **`?planner=old`** brings back the old planner and foa
     **How this works** link brings them back.
   - The steps' key points (`HEADLINES`) now speak of the foal's options, the planner, Develop to 3 and flags at entries.
   - The horse rows' planned-race tag is a flag (⚑).
+
+## The going (16 Nov 2026)
+
+Owner: "at Ascot heavy is very very rare, quicker–quick is most likely, then good, softer is rare-ish … you can't go from
+heavy on the Tuesday to quicker on the Wednesday: we should only ever dry out by one step per day, we could get softer by
+2 per day max. In Newmarket this is across a year so we can be more varied: the first and last meetings a little higher
+chance of heavy and softer but still typically quicker or good; the July Cup the same chance as Ascot."
+
+- Each meeting file has `goingOdds` (chances of Heavy, Softer, Good, Quicker, Quick; one set, or one per day) and, for a
+  meeting on consecutive days, `goingRun` (`js/meetings/royal-ascot.js`: dries at most one step a day, softens at most
+  two; most often stays as it was). `drawGoing()` in `js/rules.js` draws it from its own stream of the season's number,
+  so the races and fields are exactly as before.
+- Royal Ascot: Tuesday Heavy 2%, Softer 9%, Good 25%, Quicker 33%, Quick 31%, drifting a little drier through the week
+  (Saturday Heavy 0.5%, Softer 5.5%); Heavy at some point in about 3% of weeks; about one change of going a week.
+- Newmarket, each meeting drawn afresh: Craven and Future Champions 7 / 17 / 32 / 30 / 14; Guineas and Cambridgeshire
+  3 / 11 / 30 / 34 / 22; the July Festival as Royal Ascot.
+- Games started before this keep their old going (`S.ground` unset); the daily card uses the new going from 17 Nov, so
+  everyone on 16 Nov's card has the same ground.
