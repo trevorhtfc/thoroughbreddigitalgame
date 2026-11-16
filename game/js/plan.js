@@ -403,7 +403,7 @@ const PN_VIEWS_PLAN_F = () => pnWide() ? [["grid", "Grid"], ["race", "By race"],
 const pnViews = () => pnCanEnter() ? [["race", "By race"], ["horse", "By horse"]].concat(pnWide() ? [["grid", "Grid"]] : []).concat(typeof enJockeysOn === "function" && enJockeysOn() ? [["jockeys", "Jockeys"]] : []) : PN_VIEWS_PLAN_F();
 // one line under the tabs saying what this view is for
 const PN_HINT_F = () => ({
-  plan: { grid: "Every horse against every race. Tap a square to flag that horse for that race.", race: pnWide() ? "Day by day: the horse flagged for each race. Tap “Choose” to pick one." : "Day by day. Tap a race to see who could run it and flag one.", horse: "Your string, best first, with the races each one is flagged for." },
+  plan: { grid: "Every horse against every race. Tap a square to flag that horse for that race.", race: "Day by day. Tap a race to see every horse that could run it, with its stars, and flag one.", horse: "Your string, best first, with the races each one is flagged for." },
   enter: { race: "Race by race, in day order: develop the horse to the right age, use your trainer, then enter it. Entered races drop to the foot.", horse: "Horse by horse: what each needs for its flagged race, and the button to do it.", grid: "Every horse against every race. Tap a square to flag; enter from By race or By horse.", jockeys: "The last step before the races: which of your jockeys helps which runner most." },
 });
 const pnViewKey = () => pnCanEnter() ? "tb-pnview-e" : "tb-pnview";
@@ -428,7 +428,7 @@ function pnByRace() {
 // By race on a phone: the races day by day, each opening to show every horse that could run it
 function pnRaceList() {
   return `<div class="pn-all"><span>Tap a race to open it</span><button type="button" data-pall="1">Open all</button><button type="button" data-pall="0">Close all</button></div>
-    ${DAYS.map((d, k) => ({ t: d, races: RACES.filter(r => r.day === k) })).filter(g => g.races.length).map(g => `<div class="pn-g pn-gday"><h4>${esc2(g.t)}</h4></div>${g.races.map(pnRace).join("")}`).join("")}`;
+    <div class="pn-days">${DAYS.map((d, k) => ({ t: d, races: RACES.filter(r => r.day === k) })).filter(g => g.races.length).map(g => `<section class="pn-dayg"><div class="pn-g pn-gday"><h4>${esc2(g.t)}</h4></div>${g.races.map(pnRace).join("")}</section>`).join("")}</div>`;
 }
 // By horse: your string, best first, each with the races it is flagged for (or its best fit)
 function pnByHorse() {
@@ -465,7 +465,7 @@ function pnPlanner() {
   return `<section class="pn">${banner}${nmRules}${pnViewBar()}${hint}
     <div class="pn-tools"><span class="pn-count" title="Your string">${typeof ICON !== "undefined" && ICON.stable ? `<svg viewBox="0 0 512 512" aria-hidden="true">${ICON.stable}</svg>` : ""}<b>${S.stable.length}</b> horse${S.stable.length === 1 ? "" : "s"}${need ? ` · <em>${need} need${need === 1 ? "s" : ""} a race</em>` : ""}</span><span><b>${flagged} of ${RACES.length}</b> races flagged</span><button class="tb-btn sm pn-gold" type="button" data-ppicks="1">${PN_FLAG} Flag the trainer's picks</button><button class="pn-how" type="button" data-ptips="1">How this works</button></div>
     ${pnKey()}
-    ${view === "race" ? (pnWide() ? pnByRace() : pnRaceList()) : view === "horse" ? pnByHorse() : pnWide() ? pnGrid() : `<div class="pn-all"><span>Tap a race to open it</span><button type="button" data-pall="1">Open all</button><button type="button" data-pall="0">Close all</button></div>
+    ${view === "race" ? pnRaceList() : view === "horse" ? pnByHorse() : pnWide() ? pnGrid() : `<div class="pn-all"><span>Tap a race to open it</span><button type="button" data-pall="1">Open all</button><button type="button" data-pall="0">Close all</button></div>
       ${pnGroups().map(g => `<div class="pn-g"><h4>${esc2(g.t)}</h4>${g.sub ? `<p>${esc2(g.sub)}</p>` : ""}</div>${g.races.map(pnRace).join("")}`).join("")}`}
     ${pnCanEnter() ? enNext(view) : ""}
   </section>`;
@@ -609,7 +609,7 @@ document.addEventListener("click", e => {
   if (d.pall) { RACES.forEach(r => { UI.pn.open[r.id] = d.pall === "1"; }); render(); return; }
   // (the view tabs are data-pnv: data-pview is the stud's and the sale's own "job" / "plan" switch, kept as it was)
   if (d.pnv) { try { localStorage.setItem(pnViewKey(), d.pnv); } catch (err) {} render(); return; }
-  if (d.pgo) { try { localStorage.setItem(pnViewKey(), pnWide() ? "grid" : "race"); } catch (err) {} UI.pn.open[d.pgo] = true; render();
+  if (d.pgo) { try { localStorage.setItem(pnViewKey(), "race"); } catch (err) {} UI.pn.open[d.pgo] = true; render();
     const el = document.querySelector(`[data-prow="${d.pgo}"], .pn-race[data-race="${d.pgo}"]`);
     if (el) { el.scrollIntoView({ block: "center", behavior: "smooth" }); el.classList.add("pn-hl"); setTimeout(() => el.classList.remove("pn-hl"), 2200); } return; }
   if (d.pstring) { try { localStorage.setItem("tb-string", pnStringOpen() ? "closed" : "open"); } catch (err) {} render(); return; }

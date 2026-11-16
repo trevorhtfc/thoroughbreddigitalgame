@@ -1726,3 +1726,8 @@ details.fold > summary > span{font-size:13px}
 .pr-t .pn-cg{flex-wrap:wrap;row-gap:4px}
 .pr-t .pn-crit{gap:5px 8px}
 .pr-h{flex-wrap:wrap;row-gap:3px}
+/* By race on a wide screen: the days side by side in two or three columns */
+@media (min-width:1000px){ .pn-days{display:grid;grid-template-columns:repeat(auto-fill,minmax(420px,1fr));gap:4px 16px;align-items:start} }
+.pn-dayg{min-width:0}
+.pn-line .pn-also{display:block;text-align:left}
+.pn-line .pn-also .rbits{display:inline;float:none;margin:0}
