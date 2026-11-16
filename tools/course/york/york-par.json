@@ -1,0 +1,52 @@
+{
+ "_about": "Written by calibrate.mjs: the par (seconds) the race engine uses at York, so its winning times match the targets.",
+ "par": {
+  "y5f": 57.1,
+  "y6f": 69.39,
+  "y7f": 83.04,
+  "y1m": 97.32,
+  "y1m1f": 110.51,
+  "y1m2f": 130.35,
+  "y1m4f": 153.16,
+  "y1m6f": 180.76,
+  "y2m": 210.42
+ },
+ "measured": {
+  "y5f": {
+   "winning time (before the last step)": 57.99,
+   "target": 58
+  },
+  "y6f": {
+   "winning time (before the last step)": 69.98,
+   "target": 70
+  },
+  "y7f": {
+   "winning time (before the last step)": 83.5,
+   "target": 83.5
+  },
+  "y1m": {
+   "winning time (before the last step)": 97.49,
+   "target": 97.5
+  },
+  "y1m1f": {
+   "winning time (before the last step)": 110.46,
+   "target": 110.5
+  },
+  "y1m2f": {
+   "winning time (before the last step)": 129.47,
+   "target": 129.5
+  },
+  "y1m4f": {
+   "winning time (before the last step)": 152,
+   "target": 152
+  },
+  "y1m6f": {
+   "winning time (before the last step)": 178.97,
+   "target": 179
+  },
+  "y2m": {
+   "winning time (before the last step)": 207.99,
+   "target": 208
+  }
+ }
+}

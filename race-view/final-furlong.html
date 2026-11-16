@@ -440,6 +440,16 @@ const ROUND = RACE.course !== "straight";            // round course or round mi
 // engine reads the same file. The race starts as the gates open: race time 0, distance 0.
 const STALLS = await fetch(`assets/course/${COURSE_ID}-stalls.json`).then((r) => r.json());
 const START = STALLS.starts[RACE.start];
+// A course with several routes (York, 16 Nov: the straight course, the 7f dog-leg chute, the round course, the 1m6f
+// chute and the 2m circuit follow different lines): the race takes its start's route (courses/<id>.json -> routes),
+// its inside rail and its bends, as if it were the course's one path.
+if (COURSE.routes) {
+  const R = COURSE.routes[START.route] || COURSE.routes[COURSE.defaultRoute];
+  COURSE.pathRail = R.pathRail; COURSE.path = R.path;
+}
+// Which way round (York, 16 Nov: the first left-handed course): +1 clockwise, the track on the horses' left of the
+// inside rail (Ascot, Newmarket); -1 anticlockwise, the track on their right (courses/<id>.json -> hand).
+const HAND = COURSE.hand === -1 ? -1 : 1;
 const PRE = VIEW.startSequence;
 document.getElementById("courseName").textContent = GP ? `${COURSE.name} · ${GP.title}` : COURSE.name + " · " + RACE.label.toLowerCase();
 
@@ -516,7 +526,8 @@ const SPUR = !COURSE.roundMileSpur ? null : (() => {
 // the loop meet at the post, both on z 0 heading -x, so the one line runs straight into the other.
 const ON_STRAIGHT = !PATH && RACE.course === "round" && !!START.onStraight;
 // A race longer than the loop passes its own start again (2 miles): its stalls are towed away after the off.
-const STALLS_COME_BACK = !PATH && RACE.course === "round" && !ON_STRAIGHT && DIST > LOOP.length - 50;
+// (York's 2m, 16 Nov: it starts on the run-in and goes once round, so its stalls file marks the start comesBack)
+const STALLS_COME_BACK = (!PATH && RACE.course === "round" && !ON_STRAIGHT && DIST > LOOP.length - 50) || !!START.comesBack;
 // Point on the race's inside rail with d metres still to run, and the running direction there.
 function railAt(d) {
   if (PATH) return pathAt(d);
@@ -541,9 +552,10 @@ function loopAt(d) {
   const tl = Math.hypot(tx, tz) || 1;
   return { x: ax + (bx - ax) * k, z: az + (bz - az) * k, tx: tx / tl, tz: tz / tl };
 }
-// u along, v across -> world x, z (the outer side is on the horses' left: clockwise course)
+// u along, v across -> world x, z (the outer side is on the horses' left on a clockwise course, their right on an
+// anticlockwise one: HAND)
 function toWorld(u, v) {
-  const r = railAt(DIST - u), w = HALF_W + v;
+  const r = railAt(DIST - u), w = (HALF_W + v) * HAND;
   return [r.x + r.tz * w, r.z - r.tx * w];
 }
 // the model faces +x; turned to run along the course, plus its own drift across (yaw)
@@ -921,7 +933,7 @@ function turfStrip() {                                   // the path's turf as a
   const W = COURSE.trackWidth, pos = [], idx = [];
   PATH.pts.forEach(([x, z], i) => {
     const [tx, tz] = PATH.tan[i];
-    for (const w of [0, W / 3, 2 * W / 3, W]) { const px = x + tz * w, pz = z - tx * w; pos.push(px, groundY(px, pz), pz); }
+    for (const w0 of [0, W / 3, 2 * W / 3, W]) { const w = w0 * HAND, px = x + tz * w, pz = z - tx * w; pos.push(px, groundY(px, pz), pz); }
     if (i) for (let k = 0; k < 3; k++) { const a = (i - 1) * 4 + k, b = i * 4 + k; idx.push(a, a + 1, b, a + 1, b + 1, b); }   // facing up
   });
   const g = new THREE.BufferGeometry(); g.setAttribute("position", new THREE.Float32BufferAttribute(pos, 3)); g.setIndex(idx);
@@ -972,7 +984,7 @@ function buildLineStrips() {
   const tex = new THREE.CanvasTexture(c);
   const W = COURSE.trackWidth;
   const strip = (x, width, opacity) => {
-    const geo = new THREE.PlaneGeometry(width, W + 0.6).rotateX(-Math.PI / 2).translate(x, 0.015 + groundY(x, W / 2), W / 2);
+    const geo = new THREE.PlaneGeometry(width, W + 0.6).rotateX(-Math.PI / 2).translate(x, 0.015 + groundY(x, MID_Z), MID_Z);
     const m = new THREE.Mesh(geo, new THREE.MeshBasicMaterial({ color: "#eef5d8", map: tex, transparent: true, opacity, depthWrite: false,
       polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -4 }));
     m.renderOrder = -1;                  // before the shadow catcher (which writes depth just above), so shadows fall on it
