@@ -86,108 +86,197 @@ def pavilion_pair():
 
 
 # ------------------------------------------------------------------------------------------ 3: the two grandstands
-def canopy_grandstand(L, tiers, tower=False, link=0.0):
-    """York's two big stands (owner, 16 Nov evening, with photos of the Ebor and Knavesmire stands: "this is the
-    proportion we want", "this nice step between the 2 stands"): tall and fairly short, as the real ones, in our hand.
-    From the lawn back:
-      - open standing steps rising from the lawn (the crowd right down to the rail lawn);
-      - a raked seating deck over a glazed concourse;
-      - balconied tiers stacked one over another, a glazed wall behind;
-      - an open band of white frame and cross braces under the roof;
-      - the deep canopy, thin at its front edge, tipping up towards the course and reaching out over the deck,
-        with a pale teal fascia.
-    tiers: balcony tiers (the Ebor stand 4, the Knavesmire stand 2: the step between them). tower: a brick stair tower
-    at the left end (the Ebor stand's, as the photo). link: a low glazed link with steps off the left end, filling
-    the step between the two stands. Origin: the middle of the front (the foot of the steps) on the ground."""
-    h = L / 2
-    R, tr, rs = 9, 1.0, 0.34                                     # the standing steps
-    yS = R * tr                                                   # their back: the concourse front
+def rarea(x0, x1, y0, y1, z):
+    """A crowd area in the current (pushed) axes: cut along x into short pieces, so a turned wing's rows stay tight."""
+    n = max(1, int(math.ceil((x1 - x0) / 2.4)))
+    for i in range(n):
+        stand_area(x0 + (x1 - x0) * i / n, x0 + (x1 - x0) * (i + 1) / n, y0, y1, z, "york")
+
+
+GS = {"R": 9, "tr": 1.0, "rs": 0.34}                              # the standing steps, shared by every stand and the links
+GS["yS"] = GS["R"] * GS["tr"]                                     # the concourse front, behind the steps
+GS["zd"] = 0.2 + GS["R"] * GS["rs"] + 1.2                         # the shoulder: the seating deck's front edge
+
+
+def prism_xm(mat, xa, xb, profile):
+    """prism_x with its ends cut on a slant: xa(y), xb(y) give the ends at each depth (a mitred joint in plan)."""
+    bm = K.bm(mat)
+    A = [bm.verts.new(K.M @ Vector((xa(y), y, z))) for y, z in profile]
+    B = [bm.verts.new(K.M @ Vector((xb(y), y, z))) for y, z in profile]
+    bm.faces.new(A[::-1]); bm.faces.new(B)
+    n = len(profile)
+    for i in range(n):
+        bm.faces.new((A[i], A[(i + 1) % n], B[(i + 1) % n], B[i]))
+
+
+def standing_steps(x0, x1, X0=None, X1=None):
+    R, tr, rs = GS["R"], GS["tr"], GS["rs"]
+    X0 = X0 or (lambda y: x0); X1 = X1 or (lambda y: x1)
     prof = [(0.0, -1.0)]
     for i in range(R):
         prof += [(i * tr, 0.2 + i * rs), ((i + 1) * tr, 0.2 + i * rs)]
-        area(-h + 0.3, h - 0.3, i * tr + 0.1, (i + 1) * tr - 0.1, 0.2 + i * rs)
-    prof += [(yS, -1.0)]
-    K.prism_x("steps", -h, h, prof)
-    zd = 0.2 + R * rs + 1.2                                       # the seating deck's front, over the concourse
+        rarea(X0(i * tr) + 0.3, X1(i * tr) - 0.3, i * tr + 0.1, (i + 1) * tr - 0.1, 0.2 + i * rs)
+    prof += [(GS["yS"], -1.0)]
+    prism_xm("steps", X0, X1, prof)
+
+
+def canopy_wing(x0, x1, tiers, core=None, mitre=None):
+    """One run of York's big-stand section (owner, 16 Nov evening, with photos of the Ebor and Knavesmire stands), from
+    the lawn back: open standing steps; a raked seating deck over a glazed concourse (the shoulder, level with the links
+    between the stands); balconied tiers with glass rails; an open band of white frame and cross braces; and the deep
+    canopy tipping up towards the course, with its structure shown: a lattice girder along the front edge, ribs and
+    purlins under it, masts at the back with stays down onto the roof. core: 'left' or 'right', a light glazed end bay
+    there. mitre: ('left' or 'right', tan of half the kink): that end is cut on the slant where it meets the other run
+    of a bent stand (x = -y t on the left, +y t on the right), and carries no end wall, overhang or mast."""
+    yS, zd = GS["yS"], GS["zd"]
+    ms, mt = mitre if mitre else (None, 0.0)
+    X0 = (lambda y: -y * mt) if ms == "left" else (lambda y: x0)
+    X1 = (lambda y: y * mt) if ms == "right" else (lambda y: x1)
+    standing_steps(x0, x1, X0, X1)
     yW = yS + 7.0                                                 # the glazed wall behind the balconies
-    D = yW + 16.0                                                 # the back of the building
-    # the concourse under the deck: glazed, recessed
-    K.box("wall", -h, h, yS + 1.2, D, -1.0, zd)
-    K.screen(-h, h, yS + 1.15, 0.0, zd - 0.6)
-    K.box("trim", -h, h, yS - 0.1, yS + 1.2, zd - 0.45, zd)
-    # the raked seating deck: rows from the deck's front edge back to the glazed wall
-    rows, dtr, drs = 6, (yW - yS) / 6, 0.42
+    D = yW + 16.0
+    K.box("wall", X0(yS + 1.2), X1(yS + 1.2), yS + 1.2, D, -1.0, zd)          # the concourse under the deck
+    K.screen(X0(yS), X1(yS), yS + 1.15, 0.0, zd - 0.6)
+    K.box("trim", X0(yS), X1(yS), yS - 0.1, yS + 1.2, zd - 0.45, zd)
+    rows, dtr, drs = 6, 7.0 / 6, 0.42                             # the raked seating deck
     prof = [(yS, zd - 0.5)]
     for i in range(rows):
-        prof += [(yS + i * dtr, zd + i * drs), (yS + (i + 1) * dtr, zd + i * drs)]
-        K.box("seat", -h + 0.4, h - 0.4, yS + (i + 1) * dtr - 0.45, yS + (i + 1) * dtr - 0.12, zd + i * drs, zd + i * drs + 0.42)
-        area(-h + 0.4, h - 0.4, yS + i * dtr + 0.05, yS + (i + 1) * dtr - 0.5, zd + i * drs)
+        y1_ = yS + (i + 1) * dtr
+        prof += [(yS + i * dtr, zd + i * drs), (y1_, zd + i * drs)]
+        K.box("seat", X0(y1_) + 0.4, X1(y1_) - 0.4, y1_ - 0.45, y1_ - 0.12, zd + i * drs, zd + i * drs + 0.42)
+        rarea(X0(y1_) + 0.4, X1(y1_) - 0.4, yS + i * dtr + 0.05, y1_ - 0.5, zd + i * drs)
     prof += [(yW, zd - 0.5)]
-    K.prism_x("concrete", -h, h, prof)
-    K.box("glass", -h + 0.2, h - 0.2, yS - 0.02, yS + 0.08, zd, zd + 1.0)              # a glass rail to the deck
-    K.box("trim", -h, h, yS - 0.06, yS + 0.12, zd + 1.0, zd + 1.12)
-    # the balcony tiers
-    zb0 = zd + rows * drs + 2.4
-    SB = 3.7
-    yB = yW - 2.2                                                 # balcony front
-    K.box("wall", -h, h, yW, D, zd, zb0 + tiers * SB)
+    prism_xm("concrete", X0, X1, prof)
+    K.box("glass", X0(yS) + 0.2, X1(yS) - 0.2, yS - 0.02, yS + 0.08, zd, zd + 1.0)
+    K.box("trim", X0(yS), X1(yS), yS - 0.06, yS + 0.12, zd + 1.0, zd + 1.12)
+    zb0, SB, yB = zd + rows * drs + 2.4, 3.7, yW - 2.2             # the balcony tiers
+    K.box("wall", X0(yW), X1(yW), yW, D, zd, zb0 + tiers * SB)
     for k in range(tiers):
         z = zb0 + k * SB
-        K.box("trim", -h, h, yB - 0.15, yW, z - 0.3, z)                         # the slab
-        K.box("glass", -h + 0.1, h - 0.1, yB - 0.02, yB + 0.06, z, z + 1.0)     # glass balustrade
-        K.box("trim", -h, h, yB - 0.08, yB + 0.12, z + 1.0, z + 1.12)
-        K.screen(-h, h, yW - 0.05, z, SB - 0.45)
-        area(-h + 0.4, h - 0.4, yB + 0.35, yW - 0.3, z)
-    zT = zb0 + tiers * SB                                         # the top of the tiers
-    K.box("trim", -h, h, yB - 0.15, D, zT - 0.3, zT)
-    # the open band of frame and braces under the roof
-    zR = zT + 4.2                                                 # the canopy's back edge (it rises towards the front)
-    yF, zF, th = yS - 2.0, zR + 5.0, 0.6                          # its front edge: out over the deck and the top steps
-    yU0, zU0, yU1, zU1 = yF + 0.4, zF - 1.3, D + 0.8, zR - 0.6     # its underside, front to back
+        K.box("trim", X0(yB), X1(yB), yB - 0.15, yW, z - 0.3, z)
+        K.box("glass", X0(yB) + 0.1, X1(yB) - 0.1, yB - 0.02, yB + 0.06, z, z + 1.0)
+        K.box("trim", X0(yB), X1(yB), yB - 0.08, yB + 0.12, z + 1.0, z + 1.12)
+        K.screen(X0(yW), X1(yW), yW - 0.05, z, SB - 0.45)
+        rarea(X0(yB) + 0.4, X1(yB) - 0.4, yB + 0.35, yW - 0.3, z)
+    zT = zb0 + tiers * SB
+    K.box("trim", X0(yB), X1(yB), yB - 0.15, D, zT - 0.3, zT)
+    # the canopy's lines
+    zR = zT + 4.2
+    yF, zF, th = yS - 2.0, zR + 5.0, 0.6
+    yU0, zU0, yU1, zU1 = yF + 0.4, zF - 1.3, D + 0.8, zR - 0.6
     under = lambda y: zU0 + (zU1 - zU0) * (y - yU0) / (yU1 - yU0)
+    top = lambda y: zF + th + (zR + 0.3 + th - zF - th) * (y - yF) / (D + 0.8 - yF)
+    L = x1 - x0
     nb = max(2, round(L / 8.0))
-    for i in range(nb + 1):
-        x = -h + L * i / nb
-        K.box("trim", x - 0.32, x + 0.32, yB - 0.6, yB, zd, under(yB) + 0.1)   # the big front frame columns
-        K.box("trim", x - 0.25, x + 0.25, D - 0.5, D, zT, zR)
-        if i < nb and not K.far:
-            xa, xb = x + 0.3, x + L / nb - 0.3
-            strut("trim", (xa, yB - 0.3, zT + 0.2), (xb, yB - 0.3, zR + 0.9), r=0.09)
-            strut("trim", (xb, yB - 0.3, zT + 0.2), (xa, yB - 0.3, zR + 0.9), r=0.09)
-    K.box("trim", -h, h, yB - 0.6, yB, zT + 0.0, zT + 0.35)
-    K.box("glass", -h, h, yW + 1.5, yW + 1.6, zT, zR - 0.2)                     # a glazed back to the band
-    # the canopy: front edge well out over the deck, tipping up towards the course
-    K.prism_x("canopy", -h - 1.2, h + 1.2, [(yF, zF), (D + 0.8, zR + 0.3), (D + 0.8, zR + 0.3 + th), (yF, zF + th)])
-    K.prism_x("canopy_under", -h - 1.2, h + 1.2, [(yU0, zU0), (yU1, zU1), (D + 0.8, zR + 0.3), (yF, zF)])
-    K.box("teal", -h - 1.25, h + 1.25, yF - 0.25, yF + 0.05, zF - 1.35, zF + th + 0.2)        # the fascia
-    for x in (-h - 1.2, h + 1.2):                                                            # the canopy's thin ends
-        K.prism_x("teal", x - 0.08, x + 0.08, [(yF, zF + th + 0.2), (D + 0.8, zR + 0.3 + th + 0.1), (D + 0.8, zR + 0.2), (yF, zF + th - 0.1)])
-    # the ends: closed side walls up the tiers
-    K.box("wall", -h - 0.25, -h, yW, D, zd, zT)
-    K.box("wall", h, h + 0.25, yW, D, zd, zT)
-    top = zF + th + 0.2
-    if tower:                                                     # the brick stair tower at the left end
-        tx0, tx1 = -h - 6.5, -h - 0.3
-        K.box("brick", tx0, tx1, yS + 2.0, D - 1.0, -1.0, zR + 0.5)
-        K.box("trim", tx0 - 0.15, tx1 + 0.15, yS + 1.85, D - 0.85, zR + 0.5, zR + 0.9)
-        for k in range(int((zR - 3) // 3.7)):
-            K.box("glass", tx0 + 1.8, tx1 - 1.8, yS + 1.95, yS + 2.05, 2.5 + k * 3.7, 4.6 + k * 3.7)
-        K.door((tx0 + tx1) / 2, yS + 2.0, 0.0, 1.6, 2.6)
-    if link > 0:                                                  # the low link and steps off the left end (the step)
-        lx0, lx1 = -h - link, -h
-        prof = [(0.0, -1.0)]
-        for i in range(R):
-            prof += [(i * tr, 0.2 + i * rs), ((i + 1) * tr, 0.2 + i * rs)]
-            area(lx0 + 0.3, lx1 - 0.3, i * tr + 0.1, (i + 1) * tr - 0.1, 0.2 + i * rs)
-        prof += [(yS, -1.0)]
-        K.prism_x("steps", lx0, lx1, prof)
-        K.box("wall", lx0, lx1, yS + 1.2, D - 2.0, -1.0, zd + 4.0)
-        K.screen(lx0, lx1, yS + 1.15, 0.0, zd + 3.2)
-        K.box("trim", lx0 - 0.2, lx1, yS + 0.6, D - 1.8, zd + 4.0, zd + 4.4)
-        K.balustrade(lx0, lx1, yS + 0.8, zd + 4.4, h=1.0, mat="trim", spacing=0.3, piers=False)
-        area(lx0 + 0.4, lx1 - 0.4, yS + 1.2, D - 2.5, zd + 4.4)
-    info = {"width": round(L, 2), "depth": round(D + 0.8, 2), "height": round(top, 2)}
-    return info
+    xs = [x0 + L * i / nb for i in range(nb + 1)]
+    xs[0], xs[-1] = X0(yB), X1(yB)                                # the end columns stand on the mitre at the kink
+    if ms == "right": xs = xs[:-1]                                # the kink's own column is the left-hand run's
+    for i, x in enumerate(xs):                                    # the frame: front columns, back posts, braces
+        K.box("trim", x - 0.32, x + 0.32, yB - 0.6, yB, zd, under(yB) + 0.1)
+        if not (ms and (i == 0 if ms == "left" else False)):
+            K.box("trim", x - 0.25, x + 0.25, D - 0.5, D, zT, zR)
+        nxt = xs[i + 1] if i + 1 < len(xs) else (X1(yB) if ms == "right" else None)
+        if nxt is not None and not K.far:
+            xa, xb = x + 0.3, nxt - 0.3
+            strut("trim", (xa, yB - 0.3, zT + 0.2), (xb, yB - 0.3, under(yB) - 0.4), r=0.09)
+            strut("trim", (xb, yB - 0.3, zT + 0.2), (xa, yB - 0.3, under(yB) - 0.4), r=0.09)
+    K.box("trim", X0(yB), X1(yB), yB - 0.6, yB, zT, zT + 0.35)
+    K.box("glass", X0(yW), X1(yW), yW + 1.5, yW + 1.6, zT, zR - 0.2)
+    ov = 1.2
+    oa = (lambda y: X0(y)) if ms == "left" else (lambda y: x0 - ov)
+    ob = (lambda y: X1(y)) if ms == "right" else (lambda y: x1 + ov)
+    prism_xm("canopy", oa, ob, [(yF, zF), (D + 0.8, zR + 0.3), (D + 0.8, zR + 0.3 + th), (yF, zF + th)])
+    prism_xm("canopy_under", oa, ob, [(yU0, zU0), (yU1, zU1), (D + 0.8, zR + 0.3), (yF, zF)])
+    # the structure under the canopy: a rib on every column line (a deeper one along the kink), purlins across
+    for x in xs:
+        if ms == "left" and x == xs[0]: continue
+        K.prism_x("trim", x - 0.22, x + 0.22, [(yU0, zU0 - 0.05), (yU1, zU1 - 0.05), (yU1, zU1 - 0.75), (yU0, zU0 - 0.45)])
+    if ms == "left":
+        strut("trim", (X0(yU0), yU0, zU0 - 0.45), (X0(yU1), yU1, zU1 - 0.6), r=0.3, segs=6)
+    for f in (0.28, 0.55, 0.8):
+        y = yU0 + (yU1 - yU0) * f
+        K.box("trim", oa(y), ob(y), y - 0.15, y + 0.15, under(y) - 0.35, under(y) + 0.02)
+    # the lattice girder along the front edge (the fascia): two teal chords and diagonals between them
+    zg0, zg1 = zF - 2.2, zF + th + 0.3
+    ga, gb = oa(yF), ob(yF)
+    K.box("teal", ga, gb, yF - 0.3, yF + 0.1, zg1 - 0.4, zg1)
+    K.box("teal", ga, gb, yF - 0.3, yF + 0.1, zg0, zg0 + 0.4)
+    K.box("canopy_under", ga, gb, yF + 0.05, yF + 0.25, zg0, zg1)
+    if not K.far:
+        n = max(2, int((gb - ga) / 2.4))
+        for i in range(n):
+            xa = ga + (gb - ga) * i / n; xb = ga + (gb - ga) * (i + 1) / n
+            za, zb = (zg0 + 0.4, zg1 - 0.4) if i % 2 == 0 else (zg1 - 0.4, zg0 + 0.4)
+            strut("teal", (xa, yF - 0.1, za), (xb, yF - 0.1, zb), r=0.07)
+    for x, side in ((x0 - ov, "left"), (x1 + ov, "right")):       # teal edges along the canopy's open ends
+        if side == ms: continue
+        K.prism_x("teal", x - 0.1, x + 0.1, [(yF, zF + th + 0.3), (D + 0.8, zR + 0.3 + th + 0.15), (D + 0.8, zR - 0.6), (yF, zg0)])
+    # masts at the back with stays down to the roof's front third
+    zm = zR + th + 7.5
+    for i, x in enumerate(xs):
+        if i % 2: continue
+        K.cyl("trim", x, D - 0.25, zR, zm, 0.22, 0.16, 8)
+        if not K.far:
+            for f in (0.35, 0.6):
+                y = yF + (D - yF) * f
+                strut("iron", (x, D - 0.25, zm - 0.3), (x, y, top(y) + 0.05), r=0.045)
+    # the ends: closed side walls up the tiers; or a light glazed end bay
+    for x, side in ((x0, "left"), (x1, "right")):
+        if side == ms: continue
+        if core == side:
+            cw = 4.0 if side == "right" else -4.0
+            ca, cb = sorted((x, x + cw))
+            K.box("wall", ca, cb, yB + 0.4, D - 1.0, zd, zT)
+            for zz in [zb0 + k * SB for k in range(tiers)]:
+                K.box("glass", ca + 0.25, cb - 0.25, yB + 0.3, yB + 0.4, zz + 0.4, zz + SB - 0.6)
+                K.box("trim", ca - 0.05, cb + 0.05, yB + 0.2, D - 0.9, zz - 0.3, zz)
+            K.box("trim", ca - 0.1, cb + 0.1, yB + 0.1, D - 0.8, zT - 0.3, zT + 0.2)
+        else:
+            K.box("wall", x - 0.25 if side == "left" else x, x if side == "left" else x + 0.25, yW, D, zd, zT)
+    return {"D": D + 0.8, "height": zm, "top": zF + th + 0.3}
+
+
+def ebor_stand(left=27.0, right=29.0, kink=24.0, tiers=4):
+    """The Ebor stand (owner, 16 Nov evening, with his plan sketch: "the stand in plan should have a kink"): one
+    building bent in plan, its front wrapping round towards the course. The right-hand run (up the straight) square to
+    the piece; the left-hand run (towards the post and the bend) turned through 'kink' degrees about the front corner
+    where they meet; the two mitred along the line halving the angle between them. The canopy section above
+    (canopy_wing). Origin: the front corner at the kink, on the ground."""
+    k = math.radians(kink); t = math.tan(k / 2)
+    info = canopy_wing(0.0, right, tiers, core="right", mitre=("left", t))
+    K.push(Matrix.Rotation(k, 4, "Z"))
+    canopy_wing(-left, 0.0, tiers, core="left", mitre=("right", t))
+    K.pop()
+    lx, ly = -left * math.cos(k), -left * math.sin(k)
+    return {"width": round(left + right, 2), "depth": info["D"], "height": round(info["height"], 2),
+            "kink": {"angle": kink, "left": left, "right": right, "leftEnd": [round(lx, 2), round(ly, 2)], "rightEnd": [right, 0.0],
+                     "note": "origin = the front corner at the kink; the right run along +x, the left run turned 'angle' "
+                             "degrees (its front end towards the course)"}}
+
+
+def knavesmire_stand(L=44.0, tiers=2):
+    """The Knavesmire stand: the same section a step lower (two tiers), square. Origin: the middle of the front."""
+    info = canopy_wing(-L / 2, L / 2, tiers)
+    return {"width": L, "depth": info["D"], "height": round(info["height"], 2)}
+
+
+def shoulder_link(L=10.0):
+    """The shoulder between the stands (owner, 16 Nov evening: "join all the stands up at the lower / shoulder
+    levels"): the standing steps carried on, and behind them a glazed two-storey link up to the shoulder, a roof
+    terrace with a balustrade and its crowd. Stretched along x to fit each gap in the layout. Origin: the middle of
+    the front."""
+    h = L / 2
+    standing_steps(-h, h)
+    yS, zd = GS["yS"], GS["zd"]
+    zt = zd + 4.0
+    K.box("wall", -h, h, yS + 1.2, yS + 16.0, -1.0, zt)
+    K.screen(-h, h, yS + 1.15, 0.0, zd - 0.6)
+    K.box("trim", -h, h, yS + 0.9, yS + 1.3, zd - 0.45, zd)
+    K.screen(-h, h, yS + 1.15, zd, 3.3)
+    K.box("trim", -h, h, yS + 0.6, yS + 16.4, zt, zt + 0.4)
+    K.balustrade(-h, h, yS + 0.8, zt + 0.4, h=1.0, mat="trim", spacing=0.3, piers=False)
+    area(-h + 0.3, h - 0.3, yS + 1.2, yS + 14.0, zt + 0.4)
+    return {"width": L, "depth": yS + 16.4, "height": round(zt + 1.4, 2)}
 
 
 # ------------------------------------------------------------------------------------------ 5: the Clock Tower
@@ -224,10 +313,11 @@ def clock_tower():
 PIECES = [
     ("york_big_pavilion", lambda: big_pavilion(52.0)),
     ("york_pavilions", pavilion_pair),
-    # 3: the two grandstands (owner, 16 Nov evening, with photos): the Ebor stand tall with four balconied tiers and a
-    # brick stair tower, the Knavesmire stand a step lower with two, a low link between; each under its own deep canopy
-    ("york_stand_north", lambda: canopy_grandstand(44.0, 4, tower=True)),
-    ("york_stand_south", lambda: canopy_grandstand(46.0, 2, link=7.0)),
+    # 3: the two grandstands (owner, 16 Nov evening, with photos and a plan sketch): the Ebor stand bent in plan, tall
+    # with four balconied tiers; the Knavesmire stand a step lower with two; each under its own deep canopy
+    ("york_stand_north", ebor_stand),          # bent in plan (owner's sketch), four tiers, a glazed stair core each end
+    ("york_stand_south", knavesmire_stand),    # a step lower: two tiers
+    ("york_link", shoulder_link),              # the shoulder between the stands, stretched to each gap
     # 4: the Rowley Mile's Victorian stand, longer than the plan's
     ("york_end_stand", lambda: grand_pavilion_stand(34, 10, 1.0, 0.28, end_pavilion=True, roof="hipped")),   # 119 m + 14 m
     ("york_clock_tower", clock_tower),
@@ -257,7 +347,7 @@ bpy.ops.export_scene.gltf(filepath=os.path.join(out_dir, "york_stands.glb"), exp
 print("exported york_stands.glb", flush=True)
 
 if os.environ.get("SHEET"):                      # catalogue renders, to check the pieces: the smaller pieces, then the stands
-    groups = [["york_big_pavilion", "york_pavilions", "york_clock_tower"], ["york_stand_north", "york_stand_south", "york_end_stand"]]
+    groups = [["york_big_pavilion", "york_pavilions", "york_link", "york_clock_tower"], ["york_stand_north", "york_stand_south", "york_end_stand"]]
     spans = []
     x = 0.0
     for g in groups:

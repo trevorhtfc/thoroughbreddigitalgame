@@ -74,30 +74,40 @@ def route_bits(route, W):
 #   2 (blue) the pavilions, turned further, from the line into the bend;
 #   1 (light blue) the big pavilion, turned furthest, round the bend.
 # Placed end to end from the big pavilion southwards (_chain). Set back from the outer rail (z -26.4): about 12 m at the
-# big pavilion, 14-20 m at the pavilions, 17 m to 26 m along the Ebor stand, 34 m at the Knavesmire stand (a step back
+# big pavilion, 14-20 m at the pavilions, 19 m to 30 m round the Ebor stand, 36 m at the Knavesmire stand (a step back
 # and lower, as the owner's photo), 44 m at the end stand.
+EBOR_KINK, EBOR_LEFT, EBOR_RIGHT = 24.0, 27.0, 29.0          # as build_york_stands.py's ebor_stand (its json says so too)
+
+
 def _chain():
     """From the big pavilion (owner: "1 looks good", kept where it was) southwards up the straight, each piece's north
-    end a gap from the last one's south end. Owner, 16 Nov evening, with photos of the Ebor and Knavesmire stands: 2
-    smaller (two little stands), 3 shorter and in the real proportion, "this nice step between the 2 stands"."""
-    out = [("york_big_pavilion", -79.56, -14.83, 30.0, 1.0)]
+    end a gap from the last one's south end; the gaps are filled by the shoulder links (LINKS). Owner, 16 Nov evening:
+    2 smaller (two little stands); 3 in the real proportion, the Ebor stand bent in plan (his sketch), the Knavesmire
+    stand "a nice step" back and lower; "join all the stands up at the lower / shoulder levels"."""
+    out, links = [("york_big_pavilion", -79.56, -14.83, 30.0, 1.0)], []
     a = math.radians(30.0); end = (-79.56 + 28.0 * math.cos(a), -14.83 - 28.0 * math.sin(a))   # its south end
-    # (piece, width, turn, front z at the south end or None to follow on, gap before it (room for a tower or link
-    # sticking out at its north end))
-    spec = [("york_pavilions", 31.0, 22.0, None, 2.0),
-            ("york_stand_north", 44.0, 13.0, None, 8.0),         # the Ebor stand: its stair tower in the gap
-            ("york_stand_south", 46.0, 0.0, -60.0, 8.0),         # the Knavesmire stand, a step back and lower: link in the gap
-            ("york_end_stand", 133.0, 0.0, -70.0, 14.0)]
-    for piece, w, turn, zs, gap in spec:
-        t = math.radians(turn); ux, uz = math.cos(t), -math.sin(t)      # along the front, towards the south end (+x)
-        nx_, nz_ = end[0] + gap * ux, end[1] + gap * uz                  # its north end
-        cx, cz = nx_ + ux * w / 2, nz_ + uz * w / 2
-        if zs is not None:
-            cz = zs
-        out.append((piece, round(cx, 2), round(cz, 2), turn, 1.0))
-        end = (cx + ux * w / 2, cz + uz * w / 2)
-    return out
-STANDS = _chain()
+    def u(turn): t = math.radians(turn); return math.cos(t), -math.sin(t)    # along the front, towards the south (+x)
+    # the pavilions, 2 m on
+    ux, uz = u(22.0); n0 = (end[0] + 2.0 * ux, end[1] + 2.0 * uz)
+    out.append(("york_pavilions", round(n0[0] + ux * 15.5, 2), round(n0[1] + uz * 15.5, 2), 22.0, 1.0))
+    end = (n0[0] + ux * 31.0, n0[1] + uz * 31.0)
+    # the Ebor stand: its left run (turned with the bend) starts 10 m on; origin at the kink, its right run square
+    ux, uz = u(EBOR_KINK); left = (end[0] + 10.0 * ux, end[1] + 10.0 * uz)
+    links.append((end, left))
+    k = math.radians(EBOR_KINK)
+    X, Z = left[0] + EBOR_LEFT * math.cos(k), left[1] - EBOR_LEFT * math.sin(k)
+    out.append(("york_stand_north", round(X, 2), round(Z, 2), 0.0, 1.0))
+    end = (X + EBOR_RIGHT, Z)
+    # the Knavesmire stand, 8 m on and a step (6 m) further back
+    zk = Z - 6.0
+    links.append((end, (end[0] + 8.0, zk)))
+    out.append(("york_stand_south", round(end[0] + 8.0 + 22.0, 2), round(zk, 2), 0.0, 1.0))
+    end = (end[0] + 8.0 + 44.0, zk)
+    # the end stand, 12 m on
+    links.append((end, (end[0] + 12.0, -70.0)))
+    out.append(("york_end_stand", round(end[0] + 12.0 + 66.5, 2), -70.0, 0.0, 1.0))
+    return out, links
+STANDS, LINKS = _chain()
 CLOCK_TOWER = ("york_clock_tower", 88.0, 52.0, 180.0, 1.0)
 BANK = {"x": [-20.0, 290.0], "z": [9.0, 66.0], "height": 3.5, "fadeX": 45.0, "back": 150.0,
         "note": "the festival side's bank (owner, 16 Nov): rising from the rail lawn to the Clock Tower, then easing back down"}
@@ -177,24 +187,55 @@ def york_scenery(W, ground, C):
     spots = json.loads((REPO / "assets/models/architecture/site_props_spots.json").read_text())["pieces"]
     sizes = NM.SP_SIZE
 
-    def put(piece, x, z, turn, sc=1.0, dens=1.5, pad=1.0):
+    def to_w(x, z, turn, u, v):
+        a = math.radians(turn); ca, sa = math.cos(a), math.sin(a)
+        return (x + u * ca - v * sa, z - (u * sa + v * ca))
+
+    def rects(piece, sx=1.0):
+        """the piece's plan as rectangles in its own axes (u along the front, v back from it): two for the bent Ebor stand"""
         pi = info[piece]
-        S.piece("york_stands", piece, x, z, turn, sc, sc)
-        S.footprint(pi, x, z, turn, 1.0, sc, pad)
-        S.stand_people(pi, x, z, turn, 1.0, sc, dens)
+        if "kink" in pi:
+            k = math.radians(pi["kink"]["angle"]); ck, sk = math.cos(k), math.sin(k)
+            rot = lambda q: [(a * ck - b * sk, a * sk + b * ck) for a, b in q]
+            return [("R", 0.0, pi["kink"]["right"]), ("L", -pi["kink"]["left"], 0.0, rot)]
+        hw = pi["width"] / 2 * sx
+        return [("R", -hw, hw)]
+
+    def plan_quads(piece, x, z, turn, v0, v1, sx=1.0, grow=0.0):
+        out = []
+        for r in rects(piece, sx):
+            u0, u1 = r[1] - grow, r[2] + grow
+            q = [(u0, v0), (u1, v0), (u1, v1), (u0, v1)]
+            if r[0] == "L":
+                q = r[3](q)
+            out.append([to_w(x, z, turn, a, b) for a, b in q])
+        return out
+
+    def put(piece, x, z, turn, sc=1.0, dens=1.5, pad=1.0, sx=1.0):
+        pi = info[piece]
+        S.piece("york_stands", piece, x, z, turn, sx * sc, sc)
+        S.nogo.extend(plan_quads(piece, x, z, turn, -pad, pi["depth"] * sc, sx * sc))
+        S.stand_people(pi, x, z, turn, sx, sc, dens)
     # the stands, a paved apron in front of each, and the lawn back from the rail packed with racegoers
     rail = OuterRail(C, W)
     for piece, x, z, turn, sc in STANDS:
         put(piece, x, z, turn, sc, dens=1.45)
-        hw = info[piece]["width"] / 2 * sc
-        a = math.radians(turn); ca, sa = math.cos(a), math.sin(a)
-        to_w = lambda u, v: (x + u * ca - v * sa, z - (u * sa + v * ca))
-        S.flat("#e4d8c2", [to_w(-hw - 3, -9), to_w(hw + 3, -9), to_w(hw + 3, 1), to_w(-hw - 3, 1)], 0.03)
+        for q in plan_quads(piece, x, z, turn, -9.0, 1.0, sc, grow=3.0):
+            S.flat("#e4d8c2", q, 0.03)
+    # the shoulder links between them: the standing steps carried on, a glazed link up to the shoulder, a roof terrace
+    for (ax, az), (bx, bz) in LINKS:
+        L = math.hypot(bx - ax, bz - az)
+        if L < 3.0: continue
+        turn = math.degrees(math.atan2(-(bz - az), bx - ax))
+        mx, mz = (ax + bx) / 2, (az + bz) / 2
+        put("york_link", mx, mz, turn, 1.0, dens=1.2, sx=(L + 1.0) / info["york_link"]["width"])
+        for q in plan_quads("york_link", mx, mz, turn, -9.0, 1.0, (L + 1.0) / info["york_link"]["width"]):
+            S.flat("#e4d8c2", q, 0.03)
     S.flat("#d9c9a8", rail.strip(-130, 300, 0.2, 4.2), 0.025)                    # the rail walk, round the bend too
     rail.people(S, -128, 300, 1.2, 9.1, 0.95)                                    # the rail crowd, facing the track
     rail.people(S, -128, 300, 9.1, 15.6, 0.45)
     def front(d):                                      # roughly how far back the stand fronts are (the set back), by metres to go
-        pts = [(-130, 11), (-60, 12), (-40, 14), (-15, 17), (26, 26), (32, 33), (85, 33), (92, 43), (300, 43)]
+        pts = [(-130, 11), (-60, 12), (-40, 14), (-15, 18), (9, 30), (38, 30), (46, 36), (90, 36), (102, 44), (300, 44)]
         for (a, fa), (b, fb) in zip(pts[:-1], pts[1:]):
             if d <= b: return fa + (fb - fa) * (d - a) / (b - a)
         return 46
