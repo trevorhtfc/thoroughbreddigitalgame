@@ -72,13 +72,14 @@ STEP = 5.0
 
 # ---------------------------------------------------------------- the stand side and the festival side (owner, 16 Nov)
 # Left to right as seen from the infield (x rising, up the straight from the post). Linking three forms, as his photos:
-# a glass box, the Victorian pavilion, a glass box (photo 4's composition: glass either side of the heritage building);
+# a glass box, the old pavilion, a glass box (photo 4's composition: glass either side of its old brick building; owner,
+# 16 Nov: "model the old element of this image in the middle instead of the pavilion with the two point towers");
 # then open terrace to the arch-roofed grandstand (photo 1) and a tail of terrace. All on one front line, LAWN metres
 # beyond the outer rail.
 LAWN = 18.0
-CHAIN = [("park_glass_box_small", 0.0), ("park_victorian", 1.0), ("park_glass_box", 1.0), ("park_terrace", 0.0, 12.0),
+CHAIN = [("park_glass_box_small", 0.0), ("park_old_pavilion", 1.0), ("park_glass_box", 1.0), ("park_terrace", 0.0, 12.0),
          ("park_arch_stand", 0.0), ("park_terrace", 0.0, 24.0)]
-CHAIN_START = -34.0          # the left end, just past the post (the Victorian pavilion sits by the line)
+CHAIN_START = -32.0          # the left end, just past the post (the old pavilion sits by the line)
 # the festival side, in the infield opposite the stands (as York's): the clock house facing the course, its steps in
 # front, terraces either side, the sheds behind; the rest of the lawn for marquees, kiosks and flags
 FESTIVAL = [("park_clock_house", 105.0, 42.0), ("park_terrace", 77.0, 40.0, 26.0), ("park_terrace", 133.0, 40.0, 26.0),
@@ -288,7 +289,7 @@ def build(P):
 
 
 # ---------------------------------------------------------------- the plan (the racing papers' way: turned 180)
-NAMES = {"park_glass_box_small": "glass box", "park_victorian": "Victorian pavilion", "park_glass_box": "glass box",
+NAMES = {"park_glass_box_small": "glass box", "park_victorian": "Victorian pavilion", "park_old_pavilion": "old pavilion", "park_glass_box": "glass box",
          "park_terrace": "terrace", "park_arch_stand": "arch-roof grandstand", "park_clock_house": "clock house",
          "park_shed": "shed", "park_stair_tower": "stair tower", "park_gable_stand": "gable grandstand"}
 
@@ -352,7 +353,7 @@ def draw(c, samp, S, outp, title):
             x0, x1 = e["x"] - e["width"] / 2, e["x"] + e["width"] / 2
             z0 = e["z"]; z1 = z0 - m * e["depth"]
             a, b = T(x0, z0), T(x1, z1)
-            fc = {"park_victorian": "#d59a85", "park_arch_stand": "#f2ede3", "park_terrace": "#d9d0bf"}.get(e["piece"], "#b9c3cf")
+            fc = {"park_victorian": "#d59a85", "park_old_pavilion": "#d59a85", "park_arch_stand": "#f2ede3", "park_terrace": "#d9d0bf"}.get(e["piece"], "#b9c3cf")
             ax.add_patch(Rectangle((min(a[0], b[0]), min(a[1], b[1])), abs(b[0] - a[0]), abs(b[1] - a[1]), fc=fc, ec="#6c6458", lw=0.6, zorder=4))
         for e in c["festival"]["pieces"]:
             x0, x1 = e["x"] - e["width"] / 2, e["x"] + e["width"] / 2

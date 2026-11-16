@@ -15,6 +15,10 @@ What each piece takes from his photos:
                       roof="gable" swaps the vaults for photo 3's row of gables.
   park_victorian      brick, two tiers of iron-lace veranda, corner towers with steep slate roofs (photo 2), a gabled
                       name dormer, a clock cupola and chimneys (photo 4's middle building)
+  park_old_pavilion   the old brick building in the middle of photo 4, which the owner chose for the middle of the
+                      stand side (16 Nov): an arcade of round-headed openings, a first-floor balcony with an iron
+                      lattice railing and a white fretwork valance, a big half-timbered gable with the name board,
+                      a white clock turret on the ridge, tall chimneys
   park_glass_box      a modern glazed hospitality stand: glass-railed balconies, a thin flat roof plate reaching out over
                       them, a brick podium and a front of steps (photos 4 and 5); stair="left"/"right": the brick stair
                       tower with its diagonal glazing (photo 4)
@@ -293,6 +297,121 @@ def victorian(nb=9, bay=3.8, towers=True, cupola=True, chimneys=True):
     return {"width": round(width, 2), "depth": D, "height": round(top, 2)}
 
 
+def old_pavilion(nb=5, bay=4.8):
+    """The old building in the middle of photo 4 (owner, 16 Nov: "model the old element of this image in the middle
+    instead of the pavilion with the two point towers", with a close-up of it and York's stands of 1895 as the type for
+    the generic pavilion stand). Red brick, two storeys, nearly square:
+      - the ground floor: round-headed windows with cream surrounds, a door in the middle;
+      - the first floor: an open arcade of brick round arches on brick piers, cream edges to the arches, a low cream
+        balustrade between the piers; behind them, benches rising back under the roof (its crowd); a central stair up
+        to it from the lawn;
+      - over the arches, a band of cream lattice on a dark ground with the course's name board in the middle;
+      - a big, steep hipped slate roof reaching out over the arcade; a cream gable over the middle bay with its date
+        board; a clock turret on the ridge (cream, clocks on three faces, a red results panel, a lead ogee cap, a
+        gilt cross); tall brick chimneys at the ends.
+    Origin: the middle of the front on the ground."""
+    L = nb * bay; h = L / 2
+    G, D = 4.0, 14.0
+    pw = 0.8                                                      # the piers' width
+    zs = G + 2.4                                                  # where the arches spring
+    r = (bay - pw) / 2
+    zc = zs + r                                                   # the arches' crown
+    zf = zc + 0.45                                                # the lattice band's foot
+    E = zf + 1.3                                                  # the eaves
+    K.box("brick_red", -h, h, 0.0, D, -1.0, G)
+    K.box("quoin", -h - 0.08, h + 0.08, -0.12, D + 0.05, G - 0.35, G)
+    for i in range(nb):                                           # the ground floor's windows
+        cx = -h + bay * (i + 0.5)
+        if i == nb // 2:
+            K.door(cx, 0.0, 0.0, 1.8, 2.7)
+            continue
+        w2, za = 0.85, 2.3
+        K.box("glass", cx - w2, cx + w2, -0.06, 0.02, 0.7, za)
+        K.arc_band("glass", cx, za, 0.0, w2, 0.0, math.pi, -0.06, 0.02, 10)
+        K.arc_band("quoin", cx, za, w2, w2 + 0.25, 0.0, math.pi, -0.14, 0.0, 10)
+        K.box("quoin", cx - w2 - 0.15, cx + w2 + 0.15, -0.18, 0.0, 0.55, 0.7)
+    # the first floor: benches rising back from the arcade, a back wall with windows
+    yb0, rows, tr, rs = 1.2, 5, 1.0, 0.42
+    prof = [(yb0, G - 0.3)]
+    for k in range(rows):
+        prof += [(yb0 + k * tr, G + k * rs), (yb0 + (k + 1) * tr, G + k * rs)]
+        y1 = yb0 + (k + 1) * tr
+        K.box("bench", -h + 0.5, h - 0.5, y1 - 0.4, y1 - 0.1, G + k * rs, G + k * rs + 0.42)
+        rarea(-h + 0.5, h - 0.5, yb0 + k * tr + 0.05, y1 - 0.45, G + k * rs)
+    yW = yb0 + rows * tr
+    prof += [(yW, G - 0.3)]
+    K.prism_x("concrete", -h + 0.05, h - 0.05, prof)
+    rarea(-h + 0.6, h - 0.6, pw + 0.1, yb0 - 0.1, G)
+    K.box("brick_red", -h, h, yW, D, G, E)
+    for i in range(nb):
+        K.window(-h + bay * (i + 0.5), D, G + 1.0, 1.3, 2.0, d=1)
+    for x in (-h, h):                                             # the end walls up the first floor
+        K.box("brick_red", x - 0.3 if x < 0 else x, x if x < 0 else x + 0.3, pw, yW, G, E)
+    # the arcade: piers, arches, the brick over them, cream edges, the balustrade
+    for i in range(nb + 1):
+        x = -h + bay * i
+        K.box("brick_red", x - pw / 2, x + pw / 2, 0.0, pw, G, zs)
+        K.box("quoin", x - pw / 2 - 0.08, x + pw / 2 + 0.08, -0.08, pw + 0.05, zs - 0.25, zs)
+    n = 10
+    for i in range(nb):
+        cx = -h + bay * (i + 0.5)
+        K.arc_band("quoin", cx, zs, r - 0.02, r + 0.16, 0.0, math.pi, -0.08, 0.0, n)
+        K.arc_band("brick_red", cx, zs, r, r + 0.05, 0.0, math.pi, 0.0, pw, n)
+        for j in range(n):                                        # the spandrels, as strips up to the band
+            a0, a1 = math.pi * j / n, math.pi * (j + 1) / n
+            xa, xb = cx + r * math.cos(a0), cx + r * math.cos(a1)
+            za, zb = zs + r * math.sin(a0), zs + r * math.sin(a1)
+            K.prism_y("brick_red", 0.0, pw, [(xa, za), (xa, zf), (xb, zf), (xb, zb)][::-1] if xb < xa else [(xa, za), (xb, zb), (xb, zf), (xa, zf)])
+        if i != nb // 2:
+            K.balustrade(cx - r, cx + r, 0.25, G, h=1.0, mat="quoin", spacing=0.3, piers=False)
+    # the lattice band and the name board
+    K.box("board", -h - 0.1, h + 0.1, -0.12, pw, zf, E)
+    if not K.far:
+        m_ = int(L / 0.9)
+        for j in range(m_):
+            xa, xb = -h + L * j / m_, -h + L * (j + 1) / m_
+            strut("quoin", (xa, -0.16, zf + 0.1), (xb, -0.16, E - 0.1), r=0.05)
+            strut("quoin", (xb, -0.16, zf + 0.1), (xa, -0.16, E - 0.1), r=0.05)
+    K.box("quoin", -h - 0.1, h + 0.1, -0.2, pw, zf - 0.1, zf + 0.08)
+    K.box("quoin", -h - 0.1, h + 0.1, -0.2, pw, E - 0.08, E + 0.1)
+    K.box("quoin", -5.2, 5.2, -0.32, -0.16, zf + 0.12, E - 0.12)                       # the name board
+    K.box("board", -4.8, 4.8, -0.36, -0.32, zf + 0.45, zf + 0.85)
+    # the roof: steep, hipped, reaching out over the arcade
+    K.hip_roof(-h, h, -0.6, D, E + 0.1, 5.6, 0.7, mat="slate")
+    gw = bay + 1.4
+    rz = gable_y(-gw / 2, gw / 2, -1.3, 4.5, E + 0.1, 52, 0.5, roof="slate", wall="quoin")
+    K.box("board", -1.5, 1.5, -1.45, -1.3, E + 0.9, E + 1.6)                           # the date board
+    K.box("board_line", -1.2, 1.2, -1.5, -1.45, E + 1.1, E + 1.4)
+    # the clock turret on the ridge
+    cy, cw = (D - 0.6) / 2, 2.8
+    z0 = E + 0.1 + 5.6 - 1.4
+    K.box("quoin", -cw / 2, cw / 2, cy - cw / 2, cy + cw / 2, z0, z0 + 3.6)
+    K.box("redband", -0.9, 0.9, cy - cw / 2 - 0.08, cy - cw / 2, z0 + 0.3, z0 + 0.9)  # the results panel
+    for rot in (0.0, math.pi / 2, -math.pi / 2):
+        K.push(Matrix.Translation((0, cy, 0)) @ Matrix.Rotation(rot, 4, "Z") @ Matrix.Translation((0, -cw / 2, 0)))
+        clock_face(0.0, 0.0, z0 + 2.2, 0.95)
+        K.pop()
+    K.cornice(-cw / 2, cw / 2, cy - cw / 2, cy + cw / 2, z0 + 3.6, 0.2, 0.3)
+    K.sphere("slate", 0.0, cy, z0 + 4.3, cw / 2 + 0.1, 2, 1.0)
+    K.cyl("gilt", 0.0, cy, z0 + 5.3, z0 + 7.0, 0.06, 0.05, 6)
+    K.box("gilt", -0.45, 0.45, cy - 0.05, cy + 0.05, z0 + 6.3, z0 + 6.42)
+    # tall chimneys at the ends
+    for x in (-h + 1.2, h - 1.2):
+        y = D - 3.5
+        K.box("brick_red", x - 0.8, x + 0.8, y - 0.55, y + 0.55, E + 1.0, E + 7.5)
+        K.box("brick", x - 0.95, x + 0.95, y - 0.7, y + 0.7, E + 7.5, E + 7.8)
+        for dx in (-0.35, 0.35):
+            K.cyl("clock_dark", x + dx, y, E + 7.8, E + 8.4, 0.16, 0.13, 6)
+    # the central stair from the lawn up to the arcade, brick cheeks
+    sw, ns = 3.2, 11
+    K.prism_x("steps", -sw / 2, sw / 2, [(-ns * 0.42, -1.0)] + [q for k in range(ns) for q in ((-(ns - k) * 0.42, (k + 1) * G / ns), (-(ns - k - 1) * 0.42, (k + 1) * G / ns))] + [(0.0, -1.0)])
+    for s in (-1, 1):
+        x = s * (sw / 2 + 0.2)
+        K.prism_x("brick_red", x - 0.2, x + 0.2, [(-ns * 0.42 - 0.2, -1.0), (-ns * 0.42 - 0.2, 0.9), (0.0, G + 1.0), (0.0, -1.0)])
+    rarea(-h + 0.4, h - 0.4, -ns * 0.42 - 3.0, -0.4, 0.0)       # the lawn in front
+    return {"width": round(L + 0.6, 2), "depth": D, "height": round(z0 + 7.0, 2)}
+
+
 # ------------------------------------------------------------------------------------------ 3: the glass box
 def stair_tower(x0, x1, y0, y1, H, up=1):
     """The brick stair tower of photo 4: brick, a cream coping, and the stair's glazing climbing diagonally across its
@@ -435,6 +554,7 @@ PIECES = [
     ("park_arch_stand", lambda: arch_stand(9, 8.0, "arch")),
     ("park_gable_stand", lambda: arch_stand(7, 8.0, "gable")),
     ("park_victorian", victorian),
+    ("park_old_pavilion", old_pavilion),
     ("park_glass_box", lambda: glass_box(30.0, 3, "left")),
     ("park_glass_box_small", lambda: glass_box(22.0, 2, "right")),
     ("park_stair_tower", stair_link),
@@ -503,8 +623,8 @@ def lawn(cx, cy, size, mat="lawn", col="#b2c98a"):
 
 
 if os.environ.get("SHEET"):          # the catalogue: the stands, then the smaller pieces and the festival side's
-    groups = [["park_glass_box_small", "park_victorian", "park_glass_box"], ["park_arch_stand"],
-              ["park_gable_stand", "park_stair_tower", "park_terrace", "park_link"], ["park_clock_house", "park_shed", "park_floodlight"]]
+    groups = [["park_glass_box_small", "park_old_pavilion", "park_glass_box"], ["park_arch_stand"],
+              ["park_gable_stand", "park_stair_tower", "park_terrace", "park_link"], ["park_clock_house", "park_shed", "park_floodlight"], ["park_old_pavilion"]]
     scene = setup_scene(1800, 900)
     lawn(0, 0, 4000)
     x = 0.0
@@ -573,5 +693,6 @@ if os.environ.get("ARRANGE"):        # the stand side assembled, the track and t
         tree(x + rnd.uniform(-4, 4), -200 + rnd.uniform(-10, 10), rnd.uniform(4.5, 7))
     shoot(scene, "park-standside-from-infield", (70, -250, 48), (70, 50, 6), lens=40)
     shoot(scene, "park-standside-rail", (190, -6, 4.5), (-20, 52, 9), lens=26)
+    shoot(scene, "park-members-group", (-20, -95, 16), (-5, 50, 9), lens=30)
     shoot(scene, "park-festival-from-stands", (60, 70, 26), (90, -110, 6), lens=30)
     shoot(scene, "park-stands-aerial", (-120, -170, 120), (90, 40, 0), lens=32)
