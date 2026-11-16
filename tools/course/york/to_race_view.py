@@ -291,7 +291,11 @@ def york_scenery(W, ground, C):
         tx, tz = rnd.uniform(-60, 360), rnd.uniform(95, 260)
         if not S.blocked(tx, tz):
             trees.append([NM.r2(tx), NM.r2(tz), rnd.choice(kinds), NM.r2(rnd.uniform(1.0, 1.5)), rnd.randrange(360)])
-    return S, trees
+    # the surroundings (owner, 16 Nov evening): tools/course/york/perimeter.py
+    import perimeter as PM
+    more, boards, banks = PM.perimeter(S, C, W, sp, rnd)
+    trees += more
+    return S, trees, boards, banks
 
 
 def main():
@@ -409,10 +413,10 @@ def main():
     NM.write("york-view.json", view, 1)
 
     # ---- scenery: the stands, the Clock Tower and the festival side (phase 4), and the finish-line kit on the inside rail
-    S, trees = york_scenery(W, course["ground"], C)
-    scen = NM.scenery_file(S, trees, [], [], ["york_stands", "site_props", "finish_line"], {"at": [0, GAP], "turn": 180}, poles)
+    S, trees, boards, banks = york_scenery(W, course["ground"], C)
+    scen = NM.scenery_file(S, trees, boards, banks, ["york_stands", "site_props", "finish_line"], {"at": [0, GAP], "turn": 180}, poles)
     NM.write("york-scenery.json", scen)
-    print("  ", len(S.pieces), "pieces,", len(S.people) // 4, "people,", len(trees), "trees")
+    print("  ", len(S.pieces), "pieces,", len(S.people) // 4, "people,", len(trees), "trees,", len(boards), "boards,", len(banks), "banks")
     print("turf area %.0f m2, %d rail lines, %d starts" % (turf.area, len(rails), len(starts)))
 
 
