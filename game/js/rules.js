@@ -382,10 +382,30 @@ function dressField(opp, grade, X) {
     Object.assign(opp[k], { sk, a: t.a, b: t.b, silks: t.img });
   });
 }
-function makeCard(seed, mix) {
+// The going (owner, 16 Nov 2026): each meeting's own chances (MEETING.goingOdds: Heavy, Softer, Good, Quicker, Quick; one
+// set, or one per day), and at a meeting over consecutive days (MEETING.goingRun) the ground dries out at most one step a
+// day and gets softer at most two. From its own stream of the seed, so the rest of the card is drawn as before. Games
+// started before then keep the old going (S.ground unset), and so does the daily card until 17 Nov, so everyone playing
+// one day's card has the same going.
+const GROUND_RULE = 2, GROUND_DAILY_FROM = "2026-11-17";
+const groundRuleFor = day => (day && day < GROUND_DAILY_FROM ? 1 : GROUND_RULE);
+function drawGoing(seed) {
+  const X = rngFrom(hashStr(seed + ":going")), O = MEETING.goingOdds, run = MEETING.goingRun, out = [];
+  const pick = w => { let y = X.r() * w.reduce((a, b) => a + b, 0), k = 0; while (k < w.length - 1 && (w[k] === 0 || y >= w[k])) { y -= w[k]; k++; } while (w[k] === 0) k--; return k; };
+  DAYS.forEach((_, d) => {
+    const odds = Array.isArray(O[0]) ? O[d] : O;
+    if (!run || d === 0) { out.push(GROUND_ORDER[pick(odds)]); return; }
+    const g = GROUND_ORDER.indexOf(out[d - 1]);
+    out.push(GROUND_ORDER[pick(odds.map((t, j) => { const dl = j - g;   // + drier, - softer
+      return dl > run.dry || dl < -run.wet ? 0 : t * (dl === 0 ? run.keep : dl > 0 ? 1 : dl === -1 ? run.wet1 : run.wet2); }))]);
+  });
+  return out;
+}
+function makeCard(seed, mix, ground) {
   const R = rngFrom(seed), used = new Set();
   const nm = () => { for (let k = 0; k < 300; k++) { const n = (R.pick(NAME_A) + " " + R.pick(NAME_B)).toUpperCase(); if (!used.has(n)) { used.add(n); return n; } } return "RUNNER " + used.size; };
-  const going = DAYS.map(() => R.pick(MEETING.goings));
+  const going0 = DAYS.map(() => R.pick(MEETING.goings));          // (still drawn, so the rest of the card comes out as before)
+  const going = ground >= 2 && MEETING.goingOdds ? drawGoing(seed) : going0;
   const jockeys = JOCKEYS.concat(MORE_JOCKEYS), trainers = TRAINERS.concat(MORE_TRAINERS);
   setRaces(drawRaces(R, mix));
   const races = RACES.map(race => {
@@ -631,7 +651,7 @@ function newCard(seed, day) {
     team: { picks: [], offer: null, done: false, choice: {}, used: {}, trains: {}, book: {}, income: 0, incomeLog: [] } };
   S.play = playPref(); if (S.play !== "plus") S.team = noTeam();
   if (S.play === "beginner") S.budget = S.start = BEGINNER_BUDGET;
-  S.mix = CARD_MIX; CARD = makeCard(S.seed, S.mix); ownLuck();
+  S.mix = CARD_MIX; S.ground = groundRuleFor(S.day); CARD = makeCard(S.seed, S.mix, S.ground); ownLuck();
   // No starting mares: every mare is bought at the mares sale, choosing one of three
   S.selMare = null;
   save();
@@ -661,7 +681,7 @@ function setPlay(p) {
   const was = S.play;
   S.play = p; S.team = p !== "plus" ? noTeam() : { picks: [], offer: null, done: false, choice: {}, used: {}, trains: {}, book: {}, income: 0, incomeLog: [] };
   // into or out of Beginner: its own race card (five races) and budget
-  if ((was === "beginner") !== (p === "beginner")) { S.budget = S.start = p === "beginner" ? BEGINNER_BUDGET : START_BUDGET; S.entries = {}; S.targets = {}; CARD = makeCard(S.seed, S.mix); ownLuck(); }
+  if ((was === "beginner") !== (p === "beginner")) { S.budget = S.start = p === "beginner" ? BEGINNER_BUDGET : START_BUDGET; S.entries = {}; S.targets = {}; CARD = makeCard(S.seed, S.mix, S.ground); ownLuck(); }
   save(); return true;
 }
 // each way to play has its own leaderboard (server/worker.js: "royal-ascot" is Plus, "royal-ascot-simple" is Simple)
@@ -680,7 +700,7 @@ function dailySave(play) { try { const v = JSON.parse(localStorage.getItem(slotK
 function load(mode, play) {
   mode = mode || "random";
   try { const v = JSON.parse(renamed(localStorage.getItem(slotKey(mode, play)) || "null")); if (v && v.seed && Array.isArray(v.stable)) {
-    S = v; S.open = null; S.mode = mode === "daily" && S.day ? "daily" : "random"; S.pileN = S.pileN || {}; S.play = S.play || "plus"; CARD = makeCard(S.seed, S.mix); ownLuck(); migrate();
+    S = v; S.open = null; S.mode = mode === "daily" && S.day ? "daily" : "random"; S.pileN = S.pileN || {}; S.play = S.play || "plus"; CARD = makeCard(S.seed, S.mix, S.ground); ownLuck(); migrate();
     // left in the middle of an auction: that lot has gone through the ring without you
     if (S.ring) { S.sale = (S.sale || []).filter(x => x.id !== S.ring); S.ring = null; save(); }
     return true; } } catch (e) {}
