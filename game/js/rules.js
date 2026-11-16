@@ -382,10 +382,30 @@ function dressField(opp, grade, X) {
     Object.assign(opp[k], { sk, a: t.a, b: t.b, silks: t.img });
   });
 }
-function makeCard(seed, mix) {
+// The going (owner, 16 Nov 2026): each meeting's own chances (MEETING.goingOdds: Heavy, Softer, Good, Quicker, Quick; one
+// set, or one per day), and at a meeting over consecutive days (MEETING.goingRun) the ground dries out at most one step a
+// day and gets softer at most two. From its own stream of the seed, so the rest of the card is drawn as before. Games
+// started before then keep the old going (S.ground unset), and so does the daily card until 17 Nov, so everyone playing
+// one day's card has the same going.
+const GROUND_RULE = 2, GROUND_DAILY_FROM = "2026-11-17";
+const groundRuleFor = day => (day && day < GROUND_DAILY_FROM ? 1 : GROUND_RULE);
+function drawGoing(seed) {
+  const X = rngFrom(hashStr(seed + ":going")), O = MEETING.goingOdds, run = MEETING.goingRun, out = [];
+  const pick = w => { let y = X.r() * w.reduce((a, b) => a + b, 0), k = 0; while (k < w.length - 1 && (w[k] === 0 || y >= w[k])) { y -= w[k]; k++; } while (w[k] === 0) k--; return k; };
+  DAYS.forEach((_, d) => {
+    const odds = Array.isArray(O[0]) ? O[d] : O;
+    if (!run || d === 0) { out.push(GROUND_ORDER[pick(odds)]); return; }
+    const g = GROUND_ORDER.indexOf(out[d - 1]);
+    out.push(GROUND_ORDER[pick(odds.map((t, j) => { const dl = j - g;   // + drier, - softer
+      return dl > run.dry || dl < -run.wet ? 0 : t * (dl === 0 ? run.keep : dl > 0 ? 1 : dl === -1 ? run.wet1 : run.wet2); }))]);
+  });
+  return out;
+}
+function makeCard(seed, mix, ground) {
   const R = rngFrom(seed), used = new Set();
   const nm = () => { for (let k = 0; k < 300; k++) { const n = (R.pick(NAME_A) + " " + R.pick(NAME_B)).toUpperCase(); if (!used.has(n)) { used.add(n); return n; } } return "RUNNER " + used.size; };
-  const going = DAYS.map(() => R.pick(MEETING.goings));
+  const going0 = DAYS.map(() => R.pick(MEETING.goings));          // (still drawn, so the rest of the card comes out as before)
+  const going = ground >= 2 && MEETING.goingOdds ? drawGoing(seed) : going0;
   const jockeys = JOCKEYS.concat(MORE_JOCKEYS), trainers = TRAINERS.concat(MORE_TRAINERS);
   setRaces(drawRaces(R, mix));
   const races = RACES.map(race => {
@@ -451,14 +471,13 @@ function check(h, race) {
   if (race.sex && h.sex !== race.sex) return { hidden: true };
   if (race.grade === "Handicap" && ratingAt(h, h.age) > HCAP_MAX) return { why: `Rated ${ratingAt(h, h.age)}: too high for a handicap (max ${HCAP_MAX})` };
   const best = tripAt(h, h.age), lo = Math.min(...best), hi = Math.max(...best);
-  // (Beginner: the same, counted in kinds of trip: a Mile horse is never marked down in a Mile race, one kind away is −5,
-  // two or more and it can't run)
-  const kLo = kindOf(lo), kHi = kindOf(hi), rKind = kindOf(race.step);
-  const steps0 = isBeginner() ? (rKind < kLo ? kLo - rKind : rKind > kHi ? rKind - kHi : 0) : race.step < lo ? lo - race.step : race.step > hi ? race.step - hi : 0;
+  // Beginner counts the trip the same way, step by step, so a race's rating matches the bar on the horse's card (owner,
+  // 16 Nov: a miler shown as the best fit for a 1m4f race; counting in kinds of trip had rated him 111 there, his card 106)
+  const steps0 = race.step < lo ? lo - race.step : race.step > hi ? race.step - hi : 0;
   // your trainer (js/team.js): a tune-up for this race, Stable Form (trip work and the rest change the horse itself)
   const train = typeof trainFor === "function" ? trainFor(h, race, steps0) : { boost: 0, shift: 0, cards: [] };
   const steps = Math.max(0, steps0 - train.shift);
-  if (steps > (isBeginner() ? 1 : 3)) return { why: isBeginner() ? `The wrong kind of trip: a ${tripText(best).toLowerCase()} horse` : `More than 3 steps from its best trip (${tripText(best)})` };
+  if (steps > 3) return { why: isBeginner() ? `Too far from its best trip: a ${tripText(best).toLowerCase()} horse` : `More than 3 steps from its best trip (${tripText(best)})` };
   const eff = ratingAt(h, h.age) + train.boost - steps * 5;
   if (eff < needFor(race)) return { eff, steps, train, why: `Rated ${eff} here: this race needs ${needFor(race)}+` };
   // Before race week the going isn't known, so the race-day rating is the rating at this trip; then the ground counts too
@@ -531,8 +550,7 @@ const CARD_ODDS = { black: [0, 4], red: [5, 10], yellow: [11, 20], blue: [25, 10
 const ODDS_LADDER = [[1, 3], [2, 5], [1, 2], [4, 7], [8, 13], [4, 6], [8, 11], [4, 5], [10, 11], [1, 1], [6, 5], [5, 4], [11, 8], [6, 4], [13, 8], [7, 4], [15, 8], [2, 1], [9, 4], [5, 2], [11, 4], [3, 1], [10, 3], [7, 2], [4, 1], [9, 2], [5, 1], [11, 2], [6, 1], [13, 2], [7, 1], [15, 2], [8, 1], [17, 2], [9, 1], [10, 1], [11, 1], [12, 1], [14, 1], [16, 1], [18, 1], [20, 1], [25, 1], [33, 1], [40, 1], [50, 1], [66, 1], [100, 1]];
 function dayFigure(h, race) {
   const lo = DISTANCES.indexOf(h.trip[0]), hi = DISTANCES.indexOf(h.trip[1]);
-  const k0 = kindOf(lo), k1 = kindOf(hi), rk = kindOf(race.step);
-  const steps = isBeginner() ? (rk < k0 ? k0 - rk : rk > k1 ? rk - k1 : 0) : race.step < lo ? lo - race.step : race.step > hi ? race.step - hi : 0;
+  const steps = race.step < lo ? lo - race.step : race.step > hi ? race.step - hi : 0;
   return h.rating - steps * 5 + groundPts(h.goings, CARD.going[race.day]);
 }
 function marketFor(i) {
@@ -633,7 +651,7 @@ function newCard(seed, day) {
     team: { picks: [], offer: null, done: false, choice: {}, used: {}, trains: {}, book: {}, income: 0, incomeLog: [] } };
   S.play = playPref(); if (S.play !== "plus") S.team = noTeam();
   if (S.play === "beginner") S.budget = S.start = BEGINNER_BUDGET;
-  S.mix = CARD_MIX; CARD = makeCard(S.seed, S.mix); ownLuck();
+  S.mix = CARD_MIX; S.ground = groundRuleFor(S.day); CARD = makeCard(S.seed, S.mix, S.ground); ownLuck();
   // No starting mares: every mare is bought at the mares sale, choosing one of three
   S.selMare = null;
   save();
@@ -663,7 +681,7 @@ function setPlay(p) {
   const was = S.play;
   S.play = p; S.team = p !== "plus" ? noTeam() : { picks: [], offer: null, done: false, choice: {}, used: {}, trains: {}, book: {}, income: 0, incomeLog: [] };
   // into or out of Beginner: its own race card (five races) and budget
-  if ((was === "beginner") !== (p === "beginner")) { S.budget = S.start = p === "beginner" ? BEGINNER_BUDGET : START_BUDGET; S.entries = {}; S.targets = {}; CARD = makeCard(S.seed, S.mix); ownLuck(); }
+  if ((was === "beginner") !== (p === "beginner")) { S.budget = S.start = p === "beginner" ? BEGINNER_BUDGET : START_BUDGET; S.entries = {}; S.targets = {}; CARD = makeCard(S.seed, S.mix, S.ground); ownLuck(); }
   save(); return true;
 }
 // each way to play has its own leaderboard (server/worker.js: "royal-ascot" is Plus, "royal-ascot-simple" is Simple)
@@ -682,7 +700,7 @@ function dailySave(play) { try { const v = JSON.parse(localStorage.getItem(slotK
 function load(mode, play) {
   mode = mode || "random";
   try { const v = JSON.parse(renamed(localStorage.getItem(slotKey(mode, play)) || "null")); if (v && v.seed && Array.isArray(v.stable)) {
-    S = v; S.open = null; S.mode = mode === "daily" && S.day ? "daily" : "random"; S.pileN = S.pileN || {}; S.play = S.play || "plus"; CARD = makeCard(S.seed, S.mix); ownLuck(); migrate();
+    S = v; S.open = null; S.mode = mode === "daily" && S.day ? "daily" : "random"; S.pileN = S.pileN || {}; S.play = S.play || "plus"; CARD = makeCard(S.seed, S.mix, S.ground); ownLuck(); migrate();
     // left in the middle of an auction: that lot has gone through the ring without you
     if (S.ring) { S.sale = (S.sale || []).filter(x => x.id !== S.ring); S.ring = null; save(); }
     return true; } } catch (e) {}

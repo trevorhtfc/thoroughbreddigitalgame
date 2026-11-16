@@ -374,17 +374,27 @@ const sexSvg = x => `<svg class="sx-svg" viewBox="0 0 16 16" aria-hidden="true">
 const RC_TIER = { g1: "gold", g2: "silver", g3: "bronze", gl: "green", gh: "slate", gc: "plum" };
 const rcTier = r => RC_TIER[GRADE[r.grade].cls] || "green";
 const gradeWord = r => { const g = GRADE[r.grade]; return g.short === "Hcap" ? "Handicap" : g.short === "Cond" ? "Conditions" : r.grade; };
+// the race's trip on a ladder of every trip in the game (as on the board game's race cards): its own step dark, the
+// rest of its kind tinted, the four kinds named underneath (owner, 16 Nov: "see the distance in the context of all distances")
+const LAD_KINDS = [["Sprint", 1, 3, "Spr"], ["Mile", 3, 6, "Mile"], ["Middle", 6, 8, "Mid"], ["Staying", 8, 10, "Stay"]];
+function tripLadder(r) {
+  const k = kindOf(r.step);
+  return `<div class="rf-lad" title="${r.dist}">${DISTANCES.map((d, i) => `<i class="${kindOf(i) === k ? "on" : ""}${i === r.step ? " hit" : ""}${i && kindOf(i) !== kindOf(i - 1) ? " gap" : ""}" style="grid-column:${i + 1}"></i>`).join("")}${LAD_KINDS.map(([n, a, b, sh], j) => `<span class="${j === k ? "on" : ""}" style="grid-column:${a} / ${b}"><em class="lg">${n}</em><em class="sh">${sh}</em></span>`).join("")}</div>`;
+}
 function raceFace(r) {
   const x = r.sex === "C" ? "C" : r.sex === "F" ? "F" : "O";
   const trip = isBeginner() ? ["Sprint", "Mile", "Middle", "Staying"][kindOf(r.step)] : r.dist;
   const sexWord = x === "C" ? "Colts" : x === "F" ? (r.ages[0] >= 4 ? "F & M" : "Fillies") : "Open";
   const sexTitle = x === "C" ? "Colts only" : x === "F" ? (r.ages[0] >= 4 ? "Fillies and mares" : "Fillies only") : "Open to colts and fillies";
   const course = courseName(r) ? courseName(r).split(" ")[0] : "";
+  const gw = gradeWord(r), gk = gw.length >= 8 ? `<span class="lg">${gw}</span><span class="sh">${GRADE[r.grade].short}</span>` : gw;
+  // the board's card, with the trip on the ladder of every trip (owner, 16 Nov) and the facts in a row: labelled where
+  // there's room, values only on a phone so the cards stay compact (owner, 16 Nov: "compress the cards so we don't need to slide")
   return `<div class="rcd t-${rcTier(r)}"><div class="rcd-mat"><div class="rcd-paper">
-    <div class="rcd-k">${gradeWord(r)}${course ? `<em> · ${course}</em>` : ""}</div>
-    <div class="rcd-n ${r.name.length > 22 ? "long" : ""}">${r.name}</div>
-    <div class="rcd-f"><div><span>Age</span><b>${ageOnly(r)}</b></div><div><span>${isBeginner() ? "Kind" : "Trip"}</span><b>${trip}</b></div><div class="rcd-sx ${x}" title="${sexTitle}"><span>${sexSvg(x)}</span><b>${sexWord}</b></div></div>
-    <div class="rcd-p"><span>1st</span><b>${money(r.prizes[0])}</b></div></div></div><i class="rcd-sheen"></i></div>`;
+    <div class="rcd-k"><i class="rcd-day">${dayTag(r.day)} · </i>${gk} · <span class="rcd-trip">${trip}</span>${course ? `<em> · ${course}</em>` : ""}</div>
+    <div class="rcd-n ${r.name.length > 22 ? "long" : ""}">${r.name}</div>${tripLadder(r)}
+    <div class="rcd-f"><div><span>Age</span><b>${ageOnly(r)}</b></div><div class="rcd-sx ${x}" title="${sexTitle}"><span>${sexSvg(x)}</span><b><i>${sexSvg(x)}</i>${sexWord}</b></div><div class="rcd-p"><span>1st</span><b><i class="lgm">${money(r.prizes[0])}</i><i class="shm">£${Math.round(r.prizes[0] / 1000)}k</i></b></div></div>
+    </div></div><i class="rcd-sheen"></i></div>`;
 }
 // the back of a race card, like the board's: the metal of its class, a fine inner edge, the stripes and its class
 const raceBack = r => `<div class="dc-back rcd-back t-${rcTier(r)}"><span><em>${W.cardBack}</em><b>${gradeWord(r)}</b></span></div>`;
@@ -806,6 +816,12 @@ document.addEventListener("click", e => {
     // on a phone the chosen race's panel is below the board of races: bring it up (owner, 15 Nov)
     const rs = document.querySelector(".rsel"); if (rs && rs.getBoundingClientRect().top > innerHeight * 0.55) rs.scrollIntoView({ block: "start", behavior: still() ? "auto" : "smooth" }); return; }
   if (d.card) { const h = horse(d.card); if (h) showHorseCard(h); return; }
+  // race week: your runner's card, to look at (owner, 16 Nov: "on the race week page we need to be able to see the horses cards")
+  if (d.wcard) { const h = horse(d.wcard), r = raceOf(d.wrace), c = h && r && check(h, r);
+    if (h) { if (typeof pnHorseCard === "function" && !PLAN_OLD) pnHorseCard(h, null, { look: true, back: "Back to race week",
+      extra: r && c && c.ok ? `<div class="pn-devd">In the <b>${esc2(r.name)}</b> (${esc2(dayTag(r.day))}): rated <b>${c.day}</b> on the day, ${rankText(c)}.</div>` : "" });
+      else showHorseCard(h); }
+    return; }
   if (d.keepdev) {
     const F = S.foal; if (!F) return;
     const id = F.h.id; keepFoal(($("#foalName") || {}).value);

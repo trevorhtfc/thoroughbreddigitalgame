@@ -15,7 +15,13 @@ window.MEETINGS["royal-ascot"] = {
   minOpen: 3,                            // at least three handicaps or conditions races on every card
   minPattern: 3,                         // and at least three pattern races
   hcapMax: 110,                          // handicaps are for horses rated 110 or less
-  goings: ["Softer", "Good", "Good", "Quicker", "Quicker", "Quick", "Heavy"],   // drawn for each day
+  goings: ["Softer", "Good", "Good", "Quicker", "Quicker", "Quick", "Heavy"],   // drawn for each day (games from before 16 Nov 2026)
+  // The going from 16 Nov 2026 (owner: "at Ascot heavy is very very rare, quicker-quick is most likely, then good, softer
+  // is rare-ish"): the chances of each, Heavy, Softer, Good, Quicker, Quick, for the first day; then from one day to the
+  // next it dries out at most one step and gets softer at most two ("you can't go from heavy on the Tuesday to quicker on
+  // the Wednesday"), most often staying as it was (keep), a step softer less often (wet1), two steps rarer still (wet2).
+  goingOdds: [2, 9, 25, 33, 31],
+  goingRun: { dry: 1, wet: 2, keep: 3, wet1: 0.6, wet2: 0.35 },
   // The four rating bands of each grade (the board game's decks): the field is drawn across them, and the lowest is the
   // rating a horse needs to run at all. Prizes for 1st to 4th.
   grades: {
