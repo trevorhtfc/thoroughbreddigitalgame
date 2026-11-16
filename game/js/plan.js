@@ -81,7 +81,8 @@ function pnChance(r, day) {
   return me / (me + CARD.races[r.i].opp.reduce((a, x) => a + Math.exp((oppDay(x, going) - 100) / k), 0));
 }
 // "Best idea": the most stars first (a trainer job counts a little under the real thing), then the prize times the chance
-const pnValue = o => o.v === "x" ? 0 : pnEff(o) * 1e6 + o.r.prizes[0] * pnChance(o.r, o.c.day + (o.tune ? o.tune.b : 0));
+// with the stars equal, a race at the horse's best trip comes first (owner, 16 Nov: never best fit at a trip he doesn't run)
+const pnValue = o => o.v === "x" ? 0 : pnEff(o) * 1e6 - (o.v === "t" ? 0 : (o.c.steps || 0)) * 4e5 + o.r.prizes[0] * pnChance(o.r, o.c.day + (o.tune ? o.tune.b : 0));
 // "Big purse" (owner, 15 Nov night: "two trainer recommendations .. best rating and another could be big purse .. or perfect
 // fit could be both"): the richest race where the horse is still at least a Good chance
 const pnPurseValue = o => o.v === "x" ? 0 : o.r.prizes[0] * pnChance(o.r, o.c.day + (o.tune ? o.tune.b : 0)) * (o.v === "t" ? .8 : 1);
@@ -156,7 +157,10 @@ function pnFoalFlags() { const F = S.foal; if (!F) return []; F.flags = F.flags 
 function pnRowComment(h, o, isBest) {
   const p = pnHe(h);
   if (o.v === "x") return o.c && o.c.why ? `${o.c.why.replace(/\.$/, "")}.` : `Can't run here.`;
-  const r = o.r, day = o.c.day, b = r.bands, where = `${ord(o.c.rank)} of ${o.c.of} on ratings`, big = r.grade === "Group 1";
+  const r = o.r, b = r.bands, where = `${ord(o.c.rank)} of ${o.c.of} on ratings`, big = r.grade === "Group 1";
+  // off the horse's best trip: say so, and what it costs (owner, 16 Nov: "why is this horse best fit a race he doesn't run
+  // the distance of?")
+  const st = o.c.steps || 0, day = st ? `${o.c.day} (${st === 1 ? "a step" : st + " steps"} ${o.r.step > Math.max(...tripAt(h, o.age)) ? "beyond" : "short of"} ${p.p} best trip, −${st * 5})` : o.c.day;
   const tune = o.tune ? ` A tune-up from ${o.tune.who} (+${o.tune.b}) would make ${p.o} ${["", "Outside", "Good", "Strong"][o.tune.v]}.` : "";
   if (o.v === "t") return `Outside ${p.p} best trip. Trip work from your trainer would get ${p.o} in: rated ${day}, ${["", "an outside chance", "a good chance", "a strong chance"][o.tv]} (${where}).`;
   if (o.v === 3) return `${isBest && big ? "The big one. " : ""}Rated ${day} here: top class for this race (${b[0]}+), ${where}.${isBest ? " Go for it." : ""}`;
@@ -375,15 +379,17 @@ function pnPlanTips(force) {
 // the main race planner"): an Enter view comes first and is the default then (js/entries.js)
 const pnCanEnter = () => !ENTRIES_OLD && S.step >= 3 && S.step <= 4 && !racesRun();
 // (on a phone the grid is a list of every race, so it's called that there)
-const PN_VIEWS_PLAN_F = () => [["grid", pnWide() ? "Grid" : "All races"], ["race", "By race"], ["horse", "By horse"]];
+// (owner, 16 Nov: "I don't understand the difference between by race and all races"): on a phone there's one race view,
+// By race, the races day by day, each opening to show who could run; on a wide screen the Grid is the third view
+const PN_VIEWS_PLAN_F = () => pnWide() ? [["grid", "Grid"], ["race", "By race"], ["horse", "By horse"]] : [["race", "By race"], ["horse", "By horse"]];
 // at entries: By race (develop, train and enter, race by race), By horse (the same, horse by horse), Grid, and Jockeys as
 // the last step before the races (owner, 15 Nov night)
-const pnViews = () => pnCanEnter() ? [["race", "By race"], ["horse", "By horse"], ["grid", pnWide() ? "Grid" : "All races"]].concat(typeof enJockeysOn === "function" && enJockeysOn() ? [["jockeys", "Jockeys"]] : []) : PN_VIEWS_PLAN_F();
+const pnViews = () => pnCanEnter() ? [["race", "By race"], ["horse", "By horse"]].concat(pnWide() ? [["grid", "Grid"]] : []).concat(typeof enJockeysOn === "function" && enJockeysOn() ? [["jockeys", "Jockeys"]] : []) : PN_VIEWS_PLAN_F();
 // one line under the tabs saying what this view is for
-const PN_HINT = {
-  plan: { grid: "Every horse against every race. Tap a square to flag that horse for that race.", race: "Day by day: the horse flagged for each race. Tap “Choose” to pick one.", horse: "Your string, best first, with the races each one is flagged for." },
+const PN_HINT_F = () => ({
+  plan: { grid: "Every horse against every race. Tap a square to flag that horse for that race.", race: pnWide() ? "Day by day: the horse flagged for each race. Tap “Choose” to pick one." : "Day by day. Tap a race to see who could run it and flag one.", horse: "Your string, best first, with the races each one is flagged for." },
   enter: { race: "Race by race, in day order: develop the horse to the right age, use your trainer, then enter it. Entered races drop to the foot.", horse: "Horse by horse: what each needs for its flagged race, and the button to do it.", grid: "Every horse against every race. Tap a square to flag; enter from By race or By horse.", jockeys: "The last step before the races: which of your jockeys helps which runner most." },
-};
+});
 const pnViewKey = () => pnCanEnter() ? "tb-pnview-e" : "tb-pnview";
 const pnView = () => { const vs = pnViews(), def = vs[0][0]; try { const v = localStorage.getItem(pnViewKey()); return vs.some(x => x[0] === v) ? v : def; } catch (e) { return def; } };
 const pnViewBar = () => { const v = pnView();
@@ -402,6 +408,11 @@ function pnByRace() {
     </div>`;
   };
   return `<div class="pr">${days.map(g => `<div class="pr-d"><h4>${esc2(g.t)}</h4>${g.races.map(tile).join("")}</div>`).join("")}</div>`;
+}
+// By race on a phone: the races day by day, each opening to show every horse that could run it
+function pnRaceList() {
+  return `<div class="pn-all"><span>Tap a race to open it</span><button type="button" data-pall="1">Open all</button><button type="button" data-pall="0">Close all</button></div>
+    ${DAYS.map((d, k) => ({ t: d, races: RACES.filter(r => r.day === k) })).filter(g => g.races.length).map(g => `<div class="pn-g pn-gday"><h4>${esc2(g.t)}</h4></div>${g.races.map(pnRace).join("")}`).join("")}`;
 }
 // By horse: your string, best first, each with the races it is flagged for (or its best fit)
 function pnByHorse() {
@@ -429,16 +440,16 @@ function pnPlanner() {
     banner = `<div class="pn-fresh"><img src="img/p${String(fresh.portrait || 1).padStart(2, "0")}.webp" alt=""><span><b>${esc2(fresh.name)} is in your planner.</b> ${fl.length ? `Flagged for ${fl.map(r => esc2(r.name)).join(" and ")}.` : `Nothing flagged yet: find ${pnHe(fresh).o} below, or let your trainer pick.`}</span></div>`; }
   const nmRules = pnNewmarket() ? `<div class="pn-info"><span><b>Newmarket:</b> a horse stays one age all season and can run once at each meeting. Developing it moves it up an age for every meeting.</span></div>` : "";
   const view = pnView();
-  // at the stud or the sales: a plain way back to the mares or the sale ring, at the top of the planner too
-  const backTop = S.step <= 2 && (UI.sheet === "stud" || UI.sheet === "tatts") && S.view === "plan"
-    ? `<button class="pn-backbar" type="button" data-pview="job"><span aria-hidden="true">‹</span><b>Back to ${S.step === 1 ? "the stud" : "the sale ring"}</b><small>${S.step === 1 ? (typeof handDone === "function" && !handDone() ? "draw your mares" : S.hand.length ? `${S.hand.length} mare${S.hand.length === 1 ? "" : "s"} still to breed` : "all your mares are bred") : `${S.sale.length} lots still for sale`}</small></button>` : "";
-  const hint = `<p class="pn-hint">${(PN_HINT[pnCanEnter() ? "enter" : "plan"] || {})[view] || ""}</p>`;
+  const hint = `<p class="pn-hint">${(PN_HINT_F()[pnCanEnter() ? "enter" : "plan"] || {})[view] || ""}</p>`;
   if (pnCanEnter() && view !== "grid") return `<section class="pn pn-enter">${banner}${nmRules}${pnViewBar()}${hint}
     ${view === "jockeys" ? enJockeys() : view === "horse" ? `${enTop()}${enByHorse()}` : enBody()}${enNext(view)}</section>`;
-  return `<section class="pn">${backTop}${banner}${view === "horse" ? "" : pnString()}${nmRules}${pnViewBar()}${hint}
-    <div class="pn-tools"><button class="tb-btn sm pn-gold" type="button" data-ppicks="1">${PN_FLAG} Flag the trainer's picks</button><span><b>${flagged} of ${RACES.length}</b> races flagged</span><button class="pn-how" type="button" data-ptips="1">How this works</button></div>
+  // (owner, 16 Nov: "3 back to stud buttons" and "loose the string or shrink it right down to just a little icon"): the
+  // tabs above and the button at the foot go back; your string is a count beside the flags
+  const need = S.stable.filter(h => !pnFlagsOf(h).length).length;
+  return `<section class="pn">${banner}${nmRules}${pnViewBar()}${hint}
+    <div class="pn-tools"><span class="pn-count" title="Your string">${typeof ICON !== "undefined" && ICON.stable ? `<svg viewBox="0 0 512 512" aria-hidden="true">${ICON.stable}</svg>` : ""}<b>${S.stable.length}</b> horse${S.stable.length === 1 ? "" : "s"}${need ? ` · <em>${need} need${need === 1 ? "s" : ""} a race</em>` : ""}</span><span><b>${flagged} of ${RACES.length}</b> races flagged</span><button class="tb-btn sm pn-gold" type="button" data-ppicks="1">${PN_FLAG} Flag the trainer's picks</button><button class="pn-how" type="button" data-ptips="1">How this works</button></div>
     ${pnKey()}
-    ${view === "race" ? pnByRace() : view === "horse" ? pnByHorse() : pnWide() ? pnGrid() : `<div class="pn-all"><span>Tap a race to open it</span><button type="button" data-pall="1">Open all</button><button type="button" data-pall="0">Close all</button></div>
+    ${view === "race" ? (pnWide() ? pnByRace() : pnRaceList()) : view === "horse" ? pnByHorse() : pnWide() ? pnGrid() : `<div class="pn-all"><span>Tap a race to open it</span><button type="button" data-pall="1">Open all</button><button type="button" data-pall="0">Close all</button></div>
       ${pnGroups().map(g => `<div class="pn-g"><h4>${esc2(g.t)}</h4>${g.sub ? `<p>${esc2(g.sub)}</p>` : ""}</div>${g.races.map(pnRace).join("")}`).join("")}`}
     ${pnCanEnter() ? enNext(view) : ""}
   </section>`;
@@ -454,7 +465,8 @@ function pnHorseCard(h, fromAge, opts = {}) {
   const box = document.createElement("div"); box.id = "devCard"; box.className = "foal-wrap";
   box.addEventListener("click", e => { if (e.target === box) { box.remove(); cardFrame = null; } });
   const p = pnHe(h), t = pnTier(pnPeak(h));
-  box.innerHTML = `<div class="foal pn-hc" role="dialog" aria-label="${esc2(h.name)}">${cardBox()}
+  // on a phone the card sits small beside the name, so the races are in view (big first only while it develops or trains)
+  box.innerHTML = `<div class="foal pn-hc ${dev || tr ? "" : "compact"}" role="dialog" aria-label="${esc2(h.name)}">${cardBox()}
     <div class="fc-in"><div class="pn-hctop"><span class="pn-tiertag t-${t}">${pnTierWord[t]} · ${pnLevel(pnPeak(h))}</span><button class="tb-btn ghost sm" type="button" data-pclose="1">${pnCanEnter() ? "Back to entries" : "Back to the planner"}</button></div>
       ${tr ? `<div class="pn-devd tr"><i class="pn-trface" aria-hidden="true"></i><span>${pnJobWords(h, opts.job)}</span></div>` : ""}
       ${dev ? `<div class="pn-devd">Developed to ${h.age}: rated <b>${ratingAt(h, fromAge)} → ${ratingAt(h, h.age)}</b>, best <b>${tripText(tripAt(h, h.age))}</b></div>` : ""}
@@ -514,6 +526,7 @@ function pnFoal() {
   wireCard();
   toCard({ type: "reveal", horse: cardPayload(h, 2) });
   setTimeout(() => { const f = box.querySelector(".foal"); if (f) f.classList.add("done"); }, 9000);
+  setTimeout(() => foalCompact(box.querySelector(".foal")), 16000);   // in case the card never says it's done
 }
 
 // the foal's buttons, kept in reach at the foot of the screen: save it as it is, or develop it to its best age
@@ -580,7 +593,7 @@ document.addEventListener("click", e => {
   if (d.pall) { RACES.forEach(r => { UI.pn.open[r.id] = d.pall === "1"; }); render(); return; }
   // (the view tabs are data-pnv: data-pview is the stud's and the sale's own "job" / "plan" switch, kept as it was)
   if (d.pnv) { try { localStorage.setItem(pnViewKey(), d.pnv); } catch (err) {} render(); return; }
-  if (d.pgo) { try { localStorage.setItem(pnViewKey(), "grid"); } catch (err) {} UI.pn.open[d.pgo] = true; render();
+  if (d.pgo) { try { localStorage.setItem(pnViewKey(), pnWide() ? "grid" : "race"); } catch (err) {} UI.pn.open[d.pgo] = true; render();
     const el = document.querySelector(`[data-prow="${d.pgo}"], .pn-race[data-race="${d.pgo}"]`);
     if (el) { el.scrollIntoView({ block: "center", behavior: "smooth" }); el.classList.add("pn-hl"); setTimeout(() => el.classList.remove("pn-hl"), 2200); } return; }
   if (d.pstring) { try { localStorage.setItem("tb-string", pnStringOpen() ? "closed" : "open"); } catch (err) {} render(); return; }

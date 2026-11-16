@@ -314,8 +314,20 @@ addEventListener("message", e => {
   if (!cardFrame || e.source !== cardFrame.contentWindow) return;
   const d = e.data || {};
   if (d.type === "ready" && !cardReady) { cardReady = true; const q = cardQueue; cardQueue = []; q.forEach(toCard); }
-  if (d.type === "revealDone" || d.type === "developDone") { const f = cardFrame && cardFrame.closest(".foal"); if (f) f.classList.add("done"); }
+  if (d.type === "revealDone" || d.type === "developDone") { const f = cardFrame && cardFrame.closest(".foal"); if (f) f.classList.add("done"); foalCompact(f, d.type === "revealDone" ? 1100 : 900); }
+  if (d.type === "trainedDone") foalCompact(cardFrame && cardFrame.closest(".foal"), 900);
 });
+// The new foal on a phone (owner, 16 Nov: "on the reveal .. nice and big showing name, card and gender .. then it can shrink
+// down to the main overview of the horse and their options"): once the card has turned over and filled in, it shrinks to
+// a small card beside the name, and the outlook and the races come up under it
+function foalCompact(f, wait) {
+  if (!f || !(f.classList.contains("pn-foal") || f.classList.contains("pn-hc")) || f.classList.contains("compact")) return;
+  setTimeout(() => {
+    if (!f.isConnected || f.classList.contains("compact")) return;
+    const go = () => { f.classList.add("compact"); const w = f.closest(".foal-wrap"); if (w) w.scrollTop = 0; };
+    if (document.startViewTransition && !matchMedia("(prefers-reduced-motion: reduce)").matches) document.startViewTransition(go); else go();
+  }, wait || 0);
+}
 function renderFoal() {
   let box = $("#foal");
   if (!S.foal) { if (box) box.remove(); return; }

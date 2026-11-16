@@ -1599,3 +1599,100 @@ details.fold > summary > span{font-size:13px}
   .prog-r .rf-sx em,.prog-r .rf-p em{display:inline}
 }
 .sx-i .sx-svg{width:11px;height:11px;stroke-width:2}
+
+/* ----- race cards, compact, with the trip ladder (owner, 16 Nov: "compress the cards so we don't need to slide" and
+   "show the distances graphically … in the context of all distances", like the board game's race cards) ----- */
+.rf{display:grid;grid-template-columns:minmax(0,1fr) auto;grid-template-areas:"top top" "name name" "lad lad" "foot foot";align-content:start}
+.rf-top{grid-area:top}.rf-n{grid-area:name}.rf-lad{grid-area:lad}.rf-f{grid-area:foot}
+.rf-day{display:none;font-style:normal}
+.rf-n{padding:6px 10px 2px}
+.rf-lad{display:grid;grid-template-columns:repeat(9,minmax(0,1fr));column-gap:2px;row-gap:3px;padding:5px 10px 6px;align-self:end}
+.rf-lad i{grid-row:1;height:6px;border-radius:2px;background:#ebe4d3}
+.rf-lad i.gap{margin-left:4px}
+.rf-lad i.on{background:#bcd3c3}
+.rf-lad i.hit{background:var(--tb-green)}
+.rf-lad span{grid-row:2;font-family:var(--tb-display);font-size:10px;line-height:1;letter-spacing:.03em;color:#aaa189;text-align:center;white-space:nowrap;overflow:hidden}
+.rf-lad span.on{color:var(--tb-green);font-weight:600}
+.dl-day .dc-face > .rf{min-height:0}
+.prog-r .rf{min-height:0}
+@media (max-width:1100px) and (min-width:761px){ .dl-day .dc-face > .rf{min-height:0} .rf-lad span{font-size:9px} }
+
+@media (max-width:760px){
+  .deal-in{gap:10px}
+  .deal-k{font-size:11px;letter-spacing:.18em}
+  .deal-t{font-size:24px;margin-top:2px}
+  .deal.in-sheet .deal-t{font-size:24px}
+  .deal.in-sheet .deal-in{min-height:0;padding:14px 12px 16px}
+  .deal-sum{font-size:13px;line-height:1.4}
+  .deal-foot .tb-btn{padding:10px;font-size:15px}
+  .dl-grid{gap:8px}
+  .dl-day{gap:4px 6px}
+  .dl-day h4{font-size:11px;letter-spacing:.14em;line-height:1}
+  .rf-top{padding:3px 8px}
+  .rf-n,.rf-n.long{font-size:14px;line-height:1.1;padding:4px 8px 0}
+  .rf-lad{padding:4px 8px 4px}
+  .rf-lad span{font-size:8.5px;letter-spacing:0}
+  .rf-f{padding:2px 8px 5px;font-size:11px;border-top:0}
+  /* one race a day (Beginner) and the programme: the day goes in the strip, the facts sit beside the ladder */
+  .dl-day.n1 h4{display:none}
+  .dl-day.n1 .rf-day{display:inline}
+  .dl-day.n1 .rf,.prog-r .rf{grid-template-areas:"top top" "name name" "lad foot";column-gap:10px}
+  .dl-day.n1 .rf-n,.prog-r .rf-n,.dl-day.n1 .rf-n.long,.prog-r .rf-n.long{font-size:16px;padding:5px 10px 0}
+  .dl-day.n1 .rf-lad,.prog-r .rf-lad{padding:6px 0 7px 10px}
+  .dl-day.n1 .rf-lad span,.prog-r .rf-lad span{font-size:9.5px}
+  .dl-day.n1 .rf-f,.prog-r .rf-f{flex-direction:column;align-items:flex-end;justify-content:center;gap:2px;padding:4px 10px 6px 0;margin:0}
+  .dl-day.n1 .rf-p,.prog-r .rf-p{margin-left:0}
+  .dl-day.n1 .rf-top,.prog-r .rf-top{padding:4px 10px}
+}
+@media (max-width:360px){
+  .rf-lad span:not(.on){visibility:hidden}
+  .dl-day.n1 .rf-lad span:not(.on),.prog-r .rf-lad span:not(.on){visibility:visible}
+  .dl-day.n1 .rf-lad span,.prog-r .rf-lad span{font-size:8.5px}
+}
+
+/* ----- the new foal and a horse's card on a phone: big for the reveal (or while it develops), then a small card beside the
+   name with the outlook and the races under it ----- */
+@media (max-width:700px){
+  .foal.pn-foal .cardbox,.foal.pn-hc .cardbox{view-transition-name:foalcard}
+  .foal.compact{grid-template-columns:112px minmax(0,1fr);grid-auto-flow:row dense;column-gap:12px;row-gap:4px;align-items:start}
+  .foal.compact .fc-in{display:contents}
+  .foal.compact .cardbox{grid-column:1;grid-row:1 / span 4;height:164px;min-height:0;align-self:start}
+  .foal.compact .fc-in > *{grid-column:1 / -1}
+  .foal.compact .fc-in > .fc-kicker,.foal.compact .fc-in > .fc-sex,.foal.compact .fc-in > .fc-name,.foal.compact .fc-in > .fc-ped,
+  .foal.compact .fc-in > .fc-dev,.foal.compact .fc-in > .pn-hctop{grid-column:2;text-align:left;margin:0}
+  .foal.compact .pn-hctop{justify-content:flex-start;padding-top:4px}
+  .foal.compact .pn-hctop .tb-btn{display:none}
+  .foal.compact .fc-kicker{font-size:10.5px;letter-spacing:.16em;padding-top:4px}
+  .foal.compact .fc-sex{font-size:16px;letter-spacing:.14em}
+  .foal.compact .fc-dev{font-size:19px}
+  .foal.compact .fc-name > span{display:none}
+  .foal.compact .fc-name input{font-size:17px;text-align:left;padding:5px 8px}
+  .foal.compact .fc-ped{font-size:13px;line-height:1.3}
+  .foal.compact .fc-facts{justify-content:flex-start;font-size:13px;gap:2px 12px;margin-top:4px}
+  .foal.compact .pn-devd{margin-top:4px}
+  .foal.compact .pn-out{margin-top:6px;zoom:.8}
+}
+::view-transition-group(foalcard){animation-duration:.55s;animation-timing-function:cubic-bezier(.3,.8,.3,1)}
+::view-transition-old(root),::view-transition-new(root){animation-duration:.4s}
+/* the ladder's kinds: in full where the card is wide, shortened on the narrow two-a-day cards */
+.rf-lad em{font-style:normal}
+.rf-lad .sh{display:none}
+@media (max-width:1100px){
+  .dl-day:not(.n1) .rf-lad .lg{display:none}
+  .dl-day:not(.n1) .rf-lad .sh{display:inline}
+}
+@media (max-width:360px){ .dl-day:not(.n1) .rf-lad span:not(.on){visibility:visible} }
+/* the planner's tools: your string as a count, the flags, the trainer's picks */
+.pn-count{display:inline-flex;align-items:center;gap:6px;padding:4px 10px;border-radius:999px;background:#fff;border:1px solid var(--tb-line);font-size:13px;color:var(--tb-ink)}
+.pn-count svg{width:18px;height:18px;fill:var(--tb-green)}
+.pn-count em{font-style:normal;color:#9a6a12;font-weight:700}
+.pn-gday h4{margin:10px 0 2px}
+@media (max-width:1100px) and (min-width:761px){ .rf-lad .lg{display:none} .rf-lad .sh{display:inline} }
+/* the planner's day headings on a phone: a slim label, not a block */
+.pn-g.pn-gday{background:none;border:0;box-shadow:none;padding:6px 2px 0;margin:6px 0 4px}
+.pn-g.pn-gday h4{margin:0;color:var(--tb-green);font-size:12px;letter-spacing:.18em}
+.rf-top .sh{display:none}
+@media (max-width:1100px) and (min-width:761px){ .rf-top .lg{display:none} .rf-top .sh{display:inline} }
+@media (max-width:360px){ .dl-day:not(.n1) .rf-top .lg{display:none} .dl-day:not(.n1) .rf-top .sh{display:inline} }
+.rf-lad span{overflow:visible;line-height:1.25;padding-bottom:1px}
+.rf{grid-template-rows:auto 1fr auto auto}

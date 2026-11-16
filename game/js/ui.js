@@ -364,6 +364,13 @@ const SEX_SVG = {
   F: '<circle cx="8" cy="6" r="4"/><path d="M8 10v5M5.5 12.5h5"/>',
   O: '<circle cx="7" cy="8" r="3.6"/><path d="M9.6 5.4l3.6-3.6M10 1.8h3.2V5M7 11.6v3.6M5 13.4h4"/>' };
 const sexSvg = x => `<svg class="sx-svg" viewBox="0 0 16 16" aria-hidden="true">${SEX_SVG[x] || SEX_SVG.O}</svg>`;
+// the race's trip on a ladder of every trip in the game (as on the board game's race cards): its own step dark, the
+// rest of its kind tinted, the four kinds named underneath (owner, 16 Nov: "see the distance in the context of all distances")
+const LAD_KINDS = [["Sprint", 1, 3, "Spr"], ["Mile", 3, 6, "Mile"], ["Middle", 6, 8, "Mid"], ["Staying", 8, 10, "Stay"]];
+function tripLadder(r) {
+  const k = kindOf(r.step);
+  return `<div class="rf-lad" title="${r.dist}">${DISTANCES.map((d, i) => `<i class="${kindOf(i) === k ? "on" : ""}${i === r.step ? " hit" : ""}${i && kindOf(i) !== kindOf(i - 1) ? " gap" : ""}" style="grid-column:${i + 1}"></i>`).join("")}${LAD_KINDS.map(([n, a, b, sh], j) => `<span class="${j === k ? "on" : ""}" style="grid-column:${a} / ${b}"><em class="lg">${n}</em><em class="sh">${sh}</em></span>`).join("")}</div>`;
+}
 function raceFace(r) {
   const g = GRADE[r.grade], x = r.sex === "C" ? "C" : r.sex === "F" ? "F" : "O";
   const grade = g.short === "Hcap" ? "Handicap" : g.short === "Cond" ? "Conditions" : r.grade;
@@ -371,8 +378,8 @@ function raceFace(r) {
   const sexWord = x === "C" ? "Colts" : x === "F" ? (r.ages[0] >= 4 ? "F & M" : "Fillies") : "Open";
   const sexTitle = x === "C" ? "Colts only" : x === "F" ? (r.ages[0] >= 4 ? "Fillies and mares" : "Fillies only") : "Open to colts and fillies";
   const course = courseName(r) ? courseName(r).split(" ")[0] : "";
-  return `<div class="rf ${g.cls}"><div class="rf-top"><b>${grade}</b><span>${trip}${course ? `<em> · ${course}</em>` : ""}</span></div>
-    <div class="rf-n ${r.name.length > 22 ? "long" : ""}">${r.name}</div>
+  return `<div class="rf ${g.cls}"><div class="rf-top"><b><i class="rf-day">${dayTag(r.day)} · </i>${grade.length > 8 ? `<span class="lg">${grade}</span><span class="sh">${g.short === "Hcap" ? "Hcap" : g.short}</span>` : grade}</b><span>${trip}${course ? `<em> · ${course}</em>` : ""}</span></div>
+    <div class="rf-n ${r.name.length > 22 ? "long" : ""}">${r.name}</div>${tripLadder(r)}
     <div class="rf-f"><span class="rf-c">${ageOnly(r)}<i class="rf-sx ${x}" title="${sexTitle}">${sexSvg(x)}<em>${sexWord}</em></i></span><span class="rf-p"><em>1st </em>${money(r.prizes[0])}</span></div></div>`;
 }
 const cardBack = (k, t) => `<div class="dc-back"><span>${k}<b>${t}</b></span></div>`;
