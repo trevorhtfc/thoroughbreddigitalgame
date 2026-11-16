@@ -87,6 +87,9 @@ document.addEventListener("drop", e => {
   setTarget(r.id, h.id); toast(`${h.name} targeted at the ${r.name}${f.ok ? "" : ": it doesn't qualify yet"}`);
 });
 function breedBody() {
+  // the hand is dealt in one go as the stud opens, and stays on the table until the player carries on (owner, 15 Nov:
+  // "draw the mares cards in one go with a drawing cards effect.. don't need to actually draw them")
+  if (S.step === 1 && !handDone() && dealHand()) { UI.mareShow = true; UI.mareAnim = true; }
   return `<div class="tb-head"><h1 class="tb-h">BREED</h1>
     <p class="tb-lede short" ${onJob() ? "" : "hidden"}>${S.stable.length ? `<b>${money(S.budget)}</b> left · ${S.stable.length} horse${S.stable.length === 1 ? "" : "s"} for ${RACES.length} races.` : `<b>${money(S.budget)}</b> to build a stable for ${RACES.length} races.`} ${!handDone() ? "Draw your mares, then breed them." : S.hand.length ? "Tap a mare, then a stallion, to breed her." : "Every mare is covered: on to Tattersalls when you're ready."} Keep some back for Tattersalls.</p></div>
     ${viewTabs("The stud")}
@@ -134,7 +137,8 @@ function stallionCard(s, m) {
     <div class="hc-foot">${s.unproven ? (knowsTrue(s.name) ? `<span class="warn">Your expert: really ${s.trueStars}★</span>` : `<span class="warn">Unproven: one star either way</span>`) : ""}${prob ? `<span class="why">${esc2(prob)}</span>` : ""}${ln ? `<span class="ln ${ln.cls}">${ln.text}</span>` : ""}</div></div></button>`;
 }
 function studView() {
-  if (!handDone()) return `${teamAtStud()}${dealView()}`;
+  if (!handDone() && dealHand()) { UI.mareShow = true; UI.mareAnim = true; }
+  if (UI.mareShow && S.step === 1) return `${teamAtStud()}${dealView()}`;
   const m = S.selMare && byName(S.selMare);
   let rows = STALLIONS.map(s => stallion(s.name)).filter(s => (S.trip || "all") === "all" || band(s.optimumDistance) === S.trip);
   rows.sort(S.sort === "stars" ? (a, b) => b.shownStars - a.shownStars || a.fee - b.fee : S.sort === "trip" ? (a, b) => DISTANCES.indexOf(a.optimumDistance) - DISTANCES.indexOf(b.optimumDistance) || a.fee - b.fee : (a, b) => a.fee - b.fee || b.shownStars - a.shownStars);
@@ -189,32 +193,41 @@ const mareStack = (id, n) => `<span class="mstack">${n > 1 ? '<span class="mback
 // a mare's card as it's turned over (not a button: she isn't picked for breeding until the hand is in)
 const mareFace = (name, cls) => mareCard(name).replace(/^<button class="hc m[^"]*" data-mare="[^"]*" aria-pressed="[^"]*">/, `<div class="hc m ${cls || ""}">`).replace(/<\/button>$/, "</div>");
 function dealView() {
-  const drawn = mh().hand || [], left = PILES.reduce((a, p) => a + Math.max(0, (HAND[p.id] || 0) - handDrawn(p.id)), 0);
-  // Simple: the hand deals itself, a card at a time, from the decks (owner, 15 Nov night: "you've still got clicking on
-  // the mares? it should just be a draw graphic"). Plus keeps tapping a deck to draw
-  const auto = typeof isSimple === "function" && isSimple();
-  if (auto) dealNext();
-  return `<section class="sect mdeal ${auto ? "auto" : ""}"><div class="sect-h"><h2 class="tb-h2">${auto ? "YOUR MARES" : "DRAW YOUR MARES"}</h2><span>${drawn.length} of ${HAND.hi + HAND.mid + HAND.lo} drawn</span></div>
-    <p class="hint">${auto ? "Your stud starts with two mares from each of the Weatherbys decks. They're being dealt now." : "Your stud starts with two mares from each of the Weatherbys decks. Tap a deck to turn over its top card: she's yours."}</p>
-    <div class="mdecks">${PILES.map(p => { const k = (HAND[p.id] || 0) - handDrawn(p.id), inner = `${mareStack(p.id, Math.min(3, pileLeft(p).length))}
-        <b>${p.name}</b><small>${k > 0 ? `${k} to draw` : "Done"}</small>`;
-      return auto ? `<div class="mdeck ${p.id} ${UI.dealFrom === p.id && k >= 0 ? "dealing" : ""} ${k > 0 ? "" : "done"}">${inner}</div>`
-        : `<button class="mdeck ${p.id}" data-mdraw="${p.id}" ${k > 0 ? "" : "disabled"} aria-label="Draw from the ${p.name} deck">${inner}</button>`; }).join("")}</div>
-    ${drawn.length ? `<div class="grid mdrawn">${drawn.map(n => mareFace(n, n === UI.mareDrew ? "flipin" : "")).join("")}</div>` : ""}
-    ${auto ? (left > 1 ? `<p class="mdeal-all"><button class="tb-btn ghost sm" data-mdraw="all">Skip the deal</button></p>` : "") : left > 1 ? `<p class="mdeal-all"><button class="tb-btn ghost sm" data-mdraw="all">Draw the rest for me</button></p>` : ""}</section>`;
+  const drawn = mh().hand || [], n = drawn.length;
+  return `<section class="sect mdeal"><div class="sect-h"><h2 class="tb-h2">YOUR MARES</h2><span>${n} mare${n === 1 ? "" : "s"} dealt to your stud</span></div>
+    <p class="hint">Two from each of the Weatherbys decks, dealt to your stud. Send each of them to a stallion.</p>
+    <div class="mdecks">${PILES.map(p => `<div class="mdeck ${p.id}">${mareStack(p.id, Math.min(3, pileLeft(p).length))}<b>${p.name}</b><small>${handDrawn(p.id)} dealt</small></div>`).join("")}</div>
+    <div class="grid mdrawn">${drawn.map(nm => { const p = pileOf(nm);
+      return `<div class="mflip" data-from="${p ? p.id : ""}"><div class="mflip-in"><span class="mflip-b">${mareBack(p ? p.id : "mid")}</span><div class="mflip-f">${mareFace(nm)}</div></div></div>`; }).join("")}</div></section>`;
 }
-// the next card of a self-dealing hand: from the best deck still owed a card, every 0.9 seconds while the stud is open
-function dealNext() {
-  if (UI.dealTimer || handDone()) return;
-  UI.dealTimer = setTimeout(() => {
-    UI.dealTimer = null;
-    if (S.step !== 1 || handDone() || UI.sheet !== "stud") return;
-    const p = PILES.find(q => handDrawn(q.id) < (HAND[q.id] || 0) && pileLeft(q).length);
-    const n = p ? drawHandMare(p.id) : (dealHand(), null);
-    UI.mareDrew = n; UI.dealFrom = p ? p.id : null;
-    render();
-    if (handDone()) { UI.dealFrom = null; setTimeout(() => toast("Your mares are in. Tap one to send her to a stallion"), 900); }
-  }, (mh().hand || []).length ? 900 : 600);
+// the hand's cards fly from their decks onto the table face down, then turn over one by one, like the race draw
+function mareDealAnim() {
+  UI.mareAnim = false;
+  const cards = [...document.querySelectorAll(".mdeal .mflip")];
+  if (!cards.length || still()) return;
+  // the step's key points pop up the first time the stud opens: the deal waits for them, cards hidden in their decks
+  const sec = cards[0].closest(".mdeal");
+  if (document.getElementById("kp")) {
+    sec.classList.add("waiting");
+    const wait = setInterval(() => {
+      if (!sec.isConnected) return clearInterval(wait);
+      if (document.getElementById("kp")) return;
+      clearInterval(wait); sec.classList.remove("waiting"); UI.mareAnim = true; mareDealAnim();
+    }, 150);
+    return;
+  }
+  const gap = 120, fly = 560, t0 = cards.length * gap + fly + 150, turn = 200;
+  cards.forEach((c, i) => {
+    const deck = document.querySelector(`.mdeal .mdeck.${c.dataset.from} .mstack`) || document.querySelector(".mdeal .mdecks");
+    const a = deck.getBoundingClientRect(), r = c.getBoundingClientRect();
+    const dx = a.left + a.width / 2 - (r.left + r.width / 2), dy = a.top + a.height / 2 - (r.top + r.height / 2), sc = Math.min(1, a.width / r.width);
+    c.animate([{ transform: `translate(${dx}px,${dy}px) rotate(${(i % 2 ? 1 : -1) * 8}deg) scale(${sc})`, opacity: 0 }, { opacity: 1, offset: .1 }, { transform: "none", opacity: 1 }],
+      { duration: fly, delay: i * gap, easing: "cubic-bezier(.2,.8,.3,1)", fill: "backwards" });
+    c.querySelector(".mflip-in").animate([{ transform: "rotateY(-180deg)" }, { transform: "rotateY(0deg)" }],
+      { duration: 620, delay: t0 + i * turn, easing: "cubic-bezier(.3,.8,.25,1.1)", fill: "backwards" });
+  });
+  BOARD.Sound.chime && BOARD.Sound.chime();
+  setTimeout(() => { if (UI.mareShow) BOARD.Sound.whinny && BOARD.Sound.whinny(); }, t0 + cards.length * turn + 300);
 }
 
 // Elite Mares: upgrade a mare a grade (owner, 14 Nov evening: no sending mares back, so this is only for the upgrades)

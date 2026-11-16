@@ -24,7 +24,7 @@ const CHAPTERS = {
   team:      { step: 1, place: "jockey", season: "Winter", title: "Your team", hour: 11.5,
                line: "Draft your owner, trainer and jockeys: six points from the Bronze, Silver and Gold decks." },
   breed:     { step: 1, place: "stud", season: "Spring", title: "The covering season", hour: 8,
-               line: "Draw your mares at the National Stud and send them to the stallions of your choice." },
+               line: "Your mares are dealt at the National Stud: send them to the stallions of your choice." },
   sales:     { step: 2, place: "tatts", season: "Autumn", title: "The Yearling Sales", hour: 11,
                line: "The mares nobody bred have sent their yearlings to Tattersalls. Bid for the best of them." },
   gallops:   { step: 3, place: "warren", season: "The next spring", title: "Into training", hour: 7,
@@ -262,6 +262,7 @@ function paintSheet(first) {
   if (id === "races" && S.step >= 5) resultAfter(prizeWon());
   if (id === "jockey" && UI.dealing && D) reattachDeal();
   body.scrollTop = keep;
+  if (UI.mareAnim && $(".mdeal .mflip")) requestAnimationFrame(mareDealAnim);
 }
 
 /* ----- the sheets' bodies ----- */
@@ -320,6 +321,8 @@ const FOOTS = {
       return ok ? `<span class="f-info"><b>${esc2(st.name)} × ${esc2(m.name)}</b> · stud fee ${money(fee)} · <button type="button" class="f-acct" data-accounts="1"><span data-budget>${money(S.budget)}</span> left</button></span>${goBtn("unStallion", "×", { ghost: true })}${goBtn("breedFoot", `Breed ${esc2(m.name)}`, { off: !can })}`
         : `<span class="f-info">Tap a stallion for <b>${esc2(m.name)}</b> · <button type="button" class="f-acct" data-accounts="1"><span data-budget>${money(S.budget)}</span> left</button></span>${goBtn("changeMare", "A different mare", { ghost: true })}`;
     }
+    // while the dealt hand is on the table, the footer's way on is to the stallions
+    if (UI.mareShow) return `<span class="f-info">${studCount()} mares dealt · <button type="button" class="f-acct" data-accounts="1"><span data-budget>${money(S.budget)}</span> left</button></span><button class="tb-btn" type="button" data-mdone="1">To the stallions <span aria-hidden="true">›</span></button>`;
     return S.confirmSale
       ? `<span class="f-info"><b>Close the stud?</b> Once you go to Tattersalls you can't come back to breed.${S.hand.length ? ` Your ${S.hand.length} unused mare${S.hand.length === 1 ? "" : "s"} may turn up in the sale.` : ""}</span>${goBtn("saleNo", "Stay at the stud", { ghost: true })}${goBtn("saleYes", "Go to Tattersalls", { off: S.foal || S.offer })}`
       : `<span class="f-info">${studCount()} mare${studCount() === 1 ? "" : "s"} · ${S.stable.length} horse${S.stable.length === 1 ? "" : "s"} · <button type="button" class="f-acct" data-accounts="1"><span data-budget>${money(S.budget)}</span> left</button></span>${goBtn("toSale", handDone() ? "Close the stud and go to the sales" : "Draw your mares first", { off: S.foal || S.offer || !handDone() })}`;  },
@@ -364,17 +367,27 @@ const SEX_SVG = {
   F: '<circle cx="8" cy="6" r="4"/><path d="M8 10v5M5.5 12.5h5"/>',
   O: '<circle cx="7" cy="8" r="3.6"/><path d="M9.6 5.4l3.6-3.6M10 1.8h3.2V5M7 11.6v3.6M5 13.4h4"/>' };
 const sexSvg = x => `<svg class="sx-svg" viewBox="0 0 16 16" aria-hidden="true">${SEX_SVG[x] || SEX_SVG.O}</svg>`;
+// A race card in the board game's own look (owner, 15 Nov: "the race cards are graphically a bit odd ... could we steal
+// graphics from the board game?"): the board's race card (race-sim.html in the board game's companion app) has a metal
+// frame for its class (gold Group 1, silver Group 2, bronze Group 3, green otherwise), a cream mat, white card with a
+// trellis fading down from the top, the name in Crimson Pro and its facts in small columns under a rule
+const RC_TIER = { g1: "gold", g2: "silver", g3: "bronze", gl: "green", gh: "slate", gc: "plum" };
+const rcTier = r => RC_TIER[GRADE[r.grade].cls] || "green";
+const gradeWord = r => { const g = GRADE[r.grade]; return g.short === "Hcap" ? "Handicap" : g.short === "Cond" ? "Conditions" : r.grade; };
 function raceFace(r) {
-  const g = GRADE[r.grade], x = r.sex === "C" ? "C" : r.sex === "F" ? "F" : "O";
-  const grade = g.short === "Hcap" ? "Handicap" : g.short === "Cond" ? "Conditions" : r.grade;
+  const x = r.sex === "C" ? "C" : r.sex === "F" ? "F" : "O";
   const trip = isBeginner() ? ["Sprint", "Mile", "Middle", "Staying"][kindOf(r.step)] : r.dist;
   const sexWord = x === "C" ? "Colts" : x === "F" ? (r.ages[0] >= 4 ? "F & M" : "Fillies") : "Open";
   const sexTitle = x === "C" ? "Colts only" : x === "F" ? (r.ages[0] >= 4 ? "Fillies and mares" : "Fillies only") : "Open to colts and fillies";
   const course = courseName(r) ? courseName(r).split(" ")[0] : "";
-  return `<div class="rf ${g.cls}"><div class="rf-top"><b>${grade}</b><span>${trip}${course ? `<em> · ${course}</em>` : ""}</span></div>
-    <div class="rf-n ${r.name.length > 22 ? "long" : ""}">${r.name}</div>
-    <div class="rf-f"><span class="rf-c">${ageOnly(r)}<i class="rf-sx ${x}" title="${sexTitle}">${sexSvg(x)}<em>${sexWord}</em></i></span><span class="rf-p"><em>1st </em>${money(r.prizes[0])}</span></div></div>`;
+  return `<div class="rcd t-${rcTier(r)}"><div class="rcd-mat"><div class="rcd-paper">
+    <div class="rcd-k">${gradeWord(r)}${course ? `<em> · ${course}</em>` : ""}</div>
+    <div class="rcd-n ${r.name.length > 22 ? "long" : ""}">${r.name}</div>
+    <div class="rcd-f"><div><span>Age</span><b>${ageOnly(r)}</b></div><div><span>${isBeginner() ? "Kind" : "Trip"}</span><b>${trip}</b></div><div class="rcd-sx ${x}" title="${sexTitle}"><span>${sexSvg(x)}</span><b>${sexWord}</b></div></div>
+    <div class="rcd-p"><span>1st</span><b>${money(r.prizes[0])}</b></div></div></div><i class="rcd-sheen"></i></div>`;
 }
+// the back of a race card, like the board's: the metal of its class, a fine inner edge, the stripes and its class
+const raceBack = r => `<div class="dc-back rcd-back t-${rcTier(r)}"><span><em>${W.cardBack}</em><b>${gradeWord(r)}</b></span></div>`;
 const cardBack = (k, t) => `<div class="dc-back"><span>${k}<b>${t}</b></span></div>`;
 function dealCard(face, backHTML, cls) { return `<div class="dc ${cls || ""}"><div class="dc-in">${backHTML}<div class="dc-face">${face}</div></div></div>`; }
 function drawBody() {
@@ -403,7 +416,7 @@ function dealRaces(instant) {
   $("#dealSum").classList.remove("on"); $("#dealNext").hidden = true; $("#dealSkip").hidden = false;
   $("#dealDeck").classList.remove("gone");
   $("#dealBody").innerHTML = `<div class="dl-grid">${DAYS.map((d, k) => `<div class="dl-day n${RACES.filter(r => r.day === k).length}"><h4>${dayTag(k)}</h4>
-    ${RACES.filter(r => r.day === k).map(r => dealCard(raceFace(r), cardBack(W.cardBack, "Race"), GRADE[r.grade].cls)).join("")}</div>`).join("")}</div>`;
+    ${RACES.filter(r => r.day === k).map(r => dealCard(raceFace(r), raceBack(r), "rc " + GRADE[r.grade].cls)).join("")}</div>`).join("")}</div>`;
   const cards = [...$("#dealBody").querySelectorAll(".dc")];
   if (instant || still()) { cards.forEach(c => c.classList.add("up")); if (!instant) racesDone(); return; }
   flyIn(cards, 95);
@@ -775,6 +788,7 @@ document.addEventListener("click", e => {
   if (d.trip) { S.trip = d.trip; save(); render(); return; }
   if (d.pile) { drawPile(d.pile); save(); render(); BOARD.Sound.whinny(); return; }
   if (d.cplay) { try { localStorage.setItem(PLAY_KEY, d.cplay); } catch (err) {} kpClose(); const f = UI.cpThen; UI.cpThen = null; if (f) f(); paintMenu(true); return; }
+  if (d.mdone) { UI.mareShow = false; UI.mareAnim = false; render(); sheetTop(); toast("Tap a mare, then a stallion, then Breed"); return; }
   if (d.mdraw) { const n = d.mdraw === "all" ? (dealHand(), null) : drawHandMare(d.mdraw); UI.mareDrew = n;
     if (n) { const m = byName(n); toast(`${m.name} (${m.stars}★) joins your stud`); }
     if (handDone()) setTimeout(() => toast("Your mares are in. Tap one to send her to a stallion"), n ? 1600 : 0);

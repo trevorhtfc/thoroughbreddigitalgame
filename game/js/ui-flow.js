@@ -115,7 +115,7 @@ const HEADLINES = {
     "The <b>Team</b> button at the top shows your cards at any time."] }),
   breed: () => ({ place: "stud", t: "Breed your foals", pts: [
     `You have <b>${money(S.budget)}</b> to build a stable for ${plural(RACES.length, "race")}: room for ${STABLE_CAP} horses.`,
-    handOn() ? `Draw your ${HAND.hi + HAND.mid + HAND.lo} mares from the Weatherbys decks. Then tap a mare, tap a stallion and press <b>Breed</b>.` : `Buy mares at the mares sale, then tap a mare, tap a stallion and press <b>Breed</b>.`,
+    handOn() ? `Your ${HAND.hi + HAND.mid + HAND.lo} mares are dealt from the Weatherbys decks. Then tap a mare, tap a stallion and press <b>Breed</b>.` : `Buy mares at the mares sale, then tap a mare, tap a stallion and press <b>Breed</b>.`,
     "An outcross (a different sire line) adds 1 to 3 to the foal's rating. The same line can take up to 4 off.",
     `Keep money back for Tattersalls: Book 1 lots start at ${money(RESERVES[BOOKS[0].min])}. Once you leave for the sales, the stud is closed.`] }),
   sales: () => ({ place: "tatts", t: "The Yearling Sales", pts: [
