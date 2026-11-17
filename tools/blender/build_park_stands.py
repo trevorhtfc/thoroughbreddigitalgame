@@ -50,7 +50,7 @@ exec(_ysrc[:_ysrc.index("\nPIECES = [")])
 
 PARK = {"redband": "#d9928a", "flat_roof": "#d3d5da", "roof_edge": "#6f7584", "board": "#4f7563", "board_line": "#f3efe4",
         "brick_red": "#cf8a74", "quoin": "#efe1c8", "vault": "#f7f3ec", "vault_under": "#e3dfd8",
-        "flag_a": "#e7a3a0", "flag_b": "#9fbad8", "flag_c": "#f1d38f", "flag_d": "#a9cfa6", "lamp": "#fff6dc"}
+        "shade": "#a9958d", "flag_a": "#e7a3a0", "flag_b": "#9fbad8", "flag_c": "#f1d38f", "flag_d": "#a9cfa6", "lamp": "#fff6dc"}
 for k, v in PARK.items():
     COL[k] = v
     MATS[k] = material("pk_" + k, v, rough=0.9)
@@ -415,146 +415,206 @@ def old_pavilion(nb=5, bay=4.8):
     return {"width": round(L + 0.6, 2), "depth": D, "height": round(z0 + 7.0, 2)}
 
 
-def tiered_stand(nb=11, bay=3.6):
-    """The right-hand stand of York's grandstands of 1895 (owner, 16 Nov: "make another like the grandstand on the
-    right of this image with a couple of tiers and terrace down to ground as well"), built to the owner's section
-    sketch ("this is a section of the grandstand. it should be quite tall in its proportion"; "there are no brick
-    towers"). The section, measured off his sketch (metres; y back from the foot of the terrace, z up):
-      - a shallow terrace, about 8 m long, rising 1.6 m from the lawn to
-      - a low brick arcade box, about 4 m deep and 4.4 m tall, standing 2 m forward of the posts: big round-headed
-        openings under cream edges;
-      - the lower tier: benches on a gentle rake from the front of the box back 7 m (about 2 m of rise);
-      - the upper tier: its front floor at about 10 m, raked steeply (about 4 m of rise in 5 m) over a flat ceiling;
-      - behind each rake a flat floor back to the brick back wall, about 9.5 m behind the posts, with doors onto
-        each level; a second row of columns at the back of the rakes (owner: the sketch's thin lines are columns,
-        not walls; the edges as the photo);
-      - the eaves at about 18 m, a low hipped slate roof reaching nearly 3 m out over the posts, chimneys at its ends.
-    Slim cream posts on every bay line from the box to the eaves; dark iron lattice balustrades with cream rails on
-    both tiers (as the photo); the galleries open at both ends, the balustrades returning; brick only for the ground
-    storey and the back wall. Origin: the middle of the
-    front on the ground (the foot of the terrace)."""
+def tiered_stand(nb=11, bay=3.6, terrace=False):
+    """The tiered grandstand, after York's stands of 1895, the owner's section sketch, and (16 Nov, late) his concept
+    image, which this follows: "here is a concept image that you should work from". From the ground up:
+      - an arcade of tall round arches on square piers: plinths, moulded imposts, archivolts and keystones, a deep
+        cornice over (the arcade 6.6 m to its top; the openings 2.3 m wide, the arches springing at 4.3 m);
+      - on the cornice, a classical balustrade with a pedestal on every pier and a ball finial on each, broken in the
+        middle by a pediment with a roundel;
+      - the lower gallery: benches on a gentle rake back from the balustrade; slim turned columns with capitals and
+        curved brackets on every bay line, carrying a deep floor edge;
+      - the upper gallery: the same, taller, its own balustrade with pedestals and finials on the floor edge;
+      - a stair rising across the left end of each gallery behind a raking balustrade;
+      - a solid end bay at the left, with panelled pilasters, under the same roof;
+      - a big hipped roof on close-set brackets under the eaves, three small louvred cupolas on the ridge.
+    The section follows his sketch: the arcade standing forward of the gallery columns, the rakes back to a back
+    wall, the thin lines columns, not walls (owner). terrace=True puts his shallow terrace down to the lawn in front;
+    his concept has none. Origin: the middle of the arcade's front on the ground."""
     L = nb * bay; h = L / 2
-    # the terrace: low steps up from the lawn, crush barriers on every other row
-    rows_t, tr_t, rs_t = 6, 1.3, 0.27
-    K.prism_x("steps", -h, h, [(0.0, -1.0)] + [q for k in range(rows_t) for q in ((k * tr_t, 0.12 + k * rs_t), ((k + 1) * tr_t, 0.12 + k * rs_t))] + [(rows_t * tr_t, -1.0)])
-    for k in range(rows_t):
-        rarea(-h + 0.4, h - 0.4, k * tr_t + 0.1, (k + 1) * tr_t - 0.1, 0.12 + k * rs_t)
-        if k % 2 and not K.far:
-            y, z = k * tr_t + 0.2, 0.12 + k * rs_t
-            K.box("iron", -h + 0.4, h - 0.4, y - 0.05, y + 0.05, z + 0.95, z + 1.05)
-            for j in range(int(L / 3.0) + 1):
-                x = -h + 0.4 + (L - 0.8) * j / int(L / 3.0)
-                K.box("iron", x - 0.05, x + 0.05, y - 0.05, y + 0.05, z, z + 1.05)
-    zT = 0.12 + (rows_t - 1) * rs_t                               # the terrace's top
-    yA = rows_t * tr_t                                            # the arcade box's front
-    yp = yA + 2.0                                                 # the posts
-    G = 4.4                                                       # the box's top: the lower tier's front
-    U = 9.9                                                       # the upper tier's front floor
-    Eav = 18.2                                                    # the eaves
-    yR = yp + 5.0                                                 # the back of both tiers: the rooms behind
-    yB = yp + 9.5                                                 # the back wall
-    # the arcade box, forward of the posts, and the brick under the tiers
-    K.box("brick_red", -h, h, yA, yR, -1.0, G - 0.3)
-    K.box("quoin", -h - 0.06, h + 0.06, yA - 0.14, yA + 0.6, G - 0.4, G)
+    y0 = 0.0
+    if terrace:                                                   # the shallow terrace (an option: the concept has none)
+        rows_t, tr_t, rs_t = 6, 1.3, 0.27
+        K.prism_x("steps", -h, h, [(-rows_t * tr_t, -1.0)] + [q for k in range(rows_t) for q in ((-(rows_t - k) * tr_t, 0.12 + k * rs_t), (-(rows_t - k - 1) * tr_t, 0.12 + k * rs_t))] + [(0.0, -1.0)])
+        for k in range(rows_t):
+            rarea(-h + 0.4, h - 0.4, -(rows_t - k) * tr_t + 0.1, -(rows_t - k - 1) * tr_t - 0.1, 0.12 + k * rs_t)
+    yA = 0.0                                                      # the arcade's front
+    A = 6.6                                                       # the arcade's top: the lower gallery's floor
+    yp = yA + 1.6                                                 # the gallery columns
+    U = A + 6.4                                                   # the upper gallery's floor
+    Eav = U + 8.2                                                 # the eaves
+    yR = yp + 6.0                                                 # the back of the rakes
+    yB = yp + 10.0                                                # the back wall
+    # ---- the arcade
+    w2, zi = 1.15, 4.3                                            # half an opening; the impost (where the arches spring)
+    rec = 0.9                                                     # the openings' depth to the wall behind
+    yL = yA + rec + 2.6                                           # the loggia's back wall: the arches open into it
+    K.box("shade", -h, h, yL, yB, -1.0, A - 0.8)
+    K.box("shade", -h, h, yA + rec, yL, A - 1.05, A - 0.8)        # the loggia's ceiling
+    K.box("podium", -h, h, yA + rec, yL, -1.0, 0.25)              # its floor
+    for i in range(nb):
+        K.box("glass", -h + bay * (i + 0.5) - 0.8, -h + bay * (i + 0.5) + 0.8, yL - 0.06, yL, 0.25, 3.1)    # doors at its back
+    K.box("podium", -h - 0.2, h + 0.2, yA - 0.25, yA + rec, -1.0, 0.25)               # the step along the front
+    for i in range(nb + 1):                                       # the piers
+        x = -h + bay * i
+        pa, pb = x - (bay / 2 - w2), x + (bay / 2 - w2)
+        K.box("quoin", pa, pb, yA, yA + rec, 0.25, zi)
+        K.box("podium", pa - 0.12, pb + 0.12, yA - 0.12, yA + rec, 0.25, 1.0)          # the plinth
+        K.box("podium", pa - 0.15, pb + 0.15, yA - 0.15, yA + rec, zi - 0.35, zi)      # the impost
+        K.box("podium", pa - 0.1, pb + 0.1, yA - 0.1, yA + rec, zi - 0.5, zi - 0.35)
+    n = 12
     for i in range(nb):
         cx = -h + bay * (i + 0.5)
-        w2, zsp = 1.2, zT + 1.6
-        K.box("glass", cx - w2, cx + w2, yA - 0.06, yA + 0.02, zT, zsp)
-        K.arc_band("glass", cx, zsp, 0.0, w2, 0.0, math.pi, yA - 0.06, yA + 0.02, 10)
-        K.arc_band("quoin", cx, zsp, w2, w2 + 0.26, 0.0, math.pi, yA - 0.14, yA, 10)
-        for s_ in (-1, 1):
-            K.box("quoin", cx + s_ * (w2 + 0.13) - 0.13, cx + s_ * (w2 + 0.13) + 0.13, yA - 0.14, yA, zsp - 0.22, zsp)
-    def iron_front(x0, x1, y, z, axis="x"):
-        """a dark iron lattice balustrade with a cream top rail"""
-        bx = (lambda a, b, c, d, e, f, m: K.box(m, a, b, c, d, e, f)) if axis == "x" else (lambda a, b, c, d, e, f, m: K.box(m, c, d, a, b, e, f))
-        bx(x0, x1, y - 0.05, y + 0.05, z + 0.1, z + 0.95, "ironwork")
-        bx(x0, x1, y - 0.1, y + 0.1, z + 0.95, z + 1.08, "quoin")
-        bx(x0, x1, y - 0.08, y + 0.08, z, z + 0.12, "quoin")
-        if not K.far and axis == "x":
-            n = int((x1 - x0) / 0.8)
-            for j in range(n):
-                a, b = x0 + (x1 - x0) * j / n, x0 + (x1 - x0) * (j + 1) / n
-                strut("trim", (a, y - 0.08, z + 0.15), (b, y - 0.08, z + 0.9), r=0.03)
-                strut("trim", (b, y - 0.08, z + 0.15), (a, y - 0.08, z + 0.9), r=0.03)
-    # the lower tier: a gentle rake from the box's front back to the rooms
-    rows1 = 5; tr1 = (yR - yA - 0.6) / rows1; rs1 = 0.42
-    prof = [(yA, G - 0.4), (yA, G)]
-    for j in range(rows1):
-        y0_, y1_ = yA + 0.6 + j * tr1, yA + 0.6 + (j + 1) * tr1
-        prof += [(y0_, G + j * rs1), (y1_, G + j * rs1)]
-        K.box("bench", -h + 0.3, h - 0.3, y1_ - 0.45, y1_ - 0.12, G + j * rs1, G + j * rs1 + 0.42)
-        rarea(-h + 0.3, h - 0.3, y0_ + 0.05, y1_ - 0.5, G + j * rs1)
-    prof += [(yR, G - 0.4)]
-    K.prism_x("concrete", -h, h, prof)
-    rarea(-h + 0.3, h - 0.3, yA + 0.15, yA + 0.55, G)
-    iron_front(-h, h, yA + 0.1, G)
-    # the upper tier: steeper, over a flat ceiling
-    rows2 = 6; tr2 = (yR - yp - 0.5) / rows2; rs2 = 0.7
-    prof = [(yp - 0.3, U - 0.5), (yp - 0.3, U)]
-    for j in range(rows2):
-        y0_, y1_ = yp + 0.5 + j * tr2, yp + 0.5 + (j + 1) * tr2
-        prof += [(y0_, U + j * rs2), (y1_, U + j * rs2)]
-        K.box("bench", -h + 0.3, h - 0.3, y1_ - 0.42, y1_ - 0.12, U + j * rs2, U + j * rs2 + 0.42)
-        rarea(-h + 0.3, h - 0.3, y0_ + 0.05, y1_ - 0.45, U + j * rs2)
-    prof += [(yR, U - 0.5)]
-    K.prism_x("concrete", -h, h, prof)
-    rarea(-h + 0.3, h - 0.3, yp - 0.1, yp + 0.45, U)
-    K.box("trim", -h, h, yp - 0.4, yp - 0.2, U - 0.9, U - 0.4)                          # the valance under it
-    iron_front(-h, h, yp - 0.2, U)
-    # behind the rakes: flat floors back to the back wall (the sketch's thin lines are columns, not walls; owner)
-    zl = G + (rows1 - 1) * rs1                                   # the lower rake's top
-    zu = U + (rows2 - 1) * rs2                                   # the upper rake's top
+        K.arc_band("quoin", cx, zi, w2, w2 + 0.05, 0.0, math.pi, yA, yA + rec, n)      # the soffit
+        K.arc_band("podium", cx, zi, w2 - 0.02, w2 + 0.32, 0.0, math.pi, yA - 0.12, yA, n)   # the archivolt
+        K.box("podium", cx - 0.22, cx + 0.22, yA - 0.2, yA, zi + w2 - 0.05, zi + w2 + 0.55)  # the keystone
+        for j in range(n):                                        # the spandrels up to the cornice
+            a0, a1 = math.pi * j / n, math.pi * (j + 1) / n
+            xa, xb = cx + (w2 + 0.05) * math.cos(a0), cx + (w2 + 0.05) * math.cos(a1)
+            za, zb = zi + (w2 + 0.05) * math.sin(a0), zi + (w2 + 0.05) * math.sin(a1)
+            K.prism_y("quoin", yA, yA + rec, [(xb, zb), (xa, za), (xa, A - 1.0), (xb, A - 1.0)])
+    K.box("quoin", -h - 0.1, h + 0.1, yA, yA + rec, A - 1.0, A - 0.6)                 # the frieze
+    K.box("podium", -h - 0.3, h + 0.3, yA - 0.3, yA + rec, A - 0.6, A - 0.35)         # the cornice, stepped out
+    K.box("podium", -h - 0.5, h + 0.5, yA - 0.5, yp + 0.3, A - 0.35, A)
+    rarea(-h + 0.4, h - 0.4, yA + rec + 0.3, yp + 2.0, 0.25)                           # people in the loggia
+    # ---- balustrades: square balusters, a pedestal on every bay line with a ball finial
+    def classic_rail(x0, x1, y, z, ped=True, gap=None):
+        K.balustrade(x0, x1, y, z, h=1.1, mat="trim", spacing=0.3, piers=False)
+        K.box("trim", x0, x1, y - 0.22, y + 0.22, z + 1.02, z + 1.16)                  # a broad coping
+        if ped:
+            for i in range(nb + 1):
+                x = -h + bay * i
+                if gap and gap[0] < x < gap[1]:
+                    continue
+                K.box("trim", x - 0.3, x + 0.3, y - 0.3, y + 0.3, z, z + 1.3)
+                K.box("trim", x - 0.36, x + 0.36, y - 0.36, y + 0.36, z + 1.3, z + 1.42)
+                K.sphere("trim", x, y, z + 1.72, 0.26, 2)
+    # the pediment over the middle of the arcade, breaking the balustrade
+    pw = bay * 1.5
+    classic_rail(-h, -pw / 2, yA - 0.05, A, gap=(-pw / 2 - 0.1, pw / 2 + 0.1))
+    classic_rail(pw / 2, h, yA - 0.05, A, ped=False)
+    for x in (-pw / 2, pw / 2):
+        K.box("trim", x - 0.35, x + 0.35, yA - 0.35, yA + 0.3, A, A + 1.45)
+        K.sphere("trim", x, yA - 0.02, A + 1.78, 0.28, 2)
+    K.box("quoin", -pw / 2, pw / 2, yA - 0.25, yA + 0.3, A, A + 0.9)
+    K.prism_y("podium", yA - 0.4, yA + 0.3, [(-pw / 2 - 0.3, A + 0.85), (pw / 2 + 0.3, A + 0.85), (0.0, A + 2.6)][::-1])
+    K.prism_y("quoin", yA - 0.32, yA + 0.2, [(-pw / 2 + 0.35, A + 1.0), (pw / 2 - 0.35, A + 1.0), (0.0, A + 2.25)][::-1])
+    K.disc_y("podium", 0.0, yA - 0.44, yA - 0.3, A + 1.55, 0.42, 20)
+    for i in range(1, nb):                                        # the arcade rail's other pedestals
+        x = -h + bay * i
+        if x > pw / 2 + 0.1:
+            K.box("trim", x - 0.3, x + 0.3, yA - 0.35, yA + 0.25, A, A + 1.3)
+            K.box("trim", x - 0.36, x + 0.36, yA - 0.41, yA + 0.31, A + 1.3, A + 1.42)
+            K.sphere("trim", x, yA - 0.05, A + 1.72, 0.26, 2)
+    for x in (h,):
+        K.box("trim", x - 0.3, x + 0.3, yA - 0.35, yA + 0.25, A, A + 1.3)
+        K.sphere("trim", x, yA - 0.05, A + 1.72, 0.26, 2)
+    # ---- the galleries: rakes, columns with brackets, deep floor edges
+    def rake(z0, y0_, rows, rs):
+        tr = (yR - y0_) / rows
+        prof = [(y0_ - 0.3, z0 - 0.5), (y0_ - 0.3, z0)]
+        for j in range(rows):
+            ya, yb = y0_ + j * tr, y0_ + (j + 1) * tr
+            prof += [(ya, z0 + j * rs), (yb, z0 + j * rs)]
+            K.box("bench", -h + 0.3, h - 0.3, yb - 0.42, yb - 0.12, z0 + j * rs, z0 + j * rs + 0.42)
+            rarea(-h + 0.3, h - 0.3, ya + 0.05, yb - 0.45, z0 + j * rs)
+        prof += [(yR, z0 - 0.5)]
+        K.prism_x("concrete", -h, h, prof)
+        return z0 + (rows - 1) * rs
+    zl = rake(A, yp + 0.8, 7, 0.38)
+    rarea(-h + 0.4, h - 0.4, yA + 0.3, yp + 0.5, A)
+    zu = rake(U, yp + 0.8, 8, 0.36)
+    K.box("shade", -h, h, yp, yR, U - 1.06, U - 1.0)
+    K.box("quoin", -h - 0.3, h + 0.3, yp - 0.75, yp + 0.4, U - 1.0, U)                  # the upper floor's deep edge
+    K.box("podium", -h - 0.4, h + 0.4, yp - 0.85, yp + 0.4, U - 1.0, U - 0.8)
+    classic_rail(-h, h, yp - 0.45, U)
+    rarea(-h + 0.4, h - 0.4, yp - 0.2, yp + 0.6, U)
+    def column(x, z0, z1, brackets=True):
+        r = 0.16
+        K.box("trim", x - 0.3, x + 0.3, yp - 0.3, yp + 0.3, z0, z0 + 0.4)              # the base
+        K.cyl("trim", x, yp, z0 + 0.4, z1 - 0.55, r + 0.03, r, 10)                     # the shaft, tapering a little
+        K.cyl("trim", x, yp, z1 - 0.55, z1 - 0.3, r + 0.03, r + 0.14, 10)              # the capital's bell
+        K.box("trim", x - 0.3, x + 0.3, yp - 0.3, yp + 0.3, z1 - 0.3, z1)              # the abacus
+        if brackets and not K.far:
+            R = 0.95
+            for s_ in (-1, 1):
+                if abs(x + s_ * R) > h + 0.01:
+                    continue
+                cxr = x + s_ * (R + r)
+                a0, a1 = (math.pi / 2, math.pi) if s_ > 0 else (0.0, math.pi / 2)
+                K.arc_band("trim", cxr, z1 - R, R - 0.12, R, a0, a1, yp - 0.07, yp + 0.07, 8)
+                K.arc_band("trim", cxr, z1 - R, R * 0.45, R * 0.55, a0, a1, yp - 0.05, yp + 0.05, 6)
+    for i in range(nb + 1):
+        x = -h + bay * i
+        column(x, A, U - 1.0)
+        column(x, U, Eav - 0.6)
+    K.box("trim", -h - 0.3, h + 0.3, yp - 0.4, yp + 0.4, Eav - 0.6, Eav)              # the eaves beam
+    # the stairs rising across the left end of each gallery, behind a raking balustrade
+    for z0, ztop in ((A, zl), (U, zu)):
+        xs = -h + 1.0
+        if not K.far:
+            strut("trim", (xs + 0.9, yp + 0.4, z0 + 1.0), (xs + 0.9, yR - 0.3, ztop + 1.0), r=0.08)
+            k = 9
+            for j in range(k + 1):
+                f = j / k
+                y = yp + 0.4 + (yR - 0.7 - yp) * f
+                z = z0 + (ztop - z0) * f
+                K.box("trim", xs + 0.85, xs + 0.95, y - 0.05, y + 0.05, z, z + 1.0)
+    # ---- the back wall, in shade within; doors
+    K.box("wall", -h, h, yB, yB + 0.4, -1.0, Eav)
+    K.box("shade", -h, h, yB - 0.04, yB, A - 0.4, Eav)
+    for i in range(nb):
+        cx = -h + bay * (i + 0.5)
+        K.door(cx, yB - 0.04, zl, 1.2, 2.4)
+        K.door(cx, yB - 0.04, zu, 1.2, 2.4)
     K.box("concrete", -h, h, yR, yB, zl - 0.4, zl)
     K.box("concrete", -h, h, yR, yB, zu - 0.4, zu)
-    rarea(-h + 0.4, h - 0.4, yR + 0.3, yB - 0.6, zl)
-    rarea(-h + 0.4, h - 0.4, yR + 0.3, yB - 0.6, zu)
-    # the ground storey: brick under everything, round-headed openings round the ends too
-    K.box("brick_red", -h, h, yR, yB, -1.0, zl - 0.4)
-    for x in (-h, h):
-        side = -1 if x < 0 else 1
-        for y in (yA + 2.2, yA + 6.0, yA + 9.8):
-            K.push(Matrix.Translation((x, 0, 0)) @ Matrix.Rotation(math.pi / 2 * side, 4, "Z"))
-            yy = y * side
-            K.box("glass", yy - 1.0, yy + 1.0, -0.06, 0.02, zT, zT + 1.5)
-            K.arc_band("glass", yy, zT + 1.5, 0.0, 1.0, 0.0, math.pi, -0.06, 0.02, 10)
-            K.arc_band("quoin", yy, zT + 1.5, 1.0, 1.24, 0.0, math.pi, -0.14, 0.0, 10)
-            K.pop()
-        # the galleries open at the ends: the balustrades return
-        for z, y0_ in ((G, yA), (U, yp - 0.3), (zl, yR), (zu, yR)):
-            K.box("quoin", x - 0.1, x + 0.1, y0_, yB, z + 0.95, z + 1.08)
-            K.box("ironwork", x - 0.05, x + 0.05, y0_, yB, z + 0.1, z + 0.95)
-    # the back wall: brick, full height, doors onto each level, windows
-    K.box("brick_red", -h, h, yB, yB + 0.4, -1.0, Eav)
-    for i in range(nb):
-        cx = -h + bay * (i + 0.5)
-        K.door(cx, yB, zl, 1.2, 2.4)
-        K.door(cx, yB, zu, 1.2, 2.4)
-        K.window(cx, yB + 0.4, 1.0, 1.1, 1.9, d=1)
-        K.window(cx, yB + 0.4, zl + 0.6, 1.1, 1.9, d=1)
-        K.window(cx, yB + 0.4, zu + 0.6, 1.1, 1.9, d=1)
-    # the middle row of columns (the sketch's), from the lower floor to the eaves
-    for i in range(nb + 1):
-        x = -h + bay * i
-        K.box("trim", x - 0.13, x + 0.13, yR - 0.13, yR + 0.13, zl, Eav)
-    K.box("trim", -h, h, yR - 0.2, yR + 0.2, Eav - 0.5, Eav)
-    # the posts
-    for i in range(nb + 1):
-        x = -h + bay * i
-        K.box("trim", x - 0.11, x + 0.11, yp - 0.11, yp + 0.11, G, Eav)
-    K.box("trim", -h - 0.2, h + 0.2, yp - 0.3, yp + 0.1, Eav - 0.5, Eav)              # the eaves beam
-    # the roof: low, hipped, reaching nearly 3 m out over the posts; chimneys at its ends
-    rise = 3.6
-    K.box("canopy_under", -h, h, yp - 2.0, yB + 0.4, Eav - 0.15, Eav)                # the ceiling under the roof
-    K.hip_roof(-h, h, yp - 2.0, yB + 0.4, Eav, rise, 0.8, mat="slate")
-    yc = (yp - 2.0 + yB) / 2
-    for x in (-h + 3.0, h - 3.0):
-        K.box("brick_red", x - 0.7, x + 0.7, yc - 0.5, yc + 0.5, Eav + 1.5, Eav + rise + 2.6)
-        K.box("quoin", x - 0.85, x + 0.85, yc - 0.65, yc + 0.65, Eav + rise + 2.6, Eav + rise + 2.9)
-        for dx in (-0.3, 0.3):
-            K.cyl("pot", x + dx, yc, Eav + rise + 2.9, Eav + rise + 3.5, 0.16, 0.13, 6)
-    return {"width": round(L + 0.6, 2), "depth": round(yB + 0.8, 2), "height": round(Eav + rise + 3.5, 2),
-            "section": {"terraceTop": round(zT, 2), "boxFront": round(yA, 2), "posts": round(yp, 2), "back": round(yB, 2),
-                        "lowerFront": G, "upperFront": U, "eaves": Eav}}
+    K.box("shade", -h, h, yR, yB, zu - 0.46, zu - 0.4)
+    K.box("quoin", -h, h, yR, yB, -1.0, zl - 0.4)
+    # the right end: open galleries, the balustrades returning; the arcade's end wall
+    K.box("quoin", h, h + 0.3, yA, yB, -1.0, A - 0.6)                                   # the loggia's end wall
+    for z, ya in ((A, yp - 0.3), (U, yp - 0.3)):
+        K.balustrade(ya, yB, h - 0.1, z, h=1.1, mat="trim", spacing=0.3, axis="y", piers=False)
+    # ---- the solid end bay at the left, panelled pilasters, under the same roof
+    e0, e1 = -h - 5.2, -h
+    K.box("wall", e0, e1, yA - 0.2, yB + 0.4, -1.0, Eav)
+    for zb, zt in ((0.3, A - 0.6), (A + 0.4, U - 1.2), (U + 0.4, Eav - 0.9)):
+        for xa, xb in ((e0 + 0.5, e0 + 2.4), (e0 + 2.8, e1 - 0.5)):
+            K.box("quoin", xa, xb, yA - 0.3, yA - 0.2, zb, zt)                         # a sunk-looking panel's frame
+            K.box("wall", xa + 0.15, xb - 0.15, yA - 0.34, yA - 0.3, zb + 0.15, zt - 0.15)
+    for z in (A - 0.6, U - 1.0):
+        K.box("podium", e0 - 0.15, e1, yA - 0.45, yB + 0.55, z, z + 0.35)              # string courses
+    for x in (e0 + 0.15, e1 - 0.15):
+        K.box("quoin", x - 0.25, x + 0.25, yA - 0.42, yA - 0.2, 0.0, Eav - 0.6)        # pilasters at its corners
+    # ---- the roof: hipped, a big overhang on close-set brackets; three louvred cupolas on the ridge
+    rise = 5.8
+    x0r, x1r, y0r, y1r = e0, h, yp - 1.6, yB + 0.4
+    K.box("shade", x0r, x1r, y0r, y1r, Eav - 0.12, Eav - 0.02)
+    K.hip_roof(x0r, x1r, y0r, y1r, Eav, rise, 1.4, mat="slate")
+    if not K.far:
+        k = int((x1r - x0r + 2.8) / 1.0)
+        for j in range(k + 1):                                    # the eaves brackets along the front
+            x = x0r - 1.4 + (x1r - x0r + 2.8) * j / k
+            K.prism_x("trim", x - 0.1, x + 0.1, [(y0r - 1.3, Eav - 0.05), (y0r + 0.3, Eav - 0.05), (y0r + 0.3, Eav - 0.9)])
+        for j in range(int((y1r - y0r) / 1.0) + 1):               # and round the right end
+            y = y0r + j * 1.0
+            K.prism_y("trim", y - 0.1, y + 0.1, [(x1r + 1.3, Eav - 0.05), (x1r - 0.3, Eav - 0.05), (x1r - 0.3, Eav - 0.9)])
+    yc = (y0r + y1r) / 2
+    hip = min((y1r - y0r) / 2 + 1.4, (x1r - x0r) / 2 + 1.4)
+    for x in (x0r - 1.4 + hip + 1.0, (x0r + x1r) / 2, x1r + 1.4 - hip - 1.0):
+        z = Eav + rise
+        K.box("trim", x - 0.9, x + 0.9, yc - 0.9, yc + 0.9, z - 0.6, z + 1.2)
+        for f in (-0.9, 0.9):                                     # louvres
+            for j in range(4):
+                K.box("shade", x - 0.7, x + 0.7, yc + f - 0.04, yc + f + 0.04, z - 0.2 + j * 0.32, z - 0.05 + j * 0.32)
+        K.box("trim", x - 1.1, x + 1.1, yc - 1.1, yc + 1.1, z + 1.2, z + 1.4)
+        K.sphere("slate", x, yc, z + 1.45, 1.0, 2, 0.8)
+        K.cyl("trim", x, yc, z + 2.1, z + 2.5, 0.12, 0.08, 6)
+        K.sphere("trim", x, yc, z + 2.65, 0.18, 1)
+    return {"width": round(h + 0.3 - e0, 2), "offset": round((h + 0.3 + e0) / 2, 2), "depth": round(yB + 1.8, 2),
+            "height": round(Eav + rise + 2.85, 2),
+            "section": {"arcadeTop": A, "columns": round(yp, 2), "upperFloor": round(U, 2), "eaves": round(Eav, 2), "back": round(yB, 2)},
+            "note": "offset: the middle of the whole piece (with its end bay) from the origin along x"}
 
 
 # ------------------------------------------------------------------------------------------ 3: the glass box
