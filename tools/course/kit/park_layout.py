@@ -78,9 +78,16 @@ STEP = 5.0
 # own terrace (owner, 17 Nov: the terrace infill either side of it removed). All on one front line, LAWN metres
 # beyond the outer rail.
 LAWN = 18.0
-CHAIN = [("park_glass_box_small", 0.0), ("park_old_pavilion", 1.0), ("park_glass_box", 1.0), ("park_terrace", 0.0, 12.0),
-         ("park_arch_stand", 0.0), ("park_tiered_stand", 4.0)]
-CHAIN_START = -32.0          # the left end, just past the post (the old pavilion sits by the line)
+# Owner, 17 Nov 11:54, on the scaled elevation of six (tools/blender/park_standside_elevation.py): "good, that's a nice
+# mix". The run, left to right as in that drawing: the tiered stand, the balcony stand, the barrel-roof stand, the old
+# pavilion, the pitched-roof stand, the roof-terrace stand, abutting (0.4 m for the colonnade stands' cheek newels).
+# (Was: glass box, old pavilion, glass box, terrace, barrel-roof stand, tiered stand; the glass boxes stay in the kit.)
+CHAIN = [("park_tiered_stand", 0.0), ("park_balcony_stand", 0.4), ("park_arch_stand", 0.4), ("park_old_pavilion", 0.0),
+         ("park_gable_stand", 0.0), ("park_roof_terrace_stand", 0.4)]
+CHAIN_START = -32.0          # the left end, just past the post (the tiered stand by the line)
+# set back from the front line: the old pavilion has no steps in front, so its face would stand 9 m proud of its
+# neighbours' (their standing steps are 9 m deep); set back, its face lines up with theirs and a strip of lawn fronts it
+SETBACK = {"park_old_pavilion": 9.0}
 # the festival side, in the infield opposite the stands (as York's): the clock house facing the course, its steps in
 # front, terraces either side, the sheds behind; the rest of the lawn for marquees, kiosks and flags
 FESTIVAL = [("park_clock_house", 105.0, 42.0), ("park_terrace", 77.0, 40.0, 26.0), ("park_terrace", 133.0, 40.0, 26.0),
@@ -221,7 +228,9 @@ def build(P):
         piece, gap = item[0], item[1]
         w = item[2] if len(item) > 2 else cat[piece]["width"]
         x += gap
-        e = {"piece": piece, "x": round(x + w / 2, 2), "z": round(m * zf, 2), "width": round(w, 2), "depth": cat[piece]["depth"]}
+        sb = SETBACK.get(piece, 0.0)
+        e = {"piece": piece, "x": round(x + w / 2, 2), "z": round(m * (zf - sb), 2), "width": round(w, 2), "depth": cat[piece]["depth"]}
+        if sb: e["setback"] = sb
         if cat[piece].get("offset"): e["originX"] = round(x + w / 2 - cat[piece]["offset"], 2)   # where the piece's own origin goes
         if len(item) > 2: e["stretch"] = round(w / cat[piece]["width"], 4)
         chain.append(e); x += w

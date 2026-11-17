@@ -1341,10 +1341,13 @@ if os.environ.get("ARRANGE"):        # the stand side assembled, the track and t
     for x in range(-200, 700, 14):                                    # a belt behind the stands and beyond the festival
         tree(x + rnd.uniform(-4, 4), TW + 95 + rnd.uniform(-8, 8), rnd.uniform(4.5, 7))
         tree(x + rnd.uniform(-4, 4), -200 + rnd.uniform(-10, 10), rnd.uniform(4.5, 7))
-    shoot(scene, "park-standside-from-infield", (70, -250, 48), (70, 50, 6), lens=40)
-    shoot(scene, "park-standside-rail", (190, -6, 4.5), (-20, 52, 9), lens=26)
-    shoot(scene, "park-members-group", (-20, -95, 16), (-5, 50, 9), lens=30)
-    tx = [p for p in LAY["stands"]["chain"] if p["piece"] == "park_tiered_stand"][0]["x"]
+    cx = {p["piece"]: p["x"] for p in LAY["stands"]["chain"]}
+    mid = (LAY["stands"]["chain"][0]["x"] + LAY["stands"]["chain"][-1]["x"]) / 2
+    shoot(scene, "park-standside-from-infield", (mid, -300, 55), (mid, 50, 8), lens=40)
+    shoot(scene, "park-standside-rail", (300, -6, 4.5), (60, 52, 10), lens=26)
+    px = cx.get("park_old_pavilion", mid)                             # the old pavilion between the modern stands
+    shoot(scene, "park-members-group", (px - 38, -14, 8), (px + 4, 50, 11), lens=28)
+    tx = cx.get("park_tiered_stand", mid)
     shoot(scene, "park-tiered-stand", (tx - 30, -70, 12), (tx, 50, 8), lens=30)
-    shoot(scene, "park-festival-from-stands", (60, 70, 26), (90, -110, 6), lens=30)
-    shoot(scene, "park-stands-aerial", (-120, -170, 120), (90, 40, 0), lens=32)
+    shoot(scene, "park-festival-from-stands", (100, 62, 38), (105, -110, 6), lens=30)
+    shoot(scene, "park-stands-aerial", (-140, -190, 130), (mid, 40, 0), lens=32)
