@@ -929,10 +929,10 @@ function groundDetail(mat, k = 0.3) {
   mat.customProgramCacheKey = () => (prevKey ? prevKey.call(mat) : "") + "+grain" + k;
   return mat;
 }
-function turfStrip() {                                   // the path's turf as a strip, inside rail to outer, every sample
+function turfStrip(P = PATH) {                            // the path's turf as a strip, inside rail to outer, every sample
   const W = COURSE.trackWidth, pos = [], idx = [];
-  PATH.pts.forEach(([x, z], i) => {
-    const [tx, tz] = PATH.tan[i];
+  P.pts.forEach(([x, z], i) => {
+    const [tx, tz] = P.tan[i];
     for (const w0 of [0, W / 3, 2 * W / 3, W]) { const w = w0 * HAND, px = x + tz * w, pz = z - tx * w; pos.push(px, groundY(px, pz), pz); }
     if (i) for (let k = 0; k < 3; k++) { const a = (i - 1) * 4 + k, b = i * 4 + k; idx.push(a, a + 1, b, a + 1, b + 1, b); }   // facing up
   });
@@ -943,8 +943,18 @@ function turfStrip() {                                   // the path's turf as a
 function buildTurf(colour) {
   const shape = new THREE.Shape(SURF[0].map(([x, z]) => new THREE.Vector2(x, -z)));
   for (const h of SURF.slice(1)) shape.holes.push(new THREE.Path(h.map(([x, z]) => new THREE.Vector2(x, -z))));
-  // (a course whose ground rises only away from its track, York's festival bank: its turf stays the flat outline)
-  const g = GROUND && PATH && !COURSE.routes ? turfStrip() : new THREE.ShapeGeometry(shape).rotateX(-Math.PI / 2);
+  // (a course whose ground rises only away from its track, York's festival bank: its turf stays the flat outline;
+  // one whose track itself climbs and falls with several routes, Goodwood (drapeTurf): every route's strip on the ground)
+  const routeStrips = () => {
+    const geos = Object.values(COURSE.routes).map((r) => {
+      const pts = r.pathRail.points, n = pts.length;
+      const tan = pts.map((_, i) => { const [px, pz] = pts[Math.max(0, i - 1)], [qx, qz] = pts[Math.min(n - 1, i + 1)], l = Math.hypot(px - qx, pz - qz) || 1; return [(px - qx) / l, (pz - qz) / l]; });
+      return turfStrip({ pts, tan });
+    });
+    return mergeGeometries(geos.map((g) => g.toNonIndexed()));
+  };
+  const g = GROUND && COURSE.routes && COURSE.drapeTurf ? routeStrips()
+    : GROUND && PATH && !COURSE.routes ? turfStrip() : new THREE.ShapeGeometry(shape).rotateX(-Math.PI / 2);
   const m = new THREE.Mesh(g, turfLook(groundDetail(lanesMaterial(new THREE.MeshBasicMaterial({ color: colour, ...GROUND_UNDER }))), "turf"));
   m.position.y = -0.03;
   m.renderOrder = -2;
@@ -1224,7 +1234,7 @@ function placeBaked(gltf, B, dressing) {
 function buildPlainGround(G) {
   const o = G.outside, tf = G.turf || [0.12, 0.3, 0.06];
   const far = new THREE.Mesh(new THREE.PlaneGeometry(9000, 9000), turfLook(groundDetail(new THREE.MeshBasicMaterial({ color: new THREE.Color(o[0], o[1], o[2]), ...GROUND_UNDER }), 0.2), "far"));
-  far.rotation.x = -Math.PI / 2; far.position.set(700, -0.06, -400);
+  far.rotation.x = -Math.PI / 2; far.position.set(700, (G.farY || 0) - 0.06, -400);   // (Goodwood: at its ground grid's edges)
   far.renderOrder = LEGACY_GROUND ? -3 : -1;
   scene.add(far);
   LAYERS.ground.push(far);

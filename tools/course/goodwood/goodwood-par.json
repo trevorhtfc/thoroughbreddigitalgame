@@ -1,0 +1,67 @@
+{
+ "_about": "Written by calibrate.mjs: the par (seconds) the race engine uses at Goodwood, so its winning times match the targets.",
+ "par": {
+  "g5f": 56.45,
+  "g6f": 69.22,
+  "g7f": 84.28,
+  "g1m": 97.05,
+  "g9f": 111.71,
+  "g9f192y": 124.22,
+  "g1m3f": 156.22,
+  "g1m4f": 156.21,
+  "g1m6f": 183.34,
+  "g2m": 212.54,
+  "g2m4f": 271.54,
+  "g2m5f": 286.86
+ },
+ "measured": {
+  "g5f": {
+   "winning time (before the last step)": 57.49,
+   "target": 57.5
+  },
+  "g6f": {
+   "winning time (before the last step)": 69.99,
+   "target": 70
+  },
+  "g7f": {
+   "winning time (before the last step)": 85,
+   "target": 85
+  },
+  "g1m": {
+   "winning time (before the last step)": 97.49,
+   "target": 97.5
+  },
+  "g9f": {
+   "winning time (before the last step)": 112.01,
+   "target": 112
+  },
+  "g9f192y": {
+   "winning time (before the last step)": 124.5,
+   "target": 124.5
+  },
+  "g1m3f": {
+   "winning time (before the last step)": 155.48,
+   "target": 155.5
+  },
+  "g1m4f": {
+   "winning time (before the last step)": 155.5,
+   "target": 155.5
+  },
+  "g1m6f": {
+   "winning time (before the last step)": 181.99,
+   "target": 182
+  },
+  "g2m": {
+   "winning time (before the last step)": 209.95,
+   "target": 210
+  },
+  "g2m4f": {
+   "winning time (before the last step)": 267.95,
+   "target": 268
+  },
+  "g2m5f": {
+   "winning time (before the last step)": 282.96,
+   "target": 283
+  }
+ }
+}

@@ -246,9 +246,10 @@ export function runRace(race, runners, data, options = {}) {
   const rnd = makeRandom(race.seed ?? 1);
   const D = race.distance, kind = race.course === "straight" ? "straight" : race.course === "roundMile" ? "roundMile" : "round";
   const straight = kind === "straight";
-  // a course with several routes (York): the race runs its start's own route (its bends and where the straight begins)
-  const course = data.course.routes && start.route && data.course.routes[start.route]
-    ? { ...data.course, path: data.course.routes[start.route].path } : data.course;
+  // a course with several routes (York, Goodwood): the race runs its start's own route (its bends and where the straight
+  // begins), and its own ground's heights where the route has them (Goodwood: each route crosses different slopes)
+  const route = data.course.routes && start.route ? data.course.routes[start.route] : null;
+  const course = route ? { ...data.course, path: route.path, heights: route.heights || data.course.heights } : data.course;
   const W = course.trackWidth, MID = W / 2, Z0 = P.RAIL_CLEAR, Z1 = W - P.RAIL_CLEAR;
   const { bends, home } = bendsFor(course, kind, D, !!start.onStraight);
   const grade = gradeAt(course), gr = new Float64Array(n);

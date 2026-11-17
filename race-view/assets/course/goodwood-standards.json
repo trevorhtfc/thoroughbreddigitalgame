@@ -1,0 +1,133 @@
+{
+ "_about": "Par (standard) times at Goodwood, DRAFT, for the race engine and the race view's dock. 'winningTime' is a rough winning time for a good horse on good ground (from memory: check against real results); 'seconds' is the par the engine uses, set by tools/course/goodwood/calibrate.mjs so its winning times come out at those.",
+ "parTimes": [
+  {
+   "key": "g5f",
+   "course": "straight",
+   "distance": 1005.8,
+   "seconds": 56.45,
+   "winningTime": 57.5
+  },
+  {
+   "key": "g6f",
+   "course": "straight",
+   "distance": 1207.0,
+   "seconds": 69.22,
+   "winningTime": 70.0
+  },
+  {
+   "key": "g7f",
+   "course": "round",
+   "distance": 1408.2,
+   "seconds": 84.28,
+   "winningTime": 85.0
+  },
+  {
+   "key": "g1m",
+   "course": "round",
+   "distance": 1609.3,
+   "seconds": 97.05,
+   "winningTime": 97.5
+  },
+  {
+   "key": "g9f",
+   "course": "round",
+   "distance": 1810.5,
+   "seconds": 111.71,
+   "winningTime": 112.0
+  },
+  {
+   "key": "g9f192y",
+   "course": "round",
+   "distance": 1986.1,
+   "seconds": 124.22,
+   "winningTime": 124.5
+  },
+  {
+   "key": "g1m3f",
+   "course": "round",
+   "distance": 2412.2,
+   "seconds": 156.22,
+   "winningTime": 155.5
+  },
+  {
+   "key": "g1m4f",
+   "course": "round",
+   "distance": 2414.0,
+   "seconds": 156.21,
+   "winningTime": 155.5
+  },
+  {
+   "key": "g1m6f",
+   "course": "round",
+   "distance": 2816.4,
+   "seconds": 183.34,
+   "winningTime": 182.0
+  },
+  {
+   "key": "g2m",
+   "course": "round",
+   "distance": 3218.7,
+   "seconds": 212.54,
+   "winningTime": 210.0
+  },
+  {
+   "key": "g2m4f",
+   "course": "round",
+   "distance": 4023.4,
+   "seconds": 271.54,
+   "winningTime": 268.0
+  },
+  {
+   "key": "g2m5f",
+   "course": "round",
+   "distance": 4224.5,
+   "seconds": 286.86,
+   "winningTime": 283.0
+  }
+ ],
+ "going": {
+  "Heavy": {
+   "speed": 0.95,
+   "sapping": 1.25
+  },
+  "Softer": {
+   "speed": 0.975,
+   "sapping": 1.1
+  },
+  "Good": {
+   "speed": 1.0,
+   "sapping": 1.0
+  },
+  "Quicker": {
+   "speed": 1.006,
+   "sapping": 0.97
+  },
+  "Quick": {
+   "speed": 1.012,
+   "sapping": 0.95
+  }
+ },
+ "pace": {
+  "_about": "How the dock judges the pace. Each section the leader runs is compared with par for its length at the race's average par speed; the first section (from a standing start) gets firstSectionExtra seconds of allowance. Ratio = actual time / par time.",
+  "firstSectionExtra": 1.3,
+  "bands": [
+   {
+    "label": "Fast",
+    "below": 0.98
+   },
+   {
+    "label": "Strong",
+    "below": 0.993
+   },
+   {
+    "label": "Even",
+    "below": 1.012
+   },
+   {
+    "label": "Slow",
+    "below": 99
+   }
+  ]
+ }
+}
