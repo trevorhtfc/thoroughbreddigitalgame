@@ -1,0 +1,1054 @@
+{
+ "_about": "The kit courses' stand configurator (tools/course/kit/stand_config.py). plots: fixed footprints along one front line, left to right from the course, the first by the post; a module sits centred in its plot, the rest of the plot a low link. courses[].plots: module code, or null for lawn. Drafts for the owner to change.",
+ "gap": 2.0,
+ "plotWidths": {
+  "side": 48.0,
+  "main": 78.0,
+  "pavilion": 33.0
+ },
+ "families": {
+  "park": {
+   "name": "The Park",
+   "kind": "galloping: a big flat left-handed oval, a long straight",
+   "plots": [
+    {
+     "id": "P1",
+     "name": "by the post",
+     "class": "side",
+     "x0": 0.0,
+     "x1": 48.0,
+     "width": 48.0
+    },
+    {
+     "id": "P2",
+     "name": "",
+     "class": "side",
+     "x0": 50.0,
+     "x1": 98.0,
+     "width": 48.0
+    },
+    {
+     "id": "P3",
+     "name": "main stand",
+     "class": "main",
+     "x0": 100.0,
+     "x1": 178.0,
+     "width": 78.0
+    },
+    {
+     "id": "P4",
+     "name": "centre",
+     "class": "pavilion",
+     "x0": 180.0,
+     "x1": 213.0,
+     "width": 33.0
+    },
+    {
+     "id": "P5",
+     "name": "second stand",
+     "class": "main",
+     "x0": 215.0,
+     "x1": 293.0,
+     "width": 78.0
+    },
+    {
+     "id": "P6",
+     "name": "",
+     "class": "side",
+     "x0": 295.0,
+     "x1": 343.0,
+     "width": 48.0
+    },
+    {
+     "id": "P7",
+     "name": "far end (big courses)",
+     "class": "side",
+     "x0": 345.0,
+     "x1": 393.0,
+     "width": 48.0
+    }
+   ]
+  },
+  "tight": {
+   "name": "The Tight Track",
+   "kind": "sharp, turning: a small oval about 1m1f round",
+   "plots": [
+    {
+     "id": "T1",
+     "name": "by the post",
+     "class": "side",
+     "x0": 0.0,
+     "x1": 48.0,
+     "width": 48.0
+    },
+    {
+     "id": "T2",
+     "name": "main stand",
+     "class": "main",
+     "x0": 50.0,
+     "x1": 128.0,
+     "width": 78.0
+    },
+    {
+     "id": "T3",
+     "name": "centre",
+     "class": "pavilion",
+     "x0": 130.0,
+     "x1": 163.0,
+     "width": 33.0
+    },
+    {
+     "id": "T4",
+     "name": "far end",
+     "class": "side",
+     "x0": 165.0,
+     "x1": 213.0,
+     "width": 48.0
+    }
+   ]
+  },
+  "hill": {
+   "name": "The Hill Track",
+   "kind": "stiff: right-handed, a downhill bend, an uphill straight",
+   "plots": [
+    {
+     "id": "H1",
+     "name": "by the post",
+     "class": "side",
+     "x0": 0.0,
+     "x1": 48.0,
+     "width": 48.0
+    },
+    {
+     "id": "H2",
+     "name": "main stand",
+     "class": "main",
+     "x0": 50.0,
+     "x1": 128.0,
+     "width": 78.0
+    },
+    {
+     "id": "H3",
+     "name": "centre",
+     "class": "pavilion",
+     "x0": 130.0,
+     "x1": 163.0,
+     "width": 33.0
+    },
+    {
+     "id": "H4",
+     "name": "second stand (big courses)",
+     "class": "main",
+     "x0": 165.0,
+     "x1": 243.0,
+     "width": 78.0
+    },
+    {
+     "id": "H5",
+     "name": "far end",
+     "class": "side",
+     "x0": 245.0,
+     "x1": 293.0,
+     "width": 48.0
+    }
+   ]
+  }
+ },
+ "modules": {
+  "park_tiered_stand": {
+   "label": "Tiered stand (York 1895)",
+   "course": "The Park (kit)",
+   "width": 43.4,
+   "height": 29.78,
+   "class": "side",
+   "png": "park_tiered_stand.png"
+  },
+  "park_balcony_stand": {
+   "label": "Balcony stand",
+   "course": "The Park (kit)",
+   "width": 40.24,
+   "height": 32.35,
+   "class": "side",
+   "png": "park_balcony_stand.png"
+  },
+  "park_roof_terrace_stand": {
+   "label": "Roof-terrace stand",
+   "course": "The Park (kit)",
+   "width": 40.72,
+   "height": 34.42,
+   "class": "side",
+   "png": "park_roof_terrace_stand.png"
+  },
+  "park_arch_stand": {
+   "label": "Barrel-roof stand",
+   "course": "The Park (kit)",
+   "width": 73.3,
+   "height": 27.89,
+   "class": "main",
+   "png": "park_arch_stand.png"
+  },
+  "park_gable_stand": {
+   "label": "Pitched-roof stand",
+   "course": "The Park (kit)",
+   "width": 57.3,
+   "height": 27.89,
+   "class": "main",
+   "png": "park_gable_stand.png"
+  },
+  "park_old_pavilion": {
+   "label": "Old pavilion",
+   "course": "The Park (kit)",
+   "width": 25.5,
+   "height": 21.45,
+   "class": "pavilion",
+   "png": "park_old_pavilion.png"
+  },
+  "park_victorian": {
+   "label": "Victorian pavilion (towers)",
+   "course": "The Park (kit)",
+   "width": 47.0,
+   "height": 22.0,
+   "class": "side",
+   "png": "park_victorian.png"
+  },
+  "park_tent_stand": {
+   "label": "Tented stand",
+   "course": "The Park (kit)",
+   "width": 59.31,
+   "height": 31.07,
+   "class": "main",
+   "png": "park_tent_stand.png"
+  },
+  "park_mast_stand": {
+   "label": "Mast stand",
+   "course": "The Park (kit)",
+   "width": 77.0,
+   "height": 30.89,
+   "class": "main",
+   "png": "park_mast_stand.png"
+  },
+  "park_glass_box": {
+   "label": "Glass box",
+   "course": "The Park (kit)",
+   "width": 31.7,
+   "height": 17.45,
+   "class": "pavilion",
+   "png": "park_glass_box.png"
+  },
+  "park_glass_box_small": {
+   "label": "Glass box, small",
+   "course": "The Park (kit)",
+   "width": 23.7,
+   "height": 13.75,
+   "class": "pavilion",
+   "png": "park_glass_box_small.png"
+  },
+  "york_stand_north": {
+   "label": "North stand",
+   "course": "York",
+   "width": 74.2,
+   "height": 36.48,
+   "class": "main",
+   "png": "york_stand_north.png"
+  },
+  "york_stand_south": {
+   "label": "South stand",
+   "course": "York",
+   "width": 46.6,
+   "height": 29.08,
+   "class": "side",
+   "png": "york_stand_south.png"
+  },
+  "york_big_pavilion": {
+   "label": "Big pavilion",
+   "course": "York",
+   "width": 54.35,
+   "height": 25.65,
+   "class": "main",
+   "png": "york_big_pavilion.png"
+  },
+  "york_pavilions": {
+   "label": "Pavilions",
+   "course": "York",
+   "width": 32.05,
+   "height": 18.22,
+   "class": "pavilion",
+   "png": "york_pavilions.png"
+  },
+  "york_end_stand": {
+   "label": "End stand",
+   "course": "York",
+   "width": 134.6,
+   "height": 30.59,
+   "class": "long",
+   "png": "york_end_stand.png"
+  },
+  "old_pavilion": {
+   "label": "Old pavilion",
+   "course": "Newmarket, July Course",
+   "width": 46.0,
+   "height": 15.6,
+   "class": "side",
+   "png": "old_pavilion.png"
+  },
+  "old_pavilion_wing": {
+   "label": "Old pavilion, wing",
+   "course": "Newmarket, July Course",
+   "width": 32.0,
+   "height": 15.6,
+   "class": "pavilion",
+   "png": "old_pavilion_wing.png"
+  },
+  "pavilion_small": {
+   "label": "Small pavilion",
+   "course": "Newmarket, July Course",
+   "width": 47.44,
+   "height": 11.7,
+   "class": "side",
+   "png": "pavilion_small.png"
+  },
+  "victorian_house": {
+   "label": "Victorian house",
+   "course": "Newmarket, July Course",
+   "width": 18.07,
+   "height": 12.9,
+   "class": "pavilion",
+   "png": "victorian_house.png"
+  },
+  "victorian_stand": {
+   "label": "Victorian stand",
+   "course": "Newmarket, Rowley Mile",
+   "width": 145.1,
+   "height": 30.59,
+   "class": "long",
+   "png": "victorian_stand.png"
+  },
+  "rowley_stand": {
+   "label": "Rowley stand",
+   "course": "Newmarket, Rowley Mile",
+   "width": 110.22,
+   "height": 25.51,
+   "class": "long",
+   "png": "rowley_stand.png"
+  },
+  "ring_pavilion": {
+   "label": "Ring pavilion",
+   "course": "Newmarket, Rowley Mile",
+   "width": 31.3,
+   "height": 8.12,
+   "class": "pavilion",
+   "png": "ring_pavilion.png"
+  },
+  "victorian_pavilion": {
+   "label": "Victorian pavilion",
+   "course": "Newmarket, Rowley Mile",
+   "width": 11.9,
+   "height": 10.32,
+   "class": "pavilion",
+   "png": "victorian_pavilion.png"
+  },
+  "victorian_grandstand": {
+   "label": "Victorian grandstand",
+   "course": "Ascot",
+   "width": 125.55,
+   "height": 29.75,
+   "class": "long",
+   "png": "victorian_grandstand.png"
+  }
+ },
+ "courses": {
+  "park": {
+   "name": "The Park (generic)",
+   "family": "park",
+   "hand": -1,
+   "straight": 6,
+   "uphill": 0.0,
+   "surface": "turf",
+   "scenery": "parkland",
+   "lights": false,
+   "standIn": false,
+   "note": "the approved run of six",
+   "plots": {
+    "P1": "park_tiered_stand",
+    "P2": "park_balcony_stand",
+    "P3": "park_arch_stand",
+    "P4": "park_old_pavilion",
+    "P5": "park_gable_stand",
+    "P6": "park_roof_terrace_stand",
+    "P7": null
+   }
+  },
+  "ayr": {
+   "name": "Ayr",
+   "family": "park",
+   "hand": -1,
+   "straight": 6,
+   "uphill": 0.0,
+   "surface": "turf",
+   "scenery": "seaside",
+   "lights": false,
+   "standIn": false,
+   "note": "",
+   "plots": {
+    "P1": "park_tiered_stand",
+    "P2": "park_balcony_stand",
+    "P3": "park_arch_stand",
+    "P4": "park_old_pavilion",
+    "P5": "park_gable_stand",
+    "P6": "park_roof_terrace_stand",
+    "P7": null
+   }
+  },
+  "bath": {
+   "name": "Bath",
+   "family": "park",
+   "hand": -1,
+   "straight": 5,
+   "uphill": 6.0,
+   "surface": "turf",
+   "scenery": "downland",
+   "lights": false,
+   "standIn": false,
+   "note": "",
+   "plots": {
+    "P1": "park_roof_terrace_stand",
+    "P2": "park_balcony_stand",
+    "P3": "park_gable_stand",
+    "P4": null,
+    "P5": null,
+    "P6": null,
+    "P7": null
+   }
+  },
+  "chelmsford": {
+   "name": "Chelmsford City",
+   "family": "park",
+   "hand": -1,
+   "straight": 5,
+   "uphill": 0.0,
+   "surface": "polytrack",
+   "scenery": "parkland",
+   "lights": true,
+   "standIn": false,
+   "note": "",
+   "plots": {
+    "P1": "park_glass_box",
+    "P2": "park_glass_box_small",
+    "P3": "park_mast_stand",
+    "P4": null,
+    "P5": null,
+    "P6": null,
+    "P7": null
+   }
+  },
+  "ffoslas": {
+   "name": "Ffos Las",
+   "family": "park",
+   "hand": -1,
+   "straight": 6,
+   "uphill": 0.0,
+   "surface": "turf",
+   "scenery": "parkland",
+   "lights": false,
+   "standIn": false,
+   "note": "",
+   "plots": {
+    "P1": "park_glass_box_small",
+    "P2": "park_glass_box",
+    "P3": "park_tent_stand",
+    "P4": null,
+    "P5": null,
+    "P6": null,
+    "P7": null
+   }
+  },
+  "leicester": {
+   "name": "Leicester",
+   "family": "park",
+   "hand": 1,
+   "straight": 7,
+   "uphill": 5.0,
+   "surface": "turf",
+   "scenery": "town",
+   "lights": false,
+   "standIn": false,
+   "note": "",
+   "plots": {
+    "P1": "park_victorian",
+    "P2": "park_balcony_stand",
+    "P3": "park_gable_stand",
+    "P4": "park_old_pavilion",
+    "P5": null,
+    "P6": null,
+    "P7": null
+   }
+  },
+  "lingfield": {
+   "name": "Lingfield (turf)",
+   "family": "park",
+   "hand": -1,
+   "straight": 7.5,
+   "uphill": 0.0,
+   "surface": "turf",
+   "scenery": "parkland",
+   "lights": false,
+   "standIn": false,
+   "note": "",
+   "plots": {
+    "P1": "park_glass_box_small",
+    "P2": "park_balcony_stand",
+    "P3": "park_tent_stand",
+    "P4": "park_old_pavilion",
+    "P5": null,
+    "P6": null,
+    "P7": null
+   }
+  },
+  "newcastle": {
+   "name": "Newcastle",
+   "family": "park",
+   "hand": -1,
+   "straight": 8,
+   "uphill": 3.0,
+   "surface": "tapeta",
+   "scenery": "parkland",
+   "lights": true,
+   "standIn": false,
+   "note": "",
+   "plots": {
+    "P1": "park_glass_box",
+    "P2": "park_roof_terrace_stand",
+    "P3": "park_mast_stand",
+    "P4": "park_glass_box_small",
+    "P5": null,
+    "P6": null,
+    "P7": null
+   }
+  },
+  "nottingham": {
+   "name": "Nottingham",
+   "family": "park",
+   "hand": -1,
+   "straight": 6,
+   "uphill": 0.0,
+   "surface": "turf",
+   "scenery": "town",
+   "lights": false,
+   "standIn": false,
+   "note": "",
+   "plots": {
+    "P1": "park_balcony_stand",
+    "P2": "park_glass_box_small",
+    "P3": "park_gable_stand",
+    "P4": "park_old_pavilion",
+    "P5": null,
+    "P6": null,
+    "P7": null
+   }
+  },
+  "redcar": {
+   "name": "Redcar",
+   "family": "park",
+   "hand": -1,
+   "straight": 8,
+   "uphill": 0.0,
+   "surface": "turf",
+   "scenery": "seaside",
+   "lights": false,
+   "standIn": false,
+   "note": "",
+   "plots": {
+    "P1": "park_roof_terrace_stand",
+    "P2": "park_glass_box_small",
+    "P3": "park_arch_stand",
+    "P4": null,
+    "P5": null,
+    "P6": null,
+    "P7": null
+   }
+  },
+  "salisbury": {
+   "name": "Salisbury",
+   "family": "park",
+   "hand": 1,
+   "straight": 8,
+   "uphill": 6.0,
+   "surface": "turf",
+   "scenery": "downland",
+   "lights": false,
+   "standIn": false,
+   "note": "",
+   "plots": {
+    "P1": "park_tiered_stand",
+    "P2": "park_balcony_stand",
+    "P3": "park_gable_stand",
+    "P4": "park_old_pavilion",
+    "P5": null,
+    "P6": null,
+    "P7": null
+   }
+  },
+  "wetherby": {
+   "name": "Wetherby",
+   "family": "park",
+   "hand": -1,
+   "straight": 5,
+   "uphill": 0.0,
+   "surface": "turf",
+   "scenery": "northern stone",
+   "lights": false,
+   "standIn": false,
+   "note": "",
+   "plots": {
+    "P1": "park_victorian",
+    "P2": "park_balcony_stand",
+    "P3": "park_gable_stand",
+    "P4": null,
+    "P5": null,
+    "P6": null,
+    "P7": null
+   }
+  },
+  "yarmouth": {
+   "name": "Yarmouth",
+   "family": "park",
+   "hand": -1,
+   "straight": 8,
+   "uphill": 0.0,
+   "surface": "turf",
+   "scenery": "seaside",
+   "lights": false,
+   "standIn": false,
+   "note": "",
+   "plots": {
+    "P1": "park_balcony_stand",
+    "P2": "park_glass_box_small",
+    "P3": "park_arch_stand",
+    "P4": "park_old_pavilion",
+    "P5": null,
+    "P6": null,
+    "P7": null
+   }
+  },
+  "doncaster": {
+   "name": "Doncaster",
+   "family": "park",
+   "hand": -1,
+   "straight": 8,
+   "uphill": 0.0,
+   "surface": "turf",
+   "scenery": "parkland",
+   "lights": false,
+   "standIn": true,
+   "note": "",
+   "plots": {
+    "P1": "park_glass_box",
+    "P2": "park_balcony_stand",
+    "P3": "park_mast_stand",
+    "P4": "park_glass_box_small",
+    "P5": "park_arch_stand",
+    "P6": "park_roof_terrace_stand",
+    "P7": "park_glass_box"
+   }
+  },
+  "newbury": {
+   "name": "Newbury",
+   "family": "park",
+   "hand": -1,
+   "straight": 8,
+   "uphill": 0.0,
+   "surface": "turf",
+   "scenery": "parkland",
+   "lights": false,
+   "standIn": true,
+   "note": "",
+   "plots": {
+    "P1": "park_glass_box",
+    "P2": "park_roof_terrace_stand",
+    "P3": "park_mast_stand",
+    "P4": "park_glass_box_small",
+    "P5": "park_tent_stand",
+    "P6": "park_balcony_stand",
+    "P7": "park_glass_box"
+   }
+  },
+  "haydock": {
+   "name": "Haydock",
+   "family": "park",
+   "hand": -1,
+   "straight": 6,
+   "uphill": 0.0,
+   "surface": "turf",
+   "scenery": "parkland",
+   "lights": false,
+   "standIn": true,
+   "note": "",
+   "plots": {
+    "P1": "park_tiered_stand",
+    "P2": "park_balcony_stand",
+    "P3": "park_mast_stand",
+    "P4": "park_old_pavilion",
+    "P5": "park_arch_stand",
+    "P6": "park_roof_terrace_stand",
+    "P7": null
+   }
+  },
+  "catterick": {
+   "name": "Catterick",
+   "family": "tight",
+   "hand": -1,
+   "straight": 5,
+   "uphill": 0.0,
+   "surface": "turf",
+   "scenery": "northern stone",
+   "lights": false,
+   "standIn": false,
+   "note": "",
+   "plots": {
+    "T1": "park_balcony_stand",
+    "T2": "park_gable_stand",
+    "T3": "park_old_pavilion",
+    "T4": null
+   }
+  },
+  "chester": {
+   "name": "Chester",
+   "family": "tight",
+   "hand": -1,
+   "straight": 0,
+   "uphill": 0.0,
+   "surface": "turf",
+   "scenery": "town",
+   "lights": false,
+   "standIn": false,
+   "note": "",
+   "plots": {
+    "T1": "park_tiered_stand",
+    "T2": "park_arch_stand",
+    "T3": "park_old_pavilion",
+    "T4": "park_victorian"
+   }
+  },
+  "kempton": {
+   "name": "Kempton",
+   "family": "tight",
+   "hand": 1,
+   "straight": 0,
+   "uphill": 0.0,
+   "surface": "polytrack",
+   "scenery": "parkland",
+   "lights": true,
+   "standIn": false,
+   "note": "",
+   "plots": {
+    "T1": "park_glass_box",
+    "T2": "park_mast_stand",
+    "T3": "park_glass_box_small",
+    "T4": null
+   }
+  },
+  "lingfieldaw": {
+   "name": "Lingfield (AW)",
+   "family": "tight",
+   "hand": -1,
+   "straight": 0,
+   "uphill": 0.0,
+   "surface": "polytrack",
+   "scenery": "parkland",
+   "lights": true,
+   "standIn": false,
+   "note": "",
+   "plots": {
+    "T1": "park_glass_box_small",
+    "T2": "park_tent_stand",
+    "T3": "park_glass_box",
+    "T4": null
+   }
+  },
+  "musselburgh": {
+   "name": "Musselburgh",
+   "family": "tight",
+   "hand": 1,
+   "straight": 5,
+   "uphill": 0.0,
+   "surface": "turf",
+   "scenery": "seaside",
+   "lights": false,
+   "standIn": false,
+   "note": "",
+   "plots": {
+    "T1": "pavilion_small",
+    "T2": "park_arch_stand",
+    "T3": "victorian_house",
+    "T4": null
+   }
+  },
+  "ripon": {
+   "name": "Ripon",
+   "family": "tight",
+   "hand": 1,
+   "straight": 6,
+   "uphill": 0.0,
+   "surface": "turf",
+   "scenery": "northern stone",
+   "lights": false,
+   "standIn": false,
+   "note": "",
+   "plots": {
+    "T1": "park_tiered_stand",
+    "T2": "park_gable_stand",
+    "T3": "park_old_pavilion",
+    "T4": "park_roof_terrace_stand"
+   }
+  },
+  "southwell": {
+   "name": "Southwell",
+   "family": "tight",
+   "hand": -1,
+   "straight": 5,
+   "uphill": 0.0,
+   "surface": "tapeta",
+   "scenery": "parkland",
+   "lights": true,
+   "standIn": false,
+   "note": "",
+   "plots": {
+    "T1": "park_glass_box",
+    "T2": "park_mast_stand",
+    "T3": "park_glass_box_small",
+    "T4": null
+   }
+  },
+  "thirsk": {
+   "name": "Thirsk",
+   "family": "tight",
+   "hand": -1,
+   "straight": 6,
+   "uphill": 0.0,
+   "surface": "turf",
+   "scenery": "northern stone",
+   "lights": false,
+   "standIn": false,
+   "note": "",
+   "plots": {
+    "T1": "park_balcony_stand",
+    "T2": "park_gable_stand",
+    "T3": "park_old_pavilion",
+    "T4": null
+   }
+  },
+  "windsor": {
+   "name": "Windsor",
+   "family": "tight",
+   "hand": 1,
+   "straight": 6,
+   "uphill": 0.0,
+   "surface": "turf",
+   "scenery": "town",
+   "lights": false,
+   "standIn": false,
+   "note": "a figure of eight; the kit's oval for now",
+   "plots": {
+    "T1": "old_pavilion",
+    "T2": "park_tent_stand",
+    "T3": "ring_pavilion",
+    "T4": null
+   }
+  },
+  "wolverhampton": {
+   "name": "Wolverhampton",
+   "family": "tight",
+   "hand": -1,
+   "straight": 0,
+   "uphill": 0.0,
+   "surface": "tapeta",
+   "scenery": "town",
+   "lights": true,
+   "standIn": false,
+   "note": "",
+   "plots": {
+    "T1": "park_glass_box",
+    "T2": "park_mast_stand",
+    "T3": "park_glass_box_small",
+    "T4": null
+   }
+  },
+  "beverley": {
+   "name": "Beverley",
+   "family": "hill",
+   "hand": 1,
+   "straight": 5,
+   "uphill": 8.0,
+   "surface": "turf",
+   "scenery": "northern stone",
+   "lights": false,
+   "standIn": false,
+   "note": "",
+   "plots": {
+    "H1": "park_tiered_stand",
+    "H2": "park_gable_stand",
+    "H3": "park_old_pavilion",
+    "H4": null,
+    "H5": null
+   }
+  },
+  "brighton": {
+   "name": "Brighton",
+   "family": "hill",
+   "hand": -1,
+   "straight": 0,
+   "uphill": 0.0,
+   "surface": "turf",
+   "scenery": "seaside",
+   "lights": false,
+   "standIn": false,
+   "note": "a horseshoe; cambered",
+   "plots": {
+    "H1": "park_roof_terrace_stand",
+    "H2": "park_arch_stand",
+    "H3": "park_glass_box_small",
+    "H4": null,
+    "H5": null
+   }
+  },
+  "carlisle": {
+   "name": "Carlisle",
+   "family": "hill",
+   "hand": 1,
+   "straight": 6,
+   "uphill": 6.0,
+   "surface": "turf",
+   "scenery": "northern stone",
+   "lights": false,
+   "standIn": false,
+   "note": "",
+   "plots": {
+    "H1": "park_balcony_stand",
+    "H2": "park_gable_stand",
+    "H3": "park_old_pavilion",
+    "H4": null,
+    "H5": null
+   }
+  },
+  "chepstow": {
+   "name": "Chepstow",
+   "family": "hill",
+   "hand": -1,
+   "straight": 8,
+   "uphill": 0.0,
+   "surface": "turf",
+   "scenery": "downland",
+   "lights": false,
+   "standIn": false,
+   "note": "",
+   "plots": {
+    "H1": "park_glass_box",
+    "H2": "park_tent_stand",
+    "H3": "park_old_pavilion",
+    "H4": null,
+    "H5": null
+   }
+  },
+  "hamilton": {
+   "name": "Hamilton",
+   "family": "hill",
+   "hand": 1,
+   "straight": 6,
+   "uphill": 6.0,
+   "surface": "turf",
+   "scenery": "northern stone",
+   "lights": false,
+   "standIn": false,
+   "note": "",
+   "plots": {
+    "H1": "park_victorian",
+    "H2": "park_gable_stand",
+    "H3": null,
+    "H4": null,
+    "H5": null
+   }
+  },
+  "pontefract": {
+   "name": "Pontefract",
+   "family": "hill",
+   "hand": -1,
+   "straight": 0,
+   "uphill": 8.0,
+   "surface": "turf",
+   "scenery": "northern stone",
+   "lights": false,
+   "standIn": false,
+   "note": "",
+   "plots": {
+    "H1": "park_balcony_stand",
+    "H2": "park_arch_stand",
+    "H3": "park_old_pavilion",
+    "H4": null,
+    "H5": null
+   }
+  },
+  "epsom": {
+   "name": "Epsom",
+   "family": "hill",
+   "hand": -1,
+   "straight": 5,
+   "uphill": 0.0,
+   "surface": "turf",
+   "scenery": "downland",
+   "lights": false,
+   "standIn": true,
+   "note": "undulating, Tattenham Corner; a flagship next",
+   "plots": {
+    "H1": "park_glass_box",
+    "H2": "park_mast_stand",
+    "H3": "york_pavilions",
+    "H4": "york_stand_north",
+    "H5": "park_roof_terrace_stand"
+   }
+  },
+  "goodwood": {
+   "name": "Goodwood",
+   "family": "hill",
+   "hand": 1,
+   "straight": 6,
+   "uphill": 0.0,
+   "surface": "turf",
+   "scenery": "downland",
+   "lights": false,
+   "standIn": true,
+   "note": "a flagship next",
+   "plots": {
+    "H1": "park_balcony_stand",
+    "H2": "park_tent_stand",
+    "H3": "park_old_pavilion",
+    "H4": "park_tent_stand",
+    "H5": "park_glass_box_small"
+   }
+  },
+  "sandown": {
+   "name": "Sandown",
+   "family": "hill",
+   "hand": 1,
+   "straight": 5,
+   "uphill": 6.0,
+   "surface": "turf",
+   "scenery": "parkland",
+   "lights": false,
+   "standIn": true,
+   "note": "",
+   "plots": {
+    "H1": "park_glass_box",
+    "H2": "park_mast_stand",
+    "H3": "park_glass_box_small",
+    "H4": "park_arch_stand",
+    "H5": null
+   }
+  }
+ },
+ "fullBuilds": [
+  "Ascot",
+  "Newmarket (Rowley Mile)",
+  "Newmarket (July Course)",
+  "York"
+ ]
+}

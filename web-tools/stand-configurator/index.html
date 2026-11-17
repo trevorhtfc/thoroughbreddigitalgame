@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Course Stand Configurator</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  /* a racecard-room tool: paper, ink, turf green; plots tinted by size class. Layout: course list | editor over overview */
+  --paper: #f5f4ee; --card: #ffffff; --ink: #23252a; --mute: #6d6f76; --line: #d9d7cd; --turf: #2f6b45;
+  --side: #dfe9f3; --main: #f3e6d2; --pav: #e3eedb; --link: #ddd4c1; --warn: #a3542b;
+  --display: "Barlow Condensed", "Arial Narrow", sans-serif; --body: "IBM Plex Sans", "Helvetica Neue", Arial, sans-serif;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --paper: #1b1d1f; --card: #24272a; --ink: #ecebe5; --mute: #a2a39f; --line: #3a3d40; --turf: #6fbf8a;
+  --side: #2d3a47; --main: #47392a; --pav: #34412d; --link: #4a4437; --warn: #e0905f; color-scheme: dark; } }
+:root[data-theme="dark"] {
+  --paper: #1b1d1f; --card: #24272a; --ink: #ecebe5; --mute: #a2a39f; --line: #3a3d40; --turf: #6fbf8a;
+  --side: #2d3a47; --main: #47392a; --pav: #34412d; --link: #4a4437; --warn: #e0905f; color-scheme: dark; }
+* { box-sizing: border-box; }
+html, body { margin: 0; background: var(--paper); color: var(--ink); font: 15px/1.45 var(--body); }
+header { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 20px; padding: 16px 20px 12px; border-bottom: 1px solid var(--line); }
+h1 { font: 700 30px/1 var(--display); letter-spacing: .01em; margin: 0; text-wrap: balance; }
+h2 { font: 600 26px/1.1 var(--display); margin: 0; }
+.tabs { display: flex; gap: 6px; flex-wrap: wrap; }
+.tab { font: 600 17px var(--display); padding: 6px 12px; border: 1px solid var(--line); background: var(--card); color: var(--ink); border-radius: 6px; cursor: pointer; }
+.tab[aria-pressed="true"] { background: var(--turf); border-color: var(--turf); color: var(--paper); }
+.status { margin-left: auto; font-size: 13px; color: var(--mute); display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.chip { display: inline-block; padding: 2px 8px; border-radius: 999px; border: 1px solid var(--line); font-size: 12px; background: var(--card); }
+.chip.ok { border-color: var(--turf); color: var(--turf); }
+.chip.warn { border-color: var(--warn); color: var(--warn); }
+button.small { font: 500 13px var(--body); padding: 5px 10px; border-radius: 6px; border: 1px solid var(--line); background: var(--card); color: var(--ink); cursor: pointer; }
+button:focus-visible, select:focus-visible, .course:focus-visible, .row:focus-visible { outline: 2px solid var(--turf); outline-offset: 2px; }
+.wrap { display: grid; grid-template-columns: 240px 1fr; gap: 0; min-height: calc(100% - 70px); }
+nav { border-right: 1px solid var(--line); padding: 12px 10px; display: flex; flex-direction: column; gap: 4px; }
+.course { text-align: left; width: 100%; padding: 8px 10px; border-radius: 6px; border: 1px solid transparent; background: none; color: var(--ink); cursor: pointer; font: 500 14px var(--body); }
+.course:hover { background: var(--card); border-color: var(--line); }
+.course[aria-current="true"] { background: var(--card); border-color: var(--turf); }
+.course small { display: block; color: var(--mute); font-weight: 400; font-size: 12px; }
+main { padding: 16px 20px 40px; display: flex; flex-direction: column; gap: 22px; min-width: 0; }
+.editor { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 16px; display: flex; flex-direction: column; gap: 12px; }
+.meta { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.strip { position: relative; width: 100%; overflow: hidden; }
+.strip .plot { position: absolute; bottom: 0; height: 7px; border-radius: 2px; }
+.strip .lnk { position: absolute; background: var(--link); border-radius: 1px; }
+.strip img { position: absolute; image-rendering: auto; pointer-events: none; }
+.strip .ground { position: absolute; left: 0; right: 0; bottom: 7px; height: 1px; background: var(--line); }
+.plots { display: grid; gap: 6px; }
+.pcell { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.pcell label { font: 600 15px var(--display); display: flex; justify-content: space-between; gap: 6px; }
+.pcell label span { color: var(--mute); font: 400 12px var(--body); }
+select { width: 100%; font: 13px var(--body); padding: 5px; border-radius: 6px; border: 1px solid var(--line); background: var(--paper); color: var(--ink); }
+.pcell .fitnote { font-size: 12px; color: var(--mute); min-height: 1.2em; }
+.overview h2 { margin-bottom: 8px; }
+.rows { display: flex; flex-direction: column; gap: 4px; }
+.row { display: grid; grid-template-columns: 150px 1fr; gap: 12px; align-items: end; padding: 6px 8px; border-radius: 8px; cursor: pointer; border: 1px solid transparent; }
+.row:hover { background: var(--card); border-color: var(--line); }
+.row[aria-current="true"] { background: var(--card); border-color: var(--turf); }
+.row .nm { font: 600 18px var(--display); line-height: 1.1; }
+.row .nm small { display: block; font: 400 12px var(--body); color: var(--mute); }
+.palette { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 10px; }
+.pm { background: var(--card); border: 1px solid var(--line); border-radius: 8px; padding: 8px; display: flex; flex-direction: column; gap: 4px; font-size: 13px; }
+.pm .thumb { height: 64px; display: flex; align-items: flex-end; justify-content: center; }
+.pm .thumb img { max-height: 64px; max-width: 100%; }
+.pm b { font-weight: 600; }
+.pm span { color: var(--mute); font-size: 12px; }
+.note { color: var(--mute); font-size: 13px; max-width: 70ch; }
+.dlg { position: fixed; inset: 0; background: rgba(0,0,0,.4); display: none; align-items: center; justify-content: center; padding: 16px; }
+.dlg.open { display: flex; }
+.dlg .box { background: var(--card); color: var(--ink); border-radius: 10px; padding: 16px; width: min(720px, 100%); display: flex; flex-direction: column; gap: 10px; }
+.dlg textarea { width: 100%; height: 300px; font: 12px ui-monospace, Menlo, monospace; background: var(--paper); color: var(--ink); border: 1px solid var(--line); border-radius: 6px; }
+@media (max-width: 760px) { .wrap { grid-template-columns: 1fr; } nav { border-right: 0; border-bottom: 1px solid var(--line); flex-direction: row; flex-wrap: wrap; } .course { width: auto; } .row { grid-template-columns: 1fr; } }
+@media (prefers-reduced-motion: no-preference) { .course, .row, .tab { transition: background .12s, border-color .12s; } }
+</style>
+</head>
+<body>
+<header>
+  <h1>Course stand configurator</h1>
+  <div class="tabs" role="group" aria-label="Course family" id="tabs"></div>
+  <div class="status"><span id="saved" class="chip">Loading…</span>
+    <button class="small" id="copy" type="button">Copy choices</button>
+    <button class="small" id="reset" type="button">Reset this course to the draft</button></div>
+</header>
+<div class="wrap">
+  <nav id="list" aria-label="Courses"></nav>
+  <main>
+    <section class="editor" id="editor" aria-live="polite"></section>
+    <section class="overview"><h2 id="ovh">All courses</h2><div class="rows" id="rows"></div></section>
+    <section><h2>The modules (from the crib sheet)</h2>
+      <p class="note">A plot takes any module up to its width; the module sits centred in it and a low link fills the rest, so the footprints stay fixed. Plots: side 48 m, main 78 m, pavilion 33 m. The four long stands of the full-build courses are left out.</p>
+      <div class="palette" id="palette"></div></section>
+  </main>
+</div>
+<div class="dlg" id="dlg" role="dialog" aria-modal="true" aria-labelledby="dlgh"><div class="box">
+  <h2 id="dlgh">Your choices</h2>
+  <p class="note" id="dlgnote">Copied. Paste this into the chat if Claude can't read the page's saved choices.</p>
+  <textarea id="dlgtext" readonly></textarea>
+  <button class="small" id="dlgclose" type="button">Close</button></div></div>
+<script>
+const S = { cfg: null, fam: "park", course: "park", choices: {}, db: null, saveMode: "none" };
+const $ = id => document.getElementById(id);
+const CLS = { side: "var(--side)", main: "var(--main)", pavilion: "var(--pav)" };
+const handTxt = h => h < 0 ? "left-handed" : "right-handed";
+
+function plotsOf(cid) {                        // the course's current choices: saved over the draft
+  const c = S.cfg.courses[cid], out = {};
+  for (const p of S.cfg.families[c.family].plots) {
+    const ch = S.choices[cid];
+    out[p.id] = ch && Object.prototype.hasOwnProperty.call(ch, p.id) ? ch[p.id] : (c.plots[p.id] ?? null);
+  }
+  return out;
+}
+function famSpan(fam) { const ps = S.cfg.families[fam].plots; return ps[ps.length - 1].x1; }
+function modules() { return Object.entries(S.cfg.modules).filter(([, m]) => m.class !== "long"); }
+
+function drawStrip(el, cid, pxm, h) {          // the elevation, to scale: plots, links, modules
+  const fam = S.cfg.courses[cid].family, plots = S.cfg.families[fam].plots, ch = plotsOf(cid);
+  el.innerHTML = ""; el.style.height = h + "px";
+  const g = document.createElement("div"); g.className = "ground"; el.appendChild(g);
+  for (const p of plots) {
+    const b = document.createElement("div"); b.className = "plot";
+    b.style.left = p.x0 * pxm + "px"; b.style.width = (p.x1 - p.x0) * pxm + "px"; b.style.background = CLS[p.class];
+    el.appendChild(b);
+    const code = ch[p.id]; if (!code) continue;
+    const m = S.cfg.modules[code]; if (!m) continue;
+    const cx = (p.x0 + p.x1) / 2;
+    for (const [a, z] of [[p.x0, cx - m.width / 2], [cx + m.width / 2, p.x1]]) {
+      if (z - a < 0.5) continue;
+      const l = document.createElement("div"); l.className = "lnk";
+      l.style.left = a * pxm + "px"; l.style.width = (z - a) * pxm + "px"; l.style.bottom = "8px"; l.style.height = 3.5 * pxm + "px";
+      el.appendChild(l);
+    }
+    const im = new Image(); im.src = "img/" + m.png; im.alt = m.label;
+    im.style.width = m.imgW * pxm + "px"; im.style.left = (cx - m.imgW / 2) * pxm + "px";
+    im.style.bottom = (8 - m.ground * pxm) + "px";
+    el.appendChild(im);
+  }
+}
+
+function switchesLine(c) {
+  const s = [handTxt(c.hand), c.straight ? c.straight + "f straight" : "no straight course", c.surface, c.scenery];
+  if (c.uphill) s.push("uphill " + c.uphill + " m");
+  if (c.lights) s.push("floodlit");
+  return s;
+}
+
+function renderTabs() {
+  $("tabs").innerHTML = "";
+  for (const [k, f] of Object.entries(S.cfg.families)) {
+    const n = Object.values(S.cfg.courses).filter(c => c.family === k).length;
+    const b = document.createElement("button"); b.className = "tab"; b.type = "button";
+    b.textContent = f.name + " · " + n; b.setAttribute("aria-pressed", String(k === S.fam));
+    b.onclick = () => { S.fam = k; S.course = Object.keys(S.cfg.courses).find(id => S.cfg.courses[id].family === k); render(); };
+    $("tabs").appendChild(b);
+  }
+}
+
+function renderList() {
+  $("list").innerHTML = "";
+  for (const [id, c] of Object.entries(S.cfg.courses)) {
+    if (c.family !== S.fam) continue;
+    const b = document.createElement("button"); b.className = "course"; b.type = "button";
+    b.setAttribute("aria-current", String(id === S.course));
+    b.innerHTML = c.name + "<small>" + switchesLine(c).slice(0, 3).join(", ") + (c.standIn ? " · stand-in" : "") + "</small>";
+    b.onclick = () => { S.course = id; render(); };
+    $("list").appendChild(b);
+  }
+}
+
+function renderEditor() {
+  const c = S.cfg.courses[S.course], fam = S.cfg.families[c.family], ed = $("editor");
+  ed.innerHTML = "";
+  const top = document.createElement("div");
+  top.innerHTML = "<h2>" + c.name + "</h2>";
+  const meta = document.createElement("div"); meta.className = "meta";
+  for (const s of switchesLine(c)) { const x = document.createElement("span"); x.className = "chip"; x.textContent = s; meta.appendChild(x); }
+  if (c.standIn) { const x = document.createElement("span"); x.className = "chip warn"; x.textContent = "raced here until its own full build"; meta.appendChild(x); }
+  if (c.note) { const x = document.createElement("span"); x.className = "chip"; x.textContent = c.note; meta.appendChild(x); }
+  top.appendChild(meta); ed.appendChild(top);
+  const strip = document.createElement("div"); strip.className = "strip"; ed.appendChild(strip);
+  const width = ed.clientWidth - 32, span = famSpan(c.family), pxm = Math.max(1.5, width / span);
+  drawStrip(strip, S.course, pxm, Math.round(42 * pxm) + 12);
+  const grid = document.createElement("div"); grid.className = "plots";
+  grid.style.gridTemplateColumns = fam.plots.map(p => (p.x1 - p.x0) + "fr").join(" ");
+  const ch = plotsOf(S.course);
+  for (const p of fam.plots) {
+    const cell = document.createElement("div"); cell.className = "pcell";
+    const id = "sel-" + p.id;
+    cell.innerHTML = '<label for="' + id + '">' + p.id + ' <span>' + p.class + ', ' + p.width + ' m' + (p.name ? ', ' + p.name : '') + '</span></label>';
+    const sel = document.createElement("select"); sel.id = id;
+    const add = (grp, items) => { if (!items.length) return; const og = document.createElement("optgroup"); og.label = grp;
+      for (const [code, m] of items) { const o = document.createElement("option"); o.value = code; o.textContent = m.label + " (" + m.course.replace("Newmarket, ", "") + ", " + Math.round(m.width) + " m)"; og.appendChild(o); }
+      sel.appendChild(og); };
+    const none = document.createElement("option"); none.value = ""; none.textContent = "Lawn (empty)"; sel.appendChild(none);
+    const fits = modules().filter(([, m]) => m.width <= p.width + 0.01);
+    add("Made for a " + p.class + " plot", fits.filter(([, m]) => m.class === p.class).sort((a, b) => b[1].width - a[1].width));
+    add("Smaller pieces", fits.filter(([, m]) => m.class !== p.class).sort((a, b) => b[1].width - a[1].width));
+    sel.value = ch[p.id] || "";
+    sel.onchange = () => { S.choices[S.course] = Object.assign({}, S.choices[S.course] || {}, { [p.id]: sel.value || null }); save(); render(); };
+    cell.appendChild(sel);
+    const fn = document.createElement("div"); fn.className = "fitnote";
+    if (ch[p.id]) { const m = S.cfg.modules[ch[p.id]]; const spare = p.width - m.width; fn.textContent = spare > 1 ? Math.round(spare) + " m of link" : "fills the plot"; }
+    cell.appendChild(fn); grid.appendChild(cell);
+  }
+  ed.appendChild(grid);
+  const total = Object.values(ch).filter(Boolean).length;
+  const n = document.createElement("p"); n.className = "note";
+  n.textContent = total + " of " + fam.plots.length + " plots filled. Plots run left to right as seen from the course; " + fam.plots[0].id + " is by the winning post.";
+  ed.appendChild(n);
+}
+
+function renderRows() {
+  $("ovh").textContent = "All courses: " + S.cfg.families[S.fam].name;
+  const rows = $("rows"); rows.innerHTML = "";
+  for (const [id, c] of Object.entries(S.cfg.courses)) {
+    if (c.family !== S.fam) continue;
+    const r = document.createElement("div"); r.className = "row"; r.tabIndex = 0; r.setAttribute("role", "button");
+    r.setAttribute("aria-current", String(id === S.course));
+    r.innerHTML = '<div class="nm">' + c.name + '<small>' + switchesLine(c).slice(0, 2).join(", ") + '</small></div>';
+    const st = document.createElement("div"); st.className = "strip"; r.appendChild(st);
+    r.onclick = () => { S.course = id; render(); window.scrollTo({ top: 0 }); };
+    r.onkeydown = e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); r.onclick(); } };
+    rows.appendChild(r);
+    const w = st.clientWidth || (rows.clientWidth - 170), pxm = Math.max(1, w / famSpan(c.family));
+    drawStrip(st, id, pxm, Math.round(40 * pxm) + 10);
+  }
+}
+
+function renderPalette() {
+  const pal = $("palette"); if (pal.childElementCount) return;
+  for (const [code, m] of modules().sort((a, b) => a[1].course.localeCompare(b[1].course) || b[1].width - a[1].width)) {
+    const d = document.createElement("div"); d.className = "pm";
+    d.innerHTML = '<div class="thumb"><img src="img/' + m.png + '" alt=""></div><b>' + m.label + '</b><span>' + m.course + ' · ' + m.class + ' · ' + Math.round(m.width) + ' m wide, ' + Math.round(m.height) + ' m high</span><span>' + code + '</span>';
+    pal.appendChild(d);
+  }
+}
+
+function render() { renderTabs(); renderList(); renderEditor(); renderRows(); renderPalette(); }
+
+function exportJSON() { return JSON.stringify({ plots: Object.fromEntries(Object.keys(S.cfg.courses).map(id => [id, plotsOf(id)])) }, null, 1); }
+let saveTimer = null;
+function setSaved(txt, cls) { const s = $("saved"); s.textContent = txt; s.className = "chip " + (cls || ""); }
+function save() {
+  try { localStorage.setItem("standConfigChoices", JSON.stringify(S.choices)); } catch (e) {}
+  clearTimeout(saveTimer);
+  saveTimer = setTimeout(async () => {
+    if (!S.db) { setSaved(S.saveMode === "local" ? "Saved in this browser only" : "Not saved: use Copy choices", "warn"); return; }
+    try { await S.db.doc("config/choices").set({ plots: S.choices, updatedAt: new Date().toISOString() }); setSaved("Saved for Claude to read", "ok"); }
+    catch (e) { setSaved("Couldn't save: use Copy choices", "warn"); }
+  }, 500);
+}
+
+$("copy").onclick = async () => {
+  const t = exportJSON(); $("dlgtext").value = t;
+  try { await navigator.clipboard.writeText(t); $("dlgnote").textContent = "Copied. Paste this into the chat if Claude can't read the page's saved choices."; }
+  catch (e) { $("dlgnote").textContent = "Select all of this and copy it, then paste it into the chat."; }
+  $("dlg").classList.add("open"); $("dlgclose").focus();
+};
+$("dlgclose").onclick = () => $("dlg").classList.remove("open");
+$("reset").onclick = () => { delete S.choices[S.course]; save(); render(); };
+window.addEventListener("resize", () => { clearTimeout(window._rz); window._rz = setTimeout(render, 150); });
+
+(async function start() {
+  try { S.cfg = await (await fetch("data/stand-config.json")).json(); }
+  catch (e) { $("editor").textContent = "The course data didn't load. Reload the page to try again."; return; }
+  try { const l = localStorage.getItem("standConfigChoices"); if (l) { S.choices = JSON.parse(l); S.saveMode = "local"; } } catch (e) {}
+  render();
+  setSaved(S.saveMode === "local" ? "Saved in this browser only" : "Draft (not yet changed)");
+  try {
+    const db = window.claude && window.claude.use ? await Promise.race([window.claude.use("db"), new Promise(r => setTimeout(() => r(null), 10000))]) : null;
+    if (db) {
+      S.db = db;
+      const snap = await db.doc("config/choices").get();
+      let data = snap;
+      if (snap && typeof snap.data === "function") data = snap.data();
+      else if (snap && snap.data && typeof snap.data === "object") data = snap.data;
+      if (data && data.plots) { S.choices = data.plots; render(); }
+      setSaved("Saved for Claude to read", "ok");
+    }
+  } catch (e) { /* the page works without it: choices stay in this browser, and Copy choices exports them */ }
+})();
+</script>
+</body>
+</html>

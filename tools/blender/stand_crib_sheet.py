@@ -185,6 +185,8 @@ if PART in ("both", "elevations"):
             cur.append((grp, f, name, label)); curw += slot
     rows.append(cur)
     imgs = {}
+    ELDIR = os.path.join(OUT, "elevations"); os.makedirs(ELDIR, exist_ok=True)
+    ELIDX = {}
     for row in rows:
         for grp, f, name, label in row:
             obs = PIECES[(f, name)]; show(obs)
@@ -200,6 +202,13 @@ if PART in ("both", "elevations"):
             scene.render.image_settings.file_format = "PNG"; scene.render.image_settings.color_mode = "RGBA"
             bpy.ops.render.render(write_still=True)
             imgs[(f, name)] = Image.open(path).convert("RGBA").copy()
+            # each piece's elevation on its own too (transparent, PXM px a metre, the ground 0.6 m above the foot),
+            # for the course configurator (tools/course/kit/stand_config.py)
+            code = name if name != "*" else f
+            imgs[(f, name)].save(os.path.join(ELDIR, code + ".png"))
+            ELIDX[code] = {"file": f, "object": name, "label": label, "course": grp, "width": round(w, 2), "depth": round(d, 2),
+                           "height": round(h, 2), "pxm": PXM, "groundPx": round(0.6 * PXM, 2), "png": code + ".png",
+                           "xMin": round(lo.x, 2), "xMax": round(hi.x, 2)}
             print("elevation", label, flush=True)
     LAB = 70
     Wd = LIMIT + 60
@@ -227,5 +236,9 @@ if PART in ("both", "elevations"):
             x += max(im.width, 230) + 22
         y += ELH + LAB + 30
     sheet.save(os.path.join(OUT, "crib-sheet-elevations.jpg"), quality=88)
+    import json as _json
+    _json.dump({"_about": "Each kit piece's front elevation, from the course, at pxm pixels a metre; the ground line groundPx "
+                          "above the image's foot; xMin/xMax the piece's extent along the front about its own origin.",
+                "pieces": ELIDX}, open(os.path.join(ELDIR, "index.json"), "w"), indent=1)
     os.remove(os.path.join(OUT, "_el.png"))
     print("elevations written", flush=True)
