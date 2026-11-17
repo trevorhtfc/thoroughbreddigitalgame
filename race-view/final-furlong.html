@@ -1051,19 +1051,25 @@ function placeProps(gltf) {
       let [a, b] = [pts[i], pts[i + 1]];
       if (flip) [a, b] = [b, a];
       if (gap((a[0] + b[0]) / 2, (a[1] + b[1]) / 2)) continue;
-      spots.push([a[0], a[1], Math.atan2(-(b[1] - a[1]), b[0] - a[0])]);
+      // on sloping ground (Goodwood, owner 17 Nov: "smooth the rails where the slopes are") each bay's rail runs from the
+      // ground at one end to the ground at the other, its posts still upright (a shear, not a tilt): no steps
+      const L = Math.hypot(b[0] - a[0], b[1] - a[1]) || 1;
+      spots.push([a[0], a[1], Math.atan2(-(b[1] - a[1]), b[0] - a[0]), GROUND ? (groundY(b[0], b[1]) - groundY(a[0], a[1])) / L : 0]);
     }
   }
   // in chunks of 20, so the rail out of shot isn't drawn
   const m = new THREE.Matrix4(), q = new THREE.Quaternion(), one = new THREE.Vector3(1, 1, 1), up = new THREE.Vector3(0, 1, 0), p = new THREE.Vector3();
+  const shear = new THREE.Matrix4();
   const CHUNK = 20;
   for (const part of parts) {
     for (let c0 = 0; c0 < spots.length; c0 += CHUNK) {
       const n = Math.min(CHUNK, spots.length - c0);
       const rails = new THREE.InstancedMesh(part.geometry, part.material, n);
       for (let i = 0; i < n; i++) {
-        const [x, z, yaw] = spots[c0 + i];
-        rails.setMatrixAt(i, m.compose(p.set(x, groundY(x, z), z), q.setFromAxisAngle(up, yaw), one));
+        const [x, z, yaw, slope] = spots[c0 + i];
+        m.compose(p.set(x, groundY(x, z), z), q.setFromAxisAngle(up, yaw), one);
+        if (slope) m.multiply(shear.set(1, 0, 0, 0, slope, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1));   // y rises with the bay's length (local x)
+        rails.setMatrixAt(i, m);
       }
       rails.computeBoundingSphere();
       rails.castShadow = rails.receiveShadow = true;
