@@ -74,12 +74,12 @@ STEP = 5.0
 # Left to right as seen from the infield (x rising, up the straight from the post). Linking three forms, as his photos:
 # a glass box, the old pavilion, a glass box (photo 4's composition: glass either side of its old brick building; owner,
 # 16 Nov: "model the old element of this image in the middle instead of the pavilion with the two point towers");
-# then open terrace to the arch-roofed grandstand (photo 1), more terrace to the tiered stand (York's of 1895, owner 16 Nov)
-# and a tail of terrace. All on one front line, LAWN metres
+# then open terrace to the arch-roofed grandstand (photo 1), and the tiered stand (York's of 1895, owner 16 Nov) with its
+# own terrace (owner, 17 Nov: the terrace infill either side of it removed). All on one front line, LAWN metres
 # beyond the outer rail.
 LAWN = 18.0
 CHAIN = [("park_glass_box_small", 0.0), ("park_old_pavilion", 1.0), ("park_glass_box", 1.0), ("park_terrace", 0.0, 12.0),
-         ("park_arch_stand", 0.0), ("park_terrace", 0.0, 10.0), ("park_tiered_stand", 0.0), ("park_terrace", 0.0, 14.0)]
+         ("park_arch_stand", 0.0), ("park_tiered_stand", 4.0)]
 CHAIN_START = -32.0          # the left end, just past the post (the old pavilion sits by the line)
 # the festival side, in the infield opposite the stands (as York's): the clock house facing the course, its steps in
 # front, terraces either side, the sheds behind; the rest of the lawn for marquees, kiosks and flags
