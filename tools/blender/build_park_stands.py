@@ -22,6 +22,11 @@ What each piece takes from his photos:
   park_tiered_stand   the right-hand stand of York's grandstands of 1895 (owner, 16 Nov): a brick arcade at ground
                       level, two open tiers with slim posts and balustrades wrapping round the ends, a hipped roof,
                       chimneys, and standing steps down to the lawn in front; drawn to his section sketch: tall
+  park_balcony_stand  (owner's concept, 17 Nov) steps up to a colonnade of square piers; a balustrade with ball
+                      finials before open seating; two covered galleries on bracketed columns; a flat roof behind a
+                      bracketed cornice and a rooftop balustrade; a panelled end block with an aedicule and flags
+  park_roof_terrace_stand  (his second concept) the same base; one tall covered gallery whose roof is a stepped
+                      terrace of seats rising to a parapet at the back, the flank wall following the slope
   park_glass_box      a modern glazed hospitality stand: glass-railed balconies, a thin flat roof plate reaching out over
                       them, a brick podium and a front of steps (photos 4 and 5); stair="left"/"right": the brick stair
                       tower with its diagonal glazing (photo 4)
@@ -685,6 +690,298 @@ def tiered_with_terrace():
     return info
 
 
+# ------------------------------------------------------------------------------------------ 2c: the colonnade stands
+# Owner, 17 Nov: "two new stands to make in similar vein" (two concept images, white clay renders). Both stand on a wide
+# flight of steps up to a colonnade of square piers carrying a flat beam; over it a stone balustrade with pedestals and
+# ball finials at the front of open seating rising to a line of bracketed columns; at each end a flank wall following
+# the section (owner: "the correct flank wall", not towers), the pediment on the left flank's top; (was: a solid panelled end block at the
+# left with a small pediment and roundel on top and a flag; stairs with raking balustrades up the ends; aisles through
+# the seating. park_balcony_stand (the first): two covered galleries, a flat roof behind a deep bracketed cornice and a
+# rooftop balustrade. park_roof_terrace_stand (the second): one tall covered gallery, its roof a stepped terrace of
+# seats rising to a parapet at the back, the ends' flank walls following the slope.
+def stone_rail(x0, x1, y, z, peds=(), h=1.1, ball=True):
+    """A stone balustrade: square balusters, a broad coping, pedestals at peds (x), each with a ball finial."""
+    K.balustrade(x0, x1, y, z, h=h, mat="trim", spacing=0.3, piers=False)
+    K.box("trim", x0, x1, y - 0.22, y + 0.22, z + h - 0.08, z + h + 0.06)
+    K.box("quoin", x0, x1, y - 0.2, y + 0.2, z, z + 0.14)
+    for x in peds:
+        K.box("trim", x - 0.32, x + 0.32, y - 0.32, y + 0.32, z, z + h + 0.25)
+        K.box("trim", x - 0.38, x + 0.38, y - 0.38, y + 0.38, z + h + 0.25, z + h + 0.37)
+        if ball:
+            K.cyl("trim", x, y, z + h + 0.37, z + h + 0.55, 0.12, 0.08, 8)
+            K.sphere("trim", x, y, z + h + 0.78, 0.26, 2)
+
+
+def raking_rail(x, ya, za, yb, zb, solid=True, xw=0.3):
+    """A raking balustrade along y at x, from (ya, za) up to (yb, zb): a solid flank wall under it (the triangle down to
+    the lower end's level), balusters, a sloping coping, newels with balls at both ends."""
+    x0, x1 = x - xw / 2, x + xw / 2
+    if solid:
+        K.prism_x("quoin", x0, x1, [(ya, min(za, zb) - 0.6), (yb, min(za, zb) - 0.6), (yb, zb), (ya, za)])
+    K.prism_x("trim", x0 - 0.08, x1 + 0.08, [(ya, za + 1.0), (yb, zb + 1.0), (yb, zb + 1.14), (ya, za + 1.14)])
+    if not K.far:
+        n = max(3, int(math.hypot(yb - ya, zb - za) / 0.32))
+        for j in range(n):
+            f = (j + 0.5) / n
+            y = ya + (yb - ya) * f; z = za + (zb - za) * f
+            K.box("trim", x - 0.05, x + 0.05, y - 0.05, y + 0.05, z, z + 1.0)
+    for y, z in ((ya, za), (yb, zb)):
+        K.box("trim", x - 0.32, x + 0.32, y - 0.32, y + 0.32, z, z + 1.4)
+        K.sphere("trim", x, y, z + 1.68, 0.25, 2)
+
+
+def bracket_column(x, y, z0, z1, xmin=-1e9, xmax=1e9, r=0.17):
+    """A turned column with base, bell capital and abacus, and curved brackets either side under the beam."""
+    K.box("trim", x - 0.32, x + 0.32, y - 0.32, y + 0.32, z0, z0 + 0.45)
+    K.cyl("trim", x, y, z0 + 0.45, z1 - 0.55, r + 0.03, r, 10)
+    K.cyl("trim", x, y, z1 - 0.55, z1 - 0.3, r + 0.03, r + 0.14, 10)
+    K.box("trim", x - 0.32, x + 0.32, y - 0.32, y + 0.32, z1 - 0.3, z1)
+    if K.far:
+        return
+    R = 0.95
+    for s_ in (-1, 1):
+        if not (xmin - 0.01 <= x + s_ * (R + r) <= xmax + 0.01):
+            continue
+        cxr = x + s_ * (R + r)
+        a0, a1 = (math.pi / 2, math.pi) if s_ > 0 else (0.0, math.pi / 2)
+        K.arc_band("trim", cxr, z1 - R, R - 0.12, R, a0, a1, y - 0.07, y + 0.07, 8)
+        K.arc_band("trim", cxr, z1 - R, R * 0.45, R * 0.55, a0, a1, y - 0.05, y + 0.05, 6)
+
+
+def seating(x0, x1, ya, yb, z0, rows, rise, aisles=()):
+    """Raked seating from ya (front, z0) back to yb: the stepped mass, a bench on every row, gaps at the aisles, where
+    smaller steps climb at half the rise; its crowd."""
+    tr = (yb - ya) / rows
+    prof = [(ya, z0 - 0.6), (ya, z0)]
+    for j in range(rows):
+        prof += [(ya + j * tr, z0 + j * rise), (ya + (j + 1) * tr, z0 + j * rise)]
+    prof += [(yb, z0 - 0.6)]
+    K.prism_x("steps", x0, x1, prof)
+    cuts = sorted([x0] + [a for c in aisles for a in (c - 0.6, c + 0.6)] + [x1])
+    segs = [(cuts[i], cuts[i + 1]) for i in range(0, len(cuts), 2)]
+    for j in range(rows):
+        y1 = ya + (j + 1) * tr; z = z0 + j * rise
+        for a, b in segs:
+            if b - a > 0.8:
+                K.box("seat", a + 0.15, b - 0.15, y1 - 0.42, y1 - 0.12, z, z + 0.42)
+                rarea(a + 0.2, b - 0.2, ya + j * tr + 0.05, y1 - 0.45, z)
+    for c in aisles:                                               # the aisles' half steps
+        for j in range(rows):
+            for k_ in (0, 1):
+                ys = ya + j * tr + k_ * tr / 2
+                K.box("quoin", c - 0.55, c + 0.55, ys, ys + tr / 2, z0 + j * rise - 0.5, z0 + j * rise + (k_ - 0.5) * rise * (1 if j else 0) + (rise / 2 if k_ else 0.0) - (0 if j else rise / 2) * 0)
+    return z0 + (rows - 1) * rise, tr
+
+
+def end_block(x0, x1, y0, y1, ztop, bands):
+    """A solid panelled end block: plinth, string courses at bands, pilasters at the corners and the third points, sunk
+    panels between, a cornice."""
+    K.box("wall", x0, x1, y0, y1, -1.0, ztop)
+    K.box("podium", x0 - 0.15, x1 + 0.15, y0 - 0.15, y1 + 0.15, -1.0, 0.8)
+    for z in bands:
+        K.box("podium", x0 - 0.12, x1 + 0.12, y0 - 0.12, y1 + 0.12, z - 0.18, z + 0.18)
+    K.box("podium", x0 - 0.35, x1 + 0.35, y0 - 0.35, y1 + 0.35, ztop - 0.4, ztop)
+    zs = [0.8] + list(bands) + [ztop - 0.4]
+    for (za, zb) in zip(zs[:-1], zs[1:]):                          # panels on the front and the outer side
+        w = x1 - x0
+        for k in range(2):
+            a, b = x0 + 0.5 + k * (w - 1.0) / 2 + 0.2, x0 + 0.5 + (k + 1) * (w - 1.0) / 2 - 0.2
+            K.box("quoin", a, b, y0 - 0.08, y0, za + 0.35, zb - 0.35)
+            K.box("wall", a + 0.15, b - 0.15, y0 - 0.1, y0 - 0.08, za + 0.5, zb - 0.5)
+    for x in (x0 + 0.2, x1 - 0.2):
+        K.box("quoin", x - 0.25, x + 0.25, y0 - 0.25, y0, 0.8, ztop - 0.4)
+    d = y1 - y0                                                   # panels down the outer side too, in three
+    for (za, zb) in zip(zs[:-1], zs[1:]):
+        for k in range(3):
+            a, b = y0 + 0.5 + k * (d - 1.0) / 3 + 0.25, y0 + 0.5 + (k + 1) * (d - 1.0) / 3 - 0.25
+            K.box("quoin", x0 - 0.08, x0, a, b, za + 0.35, zb - 0.35)
+            K.box("wall", x0 - 0.1, x0 - 0.08, a + 0.15, b - 0.15, za + 0.5, zb - 0.5)
+    for y in [y0 + 0.5 + k * (d - 1.0) / 3 for k in range(4)]:
+        K.box("quoin", x0 - 0.25, x0, y - 0.25, y + 0.25, 0.8, ztop - 0.4)
+
+
+def aedicule(x, y, z, flagmat="trim"):
+    """The little pedimented aedicule on the end block's top: pilasters, a pediment, a roundel, a flagpole and flag."""
+    K.box("trim", x - 1.6, x + 1.6, y - 0.6, y + 1.6, z, z + 2.6)
+    for s_ in (-1, 1):
+        K.box("quoin", x + s_ * 1.45 - 0.2, x + s_ * 1.45 + 0.2, y - 0.75, y - 0.55, z, z + 2.6)
+    K.disc_y("quoin", x, y - 0.78, y - 0.6, z + 1.45, 0.62, 20)
+    K.disc_y("shade", x, y - 0.82, y - 0.76, z + 1.45, 0.42, 20)
+    K.prism_y("podium", y - 0.8, y + 1.7, [(x - 1.95, z + 2.6), (x + 1.95, z + 2.6), (x, z + 3.7)][::-1])
+    K.cyl("trim", x, y + 0.5, z + 3.5, z + 8.5, 0.07, 0.05, 6)
+    K.sphere("trim", x, y + 0.5, z + 8.6, 0.13, 1)
+    K.box(flagmat, x + 0.07, x + 2.4, y + 0.47, y + 0.53, z + 7.0, z + 8.4)
+
+
+def colonnade_base(h, bay, P, Ctop, depth, pier_every=2.0 / 3.0):
+    """Steps up to a platform at P, with balustraded cheeks at the ends; a colonnade of square piers (base, shaft, cap)
+    carrying a beam to Ctop, a loggia 'depth' deep behind, in shade; returns the pier xs."""
+    rows, tr = 7, 1.2
+    rs = P / rows
+    yS = -rows * tr                                               # the steps' foot (the piece's origin is set by the caller)
+    prof = [(yS, -1.0)]
+    for k in range(rows):
+        prof += [(yS + k * tr, (k + 1) * rs), (yS + (k + 1) * tr, (k + 1) * rs)]
+        rarea(-h - 1.5, h + 1.5, yS + k * tr + 0.1, yS + (k + 1) * tr - 0.1, k * rs)
+    prof += [(0.0, P), (0.0, -1.0)]
+    K.prism_x("steps", -h - 1.8, h + 1.8, prof)
+    for xs_ in (-h - 1.8, h + 1.8):                               # the cheeks at both ends of the flight
+        raking_rail(xs_, yS + 0.4, 0.2, 0.0, P, solid=True, xw=0.45)
+    K.box("podium", -h, h, 0.0, depth + 0.4, -1.0, P)                             # the loggia's floor
+    K.box("shade", -h, h, depth, depth + 0.4, P, Ctop - 0.9)                      # its back wall
+    pb = bay * pier_every
+    n = int(round(2 * h / pb))
+    xs = [-h + 2 * h * i / n for i in range(n + 1)]
+    for x in xs:
+        K.box("quoin", x - 0.38, x + 0.38, 0.0, 0.76, P, Ctop - 0.9)
+        K.box("podium", x - 0.5, x + 0.5, -0.12, 0.88, P, P + 0.5)
+        K.box("podium", x - 0.48, x + 0.48, -0.1, 0.86, Ctop - 1.2, Ctop - 0.9)
+    K.box("quoin", -h - 0.2, h + 0.2, -0.15, depth + 0.4, Ctop - 0.9, Ctop - 0.3)  # the beam
+    K.box("podium", -h - 0.4, h + 0.4, -0.4, depth + 0.4, Ctop - 0.3, Ctop)       # its cornice
+    K.box("shade", -h, h, 0.0, depth, Ctop - 0.92, Ctop - 0.9)                    # the loggia's ceiling
+    rarea(-h + 0.5, h - 0.5, 1.2, depth - 0.4, P)
+    return xs
+
+
+def colonnade_stand(nb=10, bay=3.6, roof="flat"):
+    """The two colonnade stands (see above). roof="flat": park_balcony_stand; roof="terrace": park_roof_terrace_stand.
+    Origin: the middle of the steps' foot on the ground (the steps 8.4 m deep before the colonnade)."""
+    L = nb * bay; h = L / 2
+    K.push(Matrix.Translation((0.0, 8.4, 0.0)))
+    P, C = 1.4, 5.6                                               # the platform; the colonnade's beam top
+    yc = 6.0                                                      # the gallery columns' line, back from the colonnade front
+    yB = yc + 9.5                                                 # the back wall
+    aisles = [-h + bay * 2.5, 0.0, h - bay * 2.5]
+    colonnade_base(h, bay, P, C, 3.2)
+    K.box("wall", -h, h, 3.6, yB + 0.4, -1.0, C - 0.3)            # the mass under the seating
+    # the front balustrade on the colonnade, pedestals every two and a half bays, a ball on each
+    peds = [-h + 0.35, -h + bay * 2.5, -0.0, h - bay * 2.5, h - 0.35]
+    stone_rail(-h, h, 0.05, C, peds)
+    # the open seating, up to the columns
+    zc, tr = seating(-h + 1.9, h - 1.9, 0.8, yc, C, 6, 0.42, aisles)
+    zc += 0.42                                                    # the columns stand on the top row's level
+    K.box("steps", -h, h, yc, yc + 0.6, C, zc)
+    if roof == "flat":
+        U, E = zc + 5.4, zc + 5.4 + 5.0                           # the upper gallery's floor; the eaves (the beam's foot)
+        z1, _ = seating(-h + 1.9, h - 1.9, yc + 0.6, yB - 1.2, zc, 7, 0.36, aisles)
+        z2, _ = seating(-h + 1.9, h - 1.9, yc + 0.6, yB - 1.2, U, 7, 0.32, aisles)
+        K.box("quoin", -h - 0.3, h + 0.3, yc - 0.6, yB, U - 1.0, U)                  # the upper floor's edge
+        K.box("podium", -h - 0.4, h + 0.4, yc - 0.7, yc - 0.4, U - 1.0, U - 0.8)
+        K.box("shade", -h, h, yc, yB, U - 1.05, U - 1.0)
+        stone_rail(-h, h, yc - 0.3, U, [-h + bay * i for i in range(0, nb + 1, 2)], h=1.05, ball=False)
+        for i in range(nb + 1):
+            x = -h + bay * i
+            bracket_column(x, yc, zc, U - 1.0, -h, h)
+            bracket_column(x, yc, U, E, -h, h)
+        # the entablature: a frieze, modillions under a deep cornice, a dentil course; the rooftop balustrade
+        K.box("quoin", -h - 0.3, h + 0.3, yc - 0.5, yB + 0.4, E, E + 1.1)
+        K.box("podium", -h - 0.4, h + 0.4, yc - 0.62, yB + 0.4, E + 0.12, E + 0.32)
+        if not K.far:
+            for j in range(int((L + 0.8) / 0.45)):
+                x = -h - 0.35 + j * 0.45
+                K.box("trim", x - 0.1, x + 0.1, yc - 0.75, yc - 0.5, E + 0.45, E + 0.65)  # dentils
+            for j in range(int((L + 1.6) / 1.2) + 1):
+                x = -h - 0.7 + j * 1.2
+                K.prism_x("trim", x - 0.14, x + 0.14, [(yc - 1.3, E + 1.1), (yc - 0.5, E + 1.1), (yc - 0.5, E + 0.75)])   # modillions
+        K.box("podium", -h - 0.8, h + 0.8, yc - 1.4, yB + 0.8, E + 1.1, E + 1.45)
+        K.box("trim", -h - 0.5, h + 0.5, yc - 1.0, yB + 0.4, E + 1.45, E + 1.7)
+        stone_rail(-h - 0.3, h + 0.3, yc - 0.85, E + 1.7, [-h - 0.3 + (L + 0.6) * i / nb for i in range(nb + 1)])
+        K.box("shade", -h, h, yc, yB, E - 0.05, E)                                    # the gallery ceiling
+        top, flank = E + 1.7, None
+        back_top = E + 1.1
+    else:
+        E = zc + 7.4                                               # one tall gallery; its roof the terrace
+        z1, _ = seating(-h + 1.9, h - 1.9, yc + 0.6, yB - 1.2, zc, 8, 0.4, aisles)
+        for i in range(nb + 1):
+            bracket_column(-h + bay * i, yc, zc, E, -h, h)
+        K.box("quoin", -h - 0.3, h + 0.3, yc - 0.6, yc + 0.6, E, E + 0.9)             # the beam over the columns
+        K.box("podium", -h - 0.45, h + 0.45, yc - 0.75, yc + 0.6, E + 0.9, E + 1.15)
+        rows, rise = 14, 0.4                                       # the roof terrace: seats rising to the back
+        zr0 = E + 1.15
+        prof = [(yc - 0.45, E + 0.02), (yc - 0.45, zr0)]           # set just inside the beam's face (no shared plane)
+        trr = (yB + 0.4 - yc + 0.6) / rows
+        for j in range(rows):
+            prof += [(yc - 0.6 + j * trr, zr0 + j * rise), (yc - 0.6 + (j + 1) * trr, zr0 + j * rise)]
+        prof += [(yB + 0.4, E + 0.02)]
+        K.prism_x("steps", -h + 0.01, h - 0.01, prof)
+        K.box("canopy_under", -h, h, yc + 0.6, yB, E - 0.05, E)
+        for j in range(rows):
+            y1 = yc - 0.6 + (j + 1) * trr; z = zr0 + j * rise
+            for a, b in ((-h + 0.4, aisles[0] - 0.6), (aisles[0] + 0.6, aisles[1] - 0.6), (aisles[1] + 0.6, aisles[2] - 0.6), (aisles[2] + 0.6, h - 0.4)):
+                K.box("seat", a, b, y1 - 0.38, y1 - 0.1, z, z + 0.4)
+                rarea(a + 0.1, b - 0.1, y1 - trr + 0.05, y1 - 0.42, z)
+        for c in aisles:                                           # the roof aisles: half steps
+            for j in range(rows):
+                ys = yc - 0.6 + j * trr
+                K.box("quoin", c - 0.55, c + 0.55, ys + trr / 2, ys + trr, zr0 + j * rise - 0.4, zr0 + j * rise + rise / 2)
+        zt = zr0 + (rows - 1) * rise                               # the back parapet with pedestals and balls
+        K.box("trim", -h - 0.3, h + 0.3, yB + 0.4, yB + 0.9, E, zt + 1.4)
+        K.box("podium", -h - 0.4, h + 0.4, yB + 0.3, yB + 1.0, zt + 1.4, zt + 1.62)
+        for i in range(0, nb + 1):
+            x = -h + bay * i
+            K.box("trim", x - 0.32, x + 0.32, yB + 0.33, yB + 0.97, zt + 1.62, zt + 2.3)
+            K.sphere("trim", x, yB + 0.65, zt + 2.58, 0.26, 2)
+        K.box("trim", -h - 0.2, h + 0.2, yc - 0.55, yc - 0.35, zr0, zr0 + 1.0)        # a low rail at the roof's front edge
+        top, back_top = zt + 1.62, zt + 1.4
+    # ---- the ends (owner: "the correct flank wall", not towers): at each end, in the plane of the end, a flank wall
+    # following the section. Over the open seating, a stair beside the end and a triangular flank under its raking
+    # balustrade; from the gallery columns back, a solid panelled flank: flat-topped at the roof on the balcony stand,
+    # following the roof terrace's slope on the other; the colonnade's end wall below.
+    if roof == "flat":
+        fl = [(yc - 0.6, C - 0.3), (yB + 0.4, C - 0.3), (yB + 0.4, E + 1.1), (yc - 0.6, E + 1.1)]
+        cope = None
+        ftop = lambda y: E + 1.1
+    else:
+        fl = [(yc - 0.6, C - 0.3), (yB + 0.9, C - 0.3), (yB + 0.9, zt + 1.4), (yc - 0.6, zr0 + 1.0)]
+        cope = [(yc - 0.6, zr0 + 1.0), (yB + 0.9, zt + 1.4), (yB + 0.9, zt + 1.62), (yc - 0.6, zr0 + 1.22)]
+        ftop = lambda y: zr0 + 1.0 + (zt + 0.4 - zr0) * (y - yc + 0.6) / (yB + 1.5 - yc)
+    for side in (-1, 1):
+        xo = side * h                                             # the end's plane
+        xa, xb = sorted((xo, xo + side * 0.45))
+        xf = xo + side * 0.45                                     # the outer face
+        K.box("wall", xa, xb, -0.15, yB + 0.4, -1.0, C - 0.3)     # the colonnade's end wall
+        K.box("podium", min(xf, xf + side * 0.12), max(xf, xf + side * 0.12), -0.3, yB + 0.55, -1.0, 0.8)
+        K.box("podium", min(xf, xf + side * 0.15), max(xf, xf + side * 0.15), -0.4, yB + 0.55, C - 0.9, C - 0.3)
+        raking_rail(xo - side * 0.9, 0.6, C, yc - 0.6, zc, solid=True, xw=0.4)       # the stair's balustrade
+        sa, sb = sorted((xo - side * 1.8, xo - side * 1.1))
+        K.prism_x("steps", sa, sb, [(0.6, C), (yc - 0.6, zc), (yc - 0.6, C)])
+        K.prism_x("wall", xa, xb, [(0.0, C - 0.3), (yc - 0.6, C - 0.3), (yc - 0.6, zc + 1.0), (0.6, C + 1.0)])   # the triangular flank
+        K.prism_x("podium", xa - 0.05, xb + 0.05, [(0.0, C + 1.0), (yc - 0.6, zc + 1.0), (yc - 0.6, zc + 1.2), (0.0, C + 1.2)])
+        K.prism_x("wall", xa, xb, fl)                             # the solid flank behind the columns
+        if cope:
+            K.prism_x("podium", xa - 0.05, xb + 0.05, cope)
+        # its panels and pilasters on the outer face, the bands at the floors
+        ys = [yc - 0.6 + (yB + 0.4 - yc + 0.6) * k / 3 for k in range(4)]
+        bands = [C - 0.3, zc + 2.5] + ([E - 2.5] if roof == "flat" else [])
+        for y in ys:
+            K.box("quoin", min(xf, xf + side * 0.15), max(xf, xf + side * 0.15), y - 0.25, y + 0.25, C - 0.3, ftop(y) - 0.2)
+        for z in bands[1:]:
+            K.box("podium", min(xf, xf + side * 0.15), max(xf, xf + side * 0.15), yc - 0.6, yB + 0.4, z - 0.15, z + 0.15)
+        for (ya_, yb_) in zip(ys[:-1], ys[1:]):
+            lo = C - 0.3
+            for hi in bands[1:] + [min(ftop(ya_), ftop(yb_)) - 0.4]:
+                if hi - lo > 1.6:
+                    K.box("quoin", min(xf, xf + side * 0.08), max(xf, xf + side * 0.08), ya_ + 0.6, yb_ - 0.6, lo + 0.5, hi - 0.5)
+                    K.box("wall", min(xf + side * 0.08, xf + side * 0.1), max(xf + side * 0.08, xf + side * 0.1), ya_ + 0.75, yb_ - 0.75, lo + 0.65, hi - 0.65)
+                lo = hi
+    # the pediment on the left flank's top (as the concepts), a flag on it and another at the right
+    if roof == "flat":
+        ax, ay, az = -h + 1.6, yc - 0.3, E + 1.7
+    else:
+        ax, ay, az = -h + 1.6, yB - 1.6, zt + 1.62
+    aedicule(ax, ay, az)
+    fx, fz = (h - 0.3, top) if roof == "flat" else (h + 0.2, back_top + 0.2)
+    fy = (yc - 0.85) if roof == "flat" else (yB + 0.65)
+    K.cyl("trim", fx, fy, fz, fz + 6.5, 0.07, 0.05, 6)
+    K.box("trim", fx + 0.07, fx + 2.4, fy - 0.03, fy + 0.03, fz + 5.0, fz + 6.4)
+    ztop = az + 8.6
+    K.pop()
+    return {"width": round(L + 3.6, 2), "depth": round(8.4 + yB + 1.0, 2), "height": round(ztop, 2),
+            "section": {"platform": P, "colonnadeTop": C, "columns": round(8.4 + yc, 2), "coveredSeatingFront": round(zc, 2),
+                        "eaves": round(E, 2), "back": round(8.4 + yB, 2)},
+            }
+
+
 # ------------------------------------------------------------------------------------------ 3: the glass box
 def stair_tower(x0, x1, y0, y1, H, up=1):
     """The brick stair tower of photo 4: brick, a cream coping, and the stair's glazing climbing diagonally across its
@@ -829,6 +1126,8 @@ PIECES = [
     ("park_victorian", victorian),
     ("park_old_pavilion", old_pavilion),
     ("park_tiered_stand", tiered_with_terrace),
+    ("park_balcony_stand", lambda: colonnade_stand(10, 3.6, "flat")),
+    ("park_roof_terrace_stand", lambda: colonnade_stand(10, 3.6, "terrace")),
     ("park_glass_box", lambda: glass_box(30.0, 3, "left")),
     ("park_glass_box_small", lambda: glass_box(22.0, 2, "right")),
     ("park_stair_tower", stair_link),
@@ -898,7 +1197,8 @@ def lawn(cx, cy, size, mat="lawn", col="#b2c98a"):
 
 if os.environ.get("SHEET"):          # the catalogue: the stands, then the smaller pieces and the festival side's
     groups = [["park_glass_box_small", "park_old_pavilion", "park_glass_box"], ["park_arch_stand"],
-              ["park_gable_stand", "park_stair_tower", "park_terrace", "park_link"], ["park_clock_house", "park_shed", "park_floodlight"], ["park_old_pavilion"], ["park_tiered_stand"]]
+              ["park_gable_stand", "park_stair_tower", "park_terrace", "park_link"], ["park_clock_house", "park_shed", "park_floodlight"], ["park_old_pavilion"], ["park_tiered_stand"],
+              ["park_balcony_stand", "park_roof_terrace_stand"]]
     scene = setup_scene(1800, 900)
     lawn(0, 0, 4000)
     x = 0.0
