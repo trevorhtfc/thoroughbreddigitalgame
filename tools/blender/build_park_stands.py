@@ -173,7 +173,12 @@ def arch_stand(nb=9, bay=8.0, roof="arch", flags=True, centre=True):
             x = -h + bay * i
             mid = centre and nb % 2 and i in (nb // 2, nb // 2 + 1)
             flag(x, yF - 0.6, zs + (3.2 if mid else 0.0), FLAGS[i % 4], 4.5)
-    return {"width": round(L, 2), "depth": round(D + 0.6, 2), "height": round(top_z + (5.0 if flags else 0.0), 2)}
+    return {"width": round(L, 2), "depth": round(D + 0.6, 2), "height": round(top_z + (5.0 if flags else 0.0), 2),
+            "section": {"stepsTop": round(0.2 + (GS["R"] - 1) * GS["rs"], 2), "stepsBack": YS, "shoulder": round(ZD, 2),
+                        "deckBack": round(ZD + (rows - 1) * rs, 2), "deckBackY": round(yW, 2), "springing": round(zs, 2),
+                        "crown": round(zs + (bay * 0.3 if roof == "arch" else bay / 2 * 0.9), 2),
+                        "raisedCrown": round(zs + 3.2 + (bay * 0.3 if roof == "arch" else bay / 2 * 0.9), 2),
+                        "columns": round(yF, 2), "roofFront": round(yR0, 2), "back": round(D, 2), "bay": bay, "bays": nb}}
 
 
 # ------------------------------------------------------------------------------------------ 2: the Victorian pavilion
@@ -458,8 +463,8 @@ def tiered_stand(nb=11, bay=3.6, terrace=False):
     yp = yA + 1.6                                                 # the gallery columns
     U = A + 6.2                                                   # the upper gallery's floor
     Eav = U + 7.4                                                 # the eaves
-    yB = yp + 12.0                                                # the back wall
-    yR = yp + 7.5                                                 # the back of the rakes
+    yB = yp + 14.0                                                # the back wall (owner, 17 Nov: another 2 m deeper)
+    yR = yp + 9.0                                                 # the back of the rakes
     yE = yA + 5.5                                                 # the end walls' solid part starts here
     # ---- the arcade
     w2, zi = 1.15, base + 4.05                                    # half an opening; the impost (where the arches spring)
@@ -538,9 +543,9 @@ def tiered_stand(nb=11, bay=3.6, terrace=False):
         prof += [(yR, z0 - 0.5)]
         K.prism_x("concrete", -h, h, prof)
         return z0 + (rows - 1) * rs
-    zl = rake(A, yp + 0.8, 8, 0.38)
+    zl = rake(A, yp + 0.8, 9, 0.38)
     rarea(-h + 0.4, h - 0.4, yA + 0.3, yp + 0.5, A)
-    zu = rake(U, yp + 0.8, 9, 0.36)
+    zu = rake(U, yp + 0.8, 10, 0.36)
     K.box("shade", -h, h, yp, yR, U - 1.06, U - 1.0)
     K.box("quoin", -h - 0.3, h + 0.3, yp - 0.75, yp + 0.4, U - 1.0, U)                  # the upper floor's deep edge
     K.box("podium", -h - 0.4, h + 0.4, yp - 0.85, yp + 0.4, U - 1.0, U - 0.8)
