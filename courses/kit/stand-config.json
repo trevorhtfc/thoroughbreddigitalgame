@@ -361,7 +361,7 @@
    "name": "The Park (generic)",
    "family": "park",
    "hand": -1,
-   "straight": 6,
+   "straight": 8,
    "uphill": 0.0,
    "surface": "turf",
    "scenery": "parkland",

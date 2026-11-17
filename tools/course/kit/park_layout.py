@@ -42,7 +42,7 @@ PARK = {
     # radius of the bend at each corner: 0 the narrow bend (post end), 1 the home bend, 2 the far bend, 3 the kink
     "corners": [[-230.0, 0.0], [1150.0, 0.0], [1150.0, 400.0], [330.0, 470.0]],
     "radii": [110.0, 160.0, 160.0, 300.0],
-    "straight": 6.0,         # the straight course in furlongs; the courses with none get a 5f stub (the 6f then goes round)
+    "straight": 8.0,         # the straight course in furlongs (owner, 17 Nov: "the park needs a straight mile course"); the courses with none get a 5f stub (the 6f then goes round)
     "mileChute": 400.0,      # the round-mile chute, off the far bend (Newbury's)
     "farChute": 260.0,       # the back straight carried on past the narrow bend: 1m6f
     "runOut": 90.0,

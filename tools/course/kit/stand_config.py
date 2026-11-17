@@ -72,7 +72,7 @@ T, B, RT, A, G, OP, V = ("park_tiered_stand", "park_balcony_stand", "park_roof_t
                           "park_gable_stand", "park_old_pavilion", "park_victorian")
 TE, M, GB, GS = "park_tent_stand", "park_mast_stand", "park_glass_box", "park_glass_box_small"
 # The Park: the twelve, and the flagships-to-be raced here until their own builds (owner: "add newbury, donny etc")
-course("park", "The Park (generic)", "park", L, 6, "parkland", [T, B, A, OP, G, RT], note="the approved run of six")
+course("park", "The Park (generic)", "park", L, 8, "parkland", [T, B, A, OP, G, RT], note="the approved run of six")
 course("ayr", "Ayr", "park", L, 6, "seaside", [T, B, A, OP, G, RT])
 course("bath", "Bath", "park", L, 5, "downland", [RT, B, G], uphill=6.0)
 course("chelmsford", "Chelmsford City", "park", L, 5, "parkland", [GB, GS, M], surface="polytrack", lights=True)
