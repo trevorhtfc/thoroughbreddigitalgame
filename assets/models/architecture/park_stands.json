@@ -11262,7 +11262,7 @@
 },
 "park_balcony_stand": {
 "width": 39.6,
-"depth": 24.9,
+"depth": 31.7,
 "height": 28.82,
 "section": {
 "platform": 1.4,
@@ -11270,7 +11270,12 @@
 "columns": 14.4,
 "coveredSeatingFront": 8.12,
 "eaves": 18.52,
-"back": 23.9
+"back": 23.9,
+"backBlock": [
+24.3,
+31.3,
+19.97
+]
 },
 "crowd": [
 [
@@ -14172,11 +14177,11 @@
 15.44
 ]
 ],
-"triangles": 21104
+"triangles": 24298
 },
 "park_roof_terrace_stand": {
 "width": 39.6,
-"depth": 24.9,
+"depth": 32.2,
 "height": 32.09,
 "section": {
 "platform": 1.4,
@@ -14184,7 +14189,12 @@
 "columns": 14.4,
 "coveredSeatingFront": 8.12,
 "eaves": 15.52,
-"back": 23.9
+"back": 23.9,
+"backBlock": [
+24.8,
+31.8,
+23.27
+]
 },
 "crowd": [
 [
@@ -18066,7 +18076,7 @@
 21.87
 ]
 ],
-"triangles": 13184
+"triangles": 17120
 },
 "park_glass_box": {
 "width": 30.0,

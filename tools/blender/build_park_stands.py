@@ -813,6 +813,43 @@ def aedicule(x, y, z, flagmat="trim"):
     K.box(flagmat, x + 0.07, x + 2.4, y + 0.47, y + 0.53, z + 7.0, z + 8.4)
 
 
+def back_block(x0, x1, y0, depth, ztop, bay, storeys=None):
+    """The back module (owner, 17 Nov, with a section sketch: "add a rectilinear module to the back that also creates a
+    solid back to the grandstands"): a plain rectangular block behind the stand, the stand's full width, 'depth' deep,
+    up to the stand's top, its floors marked. The rear face a grid: pilasters on the bay lines, a band at every floor,
+    a window a bay a storey, doors at the ground every third bay; the ends the same; a plinth, a cornice and a low
+    parapet."""
+    y1 = y0 + depth
+    n = storeys or max(2, int(round(ztop / 4.6)))
+    fz = [ztop * k / n for k in range(n + 1)]
+    K.box("wall", x0, x1, y0, y1, -1.0, ztop)
+    K.box("podium", x0 - 0.12, x1 + 0.12, y0, y1 + 0.12, -1.0, 0.8)
+    for z in fz[1:-1]:                                            # the floor bands round the rear and the ends
+        K.box("podium", x0 - 0.1, x1 + 0.1, y0, y1 + 0.1, z - 0.15, z + 0.15)
+    K.box("podium", x0 - 0.35, x1 + 0.35, y0, y1 + 0.35, ztop - 0.35, ztop)            # the cornice
+    K.box("trim", x0 - 0.2, x1 + 0.2, y0, y1 + 0.2, ztop, ztop + 0.9)                  # the parapet
+    K.box("podium", x0 - 0.3, x1 + 0.3, y0, y1 + 0.3, ztop + 0.9, ztop + 1.05)
+    nb = max(1, int(round((x1 - x0) / bay)))
+    for i in range(nb + 1):                                       # the grid on the rear face
+        x = x0 + (x1 - x0) * i / nb
+        K.box("quoin", x - 0.28, x + 0.28, y1, y1 + 0.16, 0.8, ztop - 0.35)
+    for i in range(nb):
+        cx = x0 + (x1 - x0) * (i + 0.5) / nb
+        for k in range(n):
+            zb = fz[k] + (0.9 if k == 0 else 0.6)
+            if k == 0 and i % 3 == 1:
+                K.door(cx, y1, 0.0, 1.6, 2.7, d=1)
+            else:
+                K.window(cx, y1, zb, 1.2, min(2.2, fz[k + 1] - fz[k] - 1.4), d=1)
+    for x, side in ((x0, -1), (x1, 1)):                           # the ends: pilasters and windows
+        for y in (y0 + 0.3, y0 + depth / 2, y1 - 0.3):
+            K.box("quoin", min(x, x + side * 0.16), max(x, x + side * 0.16), y - 0.28, y + 0.28, 0.8, ztop - 0.35)
+        for k in range(n):
+            for y in (y0 + depth * 0.27, y0 + depth * 0.73):
+                side_window(x + side * 0.02, side, y, fz[k] + (0.9 if k == 0 else 0.6), 1.2, min(2.2, fz[k + 1] - fz[k] - 1.4))
+    return y1
+
+
 def colonnade_base(h, bay, P, Ctop, depth, pier_every=2.0 / 3.0):
     """Steps up to a platform at P, with balustraded cheeks at the ends; a colonnade of square piers (base, shaft, cap)
     carrying a beam to Ctop, a loggia 'depth' deep behind, in shade; returns the pier xs."""
@@ -939,7 +976,7 @@ def colonnade_stand(nb=10, bay=3.6, roof="flat"):
         xo = side * h                                             # the end's plane
         xa, xb = sorted((xo, xo + side * 0.45))
         xf = xo + side * 0.45                                     # the outer face
-        K.box("wall", xa, xb, -0.15, yB + 0.4, -1.0, C - 0.3)     # the colonnade's end wall
+        K.box("wall", xa, xb, -0.15, yB + (0.45 if roof == "flat" else 0.95), -1.0, C - 0.3)   # the colonnade's end wall, to the back module
         K.box("podium", min(xf, xf + side * 0.12), max(xf, xf + side * 0.12), -0.3, yB + 0.55, -1.0, 0.8)
         K.box("podium", min(xf, xf + side * 0.15), max(xf, xf + side * 0.15), -0.4, yB + 0.55, C - 0.9, C - 0.3)
         raking_rail(xo - side * 0.9, 0.6, C, yc - 0.6, zc, solid=True, xw=0.4)       # the stair's balustrade
@@ -948,6 +985,7 @@ def colonnade_stand(nb=10, bay=3.6, roof="flat"):
         K.prism_x("wall", xa, xb, [(0.0, C - 0.3), (yc - 0.6, C - 0.3), (yc - 0.6, zc + 1.0), (0.6, C + 1.0)])   # the triangular flank
         K.prism_x("podium", xa - 0.05, xb + 0.05, [(0.0, C + 1.0), (yc - 0.6, zc + 1.0), (yc - 0.6, zc + 1.2), (0.0, C + 1.2)])
         K.prism_x("wall", xa, xb, fl)                             # the solid flank behind the columns
+        K.box("wall", xa, xb, yB + 0.3, yB + (0.45 if roof == "flat" else 0.95), C - 0.4, fl[2][1])   # closing on the back module
         if cope:
             K.prism_x("podium", xa - 0.05, xb + 0.05, cope)
         # its panels and pilasters on the outer face, the bands at the floors
@@ -955,8 +993,8 @@ def colonnade_stand(nb=10, bay=3.6, roof="flat"):
         bands = [C - 0.3, zc + 2.5] + ([E - 2.5] if roof == "flat" else [])
         for y in ys:
             K.box("quoin", min(xf, xf + side * 0.15), max(xf, xf + side * 0.15), y - 0.25, y + 0.25, C - 0.3, ftop(y) - 0.2)
-        for z in bands[1:]:
-            K.box("podium", min(xf, xf + side * 0.15), max(xf, xf + side * 0.15), yc - 0.6, yB + 0.4, z - 0.15, z + 0.15)
+        for z in bands[1:]:                                       # proud of the pilasters, so no shared faces
+            K.box("podium", min(xf, xf + side * 0.2), max(xf, xf + side * 0.2), yc - 0.6, yB + 0.4, z - 0.15, z + 0.15)
         for (ya_, yb_) in zip(ys[:-1], ys[1:]):
             lo = C - 0.3
             for hi in bands[1:] + [min(ftop(ya_), ftop(yb_)) - 0.4]:
@@ -975,10 +1013,15 @@ def colonnade_stand(nb=10, bay=3.6, roof="flat"):
     K.cyl("trim", fx, fy, fz, fz + 6.5, 0.07, 0.05, 6)
     K.box("trim", fx + 0.07, fx + 2.4, fy - 0.03, fy + 0.03, fz + 5.0, fz + 6.4)
     ztop = az + 8.6
+    # the back module: a rectilinear block behind, full width, up to the stand's top (owner's section sketch)
+    BD = 7.0
+    yb0 = yB + (0.4 if roof == "flat" else 0.9)                   # against the back wall, or just behind the back parapet
+    btop = (E + 1.45) if roof == "flat" else (zt + 1.4)
+    back_block(-h - 0.45, h + 0.45, yb0, BD, btop, bay)
     K.pop()
-    return {"width": round(L + 3.6, 2), "depth": round(8.4 + yB + 1.0, 2), "height": round(ztop, 2),
+    return {"width": round(L + 3.6, 2), "depth": round(8.4 + yb0 + BD + 0.4, 2), "height": round(ztop, 2),
             "section": {"platform": P, "colonnadeTop": C, "columns": round(8.4 + yc, 2), "coveredSeatingFront": round(zc, 2),
-                        "eaves": round(E, 2), "back": round(8.4 + yB, 2)},
+                        "eaves": round(E, 2), "back": round(8.4 + yB, 2), "backBlock": [round(8.4 + yb0, 2), round(8.4 + yb0 + BD, 2), round(btop, 2)]},
             }
 
 
