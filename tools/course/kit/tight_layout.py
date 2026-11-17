@@ -9,12 +9,14 @@ switches (hand, straight course, surface, scenery, floodlights) are read from th
 Owner, 17 Nov 2026: first a rounded triangle; then "more of a circle ... with a few shoots", "take the Chester loop
 with a 6f shoot", "bigger loop"; then a sketch: "maybe something like this? and then we can have a straight and a round
 6f? i want this course to capture the vibe of as many courses as we can", and (on my first go at it) "Look at my diagram
-and try again". So the sketch traced: a rounded square 680 m a side, about 1m4f round (2,351 m, 11.7f), with a sharp
-home bend (100 m), a big sweep (300 m) from the home-end side into a domed top, the far end bulging round (280 m and
-180 m); a run-in of 370 m (1.8f). The sketch's own proportions set the size: its 6f straight-course spur is short
-beside the loop. The chutes as sketched and no others: the 6f straight course off the home straight (a switch per
-course); the home-side chute up off the home-end side (the round 5f and 6f; with no straight course these are the
-sprints); the top chute heading off towards the far end (the 7f and the 1m, as his "1m?", and the 1m1f).
+and try again"; then the sketch again with distances marked: "4f" where the straight course joins the home straight,
+"6f" at the top of the home-end side, "7" up its chute, "6f." at the end of the straight course, "1m?" off the top. So
+the labels set the size: a 4f run-in (805 m), the sharp home bend (100 m) and the home-end side making 2f to the round
+6f start, the 7f a furlong up the chute above it; a big sweep (340 m) into a domed top; the far end bulging round
+(425 m and 150 m). About 1m7f round (3,084 m, 15.3f): a 4f run-in makes a big loop (bigger than the Park's). The
+chutes as sketched and no others: the straight course off the home straight (2f to the 6f: short beside the loop, as
+drawn; a 1f stub for the 5f where a course has no straight course), the home-side chute (round 6f 10 m up, 7f 211 m,
+1m 412 m), the top chute heading off towards the far end (the 1m4f: his "1m?" spot).
 Every start is on a straight or in a chute, never on a bend; the starts pick their own place (the nearest straight
 with room, else the chute that joins nearest) so the numbers can change without re-planning by hand.
 
@@ -41,11 +43,13 @@ TIGHT = {
     "trackWidth": 24.0,      # a touch narrower than the Park's 26 m
     # the inside rail's polygon (metres; x along the home straight away from the post end, z into the infield) and the
     # radius of the bend at each corner: 0 the post-end bend, 1 the home bend, 2 the home-end top, 3 the far top
-    # traced from the owner's sketch (a square of 340 px at 2 m a pixel): the post-end bottom corner 90 px, the home bend
-    # 50 px (sharp), the home-end top 150 px (a big sweep into the dome), the post-end top 140 px (the bulging far end)
-    "corners": [[0.0, 0.0], [680.0, 0.0], [680.0, 680.0], [0.0, 680.0]],
-    "radii": [180.0, 100.0, 300.0, 280.0],
-    "pastPost": 30.0,        # straight track past the winning post before the post-end bend
+    # from the owner's labelled sketch (17 Nov, 16:51): a 4f run-in (805 m), the round 6f at the top of the home-end side
+    # (home bend + side = 2f), the 7f a furlong up its chute; the sharp home bend (100 m), a big sweep into a domed top
+    # (340 m), the far end bulging round (425 m and 150 m)
+    "corners": [[0.0, 0.0], [1085.0, 0.0], [1085.0, 675.0], [0.0, 675.0]],
+    "radii": [150.0, 100.0, 340.0, 425.0],
+    "pastPost": 30.0,
+    "stub5f": True,          # the 5f always from the home straight's line (4f run-in + 1f): a stub where there's no straight course        # straight track past the winning post before the post-end bend
     # the chutes: straight spurs joining the loop on its tangent ("join": metres before the post where a chute meets
     # the loop; "home": the top of the home straight, its line carried on past the home bend, which is also the straight
     # course where a course has one; "corner:i": the line arriving at corner i's bend carried on past it). Owner, 17 Nov,
@@ -163,19 +167,23 @@ def build(P):
     sprint = P["straight"]                                           # 0: no straight course; the sprints go round
     sprint6 = P["straight"] >= 6
     trips = dict(TRIPS)
-    if sprint and P.get("roundSprints"):
-        trips.update({"5f round": 5, "6f round": 6})
+    if sprint and P.get("roundSprints"):                             # the round sprints, where the loop has a place for them
+        for t, f in (("5f round", 5), ("6f round", 6)):
+            try:
+                place(S, P, f * F); trips[t] = f
+            except SystemExit:
+                pass
 
     # every start's place, then each chute laid as long as its furthest start (plus room)
     where_at = {}
     for trip, f in trips.items():
         dist = f * F
-        if (trip == "5f" and sprint) or (trip == "6f" and sprint6):
+        if (trip == "5f" and (sprint or P.get("stub5f"))) or (trip == "6f" and sprint6):
             where_at[trip] = ("chute", 0, dist - d_home)
         else:
             where_at[trip] = place(S, P, dist)
     chute_len = {k: 0.0 for k in range(len(P["chutes"]))}
-    chute_len[0] = sprint * F - d_home
+    chute_len[0] = max(sprint, 5.0 if P.get("stub5f") else 0.0) * F - d_home
     for trip, (kind, i, up) in where_at.items():
         if kind == "chute": chute_len[i] = max(chute_len[i], up)
     chute_len = {i: L + P["room"] for i, L in chute_len.items() if L > 0}
