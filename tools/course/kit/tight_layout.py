@@ -7,13 +7,14 @@ switches (hand, straight course, surface, scenery, floodlights) are read from th
 (courses/kit/stand-config.json, written by stand_config.py), so they live in one place.
 
 Owner, 17 Nov 2026 (on the first draft, a rounded triangle): "I think more of a circle would be better with a few
-shoots?" So: nearly a circle (Chester's character), about 1m1f round (1,775 m), with a short flat home straight and a
+shoots?"; then "take the Chester loop with a 6f shoot": Chester's size (just over a mile round, a 1f straight), no
+straight course by default, the sprints going round from the 6f chute. So: nearly a circle (Chester's character), about 1m round (1,721 m, Chester's size), with a short flat home straight and a
 few chutes off the bends for the starts. The same kit as the Park: a polygon with a rounded corner at each vertex (a
-radius per corner); here a near-square whose top corners are rounded almost to a semicircle (radius 225 m) and whose
-bottom corners, either end of the home straight, are a little tighter (130 m). Going round from the winning post:
-  - 40 m past the post, the post-end bend; its far side carried on (downwards, beyond the post end) as a chute;
+radius per corner); here a near-square whose top corners are rounded almost to a semicircle (radius 286 m) and whose
+bottom corners, either end of the home straight, are a little tighter (170 m). Going round from the winning post:
+  - 50 m past the post, the post-end bend; its far side carried on (downwards, beyond the post end) as a chute;
   - up the post-end side, over the top in one long sweep (two quarter-circles and a short flat), each quarter's
-    entry line carried on as a chute: the top chute (heading out past the far side's top) and the side chute (up past
+    entry line carried on as a chute: the 6f chute (heading out past the far side's top) and the home-side chute (up past
     the home-end side);
   - down the home-end side into the home bend and a short run-in of 200 m (1f, as Chester); the home straight's line
     carried on past the home bend as the straight course (5f or 6f), or a stub where a course has none.
@@ -48,8 +49,10 @@ TIGHT = {
     "pastPost": 50.0,        # straight track past the winning post before the post-end bend
     # the chutes: the line arriving at a corner's bend (going back round from the post) carried on past it. Corner 1's
     # is the straight course; the others are laid only as long as their starts need.
-    "chutes": {"1": "straight course", "0": "post-end chute", "3": "far chute", "2": "home-side chute"},
-    "straight": 5.0,         # the straight course in furlongs (5 or 6); 0 = none: the 5f and 6f go round from a chute
+    "chutes": {"1": "straight course", "0": "post-end chute", "3": "6f chute", "2": "home-side chute"},
+    # the straight course in furlongs (5 or 6), a switch for the courses that have one; the generic course is Chester's:
+    # none, the 5f and 6f going round from the 6f chute (owner, 17 Nov: "take the Chester loop with a 6f shoot")
+    "straight": 0.0,
     "minAhead": 60.0,        # a start on a straight needs at least this much straight in front of it
     "maxChute": 330.0,       # the furthest a start may sit up a chute
     "room": 30.0,            # straight track behind the furthest start in a chute
@@ -422,7 +425,7 @@ def draw(c, samp, S, outp, title):
            f"Circuit {ck['circuit (inside rail), m']:.0f} m ({ck['circuit, furlongs']:.1f}f), {ck['share of the circuit on a bend'] * 100:.0f}% of it on a bend; run-in {ck['run-in (post to the home bend), m']:.0f} m",
            "Bends: " + "; ".join("%d deg r %d m" % tuple(b[:2]) for b in ck["bends (degrees, radius, arc m)"]) + " (post end, home bend, the top)",
            "Chutes: " + ", ".join(f"{k} {v:.0f} m" for k, v in ck["chutes, m"].items()),
-           f"Straight course: {P['straight']:g}f" if P["straight"] else "No straight course: the 5f and 6f go round from the top chute",
+           f"Straight course: {P['straight']:g}f" if P["straight"] else "No straight course (Chester): the 5f and 6f go round from the 6f chute",
            "Blue: straight course   green: in a chute   black: on a straight of the circuit   brown: once round first",
            f"Stand plots: {ck['stand plots, m']:.0f} m (T1-T4), {c['stands']['lawn']:.0f} m of lawn in front"]
     if P.get("note"): key.append("Note: " + P["note"])
