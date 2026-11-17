@@ -1,6 +1,6 @@
 """A scaled front elevation of Park stands strung side by side on one front line, with levels and a scale bar.
 
-    STANDS=park_balcony_stand,park_arch_stand,park_gable_stand,park_roof_terrace_stand python3.11 tools/blender/park_standside_elevation.py
+    STANDS=park_tiered_stand,park_balcony_stand,park_arch_stand,park_old_pavilion,park_gable_stand,park_roof_terrace_stand python3.11 tools/blender/park_standside_elevation.py
 
 Owner, 17 Nov 2026: the barrel-roof stand made two tiers "which we can string them together if need be", then "you had
 another stand with a series of pitched roofs.. bring that into the scaled elevation". Orthographic, so true to scale;
@@ -12,14 +12,16 @@ for k in ("SHEET", "ARRANGE"):
     os.environ.pop(k, None)
 exec(open(os.path.join(REPO, "tools/blender/build_park_stands.py")).read())
 
-NAMES = os.environ.get("STANDS", "park_balcony_stand,park_arch_stand,park_gable_stand,park_roof_terrace_stand").split(",")
+NAMES = os.environ.get("STANDS", "park_tiered_stand,park_balcony_stand,park_arch_stand,park_old_pavilion,park_gable_stand,"
+                                 "park_roof_terrace_stand").split(",")
 LABEL = {"park_balcony_stand": "Balcony stand", "park_arch_stand": "Barrel-roof stand", "park_gable_stand": "Pitched-roof stand",
-         "park_roof_terrace_stand": "Roof-terrace stand", "park_tiered_stand": "Tiered stand", "park_old_pavilion": "Old pavilion"}
+         "park_roof_terrace_stand": "Roof-terrace stand", "park_tiered_stand": "Tiered stand", "park_old_pavilion": "Old pavilion",
+         "park_victorian": "Victorian pavilion"}
 OUT = os.path.join(REPO, "reference/park/drawings"); os.makedirs(OUT, exist_ok=True)
 W, H = 3200, 640
 
 def span(n):                                       # the piece's full width on the ground (steps' cheeks included)
-    return INFO[n]["width"] + (3.6 if n in ("park_balcony_stand", "park_roof_terrace_stand") else 0.0)
+    return INFO[n]["width"] + (0.7 if n in ("park_balcony_stand", "park_roof_terrace_stand") else 0.0)   # + the cheeks' newels
 
 xs, x = [], 0.0
 for n in NAMES:
