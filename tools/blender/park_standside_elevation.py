@@ -55,7 +55,7 @@ F = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf", 26)
 FB = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", 32)
 INK = (40, 40, 44)
 rgba = Image.open(png).convert("RGBA")
-PADR, PADB, PADT = 470, 150, 110
+PADR, PADB, PADT = 520, 150, 110
 im = Image.new("RGB", (W + PADR, H + PADB + PADT), "white"); im.paste(rgba, (0, PADT), rgba); d = ImageDraw.Draw(im)
 k = W / scale
 zpx = lambda z: PADT + H / 2 - (z - zc) * k
@@ -63,8 +63,10 @@ upx = lambda u: W / 2 + u * k
 lv = {}
 for n in NAMES:
     s = INFO[n].get("section", {})
-    for key, name in (("upperFloor", "upper tiers' floor"), ("springing", "springing / cornice top"),
-                      ("crown", "gable ridges" if n == "park_gable_stand" else "vault crowns")):
+    if n == "park_balcony_stand":
+        lv["balcony stand cornice"] = s["backBlock"][2]
+    for key, name in (("upperFloor", "upper tier (barrel, pitched)"), ("springing", "roofs spring (barrel, pitched)"),
+                      ("crown", "gable ridges" if n == "park_gable_stand" else "barrel crowns")):
         if key in s:
             lv[name] = s[key] + (0.6 if n == "park_gable_stand" and key == "crown" else 0.0)
 LEVELS = [("ground", 0.0)] + sorted(lv.items(), key=lambda t: t[1])

@@ -118,7 +118,7 @@ def arch_stand(nb=9, bay=8.0, roof="arch", flags=True, centre=True, tiers=1):
     yW = YS + rows * tr                                           # the back of the seating deck
     D = yW + 6.0                                                  # the rooms behind it
     zs = ZD + rows * rs + 2.6                                     # where the vaults spring
-    if tiers == 2:                                                # the colonnade stands' levels (colonnade_stand)
+    if tiers == 2:                                                # the colonnade stands' levels as they were at 10am, 17 Nov
         zcov = 5.6 + 6 * 0.42                                     # their covered seating's front (8.12)
         U = zcov + 5.4                                            # their upper gallery's floor (13.52)
         zs = U + 5.0 + 1.45                                       # their cornice's top (19.97): the springing
@@ -916,7 +916,9 @@ def colonnade_stand(nb=10, bay=3.6, roof="flat"):
     Origin: the middle of the steps' foot on the ground (the steps 8.4 m deep before the colonnade)."""
     L = nb * bay; h = L / 2
     K.push(Matrix.Translation((0.0, 8.4, 0.0)))
-    P, C = 1.4, 5.6                                               # the platform; the colonnade's beam top
+    # owner, 17 Nov 11:38 (with the two fronts): "these two should get taller": the colonnade 1 m taller, each gallery
+    # 1.2 m taller (was C 5.6, galleries 5.4 + 5.0 or one of 7.4); the barrel and pitched-roof stands keep their levels
+    P, C = 1.4, 6.6                                               # the platform; the colonnade's beam top
     yc = 6.0                                                      # the gallery columns' line, back from the colonnade front
     yB = yc + 9.5                                                 # the back wall
     aisles = [-h + bay * 2.5, 0.0, h - bay * 2.5]
@@ -930,7 +932,7 @@ def colonnade_stand(nb=10, bay=3.6, roof="flat"):
     zc += 0.42                                                    # the columns stand on the top row's level
     K.box("steps", -h, h, yc, yc + 0.6, C, zc)
     if roof == "flat":
-        U, E = zc + 5.4, zc + 5.4 + 5.0                           # the upper gallery's floor; the eaves (the beam's foot)
+        U, E = zc + 6.6, zc + 6.6 + 6.2                           # the upper gallery's floor; the eaves (the beam's foot)
         z1, _ = seating(-h + 1.9, h - 1.9, yc + 0.6, yB - 1.2, zc, 7, 0.36, aisles)
         z2, _ = seating(-h + 1.9, h - 1.9, yc + 0.6, yB - 1.2, U, 7, 0.32, aisles)
         K.box("quoin", -h - 0.3, h + 0.3, yc - 0.6, yB, U - 1.0, U)                  # the upper floor's edge
@@ -958,7 +960,7 @@ def colonnade_stand(nb=10, bay=3.6, roof="flat"):
         top, flank = E + 1.7, None
         back_top = E + 1.1
     else:
-        E = zc + 7.4                                               # one tall gallery; its roof the terrace
+        E = zc + 8.6                                               # one tall gallery; its roof the terrace
         z1, _ = seating(-h + 1.9, h - 1.9, yc + 0.6, yB - 1.2, zc, 8, 0.4, aisles)
         for i in range(nb + 1):
             bracket_column(-h + bay * i, yc, zc, E, -h, h)
@@ -1200,8 +1202,8 @@ PIECES = [
     ("park_victorian", victorian),
     ("park_old_pavilion", old_pavilion),
     ("park_tiered_stand", tiered_with_terrace),
-    ("park_balcony_stand", lambda: colonnade_stand(13, 3.6, "flat")),
-    ("park_roof_terrace_stand", lambda: colonnade_stand(13, 3.6, "terrace")),
+    ("park_balcony_stand", lambda: colonnade_stand(10, 3.6, "flat")),
+    ("park_roof_terrace_stand", lambda: colonnade_stand(10, 3.6, "terrace")),
     ("park_glass_box", lambda: glass_box(30.0, 3, "left")),
     ("park_glass_box_small", lambda: glass_box(22.0, 2, "right")),
     ("park_stair_tower", stair_link),
