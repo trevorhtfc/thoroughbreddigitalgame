@@ -12,6 +12,7 @@ building. lets start with creating some kit of parts grandstand components."
 What each piece takes from his photos:
   park_arch_stand     the row of barrel-vaulted roofs over a white frame and the red band along the concourse (photo 1);
                       a taller middle bay with a clock; flags along the front of the roof (the flagpoles of photo 3).
+                      Two tiers (owner, 17 Nov), to the colonnade stands' levels, the vaults semicircular.
                       roof="gable" swaps the vaults for photo 3's row of gables.
   park_victorian      brick, two tiers of iron-lace veranda, corner towers with steep slate roofs (photo 2), a gabled
                       name dormer, a clock cupola and chimneys (photo 4's middle building)
@@ -97,12 +98,18 @@ def clock_face(x, y, z, R):
 
 
 # ------------------------------------------------------------------------------------------ 1: the arch-roofed grandstand
-def arch_stand(nb=9, bay=8.0, roof="arch", flags=True, centre=True):
+def arch_stand(nb=9, bay=8.0, roof="arch", flags=True, centre=True, tiers=1):
     """The main public grandstand (photo 1; photo 3's flags). From the lawn back: York's standing steps with crush
     barriers; the concourse under the seating, glazed, with the red band along its front; a raked seating deck; slim
     white columns on every bay line; and the roof: a row of barrel vaults, each running front to back, so the front
     reads as a row of arches (roof="gable": a row of gables, photo 3). The middle bay rises a storey higher with a clock
-    in its arch. Origin: the middle of the front on the ground."""
+    in its arch. Origin: the middle of the front on the ground.
+
+    tiers=2 (owner, 17 Nov: "taller such it is the same height as two tiers of these stands with the barrel roof over the
+    top which we can string them together if need be. Give the barrel roof generous head height"): an upper tier over
+    the deck, its floor at the colonnade stands' upper gallery floor; the vaults spring at their cornice's top and are
+    semicircular (as tall as half a bay); the back rooms are a banded block (as their back modules) reaching back to
+    their back line, so the pieces sit side by side with their levels and backs lining up."""
     L = nb * bay; h = L / 2
     standing_steps(-h, h)
     barrier_rows(-h, h)
@@ -110,7 +117,12 @@ def arch_stand(nb=9, bay=8.0, roof="arch", flags=True, centre=True):
     yW = YS + rows * tr                                           # the back of the seating deck
     D = yW + 6.0                                                  # the rooms behind it
     zs = ZD + rows * rs + 2.6                                     # where the vaults spring
-    K.box("wall", -h, h, YS + 1.2, D, -1.0, ZD)                   # the concourse
+    if tiers == 2:                                                # the colonnade stands' levels (colonnade_stand)
+        zcov = 5.6 + 6 * 0.42                                     # their covered seating's front (8.12)
+        U = zcov + 5.4                                            # their upper gallery's floor (13.52)
+        zs = U + 5.0 + 1.45                                       # their cornice's top (19.97): the springing
+        D = 8.4 + 6.0 + 9.5 + 0.4 + 7.0                           # the back of their back modules (31.3)
+    K.box("wall", -h, h, YS + 1.2, D if tiers == 1 else yW + 0.1, -1.0, ZD)   # the concourse
     K.screen(-h, h, YS + 1.15, 0.0, ZD - 1.3)
     K.box("redband", -h, h, YS - 0.15, YS + 1.2, ZD - 1.25, ZD - 0.3)
     K.box("trim", -h, h, YS - 0.2, YS + 1.2, ZD - 0.3, ZD)
@@ -124,20 +136,36 @@ def arch_stand(nb=9, bay=8.0, roof="arch", flags=True, centre=True):
     K.prism_x("concrete", -h, h, prof)
     K.box("glass", -h + 0.2, h - 0.2, YS - 0.02, YS + 0.06, ZD, ZD + 1.0)            # a glass rail at the deck's front
     K.box("trim", -h, h, YS - 0.06, YS + 0.12, ZD + 1.0, ZD + 1.1)
-    K.box("wall", -h, h, yW, D, ZD - 0.5, zs)                     # the back rooms, up to the spring line
-    for i in range(nb):
-        K.window(-h + bay * (i + 0.5), D, ZD + 1.2, 2.2, 1.6, d=1)
     yF = YS + 0.5                                                 # the frame: columns on each bay line
+    if tiers == 1:
+        K.box("wall", -h, h, yW, D, ZD - 0.5, zs)                 # the back rooms, up to the spring line
+        for i in range(nb):
+            K.window(-h + bay * (i + 0.5), D, ZD + 1.2, 2.2, 1.6, d=1)
+    else:
+        # the upper tier: its front just behind the columns, a red band and a glass rail along it (as the deck below)
+        seating(-h + 0.01, h - 0.01, yF + 0.6, yW, U, 8, 0.32)
+        K.box("redband", -h, h, yF + 0.3, yF + 0.7, U - 1.25, U - 0.3)
+        K.box("trim", -h, h, yF + 0.25, yF + 0.7, U - 0.3, U)
+        K.box("glass", -h + 0.2, h - 0.2, yF + 0.42, yF + 0.5, U, U + 1.0)
+        K.box("trim", -h, h, yF + 0.36, yF + 0.56, U + 1.0, U + 1.1)
+        # the back rooms: a banded block (the colonnade stands' back module) up to the valley beams
+        back_block(-h - 0.3, h + 0.3, yW - 0.1, D - yW + 0.1, zs - 0.4, bay / 2, parapet=False)
+    cw = 0.22 if tiers == 1 else 0.3
     for i in range(nb + 1):
         x = -h + bay * i
-        K.box("trim", x - 0.22, x + 0.22, yF - 0.22, yF + 0.22, ZD, zs)
+        K.box("trim", x - cw, x + cw, yF - cw, yF + cw, ZD, zs)
         K.box("trim", x - 0.25, x + 0.25, yF, D, zs - 0.4, zs)                        # the valley beam front to back
     K.box("trim", -h, h, yF - 0.3, yF + 0.3, zs - 0.6, zs)                            # the front beam
     for side in (-1, 1):                                          # the end walls
         x = side * h
-        K.box("vault", min(x, x + side * 0.3), max(x, x + side * 0.3), YS - 0.2, D, ZD - 0.3, zs)
-        for y in (YS + 3.5, YS + 8.0, YS + 12.5):
-            side_window(x + side * 0.3, side, y, ZD + 2.0, 1.4, 2.2)
+        K.box("vault", min(x, x + side * 0.3), max(x, x + side * 0.3), YS - 0.2, D if tiers == 1 else yW - 0.1, ZD - 0.3, zs)
+        if tiers == 1:
+            for y in (YS + 3.5, YS + 8.0, YS + 12.5):
+                side_window(x + side * 0.3, side, y, ZD + 2.0, 1.4, 2.2)
+        else:
+            for y in (YS + 3.0, YS + 6.5):
+                side_window(x + side * 0.3, side, y, ZD + 2.0, 1.4, 2.2)
+                side_window(x + side * 0.3, side, y, U + 1.6, 1.4, 2.2)
     yR0, yR1 = yF - 1.4, D + 0.6                                  # the roof reaches out over the front of the deck
     top_z = zs
     for i in range(nb):
@@ -160,14 +188,14 @@ def arch_stand(nb=9, bay=8.0, roof="arch", flags=True, centre=True):
             if lift:
                 clock_face(cx, yR0 - 0.06, z0 + rise * 0.42, 1.0)
         else:
-            rise = bay * 0.3
+            rise = bay * 0.3 if tiers == 1 else a                 # two tiers: semicircular, for head height
             Rr = (a * a + rise * rise) / (2 * rise)
             cz = z0 + rise - Rr
             fz = lambda x, y, cx=cx, Rr=Rr, cz=cz: cz + math.sqrt(max(0.0, Rr * Rr - (x - cx) ** 2))
-            sheet_solid("vault", fz, cx - a, cx + a, yR0, yR1, 10 if not K.far else 5, 2, 0.28)
+            sheet_solid("vault", fz, cx - a, cx + a, yR0, yR1, (10 if tiers == 1 else 18) if not K.far else 6, 2, 0.28)
             th0 = math.acos(min(1.0, a / Rr))
             for y0 in (yR0 - 0.3, yR1 - 0.05):                    # the arch's rim at the front and back
-                K.arc_band("trim", cx, cz, Rr - 0.02, Rr + 0.3, th0, math.pi - th0, y0, y0 + 0.35, 12)
+                K.arc_band("trim", cx, cz, Rr - 0.02, Rr + 0.3, th0, math.pi - th0, y0, y0 + 0.35, 12 if tiers == 1 else 18)
             if lift:                                              # the clock in the raised arch's front
                 K.arc_band("vault_under", cx, cz, 0.0, Rr - 0.05, th0, math.pi - th0, yR0 + 0.3, yR0 + 0.4, 12)
                 clock_face(cx, yR0 + 0.28, z0 + rise * 0.45, min(1.0, rise * 0.4))
@@ -178,11 +206,12 @@ def arch_stand(nb=9, bay=8.0, roof="arch", flags=True, centre=True):
             x = -h + bay * i
             mid = centre and nb % 2 and i in (nb // 2, nb // 2 + 1)
             flag(x, yF - 0.6, zs + (3.2 if mid else 0.0), FLAGS[i % 4], 4.5)
+    rise = (bay * 0.3 if tiers == 1 else bay / 2) if roof == "arch" else bay / 2 * 0.9
+    extra = {"upperFloor": round(U, 2), "upperBack": round(U + 7 * 0.32, 2)} if tiers == 2 else {}
     return {"width": round(L, 2), "depth": round(D + 0.6, 2), "height": round(top_z + (5.0 if flags else 0.0), 2),
-            "section": {"stepsTop": round(0.2 + (GS["R"] - 1) * GS["rs"], 2), "stepsBack": YS, "shoulder": round(ZD, 2),
+            "section": {**extra, "stepsTop": round(0.2 + (GS["R"] - 1) * GS["rs"], 2), "stepsBack": YS, "shoulder": round(ZD, 2),
                         "deckBack": round(ZD + (rows - 1) * rs, 2), "deckBackY": round(yW, 2), "springing": round(zs, 2),
-                        "crown": round(zs + (bay * 0.3 if roof == "arch" else bay / 2 * 0.9), 2),
-                        "raisedCrown": round(zs + 3.2 + (bay * 0.3 if roof == "arch" else bay / 2 * 0.9), 2),
+                        "crown": round(zs + rise, 2), "raisedCrown": round(zs + 3.2 + rise, 2),
                         "columns": round(yF, 2), "roofFront": round(yR0, 2), "back": round(D, 2), "bay": bay, "bays": nb}}
 
 
@@ -813,7 +842,7 @@ def aedicule(x, y, z, flagmat="trim"):
     K.box(flagmat, x + 0.07, x + 2.4, y + 0.47, y + 0.53, z + 7.0, z + 8.4)
 
 
-def back_block(x0, x1, y0, depth, ztop, bay, storeys=None):
+def back_block(x0, x1, y0, depth, ztop, bay, storeys=None, parapet=True):
     """The back module (owner, 17 Nov, with a section sketch: "add a rectilinear module to the back that also creates a
     solid back to the grandstands"): a plain rectangular block behind the stand, the stand's full width, 'depth' deep,
     up to the stand's top, its floors marked. The rear face a grid: pilasters on the bay lines, a band at every floor,
@@ -827,8 +856,9 @@ def back_block(x0, x1, y0, depth, ztop, bay, storeys=None):
     for z in fz[1:-1]:                                            # the floor bands round the rear and the ends
         K.box("podium", x0 - 0.1, x1 + 0.1, y0, y1 + 0.1, z - 0.15, z + 0.15)
     K.box("podium", x0 - 0.35, x1 + 0.35, y0, y1 + 0.35, ztop - 0.35, ztop)            # the cornice
-    K.box("trim", x0 - 0.2, x1 + 0.2, y0, y1 + 0.2, ztop, ztop + 0.9)                  # the parapet
-    K.box("podium", x0 - 0.3, x1 + 0.3, y0, y1 + 0.3, ztop + 0.9, ztop + 1.05)
+    if parapet:
+        K.box("trim", x0 - 0.2, x1 + 0.2, y0, y1 + 0.2, ztop, ztop + 0.9)              # the parapet
+        K.box("podium", x0 - 0.3, x1 + 0.3, y0, y1 + 0.3, ztop + 0.9, ztop + 1.05)
     nb = max(1, int(round((x1 - x0) / bay)))
     for i in range(nb + 1):                                       # the grid on the rear face
         x = x0 + (x1 - x0) * i / nb
@@ -1164,7 +1194,7 @@ def floodlight(H=34.0):
 
 # ------------------------------------------------------------------------------------------ build and export
 PIECES = [
-    ("park_arch_stand", lambda: arch_stand(9, 8.0, "arch")),
+    ("park_arch_stand", lambda: arch_stand(9, 8.0, "arch", tiers=2)),
     ("park_gable_stand", lambda: arch_stand(7, 8.0, "gable")),
     ("park_victorian", victorian),
     ("park_old_pavilion", old_pavilion),

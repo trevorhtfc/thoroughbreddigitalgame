@@ -67,6 +67,8 @@ INK = (40, 40, 44)
 LEVELS = [("ground", 0.0), ("top of standing steps", sec["stepsTop"]), ("seating deck, front", sec["shoulder"]),
           ("seating deck, back", sec["deckBack"]), ("vault springing", sec["springing"]), ("vault crown", sec["crown"]),
           ("clock bay crown", sec["raisedCrown"])]
+if "upperFloor" in sec:                                   # the two-tier stand (17 Nov)
+    LEVELS[4:4] = [("upper tier, front", sec["upperFloor"]), ("upper tier, back", sec["upperBack"])]
 
 
 def marks(path, scale, centre_u, title, across):
