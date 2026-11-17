@@ -30,6 +30,8 @@ CAT = [
         ("park_stands", "park_gable_stand", "Pitched-roof stand"),
         ("park_stands", "park_old_pavilion", "Old pavilion"),
         ("park_stands", "park_victorian", "Victorian pavilion (towers)"),
+        ("park_stands", "park_tent_stand", "Tented stand"),
+        ("park_stands", "park_mast_stand", "Mast stand"),
         ("park_stands", "park_glass_box", "Glass box"),
         ("park_stands", "park_glass_box_small", "Glass box, small"),
     ]),

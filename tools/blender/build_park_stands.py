@@ -1058,6 +1058,244 @@ def colonnade_stand(nb=10, bay=3.6, roof="flat"):
             }
 
 
+# ------------------------------------------------------------------------------------------ 2d: the modern stands
+# Owner, 17 Nov 13:27, with two concept images (white clay renders): "I think it would be worth modelling these two stands
+# into the suite as well". park_tent_stand: a seated terrace up to a glazed hall, an open upper deck of seats under three
+# big tensile tent canopies on masts with flags, a lower veranda wing with three small tents at the left. park_mast_stand: a wide stepped terrace in four flights, two glazed levels
+# with two projecting pavilion boxes and a long balcony, a deep flat roof reaching out over the steps, its underside a
+# row of shallow vaults (scalloped along its front edge), held by six tall masts and their stays. Both on the kit's
+# lines: the front at the steps' foot, the back line 31.3 m. The concepts' stair blocks at the right ends were left out
+# (owner, 17 Nov 14:03: "why do you keep doing this? We want just a flank wall that aligns to the rake of the terraces"):
+# every end is a flank wall following the section (rake_flank).
+def plain_terrace(x0, x1, ya, yb, z0, rows, rise, aisles=()):
+    """Standing steps without benches: the stepped mass, half steps up the aisles, a crowd area on every row."""
+    tr = (yb - ya) / rows
+    prof = [(ya, -1.0), (ya, z0)]
+    for j in range(rows):
+        prof += [(ya + j * tr, z0 + j * rise), (ya + (j + 1) * tr, z0 + j * rise)]
+    prof += [(yb, -1.0)]
+    K.prism_x("steps", x0, x1, prof)
+    cuts = sorted([x0] + [a for c in aisles for a in (c - 0.7, c + 0.7)] + [x1])
+    for j in range(rows):
+        for a, b in [(cuts[i], cuts[i + 1]) for i in range(0, len(cuts), 2)]:
+            rarea(a + 0.2, b - 0.2, ya + j * tr + 0.05, ya + (j + 1) * tr - 0.05, z0 + j * rise)
+    for c in aisles:                                               # the aisles: half steps and a handrail up the middle
+        for j in range(rows):
+            ys = ya + j * tr + tr / 2
+            K.box("quoin", c - 0.6, c + 0.6, ys, ys + tr / 2, z0 + j * rise - 0.4, z0 + j * rise + rise / 2)
+        if not K.far:
+            strut("trim", (c, ya + 0.3, z0 + 1.0), (c, yb - 0.3, z0 + (rows - 1) * rise + 1.0), r=0.04)
+    return z0 + (rows - 1) * rise, tr
+
+
+def rail_x(x0, x1, y, z0, z1, h=1.05, every=1.3):
+    """A plain white railing along x from (x0, z0) to (x1, z1) (sloping for a stair): handrail, posts."""
+    strut("trim", (x0, y, z0 + h), (x1, y, z1 + h), r=0.045)
+    strut("trim", (x0, y, z0 + h * 0.5), (x1, y, z1 + h * 0.5), r=0.025)
+    n = max(1, int(abs(x1 - x0) / every))
+    for i in range(n + 1):
+        f = i / n
+        K.box("trim", x0 + (x1 - x0) * f - 0.04, x0 + (x1 - x0) * f + 0.04, y - 0.04, y + 0.04, z0 + (z1 - z0) * f, z0 + (z1 - z0) * f + h)
+
+
+def flight_x(xa, xb, y0, y1, za, zb, rail_y=None):
+    """A straight open stair along x from (xa, za) up to (xb, zb), y0..y1 wide, with a railing on its open side."""
+    n = max(2, int(abs(zb - za) / 0.18)); dx = (xb - xa) / n; dz = (zb - za) / n
+    prof = [(xa, za - 0.35)]
+    for k in range(n):
+        prof += [(xa + k * dx, za + (k + 1) * dz), (xa + (k + 1) * dx, za + (k + 1) * dz)]
+    prof += [(xb, zb - 0.35)]
+    if xb < xa:
+        prof = [(x, z) for x, z in prof][::-1]
+    K.prism_y("white", y0, y1, prof)
+    if rail_y is not None:
+        rail_x(xa, xb, rail_y, za, zb)
+
+
+def rake_flank(x, side, pts, t=0.4):
+    """The end of a stand (owner, 17 Nov: "just a flank wall that aligns to the rake of the terraces", not a block): a
+    solid wall in the plane of the end, x to x + side*t, its top following pts [(y, z), ...] from the front back (the
+    terraces' rake about a metre above the steps, then each level's rail); a coping along the top. Built a segment at a
+    time, so every piece is convex."""
+    xa, xb = sorted((x, x + side * t))
+    for (ya, za), (yb, zb) in zip(pts[:-1], pts[1:]):
+        K.prism_x("wall", xa, xb, [(ya, -1.0), (yb, -1.0), (yb, zb), (ya, za)])
+        K.prism_x("podium", xa - 0.06, xb + 0.06, [(ya, za - 0.02), (yb, zb - 0.02), (yb, zb + 0.18), (ya, za + 0.18)])
+
+
+def tent(cx, cy, ax, ay, ze, zs, zt, rt=0.45, sag=0.9, n=10, rings=14, mat="canvas", flare=3.0):
+    """A tensile fabric tent: corners at (cx +-ax, cy +-ay, ze), each edge sagging down to zs and inwards by sag between
+    them, the membrane rising from its edges (flat at first, then steeply) to a ring of radius rt at zt round the mast."""
+    bm = K.bm(mat)
+    cs = [(cx - ax, cy - ay), (cx + ax, cy - ay), (cx + ax, cy + ay), (cx - ax, cy + ay)]
+    per = []
+    for k in range(4):
+        (x0, y0), (x1, y1) = cs[k], cs[(k + 1) % 4]
+        for j in range(n):
+            u = j / n; w = math.sin(math.pi * u)
+            x, y = x0 + (x1 - x0) * u, y0 + (y1 - y0) * u
+            d = Vector((cx - x, cy - y, 0)); L = d.length or 1.0
+            per.append((x + d.x / L * sag * w, y + d.y / L * sag * w, ze - (ze - zs) * w))
+    grid = []
+    for i in range(rings + 1):
+        t = i / rings; row = []
+        for (x, y, z) in per:
+            d = Vector((x - cx, y - cy, 0)); L = d.length or 1.0
+            tx, ty = cx + d.x / L * rt, cy + d.y / L * rt
+            row.append(bm.verts.new(K.M @ Vector((x + (tx - x) * t, y + (ty - y) * t, z + (zt - z) * t ** flare))))
+        grid.append(row)
+    N = len(per)
+    for i in range(rings):
+        for j in range(N):
+            f = bm.faces.new((grid[i][j], grid[i][(j + 1) % N], grid[i + 1][(j + 1) % N], grid[i + 1][j])); f.smooth = True
+    K.cyl("white", cx, cy, zt - 0.6, zt + 0.25, rt + 0.12, rt + 0.05, 12)      # the collar round the mast
+    for (x, y) in cs:
+        K.sphere("white", x, y, ze, 0.3, 1)
+
+
+def tent_stand():
+    """park_tent_stand (see above). Main body 3 tents of 14 m (42 m), the veranda wing 16.5 m at the left; the ends
+    are flank walls following the rake (owner, 17 Nov: no stair block or tower at the end). Origin: the middle of the
+    main body's front (the foot of its terrace), on the ground."""
+    B, nb = 14.0, 3; h = B * nb / 2                               # the main body: x -h..h
+    WL = 16.5; xw = -h - WL                                      # the wing: x xw..-h
+    YB = 31.3                                                    # the kit's back line
+    rows, rise = 16, 0.33
+    K.box("steps", -h - 0.38, h + 0.38, -0.5, 0.8, -1.0, 0.3)    # a plinth step at the foot (its ends inside the flanks)
+    zt, _ = seating(-h + 0.4, h - 0.4, 0.8, 12.0, 0.3, rows, rise, aisles=[-B / 2, B / 2])
+    L1 = zt + rise + 0.05                                        # the walkway level along the terrace top (+5.6)
+    K.box("podium", -h + 0.05, h - 0.05, 12.0, YB - 0.3, -1.0, L1)   # the mass under the halls (inside the back block's faces)
+    for a, b in ((-h + 0.4, -B / 2 - 0.8), (-B / 2 + 0.8, B / 2 - 0.8), (B / 2 + 0.8, h - 0.4)):
+        K.balustrade(a, b, 12.2, L1, h=1.0, mat="trim", spacing=0.32, piers=False)
+    # level 1: the glazed hall behind a walkway, round columns, the slab of the deck over it
+    L2 = L1 + 4.0
+    K.box("wall", -h, h, 14.6, 22.2, L1, L2)
+    K.screen(-h + 0.3, h - 0.3, 14.5, L1, L2 - L1 - 0.1)
+    for i in range(nb * 4 + 1):
+        K.cyl("trim", -h + i * B / 4, 12.9, L1, L2, 0.2, segs=10)
+    K.box("white", -h - 0.3, h + 0.3, 12.3, 22.2, L2, L2 + 0.6)  # the deck slab, its white edge the fascia
+    D2 = L2 + 0.6
+    K.balustrade(-h + 0.2, h - 0.2, 12.6, D2, h=1.05, mat="trim", spacing=0.3, piers=False)
+    zb, _ = seating(-h + 0.4, h - 0.4, 13.4, 21.9, D2, 8, 0.36, aisles=[-B / 2, B / 2])
+    back_top = zb + 1.6
+    # the ends: flank walls following the section, the terrace's rake, up to the deck's rail, then the deck's rake
+    FL = [(-0.5, 1.3), (12.0, L1 + 1.0), (12.4, D2 + 1.1), (13.4, D2 + 1.1), (22.0, zb + 1.1)]
+    for x, side in ((-h, -1), (h, 1)):
+        rake_flank(x, side, FL)
+    fz = lambda y: D2 + 1.1 + (zb - D2) * (y - 13.4) / (22.0 - 13.4)
+    back_block(-h, h, 22.0, YB - 22.0, back_top, 3.5)
+    K.box("white", -h, h, 21.8, 21.95, D2, back_top + 1.05)      # the block's face over the deck (its own front face is cut)
+    # the three big tents over the deck: corners on posts at the deck's edge and on the back block, a mast up the middle
+    ty0, ty1 = 9.2, 25.2; tcy, tay = (ty0 + ty1) / 2, (ty1 - ty0) / 2      # wide and low at the edges, as the concept
+    ze, zs, zpk = back_top + 1.9, back_top + 1.4, back_top + 9.5
+    for i in range(nb):
+        cx = -h + B * (i + 0.5)
+        tent(cx, tcy, B / 2, tay, ze, zs, zpk, rt=0.6, sag=1.0, flare=2.0)
+        K.cyl("white", cx, tcy, D2, zpk + 2.0, 0.22, 0.16, 10)        # the mast, rising through the peak
+        K.sphere("white", cx, tcy, zpk + 2.15, 0.28, 1)
+        flag(cx, tcy, zpk + 2.0, "canvas", 5.0)
+        for (x, y) in ((cx - B / 2, ty0), (cx + B / 2, ty0), (cx - B / 2, ty1), (cx + B / 2, ty1)):
+            strut("trim", (cx, tcy, zpk + 1.2), (x, y, ze), r=0.035)                       # stays from the peak
+    for i in range(nb + 1):                                        # the corner posts
+        x = -h + B * i
+        strut("white", (x, 12.6, D2), (x, ty0, ze), r=0.17, segs=8)
+        strut("white", (x, 23.5, back_top + 1.05), (x, ty1, ze), r=0.17, segs=8)
+    for x, s_ in ((-h, -1), (h, 1)):                               # the end stays, down to the flank walls' tops
+        strut("trim", (x, ty0, ze), (x + s_ * 0.2, 17.0, fz(17.0) + 0.18), r=0.06)
+    # the veranda wing: two storeys of slim posts and a balcony, three small tents over it
+    WY0 = 8.6
+    K.box("wall", xw, -h, 12.0, YB - 0.3, -1.0, L2)
+    K.screen(xw + 0.3, -h - 0.3, 12.0, 0.0, L1 - 0.4)
+    K.screen(xw + 0.3, -h - 0.3, 12.0, L1 + 0.4, L2 - L1 - 0.6)
+    K.box("white", xw - 0.2, -h, WY0, 12.0, L1, L1 + 0.4)          # the balcony floor
+    K.balustrade(xw, -h - 0.3, WY0 + 0.25, L1 + 0.4, h=1.0, mat="trim", spacing=0.3, piers=False)
+    K.balustrade(WY0 + 0.25, 12.0, xw + 0.1, L1 + 0.4, h=1.0, mat="trim", spacing=0.3, axis="y", piers=False)
+    for i in range(4):
+        x = xw + 0.3 + (WL - 0.6) * i / 3
+        K.cyl("trim", x, WY0 + 0.3, 0.0, L1, 0.16, segs=8)
+        K.cyl("trim", x, WY0 + 0.3, L1 + 0.4, L2 + 0.3, 0.14, segs=8)
+    K.box("white", xw - 0.2, -h, WY0 - 0.2, 12.2, L2 + 0.2, L2 + 0.5)    # the wing's eaves, under its tents
+    for i in range(3):
+        cx = xw + WL * (i + 0.5) / 3
+        tent(cx, (WY0 + 15.6) / 2, WL / 6, (15.6 - WY0) / 2, L2 + 0.9, L2 + 0.55, L2 + 5.4, rt=0.2, sag=0.4, n=8, rings=10)
+        K.cyl("white", cx, (WY0 + 15.6) / 2, L2 + 5.2, L2 + 6.6, 0.07, 0.03, 6)
+    back_block(xw, -h, 15.6, YB - 15.6, L2 + 0.3, 3.5)
+    K.box("wall", xw - 0.3, xw, 12.0, 15.6, -1.0, L2)              # the wing's end wall to the back block
+    return {"width": round(h + 0.4 - xw, 2), "offset": round((h + 0.4 + xw) / 2, 2), "depth": YB, "height": round(zpk + 7.2, 2),
+            "section": {"walkway": round(L1, 2), "deck": round(D2, 2), "deckBack": round(zb, 2), "tentEdge": round(ze, 2),
+                        "tentPeak": round(zpk, 2), "back": YB}}
+
+
+def mast_stand(nb=10, bay=7.6):
+    """park_mast_stand (see above). nb vaults of bay along the roof's front; the ends are flank walls following the
+    terrace's rake, then the building's own end up to the roof (owner, 17 Nov: no stair block or tower at the end).
+    Origin: the middle of the front (the foot of its terrace), on the ground."""
+    h = nb * bay / 2; YB = 31.3
+    rows, rise = 18, 0.28
+    K.box("steps", -h - 0.38, h + 0.38, -0.5, 0.6, -1.0, 0.3)
+    zt, _ = plain_terrace(-h + 0.3, h - 0.3, 0.6, 14.0, 0.3, rows, rise, aisles=[-h / 2, 0.0, h / 2])
+    L1 = zt + rise                                               # the walkway along the top of the terrace (+5.3)
+    K.box("podium", -h + 0.05, h - 0.05, 14.0, YB - 0.3, -1.0, L1)
+    K.box("wall", -h + 0.05, h - 0.05, 15.6, YB - 0.3, L1, 15.0)                # the building behind its glass (inside the back block's rear face)
+    L2 = L1 + 4.0
+    K.screen(-h + 0.3, h - 0.3, 15.5, L1, L2 - L1 - 0.1)
+    # two pavilion boxes standing forward on the walkway, glazed over a low wall, under small hipped canopies
+    for a, b in ((-h + bay * 2.3, -bay * 0.4), (bay * 0.9, h - bay * 1.2)):
+        K.box("white", a, b, 12.4, 15.6, L1, L1 + 1.0)
+        K.screen(a + 0.2, b - 0.2, 12.4, L1 + 1.0, 2.0)
+        K.box("white", a, b, 12.4, 15.6, L1 + 3.0, L1 + 3.25)
+        K.hip_roof(a - 0.5, b + 0.5, 11.7, 15.6, L1 + 3.25, 0.9, ov=0.0, mat="white")
+    # level 2: a slab with a long balcony along the front, glass behind
+    K.box("white", -h - 0.3, h + 0.3, 13.0, 15.6, L2, L2 + 0.55)
+    D2 = L2 + 0.55
+    K.balustrade(-h + bay * 0.5, h - bay * 2.0, 13.3, D2, h=1.05, mat="trim", spacing=0.3, piers=False)
+    RU = D2 + 4.4                                                 # the roof's underside at the vaults' springing
+    K.screen(-h + 0.3, h - 0.3, 15.5, D2, RU - D2 - 0.2)
+    for i in range(nb + 1):                                       # square columns up to the roof
+        x = -h + bay * i
+        K.box("white", x - 0.25, x + 0.25, 15.1, 15.6, D2, RU)
+    # the roof: a row of shallow vaults front to back, a flat slab over them, reaching out over the steps
+    yR0, yR1, rv = 3.0, YB + 0.3, 1.5
+    ZS = RU + rv + 0.1                                            # the slab's underside, just above the crowns
+    for i in range(nb):
+        cx = -h + bay * (i + 0.5); a = bay / 2
+        Rr = (a * a + rv * rv) / (2 * rv); cz = RU + rv - Rr
+        sheet_solid("vault", lambda x, y, cx=cx, Rr=Rr, cz=cz: cz + math.sqrt(max(0.0, Rr * Rr - (x - cx) ** 2)), cx - a, cx + a, yR0, yR1, 10, 2, 0.2)
+        th0 = math.acos(min(1.0, a / Rr))
+        K.arc_band("white", cx, cz, Rr - 0.02, Rr + 0.25, th0, math.pi - th0, yR0 - 0.2, yR0 + 0.1, 12)
+    for i in range(nb + 1):                                       # the valley beams between the vaults
+        x = -h + bay * i
+        K.box("white", x - 0.3, x + 0.3, yR0 - 0.2, yR1, RU - 0.3, ZS)
+    K.box("white", -h - 0.5, h + 0.5, yR0 - 0.25, yR1 + 0.2, ZS, ZS + 0.45)       # the flat roof, a thin edge over the vaults
+    ZR = ZS + 0.45
+    # six masts at the back of the roof, stays fanning down to its front edge and back to its rear
+    nm = 6
+    for i in range(nm):
+        x = -h + 2 * h * (i + 0.5) / nm
+        ym, top = YB - 4.0, ZR + 14.0
+        K.cyl("white", x, ym, ZR, top, 0.55, 0.5, 14)
+        for z in (top - 0.2, top - 2.2):                          # cap and collar
+            K.cyl("white", x, ym, z, z + 0.45, 0.72, segs=14)
+        K.cyl("white", x, ym, top + 0.25, top + 0.55, 0.45, 0.3, 12)
+        for dx in (-9.0, -4.5, 4.5, 9.0):                         # the front stays, crossing their neighbours'
+            if abs(x + dx) > h + 0.5:
+                continue
+            strut("trim", (x, ym, top - 1.0), (x + dx, yR0 + 0.2, ZR), r=0.05)
+        for dx in (-2.5, 2.5):                                    # the back stays
+            strut("trim", (x, ym, top - 1.6), (x + dx, yR1, ZR - 0.4), r=0.06)
+    # the ends: a flank wall up the terrace's rake to the walkway's rail, then the building's own end up to the roof
+    for x, side in ((-h, -1), (h, 1)):
+        rake_flank(x, side, [(-0.5, 1.3), (14.0, L1 + 1.0)])
+        xa, xb = sorted((x, x + side * 0.4))
+        K.box("wall", xa, xb, 14.0, 24.0, -1.0, ZS)                  # plain, up to the roof; the back block behind
+        for z in (L1, D2):                                            # the floors' bands, proud of the wall
+            K.box("podium", min(xb, xa) - (0.06 if side < 0 else 0), max(xa, xb) + (0.06 if side > 0 else 0), 14.0, 24.0, z - 0.15, z + 0.15)
+    back_block(-h, h, 24.0, YB - 24.0, ZS, 3.8, parapet=False)
+    return {"width": round(2 * h + 0.8, 2), "offset": 0.0, "depth": YB, "height": round(ZR + 14.6, 2),
+            "section": {"walkway": round(L1, 2), "level2": round(D2, 2), "roofUnderside": round(RU, 2), "roofTop": round(ZR, 2),
+                        "mastTop": round(ZR + 14.6, 2), "back": YB, "bay": bay, "bays": nb}}
+
+
 # ------------------------------------------------------------------------------------------ 3: the glass box
 def stair_tower(x0, x1, y0, y1, H, up=1):
     """The brick stair tower of photo 4: brick, a cream coping, and the stair's glazing climbing diagonally across its
@@ -1204,6 +1442,8 @@ PIECES = [
     ("park_tiered_stand", tiered_with_terrace),
     ("park_balcony_stand", lambda: colonnade_stand(10, 3.6, "flat")),
     ("park_roof_terrace_stand", lambda: colonnade_stand(10, 3.6, "terrace")),
+    ("park_tent_stand", tent_stand),
+    ("park_mast_stand", mast_stand),
     ("park_glass_box", lambda: glass_box(30.0, 3, "left")),
     ("park_glass_box_small", lambda: glass_box(22.0, 2, "right")),
     ("park_stair_tower", stair_link),
