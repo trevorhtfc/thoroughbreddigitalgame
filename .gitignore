@@ -8,3 +8,4 @@ assets/models/baked/_ground_*.png
 reference/newmarket/renders/*.exr
 .wrangler/
 reference/park/drawings/*.png
+reference/park/_siteplan_roofs.png
