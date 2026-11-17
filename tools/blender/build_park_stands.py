@@ -13,6 +13,7 @@ What each piece takes from his photos:
   park_arch_stand     the row of barrel-vaulted roofs over a white frame and the red band along the concourse (photo 1);
                       a taller middle bay with a clock; flags along the front of the roof (the flagpoles of photo 3).
                       Two tiers (owner, 17 Nov), to the colonnade stands' levels, the vaults semicircular.
+                      park_gable_stand: the same in two tiers with photo 3's row of pitched roofs (gables).
                       roof="gable" swaps the vaults for photo 3's row of gables.
   park_victorian      brick, two tiers of iron-lace veranda, corner towers with steep slate roofs (photo 2), a gabled
                       name dormer, a clock cupola and chimneys (photo 4's middle building)
@@ -1195,7 +1196,7 @@ def floodlight(H=34.0):
 # ------------------------------------------------------------------------------------------ build and export
 PIECES = [
     ("park_arch_stand", lambda: arch_stand(9, 8.0, "arch", tiers=2)),
-    ("park_gable_stand", lambda: arch_stand(7, 8.0, "gable")),
+    ("park_gable_stand", lambda: arch_stand(7, 8.0, "gable", tiers=2)),
     ("park_victorian", victorian),
     ("park_old_pavilion", old_pavilion),
     ("park_tiered_stand", tiered_with_terrace),
