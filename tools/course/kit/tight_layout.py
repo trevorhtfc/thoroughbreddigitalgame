@@ -6,18 +6,14 @@ Catterick, Chester, Kempton, Lingfield (AW), Musselburgh, Ripon, Southwell, Thir
 switches (hand, straight course, surface, scenery, floodlights) are read from the stand configurator's data
 (courses/kit/stand-config.json, written by stand_config.py), so they live in one place.
 
-Owner, 17 Nov 2026 (on the first draft, a rounded triangle): "I think more of a circle would be better with a few
-shoots?"; then "take the Chester loop with a 6f shoot": Chester's size (just over a mile round, a 1f straight), no
-straight course by default, the sprints going round from the 6f chute. So: nearly a circle (Chester's character), about 1m round (1,721 m, Chester's size), with a short flat home straight and a
-few chutes off the bends for the starts. The same kit as the Park: a polygon with a rounded corner at each vertex (a
-radius per corner); here a near-square whose top corners are rounded almost to a semicircle (radius 286 m) and whose
-bottom corners, either end of the home straight, are a little tighter (170 m). Going round from the winning post:
-  - 50 m past the post, the post-end bend; its far side carried on (downwards, beyond the post end) as a chute;
-  - up the post-end side, over the top in one long sweep (two quarter-circles and a short flat), each quarter's
-    entry line carried on as a chute: the 6f chute (heading out past the far side's top) and the home-side chute (up past
-    the home-end side);
-  - down the home-end side into the home bend and a short run-in of 200 m (1f, as Chester); the home straight's line
-    carried on past the home bend as the straight course (5f or 6f), or a stub where a course has none.
+Owner, 17 Nov 2026: first a rounded triangle; then "more of a circle ... with a few shoots", "take the Chester loop
+with a 6f shoot", "bigger loop"; then a sketch: "maybe something like this? and then we can have a straight and a round
+6f? i want this course to capture the vibe of as many courses as we can". So, after the sketch: a rounded square about
+1m2f round (1,951 m), the post end bulging round (radii 190 m and 180 m), a sharp home bend (90 m) and a 120 m bend at
+the top of the home-end side; a run-in of 260 m (1.3f). The same kit as the Park: a polygon with a rounded corner at
+each vertex. The chutes, as sketched: the 6f straight course off the home straight (a switch per course), a chute up off
+the home-end side, one along the top; plus a short one past the post end (the 1m1f needs it). With a straight course,
+the 5f and 6f are offered round the loop too.
 Every start is on a straight or in a chute, never on a bend; the starts pick their own place (the nearest straight
 with room, else the chute that joins nearest) so the numbers can change without re-planning by hand.
 
@@ -44,15 +40,21 @@ TIGHT = {
     "trackWidth": 24.0,      # a touch narrower than the Park's 26 m
     # the inside rail's polygon (metres; x along the home straight away from the post end, z into the infield) and the
     # radius of the bend at each corner: 0 the post-end bend, 1 the home bend, 2 the home-end top, 3 the far top
-    "corners": [[0.0, 0.0], [590.0, 0.0], [590.0, 466.0], [0.0, 466.0]],
-    "radii": [170.0, 170.0, 286.0, 286.0],
-    "pastPost": 50.0,        # straight track past the winning post before the post-end bend
-    # the chutes: the line arriving at a corner's bend (going back round from the post) carried on past it. Corner 1's
-    # is the straight course; the others are laid only as long as their starts need.
-    "chutes": {"1": "straight course", "0": "post-end chute", "3": "6f chute", "2": "home-side chute"},
-    # the straight course in furlongs (5 or 6), a switch for the courses that have one; the generic course is Chester's:
-    # none, the 5f and 6f going round from the 6f chute (owner, 17 Nov: "take the Chester loop with a 6f shoot")
-    "straight": 0.0,
+    "corners": [[0.0, 0.0], [580.0, 0.0], [580.0, 520.0], [0.0, 520.0]],
+    "radii": [190.0, 90.0, 120.0, 180.0],
+    "pastPost": 40.0,        # straight track past the winning post before the post-end bend
+    # the chutes: straight spurs joining the loop on its tangent ("join": metres before the post where a chute meets
+    # the loop; "home": the top of the home straight, its line carried on past the home bend, which is also the straight
+    # course where a course has one; "corner:i": the line arriving at corner i's bend carried on past it). Owner, 17 Nov,
+    # with a sketch: a rounded square, the 6f straight course off the home straight, a chute up off the home-end side,
+    # one along the top; the post end bulging round. The post-end chute is mine: the 1m1f needs it.
+    "chutes": [{"name": "home-straight chute", "join": "home"}, {"name": "home-side chute", "join": "corner:2"},
+               {"name": "top chute", "join": "corner:3"}, {"name": "post-end chute", "join": "corner:0"}],
+    "roundSprints": True,    # with a straight course, the 5f and 6f are also offered round the loop ("a straight and a round 6f")
+    # the straight course in furlongs (5 or 6; 0 = none), a switch for the real courses; the generic course has a 6f
+    # straight and the round sprints too (owner, 17 Nov: "we can have a straight and a round 6f ... capture the vibe of as
+    # many courses as we can")
+    "straight": 6.0,
     "minAhead": 60.0,        # a start on a straight needs at least this much straight in front of it
     "maxChute": 330.0,       # the furthest a start may sit up a chute
     "room": 30.0,            # straight track behind the furthest start in a chute
@@ -99,6 +101,26 @@ class TightShape:
     def chute(self, i, length):
         return self.S.chute(i, length)
 
+    def join(self, ch):
+        """where a chute meets the loop, in metres before the post"""
+        j = ch["join"]
+        if j == "home": return self.dtin[1]
+        if isinstance(j, str) and j.startswith("corner:"): return self.dtin[int(j[7:])]
+        return float(j)
+
+    def spur(self, ch, length, back=0.0):
+        """the chute's centre... its inside-rail line: from the join point straight out along the loop's tangent (the
+        direction going back round, away from the post), length metres; back metres the other way first (drawing)"""
+        dj = self.join(ch)
+        a = self.at(dj)
+        t = self.at(dj + 0.5) - self.at(dj - 0.5); t = t / np.linalg.norm(t)
+        return [a + t * k for k in np.arange(2.0 - back, length + 1e-6, 2.0)]
+
+    def tangent(self, ch):
+        dj = self.join(ch)
+        t = self.at(dj + 0.5) - self.at(dj - 0.5)
+        return t / np.linalg.norm(t)
+
     def piece_at(self, d):
         dd = (d + self.pb) % self.C - self.pb
         for p in self.pieces:
@@ -108,21 +130,21 @@ class TightShape:
 
 
 def place(S, P, dist):
-    """where a start of dist metres goes: ("edge", None, ahead) on a straight with room in front, else ("chute", i,
-    metres up the chute) for the chute joining nearest behind it. The straight course (corner 1) takes a round start
-    only once round (it points the wrong way otherwise)."""
+    """where a start of dist metres goes: ("edge", None, ahead) on a straight with room in front, else ("chute", k,
+    metres up the chute) for the chute k joining nearest behind it. The home-straight chute takes a round start only
+    once round (it points the wrong way otherwise)."""
     C = S.C
     p, dd = S.piece_at(dist)
     if p[0] == "edge" and dd - p[1] >= P["minAhead"]:
         return ("edge", None, dd - p[1])
     best = None
-    for k in P["chutes"]:
-        i = int(k)
-        up = (dist - S.dtin[i]) % C
-        if i == 1 and dist < C + S.dtin[1]:
+    for k, ch in enumerate(P["chutes"]):
+        dj = S.join(ch)
+        if ch["join"] == "home" and dist < C + dj:
             continue
+        up = (dist - dj) % C
         if up <= P["maxChute"] and (best is None or up < best[2]):
-            best = ("chute", i, up)
+            best = ("chute", k, up)
     if best is None:
         raise SystemExit(f"no straight or chute for a start {dist:.0f} m out")
     return best
@@ -137,37 +159,41 @@ def build(P):
     d_home = S.dtin[1]
     sprint = P["straight"]                                           # 0: no straight course; the sprints go round
     sprint6 = P["straight"] >= 6
+    trips = dict(TRIPS)
+    if sprint and P.get("roundSprints"):
+        trips.update({"5f round": 5, "6f round": 6})
 
     # every start's place, then each chute laid as long as its furthest start (plus room)
     where_at = {}
-    for trip, f in TRIPS.items():
+    for trip, f in trips.items():
         dist = f * F
         if (trip == "5f" and sprint) or (trip == "6f" and sprint6):
-            where_at[trip] = ("chute", 1, dist - d_home)
+            where_at[trip] = ("chute", 0, dist - d_home)
         else:
             where_at[trip] = place(S, P, dist)
-    chute_len = {int(k): 0.0 for k in P["chutes"]}
-    chute_len[1] = sprint * F - d_home
+    chute_len = {k: 0.0 for k in range(len(P["chutes"]))}
+    chute_len[0] = sprint * F - d_home
     for trip, (kind, i, up) in where_at.items():
         if kind == "chute": chute_len[i] = max(chute_len[i], up)
     chute_len = {i: L + P["room"] for i, L in chute_len.items() if L > 0}
-    names = {int(k): v for k, v in P["chutes"].items()}
-    if not sprint: names[1] = "home-straight chute"                   # no straight course: just what the 1m2f needs
+    names = {k: ch["name"] for k, ch in enumerate(P["chutes"])}
+    if sprint: names[0] = "straight course"                           # the home-straight chute carried on to 5f or 6f
+    J = {k: S.join(ch) for k, ch in enumerate(P["chutes"])}
 
     # the routes: one per chute and lap count, and the circuit itself
     routes, route_of = {}, {}
     for trip, (kind, i, up) in where_at.items():
-        dist = TRIPS[trip] * F
+        dist = trips[trip] * F
         if kind == "edge":
             r = "round"
         else:
-            laps = int((dist - S.dtin[i] - up + 1.0) // C)
-            r = ("straight" if i == 1 and laps == 0 else P["chutes"][str(i)].replace(" ", "-").replace("-chute", "").replace("-course", "")
+            laps = int((dist - J[i] - up + 1.0) // C)
+            r = ("straight" if i == 0 and laps == 0 else P["chutes"][i]["name"].replace(" ", "-").replace("-chute", "")
                  + ("-lap" if laps else ""))
             if r not in routes:
-                routes[r] = runout + ring(0, laps * C + S.dtin[i]) + S.chute(i, chute_len[i])
+                routes[r] = runout + ring(0, laps * C + J[i]) + S.spur(P["chutes"][i], chute_len[i])
         route_of[trip] = r
-    longest = max(TRIPS[t] * F for t, w in where_at.items() if w[0] == "edge")
+    longest = max(trips[t] * F for t, w in where_at.items() if w[0] == "edge")
     routes["round"] = runout + ring(0, longest + P["room"] + 10)
     n_run = len(runout)
 
@@ -206,7 +232,7 @@ def build(P):
 
     samp = {k: resample(v) for k, v in routes.items()}
     starts = {}
-    for trip, f in TRIPS.items():
+    for trip, f in trips.items():
         r = route_of[trip]; dist = f * F
         s = samp[r]; ds = np.array([q[1] for q in s])
         if dist > ds[-1]: raise SystemExit(f"{trip} is beyond the {r} route")
@@ -218,8 +244,7 @@ def build(P):
 
     def where(trip):
         kind, i, up = where_at[trip]
-        lap = " (once round first)" if TRIPS[trip] * F > C + (S.dtin[i] if kind == "chute" else 0) - 1 and kind == "chute" else \
-              (" (once round first)" if TRIPS[trip] * F > C - S.pb and kind == "edge" else "")
+        lap = " (once round first)" if trips[trip] * F > C + (J[i] if kind == "chute" else -S.pb) - 1 else ""
         if kind == "chute":
             return "in the %s, %.0f m up from where it joins%s" % (names[i], up, lap)
         return "on a straight, %.0f m before the next bend%s" % (up, lap)
@@ -246,20 +271,24 @@ def build(P):
             pts.append(a + o * (W + off0)); nr.append(a + o * (W + off1))
         return [world(q) for q in pts + nr[::-1]]
     arc = {i: S.c[i]["r"] * S.c[i]["th"] for i in S.dtin}
+    end_post = C - S.pb - 5                                                            # the stands' end of the post-end bend
     gaps = sorted([(S.dtin[1] - 10, S.dtin[1] + arc[1] + 30)] +                      # the home bend: straight course, car park
-                  [(S.dtin[i] - 10, S.dtin[i] + 0.4 * arc[i]) for i in chute_len if i not in (0, 1)])
-    d_bank = S.dtin[0] + 0.68 * arc[0]                                                 # the post-end bend, past its chute
+                  [(J[k] - 10, J[k] + 170) for k in chute_len if k != 0])
     belts, d = [], gaps[0][1]
-    for g0, g1 in gaps[1:] + [(S.dtin[0] - 10, None)]:
-        if g0 - d > 60:
-            belts.append({"note": "boards at 20 m, trees from 25 m", "poly": band(d, g0, 20, 60)})
-        d = g1 if g1 is not None else d
-    belts.append({"note": "round the post-end bend, past its chute, to the stands: a shallow bank with tree pockets",
-                  "poly": band(d_bank, C - S.pb - 5, 18, 64), "bank": True})
+    for g0, g1 in gaps[1:] + [(end_post, end_post)]:
+        g0 = min(g0, end_post)
+        if g0 - d > 50:
+            cut = max(d, min(g0, S.dtin[0]))                                          # trees up to the post-end bend, a bank after
+            if cut - d > 50:
+                belts.append({"note": "boards at 20 m, trees from 25 m", "poly": band(d, cut, 20, 60)})
+            if g0 - cut > 50:
+                belts.append({"note": "round the post-end bend to the stands: a shallow bank with tree pockets",
+                              "poly": band(cut, g0, 18, 64), "bank": True})
+        d = max(d, g1)
     ends = []
-    for i, L in chute_len.items():
-        q = S.c[i]["tin"] + S.c[i]["u"] * (L + 28)
-        ends.append({"note": ("mound closing the straight course" if i == 1 else f"tree pocket at the end of the {names[i]}"), "at": world(q)})
+    for k, L in chute_len.items():
+        q = S.at(J[k]) + S.tangent(P["chutes"][k]) * (L + 28)
+        ends.append({"note": ("mound closing the straight course" if k == 0 and sprint else f"tree pocket at the end of the {names[k]}"), "at": world(q)})
     xb = float(S.c[1]["tin"][0] - X0)                         # the home bend's start, world x
     cen = np.mean([S.at(d) for d in np.arange(0, C, 20)], axis=0)
     Z = {
@@ -280,7 +309,7 @@ def build(P):
         "share of the circuit on a bend": round(sum(arc.values()) / C, 2),
         "chutes, m": {names[i]: round(L, 1) for i, L in sorted(chute_len.items())},
         "stand plots, m": round(x_end - CHAIN_START, 1),
-        "starts": {t: where(t) for t in TRIPS},
+        "starts": {t: where(t) for t in trips},
     }
     return {
         "id": "tight", "name": P.get("name", "The Tight Track"), "family": "tight",
@@ -296,8 +325,8 @@ def build(P):
         "routesNote": "Each start's route: 'round' for a start on a straight of the circuit; 'straight' for the straight "
                       "course (5f, 6f with the switch; a 5f stub where a course has none); otherwise the chute it starts "
                       "in, '-lap' when it goes once round first. Chutes are the line arriving at a bend carried on past it.",
-        "chutes": [{"corner": i, "name": names[i], "length": round(L, 1), "joins": world(S.c[i]["tin"]),
-                    "end": world(S.c[i]["tin"] + S.c[i]["u"] * L)} for i, L in sorted(chute_len.items())],
+        "chutes": [{"index": k, "name": names[k], "length": round(L, 1), "joinsAt": round(J[k], 1), "joins": world(S.at(J[k])),
+                    "end": world(S.at(J[k]) + S.tangent(P["chutes"][k]) * L)} for k, L in sorted(chute_len.items())],
         "furlongPoles": [],
         "stands": {"frontZ": round(m * zf, 2), "lawn": LAWN, "plots": plots,
                    "note": "the configurator's fixed plots; each course's modules are in courses/kit/stand-config.json"},
@@ -351,9 +380,7 @@ def draw(c, samp, S, outp, title):
         ax.add_patch(MP([TW(v) for v in outer], closed=True, fc=turf, ec="#4f6f35", lw=0.8, zorder=2))
         ax.add_patch(MP([TW(v) for v in circ], closed=True, fc="#e3e8cf", ec="#4f6f35", lw=0.8, zorder=2))
         for ch in c["chutes"]:
-            i, L = ch["corner"], ch["length"]
-            cc = S.c[i]
-            pts = [cc["tin"] - cc["u"] * 40 + cc["u"] * k for k in np.arange(0, L + 41, 4.0)]
+            pts = S.spur(c["params"]["chutes"][ch["index"]], ch["length"], back=40.0)
             o = outward(pts)
             ax.add_patch(MP([TW(v) for v in list(pts) + list(o[::-1])], closed=True, fc=turf, ec="#4f6f35", lw=0.8, zorder=2))
         lk = Zn["lake"]; lx, lz = T(*lk["centre"])
@@ -423,7 +450,7 @@ def draw(c, samp, S, outp, title):
     lights = ", floodlit" if c["floodlights"] else ""
     key = [f"{c['name']}: {'left' if c['hand'] < 0 else 'right'}-handed, {c['surface']}{lights}, {c['scenery']}",
            f"Circuit {ck['circuit (inside rail), m']:.0f} m ({ck['circuit, furlongs']:.1f}f), {ck['share of the circuit on a bend'] * 100:.0f}% of it on a bend; run-in {ck['run-in (post to the home bend), m']:.0f} m",
-           "Bends: " + "; ".join("%d deg r %d m" % tuple(b[:2]) for b in ck["bends (degrees, radius, arc m)"]) + " (post end, home bend, the top)",
+           "Bends: " + "; ".join("%d deg r %d m" % tuple(b[:2]) for b in ck["bends (degrees, radius, arc m)"]) + " (post end, home bend, home-end top, post-end top)",
            "Chutes: " + ", ".join(f"{k} {v:.0f} m" for k, v in ck["chutes, m"].items()),
            f"Straight course: {P['straight']:g}f" if P["straight"] else "No straight course (Chester): the 5f and 6f go round from the 6f chute",
            "Blue: straight course   green: in a chute   black: on a straight of the circuit   brown: once round first",
