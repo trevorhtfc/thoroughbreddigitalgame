@@ -86,14 +86,12 @@ def ground_grid(C, margin=420.0):
     p = np.pad(hh, 1, mode="edge")
     hh = sum(p[1 + a:1 + a + nz, 1 + b:1 + b + nx] for a in (-1, 0, 1) for b in (-1, 0, 1)) / 9.0
     edge_h = float(np.median(np.concatenate([hh[0], hh[-1], hh[:, 0], hh[:, -1]])))
-    d = np.minimum.reduce([gx - x0, x0 + GROUND_CELL * (nx - 1) - gx, gz - z0, z0 + GROUND_CELL * (nz - 1) - gz])
-    w = np.clip(d / 200.0, 0, 1); w = w * w * (3 - 2 * w)
-    hh = edge_h + (hh - edge_h) * w
+    # (no easing at the edges: the far land (farland.py) carries the real ground on from the grid's edge)
     return {"x0": x0, "z0": z0, "cell": GROUND_CELL, "nx": nx, "nz": nz, "h": [round(float(v), 2) for v in hh.ravel()],
             "farY": round(edge_h, 2),
             "note": "Goodwood's real ground (AWS Terrain Tiles, reference/goodwood/dem-course-20m.json), metres against the post's "
-                    "(%.1f m above sea level), every 'cell' metres from (x0, z0), row by row along x; easing at the edges to farY, "
-                    "where the flat far ground lies (the long views come in a later phase)." % h0}
+                    "(%.1f m above sea level), every 'cell' metres from (x0, z0), row by row along x; real out to its edges, where "
+                    "the far land (goodwood-farland.json) carries on. farY: the edges' typical height." % h0}
 
 
 def main():
@@ -223,12 +221,39 @@ def main():
     # the stands below, the loop above on the right
     view["mapTurn"] = 0
     view["ground"]["farY"] = ground["farY"]
+    view["farLand"] = "goodwood-farland.json"            # the long views (tools/course/goodwood/farland.py)
     NM.write("goodwood-view.json", view, 1)
 
-    # ---- scenery: for now the finish-line kit on the rail at the post (the perimeter, stands and long views come next)
+    # ---- scenery: the finish-line kit on the rail at the post, and the perimeter (phase 3: tools/course/goodwood/
+    # perimeter.py); the stands come in phase 4
+    import random
     S = NM.Scene(17, ground)
-    scen = NM.scenery_file(S, [], [], [], ["finish_line"], {"at": [0, -GAP], "turn": 0}, poles)
+    rnd = random.Random(17)
+    spots = json.loads((REPO / "assets/models/architecture/site_props_spots.json").read_text())["pieces"]
+
+    def sp(piece, x, z, turn=180.0, people=0.85, sxf=1.0, sc=1.0):
+        """a site prop (marquee, kiosk, flag...), kept clear of the crowd, with its own people on its seats and steps"""
+        S.piece("site_props", piece, x, z, turn, sxf, sc)
+        w, d = NM.SP_SIZE[piece]
+        S.nogo.append([(x - w / 2 * sxf * sc - 0.5, z - d / 2 * sc - 0.5), (x + w / 2 * sxf * sc + 0.5, z - d / 2 * sc - 0.5),
+                       (x + w / 2 * sxf * sc + 0.5, z + d / 2 * sc + 0.5), (x - w / 2 * sxf * sc - 0.5, z + d / 2 * sc + 0.5)])
+        ca_, sa_ = math.cos(math.radians(turn)), math.sin(math.radians(turn))
+        for kind in ("seats", "stand"):
+            for lx, ly, lz in spots.get(piece, {}).get(kind, []):
+                if rnd.random() < people:
+                    S.person(x + lx * ca_ - ly * sa_, lz, z - (lx * sa_ + ly * ca_), NM.face(0, 1))
+    _ps = importlib.util.spec_from_file_location("goodwood_perimeter", HERE / "perimeter.py")
+    PM = importlib.util.module_from_spec(_ps); _ps.loader.exec_module(PM)
+    grid_box = (ground["x0"], ground["z0"], ground["x0"] + ground["cell"] * (ground["nx"] - 1), ground["z0"] + ground["cell"] * (ground["nz"] - 1))
+    trees, boards, canopies, note = PM.perimeter(S, turf, grid_box, sp, rnd)
+    scen = NM.scenery_file(S, trees, boards, [], ["site_props", "finish_line"], {"at": [0, -GAP], "turn": 0}, poles)
+    scen["canopies"] = canopies
+    scen["_about"] += (" canopies: the woods beyond the belts of trees, each a light mesh (v: x, y above the ground, z; i: triangles), "
+                       "drawn as a soft roof of leaves.")
     NM.write("goodwood-scenery.json", scen)
+    print("   perimeter:", json.dumps(note))
+    print("  ", len(S.pieces), "pieces,", len(S.people) // 4, "people,", len(trees), "trees,", len(boards), "boards,",
+          sum(len(v) for v in S.boxes.values()), "hedge lengths,", len(canopies), "canopies")
     print("turf area %.0f m2, %d rail lines, %d starts; ground %d x %d, %.0f to %.0f m against the post" %
           (turf.area, len(rails), len(starts), ground["nx"], ground["nz"], min(ground["h"]), max(ground["h"])))
 

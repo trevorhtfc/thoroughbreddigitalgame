@@ -1242,6 +1242,7 @@ function buildPlainGround(G) {
   const far = new THREE.Mesh(new THREE.PlaneGeometry(9000, 9000), turfLook(groundDetail(new THREE.MeshBasicMaterial({ color: new THREE.Color(o[0], o[1], o[2]), ...GROUND_UNDER }), 0.2), "far"));
   far.rotation.x = -Math.PI / 2; far.position.set(700, (G.farY || 0) - 0.06, -400);   // (Goodwood: at its ground grid's edges)
   far.renderOrder = LEGACY_GROUND ? -3 : -1;
+  if (VIEW.farLand) far.visible = false;            // (the far land carries the real ground on beyond the grid instead)
   scene.add(far);
   LAYERS.ground.push(far);
   if (GROUND) {                                   // the site's ground over the grid, drawn first: the flat far ground fills beyond it
@@ -1599,6 +1600,91 @@ function buildBunting(runs) {
   console.log("bunting:", flags.length, "pennants,", poles.length, "poles");
 }
 
+// The long views (Goodwood: tools/course/goodwood/farland.py, owner 17 Nov: "the more longer range scenery that is
+// iconic with goodwood"). Beyond the ground grid, the real ground out to about 10 km as one light mesh in its fields,
+// woods and towns' colours, lit by the sun so the Downs show their shape, and hazed more and more with distance in the
+// day's own haze; the Trundle's masts and Chichester Cathedral on it. Beyond that, a panorama of the far distance (the
+// coastal plain, the sea, the Isle of Wight) hung round the camera behind everything, hazed by the same colour.
+function buildFarLand(F) {
+  const xs = F.xs, zs = F.zs, nx = xs.length, nz = zs.length, n = nx * nz;
+  const pos = new Float32Array(n * 3), col = new Float32Array(n * 3), c = new THREE.Color();
+  for (let j = 0; j < nz; j++) for (let i = 0; i < nx; i++) {
+    const k = j * nx + i;
+    pos[k * 3] = xs[i]; pos[k * 3 + 1] = F.y[k]; pos[k * 3 + 2] = zs[j];
+    c.setRGB(F.colour[k * 3] / 255, F.colour[k * 3 + 1] / 255, F.colour[k * 3 + 2] / 255, THREE.SRGBColorSpace);
+    col[k * 3] = c.r; col[k * 3 + 1] = c.g; col[k * 3 + 2] = c.b;
+  }
+  const idx = [], [hx0, hz0, hx1, hz1] = F.hole;
+  for (let j = 0; j + 1 < nz; j++) for (let i = 0; i + 1 < nx; i++) {
+    const xm = (xs[i] + xs[i + 1]) / 2, zm = (zs[j] + zs[j + 1]) / 2;
+    if (xm > hx0 && xm < hx1 && zm > hz0 && zm < hz1) continue;           // the ground grid's own
+    const a = j * nx + i, b = a + 1, cc = a + nx, d = cc + 1;
+    idx.push(a, cc, b, b, cc, d);
+  }
+  const geo = new THREE.BufferGeometry();
+  geo.setAttribute("position", new THREE.BufferAttribute(pos, 3)); geo.setAttribute("color", new THREE.BufferAttribute(col, 3));
+  geo.setIndex(idx); geo.computeVertexNormals(); geo.computeBoundingSphere();
+  // the air: on top of the usual haze, the far land fades into the haze colour over the kilometres
+  // (in screen colour, after the haze: the soft look's own sky horizon, or the view's haze)
+  const air = (UPLIFT && UPLIFT.airColours && UPLIFT.airColours().horizon) ||
+    (() => { const h = (scene.fog ? scene.fog.color : new THREE.Color(0.9, 0.9, 0.9)).clone().convertLinearToSRGB(); return new THREE.Vector3(h.r, h.g, h.b); })();
+  const airy = (m) => { m.onBeforeCompile = (sh) => { sh.uniforms.farAir = { value: air };
+    sh.fragmentShader = sh.fragmentShader.replace("#include <common>", "#include <common>\nuniform vec3 farAir;").replace("#include <fog_fragment>",
+    "#include <fog_fragment>\n#ifdef USE_FOG\n gl_FragColor.rgb = mix(gl_FragColor.rgb, farAir, smoothstep(400.0, 11000.0, vFogDepth) * 0.7);\n#endif"); };
+    m.customProgramCacheKey = () => "farair"; return m; };
+  const mat = airy(new THREE.MeshLambertMaterial({ vertexColors: true, ...GROUND_FIRST }));
+  const land = new THREE.Mesh(geo, mat);
+  land.renderOrder = LEGACY_GROUND ? 0.5 : -0.5;                        // after the ground grid: it only shows beyond it
+  scene.add(land); LAYERS.ground.push(land);
+  // the landmarks
+  const L = F.landmarks || {}, stone = airy(new THREE.MeshLambertMaterial({ color: "#d8d2c4" })), steel = airy(new THREE.MeshLambertMaterial({ color: "#dcdcd8" }));
+  const parts = [];
+  for (const [x, z, y, h] of L.masts || []) {
+    parts.push(new THREE.Mesh(new THREE.CylinderGeometry(0.35, 1.1, h, 4).translate(x, y + h / 2, z), steel));
+    parts.push(new THREE.Mesh(new THREE.BoxGeometry(4, 2.6, 3).translate(x + 4, y + 1.3, z + 3), stone));
+  }
+  if (L.cathedral) {
+    const [x, z, y] = L.cathedral;
+    parts.push(new THREE.Mesh(new THREE.BoxGeometry(70, 20, 20).translate(x, y + 10, z), stone));          // the nave
+    parts.push(new THREE.Mesh(new THREE.BoxGeometry(13, 34, 13).translate(x, y + 17, z), stone));          // the tower
+    parts.push(new THREE.Mesh(new THREE.CylinderGeometry(0.4, 6.5, 50, 8).translate(x, y + 34 + 25, z), stone));   // the spire
+  }
+  for (const m of parts) { scene.add(m); LAYERS.buildings.push(m); }
+  // the panorama beyond, round the camera, behind everything (where the sky is)
+  const P = F.panorama;
+  if (P) {
+    const tl = new THREE.TextureLoader(), tex = (f, srgb) => { const t = tl.load("assets/course/" + f); if (srgb) t.colorSpace = THREE.SRGBColorSpace; t.wrapS = THREE.RepeatWrapping; t.anisotropy = 8; return t; };
+    const SEG = 720, R = 1000, lo = THREE.MathUtils.degToRad(P.lo), hi = THREE.MathUtils.degToRad(P.hi);
+    const v = [], uv = [], ix = [];
+    for (let s = 0; s <= SEG; s++) {
+      const b = (s / SEG) * Math.PI * 2, se = Math.sin(b), cn = Math.cos(b);
+      const wx = se * P.east[0] + cn * P.north[0], wz = se * P.east[1] + cn * P.north[1];
+      v.push(wx * R, Math.tan(hi) * R, wz * R, wx * R, Math.tan(lo) * R, wz * R); uv.push(s / SEG, 1, s / SEG, 0);
+      if (s < SEG) { const a = s * 2; ix.push(a, a + 1, a + 2, a + 2, a + 1, a + 3); }
+    }
+    const g = new THREE.BufferGeometry();
+    g.setAttribute("position", new THREE.Float32BufferAttribute(v, 3)); g.setAttribute("uv", new THREE.Float32BufferAttribute(uv, 2)); g.setIndex(ix);
+    const m = new THREE.Mesh(g, new THREE.ShaderMaterial({
+      uniforms: { tc: { value: tex(P.colour, true) }, th: { value: tex(P.haze, false) }, hz: { value: air } },
+      vertexShader: "varying vec2 vUv; void main(){ vUv = uv; vec4 p = projectionMatrix * modelViewMatrix * vec4(position, 1.0); p.z = p.w * 0.999995; gl_Position = p; }",
+      fragmentShader: `uniform sampler2D tc, th; uniform vec3 hz; varying vec2 vUv;
+        void main(){ vec4 c = texture2D(tc, vUv); if (c.a < 0.01) discard; float h = texture2D(th, vUv).r;
+          gl_FragColor = vec4(c.rgb, c.a);
+          #include <tonemapping_fragment>
+          #include <colorspace_fragment>
+          gl_FragColor.rgb = mix(gl_FragColor.rgb, hz, h);
+        }`,
+      side: THREE.DoubleSide, transparent: true, depthWrite: false, fog: false,
+    }));
+    m.renderOrder = 1000.5;                               // after the sky (it writes no depth), before the clouds
+    m.frustumCulled = false;
+    m.onBeforeRender = (r, sc, cam) => { m.position.copy(cam.position); m.updateMatrixWorld(); };
+    scene.add(m); LAYERS.sky.push(m);
+  }
+  if (F.cameraFar) { camera.far = F.cameraFar; camera.updateProjectionMatrix(); }     // (the TV camera takes the same, below)
+  console.log("far land:", idx.length / 3, "triangles,", (L.masts || []).length, "masts", P ? ", panorama" : "");
+}
+
 // A course drawn live, with nothing baked yet (Newmarket: courses/<id>-scenery.json, tools/course/newmarket/to_race_view.py):
 // the stands and site pieces from Blender in their own matte clay colours, lit live like the horses; the finish-line
 // assembly; walls and hedges as boxes; paving and gravel; the grassy banks; the trees, with soft shadows; the boards.
@@ -1699,6 +1785,46 @@ function placeScenery(SC, models, treeLib, belts) {
     scene.add(m); LAYERS.ground.push(m);
     // (soft look: a short grass pile on the bank, near the camera)
     if (UPLIFT) UPLIFT.pile(m, { nr, nc, scene, LAYERS, quality: qLevel, make: (mat) => turfLook(groundDetail(mat, 0.2), "far") });
+  }
+  // the woods beyond the belts of trees (Goodwood: tools/course/goodwood/perimeter.py): each a light mesh on the ground,
+  // its edge at the foot and rising steeply to a lumpy roof of leaves, graded dark low down to light on top, in the
+  // trees' own greens; lit as the trees are, so it reads as the far side of a wood whose near edge the belt makes
+  if (SC.canopies && SC.canopies.length) {
+    const pal = (UPLIFT && UPLIFT.leafPalette && UPLIFT.leafPalette()) || { leaf: ["#3f6c45", "#6b9d57", "#b6d187"], heart: "#2e5138" };
+    const cs = [pal.heart, ...pal.leaf].map((h) => new THREE.Color(h));
+    const geos = SC.canopies.map(({ v, i }) => {
+      const pos = new Float32Array(v), col = new Float32Array(v.length);
+      for (let k = 0; k < pos.length; k += 3) {
+        const x = pos[k], h = pos[k + 1], z = pos[k + 2];
+        const hash = Math.abs(Math.sin(x * 12.9898 + z * 78.233) * 43758.5453) % 1;          // each crown its own tone
+        const t = THREE.MathUtils.clamp(h / 15, 0, 1.25), mot = (0.62 + 0.36 * hash) * (0.9 + 0.1 * Math.sin(x * 0.09) * Math.sin(z * 0.11));   // (lit from above it reads paler than the crowns: set deeper)
+        const a = t < 0.5 ? cs[0].clone().lerp(cs[1], 0.5 + t) : t < 1.05 ? cs[1].clone().lerp(cs[2], (t - 0.5) / 0.55 * 0.8) : cs[1].clone().lerp(cs[2], 0.8).lerp(cs[3], Math.min(1, (t - 1.05) / 0.2) * 0.3);
+        col[k] = a.r * mot; col[k + 1] = a.g * mot; col[k + 2] = a.b * mot;
+        pos[k + 1] = h + groundY(x, z);
+      }
+      const g = new THREE.BufferGeometry();
+      g.setAttribute("position", new THREE.BufferAttribute(pos, 3)); g.setAttribute("color", new THREE.BufferAttribute(col, 3)); g.setIndex(i);
+      return g;
+    });
+    const geo = mergeGeometries(geos); geo.computeVertexNormals();
+    // the roof read as crowns: a cell of about 8 m each, lighter in its middle, deep in the gaps between
+    const cmat = new THREE.MeshLambertMaterial({ vertexColors: true });
+    cmat.onBeforeCompile = (sh) => {
+      sh.vertexShader = sh.vertexShader.replace("#include <common>", "#include <common>\nvarying vec2 vCanW;").replace("#include <begin_vertex>", "#include <begin_vertex>\nvCanW = position.xz;");
+      sh.fragmentShader = sh.fragmentShader.replace("#include <common>", `#include <common>
+        varying vec2 vCanW;
+        vec2 canHash(vec2 p) { return fract(sin(vec2(dot(p, vec2(127.1, 311.7)), dot(p, vec2(269.5, 183.3)))) * 43758.5453); }
+        float canCrowns(vec2 w) { vec2 c = floor(w / 8.0), f = w / 8.0 - c; float d = 9.0, s = 0.0;
+          for (int i = -1; i <= 1; i++) for (int j = -1; j <= 1; j++) { vec2 g = vec2(float(i), float(j)), h = canHash(c + g);
+            float r = length(g + 0.2 + 0.6 * h - f) / (0.55 + 0.35 * h.x); if (r < d) { d = r; s = h.y; } }
+          return (1.0 - smoothstep(0.35, 1.0, d)) * (0.85 + 0.3 * s); }`)
+        .replace("#include <color_fragment>", "#include <color_fragment>\n  diffuseColor.rgb *= mix(0.5, 1.12, canCrowns(vCanW));");
+    };
+    cmat.customProgramCacheKey = () => "canopy";
+    const m = new THREE.Mesh(geo, cmat);
+    m.receiveShadow = true; m.userData.canopy = true;
+    scene.add(m); LAYERS.trees.push(m);
+    console.log("scenery:", SC.canopies.length, "canopies,", geo.index.count / 3, "triangles");
   }
   // the boards (as the planting belts'), then the trees
   if (belts && SC.boards) placeBelts(belts, { boards: SC.boards, trees: [] }, null, false);
@@ -2713,6 +2839,7 @@ try {
   const file = (path) => "assets/course/" + path.split("/").pop();
   // a course drawn live (Newmarket) lists its scenery and the Blender pieces it uses; Ascot's is baked
   const SC = VIEW.scenery ? await json(file(VIEW.scenery)) : null;
+  const FARL = VIEW.farLand ? await json(file(VIEW.farLand)) : null;      // the long views (Goodwood: farland.py)
   const [props, horse, world, trees, belts, crowd, bakeInfo, dressing, planting, areas, spots, palette, stalls, stallKit, horseLight, scModels] = await Promise.all([
     optional(loadModel("assets/course", "course-props"), "Course furniture"),
     HORSE_V === "v2" ? HorseV2.loadHorse(loadModel, "assets/model-v2", (url, srgb) => { const t = texLoader.load(url); t.flipY = false; if (srgb) t.colorSpace = THREE.SRGBColorSpace; return t; })
@@ -2748,6 +2875,7 @@ try {
   if (props) placeProps(props);
   if (world && bakeInfo) placeBaked(world, bakeInfo, dressing);
   if (SC) { buildPlainGround(VIEW.ground); placeScenery(SC, scModels || [], trees, belts); }
+  if (FARL) buildFarLand(FARL);
   if (belts && !SC) placeBelts(belts, planting, trees);
   if (trees && !SC) placeTrees(trees, dressing);
   if (VIEW.festival && VIEW.festival.bunting) buildBunting(VIEW.festival.bunting);
@@ -2984,7 +3112,7 @@ function updateCamera(now, dt) {
 // the TV director's picture in a corner, as the big screens at the course. The director runs twice a frame: once for the
 // TV picture (its own running state kept here, swapped in and out), once for the terrace.
 function isTerrace(id) { return !!(RCAMS[id] && RCAMS[id].kind === "terrace"); }
-const TV = { cam: new THREE.PerspectiveCamera(30, 16 / 9, 0.5, 4000), focus: new THREE.Vector3(), snap: true, lastShot: null,
+const TV = { cam: new THREE.PerspectiveCamera(30, 16 / 9, 0.5, camera.far), focus: new THREE.Vector3(), snap: true, lastShot: null,
   lookOff: null, ahead: 0, aheadFor: null, on: false, rect: null, el: document.getElementById("tvBox") };
 function updateTV(now, dt) {
   TV.on = isTerrace(state.cam) && (state.phase === "stalls" || state.phase === "race");

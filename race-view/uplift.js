@@ -787,6 +787,10 @@ const TENT = `
     float upRoof = smoothstep(0.12, 0.3, upFn.y) * (1.0 - smoothstep(0.985, 0.999, upFn.y));
     float upBand = smoothstep(0.42, 0.5, abs(fract(dot(vUpO.xz, upAcross) / ${Number(q.get("stripe") || 1.4).toFixed(2)}) - 0.5) * 2.0);
     diffuseColor.rgb = mix(upCanvas, diffuseColor.rgb, upRoof * upBand); }`;
+// the day's air, in screen colour: the haze, and the sky's horizon the far ground fades into (the long views use them)
+export function airColours() { return { haze: U.upHazeCol.value, horizon: U.upHorizon.value }; }
+// the trees' greens on this day (a wood's canopy beyond the belts, drawn by the race view, is graded in them)
+export function leafPalette() { return LOOK.trees ? { leaf: GC.leaf, heart: GC.heart, far: GC.leafFar } : null; }
 export function patchLit(mat, kind = "") {
   if (mat.userData.up) return mat;
   const relight = has("relight"), crowd = kind === "crowd" && has("crowd"), tree = kind === "tree" && LOOK.trees;

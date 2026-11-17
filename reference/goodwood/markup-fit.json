@@ -1,0 +1,17 @@
+{
+ "M": [
+  [
+   1.880296866421702,
+   0.008678207094396827
+  ],
+  [
+   -0.07750943677150252,
+   -1.9143662214750616
+  ],
+  [
+   -645.4309497384231,
+   1026.2242833578641
+  ]
+ ],
+ "note": "[east, north] (metres about lat 50.895, lon -0.742) = [px, py, 1] @ M, px, py pixels in perimeter-markup.png (an affine fit to five points: the straight's east tip, the loop's top, the run-out's end, the chute's end, the March Stand's corner)"
+}

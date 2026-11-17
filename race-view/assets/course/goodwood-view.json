@@ -574,5 +574,6 @@
   "passAt": 8,
   "hideAfter": 350
  },
- "mapTurn": 0
+ "mapTurn": 0,
+ "farLand": "goodwood-farland.json"
 }
