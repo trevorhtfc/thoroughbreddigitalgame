@@ -8,12 +8,13 @@ switches (hand, straight course, surface, scenery, floodlights) are read from th
 
 Owner, 17 Nov 2026: first a rounded triangle; then "more of a circle ... with a few shoots", "take the Chester loop
 with a 6f shoot", "bigger loop"; then a sketch: "maybe something like this? and then we can have a straight and a round
-6f? i want this course to capture the vibe of as many courses as we can". So, after the sketch: a rounded square about
-1m2f round (1,951 m), the post end bulging round (radii 190 m and 180 m), a sharp home bend (90 m) and a 120 m bend at
-the top of the home-end side; a run-in of 260 m (1.3f). The same kit as the Park: a polygon with a rounded corner at
-each vertex. The chutes, as sketched: the 6f straight course off the home straight (a switch per course), a chute up off
-the home-end side, one along the top; plus a short one past the post end (the 1m1f needs it). With a straight course,
-the 5f and 6f are offered round the loop too.
+6f? i want this course to capture the vibe of as many courses as we can", and (on my first go at it) "Look at my diagram
+and try again". So the sketch traced: a rounded square 680 m a side, about 1m4f round (2,351 m, 11.7f), with a sharp
+home bend (100 m), a big sweep (300 m) from the home-end side into a domed top, the far end bulging round (280 m and
+180 m); a run-in of 370 m (1.8f). The sketch's own proportions set the size: its 6f straight-course spur is short
+beside the loop. The chutes as sketched and no others: the 6f straight course off the home straight (a switch per
+course); the home-side chute up off the home-end side (the round 5f and 6f; with no straight course these are the
+sprints); the top chute heading off towards the far end (the 7f and the 1m, as his "1m?", and the 1m1f).
 Every start is on a straight or in a chute, never on a bend; the starts pick their own place (the nearest straight
 with room, else the chute that joins nearest) so the numbers can change without re-planning by hand.
 
@@ -40,23 +41,25 @@ TIGHT = {
     "trackWidth": 24.0,      # a touch narrower than the Park's 26 m
     # the inside rail's polygon (metres; x along the home straight away from the post end, z into the infield) and the
     # radius of the bend at each corner: 0 the post-end bend, 1 the home bend, 2 the home-end top, 3 the far top
-    "corners": [[0.0, 0.0], [580.0, 0.0], [580.0, 520.0], [0.0, 520.0]],
-    "radii": [190.0, 90.0, 120.0, 180.0],
-    "pastPost": 40.0,        # straight track past the winning post before the post-end bend
+    # traced from the owner's sketch (a square of 340 px at 2 m a pixel): the post-end bottom corner 90 px, the home bend
+    # 50 px (sharp), the home-end top 150 px (a big sweep into the dome), the post-end top 140 px (the bulging far end)
+    "corners": [[0.0, 0.0], [680.0, 0.0], [680.0, 680.0], [0.0, 680.0]],
+    "radii": [180.0, 100.0, 300.0, 280.0],
+    "pastPost": 30.0,        # straight track past the winning post before the post-end bend
     # the chutes: straight spurs joining the loop on its tangent ("join": metres before the post where a chute meets
     # the loop; "home": the top of the home straight, its line carried on past the home bend, which is also the straight
     # course where a course has one; "corner:i": the line arriving at corner i's bend carried on past it). Owner, 17 Nov,
-    # with a sketch: a rounded square, the 6f straight course off the home straight, a chute up off the home-end side,
-    # one along the top; the post end bulging round. The post-end chute is mine: the 1m1f needs it.
+    # with a sketch: the 6f straight course off the home straight, a chute up off the home-end side, one off the top
+    # heading for the post end. At the sketch's size every start fits these three.
     "chutes": [{"name": "home-straight chute", "join": "home"}, {"name": "home-side chute", "join": "corner:2"},
-               {"name": "top chute", "join": "corner:3"}, {"name": "post-end chute", "join": "corner:0"}],
+               {"name": "top chute", "join": "corner:3"}],
     "roundSprints": True,    # with a straight course, the 5f and 6f are also offered round the loop ("a straight and a round 6f")
     # the straight course in furlongs (5 or 6; 0 = none), a switch for the real courses; the generic course has a 6f
     # straight and the round sprints too (owner, 17 Nov: "we can have a straight and a round 6f ... capture the vibe of as
     # many courses as we can")
     "straight": 6.0,
     "minAhead": 60.0,        # a start on a straight needs at least this much straight in front of it
-    "maxChute": 330.0,       # the furthest a start may sit up a chute
+    "maxChute": 480.0,       # the furthest a start may sit up a chute
     "room": 30.0,            # straight track behind the furthest start in a chute
     "runOut": 120.0,         # pulling up after the post (into the post-end bend)
     "surface": "turf",       # or "polytrack", "tapeta" (with floodlights)
