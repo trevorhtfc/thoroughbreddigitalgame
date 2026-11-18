@@ -443,5 +443,53 @@
  },
  "perimeter": {
   "infieldBoards": false
+ },
+ "stands": {
+  "_about": "Owner, 18 Nov 18:00, with old photos of Doncaster (a clock tower beside a long colonnaded stand with its roof terrace packed, 1920s; long low pitched-roof stands down the straight, 1930s; a 1960s cantilever stand with the little hipped-roof pavilion and cupola beside it): 'Use our kit of grandstand parts to create the right vibe'. From the post past the bend to up the course: the ring pavilion (the photo's little pavilion), York's north stand (the modern cantilever stand at the post), York's clock tower, two roof-terrace stands (the colonnaded stand with its packed roof terrace), the Rowley Mile's Victorian stand (the long low stand with the dormer roof), the July Course's old pavilion. [piece, x of its origin (m up the course from the post), set back (m beyond the front line), crowd density]",
+  "front": 17.0,
+  "pieces": [
+   [
+    "ring_pavilion",
+    -98,
+    14,
+    0.4
+   ],
+   [
+    "york_stand_north",
+    -48,
+    0,
+    0.55
+   ],
+   [
+    "york_clock_tower",
+    -4.5,
+    8,
+    0.35
+   ],
+   [
+    "park_roof_terrace_stand",
+    31,
+    0,
+    0.6
+   ],
+   [
+    "park_roof_terrace_stand",
+    70.6,
+    0,
+    0.6
+   ],
+   [
+    "victorian_stand",
+    158,
+    0,
+    0.5
+   ],
+   [
+    "old_pavilion",
+    268,
+    3,
+    0.5
+   ]
+  ]
  }
 }

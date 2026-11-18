@@ -242,8 +242,14 @@ def main(cid):
     # ---- scenery: the finish-line kit, the poles, and the basic surroundings (perimeter.py)
     S = NM.Scene(17, ground)
     grid_box = (ground["x0"], ground["z0"], ground["x0"] + ground["cell"] * (ground["nx"] - 1), ground["z0"] + ground["cell"] * (ground["nz"] - 1))
-    trees, boards, plot, pnote = PM.perimeter(S, course, turf, grid_box, random.Random(23), CF.get("perimeter"))
-    scen = NM.scenery_file(S, trees, boards, [], ["site_props", "finish_line"], {"at": [0, -zs * GAP], "turn": 180 if hand < 0 else 0}, poles)
+    popts = dict(CF.get("perimeter", {}))
+    models = ["site_props", "finish_line"]
+    if CF.get("stands"):
+        popts["stands"] = CF["stands"]; popts["standsModel"] = f"{cid}_stands"
+        popts["standsInfo"] = json.loads((REPO / f"assets/models/architecture/{cid}_stands.json").read_text())["pieces"]
+        models.append(f"{cid}_stands")
+    trees, boards, plot, pnote = PM.perimeter(S, course, turf, grid_box, random.Random(23), popts)
+    scen = NM.scenery_file(S, trees, boards, [], models, {"at": [0, -zs * GAP], "turn": 180 if hand < 0 else 0}, poles)
     scen["_about"] += " Basic surroundings from tools/course/real/perimeter.py (the shared rules until the course's own mark-up)."
     NM.write(f"{cid}-scenery.json", scen)
     print("   perimeter:", json.dumps(pnote))

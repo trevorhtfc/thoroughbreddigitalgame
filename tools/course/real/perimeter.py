@@ -141,12 +141,37 @@ def perimeter(S, C, turf, grid_box, rnd=None, opts=None):
                 boards.append([r2(x), r2(z), r2(face_turf(x, z)), DESIGNS[n % 4], rb["scale"]]); n += 1
         note["run-in hoardings"] = n
 
-    # ---- the rail lawn's crowd in front of the stand plot (the stands themselves come next)
+    # ---- the stands: the course's picks from the grandstand kit (tools/course/real/<id>.json "stands"), on one front line
+    # 'front' metres back from the outer rail (each piece set back a further 'back' m), facing the track, their crowds in
+    st = opts.get("stands")
+    if st:
+        info, model = opts["standsInfo"], opts["standsModel"]
+        zr = side * (W + 0.5)
+        lawn_x = [1e9, -1e9]
+        for piece, x, back, dens in st["pieces"]:
+            gi = info[piece]
+            gz = zr + side * (st.get("front", 17.0) + back)             # the stand's foot
+            turn = 0.0 if side < 0 else 180.0
+            S.piece(model, piece, x, gz, turn)
+            S.stand_people(gi, x, gz, turn, 1.0, 1.0, dens)
+            S.footprint(gi, x + gi.get("offset", 0.0) * (1 if side < 0 else -1), gz, turn)
+            ox = x + gi.get("offset", 0.0); hw = gi["width"] / 2
+            lawn_x = [min(lawn_x[0], ox - hw), max(lawn_x[1], ox + hw)]
+        note["stands"] = len(st["pieces"]); note["stand people"] = (len(S.people) - 0) // 4
+        # the paved walk along the stands' feet
+        za, zb = zr + side * 1.0, zr + side * (st.get("front", 17.0) - 0.5)
+        S.flat("#e4d8c2", [(lawn_x[0], za), (lawn_x[1], za), (lawn_x[1], zb), (lawn_x[0], zb)], 0.03)
+        LAWN_X = (lawn_x[0], lawn_x[1])
+    else:
+        LAWN_X = None
+
+    # ---- the rail lawn's crowd in front of the stand plot
     p0 = len(S.people)
     a, b, xa, xb, dens = LAWN
+    if LAWN_X: xa, xb = LAWN_X
     z_a, z_b = side * (W + 0.5 + a), side * (W + 0.5 + b)
     for x, z in S.spots(xa, xb, min(z_a, z_b), max(z_a, z_b), dens):
-        if not turf.buffer(2.0).contains(Point(x, z)):
+        if not turf.buffer(2.0).contains(Point(x, z)) and not S.blocked(x, z):
             S.person(x, 0.0, z, round((math.pi if side < 0 else 0.0) + rnd.uniform(-0.5, 0.5), 2))
     note["rail lawn crowd"] = (len(S.people) - p0) // 4
     note["trees"], note["boards"] = len(trees), len(boards)
