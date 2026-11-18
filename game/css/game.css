@@ -1936,3 +1936,11 @@ details.fold > summary > span{font-size:13px}
 .foal:not(.done) .fc-wait{pointer-events:none}
 .fc-skip{justify-self:center;margin:10px auto 0;display:block;min-height:40px;padding:8px 18px;border:1.5px solid var(--tb-green);border-radius:999px;background:#fff;color:var(--tb-green);font:inherit;font-weight:700;font-size:14.5px;cursor:pointer}
 .foal.done .fc-skip{display:none}
+/* iPhone (Safari) draws a card's back through its face when the back has layered pieces in it, so the race cards showed
+   their back's "NEWMARKET / Group 3" mirrored over the face (owner's screenshot, 18 Nov). Backface hiding isn't trusted:
+   each side is switched off outright halfway through the turn */
+.dc-back{transition:visibility 0s .3s}
+.dc.up .dc-back{visibility:hidden}
+.dc .dc-face{visibility:hidden;transition:visibility 0s .3s}
+.dc.up .dc-face{visibility:visible}
+.mflip-b{visibility:hidden}   /* shown only while a mare's card is turning over (mareDealAnim) */

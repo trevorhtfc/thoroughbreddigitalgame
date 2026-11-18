@@ -232,8 +232,11 @@ function mareDealAnim() {
     const dx = a.left + a.width / 2 - (r.left + r.width / 2), dy = a.top + a.height / 2 - (r.top + r.height / 2), sc = Math.min(1, a.width / r.width);
     c.animate([{ transform: `translate(${dx}px,${dy}px) rotate(${(i % 2 ? 1 : -1) * 8}deg) scale(${sc})`, opacity: 0 }, { opacity: 1, offset: .1 }, { transform: "none", opacity: 1 }],
       { duration: fly, delay: i * gap, easing: "cubic-bezier(.2,.8,.3,1)", fill: "backwards" });
-    c.querySelector(".mflip-in").animate([{ transform: "rotateY(-180deg)" }, { transform: "rotateY(0deg)" }],
+    const back = c.querySelector(".mflip-b"); back.style.visibility = "visible";
+    const flip = c.querySelector(".mflip-in").animate([{ transform: "rotateY(-180deg)" }, { transform: "rotateY(0deg)" }],
       { duration: 620, delay: t0 + i * turn, easing: "cubic-bezier(.3,.8,.25,1.1)", fill: "backwards" });
+    // (iPhone can draw a turned card's back through its face: once she's face up the back goes)
+    flip.finished.then(() => back.remove(), () => back.remove());
   });
   BOARD.Sound.chime && BOARD.Sound.chime();
   setTimeout(() => { if (UI.sheet === "stud") BOARD.Sound.whinny && BOARD.Sound.whinny(); }, t0 + cards.length * turn + 300);

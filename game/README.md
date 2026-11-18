@@ -982,6 +982,10 @@ the Jockey Club and the auction; By horse not working. "All the buttons HAVE to 
   the hidden options can't be hit before they show.
 - **Fill empty races** develops horses where a race needs an older one (only horses not entered anywhere, your flagged
   horse first, best rating next), so it works when every horse is still a 2-year-old.
+- **Race cards on iPhone showed their back through their face** (owner's screenshot: "NEWMARKET / Group 3" mirrored over
+  each card in the draw). Safari doesn't reliably hide the back of a card whose back has layered pieces, so each side
+  is now switched off outright halfway through the turn (`.dc-back` / `.dc-face` visibility, end of game.css). The
+  mares' cards keep their backs hidden except while turning, and drop them once face up.
 - Words: the stud's card on the map, the key points and How to play no longer talk about buying mares at the mares sale;
   the entries line only mentions training, the Grid and jockeys where they exist.
 - Checked headless (Chrome, phone 390×844 with touch, iPad 820×1180, 1280×800): Beginner at Royal Ascot from the cover
