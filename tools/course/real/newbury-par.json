@@ -1,0 +1,67 @@
+{
+ "_about": "Written by calibrate.mjs: the par (seconds) the race engine uses at newbury, so its winning times match the targets.",
+ "par": {
+  "n5f34y": 60.99,
+  "n6f8y": 72.57,
+  "n6f110y": 78.73,
+  "n7f": 85.4,
+  "n1m": 98.95,
+  "n1m7y": 99.1,
+  "n1m1f": 112.44,
+  "n1m2f6y": 126.86,
+  "n1m3f5y": 141.08,
+  "n1m4f5y": 155.68,
+  "n1m5f61y": 174.08,
+  "n2m": 215.39
+ },
+ "measured": {
+  "n5f34y": {
+   "winning time (before the last step)": 61.7,
+   "target": 61.7
+  },
+  "n6f8y": {
+   "winning time (before the last step)": 73,
+   "target": 73
+  },
+  "n6f110y": {
+   "winning time (before the last step)": 79,
+   "target": 79
+  },
+  "n7f": {
+   "winning time (before the last step)": 85.5,
+   "target": 85.5
+  },
+  "n1m": {
+   "winning time (before the last step)": 98.79,
+   "target": 98.8
+  },
+  "n1m7y": {
+   "winning time (before the last step)": 99.2,
+   "target": 99.2
+  },
+  "n1m1f": {
+   "winning time (before the last step)": 112.3,
+   "target": 112.3
+  },
+  "n1m2f6y": {
+   "winning time (before the last step)": 126.4,
+   "target": 126.4
+  },
+  "n1m3f5y": {
+   "winning time (before the last step)": 140.28,
+   "target": 140.3
+  },
+  "n1m4f5y": {
+   "winning time (before the last step)": 154.46,
+   "target": 154.5
+  },
+  "n1m5f61y": {
+   "winning time (before the last step)": 172.5,
+   "target": 172.5
+  },
+  "n2m": {
+   "winning time (before the last step)": 212.77,
+   "target": 212.8
+  }
+ }
+}

@@ -1,0 +1,67 @@
+{
+ "_about": "Written by calibrate.mjs: the par (seconds) the race engine uses at doncaster, so its winning times match the targets.",
+ "par": {
+  "d5f": 59.02,
+  "d5f140y": 67.3,
+  "d6f": 72.09,
+  "d6f110y": 78.76,
+  "d7f": 85.41,
+  "d1m": 99.02,
+  "d1mround": 98.73,
+  "d1m2f60y": 130.29,
+  "d1m4f": 155.37,
+  "d1m6f132y": 193.76,
+  "d2m110y": 223.07,
+  "d2m2f": 246.37
+ },
+ "measured": {
+  "d5f": {
+   "winning time (before the last step)": 59.69,
+   "target": 59.7
+  },
+  "d5f140y": {
+   "winning time (before the last step)": 67.79,
+   "target": 67.8
+  },
+  "d6f": {
+   "winning time (before the last step)": 72.48,
+   "target": 72.5
+  },
+  "d6f110y": {
+   "winning time (before the last step)": 78.99,
+   "target": 79
+  },
+  "d7f": {
+   "winning time (before the last step)": 85.49,
+   "target": 85.5
+  },
+  "d1m": {
+   "winning time (before the last step)": 98.8,
+   "target": 98.8
+  },
+  "d1mround": {
+   "winning time (before the last step)": 98.78,
+   "target": 98.8
+  },
+  "d1m2f60y": {
+   "winning time (before the last step)": 129.77,
+   "target": 129.8
+  },
+  "d1m4f": {
+   "winning time (before the last step)": 154.15,
+   "target": 154.2
+  },
+  "d1m6f132y": {
+   "winning time (before the last step)": 191.9,
+   "target": 191.9
+  },
+  "d2m110y": {
+   "winning time (before the last step)": 220.29,
+   "target": 220.3
+  },
+  "d2m2f": {
+   "winning time (before the last step)": 242.95,
+   "target": 243
+  }
+ }
+}

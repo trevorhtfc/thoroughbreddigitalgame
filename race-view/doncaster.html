@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<title>Doncaster Racing</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cormorant+SC:wght@600;700&family=Jost:wght@400;500;600&display=swap">
+<style>
+/* A race-day card: the racecard view as the picture, the races listed as a card's entries, racing green on cream. */
+:root {
+  --bg: #f3ecdc;
+  --paper: #fbf7ee;
+  --ink: #213027;
+  --soft: #5d6657;
+  --green: #1f5a38;
+  --green-ink: #f6f0e1;
+  --gold: #b8954a;
+  --pink: #d9708f;
+  --line: #ddd0b2;
+  --display: "Cormorant SC", "Iowan Old Style", Georgia, serif;
+  --body: "Jost", "Avenir Next", "Segoe UI", system-ui, sans-serif;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #151c17; --paper: #1d261f; --ink: #ece4d0; --soft: #a9ae9c; --green: #3d8a5c; --green-ink: #f6f0e1;
+    --gold: #cfae66; --pink: #e490a9; --line: #34402f; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #151c17; --paper: #1d261f; --ink: #ece4d0; --soft: #a9ae9c; --green: #3d8a5c; --green-ink: #f6f0e1;
+  --gold: #cfae66; --pink: #e490a9; --line: #34402f; color-scheme: dark;
+}
+body { background: var(--bg); color: var(--ink); font-family: var(--body); font-size: 16px; line-height: 1.5; }
+.wrap { max-width: 980px; margin: 0 auto; padding-block: 28px 48px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); display: grid; gap: 22px; }
+.eyebrow { font-size: 12px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--gold); font-weight: 600; }
+h1 { font-family: var(--display); font-weight: 700; font-size: clamp(34px, 6vw, 54px); line-height: 1.02; margin: 4px 0 0; color: var(--green); text-wrap: balance; }
+.lede { color: var(--soft); max-width: 62ch; margin: 6px 0 0; }
+.view { position: relative; border-radius: 6px; overflow: hidden; border: 1px solid var(--line); background: var(--paper); }
+.view img { display: block; width: 100%; height: auto; aspect-ratio: 16 / 9; object-fit: cover; }
+.view figcaption { padding: 10px 14px; font-size: 13px; color: var(--soft); border-top: 1px solid var(--line); }
+.card { background: var(--paper); border: 1px solid var(--line); border-radius: 6px; padding: 18px; display: grid; gap: 14px; }
+.card h2 { font-family: var(--display); font-weight: 700; font-size: 26px; margin: 0; color: var(--ink); }
+.races { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; }
+.race { display: grid; gap: 2px; text-decoration: none; color: var(--green-ink); background: var(--green); border-radius: 4px; padding: 10px 12px; border: 1px solid transparent; }
+.race:hover { filter: brightness(1.08); }
+.race:focus-visible { outline: 3px solid var(--gold); outline-offset: 2px; }
+.race b { font-family: var(--display); font-size: 24px; line-height: 1; font-variant-numeric: tabular-nums; }
+.race span { font-size: 12.5px; opacity: 0.88; }
+.race.feature { background: var(--paper); color: var(--green); border-color: var(--green); }
+.opts { display: flex; flex-wrap: wrap; gap: 14px 22px; align-items: end; }
+.opts label { display: grid; gap: 4px; font-size: 12px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--soft); font-weight: 600; }
+.opts select { font: inherit; font-size: 15px; text-transform: none; letter-spacing: 0; color: var(--ink); background: var(--bg); border: 1px solid var(--line); border-radius: 4px; padding: 6px 10px; }
+.notes { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 12px 24px; font-size: 14.5px; color: var(--soft); }
+.notes p { margin: 0; min-width: 0; }
+.notes strong { color: var(--ink); font-weight: 600; }
+.other { font-size: 14px; color: var(--soft); }
+.other a { color: var(--green); font-weight: 600; }
+@media (prefers-reduced-motion: no-preference) { .race { transition: filter 0.15s; } }
+</style>
+
+<div class="wrap">
+  <header>
+    <div class="eyebrow">Doncaster · race view · draft</div>
+    <h1>Doncaster Racing</h1>
+    <p class="lede">Doncaster&#x27;s track in 3D, left-handed, on its real outline (OpenStreetMap) and real ground (AWS Terrain Tiles). A draft with the basic surroundings every tier 2 course shares: boards round the outside 20 m off the track, a belt of trees behind them, boards and a looser belt round the infield, the stand side kept clear for its stands (a rail crowd for now) and the run-in&#x27;s infield kept open for the festival.</p>
+    <p class="other">Also in this draft: <a href="index.html">Newbury</a></p>
+  </header>
+
+  <figure class="view" style="margin:0">
+    <img src="doncaster-hero.jpg" alt="The tracking car on the far side: the boards on the inside rail and the infield belt of trees behind.">
+    <figcaption>The tracking car on the far side: the boards on the inside rail and the infield belt of trees behind.</figcaption>
+  </figure>
+
+  <section class="card" aria-labelledby="races-h">
+    <h2 id="races-h">Today's races</h2>
+    <div class="opts">
+      <label for="going">Going
+        <select id="going"><option>Quick</option><option>Quicker</option><option selected>Good</option><option>Softer</option><option>Heavy</option></select>
+      </label>
+      <label for="runners">Runners
+        <select id="runners"><option>8</option><option>10</option><option selected>14</option><option>18</option><option>20</option></select>
+      </label>
+    </div>
+    <nav class="races" id="races" aria-label="Races">
+      <a class="race" data-race="5f" href="final-furlong.html?course=doncaster&race=5f"><b>5f</b><span>The straight course</span></a>
+      <a class="race" data-race="5f140y" href="final-furlong.html?course=doncaster&race=5f140y"><b>5f140y</b><span>The straight course</span></a>
+      <a class="race" data-race="6f" href="final-furlong.html?course=doncaster&race=6f"><b>6f</b><span>The straight course</span></a>
+      <a class="race" data-race="6f110y" href="final-furlong.html?course=doncaster&race=6f110y"><b>6f110y</b><span>The straight course</span></a>
+      <a class="race" data-race="7f" href="final-furlong.html?course=doncaster&race=7f"><b>7f</b><span>The straight course</span></a>
+      <a class="race feature" data-race="1m" href="final-furlong.html?course=doncaster&race=1m"><b>1m</b><span>The straight course</span></a>
+      <a class="race" data-race="1m-round" href="final-furlong.html?course=doncaster&race=1m-round"><b>1m</b><span>Up the chute, round the far bend</span></a>
+      <a class="race" data-race="1m2f60y" href="final-furlong.html?course=doncaster&race=1m2f60y"><b>1m2f60y</b><span>Round the home bend, the far side, Rose Hill</span></a>
+      <a class="race" data-race="1m4f" href="final-furlong.html?course=doncaster&race=1m4f"><b>1m4f</b><span>Round the home bend, the far side, Rose Hill</span></a>
+      <a class="race feature" data-race="1m6f132y" href="final-furlong.html?course=doncaster&race=1m6f132y"><b>1m6f132y</b><span>Round the home bend, the far side, Rose Hill</span></a>
+      <a class="race" data-race="2m110y" href="final-furlong.html?course=doncaster&race=2m110y"><b>2m110y</b><span>From the home straight, once round</span></a>
+      <a class="race feature" data-race="2m2f" href="final-furlong.html?course=doncaster&race=2m2f"><b>2m2f</b><span>From the home straight, once round</span></a>
+    </nav>
+    <div class="notes">
+      <p><strong>The real track.</strong> OpenStreetMap&#x27;s outline of the turf, the starts where At The Races&#x27; diagram puts them, and the ground under every route for the race engine.</p>
+      <p><strong>The basic rules.</strong> Boards 20 m off the track round the outside, a belt of trees from 25 m, thinner trees to 110 m; boards and a looser belt round the infield; the stand side and the run-in&#x27;s infield kept clear for the stands and the festival.</p>
+      <p><strong>The cameras.</strong> The start camera, the tracking car round the course and along the straight, the stand camera for the last two furlongs, the head-on for straight races, and the replay.</p>
+      <p><strong>Running slowly?</strong> Choose Medium or Low under Quality in the race view&#x27;s bar. Auto steps down by itself.</p>
+    </div>
+  </section>
+</div>
+
+<script>
+// carry the going and field size into each race's link
+(function () {
+  const going = document.getElementById("going"), runners = document.getElementById("runners");
+  try { const g = localStorage.getItem("do-going"), r = localStorage.getItem("do-runners"); if (g) going.value = g; if (r) runners.value = r; } catch (e) {}
+  function update() {
+    document.querySelectorAll("#races .race").forEach((a) => {
+      a.href = "final-furlong.html?course=doncaster&race=" + encodeURIComponent(a.dataset.race) + "&going=" + encodeURIComponent(going.value) + "&runners=" + runners.value;
+    });
+    try { localStorage.setItem("do-going", going.value); localStorage.setItem("do-runners", runners.value); } catch (e) {}
+  }
+  going.addEventListener("change", update); runners.addEventListener("change", update); update();
+})();
+</script>

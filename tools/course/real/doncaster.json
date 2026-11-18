@@ -276,5 +276,19 @@
    "above": 1.2,
    "note": "a raised block in the terrain tiles round the home bend (up to 5 m, with straight, grid-aligned edges): taken to be a fault in the data, not real ground (Doncaster is flat there)"
   }
- ]
+ ],
+ "view": {
+  "defaultRace": "1m6f132y",
+  "feature": [
+   "1m",
+   "1m6f132y",
+   "2m2f"
+  ],
+  "routeWords": {
+   "straight": "The straight course",
+   "mile": "Up the chute, round the far bend",
+   "round": "Round the home bend, the far side, Rose Hill",
+   "loop": "From the home straight, once round"
+  }
+ }
 }

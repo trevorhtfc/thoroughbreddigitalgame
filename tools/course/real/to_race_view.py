@@ -1,0 +1,233 @@
+"""Tier 2 courses for the 3D race view (race-view/final-furlong.html?course=<id>), phases 2 and 3 at their basic level:
+the track on its real ground, the stalls, the cameras, and the basic rules for boards and planting (perimeter.py).
+
+    python3 tools/course/real/layout.py <id>          (the plan: courses/<id>-draft.json)
+    python3 tools/course/real/to_race_view.py <id>    (this: the race view's files)
+    node tools/course/real/calibrate.mjs <id>         (the par times), then this again
+
+Epsom's to_race_view.py made general (it reads the course's own settings from tools/course/real/<id>.json, "view").
+Writes race-view/assets/course/<id>.json, -view, -stalls, -standards, -scenery, as York, Goodwood and Epsom.
+
+Cameras (the basic set, York's): the start camera; the tracking car 12 m beyond the outer rail round the course and 5 m
+along the straight; the stand camera on the stand side by the post for the last 2 furlongs; the head-on long lens
+beyond the line for straight races; the side-on replay. Each course's own TV cameras come with its race video.
+"""
+import json, math, re, sys, random, importlib.util
+from pathlib import Path
+import numpy as np
+from shapely.geometry import Polygon
+from shapely.ops import unary_union
+
+HERE = Path(__file__).resolve().parent
+REPO = HERE.parents[2]
+sys.path.insert(0, str(REPO / "tools/course/newmarket"))
+import to_race_view as NM          # Newmarket's: the shared light, ground colours, cameras and view file
+sys.path.insert(0, str(HERE))
+import layout as LYM
+import perimeter as PM
+
+OUT = REPO / "race-view/assets/course"
+F = 201.168
+GAP = 0.4
+STALL1, STALL_PITCH, STANDS_BEHIND = 1.625, 1.05, 1.55
+MAX_RUNNERS = 22
+GROUND_CELL = 20.0
+MARGIN = 420.0
+EDGE_EASE = 160.0
+BEHIND = 40.0
+
+
+def r2(v): return round(v, 2)
+def race_id(t): return re.sub(r"\s*\((\w+)\)", r"-\1", t).strip()
+
+
+def route_bits(route, W, hand):
+    pts = route["insideRail"]; n = len(pts); tan = []
+    for i in range(n):
+        a, b = pts[max(0, i - 1)], pts[min(n - 1, i + 1)]
+        dx, dz = a[0] - b[0], a[1] - b[1]; l = math.hypot(dx, dz) or 1
+        tan.append((dx / l, dz / l))
+    # across the track from the inside rail: the horses' right on a left-handed course (-z on the home straight)
+    across = [(-tz, tx) if hand < 0 else (tz, -tx) for tx, tz in tan]
+    outer = [[p[0] + r[0] * W, p[1] + r[1] * W] for p, r in zip(pts, across)]
+    mid = [[p[0] + r[0] * W / 2, p[1] + r[1] * W / 2] for p, r in zip(pts, across)]
+    from shapely.geometry import LineString
+    strip = LineString(mid).buffer(W / 2, cap_style=2)
+    return tan, across, outer, strip
+
+
+def ground_grid(LY, C, W, name):
+    pts = np.array([p for r in C["routes"].values() for p in r["insideRail"]])
+    x0 = math.floor((pts[:, 0].min() - MARGIN) / GROUND_CELL) * GROUND_CELL
+    z0 = math.floor((pts[:, 1].min() - MARGIN) / GROUND_CELL) * GROUND_CELL
+    x1, z1 = pts[:, 0].max() + MARGIN, pts[:, 1].max() + MARGIN
+    nx, nz = int((x1 - x0) / GROUND_CELL) + 2, int((z1 - z0) / GROUND_CELL) + 2
+    gx, gz = np.meshgrid(x0 + GROUND_CELL * np.arange(nx), z0 + GROUND_CELL * np.arange(nz))
+    E = LY.POST[None, None, :] + gx[..., None] * LY.XH[None, None, :] + gz[..., None] * LY.ZH[None, None, :]
+    hh = np.vectorize(lambda e, n: LY.ground((e, n)))(E[..., 0], E[..., 1]) - LY.POST_GROUND
+    p = np.pad(hh, 1, mode="edge")
+    hh = sum(p[1 + a:1 + a + nz, 1 + b:1 + b + nx] for a in (-1, 0, 1) for b in (-1, 0, 1)) / 9.0
+    edge_h = float(np.median(np.concatenate([hh[0], hh[-1], hh[:, 0], hh[:, -1]])))
+    di = np.minimum(np.arange(nx), np.arange(nx)[::-1])[None, :] * GROUND_CELL
+    dj = np.minimum(np.arange(nz), np.arange(nz)[::-1])[:, None] * GROUND_CELL
+    w = np.clip(np.minimum(di, dj) / EDGE_EASE, 0, 1); w = w * w * (3 - 2 * w)
+    hh = hh * w + edge_h * (1 - w)
+    return {"x0": x0, "z0": z0, "cell": GROUND_CELL, "nx": nx, "nz": nz, "h": [round(float(v), 2) for v in hh.ravel()],
+            "farY": round(edge_h, 2),
+            "note": "%s's real ground (AWS Terrain Tiles), metres against the post's (%.1f m above sea level), every 'cell' metres "
+                    "from (x0, z0), row by row along x; eased over its outer %d m to farY, where the flat far ground lies." %
+                    (name, LY.POST_GROUND, EDGE_EASE)}
+
+
+def main(cid):
+    LY = LYM.Course(cid)
+    CF = LY.C; V = CF.get("view", {})
+    C = json.loads((REPO / f"courses/{cid}-draft.json").read_text())
+    W = C["trackWidth"]; hand = C["hand"]; name = CF["name"]
+    C["starts"] = {race_id(t): dict(s, label=t) for t, s in C["starts"].items()}
+    for rn, r in C["routes"].items():
+        far = max([s["distance"] for s in C["starts"].values() if s["route"] == rn] + [r["d0"] + 200]) + BEHIND
+        n = int((far - r["d0"]) / r["spacing"]) + 1
+        r["insideRail"] = r["insideRail"][:n]
+        r["heights"] = dict(r["heights"], h=r["heights"]["h"][:n])
+        r["bends"] = [b for b in r["bends"] if b[1] < far]
+        r["bends"] = [[min(b[0], far), b[1], b[2] if b[0] <= far else round(b[2] * (far - b[1]) / (b[0] - b[1]), 1)] for b in r["bends"]]
+    routes_out, strips = {}, []
+    for rn, r in C["routes"].items():
+        tan, across, outer, strip = route_bits(r, W, hand)
+        strips.append(strip)
+        bends = [list(b) for b in r["bends"]]
+        home = min([b[1] for b in bends if b[2] > 0], default=0.0)
+        routes_out[rn] = {"pathRail": {"d0": r["d0"], "spacing": r["spacing"], "points": r["insideRail"]},
+                          "path": {"bends": bends, "home": home,
+                                   "note": "For the race engine: bends as [metres to go where it starts, where it ends, degrees turned "
+                                           "(+ towards the rail; - away from it)]; 'home' = where the home straight starts."},
+                          "heights": r["heights"]}
+    turf = unary_union(strips).buffer(0.01).buffer(-0.01).simplify(0.15)
+    parts = [turf] if turf.geom_type == "Polygon" else sorted(turf.geoms, key=lambda g: -g.area)
+    turf = parts[0]
+    surface = [[[r2(x), r2(z)] for x, z in turf.exterior.coords]] + [[[r2(x), r2(z)] for x, z in h.coords] for h in turf.interiors]
+    railed = turf.buffer(GAP, join_style=2, mitre_limit=2.0).simplify(0.1)
+    rails = [[[r2(x), r2(z)] for x, z in railed.exterior.coords]] + [[[r2(x), r2(z)] for x, z in h.coords] for h in railed.interiors]
+    sz = -1 if hand < 0 else 1                              # the stand side's z sign
+    poles = [{"furlongs": k, "at": [r2(k * F), r2(sz * (W + GAP + 0.7))], "turn": 0} for k in range(1, 5)]
+    ground = ground_grid(LY, C, W, name)
+    default_route = V.get("defaultRoute", "round")
+    course = {
+        "id": cid, "name": name, "status": "draft",
+        "_about": "Written by tools/course/real/to_race_view.py from courses/%s-draft.json; don't edit by hand. World axes as "
+                  "York's: x along the home straight (the horses run towards -x), y up, the winning post on the inside rail is the "
+                  "origin. Several routes (each race takes its start's route), each with its own ground heights for the race "
+                  "engine; the turf is laid on the ground grid." % cid,
+        "axes": C["axes"], "direction": C["direction"], "hand": hand,
+        "trackWidth": W, "furlong": F,
+        "routes": routes_out, "defaultRoute": default_route,
+        "path": routes_out[default_route]["path"], "pathRail": routes_out[default_route]["pathRail"],
+        "track": {"surface": surface},
+        "rails": {"gap": GAP, "lines": rails, "skip": [[-16.3, 16.7, GAP]]},
+        "straightMile": {"length": round(C["routes"]["straight"]["length"], 1), "furlongPoles": poles},
+        "winningPost": [0, 0],
+        "ground": ground,
+        "drapeTurf": True,
+    }
+    NM.write(f"{cid}.json", course)
+
+    # ---- stalls: each start's stalls across the track from its inside rail, stall 1 on the inside
+    asc = json.loads((OUT / "ascot-stalls.json").read_text())
+    starts = {}
+    pre = cid[0]
+    keys = {t: pre + re.sub(r"[^0-9a-z]", "", t) for t in C["starts"]}
+    for t, s in C["starts"].items():
+        r = C["routes"][s["route"]]
+        pts, sp, d0 = r["insideRail"], r["spacing"], r["d0"]
+        f = (s["distance"] - d0) / sp; i = max(1, min(len(pts) - 2, int(f))); k = f - i
+        a, b = pts[i], pts[i + 1]
+        x, z = a[0] + (b[0] - a[0]) * k, a[1] + (b[1] - a[1]) * k
+        p0, p1 = pts[i - 1], pts[i + 1]
+        tx, tz = p0[0] - p1[0], p0[1] - p1[1]; l = math.hypot(tx, tz); tx, tz = tx / l, tz / l
+        nx, nz = (-tz, tx) if hand < 0 else (tz, -tx)
+        straight = s["route"] == "straight"
+        starts[t] = {
+            "label": s["label"],
+            "course": "straight" if straight else "round",
+            "route": s["route"], "key": keys[t], "distance": s["distance"], "insideRailAt": [r2(x), r2(z)],
+            "runningDirection": [round(tx, 4), round(tz, 4)], "towardsOuterRail": [round(nx, 4), round(nz, 4)],
+            "stall1": "inside rail", "onStraight": straight, "comesBack": False,
+            "stalls": [{"draw": j + 1, "fromInsideRail": round(STALL1 + STALL_PITCH * j, 3), "across": round(STALL1 + STALL_PITCH * j - W / 2, 3),
+                        "at": [r2(x + nx * (STALL1 + STALL_PITCH * j)), r2(z + nz * (STALL1 + STALL_PITCH * j))]} for j in range(MAX_RUNNERS)],
+        }
+    stalls = {"_about": "%s's starting stalls, DRAFT (tools/course/real/to_race_view.py), with Ascot's stall kit and gates. Distances "
+                        "from the gate line along the route's inside rail; stall 1 on the inside rail." % name,
+              "horseStandsBehind": STANDS_BEHIND, "gates": asc["gates"], "kit": asc["kit"], "maxRunners": MAX_RUNNERS,
+              "unitsForField": {k: v for k, v in asc["unitsForField"].items() if int(k) <= MAX_RUNNERS}, "starts": starts}
+    NM.write(f"{cid}-stalls.json", stalls, 1)
+
+    # ---- standards: rough winning times (a good horse, good ground) until the calibration sets the pars
+    nm = json.loads((OUT / "newmarket-july-standards.json").read_text())
+    par_file = HERE / f"{cid}-par.json"
+    par = json.loads(par_file.read_text())["par"] if par_file.exists() else {}
+    def target(s):
+        d = s["distance"]; tgt = V.get("targets", {}).get(s["label"])
+        if tgt: return tgt
+        # a galloping course's typical good-ground winning times: about 12.0 s a furlong over 5f, 12.4 at a mile, 12.9
+        # at a mile and a half, 13.3 at two miles (to check against real results)
+        fpf = np.interp(d / F, [5, 8, 12, 16, 18], [11.95, 12.35, 12.85, 13.3, 13.5])
+        return round(fpf * d / F, 1)
+    standards = {"_about": "Par (standard) times at %s, DRAFT. 'winningTime' is a rough winning time for a good horse on good ground "
+                           "(a galloping course's typical times: to check against real results); 'seconds' is the par the engine "
+                           "uses, set by tools/course/real/calibrate.mjs so its winning times come out at those." % name,
+                 "parTimes": [{"key": keys[t], "course": "straight" if s["route"] == "straight" else "round", "distance": s["distance"],
+                               "seconds": par.get(keys[t], round(target(s) * 0.978, 2)), "winningTime": target(s)} for t, s in C["starts"].items()],
+                 "going": nm["going"], "pace": nm["pace"]}
+    NM.write(f"{cid}-standards.json", standards, 1)
+
+    # ---- the view: as York's and Epsom's (left-handed: the stands on -z, the fixed cameras mirrored)
+    sw = LY.world_dir(-(np.array([1.0, 0.0]) * 0.55 + np.array([0.0, 1.0]) * 0.84))   # the sun west-south-west, mid-afternoon
+    l = math.hypot(*sw)
+    sun = [r2(sw[0] / l * 105), 49.5, r2(sw[1] / l * 105)]
+    cams = NM.cameras(W, +1, [0, 16, W + 15], ([-8, 6.5, 0.8], [0, 6.0, W * 0.65]), -70.0, sun)
+    if hand < 0:
+        mz = lambda p: [p[0], p[1], r2(-p[2])]
+        cams["grandstand"]["at"] = mz(cams["grandstand"]["at"])
+        cams["headon"]["at"] = mz(cams["headon"]["at"])
+        cams["sideon"]["at"], cams["sideon"]["look"] = mz(cams["sideon"]["at"]), mz(cams["sideon"]["look"])
+    cams["sideon"]["fov"] = [46, 46]
+    cams["track_straight"]["raise"] = []
+    zs = -1 if hand < 0 else 1
+    prelude = {"label": "The runners", "seconds": 9, "eye": [[-60, 18, -zs * 30], [-45, 17, -zs * 28]],
+               "at": [[150, 6, zs * 60], [165, 6, zs * 62]], "fov": 46, "list": [7, 0.6], "cardAfter": 3.5}
+    postlude = NM.overview_after(prelude)
+    director = {"tracking": True, "grandstand": 2 * F}
+    menu = {"straight": [["track_straight", "Tracking"], ["grandstand", "Stand"], ["headon", "Head-on"], ["drone_straight", "Drone"]],
+            "round": [["track_loop", "Tracking"], ["grandstand", "Stand"], ["drone_straight", "Drone"]]}
+
+    class L:
+        TRACK_W = W; RUN_ON = C["runOut"]; STRAIGHT = C["routes"]["straight"]["length"]
+    view = NM.view_file(cid, L, {"name": name}, stalls, -1 if hand < 0 else 1, cams, prelude, postlude, director, menu)
+    view["homeStraight"]["centreZ"] = zs * W / 2
+    view["lanesStraight"]["x"][0] = 0.0
+    view["treeDetail"]["centre"] = [150, zs * W / 2]
+    view["_about"] = ("The race view's cameras and dressing for %s. Written by tools/course/real/to_race_view.py; don't edit by hand. "
+                      "World axes as %s.json." % (name, cid))
+    view["races"]["_default"] = V.get("defaultRace", next(iter(stalls["starts"])))
+    for k in stalls["starts"]:
+        view["races"][k]["label"] = C["starts"][k]["label"]
+    view["mapTurn"] = V.get("mapTurn", 0)
+    view["ground"]["farY"] = ground["farY"]
+    NM.write(f"{cid}-view.json", view, 1)
+
+    # ---- scenery: the finish-line kit, the poles, and the basic surroundings (perimeter.py)
+    S = NM.Scene(17, ground)
+    grid_box = (ground["x0"], ground["z0"], ground["x0"] + ground["cell"] * (ground["nx"] - 1), ground["z0"] + ground["cell"] * (ground["nz"] - 1))
+    trees, boards, plot, pnote = PM.perimeter(S, course, turf, grid_box, random.Random(23))
+    scen = NM.scenery_file(S, trees, boards, [], ["site_props", "finish_line"], {"at": [0, -zs * GAP], "turn": 180 if hand < 0 else 0}, poles)
+    scen["_about"] += " Basic surroundings from tools/course/real/perimeter.py (the shared rules until the course's own mark-up)."
+    NM.write(f"{cid}-scenery.json", scen)
+    print("   perimeter:", json.dumps(pnote))
+    hs = np.array(ground["h"])
+    print("turf area %.0f m2, %d rail lines, %d starts; ground %d x %d, %.1f to %.1f m against the post" %
+          (turf.area, len(rails), len(starts), ground["nx"], ground["nz"], hs.min(), hs.max()))
+
+
+if __name__ == "__main__":
+    main(sys.argv[1])

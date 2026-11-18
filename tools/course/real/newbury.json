@@ -267,5 +267,19 @@
   ]
  ],
  "numberEvery": 1,
- "legend": "center"
+ "legend": "center",
+ "view": {
+  "defaultRace": "1m4f5y",
+  "feature": [
+   "1m",
+   "1m4f5y",
+   "2m"
+  ],
+  "routeWords": {
+   "straight": "The straight course",
+   "mile": "Up the chute, left into the straight",
+   "round": "The back straight, round the far bend",
+   "loop": "From the home straight, once round"
+  }
+ }
 }
