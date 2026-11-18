@@ -1,0 +1,37 @@
+{
+ "_about": "Written by calibrate.mjs: the par (seconds) the race engine uses at Epsom, so its winning times match the targets.",
+ "par": {
+  "e5f": 53.52,
+  "e6f": 67.87,
+  "e7f": 81.17,
+  "e1m114y": 102.52,
+  "e1m2f18y": 128.07,
+  "e1m4f10y": 154.97
+ },
+ "measured": {
+  "e5f": {
+   "winning time (before the last step)": 55.01,
+   "target": 55
+  },
+  "e6f": {
+   "winning time (before the last step)": 68.99,
+   "target": 69
+  },
+  "e7f": {
+   "winning time (before the last step)": 81.99,
+   "target": 82
+  },
+  "e1m114y": {
+   "winning time (before the last step)": 102.99,
+   "target": 103
+  },
+  "e1m2f18y": {
+   "winning time (before the last step)": 128,
+   "target": 128
+  },
+  "e1m4f10y": {
+   "winning time (before the last step)": 154.48,
+   "target": 154.5
+  }
+ }
+}
