@@ -165,7 +165,10 @@ def perimeter(S, C, turf, grid_box, rnd=None, opts=None):
                 S.piece(model, piece, x, gz, turn)
                 S.stand_people(gi, x, gz, turn, 1.0, 1.0, dens)
                 S.footprint(gi, x, gz, turn)
-                note.setdefault("placed by hand", {})[piece] = [r2(x), r2(gz), turn]
+                note.setdefault("placed by hand", []).append([piece, r2(x), r2(gz), turn, "turf gap", r2(turf.distance(Polygon(S.nogo[-1])))])
+                if st.get("walkUnderHandPlaced"):           # the paved walk and the rail lawn run along these too (Newbury)
+                    bx0, _, bx1, _ = Polygon(S.nogo[-1]).bounds
+                    lawn_x = [min(lawn_x[0], bx0), max(lawn_x[1], bx1)]
                 # clear the ground between it and the turf (owner, 19:15: the tiered stand tucked into the bend, where the
                 # bend's belt trees would stand in front of it): no trees there, a paved apron to the rail
                 from shapely.affinity import translate as _tr
@@ -319,6 +322,8 @@ def perimeter(S, C, turf, grid_box, rnd=None, opts=None):
     a, b, xa, xb, dens = LAWN
     dens = opts.get("lawnDens", dens)
     if LAWN_X: xa, xb = LAWN_X
+    if opts.get("lawnX"): xa, xb = opts["lawnX"]              # (Newbury: the lawn runs on past the stands to his area 4)
+    if opts.get("lawnDepth"): a, b = opts["lawnDepth"]        # (Newbury: stands set back, the lawn deep in front of them)
     z_a, z_b = side * (W + 0.5 + a), side * (W + 0.5 + b)
     for x, z in S.spots(xa, xb, min(z_a, z_b), max(z_a, z_b), dens):
         if not turf.buffer(2.0).contains(Point(x, z)) and not S.blocked(x, z):

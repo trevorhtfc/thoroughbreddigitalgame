@@ -414,5 +414,200 @@
     ]
    }
   }
+ },
+ "stands": {
+  "_about": "Newbury's stands, owner 18 Nov 19:38-19:39: 'same basic model' (as Doncaster) on his marked-up satellite view (1 the stand at the bend, angled; 2 the long stand, turned a little to look up the straight; 3 the stand beyond it, square on; 4 an area up the course on the stand side; 'festival' the infield opposite, along the inside rail from the bend up the course) and his old photo of Newbury's stands ('bit more pitched roof terrace etc': a brick block with a hipped roof, a long pitched-roof stand, and a separate roof-terrace stand with a little lookout pavilion on its roof). So: 1 the pitched-roof (gable) stand turned 45 to the run-in, 14 m off the turf; 2 the clock house (the brick block) and a second pitched-roof stand in one line turned 20, its left end on the front line; 3 low terraces and the roof-terrace stand with Rowley's little Victorian pavilion on its roof as the lookout. 4 is the stand-side festival zone (perimeter.festivals). Owner's mark-up on the plan, 19:42: 2 and 3 square on and set back (fronts about 65 m off the inside rail, as the real stands), in his boxes x -26..49 and 76..148; 4 the stand-side festival zone set back the same, x 170..377; 1 as it was.",
+  "front": 17.0,
+  "walkUnderHandPlaced": true,
+  "composites": {
+   "park_roof_terrace_stand_lookout": {
+    "base": "park_roof_terrace_stand",
+    "add": [
+     {
+      "piece": "victorian_pavilion",
+      "above": 0.0,
+      "scale": 0.7,
+      "at": [
+       0.0,
+       25.47,
+       -25.9
+      ]
+     }
+    ]
+   }
+  },
+  "pieces": [
+   {
+    "piece": "park_gable_stand",
+    "at": [
+     -62.0,
+     -58.0
+    ],
+    "turn": 45.0,
+    "dens": 0.85,
+    "note": "his 1: at the bend, turned to the run-in"
+   },
+   [
+    "park_clock_house",
+    -17.0,
+    21.5,
+    0.6
+   ],
+   [
+    "park_gable_stand",
+    23.0,
+    21.5,
+    0.85
+   ],
+   [
+    "park_terrace",
+    86.0,
+    21.5,
+    0.8
+   ],
+   [
+    "park_roof_terrace_stand_lookout",
+    118.0,
+    21.5,
+    0.85
+   ]
+  ]
+ },
+ "perimeter": {
+  "lawnDens": 0.35,
+  "backTrees": [
+   {
+    "x": [
+     -70,
+     160
+    ],
+    "z": [
+     -135,
+     -146
+    ],
+    "every": 10
+   }
+  ],
+  "gapTrees": [
+   {
+    "note": "round the bend stand",
+    "poly": [
+     [
+      -200,
+      -135
+     ],
+     [
+      -30,
+      -135
+     ],
+     [
+      -30,
+      -90
+     ],
+     [
+      -60,
+      -70
+     ],
+     [
+      -110,
+      -25
+     ],
+     [
+      -200,
+      -5
+     ]
+    ],
+    "offTurf": 12,
+    "every": 8,
+    "chance": 0.9
+   }
+  ],
+  "festivals": [
+   {
+    "name": "run-in infield",
+    "kit": "infield",
+    "poly": [
+     [
+      -60,
+      32
+     ],
+     [
+      -40,
+      4
+     ],
+     [
+      0,
+      2
+     ],
+     [
+      200,
+      2
+     ],
+     [
+      420,
+      4
+     ],
+     [
+      420,
+      112
+     ],
+     [
+      -40,
+      112
+     ],
+     [
+      -60,
+      92
+     ]
+    ],
+    "offTurf": 10,
+    "dens": 0.035,
+    "railCrowd": {
+     "from": 1.5,
+     "to": 7.0,
+     "dens": 0.6
+    },
+    "balloonRows": {
+     "n": 5,
+     "gap": 10,
+     "every": 130,
+     "in": 5,
+     "start": 50,
+     "end": 30
+    }
+   },
+   {
+    "name": "stand side, up the course (his 4)",
+    "kit": "standside",
+    "poly": [
+     [
+      170,
+      -62
+     ],
+     [
+      377,
+      -62
+     ],
+     [
+      377,
+      -111
+     ],
+     [
+      170,
+      -111
+     ]
+    ],
+    "offTurf": 4,
+    "dens": 0.04
+   }
+  ],
+  "lawnX": [
+   -60.0,
+   380.0
+  ],
+  "lawnDepth": [
+   3.0,
+   36.0
+  ]
  }
 }

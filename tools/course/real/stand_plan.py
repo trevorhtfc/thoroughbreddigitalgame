@@ -23,7 +23,10 @@ NAMES = {"ring_pavilion": "Ring pavilion (Rowley Mile)", "york_stand_north": "No
          "york_clock_tower": "Clock tower (York)", "park_roof_terrace_stand": "Roof-terrace stand (Park kit)",
          "victorian_stand": "Victorian stand (Rowley Mile)", "old_pavilion": "Old pavilion (July Course)",
          "park_tiered_stand": "Tiered stand (Park kit), turned to the bend", "park_balcony_stand_clock": "Balcony stand with a clock tower (Park kit)",
-         "park_gable_stand": "Pitched-roof stand (Park kit)", "park_balcony_stand": "Balcony stand (Park kit)"}
+         "park_gable_stand": "Pitched-roof stand (Park kit)", "park_balcony_stand": "Balcony stand (Park kit)",
+         "park_clock_house": "Clock house (Park kit): the brick block", "park_terrace": "Low terraces (Park kit)",
+         "park_roof_terrace_stand_lookout": "Roof-terrace stand with a lookout pavilion (Park kit + Rowley)",
+         "park_glass_box": "Glass box (Park kit)", "park_glass_box_small": "Small glass box (Park kit)"}
 
 
 def footprint(gi, x, z, turn):
