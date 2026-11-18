@@ -242,16 +242,29 @@ def main():
             for lx, ly, lz in spots.get(piece, {}).get(kind, []):
                 if rnd.random() < people:
                     S.person(x + lx * ca_ - ly * sa_, lz, z - (lx * sa_ + ly * ca_), NM.face(0, 1))
+    # phase 4: the stands, the rail lawn and the festival lawns, from the owner's mark-up (tools/course/goodwood/stands.py)
+    _ss = importlib.util.spec_from_file_location("goodwood_stands", HERE / "stands.py")
+    ST = importlib.util.module_from_spec(_ss); _ss.loader.exec_module(ST)
+    stands_all, far_fest, stand_cam, note4 = ST.stand_side(S, turf, sp, rnd, NM)
     _ps = importlib.util.spec_from_file_location("goodwood_perimeter", HERE / "perimeter.py")
     PM = importlib.util.module_from_spec(_ps); _ps.loader.exec_module(PM)
     grid_box = (ground["x0"], ground["z0"], ground["x0"] + ground["cell"] * (ground["nx"] - 1), ground["z0"] + ground["cell"] * (ground["nz"] - 1))
     trees, boards, canopies, note = PM.perimeter(S, turf, grid_box, sp, rnd)
-    scen = NM.scenery_file(S, trees, boards, [], ["site_props", "finish_line"], {"at": [0, -GAP], "turn": 0}, poles)
+    # (owner, 18 Nov: the far side's festival "can start as the trees start to drop away": no trees in it; nothing in the stands)
+    from shapely.geometry import Point
+    clear = far_fest.buffer(4.0).union(stands_all.buffer(3.0))
+    trees = [t for t in trees if not clear.contains(Point(t[0], t[1]))]
+    boards = [b for b in boards if not stands_all.buffer(2.0).contains(Point(b[0], b[1]))]
+    scen = NM.scenery_file(S, trees, boards, [], ["goodwood_stands", "site_props", "finish_line"], {"at": [0, -GAP], "turn": 0}, poles)
     scen["canopies"] = canopies
     scen["_about"] += (" canopies: the woods beyond the belts of trees, each a light mesh (v: x, y above the ground, z; i: triangles), "
                        "drawn as a soft roof of leaves.")
     NM.write("goodwood-scenery.json", scen)
+    print("   stand side:", json.dumps(note4))
     print("   perimeter:", json.dumps(note))
+    view = json.loads((OUT / "goodwood-view.json").read_text())        # the stand camera, on the mast stand's balcony
+    view["raceCameras"]["grandstand"]["at"] = stand_cam
+    NM.write("goodwood-view.json", view, 1)
     print("  ", len(S.pieces), "pieces,", len(S.people) // 4, "people,", len(trees), "trees,", len(boards), "boards,",
           sum(len(v) for v in S.boxes.values()), "hedge lengths,", len(canopies), "canopies")
     print("turf area %.0f m2, %d rail lines, %d starts; ground %d x %d, %.0f to %.0f m against the post" %
