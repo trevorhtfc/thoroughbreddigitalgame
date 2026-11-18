@@ -14,7 +14,7 @@ from pathlib import Path
 
 REPO = Path(__file__).resolve().parents[3]
 ARCH = REPO / "assets/models/architecture"
-KIT = ["park_stands", "york_stands", "rowley_stands", "july_stands"]
+KIT = ["park_stands", "york_stands", "rowley_stands", "july_stands", "site_props"]
 
 
 def read_glb(path):
@@ -42,7 +42,8 @@ def main(cid):
     found = set()
     for src in KIT:
         j, buf = read_glb(ARCH / f"{src}.glb")
-        meta = json.loads((ARCH / f"{src}.json").read_text())
+        mp = ARCH / f"{src}.json"
+        meta = json.loads(mp.read_text()) if mp.exists() else {"pieces": {}}      # (site_props: no info file; used in composites only)
         for ni in j["scenes"][0]["nodes"]:
             node = j["nodes"][ni]; name = node.get("name")
             if name not in want or name in found: continue     # (composites are built after)

@@ -416,19 +416,39 @@
   }
  },
  "stands": {
-  "_about": "Newbury's stands, owner 18 Nov 19:38-19:39: 'same basic model' (as Doncaster) on his marked-up satellite view (1 the stand at the bend, angled; 2 the long stand, turned a little to look up the straight; 3 the stand beyond it, square on; 4 an area up the course on the stand side; 'festival' the infield opposite, along the inside rail from the bend up the course) and his old photo of Newbury's stands ('bit more pitched roof terrace etc': a brick block with a hipped roof, a long pitched-roof stand, and a separate roof-terrace stand with a little lookout pavilion on its roof). So: 1 the pitched-roof (gable) stand turned 45 to the run-in, 14 m off the turf; 2 the clock house (the brick block) and a second pitched-roof stand in one line turned 20, its left end on the front line; 3 low terraces and the roof-terrace stand with Rowley's little Victorian pavilion on its roof as the lookout. 4 is the stand-side festival zone (perimeter.festivals). Owner's mark-up on the plan, 19:42: 2 and 3 square on and set back (fronts about 65 m off the inside rail, as the real stands), in his boxes x -26..49 and 76..148; 4 the stand-side festival zone set back the same, x 170..377; 1 as it was.",
+  "_about": "Newbury's stands, owner 18 Nov 19:38-19:39: 'same basic model' (as Doncaster) on his marked-up satellite view (1 the stand at the bend, angled; 2 the long stand, turned a little to look up the straight; 3 the stand beyond it, square on; 4 an area up the course on the stand side; 'festival' the infield opposite, along the inside rail from the bend up the course) and his old photo of Newbury's stands ('bit more pitched roof terrace etc': a brick block with a hipped roof, a long pitched-roof stand, and a separate roof-terrace stand with a little lookout pavilion on its roof). So: 1 the pitched-roof (gable) stand turned 45 to the run-in, 14 m off the turf; 2 the clock house (the brick block) and a second pitched-roof stand in one line turned 20, its left end on the front line; 3 low terraces and the roof-terrace stand with Rowley's little Victorian pavilion on its roof as the lookout. 4 is the stand-side festival zone (perimeter.festivals). Owner's mark-up on the plan, 19:42: 2 and 3 square on and set back (fronts about 65 m off the inside rail, as the real stands), in his boxes x -26..49 and 76..148; 4 the stand-side festival zone set back the same, x 170..377; 1 as it was. Owner, 21:25: 'Victorian pavilion, old pavilion, tiered stand and big pavilion maybe good for Newbury?': 1 the tiered stand (turned to the run-in); 2 the clock house and York's big pavilion; 3 the Park kit's Victorian pavilion and old pavilion. The pitched-roof stands and the roof-terrace stand with its lookout stood down (the lookout composite kept in the file). Owner, 21:26, with an old colour postcard of the stand: 'I would like to get these roof structures in there': a roof-terrace stand with a pavilion block and flagpole in the middle of its roof and a little hipped-roof lookout at one end (park_roof_terrace_stand_postcard: the Park old pavilion x0.45 and a site-props flagpole in the middle of the back block's roof, Rowley's Victorian pavilion x0.7 at the end), in area 3 between the Victorian pavilion and the old pavilion; area 3 runs on to x 187 and his area 4 (the stand-side festival) moves up to x 200.",
   "front": 17.0,
   "walkUnderHandPlaced": true,
   "composites": {
-   "park_roof_terrace_stand_lookout": {
+   "park_roof_terrace_stand_postcard": {
     "base": "park_roof_terrace_stand",
     "add": [
+     {
+      "piece": "park_old_pavilion",
+      "above": 0.0,
+      "scale": 0.45,
+      "at": [
+       0.0,
+       25.47,
+       -26.1
+      ]
+     },
+     {
+      "piece": "flagpole",
+      "above": -1.0,
+      "scale": 1.0,
+      "at": [
+       0.0,
+       35.1,
+       -28.3
+      ]
+     },
      {
       "piece": "victorian_pavilion",
       "above": 0.0,
       "scale": 0.7,
       "at": [
-       0.0,
+       15.0,
        25.47,
        -25.9
       ]
@@ -438,14 +458,14 @@
   },
   "pieces": [
    {
-    "piece": "park_gable_stand",
+    "piece": "park_tiered_stand",
     "at": [
      -62.0,
      -58.0
     ],
     "turn": 45.0,
     "dens": 0.85,
-    "note": "his 1: at the bend, turned to the run-in"
+    "note": "his 1: the tiered stand at the bend, turned to the run-in"
    },
    [
     "park_clock_house",
@@ -454,20 +474,26 @@
     0.6
    ],
    [
-    "park_gable_stand",
+    "york_big_pavilion",
     23.0,
     21.5,
     0.85
    ],
    [
-    "park_terrace",
-    86.0,
+    "park_victorian",
+    99.0,
     21.5,
-    0.8
+    0.85
    ],
    [
-    "park_roof_terrace_stand_lookout",
-    118.0,
+    "park_roof_terrace_stand_postcard",
+    142.0,
+    21.5,
+    0.85
+   ],
+   [
+    "park_old_pavilion",
+    174.5,
     21.5,
     0.85
    ]
@@ -479,7 +505,7 @@
    {
     "x": [
      -70,
-     160
+     190
     ],
     "z": [
      -135,
@@ -581,19 +607,19 @@
     "kit": "standside",
     "poly": [
      [
-      170,
+      200,
       -62
      ],
      [
-      377,
+      400,
       -62
      ],
      [
-      377,
+      400,
       -111
      ],
      [
-      170,
+      200,
       -111
      ]
     ],
