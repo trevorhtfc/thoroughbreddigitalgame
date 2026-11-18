@@ -210,8 +210,9 @@ class Scene:
     def G(s, x, z):
         return ground_at(s.ground, x, z)
 
-    def piece(s, model, piece, x, z, turn=0.0, sx=1.0, sc=1.0):
-        s.pieces.append([model, piece, r2(x), r2(z), r2(turn), r2(sx), r2(sc)])
+    def piece(s, model, piece, x, z, turn=0.0, sx=1.0, sc=1.0, y=None):
+        """y: the height it stands at, when it is not the ground's at (x, z) (joined stands share one level)."""
+        s.pieces.append([model, piece, r2(x), r2(z), r2(turn), r2(sx), r2(sc)] + ([r2(y)] if y is not None else []))
 
     def box(s, colour, x, z, length, depth, y0, y1, yaw=0.0):
         s.boxes.setdefault(colour, []).append([r2(x), r2(z), r2(length), r2(depth), r2(y0), r2(y1), round(yaw, 3)])
@@ -223,11 +224,11 @@ class Scene:
         """y above the ground: the ground's own height at (x, z) is added, or g (the height a building stands at)."""
         s.people += [r2(x), r2(y + (s.G(x, z) if g is None else g)), r2(z), f]
 
-    def stand_people(s, info, ox, oz, turn, sx=1.0, sc=1.0, dens=1.6):
+    def stand_people(s, info, ox, oz, turn, sx=1.0, sc=1.0, dens=1.6, g=None):
         """Spectators in a piece's crowd areas ([x0, x1, y0, y1, floor] in the piece's axes), facing its front."""
         a = math.radians(turn); ca, sa = math.cos(a), math.sin(a)
         f = face(math.sin(a), math.cos(a))
-        g = s.G(ox, oz)                                                # the building stands at its origin's height
+        if g is None: g = s.G(ox, oz)                                  # the building stands at its origin's height
         for x0, x1, y0, y1, fz in info["crowd"]:
             for u, v in s.spots(x0 * sx * sc, x1 * sx * sc, y0 * sc, y1 * sc, dens):
                 s.person(ox + u * ca - v * sa, fz * sc, oz - (u * sa + v * ca), f, g)

@@ -22,11 +22,18 @@ INK, MUTED, POSTC = "#2b2b2b", "#6b6b6b", "#c0392b"
 NAMES = {"ring_pavilion": "Ring pavilion (Rowley Mile)", "york_stand_north": "North stand (York): modern cantilever",
          "york_clock_tower": "Clock tower (York)", "park_roof_terrace_stand": "Roof-terrace stand (Park kit)",
          "victorian_stand": "Victorian stand (Rowley Mile)", "old_pavilion": "Old pavilion (July Course)",
-         "park_tiered_stand": "Tiered stand (Park kit), turned to the bend", "park_balcony_stand_clock": "Balcony stand with a clock tower (Park kit)",
+         "park_tiered_stand": "Tiered stand (Park kit), turned to the run-in", "park_balcony_stand_clock": "Balcony stand with a clock tower (Park kit)",
          "park_gable_stand": "Pitched-roof stand (Park kit)", "park_balcony_stand": "Balcony stand (Park kit)",
          "park_clock_house": "Clock house (Park kit): the brick block", "park_terrace": "Low terraces (Park kit)",
          "park_roof_terrace_stand_lookout": "Roof-terrace stand with a lookout pavilion (Park kit + Rowley)",
-         "park_glass_box": "Glass box (Park kit)", "park_glass_box_small": "Small glass box (Park kit)"}
+         "park_glass_box": "Glass box (Park kit)", "park_glass_box_small": "Small glass box (Park kit)",
+         "york_big_pavilion": "Big pavilion (York, crib 16)", "park_victorian": "Victorian pavilion with towers (crib 7)",
+         "park_old_pavilion": "Old pavilion (Park kit)",
+         "module_grand_pavilion_postcard": "Grand pavilion (Ascot module, crib 35) with the postcard's pavilion block and flagpole",
+         "rowley_stand_postcard": "Rowley stand (crib 26) with the postcard's lookout",
+         "module_grand_pavilion_c": "Grand pavilion (Ascot module, crib 35)",
+         "rowley_end_postcard": "Rowley stand, 84 m cut (crib 26), with the postcard's lookout",
+         "park_roof_terrace_stand_postcard": "Roof-terrace stand with the postcard's roof pavilion, flagpole and lookout"}
 
 
 def footprint(gi, x, z, turn):
@@ -87,7 +94,7 @@ def main(cid):
     ax.scatter(P[m, 0], P[m, 2], s=0.25, c="#a0522d", alpha=0.45, lw=0, zorder=3.2)
     # the stands
     key = []
-    for model, piece, x, z, turn, sx, sc in S["pieces"]:
+    for model, piece, x, z, turn, sx, sc, *_ in S["pieces"]:
         if piece not in info: continue
         gi = info[piece]; fp = footprint(gi, x, z, turn)
         ax.add_patch(MP(np.array(fp), closed=True, fc="#f4efe6", ec="#5a4a32", lw=1.1, alpha=0.93, zorder=4))
