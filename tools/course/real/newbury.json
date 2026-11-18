@@ -1,0 +1,271 @@
+{
+ "_about": "Newbury for tools/course/real/layout.py. Ring 0 = OSM's outer edge of the turf (point numbers on reference/newbury/plan-draft.png, lower panel). OSM's turf is about 55 m wide round the loop: the flat course outside and the jumps course inside, so the flat course's inside rail is taken 30 m in from the outer edge (offset 30). The spur at the far end (the round mile's chute) is narrow, so there the inside rail is its own west edge. Where the round course comes off the far bend it runs diagonally (north-west) into the straight course's inner side; the game's run-in is shared with the straight mile on the stands side, the round course's rail carrying on its diagonal into it. The 1m5f61y chute off the home bend is narrow: its inside rail starts 10 m in from its south edge.",
+ "name": "Newbury",
+ "date": "18 Nov 2026",
+ "hand": -1,
+ "trackWidth": 26.0,
+ "runOut": 100.0,
+ "ease": 60,
+ "post": {
+  "route": "straight",
+  "x": -698,
+  "searchLast": 2000,
+  "note": "opposite the Royal Box and the Berkshire Stand's west end (x metres east of lat 51.393 lon -1.297): it puts the 1m5f61y and the 1m7y starts at the very ends of their chutes, and the straight mile's start 27 m in from the straight's end, all at once"
+ },
+ "routes": {
+  "straight": {
+   "note": "the straight mile",
+   "pieces": [
+    {
+     "lead": 30
+    },
+    {
+     "ring": 0,
+     "from": 4,
+     "to": 62,
+     "offset": 30
+    }
+   ],
+   "arrows": [
+    1200
+   ]
+  },
+  "mile": {
+   "note": "the round mile, from the chute",
+   "pieces": [
+    {
+     "lead": 40
+    },
+    {
+     "ring": 0,
+     "from": 151,
+     "to": 144,
+     "offset": 0
+    },
+    {
+     "ring": 0,
+     "from": 162,
+     "to": 188,
+     "offset": 25
+    },
+    {
+     "ring": 0,
+     "from": 28,
+     "to": 62,
+     "offset": 30
+    }
+   ],
+   "arrows": [
+    1450
+   ]
+  },
+  "round": {
+   "note": "9f to 1m5f61y, along the back straight",
+   "pieces": [
+    {
+     "lead": 70
+    },
+    {
+     "ring": 0,
+     "from": 97,
+     "to": 140,
+     "offset": [
+      10,
+      25,
+      200
+     ]
+    },
+    {
+     "ring": 0,
+     "from": 162,
+     "to": 188,
+     "offset": 25
+    },
+    {
+     "ring": 0,
+     "from": 28,
+     "to": 62,
+     "offset": 30
+    }
+   ],
+   "arrows": [
+    2300,
+    1700
+   ]
+  },
+  "loop": {
+   "note": "2m: from the home straight, once round",
+   "pieces": [
+    {
+     "lead": 30
+    },
+    {
+     "ring": 0,
+     "from": 12,
+     "to": 90,
+     "offset": 25
+    },
+    {
+     "ring": 0,
+     "from": 97,
+     "to": 140,
+     "offset": 25
+    },
+    {
+     "ring": 0,
+     "from": 162,
+     "to": 188,
+     "offset": 25
+    },
+    {
+     "ring": 0,
+     "from": 28,
+     "to": 62,
+     "offset": 30
+    }
+   ],
+   "arrows": [
+    3000
+   ]
+  }
+ },
+ "starts": {
+  "5f34y": {
+   "route": "straight",
+   "expected": "the straight, by where the round course joins it",
+   "label": [
+    6,
+    -16
+   ]
+  },
+  "6f8y": {
+   "route": "straight",
+   "expected": "the straight",
+   "label": [
+    -10,
+    10
+   ]
+  },
+  "6f110y": {
+   "route": "straight",
+   "expected": "the straight",
+   "label": [
+    -14,
+    -16
+   ]
+  },
+  "7f": {
+   "route": "straight",
+   "expected": "the straight",
+   "label": [
+    -6,
+    10
+   ]
+  },
+  "1m": {
+   "route": "straight",
+   "expected": "the far end of the straight mile",
+   "label": [
+    -10,
+    -16
+   ]
+  },
+  "1m7y": {
+   "route": "mile",
+   "expected": "the top of the chute at the far end",
+   "label": [
+    10,
+    -4
+   ]
+  },
+  "1m1f": {
+   "route": "round",
+   "expected": "the far end of the back straight",
+   "label": [
+    -6,
+    -16
+   ]
+  },
+  "1m2f6y": {
+   "route": "round",
+   "expected": "the back straight",
+   "label": [
+    -6,
+    -16
+   ]
+  },
+  "1m3f5y": {
+   "route": "round",
+   "expected": "the back straight",
+   "label": [
+    -6,
+    -16
+   ]
+  },
+  "1m4f5y": {
+   "route": "round",
+   "expected": "the back straight, towards the home bend",
+   "label": [
+    -6,
+    -16
+   ]
+  },
+  "1m5f61y": {
+   "route": "round",
+   "expected": "the chute off the home bend, beyond the post",
+   "label": [
+    -30,
+    -14
+   ]
+  },
+  "2m": {
+   "route": "loop",
+   "expected": "the home straight, about a furlong before the post",
+   "label": [
+    -6,
+    10
+   ]
+  }
+ },
+ "routesNote": "straight: 5f34y to 1m, the straight mile. mile: 1m7y, from the chute at the far end, left into the straight. round: 1m1f to 1m5f61y, along the back straight, round the far bend into the straight. loop: 2m, from the home straight, past the post, once round.",
+ "profilePanels": [
+  [
+   "straight",
+   [
+    "5f34y",
+    "6f8y",
+    "6f110y",
+    "7f",
+    "1m"
+   ],
+   "The straight mile (5f34y to 1m)"
+  ],
+  [
+   "mile",
+   [
+    "1m7y"
+   ],
+   "The round mile (1m7y): up the chute, left into the straight"
+  ],
+  [
+   "round",
+   [
+    "1m1f",
+    "1m2f6y",
+    "1m3f5y",
+    "1m4f5y",
+    "1m5f61y"
+   ],
+   "The round course (1m1f to 1m5f61y): the back straight, the far bend, the straight"
+  ],
+  [
+   "loop",
+   [
+    "2m"
+   ],
+   "2m: the home straight, the home bend, once round"
+  ]
+ ],
+ "numberEvery": 1,
+ "legend": "center"
+}
