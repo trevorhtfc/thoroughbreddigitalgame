@@ -170,22 +170,25 @@ def stand_side(S, turf, sp, rnd, NM, side_zone):
     note["rail and lawn people"] = n
     # the stand camera: the TV gantry on the front edge of the mast stand's roof, by the winning line (its west end)
     piece, x, z, turn, (X, sc) = placed[1]
-    cam = [round(v, 1) for v in to_w(x, z, turn, INFO[piece]["width"] / 2 * X - 2.5, 4.0 * sc)]
+    cam = [round(v, 1) for v in to_w(x, z, turn, INFO[piece]["width"] / 2 * X - 2.5, 1.0)]
     return stands_all, fests, [cam[0], round(INFO[piece]["section"]["roofTop"] * sc + 1.6, 1), cam[1]], fill_trees, note
 
 
-def angled_adverts(turf, boards, trees, x0=60.0, x1=505.0, every=43.0, n=3, angle=57.0):
-    """Owner, 18 Nov 12:24 (purple on his plan): "adverts to be at an angle and set out evenly". The boards along the
-    north side of the straight (from past the far-side festival to where the planting zone starts) become short runs of
-    n boards, every 'every' metres, each run starting on the 20 m line and running back from the track at 'angle'
-    degrees to it, towards the post, faces turned towards the stands and the run-in (his strokes: about 57 degrees, about
-    43 m apart). The trees under them come out."""
+def angled_adverts(S, turf, boards, trees, x0=60.0, x1=505.0, every=43.0, length=20.0, angle=50.0):
+    """The far side of the home straight. Owner, 18 Nov 12:24 (purple on his plan): "adverts to be at an angle and set
+    out evenly"; 12:41, on the first try (short runs of the small boards): "looks an absolute mess look at how they look
+    on the home straight in the video". In his race video (the 1m3f218y, 17 Nov) the far side of the run-in has a few
+    big plain hoardings, not a fence of small boards: long dark slate panels about 4.5 m tall, raised on legs in front of
+    the trees, each with one pale crest on it, well apart with planting between. So: one hoarding at each of his strokes,
+    set out evenly (every 'every' metres from x0 to x1), 'length' long, its near end on the 20 m line and running back
+    at 'angle' degrees to the track, towards the post, its face turned to the stands and the run-in. The small boards on
+    that stretch go, and the trees where the hoardings stand."""
     from shapely.geometry import LineString
     ring = turf.buffer(20.0, join_style=1).boundary
     north = lambda b: x0 - 15 < b[0] < x1 + 15 and turf.distance(Point(b[0], b[1])) < 24.0 and b[1] < _north_edge(turf, b[0])
     kept = [b for b in boards if not north(b)]
-    out, k = [], 0
-    designs = ["green", "cream", "navy", "white"]
+    PANEL, CREST, LEG = "#46504f", "#d8dad3", "#3a3f40"
+    feet, n = [], 0
     for x in np.arange(x0, x1 + 1e-6, every):
         pts = []
         for xx in (x - 4.0, x + 4.0):
@@ -194,18 +197,29 @@ def angled_adverts(turf, boards, trees, x0=60.0, x1=505.0, every=43.0, n=3, angl
             if not cand: break
             pts.append(max(cand, key=lambda g: g.y))                       # the 20 m line just north of the turf
         if len(pts) < 2: continue
-        rx, rz = pts[1].x - pts[0].x, pts[1].y - pts[0].y; L = math.hypot(rx, rz); rx, rz = rx / L, rz / L
+        rx, rz = pts[1].x - pts[0].x, pts[1].y - pts[0].y
         a = math.atan2(rz, rx) + math.radians(180.0 + angle)               # back from the track, towards the post
         ux, uz = math.cos(a), math.sin(a)
-        fx, fz = -uz, ux                                                   # the face: towards the stands and the run-in
-        if fz < 0: fx, fz = -fx, -fz
+        nx, nz = -uz, ux                                                   # the face: towards the stands and the run-in
+        if nz < 0: nx, nz = -nx, -nz
         sx, sz = (pts[0].x + pts[1].x) / 2, (pts[0].y + pts[1].y) / 2
-        for j in range(n):
-            bx, bz = sx + ux * (3.2 + 6.0 * j), sz + uz * (3.2 + 6.0 * j)
-            out.append([round(bx, 2), round(bz, 2), round(math.degrees(math.atan2(fx, fz)), 2), designs[k % 4], 1.4]); k += 1
-    near = unary_union([Point(b[0], b[1]).buffer(4.5) for b in out])
+        cx, cz = sx + ux * (length / 2 + 1.0), sz + uz * (length / 2 + 1.0)
+        yaw = math.atan2(-uz, ux)
+        g0 = S.G(cx, cz)
+        ends = [S.G(cx + ux * f * length / 2, cz + uz * f * length / 2) for f in (-1, -0.5, 0.5, 1)]
+        y0 = max(ends) - g0 + 1.3; y1 = y0 + 4.5                           # the panel level, clear of the ground under it
+        S.box(PANEL, cx, cz, length, 0.35, y0, y1, yaw)
+        S.box(LEG, cx, cz, length + 0.3, 0.45, y1, y1 + 0.18, yaw)         # a thin cap along the top
+        lx, lz = cx - ux * length * 0.12, cz - uz * length * 0.12          # the crest, a little nearer the post end
+        S.box(CREST, lx + nx * 0.2, lz + nz * 0.2, 3.0, 0.06, y0 + 0.9, y0 + 3.6, yaw)
+        for f in (-0.42, -0.14, 0.14, 0.42):                               # the legs, down to the ground under each
+            px, pz = cx + ux * f * length, cz + uz * f * length
+            S.box(LEG, px, pz, 0.3, 0.3, -0.4, g0 + y0 - S.G(px, pz) + 0.05, yaw)
+        feet.append(LineString([(cx - ux * length / 2, cz - uz * length / 2), (cx + ux * length / 2, cz + uz * length / 2)]).buffer(5.0))
+        n += 1
+    near = unary_union(feet)
     trees = [t for t in trees if not near.contains(Point(t[0], t[1]))]
-    return kept + out, trees, len(out)
+    return kept, trees, n
 
 
 def _north_edge(turf, x):
