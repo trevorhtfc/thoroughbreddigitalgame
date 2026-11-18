@@ -440,6 +440,98 @@
    ],
    "frame": "field",
    "leadRoom": 2
+  },
+  "track_inside": {
+   "label": "Tracking (infield)",
+   "kind": "track",
+   "course": "round",
+   "side": 6,
+   "height": 2.6,
+   "fov": [
+    5,
+    40
+   ],
+   "ahead": [
+    6,
+    12,
+    20,
+    30,
+    45,
+    65,
+    90
+   ],
+   "railSide": "inside",
+   "frame": "field",
+   "leadRoom": 2,
+   "note": "the car in the infield just inside the inside rail, a long lens: the field along the far rail, the boards and the woods close behind (the video's 57-69 s and 111-132 s)"
+  },
+  "bend_high_1": {
+   "label": "Far side, high",
+   "kind": "fixed",
+   "at": [
+    498.14,
+    16,
+    605.6
+   ],
+   "fov": [
+    2,
+    28
+   ],
+   "frame": "field",
+   "leadRoom": 2,
+   "atD": 2150,
+   "note": "high on the outside ahead of the field, looking back along the far side (72-84 s)"
+  },
+  "bend_high_2": {
+   "label": "Bend, high",
+   "kind": "fixed",
+   "at": [
+    836.02,
+    15,
+    642.35
+   ],
+   "fov": [
+    2,
+    30
+   ],
+   "frame": "field",
+   "leadRoom": 2,
+   "atD": 1830,
+   "note": "high on the outside of the bend, the field coming round the curving rail at it (87-105 s)"
+  },
+  "rose_hill": {
+   "label": "Rose Hill",
+   "kind": "fixed",
+   "at": [
+    1136.31,
+    14,
+    258.93
+   ],
+   "fov": [
+    3,
+    40
+   ],
+   "frame": "field",
+   "leadRoom": 2,
+   "atD": 1300,
+   "note": "from the infield, wide across the Town Moor as they go over Rose Hill (138-141 s)"
+  },
+  "headon_top": {
+   "label": "Top of the straight",
+   "kind": "fixed",
+   "at": [
+    762.41,
+    7,
+    -42.16
+   ],
+   "fov": [
+    1.5,
+    24
+   ],
+   "frame": "field",
+   "leadRoom": 2,
+   "atD": 760,
+   "note": "low on the stand side up the straight, head-on as they swing into it, the boards behind (165-171 s)"
   }
  },
  "cameraMenu": {
@@ -465,6 +557,10 @@
    [
     "track_loop",
     "Tracking"
+   ],
+   [
+    "track_inside",
+    "Infield"
    ],
    [
     "grandstand",
@@ -496,7 +592,55 @@
   "afterFinish": 4,
   "replayFrom": 30,
   "replayTo": 14,
-  "replaySpeed": 0.3
+  "replaySpeed": 0.3,
+  "shots": [
+   [
+    4000,
+    2900,
+    "track_loop"
+   ],
+   [
+    2900,
+    2560,
+    "track_inside"
+   ],
+   [
+    2560,
+    2210,
+    "bend_high_1"
+   ],
+   [
+    2210,
+    1900,
+    "bend_high_2"
+   ],
+   [
+    1900,
+    1480,
+    "track_inside"
+   ],
+   [
+    1480,
+    1260,
+    "rose_hill"
+   ],
+   [
+    1260,
+    1010,
+    "track_loop"
+   ],
+   [
+    1010,
+    422,
+    "headon_top"
+   ],
+   [
+    422,
+    -1,
+    "grandstand"
+   ]
+  ],
+  "shotsNote": "Doncaster (owner, 18 Nov, his At The Races Doncaster Cup video): the far side from a low car in the infield, the woods close behind the far rail and the boards beyond it; high cameras on the outside of the bends looking back at the field; a wide view across the Town Moor at Rose Hill; round the far bend from the outside; head-on into the straight; the stand camera for the last 2 furlongs. [from, to, camera] by the leader's metres to go; outside every shot, the path's rules"
  },
  "setPieces": {
   "_about": "Before the off and after the race: eye and at go from the first to the second over 'seconds'.",

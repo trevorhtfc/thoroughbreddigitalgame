@@ -201,6 +201,24 @@ def main(cid):
     menu = {"straight": [["track_straight", "Tracking"], ["grandstand", "Stand"], ["headon", "Head-on"], ["drone_straight", "Drone"]],
             "round": [["track_loop", "Tracking"], ["grandstand", "Stand"], ["drone_straight", "Drone"]]}
 
+    # ---- the course's own TV coverage (tools/course/real/<id>.json "view.tv", from its race video): fixed cameras placed
+    # by route, metres to go and metres across from the inside rail (+ across the track and beyond the outer rail, - into
+    # the infield), copies of the tracking cars with changes (e.g. the car in the infield), and the director's shots
+    TVC = V.get("tv", {})
+    def on_route(rn, d, off, h):
+        RR = C["routes"][rn]; _, acr, _, _ = route_bits(RR, W, hand)
+        f = (d - RR["d0"]) / RR["spacing"]; i = max(0, min(len(RR["insideRail"]) - 2, int(f))); k = f - i
+        (ax, az), (bx, bz) = RR["insideRail"][i], RR["insideRail"][i + 1]
+        return [r2(ax + (bx - ax) * k + acr[i][0] * off), r2(h), r2(az + (bz - az) * k + acr[i][1] * off)]
+    for cn, cs in TVC.get("cams", {}).items():
+        if "copy" in cs:
+            cams[cn] = dict(cams[cs["copy"]], **{k: v for k, v in cs.items() if k != "copy"})
+        else:
+            cams[cn] = {"label": cs["label"], "kind": "fixed", "at": on_route(cs.get("route", default_route), cs["d"], cs["off"], cs["h"]),
+                        "fov": cs["fov"], "frame": "field", "leadRoom": cs.get("leadRoom", 2), "atD": cs["d"], "note": cs.get("note", "")}
+    if TVC.get("startInside"):
+        cams["start"]["inside"] = True; cams["start"]["side"] = 3.0
+
     class L:
         TRACK_W = W; RUN_ON = C["runOut"]; STRAIGHT = C["routes"]["straight"]["length"]
     view = NM.view_file(cid, L, {"name": name}, stalls, -1 if hand < 0 else 1, cams, prelude, postlude, director, menu)
@@ -213,13 +231,18 @@ def main(cid):
     for k in stalls["starts"]:
         view["races"][k]["label"] = C["starts"][k]["label"]
     view["mapTurn"] = V.get("mapTurn", 0)
+    if TVC.get("shots"):
+        view["raceDirector"]["shots"] = TVC["shots"]
+        view["raceDirector"]["shotsNote"] = TVC.get("note", "") + " [from, to, camera] by the leader's metres to go; outside every shot, the path's rules"
+    if TVC.get("shotsStraight"): view["raceDirector"]["shotsStraight"] = TVC["shotsStraight"]
+    if TVC.get("menu"): view["cameraMenu"] = TVC["menu"]
     view["ground"]["farY"] = ground["farY"]
     NM.write(f"{cid}-view.json", view, 1)
 
     # ---- scenery: the finish-line kit, the poles, and the basic surroundings (perimeter.py)
     S = NM.Scene(17, ground)
     grid_box = (ground["x0"], ground["z0"], ground["x0"] + ground["cell"] * (ground["nx"] - 1), ground["z0"] + ground["cell"] * (ground["nz"] - 1))
-    trees, boards, plot, pnote = PM.perimeter(S, course, turf, grid_box, random.Random(23))
+    trees, boards, plot, pnote = PM.perimeter(S, course, turf, grid_box, random.Random(23), CF.get("perimeter"))
     scen = NM.scenery_file(S, trees, boards, [], ["site_props", "finish_line"], {"at": [0, -zs * GAP], "turn": 180 if hand < 0 else 0}, poles)
     scen["_about"] += " Basic surroundings from tools/course/real/perimeter.py (the shared rules until the course's own mark-up)."
     NM.write(f"{cid}-scenery.json", scen)

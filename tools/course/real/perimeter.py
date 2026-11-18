@@ -46,10 +46,11 @@ def r2(v): return round(float(v), 2)
 def polys(g): return [q for q in getattr(g, "geoms", [g]) if q.geom_type == "Polygon" and not q.is_empty]
 
 
-def perimeter(S, C, turf, grid_box, rnd=None):
+def perimeter(S, C, turf, grid_box, rnd=None, opts=None):
     """Adds the basic surroundings to the scene S. C: the race view's course (with 'routes'); turf: the turf (shapely,
     world x, z); grid_box: the ground grid (x0, z0, x1, z1). Returns trees, boards, the stand plot and a note."""
     rnd = rnd or random.Random(23)
+    opts = opts or {}                                       # the course's own switches (tools/course/real/<id>.json "perimeter")
     W = C["trackWidth"]; hand = C["hand"]
     side = -1.0 if hand < 0 else 1.0                       # the stand side's z sign (beyond the outer rail)
     trees, boards, note = [], [], {}
@@ -116,8 +117,9 @@ def perimeter(S, C, turf, grid_box, rnd=None):
     if not infield.is_empty:
         inner = infield.buffer(-IN_BOARD, join_style=1)
         runin_b = runin.buffer(30)
-        for g in polys(inner):
-            note["boards infield"] = note.get("boards infield", 0) + board_run(g.exterior, lambda q: runin_b.contains(q))
+        if opts.get("infieldBoards", True):              # (off where the TV's tracking car runs in the infield: Doncaster)
+            for g in polys(inner):
+                note["boards infield"] = note.get("boards infield", 0) + board_run(g.exterior, lambda q: runin_b.contains(q))
         belt_in = infield.buffer(-IN_BELT[0]).difference(infield.buffer(-IN_BELT[1])).difference(runin.buffer(20))
         note["infield belt trees"] = fill(belt_in, IN_BELT[2], IN_BELT[3], IN_BELT[4], belt=1)
         deep = infield.buffer(-IN_PARK[0]).difference(runin.buffer(40))
