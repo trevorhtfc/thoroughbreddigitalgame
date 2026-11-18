@@ -54,11 +54,63 @@ def victorian_flanked(bays=24, rows=10, tread=1.0, rise=0.28):
     return info
 
 
+# ---- the helter skelter (owner, 18 Nov 12:24: "you can add a helter skelter as well as per epsom"): Epsom's, as written
+# in tools/blender/build_epsom_stands.py on the claude/epsom branch (copied here so this branch stands alone)
+EP = {"ride_red": "#e59c95", "ride_white": "#fbf7ef", "ride_blue": "#9fbad8", "ride_yellow": "#f1d38f", "ride_green": "#a9cfa6",
+      "ride_steel": "#e9e6ef", "ride_dark": "#6b6f80"}
+for k, v in EP.items():
+    COL[k] = v
+    MATS[k] = material("ep_" + k, v, rough=0.85)
+
+def helter_skelter(H=12.0, R0=2.6, R1=1.8, turns=3.0):
+    """The striped tower (bands of pastel and white), a pointed roof with a flag, its spiral slide winding round from
+    the top to a run-out at the foot, a little stair hut at the door."""
+    nb = 8
+    for k in range(nb):                                                # the tower, in bands
+        z0, z1 = H * k / nb, H * (k + 1) / nb
+        r0, r1 = R0 + (R1 - R0) * k / nb, R0 + (R1 - R0) * (k + 1) / nb
+        K.cyl("ride_red" if k % 2 == 0 else "ride_white", 0.0, 0.0, max(z0, -0.5) if k else -0.5, z1, r0, r1, segs=16)
+    K.cyl("ride_white", 0.0, 0.0, H, H + 1.3, R1 + 0.4, segs=16)        # the gallery at the top
+    for i in range(12):
+        a = 2 * math.pi * i / 12
+        K.cyl("ride_white", (R1 + 0.3) * math.cos(a), (R1 + 0.3) * math.sin(a), H + 1.3, H + 2.5, 0.07, segs=4)
+    K.cyl("ride_red", 0.0, 0.0, H + 2.5, H + 2.7, R1 + 0.6, segs=16)
+    for k in range(4):                                                 # the pointed roof, striped
+        K.cyl("ride_white" if k % 2 else "ride_red", 0.0, 0.0, H + 2.7 + k * 0.7, H + 3.4 + k * 0.7,
+              (R1 + 0.6) * (1 - k / 4), (R1 + 0.6) * (1 - (k + 1) / 4) + 0.02, segs=16)
+    K.cyl("trim", 0.0, 0.0, H + 5.5, H + 7.5, 0.05, segs=4)
+    K.box("ride_yellow", 0.06, 1.3, -0.02, 0.02, H + 6.6, H + 7.4)
+    # the slide: a sloping trough winding down outside the tower, from the top gallery to a run-out
+    bm = K.bm("ride_yellow")
+    N = int(turns * 40)
+    def ring(i):
+        t = i / N
+        a = -math.pi / 2 + 2 * math.pi * turns * t
+        z = (H + 0.9) * (1 - t) + 0.5 * t
+        r = R0 + (R1 - R0) * (z / H) + 0.2
+        c, s = math.cos(a), math.sin(a)
+        return [bm.verts.new(K.M @ Vector(((r + d) * c, (r + d) * s, z + h))) for d, h in ((0.0, 0.5), (0.0, 0.0), (1.4, 0.0), (1.4, 0.5))]
+    rings = [ring(i) for i in range(N + 1)]
+    for i in range(N):
+        a, b = rings[i], rings[i + 1]
+        for j in range(3):
+            bm.faces.new((a[j], b[j], b[j + 1], a[j + 1]))
+    for i in range(0, N + 1, 5):                                       # brackets from the tower to the slide
+        t = i / N; a = -math.pi / 2 + 2 * math.pi * turns * t; z = (H + 0.9) * (1 - t) + 0.5 * t
+        r = R0 + (R1 - R0) * (z / H)
+        strut("ride_white", (r * math.cos(a), r * math.sin(a), z - 0.6), ((r + 1.5) * math.cos(a), (r + 1.5) * math.sin(a), z), r=0.06, segs=4)
+    K.box("ride_yellow", -0.7, 0.7, -R0 - 5.0, -R0 - 1.6, 0.0, 0.45)   # the run-out mat at the foot
+    K.box("ride_blue", R0 - 0.2, R0 + 2.4, -1.4, 1.4, 0.0, 2.4)        # the pay hut at the door
+    K.hip_roof(R0 - 0.2, R0 + 2.4, -1.4, 1.4, 2.4, 0.9, ov=0.2, mat="ride_white")
+    return {"width": round(2 * (R0 + 1.8) + 2.0, 2), "depth": round(2 * (R0 + 1.8) + 3.4, 2), "height": round(H + 7.5, 2)}
+
+
 PIECES = [
     ("goodwood_balcony", lambda: colonnade_stand(16, 3.6, "flat")),
     ("goodwood_mast", lambda: mast_stand(11, 7.6)),                 # (owner, 18 Nov 09:04: "a bit small": a bay longer, and scaled up 12% where placed)
     ("goodwood_tent", tent_stand),
     ("goodwood_victorian", victorian_flanked),
+    ("goodwood_helter_skelter", helter_skelter),
 ]
 LIB = bpy.data.collections.new("goodwood_stands")
 bpy.context.scene.collection.children.link(LIB)

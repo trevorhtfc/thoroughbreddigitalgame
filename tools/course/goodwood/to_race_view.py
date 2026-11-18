@@ -256,13 +256,15 @@ def main():
     trees = [t for t in trees if not clear.contains(Point(t[0], t[1]))]
     boards = [b for b in boards if not stands_all.buffer(2.0).contains(Point(b[0], b[1]))]
     trees += side_trees
+    boards, trees, n_angled = ST.angled_adverts(turf, boards, trees)
+    note4["angled adverts"] = n_angled
     scen = NM.scenery_file(S, trees, boards, [], ["goodwood_stands", "site_props", "finish_line"], {"at": [0, -GAP], "turn": 0}, poles)
     scen["canopies"] = canopies
     scen["_about"] += (" canopies: the woods beyond the belts of trees, each a light mesh (v: x, y above the ground, z; i: triangles), "
                        "drawn as a soft roof of leaves.")
     NM.write("goodwood-scenery.json", scen)
-    print("   stand side:", json.dumps(note4))
     print("   perimeter:", json.dumps(note))
+    print("   stand side:", json.dumps(note4))
     view = json.loads((OUT / "goodwood-view.json").read_text())        # the stand camera, on the mast stand's balcony
     view["raceCameras"]["grandstand"]["at"] = stand_cam
     NM.write("goodwood-view.json", view, 1)

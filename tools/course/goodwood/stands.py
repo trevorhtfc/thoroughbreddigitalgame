@@ -23,6 +23,7 @@ from shapely.prepared import prep
 
 REPO = Path(__file__).resolve().parents[3]
 ZONES = json.loads((REPO / "reference/goodwood/stands-zones.json").read_text())["world"]
+MARK = json.loads((REPO / "reference/goodwood/stand-side-markup.json").read_text())["world"]   # his mark-up of the plan, 18 Nov 12:24
 INFO = json.loads((REPO / "assets/models/architecture/goodwood_stands.json").read_text())["pieces"]
 
 # piece, front middle (world x, z), turn (degrees: 180 faces the track from the stand side; the front line's angle
@@ -82,80 +83,78 @@ def stand_side(S, turf, sp, rnd, NM, side_zone):
     for g in getattr(walk, "geoms", [walk]):
         if g.area > 20: S.flat("#d9c9a8", list(g.simplify(0.3).exterior.coords)[:-1], 0.025)
     zones = {k: Polygon(v).buffer(0) for k, v in ZONES.items() if k.startswith("festival")}
-    fest_side = unary_union([zones["festival_ring"], zones["festival_east"]])
-    # ---- the festival lawns (his blue zones): between the stands, and a little on the far side round the finish
-    kit = [("marquee_peaks", 13.0), ("marquee_clearspan", 11.0), ("kiosk_row_arched", 6.0), ("pagoda_kiosk", 3.0),
-           ("kiosk_awning", 3.5), ("pergola_picnic", 5.0), ("picnic_table", 1.5), ("banner_flag", 1.0), ("pagoda_counter", 3.5)]
-    def festival(poly, counts, people, face_turn):
+    # his mark-up of the plan (18 Nov 12:24): the orange festival zones replace the far-side and tent-to-Victorian blue
+    # zones and add a big one east of the Victorian stand; the one by the balcony stand stays as it was
+    for k in ("orange_far", "orange_tent_victorian", "orange_east"):
+        zones[k] = Polygon(MARK[k]).buffer(0)
+    fest_side = unary_union([zones["festival_ring"], zones["orange_tent_victorian"], zones["orange_east"]])
+    def festival(poly, mix, people, face_turn, rides=()):
+        """trodden ground, then the mix (biggest first: piece, radius, how many), then a crowd"""
         g = max([q for q in getattr(poly, "geoms", [poly]) if q.geom_type == "Polygon"], key=lambda q: q.area)
         S.flat("#ddd3a8", list(g.simplify(0.8).exterior.coords)[:-1], 0.028)
         gx0, gz0, gx1, gz1 = g.bounds; put = []; k = 0
-        for (piece, r), c in zip(kit, counts):
+        def spot(r):
+            for _try in range(200):
+                x, z = rnd.uniform(gx0, gx1), rnd.uniform(gz0, gz1)
+                if g.buffer(-r).contains(Point(x, z)) and all(math.hypot(x - a, z - b) > r + rb + 2.5 for a, b, rb in put):
+                    put.append((x, z, r)); return x, z
+            return None
+        for piece, r in rides:                                    # (the helter skelter: from the stands' kit)
+            q = spot(r)
+            if q:
+                S.piece("goodwood_stands", piece, q[0], q[1], rnd.uniform(0, 360), 1.0, 1.0)
+                S.nogo.append([(q[0] - r, q[1] - r), (q[0] + r, q[1] - r), (q[0] + r, q[1] + r), (q[0] - r, q[1] + r)]); k += 1
+        for piece, r, c in mix:
             for _ in range(c):
-                for _try in range(150):
-                    x, z = rnd.uniform(gx0, gx1), rnd.uniform(gz0, gz1)
-                    if g.buffer(-r).contains(Point(x, z)) and all(math.hypot(x - a, z - b) > r + rb + 2.5 for a, b, rb in put):
-                        sp(piece, x, z, face_turn + rnd.choice([0, 0, 0, 90, -90]) if piece != "banner_flag" else face_turn, 0.6)
-                        put.append((x, z, r)); k += 1; break
+                q = spot(r)
+                if not q: continue
+                turn = rnd.uniform(0, 360) if piece in ("big_top", "balloon_pod") else face_turn + (0 if piece in ("banner_flag", "stand_open", "stand_covered", "terrace_deck") else rnd.choice([0, 0, 0, 90, -90]))
+                sp(piece, q[0], q[1], turn, 0.6); k += 1
         m = 0
         for x, z in S.spots(gx0, gx1, gz0, gz1, people):
             if g.contains(Point(x, z)) and not S.blocked(x, z):
                 S.person(x, 0.0, z, round(rnd.uniform(-3.14, 3.14), 2)); m += 1
         return {"pieces": k, "people": m, "area m2": round(g.area)}
+    # his mix: "the marquees, bigger tents, balloons, little terraces, flags etc.. you can add a helter skelter as well as
+    # per epsom": counts scale with each zone's size
+    def mix(area, big=True):
+        f = area / 1000.0
+        L = [("big_top", 11.0, round(f * 0.25) if big else 0), ("marquee_peaks", 13.0, round(f * 0.35)), ("marquee_clearspan", 11.0, round(f * 0.3)),
+             ("balloon_pod", 4.0, round(f * 0.3) if big else 0), ("stand_open", 8.5, round(f * 0.12)), ("stand_covered", 7.0, round(f * 0.12)),
+             ("terrace_deck", 6.5, round(f * 0.2)), ("kiosk_row_arched", 6.0, round(f * 0.3)), ("pagoda_kiosk", 3.0, round(f * 0.5)),
+             ("kiosk_awning", 3.5, round(f * 0.4)), ("pergola_picnic", 5.0, round(f * 0.25)), ("picnic_table", 1.5, round(f * 1.4)),
+             ("banner_flag", 1.0, round(f * 1.2))]
+        return [(p_, r_, c_) for p_, r_, c_ in L if c_ > 0]
     keep_turf = turf.buffer(14.0)
     ring = zones["festival_ring"].difference(stands_all.buffer(3.0)).difference(keep_turf)
-    east = zones["festival_east"].difference(stands_all.buffer(3.0)).difference(keep_turf)
-    far = zones["festival_far"].difference(turf.buffer(24.0))         # (behind the boards' line, clear of the tracking car)
-    note["festival by the balcony stand"] = festival(ring, [1, 1, 1, 2, 2, 1, 6, 4, 1], 0.09, 180.0)
-    note["festival between tent and Victorian stands"] = festival(east, [2, 2, 2, 3, 3, 2, 10, 6, 1], 0.09, 180.0)
-    note["festival on the far side"] = festival(far, [1, 1, 1, 2, 2, 1, 6, 5, 0], 0.05, 0.0)
-    # ---- every gap (owner, 18 Nov 09:04: "in fill all gaps with festival and trees including big bits up from the
-    # Victorian stand as that gable end flank wall needs a bit of embedding"): the rest of the stand side, from the
-    # balcony stand to where the planting begins east of the Victorian stand. Near the course (14 to 70 m off the turf):
-    # festival kit and a crowd; further back and behind the stands: trees. Against the Victorian stand's east end, a
-    # clump of big trees round its flank wall, and the big festival lawn beyond it.
+    tv = zones["orange_tent_victorian"].difference(stands_all.buffer(3.0)).difference(keep_turf)
+    east = zones["orange_east"].difference(stands_all.buffer(3.0)).difference(keep_turf)
+    far = zones["orange_far"].difference(turf.buffer(22.0))           # (behind the boards' line, clear of the tracking car)
+    note["festival by the balcony stand"] = festival(ring, mix(ring.area, big=False), 0.09, 180.0)
+    note["festival between tent and Victorian stands"] = festival(tv, mix(tv.area), 0.09, 180.0)
+    note["festival east of the Victorian stand"] = festival(east, mix(east.area), 0.08, 180.0, rides=[("goodwood_helter_skelter", 6.5)])
+    note["festival on the far side"] = festival(far, mix(far.area, big=False), 0.05, 0.0)
+    # ---- trees: behind the stands (the stand side's back, as the second pass), none in the festival zones; and his green
+    # rings ("some moves of planting"): a clump at each
     fill_trees = []
     def tree(x, z, sc_, belt=1):
         fill_trees.append([round(x, 2), round(z, 2), rnd.choice(("oak_a", "oak_b", "oak_c", "wide_a", "wide_b")), round(sc_, 2), rnd.randrange(360), belt])
-    taken = unary_union([stands_all.buffer(3.0), fest_side.buffer(2.0), zones["festival_far"], turf.buffer(14.0)])
+    fests = unary_union([fest_side, zones["orange_far"]])
+    taken = unary_union([stands_all.buffer(3.0), fests.buffer(2.0), turf.buffer(14.0)])
     side_box = box(-120.0, -10.0, 660.0, 260.0)
-    gaps = side_zone.intersection(side_box).difference(taken)
-    near = gaps.intersection(turf.buffer(70.0))
-    back = gaps.difference(turf.buffer(70.0)).difference(turf.buffer(25.0).buffer(0))
-    big = [("big_top", 11.0), ("marquee_peaks", 13.0), ("marquee_clearspan", 11.0), ("viewing_tower", 5.0), ("kiosk_row_arched", 6.0),
-           ("pagoda_kiosk", 3.0), ("kiosk_awning", 3.5), ("pergola_picnic", 5.0), ("picnic_table", 1.5), ("banner_flag", 1.0),
-           ("balloon_pod", 4.0), ("terrace_deck", 6.5)]
-    put, k, m = [], 0, 0
-    for g in sorted([q for q in getattr(near, "geoms", [near]) if q.geom_type == "Polygon" and q.area > 150], key=lambda q: -q.area):
-        gx0, gz0, gx1, gz1 = g.bounds; east = gx0 > 330          # (on the lawn's own grass: no trodden ground)          # (east of the Victorian stand: the big festival lawn)
-        per = g.area / (900.0 if east else 1400.0)
-        for piece, r in big:
-            if piece in ("big_top", "viewing_tower", "balloon_pod") and not east: continue
-            n = {"picnic_table": 4, "banner_flag": 3, "pagoda_kiosk": 2}.get(piece, 1) * per / 6
-            for _ in range(int(n) + (1 if rnd.random() < n % 1 else 0)):
-                for _try in range(80):
-                    x, z = rnd.uniform(gx0, gx1), rnd.uniform(gz0, gz1)
-                    if g.buffer(-r).contains(Point(x, z)) and all(math.hypot(x - a, z - b) > r + rb + 2.5 for a, b, rb in put):
-                        sp(piece, x, z, rnd.uniform(0, 360) if piece in ("big_top", "balloon_pod") else 180.0 + rnd.choice([0, 0, 90, -90]), 0.6)
-                        put.append((x, z, r)); k += 1; break
-        for x, z in S.spots(gx0, gx1, gz0, gz1, 0.07):
-            if g.contains(Point(x, z)) and not S.blocked(x, z):
-                S.person(x, 0.0, z, round(rnd.uniform(-3.14, 3.14), 2)); m += 1
+    back = side_zone.intersection(side_box).difference(taken).difference(turf.buffer(70.0))
     pb = prep(back); bx0, bz0, bx1, bz1 = back.bounds; nt = 0
     for x in np.arange(bx0, bx1, 10.5):
         for z in np.arange(bz0, bz1, 10.5):
             px, pz = x + rnd.uniform(-3.5, 3.5), z + rnd.uniform(-3.5, 3.5)
             if pb.contains(Point(px, pz)) and rnd.random() < 0.8: tree(px, pz, rnd.uniform(1.15, 1.7)); nt += 1
-    # the Victorian stand's east end: big trees round the flank wall, from the lawn's back to well behind the stand
-    piece, x, z, turn, (X, sc) = placed[3]
-    hw = INFO[piece]["width"] / 2 * X
-    nv = 0
-    for _ in range(60):
-        u, v = -hw - rnd.uniform(3.0, 26.0), rnd.uniform(4.0, INFO[piece]["depth"] * sc + 22.0)      # (u < 0: its east end)
-        tx, tz = to_w(x, z, turn, u, v)
-        if turf.distance(Point(tx, tz)) > 25.0 and not S.blocked(tx, tz):
-            tree(tx, tz, rnd.uniform(1.4, 1.95)); nv += 1
-    note["gaps filled"] = {"festival pieces": k, "people": m, "trees": nt, "trees at the Victorian stand's end": nv}
+    ng = 0
+    for cx, cz in MARK["green_planting"]:
+        for _ in range(6):
+            tx, tz = cx + rnd.uniform(-7, 7), cz + rnd.uniform(-7, 7)
+            if turf.distance(Point(tx, tz)) > 23.0 and not S.blocked(tx, tz) and not stands_all.buffer(2.0).contains(Point(tx, tz)):
+                tree(tx, tz, rnd.uniform(1.3, 1.85)); ng += 1
+    note["trees"] = {"behind the stands": nt, "his green rings": ng}
     # ---- the rail and lawn crowd (after the kit, so nobody stands in a marquee)
     lawn = turf.buffer(60.0).difference(turf.buffer(1.2)).intersection(side).difference(stands_all.buffer(1.0)).difference(fest_side)
     pl = prep(lawn); n = 0
@@ -172,4 +171,46 @@ def stand_side(S, turf, sp, rnd, NM, side_zone):
     # the stand camera: the TV gantry on the front edge of the mast stand's roof, by the winning line (its west end)
     piece, x, z, turn, (X, sc) = placed[1]
     cam = [round(v, 1) for v in to_w(x, z, turn, INFO[piece]["width"] / 2 * X - 2.5, 4.0 * sc)]
-    return stands_all, far, [cam[0], round(INFO[piece]["section"]["roofTop"] * sc + 1.6, 1), cam[1]], fill_trees, note
+    return stands_all, fests, [cam[0], round(INFO[piece]["section"]["roofTop"] * sc + 1.6, 1), cam[1]], fill_trees, note
+
+
+def angled_adverts(turf, boards, trees, x0=60.0, x1=505.0, every=43.0, n=3, angle=57.0):
+    """Owner, 18 Nov 12:24 (purple on his plan): "adverts to be at an angle and set out evenly". The boards along the
+    north side of the straight (from past the far-side festival to where the planting zone starts) become short runs of
+    n boards, every 'every' metres, each run starting on the 20 m line and running back from the track at 'angle'
+    degrees to it, towards the post, faces turned towards the stands and the run-in (his strokes: about 57 degrees, about
+    43 m apart). The trees under them come out."""
+    from shapely.geometry import LineString
+    ring = turf.buffer(20.0, join_style=1).boundary
+    north = lambda b: x0 - 15 < b[0] < x1 + 15 and turf.distance(Point(b[0], b[1])) < 24.0 and b[1] < _north_edge(turf, b[0])
+    kept = [b for b in boards if not north(b)]
+    out, k = [], 0
+    designs = ["green", "cream", "navy", "white"]
+    for x in np.arange(x0, x1 + 1e-6, every):
+        pts = []
+        for xx in (x - 4.0, x + 4.0):
+            hit = ring.intersection(LineString([(xx, -300.0), (xx, _north_edge(turf, xx))]))
+            cand = [g for g in getattr(hit, "geoms", [hit]) if g.geom_type == "Point"]
+            if not cand: break
+            pts.append(max(cand, key=lambda g: g.y))                       # the 20 m line just north of the turf
+        if len(pts) < 2: continue
+        rx, rz = pts[1].x - pts[0].x, pts[1].y - pts[0].y; L = math.hypot(rx, rz); rx, rz = rx / L, rz / L
+        a = math.atan2(rz, rx) + math.radians(180.0 + angle)               # back from the track, towards the post
+        ux, uz = math.cos(a), math.sin(a)
+        fx, fz = -uz, ux                                                   # the face: towards the stands and the run-in
+        if fz < 0: fx, fz = -fx, -fz
+        sx, sz = (pts[0].x + pts[1].x) / 2, (pts[0].y + pts[1].y) / 2
+        for j in range(n):
+            bx, bz = sx + ux * (3.2 + 6.0 * j), sz + uz * (3.2 + 6.0 * j)
+            out.append([round(bx, 2), round(bz, 2), round(math.degrees(math.atan2(fx, fz)), 2), designs[k % 4], 1.4]); k += 1
+    near = unary_union([Point(b[0], b[1]).buffer(4.5) for b in out])
+    trees = [t for t in trees if not near.contains(Point(t[0], t[1]))]
+    return kept + out, trees, len(out)
+
+
+def _north_edge(turf, x):
+    """the turf's north edge at world x (the smallest z of the turf there), or 0"""
+    from shapely.geometry import LineString
+    hit = turf.intersection(LineString([(x, -400.0), (x, 400.0)]))
+    zs = [c[1] for g in getattr(hit, "geoms", [hit]) for c in getattr(g, "coords", [])]
+    return min(zs) if zs else 0.0

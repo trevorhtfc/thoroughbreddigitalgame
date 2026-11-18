@@ -54,7 +54,14 @@
 "flag_b": "#9fbad8",
 "flag_c": "#f1d38f",
 "flag_d": "#a9cfa6",
-"lamp": "#fff6dc"
+"lamp": "#fff6dc",
+"ride_red": "#e59c95",
+"ride_white": "#fbf7ef",
+"ride_blue": "#9fbad8",
+"ride_yellow": "#f1d38f",
+"ride_green": "#a9cfa6",
+"ride_steel": "#e9e6ef",
+"ride_dark": "#6b6f80"
 },
 "pieces": {
 "goodwood_balcony": {
@@ -12144,6 +12151,13 @@
 ]
 ],
 "triangles": 13480
+},
+"goodwood_helter_skelter": {
+"width": 10.8,
+"depth": 12.2,
+"height": 19.5,
+"crowd": [],
+"triangles": 1996
 }
 }
 }

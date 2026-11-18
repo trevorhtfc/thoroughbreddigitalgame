@@ -51,10 +51,10 @@ for b in S["boards"]:
     ux, uz = math.cos(turn), -math.sin(turn)
     ax.plot([x - ux * 2.6, x + ux * 2.6], [z - uz * 2.6, z + uz * 2.6], color="#c0392b", lw=2.2, zorder=5)
 # the pieces: the stands (numbered as his mark-up) and the festival kit
-num = {"goodwood_balcony": "1  Balcony stand", "goodwood_mast": "2  Mast stand", "goodwood_tent": "3  Tent stand", "goodwood_victorian": "4  Victorian stand"}
+num = {"goodwood_helter_skelter": "HS", "goodwood_balcony": "1  Balcony stand", "goodwood_mast": "2  Mast stand", "goodwood_tent": "3  Tent stand", "goodwood_victorian": "4  Victorian stand"}
 kitcol = {"marquee_peaks": "#f4c6c3", "marquee_clearspan": "#f2e3b5", "big_top": "#f7d7a8", "kiosk_row_arched": "#cfe1f2", "kiosk_awning": "#cfe1f2",
           "pagoda_kiosk": "#d9cdf0", "pagoda_counter": "#d9cdf0", "pergola_picnic": "#e8d9c4", "picnic_table": "#b89f7c", "banner_flag": "#6b8fc9",
-          "viewing_tower": "#bfbfbf", "balloon_pod": "#f0b8d0", "terrace_deck": "#e0d2b8"}
+          "viewing_tower": "#bfbfbf", "balloon_pod": "#f0b8d0", "terrace_deck": "#e0d2b8", "stand_open": "#d6c7a1", "stand_covered": "#c9b98f"}
 seen = set()
 for model, piece, x, z, turn, sx, sc in S["pieces"]:
     if model == "goodwood_stands":
@@ -63,7 +63,7 @@ for model, piece, x, z, turn, sx, sc in S["pieces"]:
         ax.add_patch(MP(q, closed=True, fc="#f3efe6", ec="#333", lw=1.6, zorder=7))
         f0, f1 = np.array(q[0]), np.array(q[1]); ax.plot(*np.array([f0, f1]).T, color="#b03a2e", lw=3, zorder=8)   # the front
         c = np.mean(q, axis=0)
-        ax.text(c[0], c[1], num[piece] + "\n%.0f m long" % (pi["width"] * sx), ha="center", va="center", fontsize=11, fontweight="bold", zorder=9)
+        ax.text(c[0], c[1], num[piece] + ("" if piece.endswith("skelter") else "\n%.0f m long" % (pi["width"] * sx)), ha="center", va="center", fontsize=11 if not piece.endswith("skelter") else 7, fontweight="bold", zorder=9)
     elif model == "site_props":
         if not (X0 < x < X1 and Z0 < z < Z1): continue
         w, d = NM.SP_SIZE[piece]; w *= sx * sc; d *= sc
@@ -82,15 +82,15 @@ for x in range(-100, 701, 100):
 ax.text(430, -40, "the straight (horses run right to left)", ha="center", fontsize=11, color="#2f5a24", style="italic")
 leg = [("#f3efe6", "stand (red line: its front)"), ("#f4c6c3", "marquee"), ("#f7d7a8", "big top"), ("#cfe1f2", "kiosks"),
        ("#d9cdf0", "pagoda kiosk / counter"), ("#e8d9c4", "pergola"), ("#b89f7c", "picnic table"), ("#6b8fc9", "flag"),
-       ("#bfbfbf", "viewing tower"), ("#f0b8d0", "balloon"), ("#4f7d43", "tree"), ("#c0392b", "advertising board"),
+       ("#bfbfbf", "viewing tower"), ("#f0b8d0", "balloon"), ("#d6c7a1", "little stands / terraces"), ("#4f7d43", "tree"), ("#c0392b", "advertising board"),
        ("#8a6f8f", "crowd (dots)"), ("#ddd3a8", "trodden festival ground"), ("#e4d8c2", "stand apron / rail walk")]
 for i, (c, lab) in enumerate(leg):
-    yy = 128 + i * 6.6
+    yy = 122 + i * 6.6
     ax.add_patch(MP([(-150, yy - 2.4), (-141, yy - 2.4), (-141, yy + 2.4), (-150, yy + 2.4)], closed=True, fc=c, ec="#555", lw=0.5, zorder=11))
     ax.text(-137, yy, lab, va="center", fontsize=8.5, zorder=11)
-ax.plot([-150, -141], [128 + 15 * 6.6] * 2, color="#2b7fb8", ls="--", lw=1.4); ax.text(-137, 128 + 15 * 6.6, "your blue zones (18 Nov)", va="center", fontsize=8.5)
+ax.plot([-150, -141], [122 + 16 * 6.6] * 2, color="#2b7fb8", ls="--", lw=1.4); ax.text(-137, 122 + 16 * 6.6, "your blue zones (18 Nov, 00:15)", va="center", fontsize=8.5)
 ax.set_xlim(X0, X1); ax.set_ylim(Z1, Z0); ax.set_aspect("equal"); ax.set_xticks([]); ax.set_yticks([])
-ax.set_title("Goodwood: the stand side as built (18 Nov, second pass), to mark up. Plan, north up, the course along the top. "
+ax.set_title("Goodwood: the stand side as built (18 Nov, third pass: your plan mark-up of 12:24), to mark up. Plan, north up, the course along the top. "
              "Metres from the winning post along the straight.", fontsize=12, loc="left")
-fig.savefig(REPO / "reference/goodwood/renders/stand-side-plan.png", facecolor="white", bbox_inches="tight")
+fig.savefig(REPO / "reference/goodwood/renders/stand-side-plan-2.png", facecolor="white", bbox_inches="tight")
 print("ok", sorted(seen))
