@@ -293,8 +293,10 @@ def main():
     _ps = importlib.util.spec_from_file_location("epsom_perimeter", HERE / "perimeter.py")
     PM = importlib.util.module_from_spec(_ps); _ps.loader.exec_module(PM)
     grid_box = (ground["x0"], ground["z0"], ground["x0"] + ground["cell"] * (ground["nx"] - 1), ground["z0"] + ground["cell"] * (ground["nz"] - 1))
-    trees, boards, canopies, pnote = PM.perimeter(S, course, turf, grid_box, sp, rnd)
-    scen = NM.scenery_file(S, trees, boards, [], ["site_props", "finish_line"], {"at": [0, GAP], "turn": 180}, poles)
+    def put(model, piece, x, z, turn):
+        S.piece(model, piece, x, z, turn)
+    trees, boards, canopies, pnote = PM.perimeter(S, course, turf, grid_box, sp, rnd, put)
+    scen = NM.scenery_file(S, trees, boards, [], ["epsom_stands", "site_props", "finish_line"], {"at": [0, GAP], "turn": 180}, poles)
     scen["canopies"] = canopies
     scen["_about"] += (" canopies: the woods beyond the belts of trees, each a light mesh (v: x, y above the ground, z; i: triangles), "
                        "drawn as a soft roof of leaves.")
