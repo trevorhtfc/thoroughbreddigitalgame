@@ -34,6 +34,8 @@ CAT = [
         ("park_stands", "park_mast_stand", "Mast stand"),
         ("park_stands", "park_glass_box", "Glass box"),
         ("park_stands", "park_glass_box_small", "Glass box, small"),
+        ("park_stands", "park_clock_house", "Clock house (brick block)"),
+        ("park_stands", "park_terrace", "Low terraces"),
     ]),
     ("York", [
         ("york_stands", "york_stand_north", "North stand"),
@@ -41,23 +43,55 @@ CAT = [
         ("york_stands", "york_big_pavilion", "Big pavilion"),
         ("york_stands", "york_pavilions", "Pavilions"),
         ("york_stands", "york_end_stand", "End stand"),
+        ("york_stands", "york_clock_tower", "Clock tower"),
     ]),
     ("Newmarket, July Course", [
-        ("july_stands", "old_pavilion", "Old pavilion"),
+        ("july_stands", "old_pavilion", "Old pavilion (July)"),
         ("july_stands", "old_pavilion_wing", "Old pavilion, wing"),
         ("july_stands", "pavilion_small", "Small pavilion"),
         ("july_stands", "victorian_house", "Victorian house"),
     ]),
     ("Newmarket, Rowley Mile", [
+        ("rowley_stands", "millennium_stand", "Millennium stand"),
         ("rowley_stands", "victorian_stand", "Victorian stand"),
         ("rowley_stands", "rowley_stand", "Rowley stand"),
         ("rowley_stands", "ring_pavilion", "Ring pavilion"),
-        ("rowley_stands", "victorian_pavilion", "Victorian pavilion"),
+        ("rowley_stands", "victorian_pavilion", "Little Victorian pavilion (lookout)"),
+    ]),
+    ("Epsom", [
+        ("epsom_stands", "epsom_grandstand", "Epsom grandstand"),
+        ("epsom_stands", "epsom_balcony_stand", "Epsom balcony stand"),
+        ("epsom_stands", "epsom_rowley_stand", "Epsom Rowley-style stand"),
     ]),
     ("Ascot", [
         ("victorian_grandstand", "*", "Victorian grandstand"),
+        ("ascot_main_stand", "*", "Main stand (modern)"),
+    ]),
+    ("Ascot, stand modules", [
+        ("stand_modules", "module_clock_centre", "Clock centre"),
+        ("stand_modules", "module_grand_pavilion", "Grand pavilion"),
+        ("stand_modules", "module_pavilion", "Pavilion"),
+        ("stand_modules", "module_end_pavilion", "End pavilion"),
+        ("stand_modules", "module_terrace_stand", "Terrace stand"),
+        ("stand_modules", "module_three_storey_block", "Three-storey block"),
+        ("stand_modules", "module_window_block", "Window block"),
+        ("stand_modules", "module_ironwork_bay", "Ironwork bay"),
+        ("stand_modules", "module_stair_bay", "Stair bay"),
+        ("stand_modules", "module_veranda_low", "Low veranda"),
+        ("stand_modules", "module_veranda_wing", "Veranda wing"),
+        ("stand_modules", "module_veranda_wing_raised", "Veranda wing, raised"),
+        ("stand_modules", "module_porch", "Porch"),
+        ("stand_modules", "module_link", "Link"),
+    ]),
+    ("Built for tier 2 (kit pieces combined)", [
+        ("doncaster_stands", "park_balcony_stand_clock", "Balcony stand + clock tower (Doncaster)"),
+        ("newbury_stands", "park_roof_terrace_stand_postcard", "Roof-terrace stand + postcard roof pieces (Newbury)"),
     ]),
 ]
+# every piece gets a number, shown on both sheets, so a piece can be named without doubt (owner, 18 Nov 21:36)
+NUM = {}
+for _g, _items in CAT:
+    for _f, _n, _l in _items: NUM[(_f, _n)] = len(NUM) + 1
 
 # ---- load every file once; each piece becomes an empty with its meshes under it
 bpy.ops.wm.read_factory_settings(use_empty=True)
@@ -139,7 +173,7 @@ if PART in ("both", "tiles"):
             scene.render.image_settings.file_format = "PNG"
             bpy.ops.render.render(write_still=True)
             im = Image.open(path).convert("RGB")
-            tiles.append((im, label, name if name != "*" else f, (w, d, h)))
+            tiles.append((im, "%d  %s" % (NUM[(f, name)], label), name if name != "*" else f, (w, d, h)))
             print("tile", grp, label, flush=True)
         rows.append((grp, tiles))
     LH = 74
@@ -147,7 +181,7 @@ if PART in ("both", "tiles"):
     Wd = COLS * TW + (COLS + 1) * 16
     Hd = 110 + nrows * (TH + LH + 16) + len(rows) * 50
     sheet = Image.new("RGB", (Wd, Hd), "white"); d = ImageDraw.Draw(sheet)
-    d.text((16, 20), "Grandstand crib sheet: the kit of parts, from every course (17 Nov 2026)", fill=INK, font=FT)
+    d.text((16, 20), "Grandstand crib sheet: the kit of parts, from every course (18 Nov 2026)", fill=INK, font=FT)
     d.text((16, 66), "Sizes are width x depth x height in metres (height to the highest point, flags and flagpoles included).",
            fill=(90, 90, 96), font=FS)
     y = 110
@@ -231,7 +265,7 @@ if PART in ("both", "elevations"):
             im = imgs[(f, name)]
             sheet.paste(im, (x, y), im)
             w, dd, h = SIZES[(f, name)][:3]
-            d.text((x + 4, gy + 10), label, fill=INK, font=FS)
+            d.text((x + 4, gy + 10), "%d  %s" % (NUM[(f, name)], label), fill=INK, font=FS)
             d.text((x + 4, gy + 34), "%s, %.0f m" % (grp.replace("Newmarket, ", ""), w), fill=(110, 110, 116), font=FS)
             x += max(im.width, 230) + 22
         y += ELH + LAB + 30
