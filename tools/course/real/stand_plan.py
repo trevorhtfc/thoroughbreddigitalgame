@@ -37,6 +37,7 @@ NAMES = {"ring_pavilion": "Ring pavilion (Rowley Mile)", "york_stand_north": "No
          "york_big_pavilion_half": "Big pavilion (16), left half: the kink",
          "newbury_glass_stand": "the glass stand", "newbury_kinked_stand": "the kinked stand",
          "newbury_main_stand": "the main grandstand", "newbury_old_stand": "the old stand",
+         "newbury_kink_right": "the kinked stand, right run", "newbury_kink_left": "the kinked stand, left run", "newbury_kink_joint": "the kink's drum",
          "old_pavilion_lookout": "Old pavilion (July, crib 20) with the postcard's lookout", "old_pavilion_wing": "Old pavilion's wing (July, crib 21)",
          "rowley_end_postcard": "Rowley stand, 84 m cut (crib 26), with the postcard's lookout",
          "park_roof_terrace_stand_postcard": "Roof-terrace stand with the postcard's roof pavilion, flagpole and lookout"}

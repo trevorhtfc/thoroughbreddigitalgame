@@ -13,8 +13,11 @@ second bent in plan towards the bend. He agreed (23:08) this reading:
 
   newbury_glass_stand   1  the modern glass stand at the bend: a standing terrace, a balcony, two glazed storeys,
                            a flat roof                                                                     44 m
-  newbury_kinked_stand  2  the brick block with its hipped roof, a covered stand running from it up the course and
-                           another turned 35 degrees towards the bend (his kink)                      50 + 14 + 26 m
+  newbury_kink_right/left/joint  2  the kinked stand (23:23: "we have a kinked stand from Newmarket? could we not
+                           apply that stand to the kink here"): the Rowley Mile's cranked stand, Ascot's grand pavilion
+                           behind a lawn terrace on a podium storey, a 49 m run up the course with the TV structure on
+                           its roof and a 28 m run the course turns 35 degrees towards the bend; the cream stair drum
+                           and a filled wedge where they meet                                         49 + 28 m
   newbury_main_stand    3  the long covered stand: the open terrace under a low canopy on iron columns, an upper
                            stand under a flat roof, the white roof box (gable, clock, flagpole) in the middle, the
                            pitched-roof block at its right-hand end                                         89 m
@@ -65,7 +68,7 @@ def turned(fn, angle, px, py):
         c += [angle, px, py]
 
 
-def terrace(x0, x1, rows, tread=0.9, rise=0.3, z0=0.3):
+def lawn_terrace(x0, x1, rows, tread=0.9, rise=0.3, z0=0.3):
     """The open standing terrace from the lawn, its rows' crowd."""
     return steps("steps", x0, x1, 0.0, z0, rows, tread, rise)
 
@@ -103,8 +106,9 @@ def flagpole(x, y, z, h=7.0):
 # ------------------------------------------------------------------------------------------ 1: the glass stand
 def glass_stand(L=44.0):
     h = L / 2
-    yt, zt = terrace(-h, h, 7, 0.9, 0.35)
-    yb, zb, Z1, Z2, Z3 = yt + 1.4, 3.8, 7.6, 11.4, 11.9
+    yt, zt = lawn_terrace(-h, h, 7, 0.9, 0.35)
+    yb, zb, Z1, Z1b, Z2 = yt + 1.4, 3.8, 7.6, 11.4, 15.2          # (23:23: "a floor taller": three glazed storeys)
+    Z3 = Z2 + 0.5
     D = 18.0
     K.box("podium", -h, h, yt, D, -1.0, zb - 0.3)                           # the ground storey: doors under the balcony
     for k in range(int(L // 6.0)):
@@ -113,7 +117,7 @@ def glass_stand(L=44.0):
     K.box("glass", -h, h, yt - 1.15, yt - 1.05, zb, zb + 1.1)
     K.box("trim", -h, h, yt - 1.2, yt - 1.0, zb + 1.1, zb + 1.2)
     area(-h + 0.4, h - 0.4, yt - 0.9, yb - 0.2, zb)
-    for za, zc in ((zb, Z1), (Z1, Z2)):                                       # two glazed storeys, white floor bands
+    for za, zc in ((zb, Z1), (Z1, Z1b), (Z1b, Z2)):                           # three glazed storeys, white floor bands
         K.box("wall", -h, h, yb + 0.15, D, za, zc)
         K.screen(-h + 0.1, h - 0.1, yb, za, zc - za - 0.35, pane=1.8)
         K.box("trim", -h - 0.1, h + 0.1, yb - 0.2, yb + 0.1, zc - 0.35, zc)
@@ -132,7 +136,7 @@ def covered_run(x0, x1, ends=(True, True)):
     """The covered stand (his photo): the open terrace under a low slate canopy on iron columns along its front, the
     canopy rising to a rendered block behind with doors onto the terrace top; ends flank walls on the rake."""
     r = RUN
-    yt, zt = terrace(x0, x1, r["rows"], r["tread"], r["rise"])
+    yt, zt = lawn_terrace(x0, x1, r["rows"], r["tread"], r["rise"])
     yb = yt + r["back"]
     K.box("cream", x0, x1, yt, yb, -1.0, r["block"])                          # the block behind
     for k in range(int((x1 - x0 - 2.0) // 4.5) + 1):
@@ -159,36 +163,80 @@ def hipped_block(x0, x1, y0, y1, top, rise=3.6):
     return top + rise + 1.4
 
 
-def kinked_stand(right=50.0, block=14.0, left=26.0, kink=35.0):
-    """His second stand, bent in plan: the brick block (hipped roof, chimneys) at the bend; the covered stand from its
-    right side up the course; the same stand from its left side turned 'kink' degrees towards the course about the
-    block's front left corner. Origin: the middle of the block's front, on the ground."""
-    hb = block / 2
-    yb = covered_run(hb, hb + right, ends=(False, True))
-    turned(lambda: covered_run(-left, 0.0, ends=(True, False)), kink, -hb, 0.0)
-    top = hipped_block(-hb, hb, -0.6, yb + 1.0, 12.4)
-    for x in (-hb + 2.5, hb - 2.5):                                           # the block's ground floor doors
-        K.door(x, -0.6, 0.0, 1.5, 2.5)
-    k = math.radians(kink)
-    lx, ly = -hb - left * math.cos(k), -left * math.sin(k)
-    bx, by = -hb - left * math.cos(k) - yb * math.sin(k), -left * math.sin(k) + yb * math.cos(k)
-    outline = [[lx, ly], [-hb, -0.6], [hb + right, -0.6], [hb + right, yb], [-hb, yb + 1.0], [-hb - yb * math.sin(k), yb * math.cos(k)], [bx, by]]
-    return {"width": round(block + right + left * math.cos(k), 2), "depth": round(yb + 1.0, 2), "height": round(top, 2),
-            "offset": round((hb + right + lx) / 2, 2),
-            "outline": [[round(a, 2), round(b, 2)] for a, b in outline],
-            "kink": {"angle": kink, "left": left, "right": right, "block": block,
-                     "note": "origin = the middle of the brick block's front; the right run along +x, the left run turned "
-                             "'angle' degrees about the block's front left corner (its far end towards the course)"}}
+def gp_run(bays, rows=12, tread=0.9, rise=0.35, lift=4.0, ends=(True, True), tv=None):
+    """One run of the kinked stand (owner, 23:23: "we have a kinked stand from Newmarket? could we not apply that stand
+    to the kink here"): the Rowley Mile's cranked stand, Ascot's grand pavilion (the terrace profile under the grand
+    canopy with its glazed ridge lantern) behind a lawn terrace, here a floor taller (lift: a podium storey of rooms
+    under the pavilion, the lawn terrace rising to meet it). Ends: flank walls on the rake, then the pavilion's end
+    wall (his rule). tv: x of the TV structure on its roof. Origin: the middle of the lawn terrace's foot."""
+    L, h = bays * BAY, bays * BAY / 2
+    T, top = steps("steps", -h, h, 0.0, 0.25, rows, tread, rise)
+    T += 0.0
+    D = 18.0
+    K.box("cream", -h, h, T, T + D, -1.0, lift)                                 # the podium storey
+    for k in range(int((L - 2.0) // 3.5) + 1):
+        x = -h + 1.75 + k * 3.5
+        if x < h - 1.0:
+            (K.door if k % 3 == 1 else win)(x, T, top + 0.3 if k % 3 == 1 else top + 0.9, 1.4, 2.3 if k % 3 == 1 else 1.4)
+    K.box("trim", -h - 0.2, h + 0.2, T - 0.25, T + 0.1, lift - 0.3, lift)
+    K.push(Matrix.Translation((-h, T, lift)))
+    canopy_terrace({"x0": 0.0, "x1": L, "depth": D, "party": ()}, grand=True)
+    K.pop()
+    tt = terrace_top(D) + lift
+    for x, side, on in ((-h, -1, ends[0]), (h, 1, ends[1])):
+        if on:
+            flank(x, side, [(-0.3, -1.0), (-0.3, 1.1), (T, top + 1.3), (T, tt + 1.2), (T + D, tt + 1.2), (T + D, -1.0)])
+    H = terrace_top(D) + 9.6 + lift
+    if tv is not None:
+        tv_structure(tv, T + D * 0.55, H - 2.2)
+    return {"width": round(L, 2), "depth": round(T + D + 0.5, 2), "height": round(H + (7.5 if tv is not None else 0.0), 2),
+            "section": {"terraceBack": round(T, 2), "lift": lift, "pavilionTop": round(tt, 2), "roof": round(H, 2)}}
+
+
+def tv_structure(cx, cy, z):
+    """The TV structure on the roof (his photos: the camera platform on the old stand's roof): a white boarded box on
+    the ridge with windows, a railed platform on its roof, two cameras on tripods looking at the course, an aerial."""
+    w, d, hgt = 7.0, 4.2, 3.0
+    K.box("paint", cx - w / 2, cx + w / 2, cy - d / 2, cy + d / 2, z, z + hgt)
+    for x in (cx - 2.2, cx, cx + 2.2):
+        win(x, cy - d / 2, z + 0.9, 1.3, 1.3)
+    K.box("trim", cx - w / 2 - 0.5, cx + w / 2 + 0.5, cy - d / 2 - 1.2, cy + d / 2 + 0.3, z + hgt, z + hgt + 0.25)
+    K.balustrade(cx - w / 2 - 0.4, cx + w / 2 + 0.4, cy - d / 2 - 1.1, z + hgt + 0.25, h=1.0, mat="iron", spacing=0.3)
+    zp = z + hgt + 0.25
+    for x in (cx - 1.8, cx + 1.8):                                            # the cameras, on tripods
+        for a in (0, 2.1, 4.2):
+            K.cyl("iron", x + 0.45 * math.sin(a), cy - 1.6 + 0.45 * math.cos(a), zp, zp + 1.3, 0.035, segs=4, smooth=False)
+        K.box("clock_dark", x - 0.3, x + 0.3, cy - 2.4, cy - 1.2, zp + 1.3, zp + 1.85)
+        K.box("glass", x - 0.18, x + 0.18, cy - 2.55, cy - 2.4, zp + 1.42, zp + 1.72)
+    K.cyl("iron", cx + w / 2 - 0.5, cy + 1.0, zp, zp + 6.5, 0.05, segs=4, smooth=False)   # an aerial
+    for k in range(3):
+        K.box("iron", cx + w / 2 - 1.2, cx + w / 2 + 0.2, cy + 0.98, cy + 1.02, zp + 4.2 + k * 0.8, zp + 4.26 + k * 0.8)
+
+
+def kink_joint(depth=29.0, angle=35.0, top=17.0):
+    """Where the kinked stand's two runs meet (as the Rowley Mile's cranked stand, his Newmarket): the cream stair drum
+    on the front corner, and the wedge between the runs' backs filled in to the roof. Origin: the front corner of the
+    kink (the right run's front left corner)."""
+    k = math.radians(angle)
+    for i in range(int(depth)):                                                # the wedge, in 1 m strips
+        y = i + 0.5
+        xl = -y * math.tan(k) if y < depth * math.cos(k) else -(depth * math.sin(k)) * (depth - y) / (depth - depth * math.cos(k) + 1e-6)
+        if xl < -0.3:
+            K.box("cream", xl, 0.0, i, i + 1.0, -1.0, top)
+    K.box("trim", -depth * math.sin(k), 0.0, depth * math.cos(k) - 0.6, depth, top, top + 0.3)
+    stair_drum(-1.4, 2.6, r=3.4, top=top + 3.0)
+    return {"width": round(depth * math.sin(k) + 4.0, 2), "depth": depth, "height": top + 4.2,
+            "outline": [[0.0, 0.0], [0.0, depth], [round(-depth * math.sin(k), 2), round(depth * math.cos(k), 2)]]}
 
 
 # ------------------------------------------------------------------------------------------ 3: the main stand
-def main_stand(L=89.0, endblock=18.0):
+def main_stand(L=89.0, endblock=18.0, extra=3.6):
     """The long covered stand (his photos): the open terrace under a low canopy on iron columns; behind and above it
     an upper stand of seats under a flat roof people stand on; the white roof box in the middle (a front gable with
     the clock, a flagpole); the pitched-roof block at the right-hand end. Origin: the middle of the front."""
     h = L / 2
     x1 = h - endblock
-    yt, zt = terrace(-h, h, 9, 0.9, 0.3)
+    yt, zt = lawn_terrace(-h, h, 9, 0.9, 0.3)
     # the lower canopy, from the iron columns up to the upper stand's front
     e = 6.3
     K.prism_x("slate", -h - 0.3, x1, [(-0.9, e), (-0.9, e + 0.25), (yt + 0.2, e + 1.25), (yt + 0.2, e + 1.0)])
@@ -196,8 +244,11 @@ def main_stand(L=89.0, endblock=18.0):
     K.box("shade", -h, x1, -0.6, yt, e + 0.02, e + 0.06)
     iron_columns(-h, x1, -0.4, 0.3, e, 5.8)
     # the upper stand: a balustraded front, six rows of seats, the back wall, a flat roof on slim columns
-    zf, yu = e + 1.25, yt + 0.2
+    zf, yu = e + 1.25 + extra, yt + 0.2                                       # (23:23: a floor taller: a storey of boxes)
     K.box("cream", -h, x1, yt, yt + 7.4, -1.0, zf)                            # the block under it, doors onto the terrace top
+    if extra:
+        K.box("trim", -h - 0.3, x1, yt - 0.3, yt + 0.2, e + 1.25, e + 1.55)
+        K.screen(-h + 0.2, x1 - 0.2, yt - 0.05, e + 1.55, extra - 0.5, pane=1.8)
     for k in range(int((x1 + h - 2.0) // 4.5) + 1):
         x = -h + 2.0 + k * 4.5
         if x < x1 - 1.0:
@@ -239,14 +290,14 @@ def main_stand(L=89.0, endblock=18.0):
 
 
 # ------------------------------------------------------------------------------------------ 4: the old stand
-def old_stand(L=76.0, endblock=9.0):
+def old_stand(L=76.0, endblock=9.0, levels=3):
     """The old stand (his photos): two open galleries over a veranda under a hipped slate roof (the July Course's old
     pavilion, its roof hipped), a brick end block on the left, the lookout on four posts on the ridge near the right.
     Origin: the middle of the whole front."""
     sh = endblock / 2                                       # the pavilion's middle sits this far right of the whole's
     K.push(Matrix.Translation((sh, 0.0, 0.0)))
-    info = old_pavilion(L=L, D=11.0, G=4.2, S=3.9, levels=2, stair=False, fence=False)
-    half, D, E = L / 2, 11.0, 4.2 + 2 * 3.9 - 0.25
+    info = old_pavilion(L=L, D=11.0, G=4.2, S=3.9, levels=levels, stair=False, fence=False)
+    half, D, E = L / 2, 11.0, 4.2 + levels * 3.9 - 0.25
     ridge = E + 3.4
     # the lookout: four posts up from the ridge, a small boarded hut with windows all round, a balcony rail, a hip roof
     cx, cy, s, zp = half - 9.0, D / 2 - 0.5, 2.4, ridge + 1.6
@@ -271,7 +322,11 @@ def old_stand(L=76.0, endblock=9.0):
 
 PIECES = [
     ("newbury_glass_stand", glass_stand),
-    ("newbury_kinked_stand", kinked_stand),
+    # 2, the kinked stand (23:23): two runs of the Rowley Mile's cranked stand and the drum where they meet; the course
+    # places the left run turned towards the bend about the kink's front corner (tools/course/real/newbury.json)
+    ("newbury_kink_right", lambda: gp_run(14, ends=(False, True), tv=-14 * BAY / 2 + 12.0)),
+    ("newbury_kink_left", lambda: gp_run(8, ends=(True, False))),
+    ("newbury_kink_joint", lambda: kink_joint(29.3, 35.0, 22.0)),
     ("newbury_main_stand", main_stand),
     ("newbury_old_stand", old_stand),
 ]
