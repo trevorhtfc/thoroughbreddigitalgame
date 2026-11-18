@@ -14,7 +14,7 @@ from pathlib import Path
 
 REPO = Path(__file__).resolve().parents[3]
 ARCH = REPO / "assets/models/architecture"
-KIT = ["park_stands", "york_stands", "rowley_stands", "july_stands", "stand_modules", "site_props"]
+KIT = ["park_stands", "york_stands", "rowley_stands", "july_stands", "stand_modules", "site_props", "newbury_kit"]
 
 
 def read_glb(path):

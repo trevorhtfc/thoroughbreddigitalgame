@@ -35,6 +35,8 @@ NAMES = {"ring_pavilion": "Ring pavilion (Rowley Mile)", "york_stand_north": "No
          "module_grand_pavilion_roofbox": "Grand pavilion (35) with the roof box and flagpole over the joint",
          "module_end_pavilion_l": "End pavilion (Ascot module, crib 37), left end", "module_end_pavilion_r": "End pavilion (Ascot module, crib 37), right end",
          "york_big_pavilion_half": "Big pavilion (16), left half: the kink",
+         "newbury_glass_stand": "the glass stand", "newbury_kinked_stand": "the kinked stand",
+         "newbury_main_stand": "the main grandstand", "newbury_old_stand": "the old stand",
          "old_pavilion_lookout": "Old pavilion (July, crib 20) with the postcard's lookout", "old_pavilion_wing": "Old pavilion's wing (July, crib 21)",
          "rowley_end_postcard": "Rowley stand, 84 m cut (crib 26), with the postcard's lookout",
          "park_roof_terrace_stand_postcard": "Roof-terrace stand with the postcard's roof pavilion, flagpole and lookout"}
@@ -45,8 +47,10 @@ def footprint(gi, x, z, turn):
     a = math.radians(turn); ca, sa = math.cos(a), math.sin(a)
     def w(u, v): return (x + u * ca - v * sa, z - (u * sa + v * ca))
     D = gi["depth"]
+    if gi.get("outline"):                        # a footprint that is not a rectangle (Newbury's kinked stand)
+        return [w(u, v) for u, v in gi["outline"]]
     k = gi.get("kink")
-    if k:          # York's north stand: a right run along the front and a left run turned towards the course
+    if k and "leftEnd" in k:          # York's north stand: a right run along the front and a left run turned towards the course
         r, (lx, ly) = k["right"], k["leftEnd"]
         L = math.hypot(lx, ly); nx, ny = -ly / L, lx / L          # into the building from the left run's front
         if ny < 0: nx, ny = -nx, -ny
