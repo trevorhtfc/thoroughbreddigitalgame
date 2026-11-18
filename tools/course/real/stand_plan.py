@@ -27,8 +27,10 @@ NAMES = {"ring_pavilion": "Ring pavilion (Rowley Mile)", "york_stand_north": "No
          "park_clock_house": "Clock house (Park kit): the brick block", "park_terrace": "Low terraces (Park kit)",
          "park_roof_terrace_stand_lookout": "Roof-terrace stand with a lookout pavilion (Park kit + Rowley)",
          "park_glass_box": "Glass box (Park kit)", "park_glass_box_small": "Small glass box (Park kit)",
-         "york_big_pavilion": "Big pavilion (York)", "park_victorian": "Victorian pavilion (Park kit)",
+         "york_big_pavilion": "Big pavilion (York, crib 16)", "park_victorian": "Victorian pavilion with towers (crib 7)",
          "park_old_pavilion": "Old pavilion (Park kit)",
+         "module_grand_pavilion_postcard": "Grand pavilion (Ascot module, crib 35) with the postcard's pavilion block and flagpole",
+         "rowley_stand_postcard": "Rowley stand (crib 26) with the postcard's lookout",
          "park_roof_terrace_stand_postcard": "Roof-terrace stand with the postcard's roof pavilion, flagpole and lookout"}
 
 

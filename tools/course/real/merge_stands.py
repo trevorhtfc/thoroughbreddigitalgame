@@ -14,7 +14,7 @@ from pathlib import Path
 
 REPO = Path(__file__).resolve().parents[3]
 ARCH = REPO / "assets/models/architecture"
-KIT = ["park_stands", "york_stands", "rowley_stands", "july_stands", "site_props"]
+KIT = ["park_stands", "york_stands", "rowley_stands", "july_stands", "stand_modules", "site_props"]
 
 
 def read_glb(path):
@@ -97,7 +97,8 @@ def main(cid):
         out["accessors"].append(acc); return len(out["accessors"]) - 1
     for cname, spec in C["stands"].get("composites", {}).items():
         prims = []
-        parts = [{"piece": spec["base"], "above": -1e9, "scale": 1.0, "at": [0, 0, 0]}] + spec["add"]
+        # "baseAt" moves the base (Ascot's stand modules have their origin at their left end, not the middle of the front)
+        parts = [{"piece": spec["base"], "above": -1e9, "scale": 1.0, "at": spec.get("baseAt", [0, 0, 0])}] + spec.get("add", [])
         for part in parts:
             src, j, buf, mesh = mesh_of(part["piece"])
             for p in mesh["primitives"]:
@@ -118,7 +119,8 @@ def main(cid):
                               "indices": put(I2, 5125, "SCALAR", 34963), "material": len(out["materials"]) - 1})
         out["meshes"].append({"name": cname, "primitives": prims})
         out["nodes"].append({"name": cname, "mesh": len(out["meshes"]) - 1}); out["scenes"][0]["nodes"].append(len(out["nodes"]) - 1)
-        base = json.loads((ARCH / f"{mesh_of(spec['base'])[0]}.json").read_text())["pieces"][spec["base"]]
+        bsrc = mesh_of(spec['base'])[0]
+        base = spec["info"] if "info" in spec else json.loads((ARCH / f"{bsrc}.json").read_text())["pieces"][spec["base"]]
         top = max(float(np.max(out["accessors"][q["attributes"]["POSITION"]]["max"][1])) for q in prims)
         info["pieces"][cname] = dict(base, height=round(top, 2), composite=spec)
         info["from"][cname] = "composite"
