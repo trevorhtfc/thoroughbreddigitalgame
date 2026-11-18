@@ -347,6 +347,21 @@ body.pre .dock { display: none; }
     show("The course didn't start: " + (e.message || "a script failed to load") + (e.filename ? " (" + e.filename.split("/").pop() + ":" + e.lineno + ")" : "") + ".");
   }, true);
   window.addEventListener("unhandledrejection", (e) => show("The course didn't start: " + ((e.reason && e.reason.message) || e.reason) + "."));
+  // what went wrong along the way, and how far setting up got (the module sets window.__stage): shown if it stalls
+  window.__problems = [];
+  const keep = (kind, a) => { try { window.__problems.push(kind + ": " + Array.from(a).map((x) => (x && x.message) || String(x)).join(" ").slice(0, 160)); } catch {} };
+  const ce = console.error.bind(console), cw = console.warn.bind(console);
+  console.error = (...a) => { keep("error", a); ce(...a); };
+  console.warn = (...a) => { if (!/GPU stall|deprecated/i.test(String(a[0]))) keep("warn", a); cw(...a); };
+  window.addEventListener("error", (e) => keep("page", [e.message + (e.filename ? " " + e.filename.split("/").pop() + ":" + e.lineno : "")]), true);
+  setTimeout(function stalled() {
+    const el = document.getElementById("loading");
+    if (!el || el.hidden || !window.__started) return;
+    el.style.pointerEvents = "auto"; el.style.font = "500 13px/1.45 Jost, Helvetica, Arial, sans-serif"; el.style.letterSpacing = "0";
+    el.style.textAlign = "left"; el.style.padding = "0 24px"; el.style.whiteSpace = "pre-wrap"; el.style.userSelect = "text";
+    el.textContent = "Still setting up after 30 seconds. Stuck at: " + (window.__stage || "?") + "\n" +
+      (window.__problems.slice(-8).join("\n") || "(no errors reported)") + "\nBrowser: " + navigator.userAgent;
+  }, 30000);
   setTimeout(() => {
     if (window.__started) return;
     const maps = typeof HTMLScriptElement !== "undefined" && HTMLScriptElement.supports && HTMLScriptElement.supports("importmap");
@@ -2841,8 +2856,11 @@ try {
   const json = (url) => optional(fetch(url).then((r) => { if (!r.ok) throw new Error(url + " " + r.status); return r.json(); }), url);
   const file = (path) => "assets/course/" + path.split("/").pop();
   // a course drawn live (Newmarket) lists its scenery and the Blender pieces it uses; Ascot's is baked
+  window.__stage = "the scenery file";
   const SC = VIEW.scenery ? await json(file(VIEW.scenery)) : null;
+  window.__stage = "the far land file";
   const FARL = VIEW.farLand ? await json(file(VIEW.farLand)) : null;      // the long views (Goodwood: farland.py)
+  window.__stage = "the models (horse, trees, crowd, stands)";
   const [props, horse, world, trees, belts, crowd, bakeInfo, dressing, planting, areas, spots, palette, stalls, stallKit, horseLight, scModels] = await Promise.all([
     optional(loadModel("assets/course", "course-props"), "Course furniture"),
     HORSE_V === "v2" ? HorseV2.loadHorse(loadModel, "assets/model-v2", (url, srgb) => { const t = texLoader.load(url); t.flipY = false; if (srgb) t.colorSpace = THREE.SRGBColorSpace; return t; })
@@ -2874,6 +2892,7 @@ try {
     HORSE_V === "v1" && !params.has("nolod") ? optional(loadModel("assets/model", "racehorse_lod"), "Light horse") : null,
     SC ? Promise.all((SC.models || []).map((m) => optional(loadModel(ARCH, m), m))) : null,
   ]);
+  window.__stage = "building the stalls and the scenery";
   if (stalls && stallKit) buildStalls(stalls, stallKit);
   if (props) placeProps(props);
   if (world && bakeInfo) placeBaked(world, bakeInfo, dressing);
@@ -2941,7 +2960,10 @@ try {
   // the uplift test, once everything stands in the scene (the horses too): the sun's shadow pictures, and its light on everything
   if (UPLIFT) UPLIFT.afterBuild({ scene, LAYERS, shadowCatcher, crowd: CROWD.figs, crowdShare: QUALITY[qLevel].crowd, sunOffset: SUN_OFFSET, renderer, quality: qLevel });
   setGrade(GRADE.on);
-  try { await renderer.compileAsync(scene, camera); } catch (e) { console.warn("compile", e); }
+  window.__stage = "preparing the graphics (shaders)";
+  // (never wait more than 12 s for the graphics chip to prepare its shaders: some drivers never report back)
+  try { await Promise.race([renderer.compileAsync(scene, camera), new Promise((r) => setTimeout(r, 12000))]); } catch (e) { console.warn("compile", e); }
+  window.__stage = "the first picture";
   document.getElementById("loading").hidden = true;
 } catch (err) {
   console.error(err);
