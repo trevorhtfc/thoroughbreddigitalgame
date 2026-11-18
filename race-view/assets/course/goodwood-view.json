@@ -316,10 +316,10 @@
     65,
     90
    ],
-   "railSide": "outer",
+   "railSide": "inside",
    "frame": "field",
    "leadRoom": 2,
-   "note": "the car down the leg and round the bend, on the stand side of the track (the outside of the bend at the Rowley Mile, the inside on the July Course)"
+   "note": "the car down the leg and round the loop inside the rail (on the island and the infield), looking out across the track to the planting and boards round the outside"
   },
   "drone_straight": {
    "label": "Drone",
@@ -440,6 +440,31 @@
    ],
    "frame": "field",
    "leadRoom": 2
+  },
+  "terraces": {
+   "label": "Terraces",
+   "kind": "terrace",
+   "at": [
+    47.58698807810821,
+    7.63,
+    58.290597512901186
+   ],
+   "absolute": true,
+   "face": [
+    0.3,
+    -0.954
+   ],
+   "pan": 70,
+   "fov": [
+    30,
+    50
+   ],
+   "hfov": 38,
+   "clear": 1.1,
+   "frame": "field",
+   "leadRoom": 2,
+   "tv": true,
+   "note": "from among the crowd on the stand's terraces, a spectator's eye (1.62 m over the step; 'at' y is above sea level, as the crowd), the TV director's picture in a corner"
   }
  },
  "cameraMenu": {
@@ -459,6 +484,10 @@
    [
     "drone_straight",
     "Drone"
+   ],
+   [
+    "terraces",
+    "Terraces"
    ]
   ],
   "round": [
@@ -477,6 +506,10 @@
    [
     "drone_straight",
     "Drone"
+   ],
+   [
+    "terraces",
+    "Terraces"
    ]
   ]
  },
@@ -500,7 +533,15 @@
   "afterFinish": 4,
   "replayFrom": 30,
   "replayTo": 14,
-  "replaySpeed": 0.3
+  "replaySpeed": 0.3,
+  "terraces": {
+   "chance": 1.0,
+   "seconds": 5,
+   "range": 210,
+   "finishKeep": 60,
+   "midRace": 99999,
+   "note": "every race: one spell of 'seconds' from the terraces camera while the leader is within 'range' m of it, ending 'finishKeep' m out; never mid-race"
+  }
  },
  "setPieces": {
   "_about": "Before the off and after the race: eye and at go from the first to the second over 'seconds'.",
@@ -575,5 +616,6 @@
   "hideAfter": 350
  },
  "mapTurn": 0,
- "farLand": "goodwood-farland.json"
+ "farLand": "goodwood-farland.json",
+ "stallsOnSlope": true
 }

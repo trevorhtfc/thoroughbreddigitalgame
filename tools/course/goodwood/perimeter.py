@@ -38,9 +38,12 @@ LY = importlib.util.module_from_spec(_spec); _spec.loader.exec_module(LY)
 
 DESIGNS = ["green", "cream", "navy", "white"]
 KINDS = ("oak_a", "oak_b", "oak_c", "wide_a", "wide_b")
-BOARD_OFF = 20.0              # the boards' line off the turf (beyond every outer rail: the tracking car's lane is inside it)
-BELT = (25.0, 55.0)           # the belt of real trees, metres off the turf
-CANOPY_FROM = 46.0            # the canopies start here (under the belt's back half, so the trees hide their front edge)
+# (owner, 18 Nov evening: "the planting and the advert boards i think should be closer to the rail? in the real footage
+# they are more visible down the home straight": the tracking cars now run on the rail side round the loop and on the
+# stand side up the straight, so the far sides are free: boards 10 m off the turf, trees from 14 m; were 20 and 25)
+BOARD_OFF = 10.0              # the boards' line off the turf
+BELT = (14.0, 46.0)           # the belt of real trees, metres off the turf
+CANOPY_FROM = 38.0            # the canopies start here (under the belt's back half, so the trees hide their front edge)
 SLOPE_DEEP = 105.0            # on the slope (zone 2) real trees go this far down, the canopy beyond
 CANOPY_H = (13.0, 17.0)       # the canopy's height over the ground, metres (the tree kit's belt trees are about 12-18 m)
 HEDGE = "#5b7a43"             # clipped hedges (a green box: the soft look dresses it with leaf tufts)
@@ -119,7 +122,7 @@ def canopy_mesh(poly, rnd, spacing, h_rng):
     return {"v": v, "i": [int(a) for t in keep for a in t]}
 
 
-def perimeter(S, turf, grid_box, sp, rnd=None):
+def perimeter(S, turf, grid_box, sp, rnd=None, clear=None):
     """Adds the surroundings to the scene S (flats, hedges, the festival's pieces and people); returns trees, boards,
     canopies and a short count of what went where. turf: the course's turf (shapely); grid_box: the ground grid's
     rectangle (x0, z0, x1, z1); sp(piece, x, z, turn, people): puts a site prop (with its people)."""
@@ -129,7 +132,7 @@ def perimeter(S, turf, grid_box, sp, rnd=None):
     gx0, gz0, gx1, gz1 = grid_box
     inside_grid = box(gx0 + 25, gz0 + 25, gx1 - 25, gz1 - 25)
     stands = Z["stands"].difference(turf.buffer(BOARD_OFF - 2))
-    keep_out = unary_union([turf.buffer(22.0), stands])
+    keep_out = unary_union([turf.buffer(12.0), stands] + ([clear] if clear is not None else []))   # (clear: the loop car's lane)
     pk = prep(keep_out)
     zone_woods = unary_union([Z["planting"], Z["slope"]])
 
@@ -178,7 +181,7 @@ def perimeter(S, turf, grid_box, sp, rnd=None):
     # course: the boards' ring wraps round the end of the turf, and the belt behind it closes the head-on camera's view)
     # the canopies: every wood from the belt back to the ground grid's edge
     festival = Z["festival"]
-    canopy_area = unary_union([zone_woods, woods]).intersection(inside_grid) \
+    canopy_area = unary_union([zone_woods, woods]).intersection(inside_grid).difference(clear if clear is not None else Polygon()) \
         .difference(turf.buffer(CANOPY_FROM)).difference(Z["slope"].intersection(turf.buffer(SLOPE_DEEP - 8))).difference(stands.buffer(10)).difference(festival.buffer(10)).difference(Z["grass"])
     cv = ct = 0
     for g in polys(canopy_area.buffer(4).buffer(-4)):
@@ -227,21 +230,8 @@ def perimeter(S, turf, grid_box, sp, rnd=None):
     for g in polys(fields):
         if g.area < 1500: continue
         S.flat("#ccc993", list(g.simplify(2.0).exterior.coords)[:-1], 0.02)
-        # clipped hedges round the fields, in 6 m lengths (each stands level on the ground under its middle)
-        if g.distance(turf) > 260: continue
-        rr = LineString(list(g.exterior.coords))
-        for s in np.arange(0, rr.length - 6, 6.0):
-            a, b = rr.interpolate(s), rr.interpolate(s + 6.0)
-            mx, mz = (a.x + b.x) / 2, (a.y + b.y) / 2
-            if pk.contains(Point(mx, mz)): continue
-            S.box(HEDGE, mx, mz, 6.3, 1.5, 0.0, rnd.uniform(1.5, 2.1), math.atan2(-(b.y - a.y), b.x - a.x)); nh += 1
-    for p in O["hedge"]:
-        ln = LineString(p)
-        for s in np.arange(0, ln.length - 6, 6.0):
-            a, b = ln.interpolate(s), ln.interpolate(s + 6.0)
-            mx, mz = (a.x + b.x) / 2, (a.y + b.y) / 2
-            if not inside_grid.contains(Point(mx, mz)) or pk.contains(Point(mx, mz)) or not near_flats.contains(Point(mx, mz)): continue
-            S.box(HEDGE, mx, mz, 6.3, 1.5, 0.0, rnd.uniform(1.6, 2.2), math.atan2(-(b.y - a.y), b.x - a.x)); nh += 1
+        # (no clipped hedges: owner, 18 Nov evening, "it should be layered but not chunks of darker hedge"; on the
+        # slopes their level boxes and tufts also floated. The fields' edges read from the change of colour.)
     note["hedge lengths"] = nh
     nr = 0
     for p in O["road"]:

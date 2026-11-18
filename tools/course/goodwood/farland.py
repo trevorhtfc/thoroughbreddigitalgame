@@ -60,10 +60,11 @@ def en_of_world(x, z):
     return LY.POST[0] + x * LY.XH[0] + z * LY.ZH[0], LY.POST[1] + x * LY.XH[1] + z * LY.ZH[1]
 
 
-def axis(lo_in, hi_in, cell0, band, outer_lo, outer_hi):
-    """grid lines: every cell0 from lo_in to hi_in (both included), then cell0 for 'band' metres either side, then
-    growing by 15% a step to 600 m, out to outer_lo / outer_hi"""
-    mid = list(np.arange(lo_in, hi_in, cell0)) + [hi_in]
+def axis(lo_in, hi_in, cell0, band, outer_lo, outer_hi, inner=20.0):
+    """grid lines: every 'inner' metres from lo_in to hi_in (both included: the ground grid's own lines, so the far
+    land's edge meets the grid point for point, with no cracks between them; owner, 18 Nov: "bits of holes in the
+    landscape"), then cell0 for 'band' metres either side, then growing by 15% a step to 600 m, out to outer_lo / outer_hi"""
+    mid = list(np.arange(lo_in, hi_in - 1e-6, inner)) + [hi_in]
     def out(start, sign, limit):
         L, x, step = [], start, cell0
         while True:
@@ -159,6 +160,13 @@ def main():
         h = float(HZ.height(np.array([e]), np.array([n]))[0]); d = math.hypot(x - cx, z - cz)
         return float(x), float(z), h - post_h - d ** 2 / (2 * R_EFF)
     tr = at(50.8925, -0.7577)
+    # (the masts stand on the hill's top: the highest ground within 450 m of that point, from the heights themselves.
+    # The point alone put them 270 m down the far shoulder, out of sight behind the summit from the course; owner,
+    # 18 Nov, circling the bare hill past the post)
+    gxs, gzs = np.meshgrid(np.arange(tr[0] - 450, tr[0] + 451, 10.0), np.arange(tr[1] - 450, tr[1] + 451, 10.0))
+    ge, gn = en_of_world(gxs.ravel(), gzs.ravel())
+    gh_ = HZ.height(ge, gn) - post_h - ((gxs.ravel() - cx) ** 2 + (gzs.ravel() - cz) ** 2) / (2 * R_EFF)
+    k_ = int(np.argmax(gh_)); tr = (float(gxs.ravel()[k_]), float(gzs.ravel()[k_]), float(gh_[k_]))
     masts = []
     for dx, dz, hgt in ((-30.0, 8.0, 46.0), (32.0, -10.0, 38.0)):       # the Trundle's two masts, about 40-50 m
         masts.append([round(tr[0] + dx, 1), round(tr[1] + dz, 1), round(tr[2], 1), hgt])

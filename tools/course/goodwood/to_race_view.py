@@ -123,6 +123,15 @@ def main():
     turf = parts[0]
     surface = [[[r2(x), r2(z)] for x, z in turf.exterior.coords]] + [[[r2(x), r2(z)] for x, z in h.coords] for h in turf.interiors]
     railed = turf.buffer(GAP, join_style=2, mitre_limit=2.0).simplify(0.1)
+    # (owner, 18 Nov evening: "the finish line should be integrated with the rail rather than sitting in the track"):
+    # at the post the turf reaches a few metres north of the straight's own rail line (the routes that join there), so
+    # the finish-line kit goes on the rail as drawn: the turf's north edge at the post, turned with it
+    from shapely.geometry import LineString as _LS
+    def _north(x):
+        hit = turf.intersection(_LS([(x, -200.0), (x, 200.0)]))
+        return min(c[1] for g in getattr(hit, "geoms", [hit]) for c in g.coords)
+    FIN_Z = _north(0.0) - GAP
+    FIN_TURN = round(math.degrees(math.atan2(-(_north(8.0) - _north(-8.0)), 16.0)), 2)
     rails = [[[r2(x), r2(z)] for x, z in railed.exterior.coords]] + [[[r2(x), r2(z)] for x, z in h.coords] for h in railed.interiors]
     # the furlong poles on the stand-side (outer) rail up the straight, facing the track
     st = C["routes"]["straight"]; tan, left, outer, _ = route_bits(st, W + GAP + 0.7)
@@ -145,7 +154,7 @@ def main():
         "routes": routes_out, "defaultRoute": "lower",
         "path": routes_out["lower"]["path"], "pathRail": routes_out["lower"]["pathRail"],
         "track": {"surface": surface},
-        "rails": {"gap": GAP, "lines": rails, "skip": [[-16.7, 16.3, -GAP]]},
+        "rails": {"gap": GAP, "lines": rails, "skip": [[-16.7, 16.3, r2(FIN_Z), 3.5]]},
         "straightMile": {"length": round(C["routes"]["straight"]["length"], 1), "furlongPoles": poles},
         "winningPost": [0, 0],
         "ground": ground,
@@ -199,6 +208,12 @@ def main():
     cams = NM.cameras(W, +1, [0, 16, W + 15], ([-8, 6.5, -0.8], [0, 6.0, W * 0.65]), -55.0, sun)
     cams["sideon"]["fov"] = [46, 46]
     cams["track_straight"]["raise"] = []
+    # (owner, 18 Nov evening: "the camera is all on the outside of the track.. the camera should be on the other side
+    # around the loop no? maybe it would offer an easier tree based background"): round the loop the tracking car runs
+    # inside the rail, on the island and infield, looking out across the track at the planting round the outside
+    cams["track_loop"]["railSide"] = "inside"
+    cams["track_loop"]["note"] = ("the car down the leg and round the loop inside the rail (on the island and the infield), looking out "
+                                  "across the track to the planting and boards round the outside")
     # the racecard view: over the infield by the post, looking across at the stands and up the straight
     prelude = {"label": "The runners", "seconds": 9, "eye": [[-50, 16, -24], [-38, 15, -22]],
                "at": [[150, 4, 60], [165, 4, 62]], "fov": 46, "list": [7, 0.6], "cardAfter": 3.5}
@@ -249,7 +264,29 @@ def main():
     PM = importlib.util.module_from_spec(_ps); _ps.loader.exec_module(PM)
     stands_all, far_fest, stand_cam, side_trees, note4 = ST.stand_side(S, turf, sp, rnd, NM, PM.zones()["stands"])
     grid_box = (ground["x0"], ground["z0"], ground["x0"] + ground["cell"] * (ground["nx"] - 1), ground["z0"] + ground["cell"] * (ground["nz"] - 1))
-    trees, boards, canopies, note = PM.perimeter(S, turf, grid_box, sp, rnd)
+    # the loop's tracking car now runs inside the rail (12 m beyond it, up to 3.2 m high): its lane, and 18 m round it,
+    # is kept clear of trees, woods' canopies and boards, on every route from its start until the director hands over to
+    # the straight's camera (from the home straight's start less the drone's 120 m and the car's furthest 90 m ahead)
+    lanes = []
+    for name, r in C["routes"].items():
+        if name == "straight": continue
+        pts = np.array(r["insideRail"]); home = routes_out[name]["path"]["home"]
+        tan, left, _, _ = route_bits(r, W)
+        ds = r["d0"] + r["spacing"] * np.arange(len(pts))
+        ln = [(p[0] - l[0] * 12.0, p[1] - l[1] * 12.0) for p, l, d in zip(pts, left, ds) if d >= home - 230.0]
+        if len(ln) > 1: lanes.append(_LS(ln).buffer(18.0))
+    lane = unary_union(lanes)
+    trees, boards, canopies, note = PM.perimeter(S, turf, grid_box, sp, rnd, clear=lane)
+    # (owner, 18 Nov: past the post, up to the Trundle: a soft patchwork, lone trees, a belt along the road at the
+    # slope's foot, picnickers along the hill fort; tools/course/goodwood/trundle.py)
+    _ts = importlib.util.spec_from_file_location("goodwood_trundle", HERE / "trundle.py")
+    TR = importlib.util.module_from_spec(_ts); _ts.loader.exec_module(TR)
+    _Z = PM.zones()
+    _masts = json.loads((OUT / "goodwood-farland.json").read_text())["landmarks"]["masts"]
+    t_trees, note_t = TR.trundle(S, turf, unary_union([turf.buffer(14.0), lane]),
+                                 unary_union([_Z[k] for k in ("planting", "slope", "festival", "stands", "grass")]).buffer(6.0),
+                                 PM.osm(), rnd, NM, _masts)
+    trees += t_trees
     # (owner, 18 Nov: the far side's festival "can start as the trees start to drop away": no trees in it; nothing in the stands)
     from shapely.geometry import Point
     clear = far_fest.buffer(4.0).union(stands_all.buffer(3.0))
@@ -257,16 +294,33 @@ def main():
     boards = [b for b in boards if not stands_all.buffer(2.0).contains(Point(b[0], b[1]))]
     trees += side_trees
     boards, trees, n_angled = ST.angled_adverts(S, turf, boards, trees)
+    nb = len(boards)
+    boards = [b for b in boards if not lane.buffer(-10.0).contains(Point(b[0], b[1]))]
+    note4["camera lane cleared"] = {"boards": nb - len(boards)}
     note4["far-side hoardings"] = n_angled
-    scen = NM.scenery_file(S, trees, boards, [], ["goodwood_stands", "site_props", "finish_line"], {"at": [0, -GAP], "turn": 0}, poles)
+    scen = NM.scenery_file(S, trees, boards, [], ["goodwood_stands", "site_props", "finish_line"], {"at": [0, r2(FIN_Z)], "turn": FIN_TURN}, poles)
     scen["canopies"] = canopies
     scen["_about"] += (" canopies: the woods beyond the belts of trees, each a light mesh (v: x, y above the ground, z; i: triangles), "
                        "drawn as a soft roof of leaves.")
     NM.write("goodwood-scenery.json", scen)
     print("   perimeter:", json.dumps(note))
     print("   stand side:", json.dumps(note4))
+    print("   trundle:", json.dumps(note_t))
     view = json.loads((OUT / "goodwood-view.json").read_text())        # the stand camera, on the mast stand's balcony
     view["raceCameras"]["grandstand"]["at"] = stand_cam
+    view["stallsOnSlope"] = True        # (owner, 18 Nov: the stalls stood on the turf's own slope; the race view shears them)
+    # (owner, 18 Nov evening: "we should have a terraces cam embedded in the course and cut to some views of it as they
+    # come down the home straight"): a spectator's eye among the crowd near the top of the mast stand's steps, 25 m
+    # up the straight from the post, looking out across the course and a little up it (the race view's terrace camera,
+    # as the Rowley Mile's); the TV director cuts to it in every race for a few seconds as the field comes up the straight
+    # and back to the stand camera 60 m out, so the finish stays the stand camera's
+    tx_, tz_ = ST.to_w(48.1, 44.3, 177.9, 0.0, 14.0)          # (near the top of the steps, so the course shows over the heads)
+    view["raceCameras"]["terraces"] = NM.terrace_cam(S, tx_, tz_, (0.3, -0.954))
+    for k in ("straight", "round"):
+        view["cameraMenu"][k] = [m for m in view["cameraMenu"][k] if m[0] != "terraces"] + [["terraces", "Terraces"]]
+    view["raceDirector"]["terraces"] = {"chance": 1.0, "seconds": 5, "range": 210, "finishKeep": 60, "midRace": 99999,
+                                        "note": "every race: one spell of 'seconds' from the terraces camera while the leader is within "
+                                                "'range' m of it, ending 'finishKeep' m out; never mid-race"}
     NM.write("goodwood-view.json", view, 1)
     print("  ", len(S.pieces), "pieces,", len(S.people) // 4, "people,", len(trees), "trees,", len(boards), "boards,",
           sum(len(v) for v in S.boxes.values()), "hedge lengths,", len(canopies), "canopies")

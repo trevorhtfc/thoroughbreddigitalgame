@@ -129,7 +129,7 @@ def stand_side(S, turf, sp, rnd, NM, side_zone):
     ring = zones["festival_ring"].difference(stands_all.buffer(3.0)).difference(keep_turf)
     tv = zones["orange_tent_victorian"].difference(stands_all.buffer(3.0)).difference(keep_turf)
     east = zones["orange_east"].difference(stands_all.buffer(3.0)).difference(keep_turf)
-    far = zones["orange_far"].difference(turf.buffer(22.0))           # (behind the boards' line, clear of the tracking car)
+    far = zones["orange_far"].difference(turf.buffer(6.0))            # (owner, 18 Nov evening: "move the festival closer to the rail")
     note["festival by the balcony stand"] = festival(ring, mix(ring.area, big=False), 0.09, 180.0)
     note["festival between tent and Victorian stands"] = festival(tv, mix(tv.area), 0.09, 180.0)
     note["festival east of the Victorian stand"] = festival(east, mix(east.area), 0.08, 180.0, rides=[("goodwood_helter_skelter", 6.5)])
@@ -174,29 +174,33 @@ def stand_side(S, turf, sp, rnd, NM, side_zone):
     return stands_all, fests, [cam[0], round(INFO[piece]["section"]["roofTop"] * sc + 1.6, 1), cam[1]], fill_trees, note
 
 
-def angled_adverts(S, turf, boards, trees, x0=60.0, x1=505.0, every=43.0, scale=3.2, angle=50.0):
-    """The far side of the home straight. Owner, 18 Nov 12:24 (purple on his plan): "adverts to be at an angle and set
-    out evenly"; 12:41, on short runs of small boards: "looks an absolute mess look at how they look on the home
-    straight in the video" (a few big hoardings, well apart, in front of the trees); 14:32, on plain slate hoardings:
-    "they should be the same as my thoroughbred ones". So: at each of his strokes, set out evenly (every 'every' metres
-    from x0 to x1), one of the course's own Thoroughbred advertising boards (the planting kit's board_green / cream /
-    navy / white, as round every other course) made big ('scale' times its 6 m: about 19 m wide, the panel about 3.3 to
-    7.5 m up), its near end on the 20 m line and running back at 'angle' degrees to the track, towards the post, its
-    face to the stands and the run-in. The small boards on that stretch go, and the trees where the big ones stand."""
+def angled_adverts(S, turf, boards, trees, x0=60.0, x1=505.0, every=43.0, scale=2.0, angle=22.0, off=9.0, clear_x0=-110.0):
+    """The far side of the home straight. Owner, 18 Nov: 12:24 (purple on his plan) "adverts to be at an angle and set
+    out evenly"; 12:41 on short runs of small boards: "looks an absolute mess look at how they look on the home straight
+    in the video"; 14:32 on plain slate hoardings: "they should be the same as my thoroughbred ones"; 22:26 on single
+    boards at 3.2 times: "the advert boards are too big and hidden in the bushes. review the real footage" and "get rid
+    of the adverts behind the finish line", "advert boards overlapping again. please spread them out", "closer to the
+    rail".
+    The footage: long low hoardings close behind the rail, in front of the trees, each about four times as long as it is
+    tall, turned a little towards the stands. So at each of his strokes (every 'every' metres from x0 to x1): a hoarding
+    of two of our own Thoroughbred boards end to end at 'scale' (each 12 m wide, the panel about 2.2 to 4.7 m up: about
+    24 m long), its near end 'off' metres off the turf, turned 'angle' degrees back from the track towards the post,
+    faces to the stands. Every other board on the far side from clear_x0 to x1 goes (none behind the finish), and the
+    trees on and in front of each hoarding."""
     from shapely.geometry import LineString
-    ring = turf.buffer(20.0, join_style=1).boundary
-    north = lambda b: x0 - 15 < b[0] < x1 + 15 and turf.distance(Point(b[0], b[1])) < 24.0 and b[1] < _north_edge(turf, b[0])
+    ring = turf.buffer(off, join_style=1).boundary
+    north = lambda b: clear_x0 < b[0] < x1 + 25 and b[1] < _north_edge(turf, b[0]) and turf.distance(Point(b[0], b[1])) < 30.0
     kept = [b for b in boards if not north(b)]
     designs = ["green", "navy", "cream", "white"]
-    length = 6.0 * scale
+    w = 6.0 * scale
     out, feet = [], []
-    for x in np.arange(x0, x1 + 1e-6, every):
+    for k, x in enumerate(np.arange(x0, x1 + 1e-6, every)):
         pts = []
         for xx in (x - 4.0, x + 4.0):
             hit = ring.intersection(LineString([(xx, -300.0), (xx, _north_edge(turf, xx))]))
             cand = [g for g in getattr(hit, "geoms", [hit]) if g.geom_type == "Point"]
             if not cand: break
-            pts.append(max(cand, key=lambda g: g.y))                       # the 20 m line just north of the turf
+            pts.append(max(cand, key=lambda g: g.y))                       # the line just north of the turf
         if len(pts) < 2: continue
         rx, rz = pts[1].x - pts[0].x, pts[1].y - pts[0].y
         a = math.atan2(rz, rx) + math.radians(180.0 + angle)               # back from the track, towards the post
@@ -204,15 +208,17 @@ def angled_adverts(S, turf, boards, trees, x0=60.0, x1=505.0, every=43.0, scale=
         nx, nz = -uz, ux                                                   # the face: towards the stands and the run-in
         if nz < 0: nx, nz = -nx, -nz
         sx, sz = (pts[0].x + pts[1].x) / 2, (pts[0].y + pts[1].y) / 2
-        cx, cz = sx + ux * (length / 2 + 1.0), sz + uz * (length / 2 + 1.0)
-        out.append([round(cx, 2), round(cz, 2), round(math.degrees(math.atan2(nx, nz)), 2), designs[len(out) % 4], scale])
-        e0, e1 = (cx - ux * length / 2, cz - uz * length / 2), (cx + ux * length / 2, cz + uz * length / 2)
-        # (clear the trees on it and in front of its face, out to the 20 m line, so the whole board reads)
-        feet.append(Polygon([(e0[0] - nx * 4, e0[1] - nz * 4), (e1[0] - nx * 4, e1[1] - nz * 4), (e1[0] + nx * 22, e1[1] + nz * 22),
-                             (e0[0] + nx * 22, e0[1] + nz * 22)]).buffer(1.0))
+        turn = round(math.degrees(math.atan2(nx, nz)), 2)
+        for j in range(2):                                                 # two boards end to end, one design
+            cx, cz = sx + ux * (w * (j + 0.5) + 0.2), sz + uz * (w * (j + 0.5) + 0.2)
+            out.append([round(cx, 2), round(cz, 2), turn, designs[k % 4], scale])
+        e0, e1 = (sx, sz), (sx + ux * 2 * w, sz + uz * 2 * w)
+        feet.append(Polygon([(e0[0] - nx * 4, e0[1] - nz * 4), (e1[0] - nx * 4, e1[1] - nz * 4), (e1[0] + nx * 14, e1[1] + nz * 14),
+                             (e0[0] + nx * 14, e0[1] + nz * 14)]).buffer(1.5))
     near = unary_union(feet)
     trees = [t for t in trees if not near.contains(Point(t[0], t[1]))]
-    return kept + out, trees, len(out)
+    kept = [b for b in kept if not near.buffer(6.0).contains(Point(b[0], b[1]))]
+    return kept + out, trees, len(out) // 2
 
 
 def _north_edge(turf, x):
