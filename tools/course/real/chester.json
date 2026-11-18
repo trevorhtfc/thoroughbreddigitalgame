@@ -1,0 +1,176 @@
+{
+ "_about": "Chester (the Roodee) for tools/course/real/layout.py. Ring 1 = OSM's inner edge of the turf, taken as the inside rail (offset 0); its points run anticlockwise, the running direction. Ring 0 = the outer edge. The home straight is the long north-east side under the County Stand and Nun's Road (the enclosures and parade ring are in the infield beside it); the far side runs along the railway (west) and the river (south). The chute is the wedge at the south-east corner by Grosvenor Road (the 1m2f75y and 2m2f147y, 'in a chute at the top of the home straight', geegeez): its outer edge (points 39 to 38) is the chute's outer rail. The spur off the north corner is not used. Chester is nearly circular, 1,654 m round OSM's inner edge (1m73y), so most races go round more than once: each route runs the laps it needs and the post is found on its last lap (searchLast). Starts in At The Races' order, all twelve on or beside a bend (only the chute starts are on a straight).",
+ "name": "Chester",
+ "date": "18 Nov 2026",
+ "hand": -1,
+ "trackWidth": 26.0,
+ "runOut": 60.0,
+ "ease": 40,
+ "post": {
+  "route": "round",
+  "x": 45.0,
+  "searchLast": 500,
+  "note": "on the home straight under the County Stand (x metres east of lat 53.187 lon -2.899). Set so both chute starts fall in the chute (1m2f75y 109 m in, 2m2f147y 81 m in) with a run-in of about 215 m from the end of the home turn (geegeez: 239 yards)"
+ },
+ "routes": {
+  "round": {
+   "note": "round the circuit, laps as needed",
+   "pieces": [
+    {
+     "ring": 1,
+     "from": 5,
+     "to": 4,
+     "dir": 1,
+     "offset": 0
+    },
+    {
+     "ring": 1,
+     "from": 5,
+     "to": 4,
+     "dir": 1,
+     "offset": 0
+    },
+    {
+     "ring": 1,
+     "from": 5,
+     "to": 4,
+     "dir": 1,
+     "offset": 0
+    }
+   ],
+   "arrows": [
+    1200,
+    600
+   ]
+  },
+  "chute": {
+   "note": "1m2f75y from the chute at the south-east corner, once round",
+   "pieces": [
+    {
+     "lead": 10
+    },
+    {
+     "ring": 0,
+     "from": 39,
+     "to": 38,
+     "dir": -1,
+     "offset": 24
+    },
+    {
+     "ring": 1,
+     "from": 64,
+     "to": 4,
+     "dir": 1,
+     "offset": 0
+    },
+    {
+     "ring": 1,
+     "from": 5,
+     "to": 4,
+     "dir": 1,
+     "offset": 0
+    }
+   ]
+  },
+  "chute2": {
+   "note": "2m2f147y from the chute, twice round",
+   "pieces": [
+    {
+     "lead": 10
+    },
+    {
+     "ring": 0,
+     "from": 39,
+     "to": 38,
+     "dir": -1,
+     "offset": 24
+    },
+    {
+     "ring": 1,
+     "from": 64,
+     "to": 4,
+     "dir": 1,
+     "offset": 0
+    },
+    {
+     "ring": 1,
+     "from": 5,
+     "to": 4,
+     "dir": 1,
+     "offset": 0
+    },
+    {
+     "ring": 1,
+     "from": 5,
+     "to": 4,
+     "dir": 1,
+     "offset": 0
+    }
+   ]
+  }
+ },
+ "starts": {
+  "5f16y": {
+   "route": "round",
+   "expected": "on the river bend (south-west), past the 5f110y"
+  },
+  "5f110y": {
+   "route": "round",
+   "expected": "on the bend at the bottom of the railway side (west)"
+  },
+  "6f18y": {
+   "route": "round",
+   "expected": "on the railway side, where it starts to bend"
+  },
+  "7f2y": {
+   "route": "round",
+   "expected": "at the top of the railway side, below the north corner"
+  },
+  "7f122y": {
+   "route": "round",
+   "expected": "round the north corner by New Crane Street, a little past the post"
+  },
+  "1m2f75y": {
+   "route": "chute",
+   "expected": "in the chute at the south-east corner by Grosvenor Road (top of the home straight)"
+  },
+  "1m3f79y": {
+   "route": "round",
+   "expected": "on the river side (south), towards the home turn"
+  },
+  "1m4f66y": {
+   "route": "round",
+   "expected": "on the river side (south)"
+  },
+  "1m5f89y": {
+   "route": "round",
+   "expected": "with the 5f16y"
+  },
+  "1m6f91y": {
+   "route": "round",
+   "expected": "with the 6f18y"
+  },
+  "1m7f195y": {
+   "route": "round",
+   "expected": "with the 7f122y"
+  },
+  "2m2f147y": {
+   "route": "chute2",
+   "expected": "in the chute, 28 m behind the 1m2f75y"
+  }
+ },
+ "view": {
+  "defaultRace": "1m2f75y",
+  "feature": "1m2f75y",
+  "routeWords": {
+   "round": "round the circuit",
+   "chute": "from the chute",
+   "chute2": "from the chute"
+  }
+ },
+ "levelTurf": {
+  "margin": 6,
+  "above": 0.3,
+  "note": "the Roodee is flat throughout (At The Races), but its outer rail runs under banks (the city walls, Grosvenor Road's embankment, the railway): the 20 m ground tiles blur those into the turf, so the turf is brought down to the infield's level; the banks beyond it stay"
+ }
+}
