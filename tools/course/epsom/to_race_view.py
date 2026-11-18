@@ -251,9 +251,50 @@ def main():
     prelude = {"label": "The runners", "seconds": 9, "eye": [[-60, 18, 30], [-45, 17, 28]],
                "at": [[150, 6, -60], [165, 6, -62]], "fov": 46, "list": [7, 0.6], "cardAfter": 3.5}
     postlude = NM.overview_after(prelude)
+    # ---- the TV coverage (owner, 18 Nov 12:11: "review the race footage I sent and ... match the camera angles"): his
+    # Racing TV Derby, frame by frame (reference/epsom/video-cameras.md): the start from inside the rail looking back across
+    # the stalls with the woods behind; up the hill, low cameras just inside the inside rail, long lenses, the field coming
+    # at them and passing, the far rail's boards and the woods behind; down to Tattenham Corner, raised head-on cameras on
+    # the outside of the bend looking back up it, cut with high side-on ones looking across at the crowd behind the inside
+    # rail; up the straight, a high camera on the stand side up the course looking back at the field, the Hill's crowd
+    # behind the far rail; the finish from the stand, across at the Hill. Each a fixed camera that pans and zooms with the
+    # field; the director cuts between them by metres to go (raceDirector.shots).
+    RR = C["routes"]["round"]
+    rtan, rright, _, _ = route_bits(RR, W)
+    def on_route(d, off, h):
+        f = (d - RR["d0"]) / RR["spacing"]; i = max(0, min(len(RR["insideRail"]) - 2, int(f))); k = f - i
+        (ax, az), (bx, bz) = RR["insideRail"][i], RR["insideRail"][i + 1]
+        x, z = ax + (bx - ax) * k, az + (bz - az) * k
+        rx, rz = rright[i]
+        return [r2(x + rx * off), r2(h), r2(z + rz * off)]
+    def fixed(label, d, off, h, fov, note, frame="field"):
+        return {"label": label, "kind": "fixed", "at": on_route(d, off, h), "fov": fov, "frame": frame, "leadRoom": 2, "atD": d, "note": note}
+    RAIL = "low just inside the inside rail, a long lens: the field coming at it up the hill and passing, the far rail's boards and the woods behind"
+    HEAD = "raised on the outside of the bend, looking back up it: the field coming down at it along the inside rail"
+    SIDE = "high on the outside, abreast: across the field at the crowd and the road behind the inside rail"
+    TV = {
+        "rail_1": fixed("Hill 1", 2200, -4.0, 2.2, [2, 30], RAIL), "rail_2": fixed("Hill 2", 1950, -4.0, 2.2, [2, 30], RAIL),
+        "rail_3": fixed("Hill 3", 1720, -4.0, 2.2, [2, 30], RAIL),
+        "top": fixed("Top of the hill", 1560, -5.0, 3.0, [2, 34], "low inside the rail at the top of the hill: the field across the track, the long view behind"),
+        "headon_1": fixed("Down the hill", 1250, W + 5.0, 9.0, [1.5, 26], HEAD), "side_1": fixed("Down the hill, side", 1260, W + 28.0, 13.0, [3, 34], SIDE),
+        "headon_2": fixed("Bend", 1000, W + 6.0, 10.0, [1.5, 26], HEAD), "side_2": fixed("Bend, side", 1010, W + 30.0, 14.0, [3, 34], SIDE),
+        "headon_3": fixed("Tattenham Corner", 790, W + 20.0, 22.0, [1.5, 26], HEAD + " (Tattenham Corner: high and well out, so it sees the field over the crowd inside the corner)"),
+        "side_3": fixed("Tattenham, side", 760, W + 28.0, 14.0, [3, 34], SIDE + " (Tattenham Corner's crowd)"),
+        "straight_high": {"label": "Straight", "kind": "fixed", "at": [175.0, 26.0, -50.0], "fov": [1.5, 30], "frame": "field", "leadRoom": 3,
+                          "note": "high on the stand side up the course (the Rowley stand's roof), looking back up the straight: the field "
+                                  "coming at it, the far rail and the Hill's crowd behind"},
+    }
+    cams.update(TV)
+    cams["start"]["inside"] = True
+    cams["start"]["side"] = 3.0
+    cams["start"]["note"] = "inside the inside rail in front of the stalls, looking back across their faces: the woods behind (the video's start)"
+    shots = [[2380, 2215, "rail_1"], [2215, 1965, "rail_2"], [1965, 1735, "rail_3"], [1735, 1575, "top"], [1575, 1320, "headon_1"],
+             [1320, 1200, "side_1"], [1200, 1060, "headon_2"], [1060, 960, "side_2"], [960, 830, "headon_3"], [830, 690, "side_3"],
+             [690, 2 * F + 20, "straight_high"], [2 * F + 20, -1, "grandstand"]]
+    shots_straight = [[1100, 690, "track_straight"], [690, 2 * F + 20, "straight_high"], [2 * F + 20, -1, "grandstand"]]
     director = {"tracking": True, "grandstand": 2 * F}
-    menu = {"straight": [["track_straight", "Tracking"], ["grandstand", "Stand"], ["headon", "Head-on"], ["drone_straight", "Drone"]],
-            "round": [["track_loop", "Tracking"], ["grandstand", "Stand"], ["headon", "Head-on"], ["drone_straight", "Drone"]]}
+    menu = {"straight": [["track_straight", "Tracking"], ["straight_high", "Straight"], ["grandstand", "Stand"], ["headon", "Head-on"]],
+            "round": [["track_loop", "Tracking"], ["straight_high", "Straight"], ["grandstand", "Stand"]]}
 
     class L:                                                       # what NM.view_file reads of a layout
         TRACK_W = W; RUN_ON = C["runOut"]; STRAIGHT = C["routes"]["straight"]["length"]
@@ -264,6 +305,10 @@ def main():
     view["_about"] = ("The race view's cameras and dressing for Epsom. Written by tools/course/epsom/to_race_view.py; don't edit by hand. "
                       "World axes as epsom.json (left-handed: the stands on -z).")
     view["races"]["_default"] = "1m4f10y"
+    view["raceDirector"]["shots"] = shots
+    view["raceDirector"]["shotsStraight"] = shots_straight
+    view["raceDirector"]["shotsNote"] = ("Epsom (owner, 18 Nov, from his Racing TV Derby): [from, to, camera] by the leader's metres to go; the "
+                                         "start camera first (startSequence), the rest as listed; outside every shot, the path's rules")
     for k in stalls["starts"]:
         view["races"][k]["label"] = LABEL.get(k, k)
     # the dock's course map as the racing papers draw Epsom: the straight along the bottom running left to right to the
@@ -289,6 +334,7 @@ def main():
         for kind in ("seats", "stand"):
             for lx, ly, lz in spots.get(piece, {}).get(kind, []):
                 if rnd.random() < people:
+                    lx, ly, lz = lx * sxf * sc, ly * sc, lz * sc            # (the piece's own scale)
                     S.person(x + lx * ca_ - ly * sa_, lz, z - (lx * sa_ + ly * ca_), NM.face(math.sin(math.radians(turn)), math.cos(math.radians(turn))))
     _ps = importlib.util.spec_from_file_location("epsom_perimeter", HERE / "perimeter.py")
     PM = importlib.util.module_from_spec(_ps); _ps.loader.exec_module(PM)

@@ -376,14 +376,15 @@
     32,
     42
    ],
-   "side": 1.3,
+   "side": 3.0,
    "height": 2.3,
    "fov": [
     12,
     46
    ],
    "leadRoom": 2,
-   "note": "low on the outer side in front of the stalls, looking back across their faces (Ascot's)"
+   "note": "inside the inside rail in front of the stalls, looking back across their faces: the woods behind (the video's start)",
+   "inside": true
   },
   "drone": {
    "label": "Drone",
@@ -404,6 +405,192 @@
    ],
    "frame": "field",
    "leadRoom": 2
+  },
+  "rail_1": {
+   "label": "Hill 1",
+   "kind": "fixed",
+   "at": [
+    -56.5,
+    2.2,
+    451.47
+   ],
+   "fov": [
+    2,
+    30
+   ],
+   "frame": "field",
+   "leadRoom": 2,
+   "atD": 2200,
+   "note": "low just inside the inside rail, a long lens: the field coming at it up the hill and passing, the far rail's boards and the woods behind"
+  },
+  "rail_2": {
+   "label": "Hill 2",
+   "kind": "fixed",
+   "at": [
+    190.94,
+    2.2,
+    475.81
+   ],
+   "fov": [
+    2,
+    30
+   ],
+   "frame": "field",
+   "leadRoom": 2,
+   "atD": 1950,
+   "note": "low just inside the inside rail, a long lens: the field coming at it up the hill and passing, the far rail's boards and the woods behind"
+  },
+  "rail_3": {
+   "label": "Hill 3",
+   "kind": "fixed",
+   "at": [
+    412.59,
+    2.2,
+    534.21
+   ],
+   "fov": [
+    2,
+    30
+   ],
+   "frame": "field",
+   "leadRoom": 2,
+   "atD": 1720,
+   "note": "low just inside the inside rail, a long lens: the field coming at it up the hill and passing, the far rail's boards and the woods behind"
+  },
+  "top": {
+   "label": "Top of the hill",
+   "kind": "fixed",
+   "at": [
+    571.0,
+    3.0,
+    546.09
+   ],
+   "fov": [
+    2,
+    34
+   ],
+   "frame": "field",
+   "leadRoom": 2,
+   "atD": 1560,
+   "note": "low inside the rail at the top of the hill: the field across the track, the long view behind"
+  },
+  "headon_1": {
+   "label": "Down the hill",
+   "kind": "fixed",
+   "at": [
+    867.13,
+    9.0,
+    442.45
+   ],
+   "fov": [
+    1.5,
+    26
+   ],
+   "frame": "field",
+   "leadRoom": 2,
+   "atD": 1250,
+   "note": "raised on the outside of the bend, looking back up it: the field coming down at it along the inside rail"
+  },
+  "side_1": {
+   "label": "Down the hill, side",
+   "kind": "fixed",
+   "at": [
+    879.73,
+    13.0,
+    464.81
+   ],
+   "fov": [
+    3,
+    34
+   ],
+   "frame": "field",
+   "leadRoom": 2,
+   "atD": 1260,
+   "note": "high on the outside, abreast: across the field at the crowd and the road behind the inside rail"
+  },
+  "headon_2": {
+   "label": "Bend",
+   "kind": "fixed",
+   "at": [
+    912.97,
+    10.0,
+    180.35
+   ],
+   "fov": [
+    1.5,
+    26
+   ],
+   "frame": "field",
+   "leadRoom": 2,
+   "atD": 1000,
+   "note": "raised on the outside of the bend, looking back up it: the field coming down at it along the inside rail"
+  },
+  "side_2": {
+   "label": "Bend, side",
+   "kind": "fixed",
+   "at": [
+    938.4,
+    14.0,
+    186.84
+   ],
+   "fov": [
+    3,
+    34
+   ],
+   "frame": "field",
+   "leadRoom": 2,
+   "atD": 1010,
+   "note": "high on the outside, abreast: across the field at the crowd and the road behind the inside rail"
+  },
+  "headon_3": {
+   "label": "Tattenham Corner",
+   "kind": "fixed",
+   "at": [
+    809.08,
+    22.0,
+    -32.29
+   ],
+   "fov": [
+    1.5,
+    26
+   ],
+   "frame": "field",
+   "leadRoom": 2,
+   "atD": 790,
+   "note": "raised on the outside of the bend, looking back up it: the field coming down at it along the inside rail (Tattenham Corner: high and well out, so it sees the field over the crowd inside the corner)"
+  },
+  "side_3": {
+   "label": "Tattenham, side",
+   "kind": "fixed",
+   "at": [
+    775.64,
+    14.0,
+    -55.68
+   ],
+   "fov": [
+    3,
+    34
+   ],
+   "frame": "field",
+   "leadRoom": 2,
+   "atD": 760,
+   "note": "high on the outside, abreast: across the field at the crowd and the road behind the inside rail (Tattenham Corner's crowd)"
+  },
+  "straight_high": {
+   "label": "Straight",
+   "kind": "fixed",
+   "at": [
+    175.0,
+    26.0,
+    -50.0
+   ],
+   "fov": [
+    1.5,
+    30
+   ],
+   "frame": "field",
+   "leadRoom": 3,
+   "note": "high on the stand side up the course (the Rowley stand's roof), looking back up the straight: the field coming at it, the far rail and the Hill's crowd behind"
   }
  },
  "cameraMenu": {
@@ -413,16 +600,16 @@
     "Tracking"
    ],
    [
+    "straight_high",
+    "Straight"
+   ],
+   [
     "grandstand",
     "Stand"
    ],
    [
     "headon",
     "Head-on"
-   ],
-   [
-    "drone_straight",
-    "Drone"
    ]
   ],
   "round": [
@@ -431,16 +618,12 @@
     "Tracking"
    ],
    [
+    "straight_high",
+    "Straight"
+   ],
+   [
     "grandstand",
     "Stand"
-   ],
-   [
-    "headon",
-    "Head-on"
-   ],
-   [
-    "drone_straight",
-    "Drone"
    ]
   ]
  },
@@ -464,7 +647,87 @@
   "afterFinish": 4,
   "replayFrom": 30,
   "replayTo": 14,
-  "replaySpeed": 0.3
+  "replaySpeed": 0.3,
+  "shots": [
+   [
+    2380,
+    2215,
+    "rail_1"
+   ],
+   [
+    2215,
+    1965,
+    "rail_2"
+   ],
+   [
+    1965,
+    1735,
+    "rail_3"
+   ],
+   [
+    1735,
+    1575,
+    "top"
+   ],
+   [
+    1575,
+    1320,
+    "headon_1"
+   ],
+   [
+    1320,
+    1200,
+    "side_1"
+   ],
+   [
+    1200,
+    1060,
+    "headon_2"
+   ],
+   [
+    1060,
+    960,
+    "side_2"
+   ],
+   [
+    960,
+    830,
+    "headon_3"
+   ],
+   [
+    830,
+    690,
+    "side_3"
+   ],
+   [
+    690,
+    422.336,
+    "straight_high"
+   ],
+   [
+    422.336,
+    -1,
+    "grandstand"
+   ]
+  ],
+  "shotsStraight": [
+   [
+    1100,
+    690,
+    "track_straight"
+   ],
+   [
+    690,
+    422.336,
+    "straight_high"
+   ],
+   [
+    422.336,
+    -1,
+    "grandstand"
+   ]
+  ],
+  "shotsNote": "Epsom (owner, 18 Nov, from his Racing TV Derby): [from, to, camera] by the leader's metres to go; the start camera first (startSequence), the rest as listed; outside every shot, the path's rules"
  },
  "setPieces": {
   "_about": "Before the off and after the race: eye and at go from the first to the second over 'seconds'.",

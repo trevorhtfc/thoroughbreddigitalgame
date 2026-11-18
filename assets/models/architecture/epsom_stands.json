@@ -24131,6 +24131,27 @@
 "height": 19.5,
 "crowd": [],
 "triangles": 2012
+},
+"epsom_carousel": {
+"width": 15.0,
+"depth": 15.0,
+"height": 9.6,
+"crowd": [],
+"triangles": 3042
+},
+"epsom_chair_swing": {
+"width": 19.0,
+"depth": 19.0,
+"height": 16.2,
+"crowd": [],
+"triangles": 1880
+},
+"epsom_big_screen": {
+"width": 14.6,
+"depth": 4.6,
+"height": 12.4,
+"crowd": [],
+"triangles": 224
 }
 }
 }

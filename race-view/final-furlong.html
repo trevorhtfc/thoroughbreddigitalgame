@@ -1122,9 +1122,16 @@ function buildStalls(gltf, kit) {
   const byMat = new Map();
   const keep = (g) => { for (const k of Object.keys(g.attributes)) if (k !== "position" && k !== "normal") g.deleteAttribute(k); return g; };
   gltf.scene.updateMatrixWorld(true);
-  for (const [name, m] of place) {
+  // on a left-handed course the row's frame (outer rail, up, running direction) is a mirror image, which read the
+  // stalls' boards backwards (Epsom, 18 Nov): there each piece is mirrored once more about its own middle, so the
+  // pieces stand in the same places the right way round
+  const mirrored = row.determinant() < 0;
+  const widthOf = (name) => name === "stall_tower" ? T : name === "stall_bay" ? P : 0;
+  for (const [name, m0] of place) {
     const node = gltf.scene.getObjectByName(name);
     if (!node) continue;
+    const w = widthOf(name);
+    const m = mirrored ? m0.clone().multiply(new THREE.Matrix4().makeTranslation(w / 2, 0, 0)).multiply(new THREE.Matrix4().makeScale(-1, 1, 1)).multiply(new THREE.Matrix4().makeTranslation(-w / 2, 0, 0)) : m0;
     const inv = new THREE.Matrix4().copy(node.matrixWorld).invert();
     node.traverse((o) => {
       if (!o.isMesh) return;
@@ -2364,6 +2371,11 @@ function directorShot(d, leadU) {
   if (state.cam !== "auto" && RCAMS[state.cam] && state.cam !== "sideon") return state.cam;
   if (d < 0) return "grandstand";                                    // past the line: stay on the grandstand camera
   if (TERR_CUT && !tvDrawing && state.phase === "race" && state.t >= TERR_CUT.t0 && state.t < TERR_CUT.t1) return TERR_CUT.id;
+  // a run of fixed cameras round the course, as the course's TV coverage cuts it (Epsom, owner 18 Nov: from his Racing
+  // TV Derby): raceDirector.shots (round races) or shotsStraight, each [from, to, camera]: that camera while the leader
+  // has fewer than 'from' and more than 'to' metres to go. Where no shot fits, the course's other rules below.
+  const SHOTS = RACE.course === "straight" ? DIR_.shotsStraight : DIR_.shots;
+  if (SHOTS) for (const [from, to, sid] of SHOTS) if (d <= from && d > to && RCAMS[sid]) return sid;
   // one path (Newmarket): the tracking car down the leg and round the bend, the drone along the stand side up the straight,
   // the head-on long lens from beyond the line for a stretch, then the stand camera to the line (raceDirector.path)
   if (PATH) {
@@ -2438,7 +2450,8 @@ function startTarget(now) {
   });
   // 'ahead' lists the distances to try, nearest first: the first from which the whole row fits the screen (a
   // phone held upright needs the camera further off). Chosen once a run, so the shot never creeps.
-  const eyeAt = (a) => { const [ex, ez] = startWorld(COURSE.trackWidth + c.side, a); return new THREE.Vector3(ex, c.height, ez); };
+  // (raceCameras.start.inside: from inside the inside rail, as Epsom's start camera, so the picture's backdrop is the far side)
+  const eyeAt = (a) => { const [ex, ez] = startWorld(c.inside ? -c.side : COURSE.trackWidth + c.side, a); return new THREE.Vector3(ex, c.height, ez); };
   if (state.startFor !== camera.aspect) {
     const list = [].concat(c.ahead), mid = new THREE.Box3().setFromPoints(ends).getCenter(new THREE.Vector3());
     state.startAhead = list.find((a) => fitFov(eyeAt(a), mid, ends, c.fov, 1.04) < c.fov[1] * 0.95) ?? list[list.length - 1];
@@ -3223,7 +3236,9 @@ const DOCK = (() => {
   el("circle", { cx: sx, cy: sz, r: unit * 3.2, fill: "#f4ead2", stroke: "#1f5a38", "stroke-width": unit * 1.2 }, mapG);           // the start
   el("rect", { x: -unit * 1.2, y: -unit * 6, width: unit * 2.4, height: unit * 12, fill: "#b5523b" }, mapG);                     // the winning post
   const dots = [];
-  for (let i = 0; i < RUNNERS; i++) dots.push(el("circle", { r: unit * 6.5, fill: silkFor(i).colour, stroke: "#fff", "stroke-width": unit * 1.6 }, svg));
+  // (in the turned group with the lines, so the dots turn with the map: in the bare svg a turned map (York, Epsom: mapTurn
+  // 180) had them drawn off its edge until the field came back to the post, the one point the turn leaves in place)
+  for (let i = 0; i < RUNNERS; i++) dots.push(el("circle", { r: unit * 6.5, fill: silkFor(i).colour, stroke: "#fff", "stroke-width": unit * 1.6 }, mapG));
 
   // --- running order: a chip per runner (position, silks, number, lengths behind), sliding into place
   const chips = [], spacer = document.createElement("div");      // gives the strip its scroll width (the chips are placed by transform)

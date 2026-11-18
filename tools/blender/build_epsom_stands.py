@@ -30,6 +30,10 @@ the rake of the terraces"): both ends are flank walls on the rake, the building'
                        grand pavilion under the hipped slate roof, the end pavilion with its clock turret) at 39 bays,
                        up the course beside the grandstand                                                 151 x 29 m
   epsom_ferris_wheel   an observation wheel: two A-frames, the rim, spokes and sixteen pastel gondolas   34 m
+  epsom_carousel       (owner, 12:11: "the festival is a bit monotonous.. we need more variety") a gallopers
+                       carousel: painted horses on brass poles, a striped canopy                               15 m across
+  epsom_chair_swing    a chair-o-plane: a striped mast, a spinning top, sixteen seats flung out on chains     19 m across
+  epsom_big_screen     a big screen on a trussed stand, facing the course                                       15 m, 12 m
   epsom_helter_skelter the striped tower, its spiral slide, a pointed roof and a flag                        15 m
 
 Writes assets/models/architecture/epsom_stands.glb and .json (as the other kits: size and crowd areas per piece; origin
@@ -320,12 +324,104 @@ def helter_skelter(H=12.0, R0=2.6, R1=1.8, turns=3.0):
     return {"width": round(2 * (R0 + 1.8) + 2.0, 2), "depth": round(2 * (R0 + 1.8) + 3.4, 2), "height": round(H + 7.5, 2)}
 
 
+def carousel(R=7.0):
+    """A gallopers carousel: a round platform, a ring of twisted brass poles with painted horses (simple shapes, three
+    rings), a central drum with mirrors, a striped conical canopy with a scalloped valance and a finial."""
+    K.cyl("ride_white", 0.0, 0.0, -0.3, 0.6, R, segs=24)
+    K.cyl("ride_red", 0.0, 0.0, 0.6, 0.75, R - 0.2, segs=24)
+    K.cyl("ride_yellow", 0.0, 0.0, 0.6, 4.6, 1.6, segs=12)              # the centre drum
+    for i in range(12):
+        a = 2 * math.pi * i / 12
+        K.box("glass", 1.6 * math.cos(a) - 0.3, 1.6 * math.cos(a) + 0.3, 1.6 * math.sin(a) - 0.3, 1.6 * math.sin(a) + 0.3, 1.6, 3.6)
+    cols = ["ride_white", "ride_blue", "ride_yellow", "ride_green", "ride_red"]
+    for ring, rr in enumerate((R - 1.0, R - 2.4, R - 3.8)):
+        n = 14 - ring * 3
+        for i in range(n):
+            a = 2 * math.pi * (i + 0.5 * ring) / n
+            x, y = rr * math.cos(a), rr * math.sin(a)
+            K.cyl("gilt", x, y, 0.75, 4.9, 0.05, segs=4, smooth=False)
+            z = 1.4 + 0.35 * ((i + ring) % 2)
+            K.push(Matrix.Translation((x, y, z)) @ Matrix.Rotation(a + math.pi / 2, 4, "Z"))
+            c = cols[(i + ring) % len(cols)]
+            K.box(c, -0.75, 0.75, -0.16, 0.16, 0.0, 0.45)                # the body
+            K.box(c, 0.55, 0.85, -0.12, 0.12, 0.3, 0.95)                 # the neck and head
+            for lx in (-0.55, 0.5):
+                K.box(c, lx - 0.06, lx + 0.06, -0.1, 0.1, -0.5, 0.05)    # the legs
+            K.pop()
+    zc = 5.0
+    K.cyl("ride_white", 0.0, 0.0, zc - 0.2, zc + 0.15, R + 0.3, segs=24)
+    for k in range(16):                                                 # the valance, red and white
+        a0, a1 = 2 * math.pi * k / 16, 2 * math.pi * (k + 1) / 16
+        K.push(Matrix.Rotation((a0 + a1) / 2, 4, "Z"))
+        K.box("ride_red" if k % 2 else "ride_white", R + 0.2, R + 0.35, -R * math.pi / 16, R * math.pi / 16, zc - 1.0, zc - 0.2)
+        K.pop()
+    for k in range(4):
+        K.cyl("ride_red" if k % 2 == 0 else "ride_white", 0.0, 0.0, zc + 0.15 + k * 0.6, zc + 0.75 + k * 0.6,
+              (R + 0.3) * (1 - k / 4), (R + 0.3) * (1 - (k + 1) / 4) + 0.05, segs=24)
+    K.sphere("gilt", 0.0, 0.0, zc + 2.8, 0.35, sub=1)
+    K.cyl("trim", 0.0, 0.0, zc + 3.0, zc + 4.6, 0.05, segs=4)
+    K.box("ride_blue", 0.06, 1.1, -0.02, 0.02, zc + 3.9, zc + 4.5)
+    return {"width": round(2 * R + 1.0, 2), "depth": round(2 * R + 1.0, 2), "height": round(zc + 4.6, 2)}
+
+
+def chair_swing(R=8.0, H=14.0):
+    """A chair-o-plane: a striped central mast, a spinning top with a fringed canopy, chains and seats flung out, a
+    round platform and a fence."""
+    K.cyl("ride_white", 0.0, 0.0, -0.3, 0.4, R + 1.5, segs=24)
+    K.cyl("ride_blue", 0.0, 0.0, 0.4, H * 0.5, 1.0, 0.8, segs=12)
+    K.cyl("ride_white", 0.0, 0.0, H * 0.5, H - 1.0, 0.8, 0.6, segs=12)
+    K.cyl("ride_yellow", 0.0, 0.0, H - 1.0, H - 0.4, R * 0.55, segs=24)           # the spinning top
+    for k in range(3):
+        K.cyl("ride_blue" if k % 2 == 0 else "ride_white", 0.0, 0.0, H - 0.4 + k * 0.6, H + 0.2 + k * 0.6,
+              R * 0.55 * (1 - k / 3), R * 0.55 * (1 - (k + 1) / 3) + 0.05, segs=24)
+    K.sphere("gilt", 0.0, 0.0, H + 1.9, 0.3, sub=1)
+    cols = ["ride_red", "ride_blue", "ride_yellow", "ride_green"]
+    n = 16
+    for i in range(n):
+        a = 2 * math.pi * i / n
+        top = (R * 0.5 * math.cos(a), R * 0.5 * math.sin(a), H - 1.0)
+        seat = (R * math.cos(a), R * math.sin(a), H - 7.0)
+        strut("trim", top, seat, r=0.03, segs=4)
+        K.push(Matrix.Translation(seat) @ Matrix.Rotation(a, 4, "Z"))
+        K.box(cols[i % 4], -0.3, 0.3, -0.3, 0.3, -0.5, 0.0)
+        K.box(cols[i % 4], -0.32, -0.22, -0.3, 0.3, 0.0, 0.5)
+        K.pop()
+    for i in range(32):                                                 # the fence round it
+        a0, a1 = 2 * math.pi * i / 32, 2 * math.pi * (i + 1) / 32
+        strut("ride_white", ((R + 1.4) * math.cos(a0), (R + 1.4) * math.sin(a0), 1.3), ((R + 1.4) * math.cos(a1), (R + 1.4) * math.sin(a1), 1.3), r=0.05, segs=4)
+        K.box("ride_white", (R + 1.4) * math.cos(a0) - 0.05, (R + 1.4) * math.cos(a0) + 0.05, (R + 1.4) * math.sin(a0) - 0.05, (R + 1.4) * math.sin(a0) + 0.05, 0.4, 1.35)
+    return {"width": round(2 * R + 3.0, 2), "depth": round(2 * R + 3.0, 2), "height": round(H + 2.2, 2)}
+
+
+def big_screen(W_=14.0, H_=8.0, z0=4.0):
+    """A big screen for the Hill (Epsom has them along the straight): a dark screen in a white frame on a trussed
+    stand, a name board under it."""
+    K.box("ride_dark", -W_ / 2, W_ / 2, -0.25, 0.35, z0, z0 + H_)
+    K.box("glass", -W_ / 2 + 0.3, W_ / 2 - 0.3, -0.3, -0.24, z0 + 0.3, z0 + H_ - 0.3)
+    K.box("ride_white", -W_ / 2 - 0.3, W_ / 2 + 0.3, -0.35, 0.45, z0 + H_, z0 + H_ + 0.4)
+    K.box("ride_white", -W_ / 2 - 0.3, W_ / 2 + 0.3, -0.35, 0.45, z0 - 0.4, z0)
+    for s in (-1, 1):
+        K.box("ride_white", min(s * W_ / 2, s * (W_ / 2 + 0.3)), max(s * W_ / 2, s * (W_ / 2 + 0.3)), -0.35, 0.45, z0 - 0.4, z0 + H_ + 0.4)
+    for x in (-W_ / 2 + 1.5, W_ / 2 - 1.5):                            # the trussed legs
+        for y in (0.2, 2.6):
+            K.box("ride_steel", x - 0.15, x + 0.15, y - 0.15, y + 0.15, 0.0, z0)
+        for k in range(4):
+            z = k * z0 / 4
+            strut("ride_steel", (x, 0.2, z), (x, 2.6, z + z0 / 4), r=0.05, segs=4)
+    K.box("ride_blue", -W_ / 2 + 1.0, W_ / 2 - 1.0, -0.3, 0.1, z0 - 1.6, z0 - 0.4)
+    K.box("ride_white", -W_ / 2, W_ / 2, -1.0, 3.6, -0.3, 0.2)
+    return {"width": round(W_ + 0.6, 2), "depth": 4.6, "height": round(z0 + H_ + 0.4, 2)}
+
+
 PIECES = [
     ("epsom_grandstand", epsom_grandstand),
     ("epsom_balcony_stand", lambda: colonnade_stand(22, 3.6, "flat")),
     ("epsom_rowley_stand", lambda: grand_pavilion_stand(39, 10, 1.0, 0.28, end_pavilion=True, roof="hipped")),
     ("epsom_ferris_wheel", ferris_wheel),
     ("epsom_helter_skelter", helter_skelter),
+    ("epsom_carousel", carousel),
+    ("epsom_chair_swing", chair_swing),
+    ("epsom_big_screen", big_screen),
 ]
 LIB = bpy.data.collections.new("epsom_stands")
 bpy.context.scene.collection.children.link(LIB)

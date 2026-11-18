@@ -54,8 +54,8 @@ def main(zoom=False):
         e, n = en(pc[2], pc[3]); ax.plot(e, n, marker="o", ms=2.6, color="#f4efe6", mec="#8a7350", mew=0.5, zorder=7)
     for t, s in json.loads((REPO / "courses/epsom-draft.json").read_text())["starts"].items():
         e, n = en(*s["at"]); ax.plot(e, n, "ws", mec="k", ms=5, zorder=8); ax.annotate(t, (e, n), xytext=(4, 4), textcoords="offset points", fontsize=7.5, zorder=8)
-    lab = [("the grandstand", 39, -112), ("balcony stand", -85, -95), ("Rowley stand", 190, -90), ("the Hill: rail crowd,\nboards on the rail", 330, 18), ("hospitality frontage", 65, 62),
-           ("the Hill's festival,\nFerris wheel, helter skelter", 380, 135), ("Tattenham Corner: crowd,\nroad, huts", 760, 210), ("the climb: groups\nalong the rail", 200, 430),
+    lab = [("the grandstand", 39, -112), ("balcony stand", -85, -95), ("Rowley stand", 190, -90), ("hospitality frontage", 65, 62),
+           ("the Hill: rail crowd\nTattenham Corner to the post", 470, 12), ("Tattenham Corner: crowd,\nroad, huts", 760, 210), ("the climb: groups\nalong the rail", 200, 430),
            ("far side: boards 20 m out,\nbelt of trees, the woods", 150, 640), ("Tattenham Corner\nhouses (garden trees)", 1040, 120),
            ("stand side: boards,\nthin crowd, belt", 650, -80), ("the open Downs (infield)", 400, 300)]
     for txt, x, z in lab:
@@ -69,7 +69,7 @@ def main(zoom=False):
         ride = {pc[1]: (pc[2], pc[3]) for pc in S["pieces"] if pc[0] == "epsom_stands"}
         fw, hs = ride["epsom_ferris_wheel"], ride["epsom_helter_skelter"]
         for txt, x, z in [("Ferris wheel", fw[0], fw[1] + 22), ("helter skelter", hs[0], hs[1] - 16), ("big tents", 216.9, 150), ("rail lawn", -45, -31),
-                          ("little stands", -60, 20), ("edge marquees", 250, 26), ("winning post", 0, 12)] + [("%df" % k, 201.17 * k, rz(201.17 * k) - 26 - 16) for k in (1, 2, 3)]:
+                          ("little stands", -60, 20), ("backdrop of big tents", 300, 30), ("hospitality village", 60, 120), ("fairground", 300, 150), ("food court", 590, 140), ("marquee village", 830, 170), ("winning post", 0, 12)] + [("%df" % k, 201.17 * k, rz(201.17 * k) - 26 - 16) for k in (1, 2, 3)]:
             e, n = en(x, z); ax.annotate(txt, (e, n), fontsize=9, color="#1d1d1d", ha="center", zorder=9,
                                         bbox=dict(fc="#fffbe8", ec="#a89060", alpha=0.9, pad=1.2))
         cx, cz = [], []
@@ -82,7 +82,7 @@ def main(zoom=False):
         ax.set_xlim(pe.min() - 260, pe.max() + 260); ax.set_ylim(pn.min() - 260, pn.max() + 230)
     ax.set_aspect("equal"); ax.set_xticks([]); ax.set_yticks([])
     ax.set_title("Epsom: the scenery, DRAFT for mark-up, north up. Dark green dots trees, blue boards, red people, cream marquees and "
-                 "kiosks,\npale green speckle the woods' canopies, beige paths; the real outline and ground (OpenStreetMap, AWS Terrain "
+                 "kiosks,\nbeige paths; the real outline and ground (OpenStreetMap, AWS Terrain "
                  "Tiles)", fontsize=10, loc="left")
     fig.tight_layout(); fig.savefig(REPO / ("reference/epsom/perimeter-plan-stands.png" if zoom else "reference/epsom/perimeter-plan.png"), facecolor="white"); plt.close(fig)
 
