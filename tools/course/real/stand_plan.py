@@ -31,6 +31,8 @@ NAMES = {"ring_pavilion": "Ring pavilion (Rowley Mile)", "york_stand_north": "No
          "park_old_pavilion": "Old pavilion (Park kit)",
          "module_grand_pavilion_postcard": "Grand pavilion (Ascot module, crib 35) with the postcard's pavilion block and flagpole",
          "rowley_stand_postcard": "Rowley stand (crib 26) with the postcard's lookout",
+         "module_grand_pavilion_c": "Grand pavilion (Ascot module, crib 35)",
+         "rowley_end_postcard": "Rowley stand, 84 m cut (crib 26), with the postcard's lookout",
          "park_roof_terrace_stand_postcard": "Roof-terrace stand with the postcard's roof pavilion, flagpole and lookout"}
 
 
