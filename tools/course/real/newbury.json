@@ -280,6 +280,139 @@
    "mile": "Up the chute, left into the straight",
    "round": "The back straight, round the far bend",
    "loop": "From the home straight, once round"
+  },
+  "tv": {
+   "note": "Newbury (owner, 18 Nov, his Sky Sports Racing video of the 1m4f Aston Park Stakes): the tracking car at the start; a long head-on down the back straight; head-ons through the lower bend and round the far bend into the straight; a high camera on the stand side up the straight, the hoardings on the inside rail behind the field; the stand camera for the last 2 furlongs.",
+   "cams": {
+    "back_headon": {
+     "label": "Back straight, head-on",
+     "route": "round",
+     "d": 1500,
+     "off": 30,
+     "h": 7,
+     "fov": [
+      1.2,
+      16
+     ],
+     "note": "a long lens on the outside at the end of the back straight, the field coming straight at it along the inside rail (the video's 9-33 s)"
+    },
+    "lower_bend": {
+     "label": "Lower bend",
+     "route": "round",
+     "d": 1250,
+     "off": 36,
+     "h": 9,
+     "fov": [
+      1.5,
+      26
+     ],
+     "note": "on the outside past the lower bend, looking back at the field coming round it (45-48 s)"
+    },
+    "far_bend": {
+     "label": "Far bend",
+     "route": "round",
+     "d": 820,
+     "off": 30,
+     "h": 5.5,
+     "fov": [
+      1.5,
+      26
+     ],
+     "note": "on the outside at the top of the straight, head-on as the field comes round the far bend (69-72 s)"
+    },
+    "straight_high": {
+     "label": "Straight",
+     "route": "round",
+     "d": 620,
+     "off": 48,
+     "h": 17,
+     "fov": [
+      2,
+      32
+     ],
+     "note": "high on the stand side up the course, across the field at the hoardings on the inside rail (75-81 s)"
+    }
+   },
+   "shots": [
+    [
+     4500,
+     2170,
+     "track_loop"
+    ],
+    [
+     2170,
+     1640,
+     "back_headon"
+    ],
+    [
+     1640,
+     1460,
+     "track_loop"
+    ],
+    [
+     1460,
+     1290,
+     "lower_bend"
+    ],
+    [
+     1290,
+     1120,
+     "track_loop"
+    ],
+    [
+     1120,
+     880,
+     "far_bend"
+    ],
+    [
+     880,
+     422,
+     "straight_high"
+    ],
+    [
+     422,
+     -1,
+     "grandstand"
+    ]
+   ],
+   "menu": {
+    "straight": [
+     [
+      "track_straight",
+      "Tracking"
+     ],
+     [
+      "grandstand",
+      "Stand"
+     ],
+     [
+      "headon",
+      "Head-on"
+     ],
+     [
+      "drone_straight",
+      "Drone"
+     ]
+    ],
+    "round": [
+     [
+      "track_loop",
+      "Tracking"
+     ],
+     [
+      "back_headon",
+      "Head-on"
+     ],
+     [
+      "grandstand",
+      "Stand"
+     ],
+     [
+      "drone_straight",
+      "Drone"
+     ]
+    ]
+   }
   }
  }
 }

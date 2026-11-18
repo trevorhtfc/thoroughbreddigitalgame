@@ -125,6 +125,22 @@ def perimeter(S, C, turf, grid_box, rnd=None, opts=None):
         deep = infield.buffer(-IN_PARK[0]).difference(runin.buffer(40))
         note["infield parkland trees"] = fill(deep, IN_PARK[2], IN_PARK[3], IN_PARK[4], kinds=PARK)
 
+    # ---- big hoardings along the run-in's inside rail, facing the stands (both his race videos: Newbury's run of
+    # bookmakers' boards along the straight, Doncaster's behind the field coming at the head-on camera); always our own
+    # Thoroughbred boards, big, few and evenly spaced (Goodwood's lesson)
+    rb = opts.get("runInBoards", {"from": 200.0, "to": 800.0, "every": 40.0, "in": 7.0, "scale": 2.4})
+    if rb and not infield.is_empty:
+        n = 0
+        for x in np.arange(rb["from"], min(rb["to"], home_d - 60.0) + 0.1, rb["every"]):
+            from shapely.geometry import LineString as _LS
+            cut = infield.intersection(_LS([(x, 0.0), (x, -side * 400.0)]))      # the infield's edge across from x
+            if cut.is_empty: continue
+            zs = [c[1] for g in getattr(cut, "geoms", [cut]) for c in g.coords]
+            z0 = min(zs, key=abs); z = z0 - side * rb["in"]
+            if infield.contains(Point(x, z)):
+                boards.append([r2(x), r2(z), r2(face_turf(x, z)), DESIGNS[n % 4], rb["scale"]]); n += 1
+        note["run-in hoardings"] = n
+
     # ---- the rail lawn's crowd in front of the stand plot (the stands themselves come next)
     p0 = len(S.people)
     a, b, xa, xb, dens = LAWN

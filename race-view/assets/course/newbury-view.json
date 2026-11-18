@@ -440,6 +440,74 @@
    ],
    "frame": "field",
    "leadRoom": 2
+  },
+  "back_headon": {
+   "label": "Back straight, head-on",
+   "kind": "fixed",
+   "at": [
+    971.46,
+    7,
+    495.47
+   ],
+   "fov": [
+    1.2,
+    16
+   ],
+   "frame": "field",
+   "leadRoom": 2,
+   "atD": 1500,
+   "note": "a long lens on the outside at the end of the back straight, the field coming straight at it along the inside rail (the video's 9-33 s)"
+  },
+  "lower_bend": {
+   "label": "Lower bend",
+   "kind": "fixed",
+   "at": [
+    1104.2,
+    9,
+    265.19
+   ],
+   "fov": [
+    1.5,
+    26
+   ],
+   "frame": "field",
+   "leadRoom": 2,
+   "atD": 1250,
+   "note": "on the outside past the lower bend, looking back at the field coming round it (45-48 s)"
+  },
+  "far_bend": {
+   "label": "Far bend",
+   "kind": "fixed",
+   "at": [
+    820.44,
+    5.5,
+    -12.5
+   ],
+   "fov": [
+    1.5,
+    26
+   ],
+   "frame": "field",
+   "leadRoom": 2,
+   "atD": 820,
+   "note": "on the outside at the top of the straight, head-on as the field comes round the far bend (69-72 s)"
+  },
+  "straight_high": {
+   "label": "Straight",
+   "kind": "fixed",
+   "at": [
+    620.92,
+    17,
+    -34.87
+   ],
+   "fov": [
+    2,
+    32
+   ],
+   "frame": "field",
+   "leadRoom": 2,
+   "atD": 620,
+   "note": "high on the stand side up the course, across the field at the hoardings on the inside rail (75-81 s)"
   }
  },
  "cameraMenu": {
@@ -465,6 +533,10 @@
    [
     "track_loop",
     "Tracking"
+   ],
+   [
+    "back_headon",
+    "Head-on"
    ],
    [
     "grandstand",
@@ -496,7 +568,50 @@
   "afterFinish": 4,
   "replayFrom": 30,
   "replayTo": 14,
-  "replaySpeed": 0.3
+  "replaySpeed": 0.3,
+  "shots": [
+   [
+    4500,
+    2170,
+    "track_loop"
+   ],
+   [
+    2170,
+    1640,
+    "back_headon"
+   ],
+   [
+    1640,
+    1460,
+    "track_loop"
+   ],
+   [
+    1460,
+    1290,
+    "lower_bend"
+   ],
+   [
+    1290,
+    1120,
+    "track_loop"
+   ],
+   [
+    1120,
+    880,
+    "far_bend"
+   ],
+   [
+    880,
+    422,
+    "straight_high"
+   ],
+   [
+    422,
+    -1,
+    "grandstand"
+   ]
+  ],
+  "shotsNote": "Newbury (owner, 18 Nov, his Sky Sports Racing video of the 1m4f Aston Park Stakes): the tracking car at the start; a long head-on down the back straight; head-ons through the lower bend and round the far bend into the straight; a high camera on the stand side up the straight, the hoardings on the inside rail behind the field; the stand camera for the last 2 furlongs. [from, to, camera] by the leader's metres to go; outside every shot, the path's rules"
  },
  "setPieces": {
   "_about": "Before the off and after the race: eye and at go from the first to the second over 'seconds'.",
