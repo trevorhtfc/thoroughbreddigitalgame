@@ -359,6 +359,49 @@
    ],
    "triangles": 27892
   },
+  "park_clock_house": {
+   "width": 24.4,
+   "depth": 15.0,
+   "height": 17.7,
+   "crowd": [
+    [
+     -11.9,
+     11.9,
+     0.05,
+     0.9,
+     0.15
+    ],
+    [
+     -11.9,
+     11.9,
+     1.05,
+     1.9,
+     0.47
+    ],
+    [
+     -11.9,
+     11.9,
+     2.05,
+     2.9,
+     0.79
+    ],
+    [
+     -11.9,
+     11.9,
+     3.05,
+     3.9,
+     1.11
+    ],
+    [
+     -11.9,
+     11.9,
+     4.05,
+     4.9,
+     1.43
+    ]
+   ],
+   "triangles": 1762
+  },
   "york_big_pavilion": {
    "width": 56.0,
    "depth": 12.6,
@@ -1191,6 +1234,7 @@
  },
  "from": {
   "park_victorian": "park_stands",
+  "park_clock_house": "park_stands",
   "york_big_pavilion": "york_stands",
   "module_grand_pavilion_postcard": "composite",
   "module_grand_pavilion_c": "composite",

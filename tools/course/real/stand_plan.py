@@ -94,7 +94,7 @@ def main(cid):
     ax.scatter(P[m, 0], P[m, 2], s=0.25, c="#a0522d", alpha=0.45, lw=0, zorder=3.2)
     # the stands
     key = []
-    for model, piece, x, z, turn, sx, sc in S["pieces"]:
+    for model, piece, x, z, turn, sx, sc, *_ in S["pieces"]:
         if piece not in info: continue
         gi = info[piece]; fp = footprint(gi, x, z, turn)
         ax.add_patch(MP(np.array(fp), closed=True, fc="#f4efe6", ec="#5a4a32", lw=1.1, alpha=0.93, zorder=4))

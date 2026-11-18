@@ -149,7 +149,21 @@ def perimeter(S, C, turf, grid_box, rnd=None, opts=None):
         zr = side * (W + 0.5)
         lawn_x = [1e9, -1e9]
         aprons = []
-        for e in st["pieces"]:
+        # joined stands share one level (owner, 22:27, Newbury: "3, 4 and 5 need aligning neatly"; each piece had stood
+        # at the ground's height under its own origin, so the joined modules stepped): "level": [[piece indices], ...],
+        # each group at the middle of the ground's range under its pieces' fronts (the buildings' plinths go 1 m below
+        # their floors, so up to 2 m of fall along a run is covered at both ends)
+        LEVEL = {}
+        for grp in st.get("level", []):
+            hs = []
+            for i in grp:
+                e = st["pieces"][i]; gi = info[e[0]]; gz = zr + side * (st.get("front", 17.0) + e[2])
+                hw = gi["width"] / 2; ox = e[1] + gi.get("offset", 0.0)
+                hs += [S.G(xx, gz) for xx in np.linspace(ox - hw, ox + hw, 9)]
+            lv = (max(hs) + min(hs)) / 2
+            for i in grp: LEVEL[i] = lv
+            note.setdefault("levels", []).append([grp, r2(lv), r2(max(hs) - min(hs))])
+        for ei, e in enumerate(st["pieces"]):
             if isinstance(e, dict):
                 # a piece placed by hand (owner's mark-up): 'at' a seed point and 'turn'; with 'toTurf' it is slid along the
                 # way it faces until the middle of its front is that far from the turf (the stand at the bend, turned to it)
@@ -189,8 +203,8 @@ def perimeter(S, C, turf, grid_box, rnd=None, opts=None):
             gi = info[piece]
             gz = zr + side * (st.get("front", 17.0) + back)             # the stand's foot
             turn = 0.0 if side < 0 else 180.0
-            S.piece(model, piece, x, gz, turn)
-            S.stand_people(gi, x, gz, turn, 1.0, 1.0, dens)
+            S.piece(model, piece, x, gz, turn, y=LEVEL.get(ei))
+            S.stand_people(gi, x, gz, turn, 1.0, 1.0, dens, g=LEVEL.get(ei))
             S.footprint(gi, x + gi.get("offset", 0.0) * (1 if side < 0 else -1), gz, turn)
             ox = x + gi.get("offset", 0.0); hw = gi["width"] / 2
             lawn_x = [min(lawn_x[0], ox - hw), max(lawn_x[1], ox + hw)]
@@ -253,7 +267,10 @@ def perimeter(S, C, turf, grid_box, rnd=None, opts=None):
                            ("pergola_picnic", 2.0, 5.0), ("picnic_table", 6.0, 1.5), ("banner_flag", 6.0, 1.0), ("terrace_deck", 1.0, 6.0)],
                "standside": [("marquee_peaks", 3.0, 13.0), ("marquee_clearspan", 2.0, 11.0), ("pergola_picnic", 2.0, 5.0), ("terrace_deck", 1.5, 6.0),
                              ("kiosk_row_arched", 1.2, 6.0), ("pagoda_kiosk", 2.0, 3.0), ("picnic_table", 6.0, 1.5), ("flagpole", 4.0, 1.0),
-                             ("planter_long", 4.0, 2.5)]}
+                             ("planter_long", 4.0, 2.5)],
+               # (owner, 22:27, Newbury: "more festival bits and pieces between stands"): small things for the gaps
+               "gaps": [("kiosk_awning", 14.0, 3.5), ("pagoda_kiosk", 12.0, 3.0), ("pergola_picnic", 8.0, 5.0),
+                        ("picnic_table", 30.0, 1.5), ("flagpole", 16.0, 1.0), ("planter_long", 14.0, 2.5), ("banner_flag", 14.0, 1.0)]}
         for fz_ in opts["festivals"]:
             g = Polygon(fz_["poly"]).buffer(0)
             g = g.difference(turf.buffer(fz_.get("offTurf", 10.0)))
@@ -293,7 +310,7 @@ def perimeter(S, C, turf, grid_box, rnd=None, opts=None):
                         nrow += 1
                 res["balloon rows"] = nrow
             for gg in polys(g):
-                if gg.area < 800: continue
+                if gg.area < fz_.get("minArea", 800): continue
                 S.flat("#d8d0a2", list(gg.simplify(1.0).exterior.coords)[:-1], 0.028)
                 x0_, z0_, x1_, z1_ = gg.bounds; per = gg.area / 10000.0
                 def ok(x, z, r):
