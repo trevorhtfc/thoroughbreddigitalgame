@@ -251,6 +251,9 @@ def main(cid):
         popts["standsInfo"] = json.loads((REPO / f"assets/models/architecture/{cid}_stands.json").read_text())["pieces"]
         models.append(f"{cid}_stands")
     trees, boards, plot, pnote = PM.perimeter(S, course, turf, grid_box, random.Random(23), popts)
+    if CF.get("edges"):                     # a course's own edges script (Chester: the city walls and the city beyond)
+        ed = importlib.import_module(CF["edges"]["script"])
+        pnote["edges"] = ed.build(S, LY, course, turf, trees, boards, CF["edges"], NM, random.Random(29))
     scen = NM.scenery_file(S, trees, boards, [], models, {"at": [0, -zs * GAP], "turn": 180 if hand < 0 else 0}, poles)
     scen["_about"] += " Basic surroundings from tools/course/real/perimeter.py (the shared rules until the course's own mark-up)."
     NM.write(f"{cid}-scenery.json", scen)

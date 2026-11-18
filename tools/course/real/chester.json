@@ -257,6 +257,15 @@
       28
      ],
      "note": "high up the straight, head-on as they come off the turn (111-119 s)"
+    },
+    "grandstand": {
+     "copy": "grandstand",
+     "at": [
+      0,
+      27.5,
+      -44.0
+     ],
+     "note": "on the County Stand's roof on the line (the basic stand camera at 16 m sat inside the stand)"
     }
    },
    "shots": [
@@ -365,5 +374,67 @@
    }
   ],
   "note": "basic rules for now; the urban edges (city walls, County Stand, viaduct, river) replace the outside belt as the views need them"
+ },
+ "stands": {
+  "_about": "Owner, 22:11, his drone photo of the grandstand edge ('a decent view of the grandstand edge'), 22:39 'yep go for it'. From the north corner along the home straight: the brick block with a hipped roof at the bend (23 Victorian house), the County Stand under its long red roof (16 York's big pavilion, twice, end to end), the smaller gabled stands (20 the July Course's old pavilion), the little pavilion beyond (28 the Rowley Mile's lookout). Numbers from the grandstand crib sheet; a first pick for him to change. [piece, x of its origin (m up the straight from the post), set back (m beyond the front line), crowd density]",
+  "front": 12.0,
+  "pieces": [
+   {
+    "piece": "victorian_house",
+    "at": [
+     -70.0,
+     -40.0
+    ],
+    "turn": 18.0,
+    "toTurf": 10.0,
+    "dens": 0.6,
+    "note": "the brick block at the bend by the Watergate (OSM: x -81..-54)"
+   },
+   [
+    "york_big_pavilion",
+    -22.0,
+    0,
+    0.85
+   ],
+   [
+    "york_big_pavilion",
+    34.0,
+    0,
+    0.85
+   ],
+   [
+    "old_pavilion",
+    90.0,
+    2,
+    0.85
+   ],
+   [
+    "victorian_pavilion",
+    124.0,
+    4,
+    0.6
+   ]
+  ]
+ },
+ "edges": {
+  "script": "edges_chester",
+  "clear": [
+   [
+    -150,
+    -420,
+    520,
+    90
+   ]
+  ],
+  "mainWall": {
+   "terraces": [
+    70.0,
+    300.0
+   ],
+   "bay": 8.0,
+   "height": 6.5
+  },
+  "terraceDens": 0.85,
+  "note": "the city side of the home straight and the home turn (world box x -150..520, z -420..90, outside the infield): the placeholder trees and boards cleared; the walls from OSM (the terraces along x 70-300, past the stands); the buildings beyond the wall as boxes"
  }
 }

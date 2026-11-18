@@ -364,8 +364,8 @@
    "kind": "fixed",
    "at": [
     0,
-    16,
-    -41.0
+    27.5,
+    -44.0
    ],
    "fov": [
     1.5,
@@ -383,7 +383,7 @@
     0,
     1.2
    ],
-   "note": "the stand camera on the winning line: picks the field up down the straight, closes in on the leaders, pans round until they cross the line square on to it (Ascot's grandstand camera)"
+   "note": "on the County Stand's roof on the line (the basic stand camera at 16 m sat inside the stand)"
   },
   "sideon": {
    "label": "Side-on replay",

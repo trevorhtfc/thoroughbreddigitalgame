@@ -1,0 +1,307 @@
+{
+ "_about": "Chester's stands, picked from the grandstand kit by tools/course/real/merge_stands.py (each piece's info as in its source file: building axes x along the front, y into the building, z up, origin the middle of the front on the ground).",
+ "colours": {
+  "white": "#f6f2ea",
+  "cream": "#efe3cd",
+  "glass": "#3f3a4d",
+  "trim": "#f7efe2",
+  "seat": "#e4d9c4",
+  "concrete": "#e6d9c4",
+  "fascia": "#e8b29b",
+  "mast": "#f3f0ea",
+  "brick": "#dc9c86",
+  "slate": "#8f95a8",
+  "roof": "#6e7883",
+  "canvas": "#fbf8f1",
+  "door": "#7f9f8c",
+  "green": "#93b89e",
+  "iron": "#f6f0e1",
+  "bench": "#857f96",
+  "wall": "#ecdcc0",
+  "podium": "#dccaa8",
+  "ironwork": "#4f6b5a",
+  "gilt": "#c8a466",
+  "clock": "#fbf5ea",
+  "clockdark": "#2a2c30",
+  "steps": "#d3c6a6",
+  "paddock_wall": "#f4eadb",
+  "paddock_roof": "#e2a397",
+  "paddock_path": "#a7a2ad",
+  "paddock_lawn": "#9cc08a",
+  "drum": "#f6efe0",
+  "canopy": "#9aa1ab",
+  "canopy_under": "#6d7480",
+  "teal": "#7fa7aa",
+  "paint": "#f4e6d0",
+  "deck": "#dcc4a2",
+  "stone": "#f2e4cc",
+  "tile": "#cf8f73",
+  "screen": "#2f3340",
+  "clock_face": "#fbf5ea",
+  "clock_dark": "#2a2c30",
+  "pot": "#d08a6c",
+  "steel": "#6b7086"
+ },
+ "pieces": {
+  "york_big_pavilion": {
+   "width": 56.0,
+   "depth": 12.6,
+   "height": 25.65,
+   "crowd": [
+    [
+     -25.6,
+     25.6,
+     0.45,
+     2.6,
+     0.3
+    ],
+    [
+     -25.7,
+     25.7,
+     -0.6,
+     0.45,
+     4.2
+    ],
+    [
+     -25.4,
+     25.4,
+     0.7,
+     1.55,
+     4.55
+    ],
+    [
+     -25.4,
+     25.4,
+     2.2,
+     3.05,
+     4.9
+    ],
+    [
+     -25.4,
+     25.4,
+     3.7,
+     4.55,
+     5.25
+    ],
+    [
+     -25.4,
+     25.4,
+     5.2,
+     6.05,
+     5.6
+    ],
+    [
+     -25.7,
+     25.7,
+     -0.6,
+     0.45,
+     7.8
+    ],
+    [
+     -25.4,
+     25.4,
+     0.7,
+     1.55,
+     8.15
+    ],
+    [
+     -25.4,
+     25.4,
+     2.2,
+     3.05,
+     8.5
+    ],
+    [
+     -25.4,
+     25.4,
+     3.7,
+     4.55,
+     8.85
+    ],
+    [
+     -25.4,
+     25.4,
+     5.2,
+     6.05,
+     9.2
+    ],
+    [
+     -25.7,
+     25.7,
+     -0.6,
+     0.45,
+     11.4
+    ],
+    [
+     -25.4,
+     25.4,
+     0.7,
+     1.55,
+     11.75
+    ],
+    [
+     -25.4,
+     25.4,
+     2.2,
+     3.05,
+     12.1
+    ],
+    [
+     -25.4,
+     25.4,
+     3.7,
+     4.55,
+     12.45
+    ],
+    [
+     -25.4,
+     25.4,
+     5.2,
+     6.05,
+     12.8
+    ],
+    [
+     -25.7,
+     25.7,
+     -0.6,
+     0.45,
+     15.0
+    ],
+    [
+     -25.4,
+     25.4,
+     0.7,
+     1.55,
+     15.35
+    ],
+    [
+     -25.4,
+     25.4,
+     2.2,
+     3.05,
+     15.7
+    ],
+    [
+     -25.4,
+     25.4,
+     3.7,
+     4.55,
+     16.05
+    ],
+    [
+     -25.4,
+     25.4,
+     5.2,
+     6.05,
+     16.4
+    ]
+   ],
+   "triangles": 15660
+  },
+  "victorian_pavilion": {
+   "width": 11.0,
+   "depth": 9.2,
+   "height": 10.5,
+   "crowd": [],
+   "triangles": 858
+  },
+  "old_pavilion": {
+   "width": 46.0,
+   "depth": 10.6,
+   "height": 15.622317589218387,
+   "crowd": [
+    [
+     -20.6,
+     20.6,
+     0.45,
+     2.6,
+     0.3
+    ],
+    [
+     -20.7,
+     20.7,
+     -0.6,
+     0.45,
+     4.0
+    ],
+    [
+     -20.4,
+     20.4,
+     0.7,
+     1.55,
+     4.35
+    ],
+    [
+     -20.4,
+     20.4,
+     2.2,
+     3.05,
+     4.7
+    ],
+    [
+     -20.4,
+     20.4,
+     3.7,
+     4.55,
+     5.05
+    ],
+    [
+     -20.4,
+     20.4,
+     5.2,
+     6.05,
+     5.4
+    ],
+    [
+     -20.7,
+     20.7,
+     -0.6,
+     0.45,
+     7.9
+    ],
+    [
+     -20.4,
+     20.4,
+     0.7,
+     1.55,
+     8.25
+    ],
+    [
+     -20.4,
+     20.4,
+     2.2,
+     3.05,
+     8.6
+    ],
+    [
+     -20.4,
+     20.4,
+     3.7,
+     4.55,
+     8.95
+    ],
+    [
+     -20.4,
+     20.4,
+     5.2,
+     6.05,
+     9.3
+    ]
+   ],
+   "triangles": 10390
+  },
+  "victorian_house": {
+   "width": 18.0,
+   "depth": 14.5,
+   "height": 12.9,
+   "crowd": [],
+   "triangles": 1397
+  }
+ },
+ "from": {
+  "york_big_pavilion": "york_stands",
+  "victorian_pavilion": "rowley_stands",
+  "old_pavilion": "july_stands",
+  "victorian_house": "july_stands"
+ }
+}
