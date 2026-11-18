@@ -60,7 +60,7 @@ def main(cid):
     zr = side * (W + 0.5)
     ax.add_patch(MP(np.array([(-150, zr), (450, zr), (450, zr + side * 260), (-150, zr + side * 260)]), closed=True, fc="none",
                     ec="#8a7350", lw=1.0, ls=(0, (6, 4)), zorder=1.5))
-    ax.text(445, zr + side * 254, "the plot kept for the stands", ha="right", va="top" if side > 0 else "bottom", fontsize=8, color="#8a7350")
+    ax.text(445, zr + side * 254, "the plot kept for the stands", ha="right", va="bottom" if side > 0 else "top", fontsize=8, color="#8a7350")
     home = C["routes"][C["defaultRoute"]]["path"]["home"]
     ax.add_patch(MP(np.array([(-150, 0), (home + 60, 0), (home + 60, -side * 170), (-150, -side * 170)]), closed=True,
                     fc="#f6e9c9", ec="#c49a3c", lw=1.0, ls=(0, (6, 4)), alpha=0.55, zorder=1.2))
@@ -95,7 +95,7 @@ def main(cid):
         ax.plot(x, z, marker="+", color="#5a4a32", ms=6, zorder=5)
     if key:
         kz = side * (W + 0.5 + 95)
-        ax.text(-140, kz, "The stands (from past the post up the course)\n" + "\n".join(key), fontsize=8.5, color=INK, va="top" if side < 0 else "bottom",
+        ax.text(-140, kz, "The stands (from past the post up the course)\n" + "\n".join(key), fontsize=8.5, color=INK, va="bottom" if side < 0 else "top",
                 linespacing=1.55, zorder=6, bbox=dict(fc="white", ec="#8a7350", lw=0.8, pad=6))
     # the post, furlong poles, direction of running
     ax.plot(0, 0, marker="o", ms=9, color=POSTC, mec="white", zorder=6)
@@ -108,22 +108,24 @@ def main(cid):
     # grid, scale, north
     for gx in range(-200, X1 + 1, 50):
         ax.axvline(gx, color="#9aa58f", lw=0.4, alpha=0.6, zorder=0.5)
-        ax.text(gx, Z1 - 4, f"{gx}", ha="center", va="top", fontsize=6.5, color=MUTED)
+        ax.text(gx, Z0 + 4, f"{gx}", ha="center", va="top", fontsize=6.5, color=MUTED)
     for gz in range(int(Z0 // 50 * 50), Z1 + 1, 50):
         ax.axhline(gz, color="#9aa58f", lw=0.4, alpha=0.6, zorder=0.5)
-        ax.text(X0 + 3, gz + 2, f"{gz}", fontsize=6.5, color=MUTED)
+        ax.text(X0 + 3, gz - 2, f"{gz}", fontsize=6.5, color=MUTED)
     nth = C.get("compass", {}).get("north")
     if not nth:
         V = json.loads((REPO / f"courses/{cid}-draft.json").read_text()); nth = V["compass"]["north"]
     nx, nz = nth; L = math.hypot(nx, nz); nx, nz = nx / L, nz / L
-    bx, bz = X1 - 30, (Z0 + 60 if side < 0 else Z1 - 90)
+    bx, bz = X1 - 40, (Z1 - 70 if side < 0 else Z0 + 70)
     ax.annotate("N", (bx + nx * 30, bz + nz * 30), xytext=(bx, bz), ha="center", fontsize=11, fontweight="bold",
                 arrowprops=dict(arrowstyle="-|>", color=INK, lw=1.5), zorder=7)
-    sbz = Z0 + 18 if side < 0 else Z1 - 18
-    ax.plot([X0 + 20, X0 + 120], [sbz, sbz], color=INK, lw=3, zorder=7); ax.text(X0 + 70, sbz + 5, "100 m", ha="center", fontsize=8, zorder=7)
-    ax.set_xlim(X0, X1); ax.set_ylim(Z0, Z1); ax.set_aspect("equal"); ax.set_xticks([]); ax.set_yticks([])
+    sbz = Z1 - 18 if side < 0 else Z0 + 18
+    ax.plot([X0 + 20, X0 + 120], [sbz, sbz], color=INK, lw=3, zorder=7); ax.text(X0 + 70, sbz - 5, "100 m", ha="center", fontsize=8, zorder=7)
+    # the race view's world (x, z) seen from above with z running DOWN the page (three.js: y up, so +z comes towards a
+    # viewer looking down from above): plotting z upwards mirrors the course (owner, 19:05: "have you flipped it?")
+    ax.set_xlim(X0, X1); ax.set_ylim(Z1, Z0); ax.set_aspect("equal"); ax.set_xticks([]); ax.set_yticks([])
     ax.set_title(f"{CF['name']}: the stand side as built, DRAFT {CF.get('date', '')}. Grid every 50 m: metres up the course from the post "
-                 f"(along the top) and metres from the inside rail (left). Stands (cream) with their sizes, crosses at their origins; "
+                 f"(along the top) and metres from the inside rail (left; the stand side minus). Stands (cream) with their sizes, crosses at their origins; "
                  f"crowds brown dots; boards blue (thick: the big run-in hoardings); trees green.", fontsize=9.5, loc="left", color=INK, wrap=True)
     fig.tight_layout()
     out = REPO / f"reference/{cid}/stand-side-plan.png"
