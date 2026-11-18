@@ -43,6 +43,8 @@ GW = importlib.util.module_from_spec(_gs); _gs.loader.exec_module(GW)       # it
 DESIGNS = ["green", "cream", "navy", "white"]
 KINDS = ("oak_a", "oak_b", "oak_c", "wide_a", "wide_b")
 GARDEN = ("oak_b", "wide_a", "wide_b")
+BOARD_W = 5.94 * 1.4          # a board's width at scale 1.4 (5.94 m at scale 1)
+BOARD_PITCH = 2.0 * BOARD_W   # (owner, 18 Nov 19:24: "one at a time gap between them": a board, a board's width of gap, a board)
 BOARD_OFF = 20.0              # the far side's boards, metres off the turf (beyond the tracking car's lane)
 BELT = (25.0, 58.0)           # the belt of real trees off the turf
 CANOPY_FROM = 50.0
@@ -112,10 +114,11 @@ GRANDSTAND = {"piece": "epsom_grandstand", "x": 39.0, "lawn": 8.0,
                       "the outer rail"}
 # the stand side, left to right from the track: piece, x of its origin, how far its foot is behind the outer rail,
 # crowd density on its terraces (owner's mark-up, 18 Nov 11:22)
-STANDS = [("epsom_balcony_stand", -85.0, 16.0, 0.5), ("epsom_grandstand", 39.0, 11.0, 0.55), ("epsom_rowley_stand", 183.5, 11.0, 0.5)]
+STANDS = [("epsom_balcony_stand", -85.0, 16.0, 0.85), ("epsom_grandstand", 39.0, 11.0, 1.0), ("epsom_rowley_stand", 183.5, 11.0, 0.85)]   # 19:24: fuller
 # the Hill: big lightweight marquees breaking up the rail crowd (metres to go, metres in from the rail), little stands
 # along the track edge past the post (owner's purple), big festival tents at his red rings (world x, z)
-LITTLE_STANDS = (-115.0, 34.0, 15.0)                              # 12:11: pushed back behind the front of the crowd
+LITTLE_STANDS = (-80.0, 34.0, 5.8)                                # 19:24: forward to the rail; the two furthest past the post gone (big tops there)
+PULL_UP_OPEN = box(-175.0, 0.0, 15.0, 130.0)                     # the Hill past the post: no belt trees (the racecard view looks across it)
 RAIL_D = (-60.0, 1180.0)                                          # the thick rail crowd: Tattenham Corner to the post (and past)
 BACKDROP = (-40.0, 1170.0, 18.0)                                  # the run of big tents behind the crowd (from, to, front off the rail)
 BACKDROP_KIT = ["marquee_peaks", "big_top", "marquee_clearspan", "marquee_peaks", "marquee_clearspan", "big_top"]
@@ -124,14 +127,14 @@ SCREENS = [(240.0, 64.0), (560.0, 64.0)]                          # big screens:
 # radius), crowd a square metre
 FEST_ZONES = [
     ("hospitality village", -40.0, 175.0, 78.0, 170.0,
-     [("marquee_peaks", 4.0, 13.0), ("marquee_clearspan", 3.0, 11.0), ("pergola_picnic", 2.0, 5.0), ("terrace_deck", 1.5, 6.0),
-      ("planter_long", 4.0, 2.5), ("picnic_table", 6.0, 1.5), ("flagpole", 4.0, 1.0)], 0.035),
+     [("big_top", 0.9, 11.0), ("marquee_peaks", 3.0, 13.0), ("marquee_clearspan", 2.5, 11.0), ("pergola_picnic", 2.0, 5.0), ("terrace_deck", 1.5, 6.0),
+      ("planter_long", 4.0, 2.5), ("picnic_table", 6.0, 1.5), ("flagpole", 4.0, 1.0)], 0.015),
     ("fairground", 175.0, 470.0, 30.0, 170.0,
      [("epsom_carousel", 0.25, 8.5), ("epsom_chair_swing", 0.2, 10.5), ("balloon_pod", 1.0, 4.0), ("kiosk_awning", 3.0, 3.5),
-      ("pagoda_kiosk", 3.0, 3.0), ("banner_flag", 6.0, 1.0), ("big_top", 0.4, 11.0), ("picnic_table", 3.0, 1.5)], 0.04),
+      ("pagoda_kiosk", 3.0, 3.0), ("banner_flag", 6.0, 1.0), ("big_top", 0.8, 11.0), ("picnic_table", 3.0, 1.5)], 0.03),
     ("food court", 470.0, 720.0, 30.0, 170.0,
-     [("pergola_picnic", 2.5, 5.0), ("picnic_table", 9.0, 1.5), ("banner_flag", 5.0, 1.0), ("marquee_clearspan", 1.0, 11.0),
-      ("viewing_tower", 0.4, 5.0)], 0.04),
+     [("big_top", 0.6, 11.0), ("pergola_picnic", 2.5, 5.0), ("picnic_table", 9.0, 1.5), ("banner_flag", 5.0, 1.0), ("marquee_clearspan", 1.0, 11.0),
+      ("viewing_tower", 0.4, 5.0)], 0.03),
     ("marquee village", 720.0, 1150.0, 30.0, 150.0,
      [("marquee_peaks", 2.5, 13.0), ("marquee_clearspan", 2.0, 11.0), ("big_top", 0.8, 11.0), ("kiosk_row_arched", 1.5, 6.0),
       ("pagoda_kiosk", 2.0, 3.0), ("viewing_tower", 0.3, 5.0), ("banner_flag", 4.0, 1.0)], 0.03),
@@ -233,6 +236,9 @@ def perimeter(S, C, turf, grid_box, sp, rnd=None, put=None):
         (lx, lz), turn = at_d(dd + w / 2, LITTLE_STANDS[2])
         sp(piece, lx, lz, turn, 0.95); dd += w + 2.5; nl += 1
     note["little stands"] = nl
+    for dd_ in (-128.0, -100.0):                                     # big round tents where the two furthest little stands were
+        (tx_, tz_), _ = at_d(dd_, 22.0)
+        sp("big_top", tx_, tz_, rnd.uniform(0, 360), 0.5, 1.0, 1.1)
     # Tattenham Corner's road behind the crowd, the huts behind the tents
     road = band(R, RAIL_D[1] - 520, RAIL_D[1] + 60, 17.0, 23.0, W)
     for g in GW.polys(road): S.flat(ROAD, list(g.simplify(0.5).exterior.coords)[:-1], 0.03)
@@ -268,6 +274,7 @@ def perimeter(S, C, turf, grid_box, sp, rnd=None, put=None):
             q = Point(x, z)
             if not g.contains(q) or S.blocked(x, z): continue
             dz = turf.distance(q)
+            if x < 150 and dz > 9.0: continue                          # by the post, in front of the frontage: shallower
             if rnd.random() < (1.0 if dz < 6.5 else 0.8 if dz < 11 else 0.5):   # thinning towards the back
                 a_, _ = nearest_points(turf, q)
                 S.person(x, 0.0, z, round(math.atan2(-(a_.x - x), -(a_.y - z)) + rnd.uniform(-0.55, 0.55), 2))
@@ -352,7 +359,7 @@ def perimeter(S, C, turf, grid_box, sp, rnd=None, put=None):
     ring = turf.buffer(BOARD_OFF, join_style=1).boundary
     nb = 0
     for seg in getattr(ring, "geoms", [ring]):
-        for s in np.arange(3.0, seg.length - 2.0, 6.0):
+        for s in np.arange(3.0, seg.length - 2.0, BOARD_PITCH):
             q = seg.interpolate(s)
             if infield.buffer(2).contains(q) or STANDS_PLOT.buffer(8).contains(q) or not inside_grid.contains(q): continue
             if q.x < -40 and q.y < 120 and q.y > -60: continue           # the pull-up past the post: open
@@ -360,7 +367,7 @@ def perimeter(S, C, turf, grid_box, sp, rnd=None, put=None):
             boards.append([r2(q.x), r2(q.y), r2(face_turf(q.x, q.y)), DESIGNS[nb % 4], 1.4]); nb += 1
     note["far side boards"] = nb
     woods = polygons(O.get("wood", []) + O.get("scrub", []))
-    belt = turf.buffer(BELT[1]).difference(turf.buffer(BELT[0])).difference(infield).difference(STANDS_PLOT.buffer(10))
+    belt = turf.buffer(BELT[1]).difference(turf.buffer(BELT[0])).difference(infield).difference(STANDS_PLOT.buffer(10)).difference(PULL_UP_OPEN)
     nbelt = fill(belt.intersection(woods.buffer(30)), 7.5, (1.15, 1.6), belt=1)
     nbelt += fill(belt.difference(woods.buffer(30)), 9.5, (1.05, 1.5), belt=1, p=0.85)
     note["belt trees"] = nbelt

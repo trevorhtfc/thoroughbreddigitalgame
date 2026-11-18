@@ -175,7 +175,17 @@ def main():
     railed = turf.buffer(GAP, join_style=2, mitre_limit=2.0).simplify(0.1)
     rails = [[[r2(x), r2(z)] for x, z in railed.exterior.coords]] + [[[r2(x), r2(z)] for x, z in h.coords] for h in railed.interiors]
     # the furlong poles on the stand-side (outer) rail up the straight, facing the track (as York's)
-    poles = [{"furlongs": k, "at": [r2(k * F), r2(-(W + GAP + 0.7))], "turn": 0} for k in range(1, 5)]
+    # (owner, 18 Nov 19:24: "there is a post in the middle of the track": these stood on the line z = -(W + GAP + 0.7) as if
+    # the straight ran dead along x; it bends away, so the 3f and 4f poles were out on the turf. Now on the straight
+    # course's own outer rail at each furlong, facing across the track)
+    SR = C["routes"]["straight"]
+    stan, sright, _, _ = route_bits(SR, W)
+    def pole_at(d):
+        f = (d - SR["d0"]) / SR["spacing"]; i = max(0, min(len(SR["insideRail"]) - 2, int(f))); k = f - i
+        (ax, az), (bx, bz) = SR["insideRail"][i], SR["insideRail"][i + 1]
+        rx, rz = sright[i]; off = W + GAP + 0.7
+        return [r2(ax + (bx - ax) * k + rx * off), r2(az + (bz - az) * k + rz * off)], round(math.degrees(math.atan2(-rx, -rz)), 1)
+    poles = [dict(zip(("at", "turn"), pole_at(k * F)), furlongs=k) for k in range(1, 5)]
     ground = ground_grid(C, W)
     course = {
         "id": "epsom", "name": "Epsom", "status": "draft",
@@ -248,8 +258,10 @@ def main():
     cams["sideon"]["fov"] = [46, 46]
     cams["track_straight"]["raise"] = []
     # the racecard view: over the infield by the post, looking across at the stand side and up the straight
-    prelude = {"label": "The runners", "seconds": 9, "eye": [[-60, 18, 30], [-45, 17, 28]],
-               "at": [[150, 6, -60], [165, 6, -62]], "fov": 46, "list": [7, 0.6], "cardAfter": 3.5}
+    # (owner, 19:24: "the first view would be good if we can move out the way of the tree"): over the Hill's frontage
+    # opposite the post, clear of the trees, looking across at the stands
+    prelude = {"label": "The runners", "seconds": 9, "eye": [[-50, 30, 100], [-34, 29, 97]],
+               "at": [[140, 8, -62], [158, 8, -64]], "fov": 40, "list": [7, 0.6], "cardAfter": 3.5}
     postlude = NM.overview_after(prelude)
     # ---- the TV coverage (owner, 18 Nov 12:11: "review the race footage I sent and ... match the camera angles"): his
     # Racing TV Derby, frame by frame (reference/epsom/video-cameras.md): the start from inside the rail looking back across
