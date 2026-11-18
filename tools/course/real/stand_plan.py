@@ -24,14 +24,15 @@ NAMES = {"ring_pavilion": "Ring pavilion (Rowley Mile)", "york_stand_north": "No
          "victorian_stand": "Victorian stand (Rowley Mile)", "old_pavilion": "Old pavilion (July Course)",
          "park_tiered_stand": "Tiered stand (Park kit), turned to the run-in", "park_balcony_stand_clock": "Balcony stand with a clock tower (Park kit)",
          "park_gable_stand": "Pitched-roof stand (Park kit)", "park_balcony_stand": "Balcony stand (Park kit)",
-         "park_clock_house": "Clock house (Park kit): the brick block", "park_terrace": "Low terraces (Park kit)",
+         "park_clock_house": "Clock house (Park kit, crib 12)", "park_terrace": "Low terraces (Park kit)",
          "park_roof_terrace_stand_lookout": "Roof-terrace stand with a lookout pavilion (Park kit + Rowley)",
-         "park_glass_box": "Glass box (Park kit)", "park_glass_box_small": "Small glass box (Park kit)",
+         "park_glass_box": "Glass box (Park kit, crib 10)", "park_glass_box_small": "Small glass box (Park kit)",
          "york_big_pavilion": "Big pavilion (York, crib 16)", "park_victorian": "Victorian pavilion with towers (crib 7)",
          "park_old_pavilion": "Old pavilion (Park kit)",
          "module_grand_pavilion_postcard": "Grand pavilion (Ascot module, crib 35) with the postcard's pavilion block and flagpole",
          "rowley_stand_postcard": "Rowley stand (crib 26) with the postcard's lookout",
          "module_grand_pavilion_c": "Grand pavilion (Ascot module, crib 35)",
+         "old_pavilion_lookout": "Old pavilion (July, crib 20) with the postcard's lookout", "old_pavilion_wing": "Old pavilion's wing (July, crib 21)",
          "rowley_end_postcard": "Rowley stand, 84 m cut (crib 26), with the postcard's lookout",
          "park_roof_terrace_stand_postcard": "Roof-terrace stand with the postcard's roof pavilion, flagpole and lookout"}
 
