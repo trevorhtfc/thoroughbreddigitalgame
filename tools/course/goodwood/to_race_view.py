@@ -245,9 +245,9 @@ def main():
     # phase 4: the stands, the rail lawn and the festival lawns, from the owner's mark-up (tools/course/goodwood/stands.py)
     _ss = importlib.util.spec_from_file_location("goodwood_stands", HERE / "stands.py")
     ST = importlib.util.module_from_spec(_ss); _ss.loader.exec_module(ST)
-    stands_all, far_fest, stand_cam, note4 = ST.stand_side(S, turf, sp, rnd, NM)
     _ps = importlib.util.spec_from_file_location("goodwood_perimeter", HERE / "perimeter.py")
     PM = importlib.util.module_from_spec(_ps); _ps.loader.exec_module(PM)
+    stands_all, far_fest, stand_cam, side_trees, note4 = ST.stand_side(S, turf, sp, rnd, NM, PM.zones()["stands"])
     grid_box = (ground["x0"], ground["z0"], ground["x0"] + ground["cell"] * (ground["nx"] - 1), ground["z0"] + ground["cell"] * (ground["nz"] - 1))
     trees, boards, canopies, note = PM.perimeter(S, turf, grid_box, sp, rnd)
     # (owner, 18 Nov: the far side's festival "can start as the trees start to drop away": no trees in it; nothing in the stands)
@@ -255,6 +255,7 @@ def main():
     clear = far_fest.buffer(4.0).union(stands_all.buffer(3.0))
     trees = [t for t in trees if not clear.contains(Point(t[0], t[1]))]
     boards = [b for b in boards if not stands_all.buffer(2.0).contains(Point(b[0], b[1]))]
+    trees += side_trees
     scen = NM.scenery_file(S, trees, boards, [], ["goodwood_stands", "site_props", "finish_line"], {"at": [0, -GAP], "turn": 0}, poles)
     scen["canopies"] = canopies
     scen["_about"] += (" canopies: the woods beyond the belts of trees, each a light mesh (v: x, y above the ground, z; i: triangles), "

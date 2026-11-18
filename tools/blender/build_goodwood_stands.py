@@ -15,7 +15,8 @@ image." His boxes, in world axes, are in reference/goodwood/stands-zones.json.
   goodwood_balcony    the Park's balcony stand (colonnade, open seating, two covered galleries, flat roof behind a
                       cornice) lengthened to 16 bays (61 m) to fill his box 1, west of the post, facing up the straight
   goodwood_mast       the Park's mast stand (stepped terrace, two glazed levels, the vaulted flat roof on six masts),
-                      as built (77 m): his box 2, on the March Stand's footprint
+                      11 bays (84 m; owner, 18 Nov 09:04: "a bit small"; also scaled up 12% where it is placed): his
+                      box 2, on the March Stand's footprint
   goodwood_tent       the Park's tent stand (seated terrace, glazed hall, deck under three tensile tents, the veranda
                       wing), as built (59 m): his box 3, the Sussex Stand's footprint
   goodwood_victorian  the Rowley Mile's Victorian stand (Ascot's terrace under the long hipped slate roof, dormers,
@@ -55,7 +56,7 @@ def victorian_flanked(bays=24, rows=10, tread=1.0, rise=0.28):
 
 PIECES = [
     ("goodwood_balcony", lambda: colonnade_stand(16, 3.6, "flat")),
-    ("goodwood_mast", lambda: mast_stand(10, 7.6)),
+    ("goodwood_mast", lambda: mast_stand(11, 7.6)),                 # (owner, 18 Nov 09:04: "a bit small": a bay longer, and scaled up 12% where placed)
     ("goodwood_tent", tent_stand),
     ("goodwood_victorian", victorian_flanked),
 ]

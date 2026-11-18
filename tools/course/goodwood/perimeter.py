@@ -169,7 +169,7 @@ def perimeter(S, turf, grid_box, sp, rnd=None):
         "planting": fill(Z["planting"].intersection(band), 8.8, (1.15, 1.65), belt=1),
         "slope": fill(Z["slope"].intersection(band), 7.5, (1.0, 1.5), belt=1)
                  # (the slope is in full view from the stands, looked down on: real trees further down it, sparser)
-                 + fill(Z["slope"].intersection(turf.buffer(SLOPE_DEEP).difference(turf.buffer(BELT[1]))), 10.0, (1.1, 1.6), belt=1),
+                 + fill(Z["slope"].intersection(turf.buffer(SLOPE_DEEP).difference(turf.buffer(BELT[1]))), 11.5, (1.1, 1.6), belt=1),
     }
     woods = unary_union([Polygon(p).buffer(0) for p in O["wood"] + O["scrub"] if len(p) >= 4])
     other_woods = woods.difference(zone_woods)
@@ -194,7 +194,7 @@ def perimeter(S, turf, grid_box, sp, rnd=None):
         for ring_ in [g.buffer(-3.0)]:
             for gg in polys(ring_):
                 for ln in [gg.exterior] + list(gg.interiors):
-                    for s in np.arange(0, ln.length, 9.0):
+                    for s in np.arange(0, ln.length, 11.5):
                         q = ln.interpolate(s + rnd.uniform(-2, 2))
                         dq = turf.distance(q)
                         if dq < 58 or dq > 330 or pk.contains(q): continue
