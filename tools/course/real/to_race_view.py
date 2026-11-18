@@ -113,6 +113,8 @@ def main(cid):
     poles = [{"furlongs": k, "at": [r2(k * F), r2(sz * (W + GAP + 0.7))], "turn": 0} for k in range(1, 5)]
     ground = ground_grid(LY, C, W, name)
     default_route = V.get("defaultRoute", "round")
+    # a course with no straight course (Chester): the 'straight' cameras and the furlong poles use the home straight
+    STRAIGHT_LEN = C["routes"]["straight"]["length"] if "straight" in C["routes"] else max(routes_out[default_route]["path"]["home"], 2 * F)
     course = {
         "id": cid, "name": name, "status": "draft",
         "_about": "Written by tools/course/real/to_race_view.py from courses/%s-draft.json; don't edit by hand. World axes as "
@@ -125,7 +127,7 @@ def main(cid):
         "path": routes_out[default_route]["path"], "pathRail": routes_out[default_route]["pathRail"],
         "track": {"surface": surface},
         "rails": {"gap": GAP, "lines": rails, "skip": [[-16.3, 16.7, GAP]]},
-        "straightMile": {"length": round(C["routes"]["straight"]["length"], 1), "furlongPoles": poles},
+        "straightMile": {"length": round(STRAIGHT_LEN, 1), "furlongPoles": poles},
         "winningPost": [0, 0],
         "ground": ground,
         "drapeTurf": True,
@@ -220,7 +222,7 @@ def main(cid):
         cams["start"]["inside"] = True; cams["start"]["side"] = 3.0
 
     class L:
-        TRACK_W = W; RUN_ON = C["runOut"]; STRAIGHT = C["routes"]["straight"]["length"]
+        TRACK_W = W; RUN_ON = C["runOut"]; STRAIGHT = STRAIGHT_LEN
     view = NM.view_file(cid, L, {"name": name}, stalls, -1 if hand < 0 else 1, cams, prelude, postlude, director, menu)
     view["homeStraight"]["centreZ"] = zs * W / 2
     view["lanesStraight"]["x"][0] = 0.0

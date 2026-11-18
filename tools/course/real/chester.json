@@ -163,14 +163,206 @@
   "defaultRace": "1m2f75y",
   "feature": "1m2f75y",
   "routeWords": {
-   "round": "round the circuit",
-   "chute": "from the chute",
-   "chute2": "from the chute"
+   "round": "Round the Roodee",
+   "chute": "From the chute, once round",
+   "chute2": "From the chute, twice round"
+  },
+  "targets": {
+   "1m2f75y": 130.0,
+   "2m2f147y": 247.0
+  },
+  "tv": {
+   "note": "Chester (owner, 18 Nov 22:11, his TV recording of the Huxley Stakes, 1m2f75y from the chute): the start beside the chute with the car park strip beyond; head-on as they come up the home straight the first time; the infield car side-on past the stands and their crowd; head-on round the north corner; the infield car again round the corner; a low head-on down the railway side (the inside rail in front, the boards and trees beyond); wide from the railway side across the infield; the infield car all along the river side (the trees and the houses over the river behind); head-on as they turn for home; high head-on into the straight; then the stand camera.",
+   "cams": {
+    "track_inside": {
+     "copy": "track_loop",
+     "label": "Tracking (infield)",
+     "railSide": "inside",
+     "side": 6,
+     "height": 2.6,
+     "fov": [
+      5,
+      40
+     ],
+     "note": "the car in the infield just inside the inside rail: the stands and their crowd the first time past, the river trees on the far side (the video's 17-27 s, 31-41 s and 63-111 s)"
+    },
+    "home_headon": {
+     "label": "Home straight, head-on",
+     "route": "round",
+     "d": 1680,
+     "off": 28,
+     "h": 7,
+     "fov": [
+      1.5,
+      26
+     ],
+     "note": "beyond the north corner on its outside, head-on down the home straight as they come past the stands the first time (11-17 s)"
+    },
+    "corner_headon": {
+     "label": "North corner",
+     "route": "round",
+     "d": 1560,
+     "off": 24,
+     "h": 6,
+     "fov": [
+      1.5,
+      26
+     ],
+     "note": "round the north corner on the outside, the field coming at it round the curving rail (27-31 s)"
+    },
+    "rail_headon": {
+     "label": "Railway side, head-on",
+     "route": "round",
+     "d": 1150,
+     "off": -14,
+     "h": 5,
+     "fov": [
+      1.5,
+      24
+     ],
+     "note": "low in the infield ahead of them on the railway side: the inside rail in front, the boards and trees beyond (43-57 s)"
+    },
+    "west_wide": {
+     "label": "Across the infield",
+     "route": "round",
+     "d": 1200,
+     "off": 45,
+     "h": 9,
+     "fov": [
+      3,
+      40
+     ],
+     "note": "from the railway side, wide across the infield (57-63 s)"
+    },
+    "turn_headon": {
+     "label": "Home turn",
+     "route": "round",
+     "d": 300,
+     "off": 30,
+     "h": 7,
+     "fov": [
+      1.5,
+      26
+     ],
+     "note": "head-on as they swing for home past the chute (101-107 s)"
+    },
+    "straight_high": {
+     "label": "Into the straight, high",
+     "route": "round",
+     "d": 120,
+     "off": 22,
+     "h": 12,
+     "fov": [
+      2,
+      28
+     ],
+     "note": "high up the straight, head-on as they come off the turn (111-119 s)"
+    }
+   },
+   "shots": [
+    [
+     1960,
+     1870,
+     "home_headon"
+    ],
+    [
+     1870,
+     1720,
+     "track_inside"
+    ],
+    [
+     1720,
+     1660,
+     "corner_headon"
+    ],
+    [
+     1660,
+     1500,
+     "track_inside"
+    ],
+    [
+     1500,
+     1250,
+     "rail_headon"
+    ],
+    [
+     1250,
+     1150,
+     "west_wide"
+    ],
+    [
+     1150,
+     480,
+     "track_inside"
+    ],
+    [
+     480,
+     390,
+     "turn_headon"
+    ],
+    [
+     390,
+     330,
+     "track_inside"
+    ],
+    [
+     330,
+     240,
+     "straight_high"
+    ],
+    [
+     240,
+     -1,
+     "grandstand"
+    ]
+   ],
+   "menu": {
+    "round": [
+     [
+      "track_inside",
+      "Tracking"
+     ],
+     [
+      "track_loop",
+      "Outside"
+     ],
+     [
+      "grandstand",
+      "Stand"
+     ],
+     [
+      "drone_straight",
+      "Drone"
+     ]
+    ]
+   }
   }
  },
  "levelTurf": {
   "margin": 6,
   "above": 0.3,
   "note": "the Roodee is flat throughout (At The Races), but its outer rail runs under banks (the city walls, Grosvenor Road's embankment, the railway): the 20 m ground tiles blur those into the turf, so the turf is brought down to the infield's level; the banks beyond it stay"
+ },
+ "perimeter": {
+  "infieldBoards": false,
+  "infieldTrees": false,
+  "runInBoards": null,
+  "festivals": [
+   {
+    "name": "the infield (owner, 22:08: 'the centre area will just be festival')",
+    "kit": "infield",
+    "poly": "infield",
+    "offTurf": 10.0,
+    "dens": 0.012,
+    "kitScale": 0.45,
+    "railCrowd": {
+     "from": 11.0,
+     "to": 17.0,
+     "dens": 0.3
+    },
+    "note": "the rail crowd stands back 11-17 m so the infield tracking car (6 m in) runs clear in front of it"
+   }
+  ],
+  "note": "basic rules for now; the urban edges (city walls, County Stand, viaduct, river) replace the outside belt as the views need them"
  }
 }
