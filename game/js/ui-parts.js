@@ -89,9 +89,11 @@ document.addEventListener("drop", e => {
 function breedBody() {
   // the hand is dealt in one go as the stud opens, and stays on the table until the player carries on (owner, 15 Nov:
   // "draw the mares cards in one go with a drawing cards effect.. don't need to actually draw them")
-  if (S.step === 1 && !handDone() && dealHand()) { UI.mareShow = true; UI.mareAnim = true; }
+  // (owner, 18 Nov: "you have the decks but no draw pile.. you then click a button about going to stallions and then they
+  // appear?.. this should be much simpler": the hand is dealt straight into your mares, and they're the ones you tap)
+  if (S.step === 1 && !handDone() && dealHand()) UI.mareAnim = true;
   return `<div class="tb-head"><h1 class="tb-h">BREED</h1>
-    <p class="tb-lede short" ${onJob() ? "" : "hidden"}>${S.stable.length ? `<b>${money(S.budget)}</b> left · ${S.stable.length} horse${S.stable.length === 1 ? "" : "s"} for ${RACES.length} races.` : `<b>${money(S.budget)}</b> to build a stable for ${RACES.length} races.`} ${!handDone() ? "Draw your mares, then breed them." : S.hand.length ? "Tap a mare, then a stallion, to breed her." : "Every mare is covered: on to Tattersalls when you're ready."} Keep some back for Tattersalls.</p></div>
+    <p class="tb-lede short" ${onJob() ? "" : "hidden"}>${S.stable.length ? `<b>${money(S.budget)}</b> left · ${S.stable.length} horse${S.stable.length === 1 ? "" : "s"} for ${RACES.length} races.` : `<b>${money(S.budget)}</b> to build a stable for ${RACES.length} races.`} ${S.hand.length ? "Keep some back for Tattersalls." : "Every mare is covered: on to Tattersalls when you're ready."}</p></div>
     ${viewTabs("The stud")}
     ${refView(studView)}`;
 }
@@ -120,12 +122,12 @@ function pips(n, variable) {
 // (Beginner: the kind of trip it's best at, and how far its range runs, in plain words)
 const hcTrip = x => isBeginner() ? `<div class="hc-trip kind"><b>${distWord(x.optimumDistance)}</b>${distWord(x.minDistance) !== distWord(x.maxDistance) ? `<small>can run ${distWord(x.minDistance).toLowerCase()} to ${distWord(x.maxDistance).toLowerCase()}</small>` : ""}</div>`
   : `<div class="hc-trip"><span>${x.minDistance}</span><i>|</i><b>${x.optimumDistance}</b><i>|</i><span>${x.maxDistance}</span></div>`;
-function mareCard(name) {
+function mareCard(name, cta) {
   const m = byName(name), on = S.selMare === name;
   return `<button class="hc m ${on ? "on" : ""}" data-mare="${esc2(name)}" aria-pressed="${on}"><span class="tick">✓</span>
     <div class="hc-top"><span class="hc-l">M</span><span class="hc-n">${esc2(m.name)}</span></div>
     <div class="hc-b"><div class="hc-r">${pips(m.stars)}<span class="hc-pk">Peaks <b>${m.peakAge}</b></span></div>
-    ${hcTrip(m)}<div class="hc-meta one"><span><b>${m.sireLine} | ${m.sireCode}</b></span></div><div class="hc-g">${m.groundPreference.join(", ")}</div></div></button>`;
+    ${hcTrip(m)}<div class="hc-meta one"><span><b>${m.sireLine} | ${m.sireCode}</b></span></div><div class="hc-g">${m.groundPreference.join(", ")}</div>${cta ? `<span class="hc-cta">Breed her <span aria-hidden="true">›</span></span>` : ""}</div></button>`;
 }
 function stallionCard(s, m) {
   const prob = m ? pairProblem(s, m) : "", on = S.selStallion === s.name, ln = m && !prob ? lineNote(s, m) : null;
@@ -137,8 +139,7 @@ function stallionCard(s, m) {
     <div class="hc-foot">${s.unproven ? (knowsTrue(s.name) ? `<span class="warn">Your expert: really ${s.trueStars}★</span>` : `<span class="warn">Unproven: one star either way</span>`) : ""}${prob ? `<span class="why">${esc2(prob)}</span>` : ""}${ln ? `<span class="ln ${ln.cls}">${ln.text}</span>` : ""}</div></div></button>`;
 }
 function studView() {
-  if (!handDone() && dealHand()) { UI.mareShow = true; UI.mareAnim = true; }
-  if (UI.mareShow && S.step === 1) return `${teamAtStud()}${dealView()}`;
+  if (!handDone() && dealHand()) UI.mareAnim = true;
   const m = S.selMare && byName(S.selMare);
   let rows = STALLIONS.map(s => stallion(s.name)).filter(s => (S.trip || "all") === "all" || band(s.optimumDistance) === S.trip);
   rows.sort(S.sort === "stars" ? (a, b) => b.shownStars - a.shownStars || a.fee - b.fee : S.sort === "trip" ? (a, b) => DISTANCES.indexOf(a.optimumDistance) - DISTANCES.indexOf(b.optimumDistance) || a.fee - b.fee : (a, b) => a.fee - b.fee || b.shownStars - a.shownStars);
@@ -148,8 +149,13 @@ function studView() {
     : [["all", "All"], ["sprint", "Sprint 5–6f"], ["mile", "Mile 7f–1m1f"], ["middle", "Middle 1m2f–1m4f"], ["staying", "Staying 1m6f+"]];
   if (!m && !studCount()) return `${teamAtStud()}${maresSale()}<section class="sect"><div class="sect-h"><h2 class="tb-h2">YOUR MARES</h2><span>0 of ${MARE_CAP}</span></div>
     <p class="tb-empty">${handOn() ? `No mares left to breed.${extraLeft() > 0 ? " You can still buy one more above." : ""} Tattersalls is next.` : `No mares yet. Buy your first above: pick a pile, then choose one of the ${offerSize()} mares turned over.`}</p></section>`;
-  if (!m) return `${teamAtStud()}<section class="sect"><div class="sect-h"><h2 class="tb-h2">YOUR MARES</h2><span>${studCount()} of ${MARE_CAP} in your stud · ${S.usedMares.length} covered · tap a mare to breed her</span></div>
-    <div class="grid">${S.hand.map(mareCard).join("") || `<p class="tb-empty">${S.usedMares.length ? (extraLeft() > 0 ? "Every mare has been covered. Buy another below, or head to Tattersalls." : "Every mare has been covered: on to Tattersalls.") : "No mares yet. Buy one below."}</p>`}</div>
+  // your mares: dealt from the Weatherbys decks straight onto the table (the first time, they fly in and turn over), and
+  // each one is the button to breed her
+  const deal = UI.mareAnim && S.hand.length && !S.usedMares.length;
+  if (!m) return `${teamAtStud()}<section class="sect mhand ${deal ? "mdeal" : ""}"><div class="sect-h"><h2 class="tb-h2">YOUR MARES</h2><span>${S.hand.length ? `${S.hand.length} to breed` : "all covered"}${S.usedMares.length ? ` · ${S.usedMares.length} covered` : ""}</span></div>
+    ${deckStrip()}
+    ${S.hand.length ? `<p class="mh-do"><b>Tap a mare</b> to choose her stallion.</p>` : ""}
+    <div class="grid mgrid">${S.hand.map(n => deal ? flipWrap(n) : mareCard(n, true)).join("") || `<p class="tb-empty">${S.usedMares.length ? (extraLeft() > 0 ? "Every mare has been covered. Buy another below, or head to Tattersalls." : "Every mare has been covered: on to Tattersalls.") : "No mares yet. Buy one below."}</p>`}</div>
     ${handList()}</section>
     ${maresSale()}${studFoals()}`;
   // the mare you're breeding, then the stallions; tap one and its Breed button (and an X to let go) opens right under it
@@ -192,14 +198,14 @@ function mareBack(id) {
 const mareStack = (id, n) => `<span class="mstack">${n > 1 ? '<span class="mback b2"></span>' : ""}${n > 0 ? '<span class="mback b1"></span>' : ""}${n > 0 ? mareBack(id) : '<span class="mback gone"></span>'}</span>`;
 // a mare's card as it's turned over (not a button: she isn't picked for breeding until the hand is in)
 const mareFace = (name, cls) => mareCard(name).replace(/^<button class="hc m[^"]*" data-mare="[^"]*" aria-pressed="[^"]*">/, `<div class="hc m ${cls || ""}">`).replace(/<\/button>$/, "</div>");
-function dealView() {
-  const drawn = mh().hand || [], n = drawn.length;
-  return `<section class="sect mdeal"><div class="sect-h"><h2 class="tb-h2">YOUR MARES</h2><span>${n} mare${n === 1 ? "" : "s"} dealt to your stud</span></div>
-    <p class="hint">Two from each of the Weatherbys decks, dealt to your stud. Send each of them to a stallion.</p>
-    <div class="mdecks">${PILES.map(p => `<div class="mdeck ${p.id}">${mareStack(p.id, Math.min(3, pileLeft(p).length))}<b>${p.name}</b><small>${handDrawn(p.id)} dealt</small></div>`).join("")}</div>
-    <div class="grid mdrawn">${drawn.map(nm => { const p = pileOf(nm);
-      return `<div class="mflip" data-from="${p ? p.id : ""}"><div class="mflip-in"><span class="mflip-b">${mareBack(p ? p.id : "mid")}</span><div class="mflip-f">${mareFace(nm)}</div></div></div>`; }).join("")}</div></section>`;
+// the three Weatherbys decks, small, above your mares: where they were dealt from
+function deckStrip() {
+  if (!handOn()) return "";
+  return `<div class="mdecks sm">${PILES.map(p => `<div class="mdeck ${p.id}">${mareStack(p.id, Math.min(3, pileLeft(p).length))}<span><b>${p.name}</b><small>${handDrawn(p.id)} dealt</small></span></div>`).join("")}</div>`;
 }
+// a mare's card on its way from the deck: the back shows first, then it turns over (the card itself is the button)
+const flipWrap = nm => { const p = pileOf(nm);
+  return `<div class="mflip" data-from="${p ? p.id : ""}"><div class="mflip-in"><span class="mflip-b" aria-hidden="true">${mareBack(p ? p.id : "mid")}</span><div class="mflip-f">${mareCard(nm, true)}</div></div></div>`; };
 // the hand's cards fly from their decks onto the table face down, then turn over one by one, like the race draw
 function mareDealAnim() {
   UI.mareAnim = false;
@@ -207,11 +213,14 @@ function mareDealAnim() {
   if (!cards.length || still()) return;
   // the step's key points pop up the first time the stud opens: the deal waits for them, cards hidden in their decks
   const sec = cards[0].closest(".mdeal");
-  if (document.getElementById("kp")) {
+  // (and the key points that are about to pop up, a moment after the stud opens)
+  const t0w = Date.now();
+  const held = () => !!document.getElementById("kp") || (Date.now() - t0w < 1500 && typeof sheetHeadline === "function" && !!sheetHeadline() && !(S.seenTips || {})[phase()] && !(typeof tipsOff === "function" && tipsOff()));
+  if (held()) {
     sec.classList.add("waiting");
     const wait = setInterval(() => {
       if (!sec.isConnected) return clearInterval(wait);
-      if (document.getElementById("kp")) return;
+      if (held()) return;
       clearInterval(wait); sec.classList.remove("waiting"); UI.mareAnim = true; mareDealAnim();
     }, 150);
     return;
@@ -227,7 +236,7 @@ function mareDealAnim() {
       { duration: 620, delay: t0 + i * turn, easing: "cubic-bezier(.3,.8,.25,1.1)", fill: "backwards" });
   });
   BOARD.Sound.chime && BOARD.Sound.chime();
-  setTimeout(() => { if (UI.mareShow) BOARD.Sound.whinny && BOARD.Sound.whinny(); }, t0 + cards.length * turn + 300);
+  setTimeout(() => { if (UI.sheet === "stud") BOARD.Sound.whinny && BOARD.Sound.whinny(); }, t0 + cards.length * turn + 300);
 }
 
 // Elite Mares: upgrade a mare a grade (owner, 14 Nov evening: no sending mares back, so this is only for the upgrades)
@@ -314,6 +323,13 @@ let cardFrame = null, cardQueue = [], cardReady = false;
 // lock the page while a card pop-up is open; a tap on the card skips its animation
 new MutationObserver(() => document.body.classList.toggle("modal-open", !!document.querySelector(".foal-wrap"))).observe(document.body, { childList: true });
 document.addEventListener("click", e => { if (e.target.closest && e.target.closest(".cardbox")) toCard({ type: "skip" }); });
+// (18 Nov: nothing on the new foal's pop-up is dead while its card is revealed: a tap anywhere but the name, or its Skip
+// button, plays the card out and brings up the options; if the card doesn't answer, they come up anyway)
+document.addEventListener("click", e => {
+  const f = e.target.closest && e.target.closest(".foal.pn-foal"); if (!f || f.classList.contains("done") || e.target.closest("input")) return;
+  toCard({ type: "skip" });
+  setTimeout(() => { if (!f.isConnected) return; f.classList.add("done"); foalCompact(f, 0); }, 700);
+});
 function cardBox() {
   cardReady = false; cardQueue = [];
   return `<div class="cardbox"><iframe id="cardFrame" src="card.html" title="Horse card"></iframe></div>`;
@@ -626,9 +642,22 @@ function fillEmpty() {
   RACES.filter(r => !S.entries[r.id]).sort((a, b) => options(a).length - options(b).length).forEach(r => {
     const best = options(r).sort((a, b) => check(b, r).day - check(a, r).day)[0]; if (best) S.entries[r.id] = best.id;
   });
+  // then the races that need an older horse (owner, 18 Nov: "all the buttons HAVE to work": with every horse still a
+  // 2-year-old, Fill used to do nothing): a horse with no race yet is developed to the age the race needs, best first,
+  // your flagged horse before any other. Only horses not entered anywhere are developed, so no entry is lost
+  const devd = [];
+  const atAge = (h, a, r) => { const was = h.age; h.age = a; let c; try { c = !clashFor(h, r) && check(h, r); } finally { h.age = was; } return c && c.ok ? c : null; };
+  const devOpts = r => S.stable.filter(h => canDev(h) && !runsOf(h).length && h.age < r.ages[0] && r.ages[0] <= 4).map(h => ({ h, c: atAge(h, r.ages[0], r) })).filter(o => o.c);
+  RACES.filter(r => !S.entries[r.id]).sort((a, b) => devOpts(a).length - devOpts(b).length).forEach(r => {
+    if (S.entries[r.id]) return;
+    const T = (S.targets || {})[r.id], os = devOpts(r).sort((a, b) => (b.h.id === T) - (a.h.id === T) || b.c.day - a.c.day), o = os[0];
+    if (!o) return;
+    while (o.h.age < r.ages[0]) develop(o.h.id);
+    if (!clashFor(o.h, r) && check(o.h, r).ok) { S.entries[r.id] = o.h.id; devd.push(o.h); }
+  });
   save();
-  const left = RACES.filter(r => !S.entries[r.id]).length;
-  toast(left ? `${left} race${left === 1 ? "" : "s"} still empty: no free horse can run at its current age` : "Every race has a runner");
+  const left = RACES.filter(r => !S.entries[r.id]).length, dv = devd.length ? ` ${devd.map(h => h.name).join(", ")} ${devd.length === 1 ? "was" : "were"} developed to run.` : "";
+  toast(left ? `${left} race${left === 1 ? "" : "s"} still empty: no free horse can run ${left === 1 ? "it" : "them"}.${dv}` : `Every race has a runner.${dv}`);
 }
 
 /* ----- Step 3: race week ----- */

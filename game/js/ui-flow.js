@@ -115,7 +115,7 @@ const HEADLINES = {
     "The <b>Team</b> button at the top shows your cards at any time."] }),
   breed: () => ({ place: "stud", t: "Breed your foals", pts: [
     `You have <b>${money(S.budget)}</b> to build a stable for ${plural(RACES.length, "race")}: room for ${STABLE_CAP} horses.`,
-    handOn() ? `Your ${HAND.hi + HAND.mid + HAND.lo} mares are dealt from the Weatherbys decks. Then tap a mare, tap a stallion and press <b>Breed</b>.` : `Buy mares at the mares sale, then tap a mare, tap a stallion and press <b>Breed</b>.`,
+    handOn() ? `Your ${handSize().hi + handSize().mid + handSize().lo} mares are dealt to you from the Weatherbys decks. <b>Tap a mare</b>, then tap a stallion and press <b>Breed</b>.` : `Buy mares at the mares sale, then tap a mare, tap a stallion and press <b>Breed</b>.`,
     "An outcross (a different sire line) adds 1 to 3 to the foal's rating. The same line can take up to 4 off.",
     `Keep money back for Tattersalls: Book 1 lots start at ${money(RESERVES[BOOKS[0].min])}. Once you leave for the sales, the stud is closed.`] }),
   sales: () => ({ place: "tatts", t: "The Yearling Sales", pts: [
@@ -169,12 +169,18 @@ function mustRead(scroller, btn) {
   if (!scroller || !btn || btn.dataset.mustRead) return;
   btn.dataset.mustRead = "1";
   const label = btn.innerHTML;
-  const done = () => { btn.disabled = false; btn.classList.remove("must-read"); btn.innerHTML = label; scroller.removeEventListener("scroll", check); };
+  // (18 Nov: the locked button is never dead: a tap on it scrolls the panel on for you, rather than doing nothing)
+  const done = () => { btn.classList.remove("must-read"); btn.removeAttribute("aria-disabled"); btn._mustRead = null; btn.innerHTML = label; scroller.removeEventListener("scroll", check); };
   const check = () => { if (scroller.scrollTop + scroller.clientHeight >= scroller.scrollHeight - 30) done(); };
   if (scroller.scrollHeight <= scroller.clientHeight + 30) return;
-  btn.disabled = true; btn.classList.add("must-read"); btn.innerHTML = `Scroll down to read on <span aria-hidden="true">↓</span>`;
+  btn.classList.add("must-read"); btn.setAttribute("aria-disabled", "true"); btn._mustRead = scroller; btn.innerHTML = `Scroll down to read on <span aria-hidden="true">↓</span>`;
   scroller.addEventListener("scroll", check, { passive: true });
 }
+addEventListener("click", e => {
+  const b = e.target.closest && e.target.closest(".must-read"); if (!b || !b._mustRead) return;
+  e.stopPropagation(); e.preventDefault();
+  const sc = b._mustRead; sc.scrollTo({ top: Math.min(sc.scrollHeight, sc.scrollTop + sc.clientHeight * 0.85), behavior: still() ? "auto" : "smooth" });
+}, true);
 // the element that actually scrolls in a pop-up
 const scrollerIn = (...els) => els.find(el => el && el.scrollHeight > el.clientHeight + 4 && /(auto|scroll)/.test(getComputedStyle(el).overflowY)) || null;
 function kpClose() { const el = document.getElementById("kp"); if (el) el.remove(); }

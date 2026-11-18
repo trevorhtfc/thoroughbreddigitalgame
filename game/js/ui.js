@@ -94,8 +94,9 @@ function cardFor(id) {
       break;
     case "stud":
       c.kicker = "Mares, stallions and foals";
-      if (st === "locked") { c.status = "Opens once you've seen the programme"; c.text = "Where your stable begins: buy mares at the mares sale and send them to the stallions."; c.cta = "Visit the Stud"; }
-      else if (ph === "breed") { c.text = `You have <b>${money(S.budget)}</b> to spend. Buy mares at the mares sale and breed them: <b>${studCount()}</b> mare${studCount() === 1 ? "" : "s"} and <b>${S.stable.filter(h => h.how === "bred").length}</b> foal${S.stable.filter(h => h.how === "bred").length === 1 ? "" : "s"} so far.`; c.cta = "Visit the Stud"; }
+      if (st === "locked") { c.status = "Opens once you've seen the programme"; c.text = "Where your stable begins: your mares are dealt to you here, and you send each to a stallion."; c.cta = "Visit the Stud"; }
+      else if (ph === "breed") { const nf = S.stable.filter(h => h.how === "bred").length;
+        c.text = `You have <b>${money(S.budget)}</b> to spend. ${handDone() ? `<b>${S.hand.length}</b> mare${S.hand.length === 1 ? "" : "s"} still to breed, <b>${nf}</b> foal${nf === 1 ? "" : "s"} so far.` : "Your mares are dealt to you as you go in: tap one, then a stallion, to breed her."}`; c.cta = "Visit the Stud"; }
       else { c.status = "The covering season is over"; c.text = `Your ${S.usedMares.length} mare${S.usedMares.length === 1 ? "" : "s"} produced ${S.stable.filter(h => h.how === "bred").length} foal${S.stable.filter(h => h.how === "bred").length === 1 ? "" : "s"}.`; c.cta = "Look back"; c.off = false; }
       break;
     case "tatts":
@@ -256,7 +257,15 @@ function paintSheet(first) {
   else if (p) BOARD.paintPic(pic, [p.pic[0], p.pic[1], Math.max(560, Math.min(1000, (pic.clientWidth || 1200) * 0.72))], 0.7);
   $("#shClose").hidden = atAscot();
   $("#main").innerHTML = SHEETS[id]();
-  $("#go").innerHTML = FOOTS[id] ? FOOTS[id]() : "";
+  // the sheet's tabs (The stud | Race planner, The programme | Race planner, Your string | Race planner) sit fixed above
+  // the scrolling page, never scrolled under or stuck to its top (owner, 18 Nov: "the race planner can't be clicked on
+  // from a lot of pages")
+  const tabs = $("#shTabs"), bar = [...$("#main").children].slice(0, 3).find(el => el.classList.contains("vtabs"));
+  tabs.innerHTML = ""; if (bar) tabs.appendChild(bar); tabs.hidden = !bar;
+  // and every sheet has a way on at its foot: a sheet with nothing of its own to do points to the step you're on
+  // (owner, 18 Nov: "from the jockey club you can't click on race planner so you get stuck")
+  const foot = FOOTS[id] ? FOOTS[id]() : "";
+  $("#go").innerHTML = foot.trim() ? foot : wayOn(id);
   $("#go").hidden = !$("#go").innerHTML.trim();
   footRoom();
   if (id === "races" && S.step >= 5) resultAfter(prizeWon());
@@ -265,6 +274,14 @@ function paintSheet(first) {
   if (UI.mareAnim && $(".mdeal .mflip")) requestAnimationFrame(mareDealAnim);
 }
 
+// the way on from a sheet that has no button of its own: to the place of the step you're on
+function wayOn(id) {
+  if (atAscot() || (id === "jockey" && !S.dealt)) return "";
+  const np = nextPlace(); if (!np || np === id) return "";
+  if (np === "races") return `<span class="f-info">Your next step: ${esc2(W.where)}</span>${goBtn("toRaces", W.go)}`;
+  const ch = CHAPTERS[phase()];
+  return `<span class="f-info">${ch && ch.title ? `Step ${ch.step} of 5 · ${esc2(ch.title)}` : "Your next step"}</span><button class="tb-btn" type="button" data-goplace="${np}">On to ${esc2(SHEET_TITLE[np] || np)} <span aria-hidden="true">›</span></button>`;
+}
 /* ----- the sheets' bodies ----- */
 const SHEETS = {
   jockey() {
@@ -277,7 +294,7 @@ const SHEETS = {
     if (tab === "entries" && !ENTRIES_OLD) tab = "plan";
     const bar = jockeyTabs(tab);
     if (tab === "entries" && canEnter) return bar + (ENTRIES_OLD ? entriesBody(entered()) : enBody());
-    if (tab === "plan") return bar + `<p class="tb-lede sh-lede">${canEnter && !ENTRIES_OLD ? "Everything for your runners in one place: develop, train and enter them By race or By horse, see the whole plan as a Grid, then book your jockeys." : typeof PLAN_OLD !== "undefined" && !PLAN_OLD ? "Flag the horse you plan to run in each race. A flag is only a plan: you enter your runners at entries." : "Map out which horse is for which race. A target is only a plan: it doesn't enter the horse. Drag a race onto a horse, or tap a race to see how every horse fits it."}</p>` + plannerView();
+    if (tab === "plan") return bar + `<p class="tb-lede sh-lede">${canEnter && !ENTRIES_OLD ? `Everything for your runners in one place: develop${isSimple() ? "" : ", train"} and enter them By race or By horse${typeof pnWide === "function" && pnWide() ? ", see the whole plan as a Grid" : ""}${typeof enJockeysOn === "function" && enJockeysOn() ? ", then book your jockeys" : ""}.` : typeof PLAN_OLD !== "undefined" && !PLAN_OLD ? "Flag the horse you plan to run in each race. A flag is only a plan: you enter your runners at entries." : "Map out which horse is for which race. A target is only a plan: it doesn't enter the horse. Drag a race onto a horse, or tap a race to see how every horse fits it."}</p>` + plannerView();
     return bar + programmeBody();
   },
   stud() {
@@ -322,13 +339,14 @@ const FOOTS = {
         : `<span class="f-info">Tap a stallion for <b>${esc2(m.name)}</b> · <button type="button" class="f-acct" data-accounts="1"><span data-budget>${money(S.budget)}</span> left</button></span>${goBtn("changeMare", "A different mare", { ghost: true })}`;
     }
     // while the dealt hand is on the table, the footer's way on is to the stallions
-    if (UI.mareShow) return `<span class="f-info">${studCount()} mares dealt · <button type="button" class="f-acct" data-accounts="1"><span data-budget>${money(S.budget)}</span> left</button></span><button class="tb-btn" type="button" data-mdone="1">To the stallions <span aria-hidden="true">›</span></button>`;
     return S.confirmSale
       ? `<span class="f-info"><b>Close the stud?</b> Once you go to Tattersalls you can't come back to breed.${S.hand.length ? ` Your ${S.hand.length} unused mare${S.hand.length === 1 ? "" : "s"} may turn up in the sale.` : ""}</span>${goBtn("saleNo", "Stay at the stud", { ghost: true })}${goBtn("saleYes", "Go to Tattersalls", { off: S.foal || S.offer })}`
-      : `<span class="f-info">${studCount()} mare${studCount() === 1 ? "" : "s"} · ${S.stable.length} horse${S.stable.length === 1 ? "" : "s"} · <button type="button" class="f-acct" data-accounts="1"><span data-budget>${money(S.budget)}</span> left</button></span>${goBtn("toSale", handDone() ? "Close the stud and go to the sales" : "Draw your mares first", { off: S.foal || S.offer || !handDone() })}`;  },
+      // mares still to breed: the way on is tapping one, so leaving for the sales is the quiet button (owner, 18 Nov)
+      : S.hand.length ? `<span class="f-info">${onJob() ? "<b>Tap a mare</b> to breed her · " : ""}${S.hand.length} mare${S.hand.length === 1 ? "" : "s"} still to breed · <button type="button" class="f-acct" data-accounts="1"><span data-budget>${money(S.budget)}</span> left</button></span>${goBtn("toSale", "Done breeding: to the sales", { ghost: true, off: S.foal || S.offer })}`
+      : `<span class="f-info ready">Every mare is covered · ${S.stable.length} horse${S.stable.length === 1 ? "" : "s"} · <button type="button" class="f-acct" data-accounts="1"><span data-budget>${money(S.budget)}</span> left</button></span>${goBtn("toSale", "On to Tattersalls", { off: S.foal || S.offer })}`;  },
   tatts() {
     // never a dead end: with no horse bought or bred you can still leave (and race nothing, or start again)
-    if (S.step === 2) return `<span class="f-info">${S.stable.length} horse${S.stable.length === 1 ? "" : "s"} in your string · <button type="button" class="f-acct" data-accounts="1"><span data-budget>${money(S.budget)}</span> left</button></span>${goBtn("toEnter", S.stable.length ? "Leave the sales: on to entries" : "Leave the sales without a horse", { off: S.foal })}`;
+    if (S.step === 2) return `<span class="f-info">${S.stable.length} horse${S.stable.length === 1 ? "" : "s"} in your string · <button type="button" class="f-acct" data-accounts="1"><span data-budget>${money(S.budget)}</span> left</button></span>${goBtn("toEnter", S.stable.length ? "Leave the sales: on to entries" : "Leave the sales without a horse", { off: S.foal, ghost: S.stable.length < RACES.length && S.view !== "plan" })}`;
     return "";
   },
   warren() {
@@ -713,7 +731,9 @@ function dailyState(play) {
   return "";
 }
 function playRandom() {
-  if (!isDaily()) return;
+  // already on the random game (a first visit opens on one): it still takes the way to play just chosen, if it hasn't
+  // got going yet (18 Nov: a first game chosen as Beginner was opening as Simple, ten races and the full budget)
+  if (!isDaily()) { takePlayPref(); save(); return; }
   const silks = S.silks, started = !!randomSave(); clearTable();
   // a saved random game that was never really started is put away for a fresh one, so it's the way to play chosen on the
   // cover (owner, 15 Nov night: Beginner chosen after a finished daily card, and the old unstarted game came back with
@@ -772,6 +792,7 @@ document.addEventListener("click", e => {
   if (d.guide) { BOARD.choose(d.guide); return; }
   if (d.step) { const s = STEPS.find(x => x.n === +d.step); if (s && !atAscot()) BOARD.choose(s.n === CHAPTERS[phase()].step ? nextPlace() : s.place); return; }
   if (d.jtab) { UI.tab.jockey = d.jtab; render(); sheetTop(); return; }
+  if (d.goplace) { const to = d.goplace; closeSheet({ quiet: true }); openSheet(to); return; }
   if (d.putback) { closeReveal(); if (putBack()) { UI.landed = null; toast("Put back. Choose a deck"); } render(); return; }
   if (d.revealok) { closeReveal(); render(); return; }
   if (d.autobook) { const n = autoBook(); toast(n ? `${n} ride${n === 1 ? "" : "s"} booked` : "No more rides to book"); render(); return; }
@@ -798,7 +819,6 @@ document.addEventListener("click", e => {
   if (d.trip) { S.trip = d.trip; save(); render(); return; }
   if (d.pile) { drawPile(d.pile); save(); render(); BOARD.Sound.whinny(); return; }
   if (d.cplay) { try { localStorage.setItem(PLAY_KEY, d.cplay); } catch (err) {} kpClose(); const f = UI.cpThen; UI.cpThen = null; if (f) f(); paintMenu(true); return; }
-  if (d.mdone) { UI.mareShow = false; UI.mareAnim = false; render(); sheetTop(); toast("Tap a mare, then a stallion, then Breed"); return; }
   if (d.mdraw) { const n = d.mdraw === "all" ? (dealHand(), null) : drawHandMare(d.mdraw); UI.mareDrew = n;
     if (n) { const m = byName(n); toast(`${m.name} (${m.stars}★) joins your stud`); }
     if (handDone()) setTimeout(() => toast("Your mares are in. Tap one to send her to a stallion"), n ? 1600 : 0);
@@ -845,7 +865,7 @@ document.addEventListener("click", e => {
     case "keep": keepFoal(($("#foalName") || {}).value); render(); break;
     case "closeDev": { const b = $("#devCard"); if (b) b.remove(); cardFrame = null; break; }
     case "changeMare": S.selMare = null; S.selStallion = null; save(); render(); sheetTop(); break;
-    case "vjob": case "vplan": S.view = t.id.slice(1); render(); break;
+    case "vjob": case "vplan": S.view = t.id.slice(1); render(); sheetTop(); break;
     case "dealSkip": skipDeal(); break;
     case "dealNext": closeDeal(); break;
     case "teamDone": if (teamOn()) { S.team.gone = true; UI.tab.jockey = null; save(); story("jockey", "stud", "breed"); } break;

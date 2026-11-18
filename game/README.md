@@ -951,3 +951,40 @@ chance of heavy and softer but still typically quicker or good; the July Cup the
   10%); the July Festival as Royal Ascot.
 - Games started before this keep their old going (`S.ground` unset); the daily card uses the new going from 17 Nov, so
   everyone on 16 Nov's card has the same ground.
+
+## Beginner fixes: the stud, the planner's way on, entries back (18 Nov 2026, branch `claude/beginner-fixes`)
+Owner, 18 Nov, from testers of Beginner: the mares page confusing (decks, no draw, a "to the stallions" button and then
+the mares appear); 5 mares, not 6, in Beginner; the race planner can't be reached or pressed from many pages, stuck at
+the Jockey Club and the auction; By horse not working. "All the buttons HAVE to work."
+- **Entries were broken for everyone since 16 Nov**: the York commit rebuilt `index.html` from a stale
+  `src/index.src.html`, which dropped `js/entries.js` (and the cover's Beginner switch). With it gone the Jockey Club's
+  Plan and enter view threw (`enBody is not defined`), so the Jockey Club drew nothing after the sales and By horse at
+  entries did nothing. Both are back in `src/index.src.html` and `index.html`; **`stage.py` now stops the build if a
+  published game script isn't loaded by the page, or the page loads one that isn't published.**
+- **A first game chosen as Beginner opened as Simple** (ten races, the full budget): `playRandom` returned early on the
+  random game a first visit opens on. It now takes the way to play just chosen.
+- **The stud** (`studView`, `deckStrip`, `flipWrap` in ui-parts.js): the hand is dealt from three small Weatherbys decks
+  straight into Your mares, flying in and turning over (after the key points close); each mare card is the button, with
+  **Breed her ›** on it. No "To the stallions" step (`UI.mareShow`, `dealView` and `data-mdone` are gone). The footer
+  says "Tap a mare to breed her"; leaving for the sales is the quiet button until every mare is covered ("On to
+  Tattersalls" then). Tattersalls' "Leave the sales" is the quiet button while you have fewer horses than races.
+- **Beginner's hand is 5 mares** (`HAND_BEGINNER` 2 Blue-blooded, 2 Useful, 1 Moderate; `handSize()`), and no extra
+  mare to buy. Simple and Plus keep 2-2-2 and the extra mare.
+- **Tabs out of the scroller**: the first tab bar in a sheet (The stud | Race planner, The sale ring | Race planner,
+  The programme | Race planner, Your string | Race planner) is moved by `paintSheet` into `#shTabs`, fixed between the
+  header and the scrolling page, so nothing scrolls under it and it is never a sticky bar inside a scroller (iPhone hit
+  tests sticky bars in scrollers badly).
+- **Every sheet has a way on** (`wayOn` in ui.js): a sheet with no footer of its own (the Jockey Club's planner during
+  the stud or the sales, Your Stables, Palace House mid-season) shows "Step N of 5 · …" and **On to <the place you're
+  at>** (`data-goplace`).
+- **No dead buttons**: a "Scroll down to read on" button now scrolls the panel on when tapped (it was disabled); the new
+  foal's pop-up has **Skip to his/her options** while the card is revealed, a tap anywhere but the name skips too, and
+  the hidden options can't be hit before they show.
+- **Fill empty races** develops horses where a race needs an older one (only horses not entered anywhere, your flagged
+  horse first, best rating next), so it works when every horse is still a 2-year-old.
+- Words: the stud's card on the map, the key points and How to play no longer talk about buying mares at the mares sale;
+  the entries line only mentions training, the Grid and jockeys where they exist.
+- Checked headless (Chrome, phone 390×844 with touch, iPad 820×1180, 1280×800): Beginner at Royal Ascot from the cover
+  to Palace House by taps (draw, deal, breed, foal, planner and back, sales, an auction, entries By race and By horse,
+  Fill, race week, sim, standings, home); Newmarket Beginner and Royal Ascot Simple studs. Every control on each screen
+  checked as pressable (nothing on top of it). Not checked on a real iPhone.

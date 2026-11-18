@@ -1909,3 +1909,30 @@ details.fold > summary > span{font-size:13px}
   .dl-day:not(.n1) .rcd-f b,.dl-day:not(.n1) .rcd-f .rcd-p b{font-size:13px}
   .dl-day:not(.n1) .rcd-n{min-height:44px}
 }
+
+/* ===== The stud, made simpler (18 Nov 2026; owner: "you have the decks but no draw pile.. you then click a button about
+   going to stallions and then they appear?.. this should be much simpler"): the hand is dealt from three small decks
+   straight into your mares, and each mare is the button to breed her ===== */
+.mdecks.sm{grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;max-width:560px;margin:4px 0 12px}
+.mdecks.sm .mdeck{grid-template-columns:auto minmax(0,1fr);align-items:center;justify-items:start;gap:9px;padding:2px 0;text-align:left}
+.mdecks.sm .mstack{width:40px;transition:none}
+.mdecks.sm .mback .wb,.mdecks.sm .mback .mt,.mdecks.sm .mback .ms{display:none}
+.mdecks.sm .mback{border-width:3px;padding:5px 4px}
+.mdecks.sm .mdeck b{font-size:14.5px;margin:0;display:block;line-height:1.15}
+.mdecks.sm .mdeck small{font-size:12px;display:block}
+@media (max-width:620px){ .mdecks.sm .mstack{width:30px}.mdecks.sm .mdeck{gap:6px}.mdecks.sm .mdeck b{font-size:12.5px}.mdecks.sm .mdeck small{font-size:11px} }
+.mh-do{margin:0 0 10px;font-size:15.5px;color:var(--tb-ink)}
+.hc-cta{display:block;margin:9px 0 0;padding:8px 6px;border-radius:8px;background:var(--tb-green);color:#fff;font-weight:700;font-size:14.5px;letter-spacing:.02em;text-align:center}
+.hc.m.on .hc-cta{background:var(--tb-gold);color:#2a210b}
+.mflip-b{pointer-events:none}
+.mdeal.waiting .mflip{visibility:hidden}
+/* the sheet's tabs, fixed between its header and its scrolling page (18 Nov 2026) */
+.sh-tabs{flex:none;position:relative;z-index:2;padding:0 28px;background:var(--tb-bg) var(--grain);border-bottom:1px solid #d7ccb4}
+.sh-tabs[hidden]{display:none}
+.sh-tabs > .vtabs{max-width:1110px;margin:6px auto 0;border-bottom:0}
+.sh-tabs > .vtabs.big{margin-top:0}
+@media (max-width:760px){ .sh-tabs{padding:0 12px} }
+/* the new foal: no hidden buttons to hit while its card turns over, and a clear Skip (18 Nov 2026) */
+.foal:not(.done) .fc-wait{pointer-events:none}
+.fc-skip{justify-self:center;margin:10px auto 0;display:block;min-height:40px;padding:8px 18px;border:1.5px solid var(--tb-green);border-radius:999px;background:#fff;color:var(--tb-green);font:inherit;font-weight:700;font-size:14.5px;cursor:pointer}
+.foal.done .fc-skip{display:none}

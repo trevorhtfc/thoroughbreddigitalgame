@@ -534,6 +534,7 @@ function pnFoal() {
       <div class="fc-kicker">${F.how === "bred" ? "Born at the stud" : "Knocked down to you at Tattersalls"}</div>
       <div class="fc-sex ${h.sex}">${h.sex === "F" ? "♀ FILLY" : "♂ COLT"}</div>
       <label class="fc-name"><span>Name</span><input id="foalName" value="${esc2(h.name)}" maxlength="18" autocomplete="off"></label>
+      <button type="button" class="fc-skip" data-fskip="1">Skip to ${p.p} options <span aria-hidden="true">›</span></button>
       <div class="fc-ped fc-wait">by <b>${esc2(h.sire)}</b> out of <b>${esc2(h.dam)}</b></div>
       <div class="fc-facts fc-wait"><span>Rated <b>${ratingAt(h, 2)}</b> as a 2YO</span><span>Best <b>${tripText(tripAt(h, 2))}</b></span><span>Likes <b>${h.grounds.join(", ")}</b></span><span>Runs <b>${STYLE_NAME[h.style]}</b>, ${h.temper}</span></div>
       <div class="fc-wait">${pnOutlook(h)}</div>

@@ -855,9 +855,13 @@ function keepOffer(name) {
 // don't want to breed from for half her pile's price, so a player who'd rather shop at Tattersalls can. Games saved
 // before the hand (S.mh.legacy) keep buying their mares.
 const HAND = { hi: 2, mid: 2, lo: 2 }, EXTRA_MARES = 1, SEND_BACK = 0.5;
+// Beginner (owner, 18 Nov: "you don't need 6 mares in the beginner mode.. should have 5"): 2 Blue-blooded, 2 Useful,
+// 1 Moderate, and no extra mare to buy (one hand, nothing more to work out)
+const HAND_BEGINNER = { hi: 2, mid: 2, lo: 1 };
+const handSize = () => isBeginner() ? HAND_BEGINNER : HAND;
 const mh = () => (S.mh = S.mh || { dealt: false, extra: 0, up: 0, sent: [] });
 const handOn = () => !(S.mh && S.mh.legacy);
-const extraLeft = () => handOn() ? EXTRA_MARES - (mh().extra || 0) : 99;
+const extraLeft = () => handOn() ? (isBeginner() ? 0 : EXTRA_MARES - (mh().extra || 0)) : 99;
 const pileOf = name => { const m = byName(name); return PILES.find(p => p.stars.includes(m.stars)); };
 const sendBackFor = name => Math.round(pileOf(name).price * SEND_BACK / 500) * 500;
 // Drawn like the board: tap a Weatherbys deck and its top mare is yours, two from each (owner, 14 Nov: "it would be
@@ -866,16 +870,16 @@ const handDrawn = id => ((mh().drawn || {})[id]) || 0;
 const handDone = () => !handOn() || !!mh().dealt;
 function drawHandMare(id) {
   if (!handOn() || mh().dealt || S.step !== 1) return null;
-  const p = PILES.find(x => x.id === id); if (!p || handDrawn(id) >= (HAND[id] || 0)) return null;
+  const p = PILES.find(x => x.id === id); if (!p || handDrawn(id) >= (handSize()[id] || 0)) return null;
   const top = pileOrder(p, "hand|" + p.id)[0], n = top && top.name; if (!n) return null;
   S.hand.push(n); mh().drawn = Object.assign({}, mh().drawn, { [id]: handDrawn(id) + 1 }); mh().hand = (mh().hand || []).concat(n);
-  if (PILES.every(q => handDrawn(q.id) >= (HAND[q.id] || 0) || !pileLeft(q).length)) mh().dealt = true;
+  if (PILES.every(q => handDrawn(q.id) >= (handSize()[q.id] || 0) || !pileLeft(q).length)) mh().dealt = true;
   save(); return n;
 }
 // the rest of the hand at once
 function dealHand() {
   if (!handOn() || mh().dealt || S.step !== 1) return false;
-  for (const p of PILES) while (handDrawn(p.id) < (HAND[p.id] || 0) && drawHandMare(p.id));
+  for (const p of PILES) while (handDrawn(p.id) < (handSize()[p.id] || 0) && drawHandMare(p.id));
   mh().dealt = true; save(); return true;
 }
 // (owner, 14 Nov evening: "the mares are still showing that you can return your mares" → no returns. Kept switched

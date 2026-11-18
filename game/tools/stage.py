@@ -19,6 +19,13 @@ def add(src, dst):
 # the game
 for f in ["index.html", "card.html", "css/components.css", "css/game.css", "js/meetings/royal-ascot.js", "js/meetings/newmarket.js", "js/meetings/york.js", "js/rules.js", "js/team.js", "js/accounts.js", "js/tumble.js", "js/board.js", "js/ui-parts.js", "js/ui-team.js", "js/ui.js", "js/ui-flow.js", "js/plan.js", "js/entries.js", "js/colours.js", "js/howto.js", "js/leaderboard.js", "js/life.js"]:
     add(game / f, f)
+# every game script published must be loaded by the page, and the other way round (18 Nov: js/entries.js fell out of
+# index.html on 16 Nov and the Jockey Club's entries stopped drawing)
+_page = (game / "index.html").read_text()
+_loaded = set(re.findall(r'<script[^>]+src="(js/[^"]+)"', _page))
+_listed = {d.relative_to(out).as_posix() for s_, d in take if d.suffix == ".js" and "/js/" in d.as_posix()}
+for _f in sorted(_listed - _loaded): raise SystemExit(f"index.html doesn't load {_f}")
+for _f in sorted(_loaded - _listed): raise SystemExit(f"index.html loads {_f}, which isn't published")
 # the Race Lab (lab.html): test the race engine on any course, distance, going, field and tactics
 for f in ["lab.html", "css/lab.css", "js/lab.js", "js/lab-worker.js"]:
     add(game / f, f)

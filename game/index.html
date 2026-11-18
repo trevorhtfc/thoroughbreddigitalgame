@@ -77,6 +77,7 @@
       <button class="sh-i" id="shInfo" type="button" hidden aria-label="Key points for this step" title="Key points for this step">i</button>
       <button class="sh-x" id="shClose" type="button"><svg viewBox="0 0 10 16" aria-hidden="true"><path d="M8.4 0 10 1.6 3.6 8 10 14.4 8.4 16l-8-8z"/></svg><span id="shCloseT">Back to the map</span></button>
     </header>
+    <nav class="sh-tabs" id="shTabs" hidden></nav>
     <div class="sh-body" id="shBody"><div class="wrap" id="main"></div></div>
     <footer class="sh-foot" id="go"></footer>
   </section>
@@ -103,7 +104,7 @@
       <!-- the two seasons (owner, 10 Nov): each has its own saved game, history, titles and (later) leaderboard -->
       <div class="menu-season" role="group" aria-label="Choose your season"><button data-season="royal-ascot">Royal Ascot<small>One week in June</small></button><button data-season="newmarket">Newmarket<small>Five meetings, April to October</small></button><button data-season="york">York<small>May and August</small></button></div>
       <!-- two ways to play (owner, 15 Nov): Simple leaves the team out; Plus has the owner, trainer and jockey cards -->
-      <div class="menu-season menu-play" role="group" aria-label="How to play"><button data-play="simple">Simple<small>Breed, buy and race</small></button><button data-play="plus">Plus<small>With your team of cards</small></button></div>
+      <div class="menu-season menu-play" role="group" aria-label="How to play"><button data-play="beginner">Beginner<small>5 races, half the budget</small></button><button data-play="simple">Simple<small>10 races: breed, buy and race</small></button><button data-play="plus">Plus<small>With your team of cards</small></button></div>
       <p class="menu-playnote" id="menuPlayNote" hidden></p>
       <div class="menu-k" id="menuKick">Newmarket · Royal Ascot · one season</div>
       <h1 class="menu-t" id="menuTitle"><span>Thoroughbred</span><b id="menuWord">Ascot</b></h1>
@@ -146,6 +147,7 @@
 <script src="js/ui.js"></script>
 <script src="js/ui-flow.js"></script><!-- horse rows, your team from anywhere, each step's key points (owner, 15 Nov) -->
 <script src="js/plan.js"></script><!-- the new race planner and every horse's options (owner, 15 Nov); ?planner=old brings back the old -->
+<script src="js/entries.js"></script><!-- develop, train and enter as one step, race by race (owner, 15 Nov evening; dropped by mistake on 16 Nov, back 18 Nov) -->
 <script src="js/colours.js"></script>
 <script src="js/howto.js"></script>
 <script src="js/leaderboard.js"></script>
