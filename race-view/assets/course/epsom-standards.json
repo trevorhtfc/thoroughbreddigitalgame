@@ -12,35 +12,35 @@
    "key": "e6f",
    "course": "round",
    "distance": 1207.0,
-   "seconds": 67.87,
+   "seconds": 67.82,
    "winningTime": 69.0
   },
   {
    "key": "e7f",
    "course": "round",
    "distance": 1408.2,
-   "seconds": 81.17,
+   "seconds": 81.14,
    "winningTime": 82.0
   },
   {
    "key": "e1m114y",
    "course": "round",
    "distance": 1713.6,
-   "seconds": 102.52,
+   "seconds": 102.49,
    "winningTime": 103.0
   },
   {
    "key": "e1m2f18y",
    "course": "round",
    "distance": 2028.1,
-   "seconds": 128.07,
+   "seconds": 128.05,
    "winningTime": 128.0
   },
   {
    "key": "e1m4f10y",
    "course": "round",
    "distance": 2423.2,
-   "seconds": 154.97,
+   "seconds": 154.92,
    "winningTime": 154.5
   }
  ],

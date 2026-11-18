@@ -1,0 +1,28 @@
+{
+ "_about": "Epsom's track middle lines measured by eye off the owner's Google Maps satellite screenshot (18 Nov 2026, 1170 x 2532 px, north up; the screenshot itself is not kept in the repo). Pixels, x right, y down. Read on a 50 px grid at 3x zoom; the track is the bright mown band, between the grey path on its inside and the public roads outside it. 'scale' (metres per pixel) and 'post' are fitted, not measured: see layout.py SAT_* for why.",
+ "source": "Google Maps satellite view, owner's screenshot IMG_1167.png",
+ "scale": 1.386,
+ "post": [500, 852.7],
+ "straightLine": {"through": [[490, 850], [890, 958]], "note": "the home straight's middle: straight, about 15 degrees south of east from the post"},
+ "routes": {
+  "round": [[60, 1163], [100, 1170], [150, 1172], [200, 1176], [250, 1183], [300, 1197], [350, 1215], [400, 1250], [450, 1287],
+            [500, 1320], [550, 1355], [600, 1380], [650, 1400], [700, 1418], [750, 1428], [800, 1432], [850, 1430], [900, 1422],
+            [950, 1393], [980, 1350], [1027, 1300], [1047, 1200], [1045, 1100], [1030, 1050], [997, 1010], [965, 985]],
+  "six": [[1000, 1462], [1010, 1380], [1027, 1300]],
+  "seven": [[850, 1512], [872, 1465], [895, 1432], [900, 1422]]
+ },
+ "features": {
+  "rightBend": "the Derby course bends right (east to east-south-east) between about x 250 and 450, then bears gently left to the south-east corner",
+  "sixChute": "a straight chute carrying the east leg on south from about (1027, 1300): light rails visible at x 1005-1010, y 1290-1450",
+  "sevenChute": "a short green wedge leaving the south-east corner's outside to the south-south-west, about (850-900, 1440-1500)",
+  "fiveFurlong": "the straight course runs on east-south-east past where Tattenham Corner meets it, across the public road at about x 1080 and off the screenshot's edge",
+  "insideRoad": "a tarmac road follows the inside of Tattenham Corner (seen in the video with crowds along it)"
+ },
+ "expect": {
+  "1m4f10y": [[225, 1180], "on the east-running stretch, just before the right-hand bend (as the diagram: the start, then right, then left)"],
+  "1m2f18y": [[470, 1300], "about the end of the right-hand bend"],
+  "1m114y": [[680, 1410], "the south arm's southernmost stretch (the diagram's high point of the top arm)"],
+  "7f": [[880, 1455], "at the mouth of the 7f chute"],
+  "6f": [[1015, 1350], "in the 6f chute, south of the fork"]
+ }
+}

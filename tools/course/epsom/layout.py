@@ -43,8 +43,14 @@ REPO = Path(__file__).resolve().parents[3]
 F = 201.168
 YD = 0.9144
 TRACE = json.loads((REPO / "reference/epsom/diagram-trace.json").read_text())
+SAT = json.loads((REPO / "reference/epsom/satellite-trace.json").read_text())
 
 # ---------------------------------------------------------------- the choices (change here)
+SOURCE = "satellite"    # where the shape comes from: "satellite" (the owner's Google Maps screenshot, 18 Nov morning: the
+                        # real shape) or "diagram" (At The Races' drawing, the first draft: its back stretch, the Derby
+                        # course's first mile, sat about 140 m too far north)
+EASE_SAT = 90.0         # the satellite trace's middle lines are averaged over this many metres (twice): its points are
+                        # read every 50 px (about 70 m), so this rounds the polygon off without cutting the bends
 TRACK_W = 26.0          # the game's track width (the diagram draws about 40 m)
 RUN_OUT = 100.0         # how far the routes carry on past the post (the diagram's straight runs about 165 m past it)
 EASE_M = 130.0          # each route's middle line is averaged over this many metres (twice): it turns the diagram's
@@ -109,34 +115,62 @@ def ease(p, k):
         q = np.stack([np.convolve(pad[:, 0], np.ones(k) / k, mode="valid"), np.convolve(pad[:, 1], np.ones(k) / k, mode="valid")], 1)
     return q
 
-# ---------------------------------------------------------------- the diagram's middle lines, eased; the scale
-POST_PX = px(TRACE["post"])
-NORTH_PX = px(TRACE["north"]); NORTH_PX /= np.hypot(*NORTH_PX)
-EAST_PX = np.array([NORTH_PX[1], -NORTH_PX[0]])           # east: north turned a right angle clockwise
-
-def mid_lines(scale):
-    k = int(EASE_M / scale) | 1
-    return {name: Line(ease(px([q for q in p if q[0] <= TRIM_X.get(name, 1e9)]), k)) for name, p in TRACE["routes"].items()}
-
-def tick_px(t): return px(np.mean(TRACE["ticks"][t], axis=0))
-
-def fitted_scale():
-    """metres per pixel: each start's labelled distance over its traced distance to the post (and their median)"""
-    sc = 2.55
-    for _ in range(3):                                      # the easing depends a little on the scale
-        M = mid_lines(sc)
-        each = {t: TRIPS[t] / (M[ROUTE[t]].project(POST_PX) - M[ROUTE[t]].project(tick_px(t))) for t in TRIPS}
-        sc = float(np.median(list(each.values())))
-    return sc, each
-
-SC_MEDIAN, SC_EACH = fitted_scale()
-SC = SC_EACH[SCALE_FROM]
-MID_PX = mid_lines(SC)
+# ---------------------------------------------------------------- the middle lines, eased; the scale
 def extended(p):
     d = p[0] - p[1]; d /= np.hypot(*d)
     return np.vstack([p[0] + d * EXTEND, p])
+
+def tick_px(t): return px(np.mean(TRACE["ticks"][t], axis=0))
+
+if SOURCE == "satellite":
+    # The owner's Google Maps screenshot (north up): the middle lines measured off it (satellite-trace.json). Its scale
+    # can't be read off the picture (no scale bar), so it is set by where the starts must fall (SAT["expect"]): with the
+    # post in front of the main stand, 1.386 m a pixel puts the Derby start on the east-running stretch just before the
+    # right-hand bend, the 1m2f18y at that bend's end, the 1m114y on the south arm's lowest stretch and the 6f and 7f
+    # in their chutes, all at once (the diagram's run of starts); the 5f start then falls beyond the public road, off
+    # the screenshot's edge (the diagram also carries the straight course well past the junction).
+    POST_PX = px(SAT["post"])
+    NORTH_PX, EAST_PX = np.array([0.0, 1.0]), np.array([1.0, 0.0])
+    SC = SC_MEDIAN = float(SAT["scale"]); SC_EACH = {}
+    (ax_, ay_), (bx_, by_) = SAT["straightLine"]["through"]
+    def on_straight(x): return [x, ay_ + (by_ - ay_) * (x - ax_) / (bx_ - ax_)]
+    _str = [on_straight(x) for x in np.arange(930, 379, -50.0)]
+    _r = SAT["routes"]["round"]
+    def _after(pt): return _r[_r.index(pt) + 1:]
+    SRC_ROUTES = {"straight": [on_straight(x) for x in np.arange(1330, 379, -50.0)],
+                  "six": SAT["routes"]["six"] + _after([1027, 1300]) + _str,
+                  "seven": SAT["routes"]["seven"] + _after([900, 1422]) + _str,
+                  "round": _r + _str}
+    k_ = int(EASE_SAT / SC) | 1
+    MID_PX = {k: Line(ease(px(v), k_)) for k, v in SRC_ROUTES.items()}
+    MARK_PX = {t: px(v[0]) for t, v in SAT["expect"].items()}
+    MARK_NOTE = {t: v[1] for t, v in SAT["expect"].items()}
+else:
+    POST_PX = px(TRACE["post"])
+    NORTH_PX = px(TRACE["north"]); NORTH_PX /= np.hypot(*NORTH_PX)
+    EAST_PX = np.array([NORTH_PX[1], -NORTH_PX[0]])       # east: north turned a right angle clockwise
+
+    def mid_lines(scale):
+        k = int(EASE_M / scale) | 1
+        return {name: Line(ease(px([q for q in p if q[0] <= TRIM_X.get(name, 1e9)]), k)) for name, p in TRACE["routes"].items()}
+
+    def fitted_scale():
+        """metres per pixel: each start's labelled distance over its traced distance to the post (and their median)"""
+        sc = 2.55
+        for _ in range(3):                                  # the easing depends a little on the scale
+            M = mid_lines(sc)
+            each = {t: TRIPS[t] / (M[ROUTE[t]].project(POST_PX) - M[ROUTE[t]].project(tick_px(t))) for t in TRIPS}
+            sc = float(np.median(list(each.values())))
+        return sc, each
+
+    SC_MEDIAN, SC_EACH = fitted_scale()
+    SC = SC_EACH[SCALE_FROM]
+    MID_PX = mid_lines(SC)
+    SRC_ROUTES = TRACE["routes"]
+    MARK_PX = {t: tick_px(t) for t in TRIPS}
+    MARK_NOTE = DIAGRAM
 MID = {k: Line(extended((v.p - POST_PX) * SC)) for k, v in MID_PX.items()}   # metres, a y-up frame, the post's middle line at 0
-TICK = {t: (tick_px(t) - POST_PX) * SC for t in TRIPS}
+TICK = {t: (MARK_PX[t] - POST_PX) * SC for t in MARK_PX}
 
 # ---------------------------------------------------------------- the rails: the middle line moved half a track to the left
 def rail_of(line):
@@ -250,15 +284,15 @@ def main():
         if dist > sp: raise SystemExit(f"{trip} ({dist:.0f} m) is beyond the {r} route ({sp:.0f} m)")
         p, t = L.at(sp - dist)
         mid_p = MID[r].at(MID[r].project(p))[0]
-        off = float(np.hypot(*(mid_p - TICK[trip])))
+        off = round(float(np.hypot(*(mid_p - TICK[trip]))), 1) if trip in TICK else None
         starts[trip] = {"distance": round(dist, 1), "route": r, "at": world(p), "running": world_dir(t),
                         "onStraight": r == "straight", "groundM": round(height(r, dist), 1),
-                        "diagram": DIAGRAM[trip], "fromDiagramMark": round(off, 1)}
+                        "expected": MARK_NOTE.get(trip, DIAGRAM[trip]), "fromExpected": off}
     samp_r = samples("round")
     checks = {
-        "metres per diagram pixel (used; from the %s)" % SCALE_FROM: round(SC, 3), "median of the starts' scales": round(SC_MEDIAN, 3),
-        "each start's own scale (m/px)": {t: round(v, 3) for t, v in SC_EACH.items()},
-        "each start's distance from its diagram mark, m": {t: s["fromDiagramMark"] for t, s in starts.items()},
+        "shape from": SOURCE, "metres per pixel": round(SC, 3),
+        "each start's own scale (diagram only, m/px)": {t: round(v, 3) for t, v in SC_EACH.items()},
+        "each start's distance from where it is expected, m": {t: s["fromExpected"] for t, s in starts.items()},
         "Tattenham Corner meets the straight course, m from the post (run-in from there)": JOIN_STRAIGHT,
         "6f chute joins the course, m from the post": MERGE["six"], "7f chute joins the course, m from the post": MERGE["seven"],
         "tightest radius on the round course, m (at m to go)": min_radius(samp_r, 0, 3000),
@@ -270,10 +304,11 @@ def main():
     poles = [{"furlongs": k, "at": world(STR.at(STR.project(POST) - k * F)[0])} for k in range(1, 6)]
     out = {
         "id": "epsom", "name": "Epsom Downs, draft",
-        "status": "DRAFT, phase 1 (the course plan), 18 Nov 2026: traced from At The Races' diagram; heights estimated. Swap in "
-                  "OpenStreetMap's outline and the real ground when they can be fetched.",
-        "_about": "Built by tools/course/epsom/layout.py from reference/epsom/diagram-trace.json (trace_diagram.py). Don't edit by "
-                  "hand: change the choices at the top of the script.",
+        "status": "DRAFT, phase 1 (the course plan), 18 Nov 2026: the shape measured off the owner's Google Maps screenshot "
+                  "(reference/epsom/satellite-trace.json; the first draft was traced from At The Races' diagram); heights estimated. "
+                  "Swap in OpenStreetMap's outline and the real ground when they can be fetched.",
+        "_about": "Built by tools/course/epsom/layout.py (SOURCE '%s'). Don't edit by hand: change the choices at the top of the "
+                  "script." % SOURCE,
         "axes": "As York: origin = winning post on the inside rail; y up. On the home straight the horses run towards -x. LEFT-handed: "
                 "the inside rail (z = 0) is on the horses' left, the track runs to z = -trackWidth on their right; on the home "
                 "straight the stands are beyond (z < -trackWidth, north) and the infield (the Hill) is +z.",
@@ -293,7 +328,7 @@ def main():
     (REPO / "courses/epsom-draft.json").write_text(json.dumps(out, separators=(",", ":")))
     print(json.dumps(checks, indent=1))
     for t, s in starts.items():
-        print(f"  {t:8s} {s['route']:8s} {s['distance']:7.1f} m  {s['fromDiagramMark']:5.1f} m from the mark  ground {s['groundM']:6.1f}")
+        print(f"  {t:8s} {s['route']:8s} {s['distance']:7.1f} m  {s['fromExpected']} m from where expected  ground {s['groundM']:6.1f}")
     for n, r in routes.items():
         print(f"  route {n:8s} {r['length']:7.1f} m  bends {r['bends']}")
     draw(out, profiles)
@@ -332,7 +367,7 @@ def draw(c, profiles):
         L = RAIL[s["route"]]; p, tt = L.at(L.project(POST) - s["distance"])
         a, b = en(p), en(p + np.array([tt[1], -tt[0]]) * TRACK_W)
         ax.plot([a[0], b[0]], [a[1], b[1]], color="white", lw=2.2, solid_capstyle="butt")
-        m = en(TICK[t]); ax.plot(*m, marker="x", ms=6, color="#d4a017", mew=1.6)
+        if t in TICK: m = en(TICK[t]); ax.plot(*m, marker="x", ms=6, color="#d4a017", mew=1.6)
         off = {"5f": (-6, -16), "6f": (10, -4), "7f": (8, 6), "1m114y": (-20, 10), "1m2f18y": (-10, -18), "1m4f10y": (-30, 12)}[t]
         ax.annotate(t, a, xytext=off, textcoords="offset points", fontsize=9, fontweight="bold", color=ROUTE_C[s["route"]],
                     bbox=dict(fc="white", ec="none", alpha=0.75, pad=0.6))
@@ -353,20 +388,23 @@ def draw(c, profiles):
     ax.annotate("N", (xl[1] - 60, yl[0] + 150), xytext=(xl[1] - 60, yl[0] + 60), ha="center", fontsize=10, fontweight="bold",
                 arrowprops=dict(arrowstyle="-|>", color=INK))
     ax.set_xticks([]); ax.set_yticks([])
-    ax.set_title("Epsom: course plan, DRAFT 18 Nov 2026 (north up)\nleft-handed; traced from At The Races' diagram, one scale "
-                 f"fitted ({SC:.2f} m per pixel); gold x = the diagram's start marks", fontsize=10, loc="left", color=INK)
-    # the diagram's own frame, for comparing with the picture he sent (north down, as At The Races draw it)
+    src = ("measured off the Google Maps screenshot (%.3f m per pixel)" % SC if SOURCE == "satellite"
+           else "traced from At The Races' diagram (%.2f m per pixel)" % SC)
+    ax.set_title("Epsom: course plan, DRAFT 18 Nov 2026 (north up)\nleft-handed; " + src + "; gold x = where each start is "
+                 "expected", fontsize=10, loc="left", color=INK)
+    # the trace in its own frame (the screenshot's pixels, north up; or the diagram's, north down)
     ax = axs[1]
-    for name, p in TRACE["routes"].items():
-        a = np.array(p, float); ax.plot(a[:, 0], -a[:, 1], color="#bbbbbb", lw=5, solid_capstyle="round")
+    for name, p in SRC_ROUTES.items():
+        a = px(p); ax.plot(a[:, 0], a[:, 1], color="#bbbbbb", lw=5, solid_capstyle="round", marker="o" if SOURCE == "satellite" else None, ms=3)
     for name, L in MID_PX.items():
         ax.plot(L.p[:, 0], L.p[:, 1], color=ROUTE_C[name], lw=1.2)
-    for t in TRIPS:
-        m = tick_px(t); ax.plot(*m, marker="x", ms=7, color="#d4a017", mew=1.8); ax.annotate(t, m, xytext=(4, 6), textcoords="offset points", fontsize=8)
+    for t, m in MARK_PX.items():
+        ax.plot(*m, marker="x", ms=7, color="#d4a017", mew=1.8); ax.annotate(t, m, xytext=(4, 6), textcoords="offset points", fontsize=8)
     ax.plot(*POST_PX, marker="o", ms=7, color=POSTC)
     ax.set_aspect("equal"); ax.set_xticks([]); ax.set_yticks([])
-    ax.set_title("The trace, in the diagram's own frame (north down): grey = the diagram's track thinned to its middle;\n"
-                 "colours = each route's middle line after easing", fontsize=10, loc="left", color=INK)
+    ax.set_title(("The trace in the screenshot's own pixels (north up): grey = the points measured, " if SOURCE == "satellite" else
+                  "The trace, in the diagram's own frame (north down): grey = the diagram's track thinned to its middle; ") +
+                 "\ncolours = each route's middle line after easing", fontsize=10, loc="left", color=INK)
     fig.tight_layout(); fig.savefig(REPO / "reference/epsom/plan-draft.png", facecolor="white"); plt.close(fig)
 
     # the ground under each route
