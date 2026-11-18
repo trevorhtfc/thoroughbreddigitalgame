@@ -293,6 +293,13 @@ def main():
     trees = [t for t in trees if not clear.contains(Point(t[0], t[1]))]
     boards = [b for b in boards if not stands_all.buffer(2.0).contains(Point(b[0], b[1]))]
     trees += side_trees
+    # (owner, 18 Nov 23:31: "festival tents all along this run out element of the track in amongst the trees")
+    _r = C["routes"]["straight"]
+    _rail = [(_r["d0"] + _r["spacing"] * i, p[0], p[1]) for i, p in enumerate(_r["insideRail"])]
+    _roads = unary_union([_LS(p).buffer(7.0) for p in PM.osm()["road"] if len(p) > 1])
+    _avoid = unary_union([stands_all.buffer(6.0), far_fest.buffer(4.0), lane, _roads]
+                         + [Polygon(q).buffer(2.0) for q in S.nogo if len(q) >= 3])
+    trees, note4["run-out festival"] = ST.runout_festival(S, turf, _rail, trees, sp, rnd, NM, _avoid)
     boards, trees, n_angled = ST.angled_adverts(S, turf, boards, trees)
     nb = len(boards)
     boards = [b for b in boards if not lane.buffer(-10.0).contains(Point(b[0], b[1]))]

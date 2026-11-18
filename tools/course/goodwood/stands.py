@@ -17,7 +17,7 @@ the stand camera moves onto the mast stand.
 import json, math, random
 from pathlib import Path
 import numpy as np
-from shapely.geometry import Polygon, Point, box
+from shapely.geometry import Polygon, Point, box, LineString
 from shapely.ops import unary_union, nearest_points
 from shapely.prepared import prep
 
@@ -227,3 +227,54 @@ def _north_edge(turf, x):
     hit = turf.intersection(LineString([(x, -400.0), (x, 400.0)]))
     zs = [c[1] for g in getattr(hit, "geoms", [hit]) for c in getattr(g, "coords", [])]
     return min(zs) if zs else 0.0
+
+
+def runout_festival(S, turf, rail, trees, sp, rnd, NM, avoid, d_from=-430.0, d_to=-95.0):
+    """Festival kit all along the run-out, in amongst its trees (owner, 18 Nov 23:31, of the run-out past the post: "we
+    should add festival tents all along this run out element of the track in amongst the trees"). Both sides of it,
+    16-30 m off the turf, faces to the track: marquees, kiosks, little open stands, pergolas, balloons and flags in a
+    loose run, each on its own patch of trodden ground with a few people round it. The trees standing where a piece
+    goes come out (3 m round it); the rest stay, so the kit sits among them.
+    rail: [(d, x, z)] the straight route's rail, d metres to go (negative past the post). avoid: nothing goes here."""
+    from shapely.affinity import rotate as _rot
+    pts = [(x, z) for d, x, z in rail if d_from <= d <= d_to]
+    corridor = LineString(pts).buffer(75.0)
+    ok = corridor.difference(turf.buffer(14.0)).difference(avoid)
+    cycle = [("marquee_peaks", 2), ("kiosk_awning", 1), ("pagoda_kiosk", 1), ("marquee_clearspan", 2), ("banner_flag", 0),
+             ("stand_open", 2), ("pergola_picnic", 1), ("balloon_pod", 1), ("kiosk_row_arched", 1), ("banner_flag", 0)]
+    placed, clear, k, people, new_trees = [], [], 0, 0, []
+    for off in (19.0, 27.0):
+        line = turf.buffer(off).exterior.intersection(corridor)
+        for l in [g for g in getattr(line, "geoms", [line]) if g.geom_type == "LineString"]:
+            s = rnd.uniform(0, 14)
+            while s < l.length:
+                piece, crowd = cycle[k % len(cycle)]
+                w, dd = NM.SP_SIZE[piece]
+                q = l.interpolate(s); a = l.interpolate(max(0.0, s - 2)); b = l.interpolate(min(l.length, s + 2))
+                tx, tz = b.x - a.x, b.y - a.y; n = math.hypot(tx, tz) or 1.0
+                # the front faces the turf: whichever normal points at it
+                nx_, nz_ = -tz / n, tx / n
+                if turf.distance(Point(q.x + nx_ * 3, q.y + nz_ * 3)) > turf.distance(Point(q.x - nx_ * 3, q.y - nz_ * 3)): nx_, nz_ = -nx_, -nz_
+                cx, cz = q.x - nx_ * dd / 2, q.y - nz_ * dd / 2            # (its front on the line, its body behind)
+                turn = math.degrees(math.atan2(nx_, nz_))
+                fp = _rot(box(cx - w / 2, cz - dd / 2, cx + w / 2, cz + dd / 2), -turn, origin=(cx, cz))
+                if ok.contains(fp) and all(fp.distance(p) > 5.0 for p in placed):
+                    sp(piece, cx, cz, turn, 0.6)
+                    placed.append(fp); clear.append(fp.buffer(3.0)); k += 1
+                    S.flat("#ddd3a8", list(fp.buffer(3.5, join_style=2).exterior.coords)[:-1], 0.028)
+                    for _ in range(crowd * 4):
+                        px, pz = q.x + nx_ * rnd.uniform(2, 7) + tx / n * rnd.uniform(-w / 2, w / 2), q.y + nz_ * rnd.uniform(2, 7) + tz / n * rnd.uniform(-w / 2, w / 2)
+                        if not S.blocked(px, pz) and turf.distance(Point(px, pz)) > 4.0:
+                            S.person(px, 0.0, pz, NM.face(nx_, nz_)); people += 1
+                    # a tree or two in the gap beyond it and behind it, so the run is among trees on both sides
+                    for _ in range(2):
+                        along = (w / 2 + rnd.uniform(3.0, 7.0)) * rnd.choice((-1, 1)); back = rnd.uniform(2.0, dd + 12.0)
+                        px, pz = q.x + tx / n * along - nx_ * back, q.y + tz / n * along - nz_ * back
+                        if ok.contains(Point(px, pz)): new_trees.append([round(px, 2), round(pz, 2), rnd.choice(("oak_a", "oak_b", "wide_a", "wide_b")), round(rnd.uniform(1.2, 1.7), 2), rnd.randrange(360), 1])
+                    s += w / 2 + rnd.uniform(6, 13)
+                else:
+                    s += 6.0
+    cu = unary_union(clear) if clear else None
+    kept = [t for t in trees if cu is None or not cu.contains(Point(t[0], t[1]))]
+    added = [t for t in new_trees if cu is None or not cu.contains(Point(t[0], t[1]))]
+    return kept + added, {"pieces": len(placed), "people": people, "trees taken out": len(trees) - len(kept), "trees added among them": len(added)}
