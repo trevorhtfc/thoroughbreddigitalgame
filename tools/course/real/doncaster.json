@@ -1,0 +1,280 @@
+{
+ "_about": "Doncaster for tools/course/real/layout.py. Ring 0 = OSM's outer edge of the turf (point numbers on reference/doncaster/plan-draft.png, lower panel). As at Newbury, OSM's turf (about 50 m wide) includes the jumps course on the inside, so the flat course's inside rail is taken 25 m in from the outer edge round the loop and 28 m in from the stands rail on the straight (the straight course is about 30 m wide). The round course comes off the far bend south of the straight course; its rail runs on diagonally into the run-in on the stands side (shared with the straight mile). The round mile's chute (the spur off the far bend) is narrow: there the inside rail is its own west edge.",
+ "name": "Doncaster",
+ "date": "18 Nov 2026",
+ "hand": -1,
+ "trackWidth": 26.0,
+ "runOut": 60.0,
+ "ease": 60,
+ "post": {
+  "route": "straight",
+  "x": -718,
+  "searchLast": 2000,
+  "note": "in front of the grandstand, just before the home bend (x metres east of lat 53.522 lon -1.094)"
+ },
+ "routes": {
+  "straight": {
+   "note": "the straight mile",
+   "pieces": [
+    {
+     "lead": 30
+    },
+    {
+     "ring": 0,
+     "from": 28,
+     "to": 17,
+     "offset": 28
+    }
+   ],
+   "arrows": [
+    1250
+   ]
+  },
+  "mile": {
+   "note": "the round mile, from the chute",
+   "pieces": [
+    {
+     "lead": 30
+    },
+    {
+     "ring": 0,
+     "from": 42,
+     "to": 44,
+     "offset": 0
+    },
+    {
+     "ring": 0,
+     "from": 39,
+     "to": 32,
+     "offset": 25
+    },
+    {
+     "ring": 0,
+     "from": 24,
+     "to": 16,
+     "offset": 28
+    }
+   ],
+   "arrows": [
+    1500
+   ]
+  },
+  "round": {
+   "note": "1m2f60y to 1m6f132y: round the home bend, the far side, the far bend",
+   "pieces": [
+    {
+     "lead": 20
+    },
+    {
+     "ring": 0,
+     "from": 19,
+     "to": 45,
+     "dir": -1,
+     "offset": 25
+    },
+    {
+     "ring": 0,
+     "from": 39,
+     "to": 32,
+     "offset": 25
+    },
+    {
+     "ring": 0,
+     "from": 24,
+     "to": 16,
+     "offset": 28
+    }
+   ],
+   "arrows": [
+    3000,
+    2300,
+    1700
+   ]
+  },
+  "loop": {
+   "note": "2m110y, 2m2f: from the home straight, once round",
+   "pieces": [
+    {
+     "lead": 30
+    },
+    {
+     "ring": 0,
+     "from": 24,
+     "to": 19,
+     "offset": 28
+    },
+    {
+     "ring": 0,
+     "from": 18,
+     "to": 45,
+     "dir": -1,
+     "offset": 25
+    },
+    {
+     "ring": 0,
+     "from": 39,
+     "to": 32,
+     "offset": 25
+    },
+    {
+     "ring": 0,
+     "from": 24,
+     "to": 16,
+     "offset": 28
+    }
+   ]
+  }
+ },
+ "starts": {
+  "5f": {
+   "route": "straight",
+   "expected": "the straight",
+   "label": [
+    -6,
+    10
+   ]
+  },
+  "5f140y": {
+   "route": "straight",
+   "expected": "the straight",
+   "label": [
+    -10,
+    -16
+   ]
+  },
+  "6f": {
+   "route": "straight",
+   "expected": "the straight",
+   "label": [
+    -6,
+    10
+   ]
+  },
+  "6f110y": {
+   "route": "straight",
+   "expected": "the straight",
+   "label": [
+    -10,
+    -16
+   ]
+  },
+  "7f": {
+   "route": "straight",
+   "expected": "the straight",
+   "label": [
+    -6,
+    10
+   ]
+  },
+  "1m": {
+   "route": "straight",
+   "expected": "the far end of the straight mile",
+   "label": [
+    -6,
+    10
+   ]
+  },
+  "1m (round)": {
+   "trip": "1m",
+   "route": "mile",
+   "expected": "the top of the chute off the far bend",
+   "label": [
+    10,
+    -4
+   ]
+  },
+  "1m2f60y": {
+   "route": "round",
+   "expected": "the far bend (the top of the course)",
+   "label": [
+    10,
+    -10
+   ]
+  },
+  "1m4f": {
+   "route": "round",
+   "expected": "the far side",
+   "label": [
+    -6,
+    -16
+   ]
+  },
+  "1m6f132y": {
+   "route": "round",
+   "expected": "the home bend, just past the post",
+   "label": [
+    -40,
+    -14
+   ]
+  },
+  "2m110y": {
+   "route": "loop",
+   "expected": "the home straight, a little before the post",
+   "label": [
+    -6,
+    10
+   ]
+  },
+  "2m2f": {
+   "route": "loop",
+   "expected": "the home straight, mid-way",
+   "label": [
+    -6,
+    10
+   ]
+  }
+ },
+ "routesNote": "straight: 5f to 1m, the straight mile. mile: 1m from the chute off the far bend. round: 1m2f60y to 1m6f132y, round the home bend, along the far side, round the far bend into the straight. loop: 2m110y and 2m2f, from the home straight, past the post, once round.",
+ "profilePanels": [
+  [
+   "straight",
+   [
+    "5f",
+    "5f140y",
+    "6f",
+    "6f110y",
+    "7f",
+    "1m"
+   ],
+   "The straight mile (5f to 1m)"
+  ],
+  [
+   "mile",
+   [
+    "1m (round)"
+   ],
+   "The round mile: up the chute, round the far bend, the straight"
+  ],
+  [
+   "round",
+   [
+    "1m2f60y",
+    "1m4f",
+    "1m6f132y"
+   ],
+   "The round course (1m2f60y to 1m6f132y)"
+  ],
+  [
+   "loop",
+   [
+    "2m110y",
+    "2m2f"
+   ],
+   "2m110y and 2m2f: the home straight, the home bend, once round"
+  ]
+ ],
+ "numberEvery": 1,
+ "legend": "upper left",
+ "demFix": [
+  {
+   "box": [
+    -900,
+    -420,
+    -420,
+    -190
+   ],
+   "above": 1.2,
+   "note": "a raised block in the terrain tiles round the home bend (up to 5 m, with straight, grid-aligned edges): taken to be a fault in the data, not real ground (Doncaster is flat there)"
+  }
+ ]
+}

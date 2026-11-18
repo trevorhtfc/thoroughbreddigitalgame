@@ -108,6 +108,17 @@ class Course:
         self.KX, self.KY = 111320.0 * math.cos(math.radians(self.lat0)), 110574.0
         self.rings = [np.array([self.en(q) for q in r["p"]]) for r in self.OSM["rings"]]
         self.DH = np.array(D["h_dm"], float) / 10.0
+        for fx in C.get("demFix", []):      # a patch of bad ground data: cells in the box more than 'above' m over the
+            x0, y0, x1, y1 = fx["box"]       # box's own median are dropped and filled in from their neighbours
+            i0, i1 = int((x0 - D["x0"]) // D["step"]), int((x1 - D["x0"]) // D["step"]) + 1
+            j0, j1 = int((y0 - D["y0"]) // D["step"]), int((y1 - D["y0"]) // D["step"]) + 1
+            sub = self.DH[j0:j1, i0:i1]; bad = sub > np.median(sub) + fx.get("above", 1.5)
+            H = self.DH.copy(); mask = np.zeros_like(H, bool); mask[j0:j1, i0:i1] = bad
+            H[mask] = np.median(sub[~bad])
+            for _ in range(400):
+                A = H.copy(); A[1:-1, 1:-1] = (H[:-2, 1:-1] + H[2:, 1:-1] + H[1:-1, :-2] + H[1:-1, 2:]) / 4
+                H[mask] = A[mask]
+            self.DH = H
         self.RAIL = {name: self.rail(spec) for name, spec in C["routes"].items()}
         post = C["post"]
         L = self.RAIL[post["route"]]
@@ -253,7 +264,7 @@ def main(cid):
             "length": float(ds[-1]),
         }
     for trip, st in C["starts"].items():
-        r = st["route"]; L = c.RAIL[r]; sp = c.post_s(r); dist = trip_m(trip)
+        r = st["route"]; L = c.RAIL[r]; sp = c.post_s(r); dist = trip_m(st.get("trip", trip))
         if dist > sp: raise SystemExit(f"{trip} ({dist:.0f} m) is beyond the {r} route ({sp:.0f} m)")
         p, t = L.at(sp - dist)
         mid = p + c.across(t) * c.W / 2
