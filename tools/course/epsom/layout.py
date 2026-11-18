@@ -44,11 +44,23 @@ F = 201.168
 YD = 0.9144
 TRACE = json.loads((REPO / "reference/epsom/diagram-trace.json").read_text())
 SAT = json.loads((REPO / "reference/epsom/satellite-trace.json").read_text())
+OSM = json.loads((REPO / "reference/epsom/osm-epsom.json").read_text())
+DEM = json.loads((REPO / "reference/epsom/dem-course-20m.json").read_text())
 
 # ---------------------------------------------------------------- the choices (change here)
-SOURCE = "satellite"    # where the shape comes from: "satellite" (the owner's Google Maps screenshot, 18 Nov morning: the
-                        # real shape) or "diagram" (At The Races' drawing, the first draft: its back stretch, the Derby
-                        # course's first mile, sat about 140 m too far north)
+SOURCE = "osm"          # where the shape comes from: "osm" (OpenStreetMap's outline of the turf and the AWS Terrain Tiles'
+                        # ground, fetched through the owner's built-in browser on 18 Nov at 09:50: the real thing);
+                        # "satellite" (measured off his Google Maps screenshot that morning); "diagram" (At The Races'
+                        # drawing, the first draft: its back stretch sat about 140 m too far north)
+POST_X = -200.0         # OSM only: the post on the straight's inside rail, metres east of lat 51.309 lon -0.253: opposite
+                        # the Queen's Stand's west end. It puts the Derby start 60 m in from the turf's western tip, the
+                        # 5f start 30 m in from the straight course's eastern end and the 6f and 7f starts 15-20 m in
+                        # from the ends of their chutes (printed by main())
+EASE_OSM = 60.0         # OSM only: each route's rail averaged over this many metres, so the joins where a route changes
+                        # from one edge of the turf to another (a chute's edge to the course's inside rail) become gentle
+                        # curves, not kinks (Goodwood's way)
+EXTEND_OSM = {"round": 60.0, "straight": 40.0, "six": 40.0, "seven": 40.0}   # each route's rail carried on straight beyond
+                        # OSM's end of the turf, for the stalls' room behind the furthest start
 EASE_SAT = 90.0         # the satellite trace's middle lines are averaged over this many metres (twice): its points are
                         # read every 50 px (about 70 m), so this rounds the polygon off without cutting the bends
 TRACK_W = 26.0          # the game's track width (the diagram draws about 40 m)
@@ -101,6 +113,17 @@ class Line:
         return self.p[i] + d * k, d / (np.hypot(*d) or 1)
     def project(self, q):
         return LineString(self.p).project(Point(q))
+
+def right_of(t): return np.array([t[1], -t[0]])            # the horses' right: across the track (left-handed)
+
+def chaikin(p, n):
+    p = np.array(p, float)
+    for _ in range(n):
+        q = [p[0]]
+        for a, b in zip(p[:-1], p[1:]):
+            q += [0.75 * a + 0.25 * b, 0.25 * a + 0.75 * b]
+        q.append(p[-1]); p = np.array(q)
+    return p
 
 def px(p):
     """diagram pixels (y down) to a y-up frame, still in pixels"""
@@ -180,10 +203,55 @@ def rail_of(line):
         pts.append(p + np.array([-t[1], t[0]]) * TRACK_W / 2)  # the horses' left (left-handed: the inside rail)
     return Line(pts)
 
-RAIL = {k: rail_of(v) for k, v in MID.items()}
-STR = RAIL["straight"]
-_p0, RUN = STR.at(STR.project(np.array([0.0, TRACK_W / 2])))
-POST = _p0                                                # the winning post, on the inside rail
+# ---------------------------------------------------------------- OSM: the rails are the turf's own edges
+LAT0, LON0 = DEM["lat0"], DEM["lon0"]
+KX, KY = 111320.0 * math.cos(math.radians(LAT0)), 110574.0
+def en_ll(ll): return np.array([(ll[1] - LON0) * KX, (ll[0] - LAT0) * KY])
+OUT = np.array([en_ll(q) for q in OSM["track"]])[:-1]        # the turf's one ring (indices as listed in osm-epsom.json):
+#   0-21 the inside rail from the western tip (behind the Derby start) east along the south arm and round the loop;
+#   21-34 the straight's inside edge west past the stands into the pull-up; 35-57 back east along the straight's outer edge
+#   to the straight course's eastern end; 58-60 its inside edge; 61-67 the loop's outer edge down into the 6f chute (its
+#   end 67-68); 68-69 the 6f chute's west edge; 69-74 the loop's outer edge into the 7f chute (end 74-76); 76-77 the 7f
+#   chute's west edge; 77-99 the south arm's outer edge back west.
+def seq(idx): return [OUT[i] for i in idx]
+def lead(pts, m):
+    """carry a rail on straight beyond its first point by m metres"""
+    d = pts[0] - pts[1]; d = d / np.hypot(*d); return [pts[0] + d * m] + list(pts)
+HOME = seq(range(21, 27))                                 # the straight's inside rail, from the loop west past the post
+OSM_RAW = {"round": lead(seq(range(0, 21)), EXTEND_OSM["round"]) + HOME,
+           "straight": lead(seq([58, 59, 60]), EXTEND_OSM["straight"]) + HOME,
+           "six": lead(seq([68, 69]), EXTEND_OSM["six"]) + seq(range(14, 21)) + HOME,
+           "seven": lead(seq([76, 77]), EXTEND_OSM["seven"]) + seq(range(11, 21)) + HOME}
+
+def osm_rail(pts):
+    p = chaikin(pts, 2)
+    L0 = Line(p); q = np.array([L0.at(t)[0] for t in np.arange(0, L0.L, 2.0)])
+    k = int(EASE_OSM / 2.0) | 1
+    pad = np.vstack([q[:1] - (q[1] - q[0]) * np.arange(k // 2, 0, -1)[:, None], q, q[-1:] + (q[-1] - q[-2]) * np.arange(1, k // 2 + 1)[:, None]])
+    q = np.stack([np.convolve(pad[:, 0], np.ones(k) / k, mode="valid"), np.convolve(pad[:, 1], np.ones(k) / k, mode="valid")], 1)
+    return Line(q)
+
+DH = np.array(DEM["h_dm"], float) / 10.0
+def ground(p):
+    """height (m above sea level) at east/north p, bilinear on the 20 m grid"""
+    fx, fy = (p[0] - DEM["x0"]) / DEM["step"], (p[1] - DEM["y0"]) / DEM["step"]
+    i = int(np.clip(math.floor(fx), 0, DEM["nx"] - 2)); j = int(np.clip(math.floor(fy), 0, DEM["ny"] - 2))
+    a, b = np.clip(fx - i, 0, 1), np.clip(fy - j, 0, 1)
+    return (DH[j, i] * (1 - a) + DH[j, i + 1] * a) * (1 - b) + (DH[j + 1, i] * (1 - a) + DH[j + 1, i + 1] * a) * b
+
+if SOURCE == "osm":
+    RAIL = {k: osm_rail(v) for k, v in OSM_RAW.items()}
+    NORTH_PX, EAST_PX = np.array([0.0, 1.0]), np.array([1.0, 0.0])
+    MID, TICK, MARK_NOTE = RAIL, {}, {}
+    STR = RAIL["straight"]
+    _s = min(np.arange(0, STR.L, 0.5), key=lambda t: abs(STR.at(t)[0][0] - POST_X))
+    POST, RUN = STR.at(_s)
+else:
+    RAIL = {k: rail_of(v) for k, v in MID.items()}
+    STR = RAIL["straight"]
+    _p0, RUN = STR.at(STR.project(np.array([0.0, TRACK_W / 2])))
+    POST = _p0                                            # the winning post, on the inside rail
+POST_GROUND = float(ground(POST + right_of(RUN) * TRACK_W / 2)) if SOURCE == "osm" else 0.0
 XH = -RUN                                                 # world x: against the running direction on the home straight
 ZH = np.array([-RUN[1], RUN[0]])                          # world z: the horses' left (the infield)
 def world(p):
@@ -209,6 +277,14 @@ def height(name, d):
     m = MERGE[name]
     if d <= m: return float(H_ROUND(d))
     return float(H_ROUND(m)) + CHUTE_RISE * (d - m)
+
+def dem_heights(samp):
+    """the real ground under the middle of the track every STEP m (against the post's), smoothed over about 40 m"""
+    pts = np.array([q[0] for q in samp])
+    run = -np.gradient(pts, axis=0); run /= np.linalg.norm(run, axis=1)[:, None]   # index order is against the running
+    h = np.array([ground(p + right_of(t) * TRACK_W / 2) for p, t in zip(pts, run)])
+    k = 9; h = np.convolve(np.pad(h, k // 2, mode="edge"), np.ones(k) / k, mode="valid")
+    return h - POST_GROUND
 
 def samples(name):
     """[(rail point, metres to go)] every STEP m, index 0 = the end of the run-out past the post (as York and Goodwood)"""
@@ -268,15 +344,17 @@ def main():
     for name in ["straight", "six", "seven", "round"]:
         samp = samples(name)
         ds = np.array([s[1] for s in samp])
-        h = np.array([height(name, d) for d in ds])
+        h = dem_heights(samp) if SOURCE == "osm" else np.array([height(name, d) for d in ds])
         profiles[name] = (ds, h)
         routes[name] = {
             "d0": float(ds[0]), "spacing": STEP,
             "insideRail": [world(s[0]) for s in samp],
             "bends": bends_of(samp),
             "heights": {"from": float(ds[0]), "spacing": STEP, "h": [round(float(v), 2) for v in h],
-                        "note": "ground height (m, against the post's) every 'spacing' metres to go from 'from', across the middle "
-                                "of the track: ESTIMATED from the course guides' descriptions, not measured"},
+                        "note": ("ground height (m, against the post's) every 'spacing' metres to go from 'from', across the middle "
+                                 "of the track, smoothed over about 40 m (AWS Terrain Tiles)") if SOURCE == "osm" else
+                                ("ground height (m, against the post's) every 'spacing' metres to go from 'from', across the middle "
+                                 "of the track: ESTIMATED from the course guides' descriptions, not measured")},
             "length": float(ds[-1]),
         }
     for trip, dist in TRIPS.items():
@@ -285,28 +363,31 @@ def main():
         p, t = L.at(sp - dist)
         mid_p = MID[r].at(MID[r].project(p))[0]
         off = round(float(np.hypot(*(mid_p - TICK[trip]))), 1) if trip in TICK else None
+        gm = (float(ground(p + right_of(t) * TRACK_W / 2)) - POST_GROUND) if SOURCE == "osm" else height(r, dist)
         starts[trip] = {"distance": round(dist, 1), "route": r, "at": world(p), "running": world_dir(t),
-                        "onStraight": r == "straight", "groundM": round(height(r, dist), 1),
+                        "onStraight": r == "straight", "groundM": round(gm, 1),
                         "expected": MARK_NOTE.get(trip, DIAGRAM[trip]), "fromExpected": off}
     samp_r = samples("round")
     checks = {
-        "shape from": SOURCE, "metres per pixel": round(SC, 3),
-        "each start's own scale (diagram only, m/px)": {t: round(v, 3) for t, v in SC_EACH.items()},
+        "shape from": SOURCE, "metres per pixel": None if SOURCE == "osm" else round(SC, 3),
+        "each start's own scale (diagram only, m/px)": {t: round(v, 3) for t, v in SC_EACH.items()} if SOURCE == "diagram" else {},
         "each start's distance from where it is expected, m": {t: s["fromExpected"] for t, s in starts.items()},
         "Tattenham Corner meets the straight course, m from the post (run-in from there)": JOIN_STRAIGHT,
         "6f chute joins the course, m from the post": MERGE["six"], "7f chute joins the course, m from the post": MERGE["seven"],
         "tightest radius on the round course, m (at m to go)": min_radius(samp_r, 0, 3000),
         "round course: bends": routes["round"]["bends"],
-        "round course: climb from the Derby start to the top, m": round(float(H_ROUND(1450) - H_ROUND(TRIPS["1m4f10y"])), 1),
-        "round course: fall from the top to the dip, m": round(float(H_ROUND(1450) - H_ROUND(200)), 1),
+        "round course: the ground, m against the post, every furlong from the Derby start": [round(float(np.interp(k * F, *profiles["round"])), 1) for k in range(12, -1, -1)],
     }
     north = world_dir(NORTH_PX)
     poles = [{"furlongs": k, "at": world(STR.at(STR.project(POST) - k * F)[0])} for k in range(1, 6)]
     out = {
         "id": "epsom", "name": "Epsom Downs, draft",
-        "status": "DRAFT, phase 1 (the course plan), 18 Nov 2026: the shape measured off the owner's Google Maps screenshot "
-                  "(reference/epsom/satellite-trace.json; the first draft was traced from At The Races' diagram); heights estimated. "
-                  "Swap in OpenStreetMap's outline and the real ground when they can be fetched.",
+        "status": "DRAFT, phase 1 (the course plan), 18 Nov 2026: the shape from %s." % {
+                      "osm": "OpenStreetMap's outline of the turf (reference/epsom/osm-epsom.json, (c) OpenStreetMap contributors, ODbL) "
+                             "and the real ground (reference/epsom/dem-course-20m.json, AWS Terrain Tiles)",
+                      "satellite": "the owner's Google Maps screenshot (reference/epsom/satellite-trace.json); heights estimated",
+                      "diagram": "At The Races' diagram (reference/epsom/diagram-trace.json); heights estimated"}[SOURCE],
+        "postGroundM": round(POST_GROUND, 1) if SOURCE == "osm" else None,
         "_about": "Built by tools/course/epsom/layout.py (SOURCE '%s'). Don't edit by hand: change the choices at the top of the "
                   "script." % SOURCE,
         "axes": "As York: origin = winning post on the inside rail; y up. On the home straight the horses run towards -x. LEFT-handed: "
@@ -380,7 +461,7 @@ def draw(c, profiles):
     for dd in [400, 1100, 1600, 2100]:
         p, t = L.at(sp - dd); a = en(p); b = en(p + t * 60)
         ax.annotate("", b, a, arrowprops=dict(arrowstyle="->", color=INK, lw=1.1))
-    tc = en(L.at(sp - 880)[0]); ax.annotate("Tattenham Corner", tc, xytext=(-110, -4), textcoords="offset points", fontsize=8.5, color=INK, style="italic")
+    tc = rot @ L.at(sp - 880)[0]; ax.annotate("Tattenham Corner", tc, xytext=(-110, -4), textcoords="offset points", fontsize=8.5, color=INK, style="italic")
     st = en(POST + np.array([0, -1.0]) * 90 * 0); ax.text(*(en(POST + np.array([-240.0, -70.0]))), "stands (north side)", fontsize=8.5, color=MUTED)
     ax.set_aspect("equal"); ax.autoscale_view(); ax.margins(0.08)
     xl, yl = ax.get_xlim(), ax.get_ylim()
@@ -388,12 +469,28 @@ def draw(c, profiles):
     ax.annotate("N", (xl[1] - 60, yl[0] + 150), xytext=(xl[1] - 60, yl[0] + 60), ha="center", fontsize=10, fontweight="bold",
                 arrowprops=dict(arrowstyle="-|>", color=INK))
     ax.set_xticks([]); ax.set_yticks([])
-    src = ("measured off the Google Maps screenshot (%.3f m per pixel)" % SC if SOURCE == "satellite"
-           else "traced from At The Races' diagram (%.2f m per pixel)" % SC)
+    src = {"osm": "OpenStreetMap's outline of the turf (map data (c) OpenStreetMap contributors)",
+           "satellite": "measured off the Google Maps screenshot (%.3f m per pixel)" % SC,
+           "diagram": "traced from At The Races' diagram (%.2f m per pixel)" % SC}[SOURCE]
     ax.set_title("Epsom: course plan, DRAFT 18 Nov 2026 (north up)\nleft-handed; " + src + "; gold x = where each start is "
                  "expected", fontsize=10, loc="left", color=INK)
     # the trace in its own frame (the screenshot's pixels, north up; or the diagram's, north down)
     ax = axs[1]
+    if SOURCE == "osm":
+        ring = np.vstack([OUT, OUT[:1]])
+        ax.fill(ring[:, 0], ring[:, 1], fc="#cfe3c2", ec="#2e5a22", lw=0.8)
+        for i, q in enumerate(OUT):
+            ax.plot(*q, marker="o", ms=2, color="#2e5a22"); ax.annotate(str(i), q, xytext=(2, 2), textcoords="offset points", fontsize=5.5, color=MUTED)
+        for name, L in RAIL.items():
+            ax.plot(L.p[:, 0], L.p[:, 1], color=ROUTE_C[name], lw=1.1)
+        for b in OSM["stands"]:
+            q = np.array([en_ll(x) for x in b["p"]]); ax.fill(q[:, 0], q[:, 1], fc="#f4efe6", ec="#8a7350", lw=0.6)
+        ax.plot(*POST, marker="o", ms=7, color=POSTC)
+        ax.set_aspect("equal"); ax.set_xticks([]); ax.set_yticks([])
+        ax.set_title("OpenStreetMap's turf (one ring, its points numbered) and each route's inside rail after easing;\n"
+                     "the stands from OSM (the Queen's Stand west, the Duchess's Stand east)", fontsize=10, loc="left", color=INK)
+        fig.tight_layout(); fig.savefig(REPO / "reference/epsom/plan-draft.png", facecolor="white"); plt.close(fig)
+        return draw_profiles(c, profiles)
     for name, p in SRC_ROUTES.items():
         a = px(p); ax.plot(a[:, 0], a[:, 1], color="#bbbbbb", lw=5, solid_capstyle="round", marker="o" if SOURCE == "satellite" else None, ms=3)
     for name, L in MID_PX.items():
@@ -406,7 +503,12 @@ def draw(c, profiles):
                   "The trace, in the diagram's own frame (north down): grey = the diagram's track thinned to its middle; ") +
                  "\ncolours = each route's middle line after easing", fontsize=10, loc="left", color=INK)
     fig.tight_layout(); fig.savefig(REPO / "reference/epsom/plan-draft.png", facecolor="white"); plt.close(fig)
+    draw_profiles(c, profiles)
 
+def draw_profiles(c, profiles):
+    import matplotlib
+    matplotlib.use("Agg")
+    import matplotlib.pyplot as plt
     # the ground under each route
     fig, axs = plt.subplots(3, 1, figsize=(12, 10), dpi=130)
     panels = [("round", ["1m114y", "1m2f18y", "1m4f10y"], "The Derby course (1m4f10y; 1m114y, 1m2f18y on it): up the hill, round and down Tattenham Corner, the straight"),
@@ -431,7 +533,8 @@ def draw(c, profiles):
         ax.set_ylim(h[m].min() - 4, h[m].max() + 5); ax.set_xlim(-top / F, 0.3)
         ax.set_ylabel("m against the post", fontsize=8); ax.tick_params(labelsize=7)
         ax.set_title(title, fontsize=9, loc="left")
-    axs[-1].set_xlabel("furlongs to go (grey bands: bends). Heights ESTIMATED from the course guides, not measured", fontsize=8)
+    axs[-1].set_xlabel("furlongs to go (grey bands: bends). " + ("Heights from the AWS Terrain Tiles (real ground)" if SOURCE == "osm" else
+                       "Heights ESTIMATED from the course guides, not measured"), fontsize=8)
     fig.tight_layout(); fig.savefig(REPO / "reference/epsom/profiles-draft.png", facecolor="white"); plt.close(fig)
 
 if __name__ == "__main__":

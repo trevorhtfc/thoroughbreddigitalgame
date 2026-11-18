@@ -69,12 +69,12 @@
   ],
   "bankMottle": 0.03,
   "note": "Ascot's lawn and turf colours (the bake's), so the two courses read as one game",
-  "farY": 11.62
+  "farY": 4.25
  },
  "lanesStraight": {
   "x": [
    0.0,
-   1290.0
+   1075.0
   ],
   "width": 26.0,
   "lanes": 7,
@@ -89,9 +89,9 @@
   "nearRadius": 420
  },
  "sun": [
-  -32.63,
+  -28.61,
   49.5,
-  99.8
+  101.03
  ],
  "light": {
   "_about": "As Ascot's (courses/ascot-view.json -> light), with this course's sun raised. The model look (owner's AI concept stills, 9 Nov 2026), matching the bake (tools/blender/bake_static_world.py LOOK=model) and the Blender study (stand_clean_study.py variant model, model_look_post.py): a bigger, gentler sun higher in the sky, a strong lilac-blue sky fill, a sky cream-peach at the horizon, lilac, then soft cornflower; pale lilac haze; a little brighter; lavender in the shadows; the crowd in navy, camel, mustard, cream, rust and teal with grey morning dress. sky: horizon, low and upper colours (linear); sunDir: from the field to the sun (course axes); hemi: sky colour, ground colour, strength; grade: saturation, sepia, hue (degrees), brightness, contrast (as the storybook grade); lift: tinted shadows. clouds: \"ring\" puts soft clouds all round the sky. trees: \"clay\" uses the clay trees (rounded clustered crowns on trunks). ?light=before shows the light before.",
@@ -119,9 +119,9 @@
   ],
   "sun": 3.4,
   "sunDir": [
-   -32.63,
+   -28.61,
    104.0,
-   99.8
+   101.03
   ],
   "hemi": [
    "#b9c0e2",

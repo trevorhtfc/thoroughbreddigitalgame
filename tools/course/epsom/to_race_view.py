@@ -40,6 +40,7 @@ STALL1, STALL_PITCH, STANDS_BEHIND = 1.625, 1.05, 1.55
 MAX_RUNNERS = 20                   # 26 m of track would take 22; the Derby's biggest fields are about 20 (Epsom's limit)
 GROUND_CELL = 20.0
 MARGIN = 420.0                     # the ground grid reaches this far beyond the routes
+EDGE_EASE = 160.0                  # the ground grid eases to one height over its outer 160 m (no far land yet)
 BEHIND = 40.0                      # each route's rail carries on this far behind its furthest start
 
 # Rough winning times of a good horse on good ground (from memory, to check against real results: the Epsom Dash about
@@ -71,6 +72,34 @@ def route_bits(route, W):
 
 
 def ground_grid(C, W):
+    """The ground as a grid (metres against the post). From the real ground (the AWS Terrain Tiles, as Goodwood) when the
+    plan is OpenStreetMap's; otherwise grown from the routes' estimated heights (dem_free_grid). At the grid's edges it eases
+    over EDGE_EASE metres to the edges' typical height, where the race view's flat far ground lies."""
+    if LY.SOURCE != "osm":
+        return dem_free_grid(C, W)
+    pts = np.array([p for r in C["routes"].values() for p in r["insideRail"]])
+    x0 = math.floor((pts[:, 0].min() - MARGIN) / GROUND_CELL) * GROUND_CELL
+    z0 = math.floor((pts[:, 1].min() - MARGIN) / GROUND_CELL) * GROUND_CELL
+    x1, z1 = pts[:, 0].max() + MARGIN, pts[:, 1].max() + MARGIN
+    nx, nz = int((x1 - x0) / GROUND_CELL) + 2, int((z1 - z0) / GROUND_CELL) + 2
+    gx, gz = np.meshgrid(x0 + GROUND_CELL * np.arange(nx), z0 + GROUND_CELL * np.arange(nz))
+    E = LY.POST[None, None, :] + gx[..., None] * LY.XH[None, None, :] + gz[..., None] * LY.ZH[None, None, :]
+    hh = np.vectorize(lambda e, n: LY.ground((e, n)))(E[..., 0], E[..., 1]) - LY.POST_GROUND
+    p = np.pad(hh, 1, mode="edge")
+    hh = sum(p[1 + a:1 + a + nz, 1 + b:1 + b + nx] for a in (-1, 0, 1) for b in (-1, 0, 1)) / 9.0
+    edge_h = float(np.median(np.concatenate([hh[0], hh[-1], hh[:, 0], hh[:, -1]])))
+    di = np.minimum(np.arange(nx), np.arange(nx)[::-1])[None, :] * GROUND_CELL
+    dj = np.minimum(np.arange(nz), np.arange(nz)[::-1])[:, None] * GROUND_CELL
+    w = np.clip(np.minimum(di, dj) / EDGE_EASE, 0, 1); w = w * w * (3 - 2 * w)
+    hh = hh * w + edge_h * (1 - w)
+    return {"x0": x0, "z0": z0, "cell": GROUND_CELL, "nx": nx, "nz": nz, "h": [round(float(v), 2) for v in hh.ravel()],
+            "farY": round(edge_h, 2),
+            "note": "Epsom's real ground (AWS Terrain Tiles, reference/epsom/dem-course-20m.json), metres against the post's (%.1f m "
+                    "above sea level), every 'cell' metres from (x0, z0), row by row along x; eased over its outer %d m to farY, the "
+                    "edges' typical height, where the flat far ground lies." % (LY.POST_GROUND, EDGE_EASE)}
+
+
+def dem_free_grid(C, W):
     """The ground as a grid (metres against the post), grown from the routes' heights: points down the middle of every
     route every 10 m, and across the home straight its camber (the inside rail CAMBER lower than the outer); a smooth
     surface through them (thin-plate spline), held within the routes' own range so it doesn't run away off the course."""
@@ -243,11 +272,35 @@ def main():
     view["ground"]["farY"] = ground["farY"]
     NM.write("epsom-view.json", view, 1)
 
-    # ---- scenery: the finish-line kit on the inside rail at the post, and the poles (the perimeter, the stands and the Hill
-    # come in the next phases)
+    # ---- scenery: the finish-line kit on the inside rail at the post, the poles, and the surroundings (phase 3:
+    # tools/course/epsom/perimeter.py); the stands come in phase 4
+    import random
     S = NM.Scene(17, ground)
-    scen = NM.scenery_file(S, [], [], [], ["site_props", "finish_line"], {"at": [0, GAP], "turn": 180}, poles)
+    rnd = random.Random(17)
+    spots = json.loads((REPO / "assets/models/architecture/site_props_spots.json").read_text())["pieces"]
+
+    def sp(piece, x, z, turn=180.0, people=0.85, sxf=1.0, sc=1.0):
+        """a site prop (marquee, kiosk, flag...), kept clear of the crowd, with its own people on its seats and steps"""
+        S.piece("site_props", piece, x, z, turn, sxf, sc)
+        w, dd = NM.SP_SIZE[piece]
+        ca_, sa_ = math.cos(math.radians(turn)), math.sin(math.radians(turn))
+        hw, hd = w / 2 * sxf * sc + 0.5, dd / 2 * sc + 0.5
+        S.nogo.append([(x + u * ca_ + v * sa_, z - u * sa_ + v * ca_) for u, v in ((-hw, -hd), (hw, -hd), (hw, hd), (-hw, hd))])
+        for kind in ("seats", "stand"):
+            for lx, ly, lz in spots.get(piece, {}).get(kind, []):
+                if rnd.random() < people:
+                    S.person(x + lx * ca_ - ly * sa_, lz, z - (lx * sa_ + ly * ca_), NM.face(math.sin(math.radians(turn)), math.cos(math.radians(turn))))
+    _ps = importlib.util.spec_from_file_location("epsom_perimeter", HERE / "perimeter.py")
+    PM = importlib.util.module_from_spec(_ps); _ps.loader.exec_module(PM)
+    grid_box = (ground["x0"], ground["z0"], ground["x0"] + ground["cell"] * (ground["nx"] - 1), ground["z0"] + ground["cell"] * (ground["nz"] - 1))
+    trees, boards, canopies, pnote = PM.perimeter(S, course, turf, grid_box, sp, rnd)
+    scen = NM.scenery_file(S, trees, boards, [], ["site_props", "finish_line"], {"at": [0, GAP], "turn": 180}, poles)
+    scen["canopies"] = canopies
+    scen["_about"] += (" canopies: the woods beyond the belts of trees, each a light mesh (v: x, y above the ground, z; i: triangles), "
+                       "drawn as a soft roof of leaves.")
     NM.write("epsom-scenery.json", scen)
+    print("   perimeter:", json.dumps(pnote))
+    print("  ", len(S.pieces), "pieces,", len(S.people) // 4, "people,", len(trees), "trees,", len(boards), "boards,", len(canopies), "canopies")
     hs = np.array(ground["h"])
     print("turf area %.0f m2, %d rail lines, %d starts; ground %d x %d, %.1f to %.1f m against the post" %
           (turf.area, len(rails), len(starts), ground["nx"], ground["nz"], hs.min(), hs.max()))
