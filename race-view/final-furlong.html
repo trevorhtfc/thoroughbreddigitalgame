@@ -341,7 +341,10 @@ body.pre .dock { display: none; }
   window.addEventListener("error", (e) => {
     if (e.target && e.target !== window && e.target.tagName !== "SCRIPT") return;        // an image or font: not fatal
     if (e.target && e.target.src && e.target.src.includes("es-module-shims")) return;     // the shim itself is optional
-    show("The course didn't start: " + (e.message || "a script failed to load") + ".");
+    // (a bare "Script error." is a script from another site whose error the browser hides from us, e.g. the Safari
+    // shim: not ours, and the course may well start regardless; if it doesn't, the 20 s note below says so)
+    if (e.target === window && /^Script error\.?$/.test(e.message || "") && !e.filename) { console.warn("a script from another site failed (hidden by the browser)"); return; }
+    show("The course didn't start: " + (e.message || "a script failed to load") + (e.filename ? " (" + e.filename.split("/").pop() + ":" + e.lineno + ")" : "") + ".");
   }, true);
   window.addEventListener("unhandledrejection", (e) => show("The course didn't start: " + ((e.reason && e.reason.message) || e.reason) + "."));
   setTimeout(() => {
@@ -353,7 +356,7 @@ body.pre .dock { display: none; }
 </script>
 <!-- import maps for older Safari (before 16.4): a standard shim that does nothing where they're supported -->
 <script src="silks-paint.js"></script><!-- paints a player's own colours for the 3D jockey -->
-<script async src="https://cdn.jsdelivr.net/npm/es-module-shims@1.10.0/dist/es-module-shims.js"></script>
+<script async crossorigin="anonymous" src="https://cdn.jsdelivr.net/npm/es-module-shims@1.10.0/dist/es-module-shims.js"></script>
 <script type="importmap">
 { "imports": {
   "three": "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js",
@@ -1789,7 +1792,7 @@ function placeScenery(SC, models, treeLib, belts) {
   // the woods beyond the belts of trees (Goodwood: tools/course/goodwood/perimeter.py): each a light mesh on the ground,
   // its edge at the foot and rising steeply to a lumpy roof of leaves, graded dark low down to light on top, in the
   // trees' own greens; lit as the trees are, so it reads as the far side of a wood whose near edge the belt makes
-  if (SC.canopies && SC.canopies.length) {
+  if (SC.canopies && SC.canopies.length) try {
     const pal = (UPLIFT && UPLIFT.leafPalette && UPLIFT.leafPalette()) || { leaf: ["#3f6c45", "#6b9d57", "#b6d187"], heart: "#2e5138" };
     const cs = [pal.heart, ...pal.leaf].map((h) => new THREE.Color(h));
     const geos = SC.canopies.map(({ v, i }) => {
@@ -1825,7 +1828,7 @@ function placeScenery(SC, models, treeLib, belts) {
     m.receiveShadow = true; m.userData.canopy = true;
     scene.add(m); LAYERS.trees.push(m);
     console.log("scenery:", SC.canopies.length, "canopies,", geo.index.count / 3, "triangles");
-  }
+  } catch (e) { console.warn("canopies skipped:", e); }
   // the boards (as the planting belts'), then the trees
   if (belts && SC.boards) placeBelts(belts, { boards: SC.boards, trees: [] }, null, false);
   if (treeLib && SC.trees) {
@@ -2875,7 +2878,7 @@ try {
   if (props) placeProps(props);
   if (world && bakeInfo) placeBaked(world, bakeInfo, dressing);
   if (SC) { buildPlainGround(VIEW.ground); placeScenery(SC, scModels || [], trees, belts); }
-  if (FARL) buildFarLand(FARL);
+  if (FARL) { try { buildFarLand(FARL); } catch (e) { console.warn("far land skipped:", e); } }
   if (belts && !SC) placeBelts(belts, planting, trees);
   if (trees && !SC) placeTrees(trees, dressing);
   if (VIEW.festival && VIEW.festival.bunting) buildBunting(VIEW.festival.bunting);
@@ -2942,7 +2945,7 @@ try {
   document.getElementById("loading").hidden = true;
 } catch (err) {
   console.error(err);
-  document.getElementById("loading").textContent = "The course didn't load. Refresh to try again.";
+  document.getElementById("loading").textContent = "The course didn't load (" + ((err && err.message) || err) + "). Refresh to try again. Browser: " + navigator.userAgent;
 }
 
 // ---------- Contact shadows under the horses ----------
