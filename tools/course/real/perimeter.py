@@ -148,7 +148,41 @@ def perimeter(S, C, turf, grid_box, rnd=None, opts=None):
         info, model = opts["standsInfo"], opts["standsModel"]
         zr = side * (W + 0.5)
         lawn_x = [1e9, -1e9]
-        for piece, x, back, dens in st["pieces"]:
+        aprons = []
+        for e in st["pieces"]:
+            if isinstance(e, dict):
+                # a piece placed by hand (owner's mark-up): 'at' a seed point and 'turn'; with 'toTurf' it is slid along the
+                # way it faces until the middle of its front is that far from the turf (the stand at the bend, turned to it)
+                piece, dens, turn = e["piece"], e.get("dens", 0.5), e.get("turn", 0.0)
+                gi = info[piece]; x, gz = e["at"]
+                if "toTurf" in e:
+                    fx, fz = math.sin(math.radians(turn)), math.cos(math.radians(turn))
+                    for _ in range(400):
+                        dd = turf.distance(Point(x, gz))
+                        if abs(dd - e["toTurf"]) < 0.3: break
+                        step = (dd - e["toTurf"]) * 0.5
+                        x, gz = x + fx * step, gz + fz * step
+                S.piece(model, piece, x, gz, turn)
+                S.stand_people(gi, x, gz, turn, 1.0, 1.0, dens)
+                S.footprint(gi, x, gz, turn)
+                note.setdefault("placed by hand", {})[piece] = [r2(x), r2(gz), turn]
+                # clear the ground between it and the turf (owner, 19:15: the tiered stand tucked into the bend, where the
+                # bend's belt trees would stand in front of it): no trees there, a paved apron to the rail
+                from shapely.affinity import translate as _tr
+                fx, fz = math.sin(math.radians(turn)), math.cos(math.radians(turn))
+                fp = Polygon(S.nogo[-1])
+                ahead = unary_union([fp, _tr(fp, fx * e.get("apron", 14.0), fz * e.get("apron", 14.0))]).convex_hull
+                clear = prep(ahead.buffer(6.0)); aprons.append(ahead.buffer(6.0))
+                wide = prep(unary_union([fp, _tr(fp, fx * 60.0, fz * 60.0)]).convex_hull.buffer(10.0))
+                nb = len(boards); boards[:] = [b for b in boards if not wide.contains(Point(b[0], b[1]))]
+                note["boards cleared for the hand-placed stands"] = note.get("boards cleared for the hand-placed stands", 0) + nb - len(boards)
+                n0 = len(trees); trees[:] = [t for t in trees if not clear.contains(Point(t[0], t[1]))]
+                note["trees cleared for the hand-placed stands"] = note.get("trees cleared for the hand-placed stands", 0) + n0 - len(trees)
+                apron = ahead.difference(fp).difference(turf.buffer(0.5))
+                for g in polys(apron):
+                    S.flat("#e4d8c2", [(r2(a), r2(b)) for a, b in g.exterior.coords[:-1]], 0.03)
+                continue
+            piece, x, back, dens = e
             gi = info[piece]
             gz = zr + side * (st.get("front", 17.0) + back)             # the stand's foot
             turn = 0.0 if side < 0 else 180.0
@@ -165,9 +199,125 @@ def perimeter(S, C, turf, grid_box, rnd=None, opts=None):
     else:
         LAWN_X = None
 
+    # ---- rows of trees behind the stands (owner's mark-up, 19:10: a line of trees drawn behind the stand side)
+    for row in opts.get("backTrees", []):
+        n = 0
+        for x in np.arange(row["x"][0], row["x"][1] + 0.1, row.get("every", 10.0)):
+            for k, zz in enumerate(row["z"]):
+                xx = x + (row.get("every", 10.0) / 2 if k % 2 else 0) + rnd.uniform(-1.5, 1.5)
+                if not S.blocked(xx, zz):
+                    tree(xx, zz + rnd.uniform(-1.5, 1.5), rnd.uniform(*row.get("scale", (1.25, 1.6))), belt=1); n += 1
+        note["trees behind the stands"] = note.get("trees behind the stands", 0) + n
+
+    # ---- trees filling the gaps round the stands (owner, 19:26: "fill the gaps with trees", either side of the stand at the
+    # bend): a region given in the course's file, less the turf, the stands, their aprons and the walk
+    for gt in opts.get("gapTrees", []):
+        g = Polygon(gt["poly"]).difference(turf.buffer(gt.get("offTurf", 12.0)))
+        for ap in (aprons if st else []): g = g.difference(ap)
+        n = 0
+        for gg in polys(g):
+            pg = prep(gg); a_, b_, c_, d_ = gg.bounds; sp_ = gt.get("every", 8.0)
+            for x in np.arange(a_, c_, sp_):
+                for z in np.arange(b_, d_, sp_):
+                    px, pz = x + rnd.uniform(-0.4, 0.4) * sp_, z + rnd.uniform(-0.4, 0.4) * sp_
+                    if pg.contains(Point(px, pz)) and not S.blocked(px, pz) and rnd.random() < gt.get("chance", 0.9):
+                        tree(px, pz, rnd.uniform(*gt.get("scale", (1.2, 1.6))), belt=1); n += 1
+        note["gap trees"] = note.get("gap trees", 0) + n
+
+    # ---- festival zones (owner's mark-up, 19:10: one in the infield along the run-in, one on the stand side up the
+    # course): the site props kit on trodden ground (marquees, big tops, balloon pods, little stands, kiosks, pergolas,
+    # picnic tables, flags), each with its own people, then a crowd through it
+    if opts.get("festivals"):
+        import json as _json
+        from pathlib import Path as _P
+        spots = _json.loads((_P(__file__).resolve().parents[3] / "assets/models/architecture/site_props_spots.json").read_text())["pieces"]
+        import sys as _sys
+        _sys.path.insert(0, str(_P(__file__).resolve().parents[1] / "newmarket"))
+        import to_race_view as _NM
+        placed = []
+        def sp(piece, x, z, turn, people=0.6, sc=1.0):
+            S.piece("site_props", piece, x, z, turn, 1.0, sc)
+            w, dd = _NM.SP_SIZE[piece]; ca_, sa_ = math.cos(math.radians(turn)), math.sin(math.radians(turn))
+            hw, hd = w / 2 * sc + 0.5, dd / 2 * sc + 0.5
+            S.nogo.append([(x + u * ca_ + v * sa_, z - u * sa_ + v * ca_) for u, v in ((-hw, -hd), (hw, -hd), (hw, hd), (-hw, hd))])
+            for kind in ("seats", "stand"):
+                for lx, ly, lz in spots.get(piece, {}).get(kind, []):
+                    if rnd.random() < people:
+                        lx, ly, lz = lx * sc, ly * sc, lz * sc
+                        S.person(x + lx * ca_ - ly * sa_, lz, z - (lx * sa_ + ly * ca_), round(rnd.uniform(-3.14, 3.14), 2))
+        KIT = {"infield": [("marquee_peaks", 2.5, 13.0), ("big_top", 0.8, 11.0), ("marquee_clearspan", 1.5, 11.0), ("balloon_pod", 1.2, 4.0),
+                           ("stand_open", 1.0, 8.5), ("stand_covered", 0.8, 7.0), ("kiosk_awning", 3.0, 3.5), ("pagoda_kiosk", 2.5, 3.0),
+                           ("pergola_picnic", 2.0, 5.0), ("picnic_table", 6.0, 1.5), ("banner_flag", 6.0, 1.0), ("terrace_deck", 1.0, 6.0)],
+               "standside": [("marquee_peaks", 3.0, 13.0), ("marquee_clearspan", 2.0, 11.0), ("pergola_picnic", 2.0, 5.0), ("terrace_deck", 1.5, 6.0),
+                             ("kiosk_row_arched", 1.2, 6.0), ("pagoda_kiosk", 2.0, 3.0), ("picnic_table", 6.0, 1.5), ("flagpole", 4.0, 1.0),
+                             ("planter_long", 4.0, 2.5)]}
+        for fz_ in opts["festivals"]:
+            g = Polygon(fz_["poly"]).buffer(0)
+            g = g.difference(turf.buffer(fz_.get("offTurf", 10.0)))
+            for b in boards:
+                if b[4] > 1.5: g = g.difference(Point(b[0], b[1]).buffer(8.0))
+            res = {"pieces": 0, "people": 0}
+            raw = Polygon(fz_["poly"]).buffer(0)
+            # the crowd on the rail along the zone's track side (owner, 19:26: "add more crowd to the rail")
+            rc = fz_.get("railCrowd")
+            if rc:
+                strip = raw.intersection(turf.buffer(rc.get("to", 7.0))).difference(turf.buffer(rc.get("from", 1.5)))
+                a_, b_, c_, d_ = strip.bounds if not strip.is_empty else (0, 0, 0, 0)
+                ps = prep(strip); n = 0
+                for x, z in S.spots(a_, c_, b_, d_, rc.get("dens", 0.6)):
+                    if ps.contains(Point(x, z)) and not S.blocked(x, z):
+                        S.person(x, 0.0, z, round(face_turf(x, z) * math.pi / 180.0 + math.pi + rnd.uniform(-0.5, 0.5), 2)); n += 1
+                res["rail crowd"] = n
+            # balloon pods in rows of five along the track edge (owner, 19:26)
+            br = fz_.get("balloonRows")
+            if br:
+                from shapely.geometry import LineString as _LS
+                xa_, _, xb_, _ = g.bounds; nrow = 0
+                for xc in np.arange(xa_ + br.get("start", 40.0), xb_ - br.get("end", 40.0) + 0.1, br.get("every", 120.0)):
+                    row = []
+                    for k in range(br.get("n", 5)):
+                        x = xc + (k - (br.get("n", 5) - 1) / 2) * br.get("gap", 10.0)
+                        cut = g.intersection(_LS([(x, -2000.0), (x, 2000.0)]))
+                        if cut.is_empty: break
+                        zs = [c[1] for gm in getattr(cut, "geoms", [cut]) for c in gm.coords]
+                        z0 = min(zs, key=lambda zz: turf.distance(Point(x, zz)))
+                        z = z0 + (1 if raw.contains(Point(x, z0 + 1)) else -1) * br.get("in", 6.0)
+                        if not g.contains(Point(x, z)): break
+                        row.append((x, z))
+                    if len(row) == br.get("n", 5):
+                        for x, z in row:
+                            sp("balloon_pod", x, z, rnd.uniform(0, 360), 0.6); placed.append((x, z, 4.0)); res["pieces"] += 1
+                        nrow += 1
+                res["balloon rows"] = nrow
+            for gg in polys(g):
+                if gg.area < 800: continue
+                S.flat("#d8d0a2", list(gg.simplify(1.0).exterior.coords)[:-1], 0.028)
+                x0_, z0_, x1_, z1_ = gg.bounds; per = gg.area / 10000.0
+                def ok(x, z, r):
+                    return gg.buffer(-r).contains(Point(x, z)) and all(math.hypot(x - a, z - b) > r + rb + 3 for a, b, rb in placed) and not S.blocked(x, z)
+                face_track = 0.0 if side < 0 else 180.0                  # the stand side's props face the track
+                for piece, c, r in KIT[fz_.get("kit", "infield")]:
+                    if piece == "balloon_pod" and fz_.get("balloonRows"): continue
+                    for _ in range(max(1, int(round(c * per)))):
+                        for _try in range(300):
+                            x, z = rnd.uniform(x0_, x1_), rnd.uniform(z0_, z1_)
+                            if ok(x, z, r):
+                                sc = rnd.uniform(0.9, 1.2) if piece in ("marquee_peaks", "marquee_clearspan", "big_top") else 1.0
+                                if piece in ("big_top", "balloon_pod"): turn = rnd.uniform(0, 360)
+                                elif fz_.get("kit") == "standside": turn = face_track + rnd.choice([0, 0, 0, 90, -90])
+                                else: turn = (180.0 if side < 0 else 0.0) + rnd.choice([0, 0, 0, 90, -90])   # the infield's face the stands
+                                sp(piece, x, z, turn, 0.6, sc); placed.append((x, z, r * sc)); res["pieces"] += 1; break
+                for _ in range(int(gg.area * fz_.get("dens", 0.035))):
+                    x, z = rnd.uniform(x0_, x1_), rnd.uniform(z0_, z1_)
+                    if gg.contains(Point(x, z)) and not S.blocked(x, z):
+                        S.person(x, 0.0, z, round(rnd.uniform(-3.14, 3.14), 2)); res["people"] += 1
+                res["area m2"] = res.get("area m2", 0) + round(gg.area)
+            note.setdefault("festivals", {})[fz_.get("name", "festival")] = res
+
     # ---- the rail lawn's crowd in front of the stand plot
     p0 = len(S.people)
     a, b, xa, xb, dens = LAWN
+    dens = opts.get("lawnDens", dens)
     if LAWN_X: xa, xb = LAWN_X
     z_a, z_b = side * (W + 0.5 + a), side * (W + 0.5 + b)
     for x, z in S.spots(xa, xb, min(z_a, z_b), max(z_a, z_b), dens):

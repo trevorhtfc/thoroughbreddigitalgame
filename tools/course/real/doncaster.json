@@ -442,54 +442,206 @@
   }
  },
  "perimeter": {
-  "infieldBoards": false
+  "infieldBoards": false,
+  "backTrees": [
+   {
+    "x": [
+     -165,
+     296
+    ],
+    "z": [
+     -115,
+     -126
+    ],
+    "every": 10.0,
+    "note": "his row of green circles behind the stands"
+   }
+  ],
+  "festivals": [
+   {
+    "name": "run-in infield",
+    "kit": "infield",
+    "poly": [
+     [
+      -76,
+      22
+     ],
+     [
+      -58,
+      2
+     ],
+     [
+      0,
+      2
+     ],
+     [
+      150,
+      1
+     ],
+     [
+      304,
+      1
+     ],
+     [
+      304,
+      90
+     ],
+     [
+      260,
+      105
+     ],
+     [
+      -40,
+      105
+     ],
+     [
+      -76,
+      80
+     ]
+    ],
+    "offTurf": 10.0,
+    "dens": 0.035,
+    "railCrowd": {
+     "from": 1.5,
+     "to": 7.0,
+     "dens": 0.6
+    },
+    "balloonRows": {
+     "n": 5,
+     "gap": 10,
+     "every": 130,
+     "in": 5,
+     "start": 50,
+     "end": 30
+    }
+   },
+   {
+    "name": "stand side, up the course",
+    "kit": "standside",
+    "poly": [
+     [
+      294,
+      -30
+     ],
+     [
+      461,
+      -30
+     ],
+     [
+      461,
+      -90
+     ],
+     [
+      294,
+      -90
+     ]
+    ],
+    "offTurf": 4.0,
+    "dens": 0.04,
+    "railCrowd": {
+     "from": 1.5,
+     "to": 7.0,
+     "dens": 0.6
+    }
+   }
+  ],
+  "gapTrees": [
+   {
+    "note": "owner, 19:26: fill the gaps either side of the stand at the bend",
+    "poly": [
+     [
+      -200,
+      -112
+     ],
+     [
+      -87,
+      -112
+     ],
+     [
+      -87,
+      -46
+     ],
+     [
+      -104,
+      -30
+     ],
+     [
+      -150,
+      0
+     ],
+     [
+      -200,
+      0
+     ]
+    ],
+    "offTurf": 12,
+    "every": 8,
+    "chance": 0.9
+   }
+  ],
+  "lawnDens": 0.6
  },
  "stands": {
-  "_about": "Owner, 18 Nov 18:00, with old photos of Doncaster (a clock tower beside a long colonnaded stand with its roof terrace packed, 1920s; long low pitched-roof stands down the straight, 1930s; a 1960s cantilever stand with the little hipped-roof pavilion and cupola beside it): 'Use our kit of grandstand parts to create the right vibe'. From the post past the bend to up the course: the ring pavilion (the photo's little pavilion), York's north stand (the modern cantilever stand at the post), York's clock tower, two roof-terrace stands (the colonnaded stand with its packed roof terrace), the Rowley Mile's Victorian stand (the long low stand with the dormer roof), the July Course's old pavilion. [piece, x of its origin (m up the course from the post), set back (m beyond the front line), crowd density]",
+  "_about": "Owner, 18 Nov 18:00, with old photos of Doncaster (a clock tower beside a long colonnaded stand with its roof terrace packed, 1920s; long low pitched-roof stands down the straight, 1930s; a 1960s cantilever stand with the little hipped-roof pavilion and cupola beside it): 'Use our kit of grandstand parts to create the right vibe'. From the post past the bend to up the course: the ring pavilion (the photo's little pavilion), York's north stand (the modern cantilever stand at the post), York's clock tower, two roof-terrace stands (the colonnaded stand with its packed roof terrace), the Rowley Mile's Victorian stand (the long low stand with the dormer roof), the July Course's old pavilion. [piece, x of its origin (m up the course from the post), set back (m beyond the front line), crowd density] Owner's mark-up, 19:10 (on reference/doncaster/stand-side-plan.png and the Park kit's stand-side elevation): '1' the tiered stand, turned to the bend past the post; '2' four modules in a row, the balcony stand, a roof-terrace stand, the pitched-roof stand and another roof-terrace stand, in place of York's north stand, the clock tower and the two roof-terrace stands; the pavilion he crossed out not used; 'add a clock tower to one of the balcony stands' (York's clock tower's tower, without its base, on the balcony stand's roof).",
   "front": 17.0,
   "pieces": [
+   {
+    "piece": "park_tiered_stand",
+    "at": [
+     -106.2,
+     -33.8
+    ],
+    "turn": 45.0,
+    "dens": 0.85,
+    "note": "his '2' (19:15 mark-up), moved in beside the balcony stand (19:26): at the top of the bend, turned to the run-in"
+   },
    [
-    "ring_pavilion",
-    -112,
-    14,
-    0.4
-   ],
-   [
-    "york_stand_north",
-    -48,
+    "park_balcony_stand_clock",
+    -66.2,
     0,
-    0.55
-   ],
-   [
-    "york_clock_tower",
-    -4.5,
-    8,
-    0.35
+    0.85
    ],
    [
     "park_roof_terrace_stand",
-    31,
+    -25.6,
     0,
-    0.6
+    0.85
+   ],
+   [
+    "park_gable_stand",
+    23.2,
+    0,
+    0.85
    ],
    [
     "park_roof_terrace_stand",
-    70.6,
+    72.0,
     0,
-    0.6
+    0.85
    ],
    [
     "victorian_stand",
     158,
     0,
-    0.5
-   ],
-   [
-    "old_pavilion",
-    268,
-    3,
-    0.5
+    0.85
    ]
-  ]
+  ],
+  "composites": {
+   "park_balcony_stand_clock": {
+    "base": "park_balcony_stand",
+    "add": [
+     {
+      "piece": "york_clock_tower",
+      "above": 5.9,
+      "scale": 0.85,
+      "at": [
+       0.0,
+       16.9,
+       -14.175
+      ]
+     }
+    ]
+   }
+  }
  }
 }
