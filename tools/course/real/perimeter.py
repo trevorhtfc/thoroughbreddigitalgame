@@ -157,7 +157,10 @@ def perimeter(S, C, turf, grid_box, rnd=None, opts=None):
         for grp in st.get("level", []):
             hs = []
             for i in grp:
-                e = st["pieces"][i]; gi = info[e[0]]; gz = zr + side * (st.get("front", 17.0) + e[2])
+                e = st["pieces"][i]
+                if isinstance(e, dict):                      # a hand-placed piece: the ground at its origin
+                    hs.append(S.G(*e["at"])); continue
+                gi = info[e[0]]; gz = zr + side * (st.get("front", 17.0) + e[2])
                 hw = gi["width"] / 2; ox = e[1] + gi.get("offset", 0.0)
                 hs += [S.G(xx, gz) for xx in np.linspace(ox - hw, ox + hw, 9)]
             lv = (max(hs) + min(hs)) / 2
@@ -176,8 +179,8 @@ def perimeter(S, C, turf, grid_box, rnd=None, opts=None):
                         if abs(dd - e["toTurf"]) < 0.3: break
                         step = (dd - e["toTurf"]) * 0.5
                         x, gz = x + fx * step, gz + fz * step
-                S.piece(model, piece, x, gz, turn)
-                S.stand_people(gi, x, gz, turn, 1.0, 1.0, dens)
+                S.piece(model, piece, x, gz, turn, y=LEVEL.get(ei))
+                S.stand_people(gi, x, gz, turn, 1.0, 1.0, dens, g=LEVEL.get(ei))
                 S.footprint(gi, x, gz, turn)
                 note.setdefault("placed by hand", []).append([piece, r2(x), r2(gz), turn, "turf gap", r2(turf.distance(Polygon(S.nogo[-1])))])
                 if st.get("walkUnderHandPlaced"):           # the paved walk and the rail lawn run along these too (Newbury)

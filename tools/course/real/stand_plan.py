@@ -32,6 +32,9 @@ NAMES = {"ring_pavilion": "Ring pavilion (Rowley Mile)", "york_stand_north": "No
          "module_grand_pavilion_postcard": "Grand pavilion (Ascot module, crib 35) with the postcard's pavilion block and flagpole",
          "rowley_stand_postcard": "Rowley stand (crib 26) with the postcard's lookout",
          "module_grand_pavilion_c": "Grand pavilion (Ascot module, crib 35)",
+         "module_grand_pavilion_roofbox": "Grand pavilion (35) with the roof box and flagpole over the joint",
+         "module_end_pavilion_l": "End pavilion (Ascot module, crib 37), left end", "module_end_pavilion_r": "End pavilion (Ascot module, crib 37), right end",
+         "york_big_pavilion_half": "Big pavilion (16), left half: the kink",
          "old_pavilion_lookout": "Old pavilion (July, crib 20) with the postcard's lookout", "old_pavilion_wing": "Old pavilion's wing (July, crib 21)",
          "rowley_end_postcard": "Rowley stand, 84 m cut (crib 26), with the postcard's lookout",
          "park_roof_terrace_stand_postcard": "Roof-terrace stand with the postcard's roof pavilion, flagpole and lookout"}
@@ -95,17 +98,31 @@ def main(cid):
     ax.scatter(P[m, 0], P[m, 2], s=0.25, c="#a0522d", alpha=0.45, lw=0, zorder=3.2)
     # the stands
     key = []
+    # (owner, 22:51, Newbury: "update the plan to be the 4 stands as I drew them"): with stands.groups in the course
+    # file, one number per stand at its middle and its pieces listed under it; otherwise one number per piece
+    groups = (CF.get("stands") or {}).get("groups")
+    fps = []
     for model, piece, x, z, turn, sx, sc, *_ in S["pieces"]:
-        if piece not in info: continue
+        if model != f"{cid}_stands" or piece not in info: continue
         gi = info[piece]; fp = footprint(gi, x, z, turn)
         ax.add_patch(MP(np.array(fp), closed=True, fc="#f4efe6", ec="#5a4a32", lw=1.1, alpha=0.93, zorder=4))
-        cx = np.mean([p[0] for p in fp]); cz = np.mean([p[1] for p in fp])
-        n = len(key) + 1
-        ax.add_patch(plt.Circle((cx, cz), 6.5, fc="#5a4a32", ec="white", lw=0.8, zorder=5))
-        ax.text(cx, cz, str(n), ha="center", va="center", fontsize=8, color="white", fontweight="bold", zorder=6)
-        xs = [p[0] for p in fp]
-        key.append(f"{n}  {NAMES.get(piece, piece)}: {gi['width']:.0f} m wide, {gi['depth']:.0f} m deep, x {min(xs):.0f} to {max(xs):.0f}")
-        ax.plot(x, z, marker="+", color="#5a4a32", ms=6, zorder=5)
+        fps.append((piece, gi, fp))
+    def badge(cx, cz, n, r=6.5):
+        ax.add_patch(plt.Circle((cx, cz), r, fc="#5a4a32", ec="white", lw=0.8, zorder=5))
+        ax.text(cx, cz, str(n), ha="center", va="center", fontsize=8 if r < 8 else 10, color="white", fontweight="bold", zorder=6)
+    if groups:
+        for n, grp in enumerate(groups, 1):
+            pts = [p for i in grp["pieces"] for p in fps[i][2]]
+            xs = [p[0] for p in pts]; zs = [p[1] for p in pts]
+            badge(np.mean(xs), np.mean(zs), n, 8.5)
+            parts = grp.get("parts") or ", ".join(NAMES.get(fps[i][0], fps[i][0]) for i in grp["pieces"])
+            key.append(f"{n}  {grp['name']}: x {min(xs):.0f} to {max(xs):.0f}  ({parts})")
+    else:
+        for piece, gi, fp in fps:
+            cx = np.mean([p[0] for p in fp]); cz = np.mean([p[1] for p in fp])
+            n = len(key) + 1; badge(cx, cz, n)
+            xs = [p[0] for p in fp]
+            key.append(f"{n}  {NAMES.get(piece, piece)}: {gi['width']:.0f} m wide, {gi['depth']:.0f} m deep, x {min(xs):.0f} to {max(xs):.0f}")
     if key:
         kz = side * (W + 0.5 + 95)
         ax.text(-140, kz, "The stands (from past the post up the course)\n" + "\n".join(key), fontsize=8.5, color=INK, va="bottom" if side < 0 else "top",

@@ -416,139 +416,10 @@
   }
  },
  "stands": {
-  "_about": "Newbury's stands, owner 18 Nov 19:38-19:39: 'same basic model' (as Doncaster) on his marked-up satellite view (1 the stand at the bend, angled; 2 the long stand, turned a little to look up the straight; 3 the stand beyond it, square on; 4 an area up the course on the stand side; 'festival' the infield opposite, along the inside rail from the bend up the course) and his old photo of Newbury's stands ('bit more pitched roof terrace etc': a brick block with a hipped roof, a long pitched-roof stand, and a separate roof-terrace stand with a little lookout pavilion on its roof). So: 1 the pitched-roof (gable) stand turned 45 to the run-in, 14 m off the turf; 2 the clock house (the brick block) and a second pitched-roof stand in one line turned 20, its left end on the front line; 3 low terraces and the roof-terrace stand with Rowley's little Victorian pavilion on its roof as the lookout. 4 is the stand-side festival zone (perimeter.festivals). Owner's mark-up on the plan, 19:42: 2 and 3 square on and set back (fronts about 65 m off the inside rail, as the real stands), in his boxes x -26..49 and 76..148; 4 the stand-side festival zone set back the same, x 170..377; 1 as it was. Owner, 21:25: 'Victorian pavilion, old pavilion, tiered stand and big pavilion maybe good for Newbury?': 1 the tiered stand (turned to the run-in); 2 the clock house and York's big pavilion; 3 the Park kit's Victorian pavilion and old pavilion. The pitched-roof stands and the roof-terrace stand with its lookout stood down (the lookout composite kept in the file). Owner, 21:26, with an old colour postcard of the stand: 'I would like to get these roof structures in there': a roof-terrace stand with a pavilion block and flagpole in the middle of its roof and a little hipped-roof lookout at one end (park_roof_terrace_stand_postcard: the Park old pavilion x0.45 and a site-props flagpole in the middle of the back block's roof, Rowley's Victorian pavilion x0.7 at the end), in area 3 between the Victorian pavilion and the old pavilion; area 3 runs on to x 187 and his area 4 (the stand-side festival) moves up to x 200. Owner, 21:51, from the numbered crib sheet, left to right: 'victorian pavilion, big pavilion, grand pavilion, rowley stand. and the roof structures should be on the grand pavilion and rowley stand as per the image': 1 at the bend the Park Victorian pavilion with towers (crib 7), turned to the run-in; 2 York's big pavilion (16) and Ascot's grand pavilion module (35); 3 the Rowley Mile's Rowley stand (26). The postcard's roof pieces split between the two as in the postcard, left to right: the pavilion block with its flagpole on the grand pavilion's ridge, the hipped-roof lookout (crib 28) at the right-hand end of the Rowley stand's roof. Area 3 runs to x 186 (the Rowley stand is 110 m); his area 4 stays at x 200..400. Owner, 22:15: 'split the 2 and 3 and then join 3 to 4. I would then make 3 and 4 kind of half and half of each across the length': a 15 m gap between the big pavilion and the grand pavilion; the grand pavilion joined to the Rowley stand in one run, half and half along its length: three grand pavilion modules (84 m, the flag block on the middle one) then the Rowley stand's 84 m cut (rowley_end, the same stand shorter, its stair drum at the far end, the lookout near it). His area 4 (the stand-side festival) moves up to x 235..435. Owner, 22:27-22:28: '3, 4 and 5 need aligning neatly. I would then create a gap to 6. We then need more festival bits and pieces between stands. Include that clock building thing?... the clock house that is. You should use this to link stands 1 and 2 maybe and 2 and 3': the joined run (clock house, big pavilion, clock house, three grand pavilions) set at one level (stands.level; each piece had stood at the ground's height under its own origin, so the modules stepped); the clock house (crib 12) linking 1 to 2 and 2 to 3; a 20 m gap before the Rowley stand with festival bits in it (festival kit 'gaps'); stand 1 moved a little towards the bend to make room for the first clock house; his area 4 moved up to x 260..460. Owner, 22:37, with an old photo of Newbury's stands (left to right: a modern glass stand; the main grandstand, three elements pushed together, a brick block, a long low stand with the flag pavilion in the middle, another block; then the old two-tier stand with a lookout turret on its roof, angled towards the course): 'the old stand with the turrets isn't quite right... we also don't have the sort of kink in the grandstands of the old photos. The flank ends of the second image stand is a bit off.. in the old photo the stand is made from sort of three elements pushed together.. can we look to use the image 2 grandstand flanked within something to create this?': the bend stand now the Park glass box (crib 10); the grand pavilion run flanked by a clock house at each end (hiding the modules' open ends); the old stand now the July Course's old pavilion and its wing (crib 20, 21) with the lookout on the ridge near its right-hand end, turned 12 degrees towards the post: the kink. Owner, 22:39-22:40 (on the 22:35 plan, four orange boxes; 'we don't want the Victorian pavilion with the towers'; asked what the boxes meant: 'so the 4 boxes should be the stands. I am trying to illustrate the kink in the second stand I want to map in'): 1 the glass box at the bend; 2 a clock house turned 40 degrees towards the bend (the kink) meeting the big pavilion's front corner; 3 the grand pavilions with a clock house at each end; 4 the old stand with the lookout (July old pavilion and wing) straight on; 2-4 set back to his boxes, fronts about 86 m off the inside rail; the lawn crowd runs back to 58 m.",
+  "_about": "Newbury's stands, owner 18 Nov 19:38-19:39: 'same basic model' (as Doncaster) on his marked-up satellite view (1 the stand at the bend, angled; 2 the long stand, turned a little to look up the straight; 3 the stand beyond it, square on; 4 an area up the course on the stand side; 'festival' the infield opposite, along the inside rail from the bend up the course) and his old photo of Newbury's stands ('bit more pitched roof terrace etc': a brick block with a hipped roof, a long pitched-roof stand, and a separate roof-terrace stand with a little lookout pavilion on its roof). So: 1 the pitched-roof (gable) stand turned 45 to the run-in, 14 m off the turf; 2 the clock house (the brick block) and a second pitched-roof stand in one line turned 20, its left end on the front line; 3 low terraces and the roof-terrace stand with Rowley's little Victorian pavilion on its roof as the lookout. 4 is the stand-side festival zone (perimeter.festivals). Owner's mark-up on the plan, 19:42: 2 and 3 square on and set back (fronts about 65 m off the inside rail, as the real stands), in his boxes x -26..49 and 76..148; 4 the stand-side festival zone set back the same, x 170..377; 1 as it was. Owner, 21:25: 'Victorian pavilion, old pavilion, tiered stand and big pavilion maybe good for Newbury?': 1 the tiered stand (turned to the run-in); 2 the clock house and York's big pavilion; 3 the Park kit's Victorian pavilion and old pavilion. The pitched-roof stands and the roof-terrace stand with its lookout stood down (the lookout composite kept in the file). Owner, 21:26, with an old colour postcard of the stand: 'I would like to get these roof structures in there': a roof-terrace stand with a pavilion block and flagpole in the middle of its roof and a little hipped-roof lookout at one end (park_roof_terrace_stand_postcard: the Park old pavilion x0.45 and a site-props flagpole in the middle of the back block's roof, Rowley's Victorian pavilion x0.7 at the end), in area 3 between the Victorian pavilion and the old pavilion; area 3 runs on to x 187 and his area 4 (the stand-side festival) moves up to x 200. Owner, 21:51, from the numbered crib sheet, left to right: 'victorian pavilion, big pavilion, grand pavilion, rowley stand. and the roof structures should be on the grand pavilion and rowley stand as per the image': 1 at the bend the Park Victorian pavilion with towers (crib 7), turned to the run-in; 2 York's big pavilion (16) and Ascot's grand pavilion module (35); 3 the Rowley Mile's Rowley stand (26). The postcard's roof pieces split between the two as in the postcard, left to right: the pavilion block with its flagpole on the grand pavilion's ridge, the hipped-roof lookout (crib 28) at the right-hand end of the Rowley stand's roof. Area 3 runs to x 186 (the Rowley stand is 110 m); his area 4 stays at x 200..400. Owner, 22:15: 'split the 2 and 3 and then join 3 to 4. I would then make 3 and 4 kind of half and half of each across the length': a 15 m gap between the big pavilion and the grand pavilion; the grand pavilion joined to the Rowley stand in one run, half and half along its length: three grand pavilion modules (84 m, the flag block on the middle one) then the Rowley stand's 84 m cut (rowley_end, the same stand shorter, its stair drum at the far end, the lookout near it). His area 4 (the stand-side festival) moves up to x 235..435. Owner, 22:27-22:28: '3, 4 and 5 need aligning neatly. I would then create a gap to 6. We then need more festival bits and pieces between stands. Include that clock building thing?... the clock house that is. You should use this to link stands 1 and 2 maybe and 2 and 3': the joined run (clock house, big pavilion, clock house, three grand pavilions) set at one level (stands.level; each piece had stood at the ground's height under its own origin, so the modules stepped); the clock house (crib 12) linking 1 to 2 and 2 to 3; a 20 m gap before the Rowley stand with festival bits in it (festival kit 'gaps'); stand 1 moved a little towards the bend to make room for the first clock house; his area 4 moved up to x 260..460. Owner, 22:37, with an old photo of Newbury's stands (left to right: a modern glass stand; the main grandstand, three elements pushed together, a brick block, a long low stand with the flag pavilion in the middle, another block; then the old two-tier stand with a lookout turret on its roof, angled towards the course): 'the old stand with the turrets isn't quite right... we also don't have the sort of kink in the grandstands of the old photos. The flank ends of the second image stand is a bit off.. in the old photo the stand is made from sort of three elements pushed together.. can we look to use the image 2 grandstand flanked within something to create this?': the bend stand now the Park glass box (crib 10); the grand pavilion run flanked by a clock house at each end (hiding the modules' open ends); the old stand now the July Course's old pavilion and its wing (crib 20, 21) with the lookout on the ridge near its right-hand end, turned 12 degrees towards the post: the kink. Owner, 22:39-22:40 (on the 22:35 plan, four orange boxes; 'we don't want the Victorian pavilion with the towers'; asked what the boxes meant: 'so the 4 boxes should be the stands. I am trying to illustrate the kink in the second stand I want to map in'): 1 the glass box at the bend; 2 a clock house turned 40 degrees towards the bend (the kink) meeting the big pavilion's front corner; 3 the grand pavilions with a clock house at each end; 4 the old stand with the lookout (July old pavilion and wing) straight on; 2-4 set back to his boxes, fronts about 86 m off the inside rail; the lawn crowd runs back to 58 m. Owner, 22:51: 'there's all sorts of mess going on here, can you update the plan to be the 4 stands as I drew them. I'm not sure why you can't make the kinked stand'; 22:52, with a photo of the main stand's roof box (a white rendered box with a gable, a clock and a flagpole on the canopy roof; the old stand's lookout on posts): 'the box on the roof that you've made a bit of a mess of'. So four stands only: 1 the glass box at the bend; 2 York's big pavilion kinked (the whole pavilion straight, and the left half of a second one hinged at its left front corner, turned 35 towards the bend); 3 two grand pavilion modules between Ascot's end pavilions (the stand's own end caps, the left one mirrored), the roof box (the end pavilion module x0.55, white, hipped with a cupola) and its flagpole over the joint; 4 the July old pavilion and wing with the lookout. The clock houses and the brick roof block stood down.",
   "front": 17.0,
   "walkUnderHandPlaced": true,
   "composites": {
-   "module_grand_pavilion_postcard": {
-    "base": "module_grand_pavilion",
-    "baseAt": [
-     -14.0,
-     0.0,
-     0.0
-    ],
-    "info": {
-     "width": 28.0,
-     "depth": 18.0,
-     "height": 25.5,
-     "crowd": [
-      [
-       -14.0,
-       14.0,
-       0.0,
-       2.0,
-       3.0
-      ],
-      [
-       -14.0,
-       14.0,
-       0.3,
-       2.3,
-       6.2
-      ],
-      [
-       -14.0,
-       14.0,
-       4.8,
-       5.8,
-       11.9
-      ],
-      [
-       -14.0,
-       14.0,
-       5.9,
-       6.9,
-       12.2
-      ],
-      [
-       -14.0,
-       14.0,
-       7.0,
-       8.0,
-       12.6
-      ],
-      [
-       -14.0,
-       14.0,
-       8.1,
-       9.1,
-       12.9
-      ],
-      [
-       -14.0,
-       14.0,
-       9.2,
-       10.2,
-       13.2
-      ],
-      [
-       -14.0,
-       14.0,
-       10.3,
-       11.3,
-       13.6
-      ],
-      [
-       -14.0,
-       14.0,
-       11.4,
-       12.4,
-       13.9
-      ],
-      [
-       -14.0,
-       14.0,
-       12.5,
-       13.5,
-       14.3
-      ],
-      [
-       -14.0,
-       14.0,
-       13.6,
-       14.6,
-       14.6
-      ],
-      [
-       -14.0,
-       14.0,
-       14.7,
-       15.7,
-       14.9
-      ],
-      [
-       -14.0,
-       14.0,
-       15.8,
-       16.8,
-       15.3
-      ]
-     ],
-     "note": "Ascot's grand pavilion module, moved to centre it; crowd rows from its floors and terrace steps"
-    },
-    "add": [
-     {
-      "piece": "park_old_pavilion",
-      "above": 0.0,
-      "scale": 0.45,
-      "at": [
-       0.0,
-       20.5,
-       -7.8
-      ]
-     },
-     {
-      "piece": "flagpole",
-      "above": -1.0,
-      "scale": 1.0,
-      "at": [
-       0.0,
-       30.1,
-       -10.0
-      ]
-     }
-    ]
-   },
    "module_grand_pavilion_c": {
     "base": "module_grand_pavilion",
     "baseAt": [
@@ -656,6 +527,208 @@
      "note": "Ascot's grand pavilion module, moved to centre it; crowd rows from its floors and terrace steps"
     }
    },
+   "module_grand_pavilion_roofbox": {
+    "base": "module_grand_pavilion",
+    "baseAt": [
+     -14.0,
+     0.0,
+     0.0
+    ],
+    "info": {
+     "width": 28.0,
+     "depth": 18.0,
+     "height": 25.5,
+     "crowd": [
+      [
+       -14.0,
+       14.0,
+       0.0,
+       2.0,
+       3.0
+      ],
+      [
+       -14.0,
+       14.0,
+       0.3,
+       2.3,
+       6.2
+      ],
+      [
+       -14.0,
+       14.0,
+       4.8,
+       5.8,
+       11.9
+      ],
+      [
+       -14.0,
+       14.0,
+       5.9,
+       6.9,
+       12.2
+      ],
+      [
+       -14.0,
+       14.0,
+       7.0,
+       8.0,
+       12.6
+      ],
+      [
+       -14.0,
+       14.0,
+       8.1,
+       9.1,
+       12.9
+      ],
+      [
+       -14.0,
+       14.0,
+       9.2,
+       10.2,
+       13.2
+      ],
+      [
+       -14.0,
+       14.0,
+       10.3,
+       11.3,
+       13.6
+      ],
+      [
+       -14.0,
+       14.0,
+       11.4,
+       12.4,
+       13.9
+      ],
+      [
+       -14.0,
+       14.0,
+       12.5,
+       13.5,
+       14.3
+      ],
+      [
+       -14.0,
+       14.0,
+       13.6,
+       14.6,
+       14.6
+      ],
+      [
+       -14.0,
+       14.0,
+       14.7,
+       15.7,
+       14.9
+      ],
+      [
+       -14.0,
+       14.0,
+       15.8,
+       16.8,
+       15.3
+      ]
+     ],
+     "note": "Ascot's grand pavilion module, moved to centre it; crowd rows from its floors and terrace steps"
+    },
+    "add": [
+     {
+      "piece": "module_end_pavilion",
+      "above": 0.0,
+      "scale": 0.55,
+      "at": [
+       -17.85,
+       20.5,
+       -5.6
+      ]
+     },
+     {
+      "piece": "flagpole",
+      "above": -1.0,
+      "scale": 1.0,
+      "at": [
+       -12.5,
+       29.0,
+       -12.0
+      ]
+     }
+    ]
+   },
+   "module_end_pavilion_r": {
+    "base": "module_end_pavilion",
+    "baseAt": [
+     -7.0,
+     0.0,
+     0.0
+    ],
+    "info": {
+     "width": 14.0,
+     "depth": 16.0,
+     "height": 16.1,
+     "crowd": [
+      [
+       -6.5,
+       6.5,
+       0.3,
+       2.0,
+       3.0
+      ],
+      [
+       -6.5,
+       6.5,
+       0.3,
+       2.0,
+       6.5
+      ]
+     ],
+     "note": "Ascot's end pavilion module, centred; crowd on its two veranda floors"
+    }
+   },
+   "module_end_pavilion_l": {
+    "base": "module_end_pavilion",
+    "mirror": true,
+    "baseAt": [
+     7.0,
+     0.0,
+     0.0
+    ],
+    "info": {
+     "width": 14.0,
+     "depth": 16.0,
+     "height": 16.1,
+     "crowd": [
+      [
+       -6.5,
+       6.5,
+       0.3,
+       2.0,
+       3.0
+      ],
+      [
+       -6.5,
+       6.5,
+       0.3,
+       2.0,
+       6.5
+      ]
+     ],
+     "note": "Ascot's end pavilion module, centred; crowd on its two veranda floors"
+    }
+   },
+   "york_big_pavilion_half": {
+    "base": "york_big_pavilion",
+    "baseXRange": [
+     -28.5,
+     -6.5
+    ],
+    "baseAt": [
+     17.5,
+     0.0,
+     0.0
+    ]
+   },
    "old_pavilion_lookout": {
     "base": "old_pavilion",
     "add": [
@@ -684,73 +757,104 @@
     "note": "his 1 (22:37): the modern glass stand of the old photo, at the bend, turned to the run-in"
    },
    {
-    "piece": "park_clock_house",
+    "piece": "york_big_pavilion_half",
     "at": [
-     -36.35,
-     -78.16
+     -33.01,
+     -79.69
     ],
-    "turn": 40.0,
-    "dens": 0.6,
-    "note": "his 2's kink (22:40): the clock house turned towards the bend, its right front corner on the big pavilion's"
+    "turn": 35.0,
+    "dens": 0.85,
+    "note": "his 2's kink: the left end of a big pavilion (short of its clock gable), hinged at the straight one's left front corner"
    },
    [
     "york_big_pavilion",
-    1.0,
+    4.0,
     42.5,
     0.85
    ],
    [
-    "park_clock_house",
-    41.0,
+    "module_end_pavilion_l",
+    55.0,
     42.5,
-    0.6
+    0.8
    ],
    [
     "module_grand_pavilion_c",
-    67.0,
+    76.0,
     42.5,
     0.85
    ],
    [
-    "module_grand_pavilion_postcard",
-    95.0,
+    "module_grand_pavilion_roofbox",
+    104.0,
     42.5,
     0.85
    ],
    [
-    "module_grand_pavilion_c",
-    123.0,
+    "module_end_pavilion_r",
+    125.0,
     42.5,
-    0.85
-   ],
-   [
-    "park_clock_house",
-    149.0,
-    42.5,
-    0.6
+    0.8
    ],
    [
     "old_pavilion_lookout",
-    198.0,
+    183.0,
     42.5,
     0.85
    ],
    [
     "old_pavilion_wing",
-    237.0,
+    222.0,
     42.5,
     0.85
    ]
   ],
   "level": [
    [
-    2,
+    1,
+    2
+   ],
+   [
     3,
     4,
     5,
-    6,
-    7
+    6
    ]
+  ],
+  "groups": [
+   {
+    "name": "the glass stand at the bend",
+    "pieces": [
+     0
+    ],
+    "parts": "glass box, crib 10"
+   },
+   {
+    "name": "the kinked stand",
+    "pieces": [
+     1,
+     2
+    ],
+    "parts": "York's big pavilion, crib 16, and the left half of another turned 35 degrees towards the bend"
+   },
+   {
+    "name": "the main grandstand, with the roof box",
+    "pieces": [
+     3,
+     4,
+     5,
+     6
+    ],
+    "parts": "Ascot end pavilion 37, grand pavilions 35 x2, end pavilion 37; the white roof box and flagpole over the middle"
+   },
+   {
+    "name": "the old stand with the lookout",
+    "pieces": [
+     7,
+     8
+    ],
+    "parts": "July old pavilion 20 and its wing 21; the lookout on the roof"
+   }
   ]
  },
  "perimeter": {
@@ -881,23 +985,48 @@
     "dens": 0.04
    },
    {
-    "name": "between the stands: before the old stand",
+    "name": "between the stands: 2 and 3",
     "kit": "gaps",
     "poly": [
      [
-      162,
+      34,
       -50
      ],
      [
-      174,
+      46,
       -50
      ],
      [
-      174,
+      46,
       -118
      ],
      [
-      162,
+      34,
+      -118
+     ]
+    ],
+    "offTurf": 4,
+    "dens": 0.05,
+    "minArea": 150
+   },
+   {
+    "name": "between the stands: 3 and 4",
+    "kit": "gaps",
+    "poly": [
+     [
+      134,
+      -50
+     ],
+     [
+      158,
+      -50
+     ],
+     [
+      158,
+      -118
+     ],
+     [
+      134,
       -118
      ]
     ],

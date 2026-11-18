@@ -83,6 +83,33 @@ def main(cid):
             for n in j["nodes"]:
                 if n.get("name") == piece: return src, j, buf, j["meshes"][n["mesh"]]
         raise SystemExit(f"not in the kit: {piece}")
+    def clip_x(P, N, I, a, b):
+        """The triangles cut to the stretch a <= x <= b: those across a cut are sliced (their corners and normals
+        interpolated) and fanned, so long walls and roofs are kept up to the cut (a kinked stand from part of a stand)."""
+        P2, N2, I2 = [p_ for p_ in P], [n_ for n_ in N], []
+        def cut(poly, keep_side, x0):
+            out = []
+            for k in range(len(poly)):
+                cur, nxt = poly[k], poly[(k + 1) % len(poly)]
+                ci, ni = keep_side(cur[0][0]), keep_side(nxt[0][0])
+                if ci: out.append(cur)
+                if ci != ni:
+                    t = (x0 - cur[0][0]) / (nxt[0][0] - cur[0][0])
+                    out.append((cur[0] + t * (nxt[0] - cur[0]), cur[1] + t * (nxt[1] - cur[1])))
+            return out
+        for tri in I:
+            xs = P[tri][:, 0]
+            if xs.min() >= a - 1e-4 and xs.max() <= b + 1e-4: I2.append(list(tri)); continue
+            if xs.max() < a or xs.min() > b: continue
+            poly = [(P[k].astype(np.float64), N[k].astype(np.float64)) for k in tri]
+            poly = cut(poly, lambda x: x >= a, a)
+            if len(poly) >= 3: poly = cut(poly, lambda x: x <= b, b)
+            if len(poly) < 3: continue
+            ids = []
+            for pp, nn in poly:
+                P2.append(pp.astype(np.float32)); l = np.linalg.norm(nn) or 1.0; N2.append((nn / l).astype(np.float32)); ids.append(len(P2) - 1)
+            for k in range(1, len(ids) - 1): I2.append([ids[0], ids[k], ids[k + 1]])
+        return np.array(P2, np.float32), np.array(N2, np.float32), np.array(I2, np.uint32).reshape(-1, 3)
     def arr(j, buf, ai, dt, w):
         a = j["accessors"][ai]; bv = j["bufferViews"][a["bufferView"]]
         o = bv.get("byteOffset", 0) + a.get("byteOffset", 0)
@@ -98,7 +125,10 @@ def main(cid):
     for cname, spec in C["stands"].get("composites", {}).items():
         prims = []
         # "baseAt" moves the base (Ascot's stand modules have their origin at their left end, not the middle of the front)
-        parts = [{"piece": spec["base"], "above": -1e9, "scale": 1.0, "at": spec.get("baseAt", [0, 0, 0])}] + spec.get("add", [])
+        # "baseXRange" keeps only the base's triangles within that stretch of its length (before the move), "mirror"
+        # flips it end for end (owner, 22:51, Newbury: a kinked stand from two lengths of one stand; end caps both ends)
+        parts = [{"piece": spec["base"], "above": -1e9, "scale": 1.0, "at": spec.get("baseAt", [0, 0, 0]),
+                  "xRange": spec.get("baseXRange"), "mirror": spec.get("mirror", False)}] + spec.get("add", [])
         for part in parts:
             src, j, buf, mesh = mesh_of(part["piece"])
             for p in mesh["primitives"]:
@@ -108,6 +138,10 @@ def main(cid):
                 I = arr(j, buf, p["indices"], {5123: "<u2", 5125: "<u4"}[ia["componentType"]], 1).astype(np.uint32).reshape(-1, 3)
                 keep = (P[I][:, :, 1].min(1) >= part["above"])
                 I = I[keep]
+                if part.get("xRange"):
+                    P, N, I = clip_x(P, N, I, *part["xRange"])
+                if part.get("mirror"):
+                    P = P.copy(); N = N.copy(); P[:, 0] *= -1; N[:, 0] *= -1; I = I[:, ::-1].copy()
                 if not len(I): continue
                 used = np.unique(I); remap = -np.ones(len(P), np.int64); remap[used] = np.arange(len(used))
                 P2 = P[used] * part["scale"] + np.array(part["at"], np.float32); N2 = N[used]
@@ -120,7 +154,20 @@ def main(cid):
         out["meshes"].append({"name": cname, "primitives": prims})
         out["nodes"].append({"name": cname, "mesh": len(out["meshes"]) - 1}); out["scenes"][0]["nodes"].append(len(out["nodes"]) - 1)
         bsrc = mesh_of(spec['base'])[0]
-        base = spec["info"] if "info" in spec else json.loads((ARCH / f"{bsrc}.json").read_text())["pieces"][spec["base"]]
+        if "info" in spec: base = spec["info"]
+        else:
+            base = json.loads((ARCH / f"{bsrc}.json").read_text())["pieces"][spec["base"]]
+            if spec.get("baseXRange") or spec.get("mirror") or spec.get("baseAt"):
+                # the crowd areas follow the cut, the flip and the move; the width is the stretch kept
+                a_, b_ = spec.get("baseXRange") or [-base["width"] / 2, base["width"] / 2]
+                dx = spec.get("baseAt", [0, 0, 0])[0]; mir = spec.get("mirror", False)
+                crowd = []
+                for x0, x1, y0, y1, fz in base.get("crowd", []):
+                    x0, x1 = max(x0, a_), min(x1, b_)
+                    if x1 - x0 < 0.5: continue
+                    if mir: x0, x1 = -x1, -x0
+                    crowd.append([round(x0 + dx, 2), round(x1 + dx, 2), y0, y1, fz])
+                base = dict(base, width=round(b_ - a_, 2), crowd=crowd)
         top = max(float(np.max(out["accessors"][q["attributes"]["POSITION"]]["max"][1])) for q in prims)
         info["pieces"][cname] = dict(base, height=round(top, 2), composite=spec)
         info["from"][cname] = "composite"
