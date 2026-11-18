@@ -109,6 +109,14 @@ GRANDSTAND = {"piece": "epsom_grandstand", "x": 39.0, "lawn": 8.0,
               "note": "the stand's middle 39 m up the course from the post, so its west section (the Queen's Stand's place) "
                       "is by the post and its main block (the Duchess's) up the course; the terrace's front walk 8 m behind "
                       "the outer rail"}
+# the stand side, left to right from the track: piece, x of its origin, how far its foot is behind the outer rail,
+# crowd density on its terraces (owner's mark-up, 18 Nov 11:22)
+STANDS = [("epsom_balcony_stand", -85.0, 16.0, 0.7), ("epsom_grandstand", 39.0, 11.0, 0.75), ("epsom_rowley_stand", 183.5, 11.0, 0.7)]
+# the Hill: big lightweight marquees breaking up the rail crowd (metres to go, metres in from the rail), little stands
+# along the track edge past the post (owner's purple), big festival tents at his red rings (world x, z)
+EDGE_MARQUEES = [70.0, 160.0, 250.0, 345.0, 440.0, 530.0, 620.0]
+LITTLE_STANDS = (-115.0, 34.0, 9.0)
+BIG_TENTS = [(-13.8, 131.4), (53.8, 129.8), (136.0, 128.9), (216.9, 127.8), (310.5, 127.9), (412.6, 133.9), (497.5, 125.0), (614.1, 114.6)]
 RIDES = [("epsom_ferris_wheel", 330.0, 62.0), ("epsom_helter_skelter", 395.0, 50.0)]   # metres to go, metres in from the rail
 
 
@@ -162,44 +170,55 @@ def perimeter(S, C, turf, grid_box, sp, rnd=None, put=None):
         a, _ = nearest_points(turf, Point(x, z)); fx, fz = a.x - x, a.y - z; l = math.hypot(fx, fz) or 1
         return math.degrees(math.atan2(fx / l, fz / l))
 
-    # ------------------------------------------------------------------ the grandstand, its walk, the rail lawn
+    # ------------------------------------------------------------------ the stands, the walk, the rail lawn
+    # (owner's mark-up, 18 Nov 11:22: the balcony stand on the lawn past the post, the grandstand, the Rowley Mile's
+    # Victorian stand up the course beside it)
     if put:
-        gi = INFO[GRANDSTAND["piece"]]
-        gx = GRANDSTAND["x"]
-        zr = outer_rail_z(turf, gx) - 0.4
-        gz = zr - GRANDSTAND["lawn"] + gi["front"]               # the terrace's foot (the walk runs 3 m before it)
-        put("epsom_stands", GRANDSTAND["piece"], gx, gz, 0.0)
-        S.stand_people(gi, gx, gz, 0.0, 1.0, 1.0, 1.0)
-        hw = gi["width"] / 2
-        S.nogo.append([(gx - hw, gz - gi["front"] + 0.5), (gx + hw, gz - gi["front"] + 0.5), (gx + hw, gz - gi["depth"]), (gx - hw, gz - gi["depth"])])
-        S.flat("#e4d8c2", [(-70, zr - 0.6), (275, zr - 0.6), (275, gz - gi["front"]), (-70, gz - gi["front"])], 0.03)
+        zr = outer_rail_z(turf, GRANDSTAND["x"]) - 0.4
+        placed_st = {}
+        for piece, x, back, dens in STANDS:
+            gi = INFO[piece]
+            gz = zr - back                                          # the stand's foot (its front walk or steps' foot)
+            put("epsom_stands", piece, x, gz, 0.0)
+            S.stand_people(gi, x, gz, 0.0, 1.0, 1.0, dens)
+            ox = x + gi.get("offset", 0.0); hw = gi["width"] / 2; f = gi.get("front", 0.0)
+            S.nogo.append([(ox - hw, gz - f + 0.5), (ox + hw, gz - f + 0.5), (ox + hw, gz - gi["depth"]), (ox - hw, gz - gi["depth"])])
+            placed_st[piece] = [round(ox - hw, 1), round(ox + hw, 1), round(gz - f, 1)]
+        S.flat("#e4d8c2", [(-135, zr - 0.6), (275, zr - 0.6), (275, zr - 17.0), (-135, zr - 17.0)], 0.03)
         p0 = len(S.people)
-        for x, z in S.spots(-68, 272, gz - gi["front"] + 0.6, zr - 1.0, 0.75):     # the rail lawn, facing the track
+        for x, z in S.spots(-132, 272, zr - 17.0, zr - 1.0, 0.55):    # the rail lawn, facing the track
             if not S.blocked(x, z):
                 S.person(x, 0.0, z, round(math.pi + rnd.uniform(-0.5, 0.5), 2))
         note["rail lawn crowd"] = (len(S.people) - p0) // 4
-        # up the course beside the stand: hospitality marquees facing the track, a lawn with people between them
-        xm0 = gx + hw + 12.0
-        nm = 0
-        for x in np.arange(xm0, 262.0, 26.0):
-            sp("marquee_clearspan", x, gz - 16.0, 0.0, 0.6); nm += 1
-            if nm % 2: sp("pagoda_kiosk", x + 13.0, gz - 6.0, 0.0, 0.6)
-        p0 = len(S.people)
-        for x, z in S.spots(xm0 - 8, 268, gz - 34.0, gz + 1.0, 0.18):
-            if not S.blocked(x, z): S.person(x, 0.0, z, round(math.pi + rnd.uniform(-0.9, 0.9), 2))
-        note["grandstand"] = {"at": [gx, round(gz, 2)], "marquees": nm, "lawn crowd": (len(S.people) - p0) // 4}
+        note["stands"] = placed_st
 
     # ------------------------------------------------------------------ the Hill: the rail crowd, boards on the rail
-    hill_rail = band(R, *HILL_D, 2.6, 26.0, W)
+    # (owner, 11:22: "thin down the rail crowd to not be as deep ... use some of the big lightweight marquees to break up
+    # the crowd along the edge ... the little sort of stands along the track edge")
+    Pe, Te, Le, de = rail_frame(R)
+    def at_d(dd, off):
+        i = int(np.searchsorted(de, dd)); return Pe[i] + Le[i] * off, math.degrees(math.atan2(-Le[i][0], -Le[i][1]))
+    for dd in EDGE_MARQUEES:
+        (mx, mz), turn = at_d(dd, 9.5)
+        sp("marquee_clearspan", mx, mz, turn, 0.5)
+    nl = 0
+    dd = LITTLE_STANDS[0]
+    while dd < LITTLE_STANDS[1]:
+        piece = "stand_open" if nl % 2 == 0 else "stand_covered"
+        w = {"stand_open": 15.62, "stand_covered": 12.31}[piece]
+        (lx, lz), turn = at_d(dd + w / 2, LITTLE_STANDS[2])
+        sp(piece, lx, lz, turn, 0.95); dd += w + 2.5; nl += 1
+    note["edge marquees"], note["little stands"] = len(EDGE_MARQUEES), nl
+    hill_rail = band(R, *HILL_D, 2.6, 14.0, W)
     frontage = box(FRONTAGE_X[0], 30.0, FRONTAGE_X[1], 120.0)
     people0 = len(S.people)
     for g in GW.polys(hill_rail):
         x0, z0, x1, z1 = g.bounds
         for x, z in S.spots(x0, x1, z0, z1, 0.62):
             q = Point(x, z)
-            if not g.contains(q): continue
+            if not g.contains(q) or S.blocked(x, z): continue
             dz = infield.exterior.distance(q) if infield.contains(q) else 0.0
-            if rnd.random() < (1.0 if dz < 10 else 0.7 if dz < 18 else 0.45):   # thinning towards the back
+            if rnd.random() < (1.0 if dz < 6 else 0.75 if dz < 10 else 0.5):   # thinning towards the back
                 S.person(x, 0.0, z, round(math.atan2(0, 1) + rnd.uniform(-0.6, 0.6), 2))
     taken.append(hill_rail)
     # boards fixed along the inside rail in front of the crowd, facing the track (the video's run of boards)
@@ -239,6 +258,10 @@ def perimeter(S, C, turf, grid_box, sp, rnd=None, put=None):
         if put:
             put("epsom_stands", piece, q[0], q[1], turn)
             rides.append((q[0], q[1], INFO[piece]["width"] / 2 + 3.0))
+    for x, z in BIG_TENTS:                                          # his red rings: the big festival tents
+        sp("big_top", x, z, rnd.uniform(0, 360), 0.5)
+        rides.append((x, z, 11.0))
+    note["big tents"] = len(BIG_TENTS)
     note["festival"] = festival(S, fest, sp, rnd, taken, rides)
 
     # ------------------------------------------------------------------ Tattenham Corner's inside: crowd, road, huts
@@ -383,7 +406,7 @@ def festival(S, poly, sp, rnd, taken, rides=()):
     S.flat("#d8d0a2", list(g.simplify(1.0).exterior.coords)[:-1], 0.028)
     x0, z0, x1, z1 = g.bounds
     placed = list(rides)
-    for x, z, r in rides:
+    for x, z, r in rides[:len(RIDES)]:
         S.nogo.append([(x - r, z - r), (x + r, z - r), (x + r, z + r), (x - r, z + r)])
     def ok(x, z, r):
         return g.buffer(-r).contains(Point(x, z)) and all(math.hypot(x - a, z - b) > r + rb + 3 for a, b, rb in placed)

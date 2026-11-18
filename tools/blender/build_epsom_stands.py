@@ -24,6 +24,11 @@ right-hand end is a tall block; that is left out by his standing rule (17 Nov: "
 the rake of the terraces"): both ends are flank walls on the rake, the building's own end above.
 
   epsom_grandstand     146 x 48 m, 53 m to the flag
+  epsom_balcony_stand  (owner's mark-up, 18 Nov 11:22: "blue to the left should be a balcony grandstand") the Park
+                       kit's balcony stand drawn out to 22 bays, for the lawn past the post               83 x 32 m
+  epsom_rowley_stand   ("the longer blue should be the rowley grandstand") the Rowley Mile's Victorian stand (Ascot's
+                       grand pavilion under the hipped slate roof, the end pavilion with its clock turret) at 39 bays,
+                       up the course beside the grandstand                                                 151 x 29 m
   epsom_ferris_wheel   an observation wheel: two A-frames, the rim, spokes and sixteen pastel gondolas   34 m
   epsom_helter_skelter the striped tower, its spiral slide, a pointed roof and a flag                        15 m
 
@@ -317,6 +322,8 @@ def helter_skelter(H=12.0, R0=2.6, R1=1.8, turns=3.0):
 
 PIECES = [
     ("epsom_grandstand", epsom_grandstand),
+    ("epsom_balcony_stand", lambda: colonnade_stand(22, 3.6, "flat")),
+    ("epsom_rowley_stand", lambda: grand_pavilion_stand(39, 10, 1.0, 0.28, end_pavilion=True, roof="hipped")),
     ("epsom_ferris_wheel", ferris_wheel),
     ("epsom_helter_skelter", helter_skelter),
 ]

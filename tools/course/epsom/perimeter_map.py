@@ -42,16 +42,19 @@ def main(zoom=False):
     for pc in S["pieces"]:
         if pc[0] == "epsom_stands":
             pi, x, z, t = EI[pc[1]], pc[2], pc[3], math.radians(pc[4])
-            hw = pi["width"] / 2; f = pi.get("front", -pi["depth"] / 2) if pc[1] == "epsom_grandstand" else -pi["depth"] / 2
-            d1 = pi["depth"] + f if pc[1] == "epsom_grandstand" else pi["depth"] / 2
-            q = np.array([(x + u * math.cos(t) - v * math.sin(t), z - (u * math.sin(t) + v * math.cos(t))) for u, v in ((-hw, f), (hw, f), (hw, d1), (-hw, d1))])
+            hw = pi["width"] / 2; o = pi.get("offset", 0.0)
+            if "crowd" in pi and pi["crowd"]:                     # a stand: its origin is the middle of its front foot
+                f, d1 = pi.get("front", 0.0), pi["depth"] + pi.get("front", 0.0)
+            else:                                                 # a ride: its origin is its middle
+                f, d1 = -pi["depth"] / 2, pi["depth"] / 2
+            q = np.array([(x + u * math.cos(t) - v * math.sin(t), z - (u * math.sin(t) + v * math.cos(t))) for u, v in ((o - hw, f), (o + hw, f), (o + hw, d1), (o - hw, d1))])
             e, n = en(q[:, 0], q[:, 1]); ax.fill(e, n, fc="#f4efe6", ec="#8a7350", lw=0.8, zorder=8)
             continue
         if pc[0] != "site_props": continue
         e, n = en(pc[2], pc[3]); ax.plot(e, n, marker="o", ms=2.6, color="#f4efe6", mec="#8a7350", mew=0.5, zorder=7)
     for t, s in json.loads((REPO / "courses/epsom-draft.json").read_text())["starts"].items():
         e, n = en(*s["at"]); ax.plot(e, n, "ws", mec="k", ms=5, zorder=8); ax.annotate(t, (e, n), xytext=(4, 4), textcoords="offset points", fontsize=7.5, zorder=8)
-    lab = [("the grandstand", 39, -112), ("the Hill: rail crowd,\nboards on the rail", 330, 18), ("hospitality frontage", 65, 62),
+    lab = [("the grandstand", 39, -112), ("balcony stand", -85, -95), ("Rowley stand", 190, -90), ("the Hill: rail crowd,\nboards on the rail", 330, 18), ("hospitality frontage", 65, 62),
            ("the Hill's festival,\nFerris wheel, helter skelter", 380, 135), ("Tattenham Corner: crowd,\nroad, huts", 760, 210), ("the climb: groups\nalong the rail", 200, 430),
            ("far side: boards 20 m out,\nbelt of trees, the woods", 150, 640), ("Tattenham Corner\nhouses (garden trees)", 1040, 120),
            ("stand side: boards,\nthin crowd, belt", 650, -80), ("the open Downs (infield)", 400, 300)]
@@ -65,8 +68,8 @@ def main(zoom=False):
         rz = lambda x: float(np.interp(x, SP[::-1, 0] if SP[0, 0] > SP[-1, 0] else SP[:, 0], SP[::-1, 1] if SP[0, 0] > SP[-1, 0] else SP[:, 1]))
         ride = {pc[1]: (pc[2], pc[3]) for pc in S["pieces"] if pc[0] == "epsom_stands"}
         fw, hs = ride["epsom_ferris_wheel"], ride["epsom_helter_skelter"]
-        for txt, x, z in [("Ferris wheel", fw[0], fw[1] + 22), ("helter skelter", hs[0], hs[1] - 16), ("rail lawn", -45, -31),
-                          ("marquees", 210, -72), ("winning post", 0, 12)] + [("%df" % k, 201.17 * k, rz(201.17 * k) - 26 - 16) for k in (1, 2, 3)]:
+        for txt, x, z in [("Ferris wheel", fw[0], fw[1] + 22), ("helter skelter", hs[0], hs[1] - 16), ("big tents", 216.9, 150), ("rail lawn", -45, -31),
+                          ("little stands", -60, 20), ("edge marquees", 250, 26), ("winning post", 0, 12)] + [("%df" % k, 201.17 * k, rz(201.17 * k) - 26 - 16) for k in (1, 2, 3)]:
             e, n = en(x, z); ax.annotate(txt, (e, n), fontsize=9, color="#1d1d1d", ha="center", zorder=9,
                                         bbox=dict(fc="#fffbe8", ec="#a89060", alpha=0.9, pad=1.2))
         cx, cz = [], []
