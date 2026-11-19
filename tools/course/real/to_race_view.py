@@ -17,6 +17,7 @@ from pathlib import Path
 import numpy as np
 from shapely.geometry import Polygon
 from shapely.ops import unary_union
+from shapely.prepared import prep
 
 HERE = Path(__file__).resolve().parent
 REPO = HERE.parents[2]
@@ -254,6 +255,28 @@ def main(cid):
     if CF.get("edges"):                     # a course's own edges script (Chester: the city walls and the city beyond)
         ed = importlib.import_module(CF["edges"]["script"])
         pnote["edges"] = ed.build(S, LY, course, turf, trees, boards, CF["edges"], NM, random.Random(29))
+    ca_ = TVC.get("clearAround")                # festival pieces and people cleared round the TV's fixed cameras (Chester)
+    if ca_:
+        # each camera's foreground: a corridor from the camera to the stretch of track it watches (its 'atD' and the
+        # 'ahead' metres beyond, along its route), plus a circle round it
+        from shapely.geometry import LineString as _LS, Point as _Pt
+        zones = []
+        for k in ca_["cams"]:
+            cs = TVC["cams"].get(k); cm = cams.get(k)
+            if not cs or not cm or "at" not in cm: continue
+            a = (cm["at"][0], cm["at"][2]); zones.append(_Pt(*a).buffer(ca_.get("radius", 35.0)))
+            for dd in np.arange(cs["d"], cs["d"] + ca_.get("ahead", 350.0), 25.0):
+                q = on_route(cs.get("route", default_route), dd, W / 2, 0.0)
+                zones.append(_LS([a, (q[0], q[2])]).buffer(ca_.get("width", 12.0)))
+        zone = prep(unary_union(zones)) if zones else None
+        near = lambda x, z: zone is not None and zone.contains(_Pt(x, z))
+        n0 = len(S.pieces); S.pieces[:] = [q for q in S.pieces if not (q[0] == "site_props" and near(q[2], q[3]))]
+        P_, keep = S.people, []
+        for i in range(0, len(P_), 4):
+            if near(P_[i], P_[i + 2]) and P_[i + 1] < S.G(P_[i], P_[i + 2]) + 1.5: continue
+            keep += P_[i:i + 4]
+        gone = (len(P_) - len(keep)) // 4; S.people[:] = keep
+        pnote["cleared round the cameras"] = [n0 - len(S.pieces), gone]
     scen = NM.scenery_file(S, trees, boards, [], models, {"at": [0, -zs * GAP], "turn": 180 if hand < 0 else 0}, poles)
     scen["_about"] += " Basic surroundings from tools/course/real/perimeter.py (the shared rules until the course's own mark-up)."
     NM.write(f"{cid}-scenery.json", scen)

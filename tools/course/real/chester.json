@@ -214,13 +214,13 @@
      "label": "Railway side, head-on",
      "route": "round",
      "d": 1150,
-     "off": -14,
+     "off": -6,
      "h": 5,
      "fov": [
       1.5,
       24
      ],
-     "note": "low in the infield ahead of them on the railway side: the inside rail in front, the boards and trees beyond (43-57 s)"
+     "note": "low in the infield ahead of them on the railway side: the inside rail in front, the boards and trees beyond (43-57 s); just inside the inside rail, clear of the infield festival"
     },
     "west_wide": {
      "label": "Across the infield",
@@ -238,13 +238,13 @@
      "label": "Home turn",
      "route": "round",
      "d": 300,
-     "off": 30,
+     "off": -8,
      "h": 7,
      "fov": [
       1.5,
       26
      ],
-     "note": "head-on as they swing for home past the chute (101-107 s)"
+     "note": "head-on as they swing for home past the chute (101-107 s); from inside the bend (the city wall runs close outside it here)"
     },
     "straight_high": {
      "label": "Into the straight, high",
@@ -344,14 +344,38 @@
       "Drone"
      ]
     ]
+   },
+   "clearAround": {
+    "cams": [
+     "rail_headon",
+     "turn_headon",
+     "corner_headon",
+     "home_headon"
+    ],
+    "radius": 30.0,
+    "note": "keep the head-on cameras' foregrounds clear of the infield festival",
+    "ahead": 350.0,
+    "width": 12.0
    }
   },
-  "lede": "Chester's track in 3D: left-handed, just over a mile round, on its real outline and ground. The stand side modelled from your photos and sheets: the brick block at the bend, the County Stand bending round the kink, Tattersalls' gabled stands, then the city wall with its terraces, covered stands and lantern, packed with people, and the city behind. The infield is one festival. The TV cameras cut as in your Huxley Stakes video. Still to come: the viaduct, the river and the castle corner."
+  "lede": "Chester's track in 3D: left-handed, just over a mile round, on its real outline and ground. The stand side modelled from your photos and sheets: the brick block at the bend, the County Stand bending round the kink, Tattersalls' gabled stands, the city wall with its terraces, covered stands and lantern, packed with people, and the city behind. Round the far side: the Roodee Viaduct's arches along the railway, the railway's bridge over the Dee, the river with the houses over it, Grosvenor Road and its bridge, and the castle at the home turn. The infield is one festival; the TV cameras cut as in your Huxley Stakes video."
  },
  "levelTurf": {
   "margin": 6,
   "above": 0.3,
-  "note": "the Roodee is flat throughout (At The Races), but its outer rail runs under banks (the city walls, Grosvenor Road's embankment, the railway): the 20 m ground tiles blur those into the turf, so the turf is brought down to the infield's level; the banks beyond it stay"
+  "note": "the Roodee is flat throughout (At The Races), but its outer rail runs under banks (the city walls, Grosvenor Road's embankment, the railway): the 20 m ground tiles blur those into the turf, so the turf is brought down to the infield's level; the banks beyond it stay",
+  "osmFeatures": [
+   {
+    "file": "osm-edges.json",
+    "name": "Roodee Viaduct",
+    "buffer": 24.0
+   },
+   {
+    "file": "osm-edges.json",
+    "name": "River Dee Viaduct",
+    "buffer": 24.0
+   }
+  ]
  },
  "perimeter": {
   "infieldBoards": false,
@@ -429,7 +453,12 @@
    "chester_wt_tower",
    "chester_wt_taper",
    "chester_terrace_row",
-   "chester_city_block"
+   "chester_city_block",
+   "chester_viaduct_bay",
+   "chester_viaduct_span",
+   "chester_grosvenor_bridge",
+   "chester_castle_range",
+   "chester_agricola_tower"
   ]
  },
  "edges": {
@@ -440,6 +469,12 @@
     -420,
     520,
     90
+   ],
+   [
+    -260,
+    -420,
+    -150,
+    10
    ]
   ],
   "mainWall": {
@@ -447,6 +482,17 @@
   },
   "terraceDens": 1.5,
   "note": "the city side of the home straight and the home turn (world box x -150..520, z -420..90, outside the infield): the placeholder trees and boards cleared; the walls from OSM (the terraces along x 70-300, past the stands); the buildings beyond the wall as boxes",
-  "wallDens": 0.45
+  "wallDens": 0.45,
+  "far": {
+   "riverBox": [
+    -420,
+    -500,
+    820,
+    820
+   ],
+   "farBankMin": 70,
+   "farBankMax": 260,
+   "houseBack": 28
+  }
  }
 }

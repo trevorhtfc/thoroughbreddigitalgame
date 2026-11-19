@@ -3245,6 +3245,41 @@
 "crowd": [],
 "triangles": 2022
 },
+"chester_viaduct_bay": {
+"width": 12.0,
+"depth": 9.0,
+"height": 12.45,
+"crowd": [],
+"triangles": 432
+},
+"chester_viaduct_span": {
+"width": 33.0,
+"depth": 9.0,
+"height": 14.3,
+"crowd": [],
+"triangles": 624
+},
+"chester_grosvenor_bridge": {
+"width": 100.0,
+"depth": 12.0,
+"height": 18.5,
+"crowd": [],
+"triangles": 6144
+},
+"chester_castle_range": {
+"width": 60.0,
+"depth": 22.0,
+"height": 16.6,
+"crowd": [],
+"triangles": 914
+},
+"chester_agricola_tower": {
+"width": 11.6,
+"depth": 11.6,
+"height": 18.8,
+"crowd": [],
+"triangles": 616
+},
 "chester_city_block": {
 "width": 30.0,
 "depth": 16.0,

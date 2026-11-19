@@ -503,9 +503,9 @@
    "label": "Railway side, head-on",
    "kind": "fixed",
    "at": [
-    -37.78,
+    -43.66,
     5,
-    390.68
+    396.12
    ],
    "fov": [
     1.5,
@@ -514,7 +514,7 @@
    "frame": "field",
    "leadRoom": 2,
    "atD": 1150,
-   "note": "low in the infield ahead of them on the railway side: the inside rail in front, the boards and trees beyond (43-57 s)"
+   "note": "low in the infield ahead of them on the railway side: the inside rail in front, the boards and trees beyond (43-57 s); just inside the inside rail, clear of the infield festival"
   },
   "west_wide": {
    "label": "Across the infield",
@@ -537,9 +537,9 @@
    "label": "Home turn",
    "kind": "fixed",
    "at": [
-    305.31,
+    294.86,
     7,
-    10.26
+    46.79
    ],
    "fov": [
     1.5,
@@ -548,7 +548,7 @@
    "frame": "field",
    "leadRoom": 2,
    "atD": 300,
-   "note": "head-on as they swing for home past the chute (101-107 s)"
+   "note": "head-on as they swing for home past the chute (101-107 s); from inside the bend (the city wall runs close outside it here)"
   },
   "straight_high": {
    "label": "Into the straight, high",

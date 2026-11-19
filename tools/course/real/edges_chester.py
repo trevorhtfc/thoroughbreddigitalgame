@@ -31,6 +31,10 @@ BRICKS = ["#c98a72", "#b97862", "#d39b80", "#bf846f", "#e2c7ad"]       # the cit
 ROOFS = ["#8c6e66", "#7e7a86", "#956f62"]
 
 
+def polys_(g):
+    return [g] if g.geom_type == "Polygon" else [q for q in getattr(g, "geoms", []) if q.geom_type == "Polygon"]
+
+
 def build(S, LY, course, turf, trees, boards, opts, NM, rnd):
     """Adds the edges to the scene S and clears the placeholder trees and boards where the city stands. LY: the layout's
     Course (OSM's metres to the race view's world: LY.world). Returns a note."""
@@ -58,6 +62,7 @@ def build(S, LY, course, turf, trees, boards, opts, NM, rnd):
     MODEL = "chester_stands"
     walls = [W(f["p"]) for f in E if f["kind"] == "wall"]
     walls = [w for w in walls if LineString(w).length > 15 and any(in_clear(x, z) for x, z in w)]
+    far_side = None
     # the wall along the home straight (Nun's Road): the one with the most length close to the track
     def near_len(w):
         ln = LineString(w); return sum(1.0 for d_ in np.arange(0, ln.length, 1.0) if turf.distance(ln.interpolate(d_)) < 70.0)
@@ -149,6 +154,127 @@ def build(S, LY, course, turf, trees, boards, opts, NM, rnd):
         S.piece(MODEL, piece, front[0], front[1], turn, sx=min(1.5, max(0.5, Lm / gi["width"])), sc=1.0)
         nb += 1
     note["city buildings"] = nb
+    # ---- the far edges (owner, 19 Nov 08:06: "Yeah fill the edges")
+    from shapely.ops import unary_union as _uu
+    far = opts.get("far", {})
+    # the river: the Dee's water as a flat, clipped to the view; no trees on it
+    water = None
+    for f in E:
+        if f["kind"] == "water" and "parts" in f:
+            outer = [Polygon(W(pt["p"])) for pt in f["parts"] if pt["role"] == "outer" and len(pt["p"]) > 3]
+            holes = [Polygon(W(pt["p"])) for pt in f["parts"] if pt["role"] == "inner" and len(pt["p"]) > 3]
+            if outer:
+                water = _uu([g.buffer(0) for g in outer]).difference(_uu([g.buffer(0) for g in holes]) if holes else Polygon())
+    if water is not None:
+        view = box(*far.get("riverBox", [-420.0, -500.0, 820.0, 820.0]))
+        water = water.intersection(view).difference(turf.buffer(8.0))
+        for g in polys_(water):
+            if g.area > 200:
+                S.flat(far.get("waterColour", "#a7c1cb"), [(round(a, 2), round(b, 2)) for a, b in g.simplify(1.5).exterior.coords[:-1]], 0.06)
+        pw = prep(water.buffer(3.0))
+        n0 = len(trees); trees[:] = [t for t in trees if not pw.contains(Point(t[0], t[1]))]
+        note["trees off the river"] = n0 - len(trees)
+
+    def line_of(name_bits, bridge_only=True):
+        ws = [W(f["p"]) for f in E if f["kind"] == "rail" and all(b in str(f["tags"]) for b in name_bits)
+              and (not bridge_only or f["tags"].get("bridge") == "viaduct")]
+        return ws
+
+    # the Roodee Viaduct: brick arches from the north corner down to the river, then the railway's spans over the Dee
+    n_v = 0
+    ways = [w for w in line_of(["Shrewsbury"]) if LineString(w).length > 300]
+    if ways:
+        rv = LineString(min(ways, key=lambda w: turf.distance(LineString(w))))
+        if rv.coords[0][1] > rv.coords[-1][1]: rv = LineString(list(rv.coords)[::-1])       # from the north corner
+        river_ways = [w for w in line_of(["Shrewsbury"]) if 60 < LineString(w).length < 160] + \
+                     [w for w in line_of(["Crewe"]) if 60 < LineString(w).length < 160]
+        def run(line, piece, step, offset):
+            nonlocal n_v
+            L = line.length; k = 0.0
+            while k + step <= L + 0.01:
+                m, t, n = frame(line, k, k + step)
+                m = m + n * offset                               # the line is the railway's centre: the face is half a deck out
+                gi = INFO[piece]
+                turn = math.degrees(math.atan2(n[0], n[1]))
+                S.piece(MODEL, piece, m[0], m[1], turn, y=S.G(*m))
+                S.nogo.append([tuple(m - t * step / 2), tuple(m + t * step / 2), tuple(m + t * step / 2 - n * gi["depth"]), tuple(m - t * step / 2 - n * gi["depth"])])
+                n_v += 1; k += step
+        run(rv, "chester_viaduct_bay", INFO["chester_viaduct_bay"]["width"], INFO["chester_viaduct_bay"]["depth"] / 2)
+        if river_ways:
+            rw = LineString(min(river_ways, key=lambda w: LineString(w).distance(Point(*rv.coords[-1]))))
+            if Point(*rw.coords[0]).distance(Point(*rv.coords[-1])) > Point(*rw.coords[-1]).distance(Point(*rv.coords[-1])):
+                rw = LineString(list(rw.coords)[::-1])
+            run(rw, "chester_viaduct_span", INFO["chester_viaduct_span"]["width"], INFO["chester_viaduct_span"]["depth"] / 2)
+        # nothing beyond the viaduct (22:08): its far side cleared of the placeholder trees and boards
+        far_side = LineString(list(rv.coords)).buffer(400.0, single_sided=True)
+        test = Point(*(np.array(rv.interpolate(rv.length / 2).coords[0]) + 50 * np.array([1.0, 0.0])))
+        if far_side.distance(turf) < 1.0 or far_side.contains(Point(turf.centroid.x, turf.centroid.y)):
+            far_side = LineString(list(rv.coords)).buffer(-400.0, single_sided=True)
+        far_side = far_side.union(LineString(list(rv.coords)).buffer(8.0))
+        pf = prep(far_side)
+        n0, b0_ = len(trees), len(boards)
+        trees[:] = [t for t in trees if not pf.contains(Point(t[0], t[1]))]
+        boards[:] = [b for b in boards if not pf.contains(Point(b[0], b[1]))]
+        note["cleared beyond the viaduct"] = [n0 - len(trees), b0_ - len(boards)]
+    note["viaduct pieces"] = n_v
+
+    # Grosvenor Bridge, on its OSM outline; the castle's range and the Agricola Tower on the castle's
+    for f in E:
+        nm = f["tags"].get("name", "")
+        if nm == "Grosvenor Bridge" and "p" in f:
+            P = Polygon(W(f["p"])).buffer(0); mr = P.minimum_rotated_rectangle; xy = np.array(mr.exterior.coords)[:4]
+            e0, e1 = xy[1] - xy[0], xy[2] - xy[1]; L0, L1 = np.hypot(*e0), np.hypot(*e1)
+            ax = e0 / L0 if L0 >= L1 else e1 / L1; Lm, Dm = max(L0, L1), min(L0, L1)
+            c = xy.mean(0); n = np.array([-ax[1], ax[0]])
+            if turf.distance(Point(*(c + n * 5))) > turf.distance(Point(*(c - n * 5))): n = -n
+            front = c + n * Dm / 2
+            gi = INFO["chester_grosvenor_bridge"]
+            S.piece(MODEL, "chester_grosvenor_bridge", front[0], front[1], math.degrees(math.atan2(n[0], n[1])),
+                    sx=Lm / gi["width"], y=float(np.min([S.G(*q) for q in xy])))
+            note["Grosvenor Bridge"] = [round(Lm), round(Dm)]
+        if f["kind"] == "historic" and nm == "Chester Castle" and "p" in f:
+            P = Polygon(W(f["p"])).buffer(0); c = np.array(P.centroid.coords[0])
+            near = np.array(P.exterior.interpolate(P.exterior.project(Point(*np.array(turf.centroid.coords[0])))).coords[0])
+            n = c - near; n = -n / (np.hypot(*n) or 1)                    # towards the track
+            pos = near - n * 18.0
+            S.piece(MODEL, "chester_castle_range", pos[0], pos[1], math.degrees(math.atan2(n[0], n[1])), y=S.G(*pos))
+            tw = near - n * 4.0 + np.array([-n[1], n[0]]) * 38.0
+            S.piece(MODEL, "chester_agricola_tower", tw[0], tw[1], math.degrees(math.atan2(n[0], n[1])), y=S.G(*tw))
+            note["castle"] = True
+
+    # Grosvenor Road at the home turn: the carriageway on the ground (its bridge is the model)
+    nr = 0
+    for f in E:
+        if f["kind"] == "road" and f["tags"].get("name") == "Grosvenor Road" and not f["tags"].get("bridge") and "p" in f:
+            g = LineString(W(f["p"])).buffer(far.get("roadHalfWidth", 6.0), cap_style=2).difference(turf.buffer(6.0))
+            for gg in polys_(g):
+                if gg.area > 50:
+                    S.flat("#b9b3ab", [(round(a, 2), round(b, 2)) for a, b in gg.simplify(0.8).exterior.coords[:-1]], 0.05); nr += 1
+    note["road pieces"] = nr
+
+    # the houses over the river (Handbridge): terraced rows on the far bank, set back behind its trees, facing the course
+    nh = 0
+    if water is not None:
+        bank_pts = []
+        for g in polys_(water):
+            ring = g.exterior
+            for k in np.arange(0, ring.length, 45.0):
+                q = ring.interpolate(k); d = turf.distance(q)
+                if far.get("farBankMin", 70.0) < d < far.get("farBankMax", 260.0): bank_pts.append((q.x, q.y))
+        for x, z in bank_pts:
+            q = np.array([x, z]); a_ = np.array(turf.exterior.interpolate(turf.exterior.project(Point(x, z))).coords[0])
+            n = q - a_; n /= (np.hypot(*n) or 1)                         # away from the course
+            pos = q + n * far.get("houseBack", 28.0)
+            if water.buffer(6.0).contains(Point(*pos)) or (far_side is not None and ways and pf.contains(Point(*pos))): continue
+            if any(Polygon(nq).contains(Point(*pos)) for nq in S.nogo[-400:]): continue
+            turn = math.degrees(math.atan2(-n[0], -n[1]))
+            S.piece(MODEL, "chester_terrace_row", pos[0], pos[1], turn, sx=rnd.uniform(0.8, 1.05), y=S.G(*pos)); nh += 1
+            for k in range(3):                                           # a few trees in front, on the bank
+                tp = q + n * rnd.uniform(6, 18) + np.array([-n[1], n[0]]) * rnd.uniform(-20, 20)
+                if not water.contains(Point(*tp)):
+                    trees.append([round(tp[0], 2), round(tp[1], 2), rnd.choice(["oak", "lime", "beech"]) if False else trees[0][2] if trees else 0, round(rnd.uniform(1.1, 1.5), 2), rnd.randrange(360)])
+    note["houses over the river"] = nh
+
     # ---- life (owner, 00:39: "build the festival crowd etc and bring it to life"): flags along the wall's walkway over the
     # terraces, balloon pods in rows of five along the infield opposite the stands, banner flags on the rail lawn
     from shapely.geometry import LineString as _LS

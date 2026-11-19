@@ -585,6 +585,134 @@ def city_block(W=30.0, D=16.0, floors=5):
     return {"width": W, "depth": D, "height": round(H + 2.2, 2)}
 
 
+# ------------------------------------------------------------------------------------------ 6: the far edges
+# Owner, 19 Nov 08:06: "Yeah fill the edges": the Roodee Viaduct along the railway side (the edge there: 22:08 "we deffo
+# dont need anything that sits to the left of the viaduct"), the railway's bridge over the Dee, Grosvenor Bridge and the
+# castle at the home turn. Origins in the middle of the face towards the track.
+def arch_face(mat, x0, x1, y0, y1, span, spring, ztop, seg=None):
+    """A wall from x0 to x1 (y0..y1 thick) up to ztop with an arch through it: semicircular, or segmental with rise 'seg'."""
+    xc = (x0 + x1) / 2; r = span / 2
+    if seg:                                                            # segmental: a circle through the springings and crown
+        R = (r * r + seg * seg) / (2 * seg); zc = spring + seg - R
+        a = math.asin(r / R)
+        arc = [(xc - R * math.sin(t), zc + R * math.cos(t)) for t in [-a + 2 * a * k / 16 for k in range(17)]]
+    else:
+        arc = [(xc - r * math.cos(t), spring + r * math.sin(t)) for t in [math.pi * k / 16 for k in range(17)]]
+    prof = [(x0, -1.0), (xc - r, -1.0)] + arc + [(xc + r, -1.0), (x1, -1.0), (x1, ztop), (x0, ztop)]
+    K.prism_y(mat, y0, y1, prof)
+    return arc
+
+
+def viaduct_bay(L=12.0, D=9.0, span=9.6, spring=5.0, deck=11.2):
+    """A bay of the Roodee Viaduct: brick piers and a round arch, a stone impost band and string course, the parapet,
+    the deck with its two lines of rails."""
+    x0, x1 = -L / 2, L / 2
+    arc = arch_face("brick", x0, x1, 0.0, D, span, spring, deck)
+    for x, z in arc[1:-1:2]:                                           # the arch ring: a band of darker brick round it
+        K.box("brick_dark", x - 0.45, x + 0.45, -0.06, 0.0, z - 0.1, z + 0.75)
+        K.box("brick_dark", x - 0.45, x + 0.45, D, D + 0.06, z - 0.1, z + 0.75)
+    for xs in (x0 + (L - span) / 2, x1 - (L - span) / 2):              # impost bands at the springing
+        for xx0, xx1 in ((xs - 1.3 if xs < 0 else xs, xs if xs < 0 else xs + 1.3),):
+            pass
+    K.box("stone_lit", x0, x0 + (L - span) / 2 + 0.15, -0.12, D + 0.12, spring - 0.35, spring)
+    K.box("stone_lit", x1 - (L - span) / 2 - 0.15, x1, -0.12, D + 0.12, spring - 0.35, spring)
+    K.box("stone_lit", x0, x1, -0.2, D + 0.2, deck - 0.5, deck - 0.15)      # the string course
+    for y0, y1 in ((-0.1, 0.45), (D - 0.45, D + 0.1)):                   # the parapets and their coping
+        K.box("brick", x0, x1, y0, y1, deck - 0.15, deck + 1.05)
+        K.box("coping", x0, x1, y0 - 0.06, y1 + 0.06, deck + 1.05, deck + 1.25)
+    K.box("paving", x0, x1, 0.45, D - 0.45, deck - 0.2, deck + 0.15)          # ballast
+    for yc in (D * 0.3, D * 0.7):
+        for dy in (-0.72, 0.72):
+            K.box("iron", x0, x1, yc + dy - 0.04, yc + dy + 0.04, deck + 0.15, deck + 0.3)
+    return {"width": L, "depth": D, "height": deck + 1.25}
+
+
+def viaduct_span(L=33.0, D=9.0, span=29.0, spring=3.0, rise=8.0, deck=13.0):
+    """A span of the railway's bridge over the Dee: a wide segmental stone arch between piers with cutwaters."""
+    x0, x1 = -L / 2, L / 2
+    arc = arch_face("stone", x0, x1, 0.0, D, span, spring, deck, seg=rise)
+    for x, z in arc[1:-1]:
+        K.box("stone_lit", x - 0.7, x + 0.7, -0.08, 0.0, z - 0.1, z + 1.0)
+        K.box("stone_lit", x - 0.7, x + 0.7, D, D + 0.08, z - 0.1, z + 1.0)
+    for xp in (x0, x1):                                                  # cutwaters on the piers, both faces
+        K.prism_x("stone_dark", xp - 1.6, xp + 1.6, [(0.0, -1.0), (-2.4, -1.0), (-2.4, spring + 0.5), (0.0, spring + 2.4)])
+        K.prism_x("stone_dark", xp - 1.6, xp + 1.6, [(D, -1.0), (D + 2.4, -1.0), (D + 2.4, spring + 0.5), (D, spring + 2.4)])
+    K.box("stone_lit", x0, x1, -0.25, D + 0.25, deck - 0.6, deck - 0.2)
+    for y0, y1 in ((-0.1, 0.5), (D - 0.5, D + 0.1)):
+        K.box("stone", x0, x1, y0, y1, deck - 0.2, deck + 1.1)
+        K.box("coping", x0, x1, y0 - 0.06, y1 + 0.06, deck + 1.1, deck + 1.3)
+    K.box("paving", x0, x1, 0.5, D - 0.5, deck - 0.3, deck + 0.1)
+    for yc in (D * 0.3, D * 0.7):
+        for dy in (-0.72, 0.72):
+            K.box("iron", x0, x1, yc + dy - 0.04, yc + dy + 0.04, deck + 0.1, deck + 0.25)
+    return {"width": L, "depth": D, "height": deck + 1.3}
+
+
+def grosvenor_bridge(L=100.0, D=12.0):
+    """Grosvenor Bridge: one great segmental stone arch (61 m) over the river, a small land arch in each abutment, a
+    cornice and a balustraded parapet, the road on top."""
+    x0, x1 = -L / 2, L / 2
+    span, rise, spring, deck = 61.0, 13.0, 1.5, 17.5
+    arc = arch_face("stone", x0, x1, 0.0, D, span, spring, deck, seg=rise)
+    for x, z in arc[1:-1]:
+        K.box("stone_lit", x - 1.0, x + 1.0, -0.1, 0.0, z - 0.1, z + 1.6)
+        K.box("stone_lit", x - 1.0, x + 1.0, D, D + 0.1, z - 0.1, z + 1.6)
+    for xs in (x0 + 9.0, x1 - 9.0):                                     # the land arches through the abutments
+        K.box("shade", xs - 3.0, xs + 3.0, -0.05, 0.02, -1.0, 4.5)
+        K.disc_y("shade", xs, -0.05, 0.02, 4.5, 3.0, segs=16)
+        K.box("shade", xs - 3.0, xs + 3.0, D - 0.02, D + 0.05, -1.0, 4.5)
+        K.disc_y("shade", xs, D - 0.02, D + 0.05, 4.5, 3.0, segs=16)
+    for xp in (x0 + 17.0, x1 - 17.0):                                   # pilasters either side of the great arch
+        K.box("stone_lit", xp - 1.2, xp + 1.2, -0.5, 0.0, -1.0, deck - 1.0)
+        K.box("stone_lit", xp - 1.2, xp + 1.2, D, D + 0.5, -1.0, deck - 1.0)
+    K.box("coping", x0, x1, -0.6, D + 0.6, deck - 1.0, deck - 0.4)        # the cornice
+    for y in (0.0, D - 0.5):
+        K.box("stone_lit", x0, x1, y, y + 0.5, deck - 0.4, deck - 0.1)
+        K.balustrade(x0 + 0.4, x1 - 0.4, y + 0.25, deck - 0.1, h=1.1, mat="coping", spacing=0.45)
+    K.box("concrete", x0, x1, 0.5, D - 0.5, deck - 0.5, deck - 0.2)
+    return {"width": L, "depth": D, "height": deck + 1.0}
+
+
+def castle_range(L=60.0, D=16.0):
+    """Chester Castle's classical range (Harrison's Greek revival): a long pale stone block with a Doric portico and
+    pediment in the middle, rows of tall windows, a deep cornice."""
+    x0, x1 = -L / 2, L / 2; H = 13.0
+    K.box("render", x0, x1, 0.0, D, -1.0, H)
+    for z in (1.6, 7.0):
+        for i in range(12):
+            x = x0 + 3.0 + i * (L - 6.0) / 11
+            if abs(x) > 9.0: K.window(x, 0.0, z, 1.6, 3.4, panes=False)
+    K.box("trim", x0 - 0.3, x1 + 0.3, -0.5, D + 0.3, H, H + 0.9)
+    K.box("render", x0 + 0.5, x1 - 0.5, 0.5, D - 0.5, H + 0.9, H + 2.0)
+    # the portico: six Doric columns, an entablature and a pediment
+    K.box("trim", -9.0, 9.0, -6.0, 0.0, -1.0, 0.8)
+    for i in range(6):
+        K.cyl("trim", -7.5 + i * 3.0, -5.0, 0.8, H - 1.4, 0.75, 0.62, segs=12)
+    K.box("trim", -8.8, 8.8, -6.0, 0.0, H - 1.4, H + 0.2)
+    K.prism_y("trim", -6.0, -5.6, [(-8.8, H + 0.2), (8.8, H + 0.2), (0.0, H + 3.6)])
+    K.prism_x("render", -8.8, 8.8, [(-6.0, H + 0.2), (0.0, H + 0.2), (0.0, H + 3.6), (-6.0, H + 0.2)])
+    return {"width": L, "depth": D + 6.0, "height": H + 3.6}
+
+
+def agricola_tower(W=11.0):
+    """The Agricola Tower: a square red sandstone tower with battlements and small windows."""
+    H = 17.0
+    K.box("stone", -W / 2, W / 2, 0.0, W, -1.0, H)
+    for i in range(1, int(H / 0.62)):
+        K.box("stone_dark", -W / 2 - 0.02, W / 2 + 0.02, -0.02, 0.0, 0.62 * i, 0.62 * i + 0.04)
+    K.box("coping", -W / 2 - 0.3, W / 2 + 0.3, -0.3, W + 0.3, H, H + 0.4)
+    for side in range(4):                                                # merlons all round
+        for i in range(5):
+            u = -W / 2 + 0.6 + i * (W - 1.2) / 4
+            if side == 0: K.box("stone", u - 0.6, u + 0.6, -0.3, 0.5, H + 0.4, H + 1.8)
+            if side == 1: K.box("stone", u - 0.6, u + 0.6, W - 0.5, W + 0.3, H + 0.4, H + 1.8)
+            if side == 2: K.box("stone", -W / 2 - 0.3, -W / 2 + 0.5, u + W / 2 - 0.6, u + W / 2 + 0.6, H + 0.4, H + 1.8)
+            if side == 3: K.box("stone", W / 2 - 0.5, W / 2 + 0.3, u + W / 2 - 0.6, u + W / 2 + 0.6, H + 0.4, H + 1.8)
+    for z in (5.0, 10.5):
+        K.box("shade", -0.5, 0.5, -0.05, 0.02, z, z + 1.8)
+    return {"width": W + 0.6, "depth": W + 0.6, "height": H + 1.8}
+
+
 # ------------------------------------------------------------------------------------------ build and export
 PIECES = [
     ("chester_county_stand", county_stand),
@@ -598,6 +726,11 @@ PIECES = [
     ("chester_wt_tower", wt_tower),
     ("chester_wt_taper", wt_taper),
     ("chester_terrace_row", terrace_row),
+    ("chester_viaduct_bay", viaduct_bay),
+    ("chester_viaduct_span", viaduct_span),
+    ("chester_grosvenor_bridge", grosvenor_bridge),
+    ("chester_castle_range", castle_range),
+    ("chester_agricola_tower", agricola_tower),
     ("chester_city_block", city_block),
 ]
 LIB = bpy.data.collections.new("chester_stands_kit")

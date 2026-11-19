@@ -128,6 +128,18 @@ class Course:
             inf = np.array([[infield.contains(Point(x, y)) for x in xs] for y in ys])
             base = float(np.median(self.DH[inf])) + lv.get("above", 0.3)
             self.DH = np.where(on & (self.DH > base), base, self.DH)
+            # OSM features whose height the tiles took for ground (Chester: the Roodee Viaduct's deck read as a bank):
+            # brought down to the level of the ground either side of them
+            for fx in lv.get("osmFeatures", []):
+                E = json.loads((REPO / f"reference/{cid}/{fx['file']}").read_text())["features"]
+                for f in E:
+                    if f["tags"].get("name") != fx["name"] or "p" not in f: continue
+                    g = LineString([tuple(q) for q in f["p"]]).buffer(fx.get("buffer", 14.0))   # (osm-edges: metres already)
+                    m = np.array([[g.contains(Point(x, y)) for x in xs] for y in ys])
+                    ring = np.array([[g.buffer(30.0).contains(Point(x, y)) for x in xs] for y in ys]) & ~m
+                    if m.any() and ring.any():
+                        lvl = min(float(np.percentile(self.DH[ring], 30)), base + fx.get("above", 0.5))
+                        self.DH = np.where(m & (self.DH > lvl), lvl, self.DH)
         self.RAIL ={name: self.rail(spec) for name, spec in C["routes"].items()}
         post = C["post"]
         L = self.RAIL[post["route"]]
