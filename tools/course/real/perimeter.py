@@ -313,7 +313,7 @@ def perimeter(S, C, turf, grid_box, rnd=None, opts=None):
                         if cut.is_empty: break
                         zs = [c[1] for gm in getattr(cut, "geoms", [cut]) for c in gm.coords]
                         z0 = min(zs, key=lambda zz: turf.distance(Point(x, zz)))
-                        z = z0 + (1 if raw.contains(Point(x, z0 + 1)) else -1) * br.get("in", 6.0)
+                        z = z0 + (1 if g.contains(Point(x, z0 + 1)) else -1) * br.get("in", 6.0)   # (into the zone: raw reaches the rail on a right-handed course)
                         if not g.contains(Point(x, z)): break
                         row.append((x, z))
                     if len(row) == br.get("n", 5):
@@ -323,7 +323,9 @@ def perimeter(S, C, turf, grid_box, rnd=None, opts=None):
                 res["balloon rows"] = nrow
             for gg in polys(g):
                 if gg.area < fz_.get("minArea", 800): continue
-                S.flat("#d8d0a2", list(gg.simplify(1.0).exterior.coords)[:-1], 0.028)
+                patches = fz_.get("ground") == "patches"            # (Sandown, 13:28: trodden ground round each piece, lawn between)
+                if not patches: S.flat("#d8d0a2", list(gg.simplify(1.0).exterior.coords)[:-1], 0.028)
+                ng0 = len(S.nogo)
                 x0_, z0_, x1_, z1_ = gg.bounds; per = gg.area / 10000.0
                 def ok(x, z, r):
                     return gg.buffer(-r).contains(Point(x, z)) and all(math.hypot(x - a, z - b) > r + rb + 3 for a, b, rb in placed) and not S.blocked(x, z)
@@ -339,6 +341,10 @@ def perimeter(S, C, turf, grid_box, rnd=None, opts=None):
                                 elif fz_.get("kit") == "standside": turn = face_track + rnd.choice([0, 0, 0, 90, -90])
                                 else: turn = (180.0 if side < 0 else 0.0) + rnd.choice([0, 0, 0, 90, -90])   # the infield's face the stands
                                 sp(piece, x, z, turn, 0.6, sc); placed.append((x, z, r * sc)); res["pieces"] += 1; break
+                if patches:
+                    worn = unary_union([Polygon(q).buffer(fz_.get("patch", 5.0), join_style=1) for q in S.nogo[ng0:]]).buffer(2.0).buffer(-2.0).intersection(gg)
+                    for wp in polys(worn):
+                        if wp.area > 20: S.flat("#d8d0a2", list(wp.simplify(0.8).exterior.coords)[:-1], 0.028)
                 for _ in range(int(gg.area * fz_.get("dens", 0.035))):
                     x, z = rnd.uniform(x0_, x1_), rnd.uniform(z0_, z1_)
                     if gg.contains(Point(x, z)) and not S.blocked(x, z):

@@ -328,44 +328,20 @@
   },
   "polesOnRoute": "round",
   "tv": {
-   "note": "Sandown (no race video yet; from the course's shape and the owner's Google Maps views, 19 Nov): the tracking car round the course; head-on as they come round the far bend and down the east side; low on the outside at the home turn, head-on up the run-in; the stand camera for the last 2 furlongs. The sprint course: the tracking car up its stand side, the head-on from beyond its own post, then its own finish camera (cameraSwap).",
+   "note": "Sandown (owner, 19 Nov 13:34, his Racing TV video of a 2m50y race): head-on down the home straight from the outside of the west bend as they come past the stands the first time; the infield car alongside, the stand side behind them; head-on again into the west bend; high across the bend from inside it; the tracking car up the west side; the infield car all along the back straight, the golf course in front of it, the houses beyond; head-on at the end of the back straight from behind the chase fences; head-on round the far bend; high across the end of the bend; the tracking car down the east side; the infield car up the run-in, the stand side behind; then the finish square on from the infield, the stands behind the line. The sprint course: the tracking car, its head-on, its own finish camera (cameraSwap). Sprint course (owner, 13:52, his Racing TV video of a 5f10y race): one camera alongside the whole way, on the near (festival) side looking across the field to the far rail, the bushes and the golf course beyond, the near rail's crowd in the foreground at the end; then the finish square on from the near side, the boards on the far rail at the line.",
    "cams": {
-    "far_bend": {
-     "label": "Far bend",
-     "route": "round",
-     "d": 640,
-     "off": 30,
-     "h": 8,
-     "fov": [
-      1.5,
-      26
-     ],
-     "note": "on the outside at the foot of the east side, the field coming round the far bend at it"
-    },
-    "turn_headon": {
-     "label": "Home turn",
-     "route": "round",
-     "d": 300,
-     "off": 34,
-     "h": 7,
-     "fov": [
-      1.5,
-      26
-     ],
-     "note": "on the outside past the home turn, head-on as they straighten up the hill"
-    },
     "sprint_stand": {
      "label": "Sprint finish",
      "route": "straight",
      "d": 0,
-     "off": -42,
-     "h": 12,
+     "off": 40,
+     "h": 6,
      "fov": [
       1.5,
       26
      ],
      "leadRoom": 3,
-     "note": "on the sprint course's line, out on the golf course side: the stands, the run-in and the festival behind the field"
+     "note": "on the sprint course's line, out on the festival side, low: the field against the boards and bushes on the far side (59-61 s)"
     },
     "sprint_headon": {
      "label": "Head-on",
@@ -386,7 +362,7 @@
      "label": "Side-on replay",
      "route": "straight",
      "d": 0,
-     "off": -36,
+     "off": 42,
      "h": 5,
      "fov": [
       46,
@@ -397,41 +373,168 @@
       13,
       1.4
      ],
-     "note": "square on to the sprint course's line from the golf course side"
+     "note": "square on to the sprint course's line from the festival side, the bushes behind"
     },
     "grandstand": {
      "copy": "grandstand",
      "at": [
       0,
-      22.0,
-      46.0
+      7.0,
+      -30.0
      ],
-     "note": "just in front of the main stand's roof edge on the line"
+     "label": "Finish",
+     "note": "the finish square on from the infield, 30 m inside the line, the stands behind it (212-216 s); the stand camera's place in every rule (the hold on the line after the winner)"
+    },
+    "track_inside": {
+     "copy": "track_loop",
+     "label": "Tracking (infield)",
+     "railSide": "inside",
+     "side": 6,
+     "height": 2.6,
+     "fov": [
+      5,
+      40
+     ],
+     "note": "the car in the infield just inside the inside rail, a long lens: the outer rail and what's beyond it behind the field (the video's 14-37 s, 62-110 s and 170-212 s)"
+    },
+    "bend_headon": {
+     "label": "West bend, head-on",
+     "route": "loop",
+     "d": 2480,
+     "off": 38,
+     "h": 12,
+     "fov": [
+      0.6,
+      24
+     ],
+     "note": "on the outside of the west bend, the long lens back down the home straight as they come past the stands the first time (0-14 s, 37-46 s)"
+    },
+    "west_bend_high": {
+     "label": "West bend",
+     "route": "loop",
+     "d": 2380,
+     "off": -45,
+     "h": 14,
+     "fov": [
+      3,
+      40
+     ],
+     "note": "high inside the west bend, across the field as it turns (46-54 s)"
+    },
+    "back_headon": {
+     "label": "Back straight, head-on",
+     "route": "round",
+     "d": 1440,
+     "off": -28,
+     "h": 5,
+     "fov": [
+      1.2,
+      22
+     ],
+     "note": "low inside the end of the back straight, behind the chase fences, the field coming at it (110-120 s)"
+    },
+    "far_bend_headon": {
+     "label": "Far bend",
+     "route": "round",
+     "d": 980,
+     "off": 40,
+     "h": 9,
+     "fov": [
+      1.5,
+      26
+     ],
+     "note": "on the outside in the far bend, head-on as they come round it, the rail curving away on the left (120-150 s, 156-160 s)"
+    },
+    "far_bend_high": {
+     "label": "Far bend, high",
+     "route": "round",
+     "d": 900,
+     "off": -40,
+     "h": 16,
+     "fov": [
+      2,
+      30
+     ],
+     "note": "high on the inside at the end of the bend, across them (150-156 s)"
+    },
+    "finish_infield": {
+     "label": "Finish (infield)",
+     "route": "round",
+     "d": 0,
+     "off": -30,
+     "h": 7,
+     "fov": [
+      1.5,
+      26
+     ],
+     "note": "stands for the infield finish camera, so the festival is cleared round it (clearAround)"
+    },
+    "track_sprint": {
+     "copy": "track_straight",
+     "label": "Tracking",
+     "railSide": "outer",
+     "side": 10,
+     "height": 4.5,
+     "fov": [
+      6,
+      42
+     ],
+     "note": "the car on the sprint course's near side, 10 m off its rail and up over the rail crowd, looking across at the far side's bushes (the video's 0-58 s)"
     }
    },
    "shots": [
     [
-     4000,
-     1060,
+     3400,
+     3000,
+     "track_inside"
+    ],
+    [
+     3000,
+     2586,
+     "bend_headon"
+    ],
+    [
+     2586,
+     2440,
+     "west_bend_high"
+    ],
+    [
+     2440,
+     2316,
      "track_loop"
     ],
     [
-     1060,
-     700,
-     "far_bend"
+     2316,
+     1646,
+     "track_inside"
     ],
     [
-     700,
-     470,
+     1646,
+     1506,
+     "back_headon"
+    ],
+    [
+     1506,
+     1126,
+     "far_bend_headon"
+    ],
+    [
+     1126,
+     1026,
+     "far_bend_high"
+    ],
+    [
+     1026,
+     826,
      "track_loop"
     ],
     [
-     470,
-     402,
-     "turn_headon"
+     826,
+     230,
+     "track_inside"
     ],
     [
-     402,
+     230,
      -1,
      "grandstand"
     ]
@@ -439,16 +542,11 @@
    "shotsStraight": [
     [
      1100,
-     330,
-     "track_straight"
+     95,
+     "track_sprint"
     ],
     [
-     330,
-     190,
-     "sprint_headon"
-    ],
-    [
-     190,
+     95,
      -1,
      "grandstand"
     ]
@@ -457,7 +555,8 @@
     "straight": {
      "grandstand": "sprint_stand",
      "headon": "sprint_headon",
-     "sideon": "sprint_sideon"
+     "sideon": "sprint_sideon",
+     "track_straight": "track_sprint"
     }
    },
    "menu": {
@@ -485,12 +584,16 @@
       "Tracking"
      ],
      [
-      "far_bend",
+      "track_inside",
+      "Infield"
+     ],
+     [
+      "far_bend_headon",
       "Far bend"
      ],
      [
       "grandstand",
-      "Stand"
+      "Finish"
      ],
      [
       "drone_straight",
@@ -500,18 +603,17 @@
    },
    "clearAround": {
     "cams": [
-     "far_bend",
-     "turn_headon",
-     "sprint_stand",
-     "sprint_headon",
-     "sprint_sideon"
+     "back_headon",
+     "far_bend_headon",
+     "finish_infield",
+     "sprint_headon"
     ],
-    "radius": 30.0,
-    "ahead": 300.0,
-    "width": 10.0
+    "radius": 25.0,
+    "ahead": 160.0,
+    "width": 8.0
    }
   },
-  "lede": "Sandown Park in 3D, right-handed, on its real outline (OpenStreetMap) and real ground (AWS Terrain Tiles): the stiff climb of about 13 m up the last half-mile to the stands, and the sprint course running uphill across the middle to its own winning post. The two main grandstands modelled from your photos: the main stand with its deep ribbed roof, the fins on top and the row of white peaked tents along its back, and the Eclipse stand beside it. The festival opposite the stands, between the run-in and the sprint course.",
+  "lede": "Sandown Park in 3D, right-handed, on its real outline (OpenStreetMap) and real ground (AWS Terrain Tiles): the stiff climb of about 13 m up the last half-mile to the stands, and the sprint course running uphill across the middle to its own winning post. The two main grandstands modelled from your photos: the main stand with its deep ribbed roof, the fins on top and the row of white peaked tents along its back, and the Eclipse stand beside it. A full festival between the run-in and the sprint course, the bushes along the sprint's far side, and the TV cut from your two Racing TV videos.",
   "notes": [
    [
     "The real track.",
@@ -526,8 +628,16 @@
     "The main stand and the Eclipse stand, modelled new from your photos; the tents along the main stand's back show their peaks above the roof. Trees on the hill behind, as in your photos."
    ],
    [
+    "The festival.",
+    "The whole ground between the run-in and the sprint course: the half along the run-in faces the stands (marquees, big tops, rows of balloons, its rail crowd stood back so the infield car runs clear), the half along the sprint faces the sprint (little stands, decks, marquees, a crowd on its rail). Trodden ground round each piece, lawn between."
+   ],
+   [
+    "The far side of the sprint.",
+    "A band of bushes along its whole length: dark hedges in runs with clumps between, three rows of bushes behind, a loose row of trees; boards on its far rail at the finish."
+   ],
+   [
     "The cameras.",
-    "No race video yet, so a first cut: the tracking car round the course, a camera at the foot of the far bend, a head-on at the home turn, then the stand camera for the last two furlongs. Send a race video and I'll match its cut."
+    "From your two Racing TV videos. Round races: head-on down the home straight from the west bend, the infield car alongside with the stand side behind, high across the west bend, the infield car down the back straight over the golf course, head-on behind the chase fences, head-on round the far bend, the infield car up the run-in, then the finish square on from the infield with the stands behind. The sprint: one car alongside on the festival side looking across at the bushes, then its finish from the near rail."
    ]
   ]
  },
@@ -551,7 +661,7 @@
   "level": []
  },
  "perimeter": {
-  "note": "Sandown (19 Nov): the infield is the golf course (north of the sprint course) and the ground between the sprint course and the run-in (the go-karts in real life): there, as every course, the festival opposite the stands. No generic infield belt (it stood in the sprint course's cameras); parkland trees scattered over the golf course instead. Behind the stands the wooded hill (his photos: tall trees behind both stands).",
+  "note": "Sandown (19 Nov): the infield is the golf course (north of the sprint course) and the ground between the sprint course and the run-in (the go-karts in real life): there, as every course, the festival opposite the stands. No generic infield belt (it stood in the sprint course's cameras); parkland trees scattered over the golf course instead. Behind the stands the wooded hill (his photos: tall trees behind both stands). 13:28: a full festival between the run-in and the sprint course (two halves, sandown_zones.py), the bushes along the sprint's far side (edges_sandown.py).",
   "infieldTrees": false,
   "infieldBoards": false,
   "runInBoards": {
@@ -563,57 +673,109 @@
   },
   "festivals": [
    {
-    "name": "the run-in infield, between the run-in and the sprint course",
+    "name": "the run-in infield: the half along the run-in, facing the stands",
     "kit": "infield",
     "poly": [
      [
-      -150,
-      2
+      -203.2,
+      2.3
      ],
      [
-      60,
-      2
+      81.5,
+      1.4
      ],
      [
-      200,
-      -8
+      166.0,
+      -3.7
      ],
      [
-      330,
-      -50
+      388.5,
+      -50.1
      ],
      [
-      330,
-      -150
+      412.6,
+      -58.9
      ],
      [
-      200,
-      -160
+      443.8,
+      -75.3
      ],
      [
-      0,
-      -140
+      605.8,
+      -186.7
      ],
      [
-      -150,
-      -120
+      693.8,
+      -233.7
+     ],
+     [
+      711.0,
+      -245.9
+     ],
+     [
+      585.5,
+      -208.8
+     ],
+     [
+      386.3,
+      -134.7
+     ],
+     [
+      330.3,
+      -120.9
+     ],
+     [
+      143.5,
+      -90.9
+     ],
+     [
+      -98.8,
+      -73.6
+     ],
+     [
+      -205.3,
+      -59.0
+     ],
+     [
+      -320.9,
+      -57.5
+     ],
+     [
+      -311.7,
+      -41.1
+     ],
+     [
+      -294.5,
+      -22.6
+     ],
+     [
+      -277.3,
+      -11.5
+     ],
+     [
+      -258.0,
+      -4.5
      ]
     ],
-    "offTurf": 10.0,
-    "dens": 0.035,
+    "offTurf": 11.0,
+    "dens": 0.05,
+    "kitScale": 1.35,
     "railCrowd": {
-     "from": 1.5,
-     "to": 7.0,
-     "dens": 0.55
+     "from": 11.0,
+     "to": 18.0,
+     "dens": 0.6
     },
     "balloonRows": {
      "n": 5,
      "gap": 10,
-     "every": 120,
-     "in": 6,
+     "every": 110,
+     "in": 7,
      "start": 40,
-     "end": 40
-    }
+     "end": 60
+    },
+    "generated": "tools/course/real/sandown_zones.py",
+    "ground": "patches",
+    "patch": 2.5
    },
    {
     "name": "stand side, up the course past the main stand",
@@ -625,27 +787,23 @@
      ],
      [
       330,
-      20
+      40
      ],
      [
       330,
-      -40
+      -8
      ],
      [
-      300,
-      -60
-     ],
-     [
-      230,
-      -40
+      250,
+      4
      ],
      [
       150,
-      -14
+      22
      ],
      [
       105,
-      -5
+      26
      ]
     ],
     "offTurf": 4.0,
@@ -655,6 +813,71 @@
      "to": 7.0,
      "dens": 0.5
     }
+   },
+   {
+    "name": "the run-in infield: the half along the sprint course, facing it",
+    "kit": "standside",
+    "poly": [
+     [
+      -205.1,
+      -55.0
+     ],
+     [
+      -98.5,
+      -69.6
+     ],
+     [
+      143.9,
+      -87.0
+     ],
+     [
+      353.8,
+      -121.2
+     ],
+     [
+      387.7,
+      -131.0
+     ],
+     [
+      586.8,
+      -205.0
+     ],
+     [
+      693.7,
+      -237.9
+     ],
+     [
+      710.8,
+      -245.8
+     ],
+     [
+      -68.1,
+      -150.4
+     ],
+     [
+      -336.4,
+      -112.5
+     ],
+     [
+      -331.2,
+      -82.3
+     ],
+     [
+      -319.8,
+      -55.1
+     ]
+    ],
+    "offTurf": 18.0,
+    "dens": 0.05,
+    "kitScale": 1.35,
+    "railCrowd": {
+     "from": 2.0,
+     "to": 7.0,
+     "dens": 0.35
+    },
+    "generated": "tools/course/real/sandown_zones.py",
+    "ground": "patches",
+    "patch": 2.5
    }
   ],
   "gapTrees": [
@@ -758,5 +981,23 @@
   "lawnDens": 0.4,
   "treesClearOfBuildings": 5,
   "home": 470.0
+ },
+ "edges": {
+  "script": "edges_sandown",
+  "note": "owner, 19 Nov 13:28: the bushes along the far side of the sprint course emphasised",
+  "fences": [
+   1720,
+   1455,
+   1395,
+   1335,
+   1040
+  ],
+  "finishBoards": {
+   "from": -20,
+   "to": 50,
+   "every": 20,
+   "off": 5.0,
+   "scale": 1.6
+  }
  }
 }
