@@ -208,7 +208,8 @@ def perimeter(S, C, turf, grid_box, rnd=None, opts=None):
             turn = 0.0 if side < 0 else 180.0
             S.piece(model, piece, x, gz, turn, y=LEVEL.get(ei))
             S.stand_people(gi, x, gz, turn, 1.0, 1.0, dens, g=LEVEL.get(ei))
-            S.footprint(gi, x + gi.get("offset", 0.0) * (1 if side < 0 else -1), gz, turn)
+            # (an outline is drawn about the piece's own origin: no offset; 08:28, the kinked stand's trees)
+            S.footprint(gi, x + (0.0 if gi.get("outline") else gi.get("offset", 0.0) * (1 if side < 0 else -1)), gz, turn)
             ox = x + gi.get("offset", 0.0); hw = gi["width"] / 2
             lawn_x = [min(lawn_x[0], ox - hw), max(lawn_x[1], ox + hw)]
         note["stands"] = len(st["pieces"]); note["stand people"] = (len(S.people) - 0) // 4
@@ -234,6 +235,8 @@ def perimeter(S, C, turf, grid_box, rnd=None, opts=None):
     for gt in opts.get("gapTrees", []):
         g = Polygon(gt["poly"]).difference(turf.buffer(gt.get("offTurf", 12.0)))
         for ap in (aprons if st else []): g = g.difference(ap)
+        if S.nogo and gt.get("standMargin", 6.0):            # (Newbury, 08:28: "trees clashing with the kinked stand")
+            g = g.difference(unary_union([Polygon(q).buffer(0) for q in S.nogo]).buffer(gt.get("standMargin", 6.0)))
         n = 0
         for gg in polys(g):
             pg = prep(gg); a_, b_, c_, d_ = gg.bounds; sp_ = gt.get("every", 8.0)
@@ -351,6 +354,16 @@ def perimeter(S, C, turf, grid_box, rnd=None, opts=None):
     for x, z in S.spots(xa, xb, min(z_a, z_b), max(z_a, z_b), dens):
         if not turf.buffer(2.0).contains(Point(x, z)) and not S.blocked(x, z):
             S.person(x, 0.0, z, round((math.pi if side < 0 else 0.0) + rnd.uniform(-0.5, 0.5), 2))
+    lf = opts.get("lawnFront")                                # (Newbury, 08:28: the crowd up to the rail)
+    if lf:
+        z_a, z_b = side * (W + 0.5 + lf.get("from", 0.8)), side * (W + 0.5 + lf.get("to", 10.0))
+        for x, z in S.spots(xa, xb, min(z_a, z_b), max(z_a, z_b), lf.get("dens", 0.6)):
+            if not turf.buffer(0.8).contains(Point(x, z)) and not S.blocked(x, z):
+                S.person(x, 0.0, z, round((math.pi if side < 0 else 0.0) + rnd.uniform(-0.5, 0.5), 2))
     note["rail lawn crowd"] = (len(S.people) - p0) // 4
+    if opts.get("treesClearOfBuildings") and S.nogo:          # (Newbury, 08:28) no canopy over any building
+        nog = prep(unary_union([Polygon(q).buffer(0) for q in S.nogo]).buffer(opts["treesClearOfBuildings"]))
+        n0 = len(trees); trees[:] = [t for t in trees if not nog.contains(Point(t[0], t[1]))]
+        note["trees cleared off buildings"] = n0 - len(trees)
     note["trees"], note["boards"] = len(trees), len(boards)
     return trees, boards, plot, note
