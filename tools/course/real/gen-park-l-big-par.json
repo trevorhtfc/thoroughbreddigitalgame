@@ -1,0 +1,62 @@
+{
+ "_about": "Written by calibrate.mjs: the par (seconds) the race engine uses at gen-park-l-big, so its winning times match the targets.",
+ "par": {
+  "g5f": 59.18,
+  "g6f": 72.17,
+  "g7f": 85.44,
+  "g1m": 99.03,
+  "g1mround": 98.83,
+  "g1m1f": 112.57,
+  "g1m2f": 126.57,
+  "g1m4f": 155.47,
+  "g1m6f": 184.96,
+  "g2m": 215.5,
+  "g2m2f": 246.42
+ },
+ "measured": {
+  "g5f": {
+   "winning time (before the last step)": 59.71,
+   "target": 59.8
+  },
+  "g6f": {
+   "winning time (before the last step)": 72.37,
+   "target": 72.5
+  },
+  "g7f": {
+   "winning time (before the last step)": 85.34,
+   "target": 85.5
+  },
+  "g1m": {
+   "winning time (before the last step)": 98.61,
+   "target": 98.8
+  },
+  "g1mround": {
+   "winning time (before the last step)": 98.6,
+   "target": 98.8
+  },
+  "g1m1f": {
+   "winning time (before the last step)": 112.1,
+   "target": 112.3
+  },
+  "g1m2f": {
+   "winning time (before the last step)": 125.76,
+   "target": 126
+  },
+  "g1m4f": {
+   "winning time (before the last step)": 153.87,
+   "target": 154.2
+  },
+  "g1m6f": {
+   "winning time (before the last step)": 182.73,
+   "target": 183
+  },
+  "g2m": {
+   "winning time (before the last step)": 212.48,
+   "target": 212.8
+  },
+  "g2m2f": {
+   "winning time (before the last step)": 242.67,
+   "target": 243
+  }
+ }
+}

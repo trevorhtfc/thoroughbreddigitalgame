@@ -8,8 +8,7 @@ from pathlib import Path
 
 REPO = Path(__file__).resolve().parents[3]
 RV = REPO / "race-view"
-IDS = ["gen-park-l", "gen-park-r", "gen-tight-l", "gen-tight-r", "gen-ring-l", "gen-ring-r",
-       "gen-hill-l", "gen-hill-r", "gen-downs-l", "gen-downs-r"]
+IDS = [f"gen-{f}-{h}-{s}" for f in ("park", "tight", "ring", "hill", "downs") for h in "lr" for s in ("big", "small")]
 
 
 def main():
@@ -59,9 +58,10 @@ def main():
 <header>
   <div class="eyebrow">Thoroughbred · race view · draft</div>
   <h1>The generic courses</h1>
-  <p class="lede">Five kinds of course, each built both ways round, so every course without its own build can be raced
-  for now. Each has its own track drawn from a few numbers, its own ground (flat, an uphill finish, or the rolling downs),
-  a mix of medium and smaller stands from the grandstand crib sheet, the festival opposite the stands, and the usual belts
+  <p class="lede">Five kinds of course, each built both ways round and with a bigger and a smaller stand side, so every
+  course without its own build can be raced for now. Each has its own track drawn from a few numbers, its own ground (flat, an uphill finish, or the rolling downs),
+  old small stands and pavilions clustered round the winning post near the end of the straight, the
+  festival opposite them, and the usual belts
   of trees and boards round the edge. Open a course, then pick a race.</p>
 </header>
 <main>

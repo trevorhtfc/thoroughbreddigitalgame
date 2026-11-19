@@ -1,0 +1,112 @@
+{
+ "_about": "Par (standard) times at The Ring (right-handed, smaller stands), DRAFT. 'winningTime' is a rough winning time for a good horse on good ground (a galloping course's typical times: to check against real results); 'seconds' is the par the engine uses, set by tools/course/real/calibrate.mjs so its winning times come out at those.",
+ "parTimes": [
+  {
+   "key": "g5f",
+   "course": "round",
+   "distance": 1005.8,
+   "seconds": 59.87,
+   "winningTime": 60.8
+  },
+  {
+   "key": "g6f",
+   "course": "round",
+   "distance": 1207.0,
+   "seconds": 73.16,
+   "winningTime": 73.8
+  },
+  {
+   "key": "g7f",
+   "course": "round",
+   "distance": 1408.2,
+   "seconds": 86.79,
+   "winningTime": 87.1
+  },
+  {
+   "key": "g1m",
+   "course": "round",
+   "distance": 1609.3,
+   "seconds": 100.23,
+   "winningTime": 100.6
+  },
+  {
+   "key": "g1m1f",
+   "course": "round",
+   "distance": 1810.5,
+   "seconds": 114.35,
+   "winningTime": 114.3
+  },
+  {
+   "key": "g1m2f",
+   "course": "round",
+   "distance": 2011.7,
+   "seconds": 128.67,
+   "winningTime": 128.3
+  },
+  {
+   "key": "g1m4f",
+   "course": "round",
+   "distance": 2414.0,
+   "seconds": 158.15,
+   "winningTime": 157.0
+  },
+  {
+   "key": "g1m5f",
+   "course": "round",
+   "distance": 2615.2,
+   "seconds": 172.81,
+   "winningTime": 171.5
+  },
+  {
+   "key": "g2m",
+   "course": "round",
+   "distance": 3218.7,
+   "seconds": 218.96,
+   "winningTime": 216.6
+  }
+ ],
+ "going": {
+  "Heavy": {
+   "speed": 0.95,
+   "sapping": 1.25
+  },
+  "Softer": {
+   "speed": 0.975,
+   "sapping": 1.1
+  },
+  "Good": {
+   "speed": 1.0,
+   "sapping": 1.0
+  },
+  "Quicker": {
+   "speed": 1.006,
+   "sapping": 0.97
+  },
+  "Quick": {
+   "speed": 1.012,
+   "sapping": 0.95
+  }
+ },
+ "pace": {
+  "_about": "How the dock judges the pace. Each section the leader runs is compared with par for its length at the race's average par speed; the first section (from a standing start) gets firstSectionExtra seconds of allowance. Ratio = actual time / par time.",
+  "firstSectionExtra": 1.3,
+  "bands": [
+   {
+    "label": "Fast",
+    "below": 0.98
+   },
+   {
+    "label": "Strong",
+    "below": 0.993
+   },
+   {
+    "label": "Even",
+    "below": 1.012
+   },
+   {
+    "label": "Slow",
+    "below": 99
+   }
+  ]
+ }
+}

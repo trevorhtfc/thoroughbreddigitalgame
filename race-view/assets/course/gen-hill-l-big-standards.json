@@ -1,0 +1,112 @@
+{
+ "_about": "Par (standard) times at The Hill Track (left-handed, bigger stands), DRAFT. 'winningTime' is a rough winning time for a good horse on good ground (a galloping course's typical times: to check against real results); 'seconds' is the par the engine uses, set by tools/course/real/calibrate.mjs so its winning times come out at those.",
+ "parTimes": [
+  {
+   "key": "g5f",
+   "course": "straight",
+   "distance": 1005.8,
+   "seconds": 60.97,
+   "winningTime": 61.5
+  },
+  {
+   "key": "g6f",
+   "course": "straight",
+   "distance": 1207.0,
+   "seconds": 74.39,
+   "winningTime": 74.7
+  },
+  {
+   "key": "g7f",
+   "course": "round",
+   "distance": 1408.2,
+   "seconds": 87.87,
+   "winningTime": 88.1
+  },
+  {
+   "key": "g1m",
+   "course": "round",
+   "distance": 1609.3,
+   "seconds": 101.8,
+   "winningTime": 101.8
+  },
+  {
+   "key": "g1m1f",
+   "course": "round",
+   "distance": 1810.5,
+   "seconds": 115.97,
+   "winningTime": 115.6
+  },
+  {
+   "key": "g1m2f",
+   "course": "round",
+   "distance": 2011.7,
+   "seconds": 130.62,
+   "winningTime": 129.8
+  },
+  {
+   "key": "g1m4f",
+   "course": "round",
+   "distance": 2414.0,
+   "seconds": 160.37,
+   "winningTime": 158.8
+  },
+  {
+   "key": "g1m6f",
+   "course": "round",
+   "distance": 2816.4,
+   "seconds": 190.48,
+   "winningTime": 188.5
+  },
+  {
+   "key": "g2m",
+   "course": "round",
+   "distance": 3218.7,
+   "seconds": 222.02,
+   "winningTime": 219.2
+  }
+ ],
+ "going": {
+  "Heavy": {
+   "speed": 0.95,
+   "sapping": 1.25
+  },
+  "Softer": {
+   "speed": 0.975,
+   "sapping": 1.1
+  },
+  "Good": {
+   "speed": 1.0,
+   "sapping": 1.0
+  },
+  "Quicker": {
+   "speed": 1.006,
+   "sapping": 0.97
+  },
+  "Quick": {
+   "speed": 1.012,
+   "sapping": 0.95
+  }
+ },
+ "pace": {
+  "_about": "How the dock judges the pace. Each section the leader runs is compared with par for its length at the race's average par speed; the first section (from a standing start) gets firstSectionExtra seconds of allowance. Ratio = actual time / par time.",
+  "firstSectionExtra": 1.3,
+  "bands": [
+   {
+    "label": "Fast",
+    "below": 0.98
+   },
+   {
+    "label": "Strong",
+    "below": 0.993
+   },
+   {
+    "label": "Even",
+    "below": 1.012
+   },
+   {
+    "label": "Slow",
+    "below": 99
+   }
+  ]
+ }
+}

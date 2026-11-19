@@ -1,54 +1,225 @@
 {
- "_about": "Which generic course each British Flat course races on until it has its own build in the game (owner, 19 Nov 2026: 'these will form a stop gap meaning we can play any course we want'). Families from the course sheet's 'Generic courses' tab; the hand from the real course. A race picks the generic course's start nearest its own distance (see 'starts'). Courses already built in full (Ascot, Newmarket's Rowley Mile and July Course, York) race on their own builds; the tier 1 and tier 2 builds (Goodwood, Epsom, Newbury, Doncaster, Chester, Sandown) are listed so they have a stand-in until their own build goes into the game.",
+ "_about": "Which generic course each British Flat course races on until it has its own build in the game (owner, 19 Nov 2026: 'these will form a stop gap meaning we can play any course we want'). Families from the course sheet's 'Generic courses' tab; the hand from the real course; the bigger or smaller stand side from the size of the course (owner, 19 Nov 17:39: 'a bigger (haydock, newcastle etc) and a smaller (pontefract, beverley)'). A race picks the generic course's start nearest its own distance (see 'starts'). Courses already built in full (Ascot, Newmarket's Rowley Mile and July Course, York) race on their own builds; the tier 1 and tier 2 builds (Goodwood, Epsom, Newbury, Doncaster, Chester, Sandown) are listed so they have a stand-in until their own build goes into the game.",
  "generic": {
-  "gen-park-l": "The Park, left-handed", "gen-park-r": "The Park, right-handed",
-  "gen-tight-l": "The Tight Track, left-handed", "gen-tight-r": "The Tight Track, right-handed",
-  "gen-ring-l": "The Ring, left-handed", "gen-ring-r": "The Ring, right-handed",
-  "gen-hill-l": "The Hill Track, left-handed", "gen-hill-r": "The Hill Track, right-handed",
-  "gen-downs-l": "The Downs, left-handed", "gen-downs-r": "The Downs, right-handed"
+  "gen-park-l-big": "The Park, left-handed, bigger stands",
+  "gen-park-l-small": "The Park, left-handed, smaller stands",
+  "gen-park-r-big": "The Park, right-handed, bigger stands",
+  "gen-park-r-small": "The Park, right-handed, smaller stands",
+  "gen-tight-l-big": "The Tight Track, left-handed, bigger stands",
+  "gen-tight-l-small": "The Tight Track, left-handed, smaller stands",
+  "gen-tight-r-big": "The Tight Track, right-handed, bigger stands",
+  "gen-tight-r-small": "The Tight Track, right-handed, smaller stands",
+  "gen-ring-l-big": "The Ring, left-handed, bigger stands",
+  "gen-ring-l-small": "The Ring, left-handed, smaller stands",
+  "gen-ring-r-big": "The Ring, right-handed, bigger stands",
+  "gen-ring-r-small": "The Ring, right-handed, smaller stands",
+  "gen-hill-l-big": "The Hill Track, left-handed, bigger stands",
+  "gen-hill-l-small": "The Hill Track, left-handed, smaller stands",
+  "gen-hill-r-big": "The Hill Track, right-handed, bigger stands",
+  "gen-hill-r-small": "The Hill Track, right-handed, smaller stands",
+  "gen-downs-l-big": "The Downs, left-handed, bigger stands",
+  "gen-downs-l-small": "The Downs, left-handed, smaller stands",
+  "gen-downs-r-big": "The Downs, right-handed, bigger stands",
+  "gen-downs-r-small": "The Downs, right-handed, smaller stands"
  },
  "starts": {
-  "gen-park-l": ["5f", "6f", "7f", "1m", "1m (round)", "1m1f", "1m2f", "1m4f", "1m6f", "2m", "2m2f"],
-  "gen-tight-l": ["5f", "6f", "6f (round)", "7f", "1m", "1m1f", "1m2f", "1m3f", "1m4f", "1m6f", "2m"],
-  "gen-ring-l": ["5f", "6f", "7f", "1m", "1m1f", "1m2f", "1m4f", "1m6f", "2m"],
-  "gen-hill-l": ["5f", "6f", "7f", "1m", "1m1f", "1m2f", "1m4f", "1m6f", "2m"],
-  "gen-downs-l": ["5f", "6f", "7f", "1m", "1m1f", "1m2f", "1m4f", "1m6f", "2m"],
-  "note": "the right-handed courses have the same starts; a race takes the nearest start (e.g. 1m3f -> 1m4f, 1m5f -> 1m6f, 2m4f+ -> 2m on the Park, the longest); a real course's round sprints (Bath, Wetherby, Chester) can take the '6f (round)' start on the Tight Track if moved there"
+  "park": [
+   "5f",
+   "6f",
+   "7f",
+   "1m",
+   "1m (round)",
+   "1m1f",
+   "1m2f",
+   "1m4f",
+   "1m6f",
+   "2m",
+   "2m2f"
+  ],
+  "tight": [
+   "5f",
+   "6f",
+   "6f (round)",
+   "7f",
+   "1m",
+   "1m1f",
+   "1m2f",
+   "1m3f",
+   "1m4f",
+   "1m6f",
+   "2m"
+  ],
+  "ring": [
+   "5f",
+   "6f",
+   "7f",
+   "1m",
+   "1m1f",
+   "1m2f",
+   "1m4f",
+   "1m5f",
+   "2m"
+  ],
+  "hill": [
+   "5f",
+   "6f",
+   "7f",
+   "1m",
+   "1m1f",
+   "1m2f",
+   "1m4f",
+   "1m6f",
+   "2m"
+  ],
+  "downs": [
+   "5f",
+   "6f",
+   "7f",
+   "1m",
+   "1m1f",
+   "1m2f",
+   "1m4f",
+   "1m6f",
+   "2m"
+  ],
+  "note": "every course of a kind has the same starts, both ways round and both sizes; a race takes the nearest start (e.g. 1m3f -> 1m4f, 1m5f -> 1m6f, 2m4f+ -> 2m on the Park, the longest); a real course's round sprints (Bath, Wetherby, Chester) can take the '6f (round)' start on the Tight Track if moved there"
  },
  "courses": {
-  "Ayr":               {"generic": "gen-park-l",  "why": "galloping oval, 6f straight"},
-  "Bath":              {"generic": "gen-hill-l",  "why": "left-handed, steady climb to the post, sprints on the turn"},
-  "Beverley":          {"generic": "gen-hill-r",  "why": "right-handed, very stiff uphill 5f"},
-  "Brighton":          {"generic": "gen-downs-l", "why": "left-handed, markedly undulating downland"},
-  "Carlisle":          {"generic": "gen-hill-r",  "why": "right-handed pear, against the collar over the last 4f"},
-  "Catterick":         {"generic": "gen-tight-l", "why": "small sharp left-handed oval with a sprint spur"},
-  "Chelmsford City":   {"generic": "gen-ring-l",  "why": "left-handed stadium oval, all-weather"},
-  "Chepstow":          {"generic": "gen-park-l",  "why": "left-handed oval with a straight mile (undulating)"},
-  "Chester":           {"generic": "gen-ring-l",  "why": "tight, near-circular, left-handed (own build in progress)"},
-  "Doncaster":         {"generic": "gen-park-l",  "why": "galloping, straight mile, round-mile chute (own build in progress)"},
-  "Epsom":             {"generic": "gen-downs-l", "why": "left-handed, downhill turn into a cambered run-in (own build)"},
-  "Ffos Las":          {"generic": "gen-park-l",  "why": "flat left-handed oval with a straight 6f"},
-  "Goodwood":          {"generic": "gen-downs-r", "why": "right-handed, undulating, downhill sprint course (own build)"},
-  "Hamilton":          {"generic": "gen-hill-r",  "why": "right-handed, undulating, pronounced finishing climb"},
-  "Haydock":           {"generic": "gen-park-l",  "why": "galloping left-handed oval with a 6f straight (tier 2, to build)"},
-  "Kempton":           {"generic": "gen-ring-r",  "why": "right-handed, all-weather, tight loops"},
-  "Leicester":         {"generic": "gen-park-r",  "why": "right-handed, straight 7f, galloping"},
-  "Lingfield (AW)":    {"generic": "gen-ring-l",  "why": "small sharp left-handed all-weather loop, short run-in"},
-  "Lingfield (turf)":  {"generic": "gen-downs-l", "why": "left-handed triangle, a climb then a downhill turn in, a straight 7f"},
-  "Musselburgh":       {"generic": "gen-tight-r", "why": "small right-handed oval with a 5f straight"},
-  "Newbury":           {"generic": "gen-park-l",  "why": "galloping, straight mile (own build in progress)"},
-  "Newcastle":         {"generic": "gen-park-l",  "why": "left-handed, straight mile, all-weather, uphill finish"},
-  "Nottingham":        {"generic": "gen-park-l",  "why": "flat left-handed oval with a straight 6f"},
-  "Pontefract":        {"generic": "gen-hill-l",  "why": "left-handed, undulating, the last 6f essentially uphill"},
-  "Redcar":            {"generic": "gen-park-l",  "why": "long flat left-handed oval with a straight mile"},
-  "Ripon":             {"generic": "gen-tight-r", "why": "right-handed oval, cramped bends, a 6f straight"},
-  "Salisbury":         {"generic": "gen-park-r",  "why": "right-handed, a stiff (nearly) straight mile"},
-  "Sandown":           {"generic": "gen-hill-r",  "why": "right-handed, uphill finish (own build in progress)"},
-  "Southwell":         {"generic": "gen-tight-l", "why": "small left-handed all-weather oval with a 5f straight"},
-  "Thirsk":            {"generic": "gen-tight-l", "why": "sharp left-handed oval with a 6f straight"},
-  "Wetherby":          {"generic": "gen-park-l",  "why": "flat left-handed oval, slight rise to the post"},
-  "Windsor":           {"generic": "gen-tight-r", "why": "right-handed (the figure of eight's loop), near-straight 6f"},
-  "Wolverhampton":     {"generic": "gen-ring-l",  "why": "left-handed stadium oval with chutes, all-weather"},
-  "Yarmouth":          {"generic": "gen-park-l",  "why": "long flat left-handed oval with a straight mile"}
+  "Ayr": {
+   "generic": "gen-park-l-big",
+   "why": "galloping oval, 6f straight"
+  },
+  "Bath": {
+   "generic": "gen-hill-l-small",
+   "why": "left-handed, steady climb to the post, sprints on the turn"
+  },
+  "Beverley": {
+   "generic": "gen-hill-r-small",
+   "why": "right-handed, very stiff uphill 5f"
+  },
+  "Brighton": {
+   "generic": "gen-downs-l-small",
+   "why": "left-handed, markedly undulating downland"
+  },
+  "Carlisle": {
+   "generic": "gen-hill-r-small",
+   "why": "right-handed pear, against the collar over the last 4f"
+  },
+  "Catterick": {
+   "generic": "gen-tight-l-small",
+   "why": "small sharp left-handed oval with a sprint spur"
+  },
+  "Chelmsford City": {
+   "generic": "gen-ring-l-big",
+   "why": "left-handed stadium oval, all-weather"
+  },
+  "Chepstow": {
+   "generic": "gen-park-l-small",
+   "why": "left-handed oval with a straight mile (undulating)"
+  },
+  "Chester": {
+   "generic": "gen-ring-l-big",
+   "why": "tight, near-circular, left-handed (own build in progress)"
+  },
+  "Doncaster": {
+   "generic": "gen-park-l-big",
+   "why": "galloping, straight mile, round-mile chute (own build in progress)"
+  },
+  "Epsom": {
+   "generic": "gen-downs-l-big",
+   "why": "left-handed, downhill turn into a cambered run-in (own build)"
+  },
+  "Ffos Las": {
+   "generic": "gen-park-l-small",
+   "why": "flat left-handed oval with a straight 6f"
+  },
+  "Goodwood": {
+   "generic": "gen-downs-r-big",
+   "why": "right-handed, undulating, downhill sprint course (own build)"
+  },
+  "Hamilton": {
+   "generic": "gen-hill-r-small",
+   "why": "right-handed, undulating, pronounced finishing climb"
+  },
+  "Haydock": {
+   "generic": "gen-park-l-big",
+   "why": "galloping left-handed oval with a 6f straight (tier 2, to build)"
+  },
+  "Kempton": {
+   "generic": "gen-ring-r-big",
+   "why": "right-handed, all-weather, tight loops"
+  },
+  "Leicester": {
+   "generic": "gen-park-r-small",
+   "why": "right-handed, straight 7f, galloping"
+  },
+  "Lingfield (AW)": {
+   "generic": "gen-ring-l-big",
+   "why": "small sharp left-handed all-weather loop, short run-in"
+  },
+  "Lingfield (turf)": {
+   "generic": "gen-downs-l-big",
+   "why": "left-handed triangle, a climb then a downhill turn in, a straight 7f"
+  },
+  "Musselburgh": {
+   "generic": "gen-tight-r-small",
+   "why": "small right-handed oval with a 5f straight"
+  },
+  "Newbury": {
+   "generic": "gen-park-l-big",
+   "why": "galloping, straight mile (own build in progress)"
+  },
+  "Newcastle": {
+   "generic": "gen-park-l-big",
+   "why": "left-handed, straight mile, all-weather, uphill finish"
+  },
+  "Nottingham": {
+   "generic": "gen-park-l-big",
+   "why": "flat left-handed oval with a straight 6f"
+  },
+  "Pontefract": {
+   "generic": "gen-hill-l-small",
+   "why": "left-handed, undulating, the last 6f essentially uphill"
+  },
+  "Redcar": {
+   "generic": "gen-park-l-small",
+   "why": "long flat left-handed oval with a straight mile"
+  },
+  "Ripon": {
+   "generic": "gen-tight-r-small",
+   "why": "right-handed oval, cramped bends, a 6f straight"
+  },
+  "Salisbury": {
+   "generic": "gen-park-r-big",
+   "why": "right-handed, a stiff (nearly) straight mile"
+  },
+  "Sandown": {
+   "generic": "gen-hill-r-big",
+   "why": "right-handed, uphill finish (own build in progress)"
+  },
+  "Southwell": {
+   "generic": "gen-tight-l-small",
+   "why": "small left-handed all-weather oval with a 5f straight"
+  },
+  "Thirsk": {
+   "generic": "gen-tight-l-small",
+   "why": "sharp left-handed oval with a 6f straight"
+  },
+  "Wetherby": {
+   "generic": "gen-park-l-small",
+   "why": "flat left-handed oval, slight rise to the post"
+  },
+  "Windsor": {
+   "generic": "gen-tight-r-big",
+   "why": "right-handed (the figure of eight's loop), near-straight 6f"
+  },
+  "Wolverhampton": {
+   "generic": "gen-ring-l-big",
+   "why": "left-handed stadium oval with chutes, all-weather"
+  },
+  "Yarmouth": {
+   "generic": "gen-park-l-small",
+   "why": "long flat left-handed oval with a straight mile"
+  }
  }
 }

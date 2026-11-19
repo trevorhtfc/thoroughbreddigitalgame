@@ -19,29 +19,30 @@ FAMILIES = {
         "standsIn": "Newcastle, Redcar, Yarmouth, Salisbury, Chepstow, Ayr, Ffos Las, Nottingham, Leicester, Wetherby, Bath",
         "corners": [[-230, 0], [330, 470], [1150, 400], [1150, 0]],
         "radii": [110, 300, 165, 165],
-        "post_gap": 25,
+        "post_gap": 120,
         "routes": {
             "straight": {"chute": 3, "note": "the straight mile"},
             "mile": {"chute": 2, "note": "the round mile, from the chute off the far bend"},
             "round": {"note": "the back straight, the far bend, the home bend; from the home straight once round for 2m+"},
+            "chute": {"chute": 1, "note": "the far side carried on past the kink"},
             "far": {"chute": 0, "note": "the back straight carried on past the post-end bend"},
         },
         "starts": {"5f": "straight", "6f": "straight", "7f": "straight", "1m": "straight", "1m (round)": ["mile", "1m"],
-                   "1m1f": "round", "1m2f": "round", "1m4f": "round", "1m6f": "far", "2m": "round", "2m2f": "round"},
+                   "1m1f": "round", "1m2f": "chute", "1m4f": "round", "1m6f": "far", "2m": "round", "2m2f": "round"},
         "ground": None,
         "words": {"straight": "The straight mile", "mile": "Up the chute, round the far bend",
-                  "round": "Down the back straight, round the far bend", "far": "From the far chute, round"},
+                  "round": "Down the back straight, round the far bend", "chute": "From the chute, round the far bend", "far": "From the far chute, round"},
     },
     # ------------------------------------------------------------------------------------------------ 2 The Tight Track
     "tight": {
         "name": "The Tight Track",
         "kind": "sharp oval with a sprint spur",
-        "about": "A small, sharp oval of about 1m2f with tight turns, a 3½f run-in and a 6f sprint course carried on from "
+        "about": "A small, sharp oval of about 1m2f with tight turns, a 3f run-in and a 6f sprint course carried on from "
                  "the home straight.",
         "standsIn": "Catterick, Musselburgh, Southwell, Thirsk, Ripon, Windsor",
         "corners": [[-80, 0], [-80, 215], [840, 250], [840, 0]],
         "radii": [105, 105, 122, 122],
-        "post_gap": 25,
+        "post_gap": 110,
         "routes": {
             "straight": {"chute": 3, "note": "the 6f sprint course"},
             "round": {"note": "the back straight, round the home bend; from the home straight once round for 1m3f+"},
@@ -58,12 +59,12 @@ FAMILIES = {
     "ring": {
         "name": "The Ring",
         "kind": "very tight, near-circular",
-        "about": "A tight stadium oval of about a mile with a short run-in (about 1½f): no straight course, the sprints go "
+        "about": "A tight stadium oval of about 1m½f with a short run-in (about 1½f): no straight course, the sprints go "
                  "round, chutes for the 6f, 7f and the long trips.",
         "standsIn": "Wolverhampton, Lingfield (all-weather), Kempton, Chelmsford City",
-        "corners": [[-328, 0], [-328, 256], [383, 256], [383, 0]],
+        "corners": [[-288, 0], [-288, 256], [410, 256], [410, 0]],
         "radii": [128, 128, 128, 128],
-        "post_gap": 200,
+        "post_gap": 160,
         "routes": {
             "round": {"note": "the loop: the back straight, round the home bend; past the post once for 1m6f"},
             "chute": {"chute": 1, "note": "the back straight carried on past the post-end bend"},
@@ -71,7 +72,7 @@ FAMILIES = {
             "long": {"chute": 1, "laps": 1, "note": "from the chute, round, past the post, once more round"},
         },
         "starts": {"5f": "round", "6f": "chute", "7f": "chute", "1m": "round", "1m1f": "round", "1m2f": "top",
-                   "1m4f": "top", "1m6f": "round", "2m": "long"},
+                   "1m4f": "top", "1m5f": "round", "2m": "long"},
         "ground": None,
         "words": {"round": "Round the Ring", "chute": "From the chute, round both bends",
                   "top": "From the top chute, once round", "long": "From the chute, twice past the stands"},
@@ -80,12 +81,12 @@ FAMILIES = {
     "hill": {
         "name": "The Hill Track",
         "kind": "stiff, uphill finish",
-        "about": "A pear-shaped course of about 1m5f, wide at the stands end and narrow at the far end: a tight downhill turn into a 4f run-in that climbs all the way to the post, "
+        "about": "A pear-shaped course of about 1m5f, wide at the stands end and narrow at the far end: a tight downhill turn into a 3½f run-in that climbs all the way to the post, "
                  "and a stiff 6f sprint course uphill from start to finish.",
         "standsIn": "Beverley, Carlisle, Hamilton, Pontefract, Bath, Chepstow (undulating)",
         "corners": [[-250, 0], [-120, 520], [880, 260], [1000, 0]],
         "radii": [190, 230, 120, 110],
-        "post_gap": 25,
+        "post_gap": 120,
         "routes": {
             "straight": {"chute": 3, "note": "the uphill 6f sprint course"},
             "round": {"note": "the far side, the tight downhill home turn; once round for 1m6f+"},
@@ -105,11 +106,11 @@ FAMILIES = {
         "name": "The Downs",
         "kind": "undulating, downhill turn",
         "about": "A rolling triangle of about 1m4f on the downs: a climb along the back straight, a sweeping downhill turn "
-                 "into a 3½f run-in that rises again in the last furlong, and a downhill 7f straight course.",
+                 "into a 3f run-in that rises again in the last furlong, and a downhill 7f straight course.",
         "standsIn": "Brighton and Lingfield (turf), and the two big downland courses until their own builds are in the game",
         "corners": [[-220, 0], [500, 620], [1400, 0]],
         "radii": [130, 240, 180],
-        "post_gap": 25,
+        "post_gap": 110,
         "routes": {
             "straight": {"chute": 2, "note": "the downhill 7f straight course"},
             "chute": {"chute": 1, "note": "the top side carried on past the apex"},

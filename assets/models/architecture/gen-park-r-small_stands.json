@@ -1,0 +1,115 @@
+{
+ "_about": "The Park (right-handed, smaller stands)'s stands, picked from the grandstand kit by tools/course/real/merge_stands.py (each piece's info as in its source file: building axes x along the front, y into the building, z up, origin the middle of the front on the ground).",
+ "colours": {
+  "white": "#f6f2ea",
+  "cream": "#efe3cd",
+  "glass": "#3f3a4d",
+  "trim": "#f7efe2",
+  "seat": "#e4d9c4",
+  "concrete": "#e6d9c4",
+  "fascia": "#e8b29b",
+  "mast": "#f3f0ea",
+  "brick": "#dc9c86",
+  "slate": "#8f95a8",
+  "roof": "#6e7883",
+  "canvas": "#fbf8f1",
+  "door": "#7f9f8c",
+  "green": "#93b89e",
+  "iron": "#f6f0e1",
+  "bench": "#857f96",
+  "wall": "#ecdcc0",
+  "podium": "#dccaa8",
+  "ironwork": "#4f6b5a",
+  "gilt": "#c8a466",
+  "clock": "#fbf5ea",
+  "clockdark": "#2a2c30",
+  "steps": "#d3c6a6",
+  "paddock_wall": "#f4eadb",
+  "paddock_roof": "#e2a397",
+  "paddock_path": "#a7a2ad",
+  "paddock_lawn": "#9cc08a",
+  "drum": "#f6efe0",
+  "render": "#f4ecdf",
+  "timber": "#4d4642",
+  "tile": "#c47a5f",
+  "tile_dark": "#a9664f",
+  "brick_dark": "#b4735f",
+  "slate_pale": "#b9bcc8",
+  "slate_dark": "#6f7383",
+  "copper": "#c9925e",
+  "brown": "#7a5646",
+  "band": "#8a5a44",
+  "flower": "#d9798a",
+  "flower_b": "#e7a0b0",
+  "leaf": "#6f9a5e",
+  "shade": "#5d5660",
+  "louvre": "#e9e2d4"
+ },
+ "pieces": {
+  "ring_pavilion_small": {
+   "width": 19.2,
+   "depth": 11.2,
+   "height": 8.0,
+   "crowd": [
+    [
+     -8.5,
+     8.5,
+     0.2,
+     2.2,
+     0.25
+    ]
+   ],
+   "triangles": 360
+  },
+  "victorian_pavilion": {
+   "width": 11.0,
+   "depth": 9.2,
+   "height": 10.5,
+   "crowd": [],
+   "triangles": 858
+  },
+  "gen_veranda_stand": {
+   "width": 51.4,
+   "depth": 13.8,
+   "height": 17.6,
+   "crowd": [
+    [
+     -24.5,
+     24.5,
+     -0.3,
+     2.9,
+     0.35
+    ],
+    [
+     -24.5,
+     24.5,
+     0.4,
+     3.0,
+     3.95
+    ]
+   ],
+   "triangles": 5104
+  },
+  "gen_veranda_wing": {
+   "width": 35.2,
+   "depth": 11.8,
+   "height": 10.0,
+   "crowd": [
+    [
+     -16.5,
+     16.5,
+     -0.3,
+     2.7,
+     0.35
+    ]
+   ],
+   "triangles": 1256
+  }
+ },
+ "from": {
+  "ring_pavilion_small": "rowley_stands",
+  "victorian_pavilion": "rowley_stands",
+  "gen_veranda_stand": "generic_stands_kit",
+  "gen_veranda_wing": "generic_stands_kit"
+ }
+}

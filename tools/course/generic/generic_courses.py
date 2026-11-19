@@ -1,12 +1,14 @@
 """The generic courses: the stop gap that lets any course be raced until it has its own build (owner, 19 Nov 2026).
 
 Five families from the course sheet's "Generic courses" tab (the Park, the Tight Track, the Ring, the Hill Track, the
-Downs), each built both ways round (left- and right-handed), so ten courses. Each is drawn from a few numbers
+Downs), each built both ways round (left- and right-handed) and with a bigger and a smaller stand side (owner,
+17:39: 'two grandstand clusters for each course type? a bigger (haydock, newcastle etc) and a smaller (pontefract,
+beverley)'), so twenty courses. Each is drawn from a few numbers
 (specs.py: corners and radii of the loop, the chutes, the starts) and then goes through the same tools as the tier 2
 courses (tools/course/real/: layout.py, merge_stands.py, to_race_view.py, calibrate.mjs), so it gets the same
 stalls on level pads, cameras, boards, planting, stands and festival as the real courses.
 
-This script writes, for each course id (gen-park-l, gen-park-r, ...):
+This script writes, for each course id (gen-park-l-big, gen-park-l-small, gen-park-r-big, ...):
   tools/course/real/<id>.json          the course file (routes as hand-drawn rails, the starts, the dressing)
   reference/<id>/osm-<id>.json         a stand-in for OpenStreetMap's turf (the outline of the generic track)
   reference/<id>/dem-course-20m.json   the ground: flat, or the family's slopes (an uphill finish, the downs)
@@ -39,9 +41,9 @@ def trip_m(t):
     return mi * 8 * F + fu * F + yd * 0.9144
 
 
-def build(fid, hand):
+def build(fid, hand, size):
     S = FAMILIES[fid]
-    cid = f"gen-{fid}-{'l' if hand < 0 else 'r'}"
+    cid = f"gen-{fid}-{'l' if hand < 0 else 'r'}-{size}"
     L = Loop(S["corners"], S["radii"], post_gap=S["post_gap"])
     # (u, v) -> east, north: left-handed the infield lies to the south of a home straight run westwards
     sv = -1.0 if hand < 0 else 1.0
@@ -108,7 +110,7 @@ def build(fid, hand):
     C = {
         "_about": f"{S['name']} ({hand_w}), a generic course: written by tools/course/generic/generic_courses.py from specs.py "
                   "and dressing.py. Don't edit by hand.",
-        "name": f"{S['name']} ({hand_w})", "family": fid, "generic": True,
+        "name": f"{S['name']} ({hand_w}, {'bigger' if size == 'big' else 'smaller'} stands)", "family": fid, "size": size, "generic": True,
         "date": "19 Nov 2026", "hand": hand, "trackWidth": W, "runOut": RUN_OUT, "ease": 16,
         "post": {"route": post_route, "x": round(L.post_u, 2), "searchLast": 400,
                  "note": "on the home straight, %d m before the post-end bend" % S["post_gap"]},
@@ -120,7 +122,7 @@ def build(fid, hand):
         "facts": {"circuit m": round(L.L), "circuit f": round(L.L / F, 1), "run-in m": round(L.back_of(len(S["corners"]) - 1)),
                   "run-in f": round(L.back_of(len(S["corners"]) - 1) / F, 2), "kind": S["kind"], "standsIn": S["standsIn"]},
     }
-    C.update(dressing.dress(cid, fid, hand, S, L, C))
+    C.update(dressing.dress(cid, fid, hand, size, S, L, C))
     (REPO / f"tools/course/real/{cid}.json").write_text(json.dumps(C, indent=1))
     print(f"{cid}: circuit {L.L:.0f} m, run-in {C['facts']['run-in m']} m, {len(starts)} starts, routes {list(routes)}")
     return cid
@@ -130,5 +132,6 @@ if __name__ == "__main__":
     want = sys.argv[1:]
     for fid in FAMILIES:
         for hand in (-1, 1):
-            cid = f"gen-{fid}-{'l' if hand < 0 else 'r'}"
-            if not want or cid in want: build(fid, hand)
+            for size in ("big", "small"):
+                cid = f"gen-{fid}-{'l' if hand < 0 else 'r'}-{size}"
+                if not want or cid in want: build(fid, hand, size)
