@@ -120,9 +120,10 @@ def perimeter(S, C, turf, grid_box, rnd=None, opts=None):
         if opts.get("infieldBoards", True):              # (off where the TV's tracking car runs in the infield: Doncaster)
             for g in polys(inner):
                 note["boards infield"] = note.get("boards infield", 0) + board_run(g.exterior, lambda q: runin_b.contains(q))
-        belt_in = infield.buffer(-IN_BELT[0]).difference(infield.buffer(-IN_BELT[1])).difference(runin.buffer(20))
-        note["infield belt trees"] = fill(belt_in, IN_BELT[2], IN_BELT[3], IN_BELT[4], belt=1)
-        deep = infield.buffer(-IN_PARK[0]).difference(runin.buffer(40))
+        if not opts.get("infieldTrees", True): belt_in = deep = Polygon()      # (Chester: the whole infield is the festival)
+        else: belt_in = infield.buffer(-IN_BELT[0]).difference(infield.buffer(-IN_BELT[1])).difference(runin.buffer(20))
+        note["infield belt trees"] = fill(belt_in, IN_BELT[2], IN_BELT[3], IN_BELT[4], belt=1) if not belt_in.is_empty else 0
+        if opts.get("infieldTrees", True): deep = infield.buffer(-IN_PARK[0]).difference(runin.buffer(40))
         note["infield parkland trees"] = fill(deep, IN_PARK[2], IN_PARK[3], IN_PARK[4], kinds=PARK)
 
     # ---- big hoardings along the run-in's inside rail, facing the stands (both his race videos: Newbury's run of
@@ -278,6 +279,7 @@ def perimeter(S, C, turf, grid_box, rnd=None, opts=None):
                "gaps": [("kiosk_awning", 14.0, 3.5), ("pagoda_kiosk", 12.0, 3.0), ("pergola_picnic", 8.0, 5.0),
                         ("picnic_table", 30.0, 1.5), ("flagpole", 16.0, 1.0), ("planter_long", 14.0, 2.5), ("banner_flag", 14.0, 1.0)]}
         for fz_ in opts["festivals"]:
+            if fz_["poly"] == "infield": fz_ = dict(fz_, poly=list(infield.exterior.coords))   # (Chester: the whole infield)
             g = Polygon(fz_["poly"]).buffer(0)
             if fz_.get("clearTrees"):                    # (Newbury, 08:18: a festival along the straight where the belt was)
                 cg = prep(g); n0 = len(trees); trees[:] = [t for t in trees if not cg.contains(Point(t[0], t[1]))]
@@ -327,7 +329,7 @@ def perimeter(S, C, turf, grid_box, rnd=None, opts=None):
                 face_track = 0.0 if side < 0 else 180.0                  # the stand side's props face the track
                 for piece, c, r in KIT[fz_.get("kit", "infield")]:
                     if piece == "balloon_pod" and fz_.get("balloonRows"): continue
-                    for _ in range(max(1, int(round(c * per)))):
+                    for _ in range(max(1, int(round(c * per * fz_.get("kitScale", 1.0))))):
                         for _try in range(300):
                             x, z = rnd.uniform(x0_, x1_), rnd.uniform(z0_, z1_)
                             if ok(x, z, r):

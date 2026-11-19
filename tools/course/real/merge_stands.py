@@ -14,7 +14,7 @@ from pathlib import Path
 
 REPO = Path(__file__).resolve().parents[3]
 ARCH = REPO / "assets/models/architecture"
-KIT = ["park_stands", "york_stands", "rowley_stands", "july_stands", "stand_modules", "site_props", "newbury_kit"]
+KIT = ["park_stands", "york_stands", "rowley_stands", "july_stands", "stand_modules", "site_props", "newbury_kit", "chester_stands_kit"]
 
 
 def read_glb(path):
@@ -32,6 +32,8 @@ def main(cid):
     for s in C["stands"]["pieces"]:
         nm = s["piece"] if isinstance(s, dict) else s[0]
         if nm in comps: continue
+        if nm not in want: want.append(nm)
+    for nm in C["stands"].get("extra", []):          # pieces placed by the course's own edges script (Chester's walls)
         if nm not in want: want.append(nm)
     out = {"asset": {"version": "2.0", "generator": "tools/course/real/merge_stands.py"}, "scene": 0, "scenes": [{"nodes": []}],
            "nodes": [], "meshes": [], "materials": [], "accessors": [], "bufferViews": [], "buffers": [{"byteLength": 0}]}

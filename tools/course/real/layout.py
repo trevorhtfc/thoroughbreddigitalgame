@@ -119,7 +119,28 @@ class Course:
                 A = H.copy(); A[1:-1, 1:-1] = (H[:-2, 1:-1] + H[2:, 1:-1] + H[1:-1, :-2] + H[1:-1, 2:]) / 4
                 H[mask] = A[mask]
             self.DH = H
-        self.RAIL = {name: self.rail(spec) for name, spec in C["routes"].items()}
+        lv = C.get("levelTurf")              # a flat course whose outer rail runs under banks (Chester: the city walls, the
+        if lv:                               # road embankments): the 20 m tiles blur the banks into the turf, so every cell
+            outer = Polygon(self.rings[0]).buffer(lv.get("margin", 10.0))   # on the turf (plus a margin) higher than the
+            infield = Polygon(self.rings[1])                                # infield's median + 'above' comes down to it
+            xs = D["x0"] + np.arange(D["nx"]) * D["step"]; ys = D["y0"] + np.arange(D["ny"]) * D["step"]
+            on = np.array([[outer.contains(Point(x, y)) for x in xs] for y in ys])
+            inf = np.array([[infield.contains(Point(x, y)) for x in xs] for y in ys])
+            base = float(np.median(self.DH[inf])) + lv.get("above", 0.3)
+            self.DH = np.where(on & (self.DH > base), base, self.DH)
+            # OSM features whose height the tiles took for ground (Chester: the Roodee Viaduct's deck read as a bank):
+            # brought down to the level of the ground either side of them
+            for fx in lv.get("osmFeatures", []):
+                E = json.loads((REPO / f"reference/{cid}/{fx['file']}").read_text())["features"]
+                for f in E:
+                    if f["tags"].get("name") != fx["name"] or "p" not in f: continue
+                    g = LineString([tuple(q) for q in f["p"]]).buffer(fx.get("buffer", 14.0))   # (osm-edges: metres already)
+                    m = np.array([[g.contains(Point(x, y)) for x in xs] for y in ys])
+                    ring = np.array([[g.buffer(30.0).contains(Point(x, y)) for x in xs] for y in ys]) & ~m
+                    if m.any() and ring.any():
+                        lvl = min(float(np.percentile(self.DH[ring], 30)), base + fx.get("above", 0.5))
+                        self.DH = np.where(m & (self.DH > lvl), lvl, self.DH)
+        self.RAIL ={name: self.rail(spec) for name, spec in C["routes"].items()}
         post = C["post"]
         L = self.RAIL[post["route"]]
         if "x" in post:      # metres east of the frame's origin, on the post route's home straight

@@ -1,0 +1,67 @@
+{
+ "_about": "Written by calibrate.mjs: the par (seconds) the race engine uses at chester, so its winning times match the targets.",
+ "par": {
+  "c5f16y": 59.51,
+  "c5f110y": 65.01,
+  "c6f18y": 72.63,
+  "c7f2y": 84.95,
+  "c7f122y": 92.16,
+  "c1m2f75y": 130.11,
+  "c1m3f79y": 145.62,
+  "c1m4f66y": 159.26,
+  "c1m5f89y": 175.55,
+  "c1m6f91y": 190.62,
+  "c1m7f195y": 213.19,
+  "c2m2f147y": 249.8
+ },
+ "measured": {
+  "c5f16y": {
+   "winning time (before the last step)": 60.7,
+   "target": 60.7
+  },
+  "c5f110y": {
+   "winning time (before the last step)": 66.1,
+   "target": 66.1
+  },
+  "c6f18y": {
+   "winning time (before the last step)": 73.6,
+   "target": 73.6
+  },
+  "c7f2y": {
+   "winning time (before the last step)": 85.6,
+   "target": 85.6
+  },
+  "c7f122y": {
+   "winning time (before the last step)": 92.8,
+   "target": 92.8
+  },
+  "c1m2f75y": {
+   "winning time (before the last step)": 129.97,
+   "target": 130
+  },
+  "c1m3f79y": {
+   "winning time (before the last step)": 145.09,
+   "target": 145.1
+  },
+  "c1m4f66y": {
+   "winning time (before the last step)": 158.5,
+   "target": 158.5
+  },
+  "c1m5f89y": {
+   "winning time (before the last step)": 174.4,
+   "target": 174.4
+  },
+  "c1m6f91y": {
+   "winning time (before the last step)": 189.11,
+   "target": 189.1
+  },
+  "c1m7f195y": {
+   "winning time (before the last step)": 211.1,
+   "target": 211.1
+  },
+  "c2m2f147y": {
+   "winning time (before the last step)": 247.05,
+   "target": 247
+  }
+ }
+}
