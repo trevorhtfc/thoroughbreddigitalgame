@@ -3391,6 +3391,41 @@
    "height": 23.0,
    "crowd": [],
    "triangles": 528
+  },
+  "chester_city_row_a": {
+   "width": 40.0,
+   "depth": 9.0,
+   "height": 17.5,
+   "crowd": [],
+   "triangles": 489
+  },
+  "chester_city_row_b": {
+   "width": 40.0,
+   "depth": 9.0,
+   "height": 17.5,
+   "crowd": [],
+   "triangles": 508
+  },
+  "chester_city_row_c": {
+   "width": 40.0,
+   "depth": 9.0,
+   "height": 17.5,
+   "crowd": [],
+   "triangles": 474
+  },
+  "chester_city_block_a": {
+   "width": 32.0,
+   "depth": 18.0,
+   "height": 19.5,
+   "crowd": [],
+   "triangles": 240
+  },
+  "chester_city_block_b": {
+   "width": 32.0,
+   "depth": 18.0,
+   "height": 22.8,
+   "crowd": [],
+   "triangles": 276
   }
  },
  "from": {
@@ -3419,6 +3454,11 @@
   "chester_sky_cathedral": "chester_stands_kit",
   "chester_sky_town_hall": "chester_stands_kit",
   "chester_sky_roofs": "chester_stands_kit",
-  "chester_sky_roofs_b": "chester_stands_kit"
+  "chester_sky_roofs_b": "chester_stands_kit",
+  "chester_city_row_a": "chester_stands_kit",
+  "chester_city_row_b": "chester_stands_kit",
+  "chester_city_row_c": "chester_stands_kit",
+  "chester_city_block_a": "chester_stands_kit",
+  "chester_city_block_b": "chester_stands_kit"
  }
 }

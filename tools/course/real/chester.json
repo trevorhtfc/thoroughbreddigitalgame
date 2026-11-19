@@ -524,7 +524,12 @@
    "chester_sky_cathedral",
    "chester_sky_town_hall",
    "chester_sky_roofs",
-   "chester_sky_roofs_b"
+   "chester_sky_roofs_b",
+   "chester_city_row_a",
+   "chester_city_row_b",
+   "chester_city_row_c",
+   "chester_city_block_a",
+   "chester_city_block_b"
   ]
  },
  "edges": {
@@ -613,8 +618,8 @@
    "bar": 150.0,
    "screen": 292.0,
    "clearspans": [],
-   "deepDens": 0.07,
-   "restDens": 0.004,
+   "deepDens": 0.13,
+   "restDens": 0.009,
    "note": "owner, 19 Nov 13:50, his race-day photos of the infield: the rail crowd solid down the home straight, pagoda runs behind it, the two-storey bar, glazed marquees, the big screen at the far end; white marquees and kiosks deeper in; the rest open grass [19 Nov: nothing tall before 80 m to go, so the north-corner head-on stays clear; the solid crowd stops before the home turn's head-on]",
    "pagodas": [
     100,
@@ -626,7 +631,63 @@
     9.0,
     14.0
    ],
-   "lampsFrom": 88.0
+   "lampsFrom": 88.0,
+   "whiteLine": [
+    95,
+    125,
+    180,
+    210,
+    245,
+    280
+   ],
+   "whiteOff": 31.0,
+   "deepKit": [
+    [
+     "marquee_peaks",
+     14,
+     13.0
+    ],
+    [
+     "big_top",
+     3,
+     11.0
+    ],
+    [
+     "pagoda_kiosk",
+     18,
+     3.5
+    ],
+    [
+     "kiosk_awning",
+     14,
+     3.5
+    ],
+    [
+     "pergola_picnic",
+     14,
+     5.0
+    ],
+    [
+     "picnic_table",
+     50,
+     1.6
+    ],
+    [
+     "stand_open",
+     5,
+     8.5
+    ],
+    [
+     "marquee_clearspan",
+     4,
+     11.0
+    ],
+    [
+     "terrace_deck",
+     5,
+     6.0
+    ]
+   ]
   },
   "balloonRows": [],
   "wallEmbed": {
@@ -741,6 +802,66 @@
     -20,
     690,
     1.0
+   ],
+   [
+    "chester_sky_roofs",
+    -220,
+    -455,
+    1.2
+   ],
+   [
+    "chester_sky_roofs_b",
+    -130,
+    -470,
+    1.2
+   ],
+   [
+    "chester_sky_roofs",
+    -40,
+    -480,
+    1.2
+   ],
+   [
+    "chester_sky_roofs_b",
+    50,
+    -475,
+    1.2
+   ],
+   [
+    "chester_sky_roofs",
+    140,
+    -465,
+    1.2
+   ],
+   [
+    "chester_sky_roofs_b",
+    230,
+    -455,
+    1.2
+   ],
+   [
+    "chester_sky_roofs",
+    320,
+    -440,
+    1.2
+   ],
+   [
+    "chester_sky_roofs_b",
+    410,
+    -425,
+    1.2
+   ],
+   [
+    "chester_sky_spire",
+    120,
+    -490,
+    1.15
+   ],
+   [
+    "chester_sky_town_hall",
+    260,
+    -470,
+    0.9
    ]
   ],
   "skylineNote": "owner, 19 Nov 13:44/13:47: distant architecture above the trees to close every vista: the cathedral and the town hall's spire over the city behind the stands, a church spire by the castle end, Handbridge's spire over the river, strips of city roofs",
@@ -816,6 +937,38 @@
     1.3,
     1.8
    ]
-  ]
+  ],
+  "cityFill": {
+   "boxes": [
+    [
+     -280,
+     -420,
+     560,
+     40
+    ],
+    [
+     600,
+     -260,
+     840,
+     200
+    ]
+   ],
+   "block": [
+    46.0,
+    32.0,
+    9.0
+   ],
+   "start": 30.0,
+   "minFromTurf": 55.0,
+   "behindWall": 16.0,
+   "nearBand": 150.0,
+   "blocks": 0.25,
+   "green": 0.12,
+   "note": "owner, 19 Nov 15:39 ('you didnt really bother with the city scape'): a street grid of terraces and blocks with trees, behind the walls",
+   "farScale": [
+    1.0,
+    1.35
+   ]
+  }
  }
 }

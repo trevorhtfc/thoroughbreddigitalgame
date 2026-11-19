@@ -893,6 +893,46 @@ def sky_roofs(L=70.0, seed=3):
     return {"width": L, "depth": 18.0, "height": 23.0}
 
 
+# ------------------------------------------------------------------------------------------ 8: the city fill (19 Nov 15:39)
+# Owner: "you didnt really bother with the city scape". Streets of the city behind the walls, light enough to place by
+# the hundred: a terrace of red-brick houses (bays, gables, chimneys, rows of dark windows as strips) and a bigger
+# block (four to six storeys, a parapet or a hipped slate roof), in the city's own colours.
+def city_far_row(L=40.0, seed=1):
+    import random as _r
+    rnd = _r.Random(seed); D = 9.0; x = -L / 2
+    while x < L / 2 - 0.5:
+        w = min(rnd.choice([5.0, 5.5, 6.0, 7.5]), L / 2 - x)
+        fl = rnd.choice([2, 3, 3, 3, 4]); H = fl * 3.0
+        col = rnd.choice(["brick", "brick", "brick_dark", "brick", "render"])
+        K.box(col, x, x + w, 0.0, D, -1.0, H)
+        for f in range(fl):                                              # the windows as dark strips
+            K.box("shade", x + 0.8, x + w - 0.8, -0.03, 0.0, 0.9 + f * 3.0, 2.3 + f * 3.0)
+        if rnd.random() < 0.35:                                          # a gable to the street
+            K.prism_x("slate", x, x + w, [(-0.3, H), (D + 0.3, H), (D / 2, H + D * 0.45)])
+            K.prism_y("tile_dark", -0.02, 0.4, [(x, H), (x + w, H), (x + w / 2, H + w * 0.55)])
+        else:
+            K.prism_x("slate", x, x + w, [(-0.3, H), (D + 0.3, H), (D / 2, H + D * 0.45)])
+        K.box("brick_dark", x + w - 0.9, x + w - 0.2, D / 2 - 0.35, D / 2 + 0.35, H + D * 0.3, H + D * 0.45 + 1.4)   # a chimney
+        x += w
+    return {"width": L, "depth": D, "height": 4 * 3.0 + 5.5}
+
+
+def city_far_block(W=32.0, D=18.0, seed=2):
+    import random as _r
+    rnd = _r.Random(seed); fl = rnd.choice([4, 5, 5, 6]); H = fl * 3.3
+    col = rnd.choice(["brick", "brick_dark", "render", "stone"])
+    K.box(col, -W / 2, W / 2, 0.0, D, -1.0, H)
+    for f in range(fl):
+        K.box("shade", -W / 2 + 1.0, W / 2 - 1.0, -0.03, 0.0, 1.0 + f * 3.3, 2.6 + f * 3.3)
+        K.box("shade", -W / 2 - 0.03, -W / 2, 1.0, D - 1.0, 1.0 + f * 3.3, 2.6 + f * 3.3)
+        K.box("shade", W / 2, W / 2 + 0.03, 1.0, D - 1.0, 1.0 + f * 3.3, 2.6 + f * 3.3)
+    if rnd.random() < 0.5:
+        K.hip_roof(-W / 2, W / 2, 0.0, D, H, D * 0.35, ov=0.4, mat="slate")
+    else:
+        K.box("coping", -W / 2 - 0.2, W / 2 + 0.2, -0.2, D + 0.2, H, H + 0.8)
+    return {"width": W, "depth": D, "height": H + D * 0.35}
+
+
 # ------------------------------------------------------------------------------------------ build and export
 PIECES = [
     ("chester_county_stand", county_stand),
@@ -921,6 +961,11 @@ PIECES = [
     ("chester_sky_town_hall", sky_town_hall),
     ("chester_sky_roofs", sky_roofs),
     ("chester_sky_roofs_b", lambda: sky_roofs(seed=11)),
+    ("chester_city_row_a", lambda: city_far_row(seed=1)),
+    ("chester_city_row_b", lambda: city_far_row(seed=5)),
+    ("chester_city_row_c", lambda: city_far_row(seed=9)),
+    ("chester_city_block_a", lambda: city_far_block(seed=2)),
+    ("chester_city_block_b", lambda: city_far_block(seed=7)),
 ]
 LIB = bpy.data.collections.new("chester_stands_kit")
 bpy.context.scene.collection.children.link(LIB)

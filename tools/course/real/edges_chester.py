@@ -23,6 +23,7 @@ from pathlib import Path
 import numpy as np
 from shapely.geometry import LineString, Point, Polygon, box
 from shapely.prepared import prep
+from shapely.ops import unary_union as _uu
 
 REPO = Path(__file__).resolve().parents[3]
 TREE_KINDS = ("oak_a", "oak_b", "oak_c", "wide_a", "wide_b")      # perimeter.py's KINDS
@@ -412,6 +413,10 @@ def build(S, LY, course, turf, trees, boards, opts, NM, rnd):
                 p_, n_, t_ = on_r(d_, off + rnd.uniform(-0.25, 0.25)); p_ = p_ + t_ * rnd.uniform(-0.25, 0.25)
                 if not fz.contains(Point(*p_)) or S.blocked(*p_): continue
                 S.person(p_[0], 0.0, p_[1], NM.face(n_[0] + rnd.uniform(-0.4, 0.4), n_[1] + rnd.uniform(-0.4, 0.4))); nr += 1
+        # the second line (his third photo): white peaked marquees in a row behind the pagodas
+        for d_ in fe.get("whiteLine", []):
+            p_, n_, t_ = on_r(d_, fe.get("whiteOff", 31.0))
+            if not S.blocked(*p_): prop("marquee_peaks", p_[0], p_[1], math.degrees(math.atan2(n_[0], n_[1])), 1.05)
         # deeper in: the second line of the enclosure, 30-95 m in from the rail
         zone = Polygon([tuple(on_r(d_, 28.0)[0]) for d_ in np.arange(d0e, d1e, 10.0)] + [tuple(on_r(d_, 95.0)[0]) for d_ in np.arange(d1e, d0e, -10.0)]).buffer(0).intersection(fz)
         x0z, z0z, x1z, z1z = zone.bounds; placed_ = []
@@ -479,6 +484,9 @@ def build(S, LY, course, turf, trees, boards, opts, NM, rnd):
     for piece, x_, z_, sc_ in opts.get("skyline", []):
         v_ = cen_c - np.array([x_, z_]); turn = math.degrees(math.atan2(v_[0], v_[1]))
         S.piece(MODEL, piece, x_, z_, turn, sx=sc_, y=S.G(x_, z_)); nsk += 1
+        gi = INFO[piece]; a_ = math.radians(turn); ca_, sa_ = math.cos(a_), math.sin(a_)
+        w_ = lambda u, v: (x_ + u * ca_ - v * sa_, z_ - (u * sa_ + v * ca_))
+        S.nogo.append([w_(-gi["width"] / 2 - 4, -4), w_(gi["width"] / 2 + 4, -4), w_(gi["width"] / 2 + 4, gi["depth"] + 4), w_(-gi["width"] / 2 - 4, gi["depth"] + 4)])
     for pts, rows_, lo, hi in opts.get("farBelts", []):
         ln = LineString(pts)
         for u in np.arange(0.0, ln.length, 11.0):
@@ -489,6 +497,72 @@ def build(S, LY, course, turf, trees, boards, opts, NM, rnd):
                 if water.buffer(4.0).contains(Point(*tp)) or S.blocked(*tp): continue
                 trees.append([round(tp[0], 2), round(tp[1], 2), rnd.choice(TREE_KINDS), round(rnd.uniform(lo, hi), 2), rnd.randrange(360), 1])
     note["skyline pieces"] = nsk
+
+    # ---- the city fill (owner, 19 Nov 15:39: "you didnt really bother with the city scape"; his aerials of the stand side
+    # and of the view down the straight: a dense red-brick city rising behind the walls, terraces and bigger blocks with
+    # trees among them). A street grid laid along the main wall behind it: blocks of terraces facing the streets, the odd
+    # bigger block, a green square now and then, back-garden trees; detailed terraces near the walls, light ones beyond,
+    # the real ground rising away from the course (the flat ground eases back to it past 160 m)
+    cf = opts.get("cityFill")
+    if cf and bays_:
+        mains = [b_ for b_ in bays_ if b_[4] == "main"]
+        u_ = mains[-1][0] - mains[0][0]; u_ = u_ / np.hypot(*u_)
+        v_ = np.array([-u_[1], u_[0]])
+        if np.dot(v_, np.mean([b_[2] for b_ in mains], axis=0)) > 0: v_ = -v_          # v_: away from the course
+        o_ = np.mean([b_[0] for b_ in mains], axis=0)
+        BL, BD, ST = cf.get("block", [46.0, 32.0, 9.0])
+        allb = [(b_[0], b_[2]) for b_ in bays_]
+        region = _uu([box(*b_) for b_ in cf.get("boxes", opts.get("clear", []))])
+        near_rows, far_rows = ["chester_terrace_row"], ["chester_city_row_a", "chester_city_row_b", "chester_city_row_c"]
+        far_blocks = ["chester_city_block_a", "chester_city_block_b"]
+        nf_ = {"near": 0, "far": 0, "blocks": 0, "greens": 0, "trees": 0, "out": 0, "turf": 0, "wall": 0, "taken": 0}
+        def _fp(q):                                     # a placed piece's footprint (the stands kit's axes)
+            gi = INFO.get(q[1]); x_, z_, t_ = q[2], q[3], math.radians(q[4]); sx_ = q[5]
+            ca_, sa_ = math.cos(t_), math.sin(t_); w_ = lambda u, v: (x_ + u * ca_ - v * sa_, z_ - (u * sa_ + v * ca_))
+            hw = gi["width"] / 2 * sx_; fa = gi.get("frontAt", 0.0)
+            return Polygon([w_(-hw, fa), w_(hw, fa), w_(hw, gi["depth"]), w_(-hw, gi["depth"])])
+        occ = [_fp(q) for q in S.pieces if q[0] == MODEL and q[1] in INFO]
+        occ_u = [prep(_uu(occ).buffer(3.0))]
+        def free(c, r):
+            sq = Polygon([tuple(c - u_ * r - v_ * r), tuple(c + u_ * r - v_ * r), tuple(c + u_ * r + v_ * r), tuple(c - u_ * r + v_ * r)])
+            return not any(o.intersects(sq) for o in occ_u)
+        for ia in np.arange(-14, 16):
+            for ib in np.arange(0, 14):
+                c = o_ + u_ * ia * (BL + ST) + v_ * (ib * (BD + ST) + cf.get("start", 30.0))
+                P_ = Point(*c)
+                if not region.contains(P_) or infield.contains(P_): nf_["out"] += 1; continue
+                dT = turf.distance(P_)
+                if dT < cf.get("minFromTurf", 55.0): nf_["turf"] += 1; continue
+                q_, n_ = min(allb, key=lambda b_: np.hypot(*(b_[0] - c)))
+                if np.dot(c - q_, n_) > -cf.get("behindWall", 16.0): nf_["wall"] += 1; continue   # on the city side of the walls
+                if water is not None and water.buffer(10.0).contains(P_): continue
+                if not free(c, BL / 3.2): nf_["taken"] += 1; continue
+                rr = rnd.random()
+                if rr < cf.get("green", 0.12):                                              # a green square: trees
+                    for _ in range(rnd.randint(4, 7)):
+                        tp = c + u_ * rnd.uniform(-BL / 2, BL / 2) + v_ * rnd.uniform(-BD / 2, BD / 2)
+                        trees.append([round(tp[0], 2), round(tp[1], 2), rnd.choice(TREE_KINDS), round(rnd.uniform(1.3, 1.8), 2), rnd.randrange(360), 1]); nf_["trees"] += 1
+                    nf_["greens"] += 1; continue
+                near = dT < cf.get("nearBand", 150.0)
+                for side in (-1, 1):                                                         # the two long sides, facing out
+                    if near and rnd.random() < 0.25: piece = "chester_city_block"
+                    elif near: piece = rnd.choice(near_rows)
+                    elif rnd.random() < cf.get("blocks", 0.25): piece = rnd.choice(far_blocks)
+                    else: piece = rnd.choice(far_rows)
+                    gi = INFO[piece]
+                    pos = c + v_ * side * (BD / 2)                                           # its front on the street
+                    face_ = v_ * side
+                    turn = math.degrees(math.atan2(face_[0], face_[1]))
+                    sc_ = rnd.uniform(0.92, 1.18) if near else rnd.uniform(*cf.get("farScale", [1.0, 1.35])) * (1.15 if "block" in piece else 1.0)
+                    S.piece(MODEL, piece, pos[0], pos[1], turn, sx=min(1.12, BL / gi["width"]), sc=sc_, y=S.G(*pos) - 0.3)
+                    nf_["blocks" if "block" in piece else ("near" if near else "far")] += 1
+                for _ in range(rnd.randint(1, 3)):                                           # back gardens
+                    tp = c + u_ * rnd.uniform(-BL / 2.6, BL / 2.6) + v_ * rnd.uniform(-2.5, 2.5)
+                    trees.append([round(tp[0], 2), round(tp[1], 2), rnd.choice(TREE_KINDS), round(rnd.uniform(1.1, 1.6), 2), rnd.randrange(360), 1]); nf_["trees"] += 1
+                hw_, hd_ = BL / 2 + 1, BD / 2 + 8
+                occ_u.append(prep(Polygon([tuple(c - u_ * hw_ - v_ * hd_), tuple(c + u_ * hw_ - v_ * hd_), tuple(c + u_ * hw_ + v_ * hd_), tuple(c - u_ * hw_ + v_ * hd_)])))
+                S.nogo.append([tuple(c - u_ * hw_ - v_ * hd_), tuple(c + u_ * hw_ - v_ * hd_), tuple(c + u_ * hw_ + v_ * hd_), tuple(c - u_ * hw_ + v_ * hd_)])
+        note["city fill"] = nf_
 
     # ---- tree belts by hand (owner, 19 Nov, the cameras: the home straight's head-on looked past the castle-end wall at an
     # empty horizon): rows of trees along each polyline in opts["belts"], [points, rows (metres to the side), scale lo, hi]
