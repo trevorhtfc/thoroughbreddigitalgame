@@ -495,18 +495,18 @@
    "label": "North corner",
    "kind": "fixed",
    "at": [
-    -71.63,
-    3.0,
-    42.64
+    -80.73,
+    15.0,
+    28.28
    ],
    "fov": [
-    4,
-    26
+    3,
+    24
    ],
    "frame": "field",
    "leadRoom": 2,
    "atD": 1560,
-   "note": "round the north corner, head-on from inside it, the field coming at it round the curving rail (27-31 s) [19 Nov: low, from inside the corner, so Tattersalls and the wall terraces are behind the field]"
+   "note": "round the north corner, head-on, the field coming at it round the curving rail (27-31 s) [16:17: on a 15 m camera tower inside the corner, over the infield's rail crowd; from the post to 45 m out the festival is the rail crowd only, so its line down the straight stays clear]"
   },
   "rail_headon": {
    "label": "Railway side, head-on",

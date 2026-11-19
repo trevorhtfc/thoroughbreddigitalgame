@@ -211,13 +211,13 @@
      "label": "North corner",
      "route": "round",
      "d": 1560,
-     "off": -20,
-     "h": 3.0,
+     "off": -3.0,
+     "h": 15.0,
      "fov": [
-      4,
-      26
+      3,
+      24
      ],
-     "note": "round the north corner, head-on from inside it, the field coming at it round the curving rail (27-31 s) [19 Nov: low, from inside the corner, so Tattersalls and the wall terraces are behind the field]"
+     "note": "round the north corner, head-on, the field coming at it round the curving rail (27-31 s) [16:17: on a 15 m camera tower inside the corner, over the infield's rail crowd; from the post to 45 m out the festival is the rail crowd only, so its line down the straight stays clear]"
     },
     "rail_headon": {
      "label": "Railway side, head-on",
@@ -361,8 +361,7 @@
    "clearAround": {
     "cams": [
      "rail_headon",
-     "turn_headon",
-     "corner_headon"
+     "turn_headon"
     ],
     "radius": 30.0,
     "note": "keep the head-on cameras' foregrounds clear of the infield festival; 'boards': the boards beyond the outer rail cleared from behind the field for these cameras (they filled the long lens); 'trees': the trees cleared in front of these (the viaduct camera)",
@@ -612,16 +611,17 @@
   },
   "festival": {
    "straight": [
-    15.0,
+    -45.0,
     310.0
    ],
    "bar": 150.0,
    "screen": 292.0,
    "clearspans": [],
-   "deepDens": 0.13,
-   "restDens": 0.009,
-   "note": "owner, 19 Nov 13:50, his race-day photos of the infield: the rail crowd solid down the home straight, pagoda runs behind it, the two-storey bar, glazed marquees, the big screen at the far end; white marquees and kiosks deeper in; the rest open grass [19 Nov: nothing tall before 80 m to go, so the north-corner head-on stays clear; the solid crowd stops before the home turn's head-on]",
+   "deepDens": 0.15,
+   "restDens": 0.0,
+   "note": "owner, 19 Nov 13:50, his race-day photos of the infield: the rail crowd solid down the home straight, pagoda runs behind it, the two-storey bar, glazed marquees, the big screen at the far end; white marquees and kiosks deeper in; the rest open grass [19 Nov: nothing tall before 80 m to go, so the north-corner head-on stays clear; the solid crowd stops before the home turn's head-on] [16:17: 'the festival zone needs to go all the way up to and slightly past the finish line.. bring the crowd to the rail and festival area.. don't spot them around the middle of the course': the enclosure from 45 m past the post to the home turn; no picnic groups in the open middle]",
    "pagodas": [
+    65,
     100,
     195,
     230,
@@ -631,8 +631,9 @@
     9.0,
     14.0
    ],
-   "lampsFrom": 88.0,
+   "lampsFrom": 120.0,
    "whiteLine": [
+    60,
     95,
     125,
     180,
