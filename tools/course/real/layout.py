@@ -128,6 +128,13 @@ class Course:
             inf = np.array([[infield.contains(Point(x, y)) for x in xs] for y in ys])
             base = float(np.median(self.DH[inf])) + lv.get("above", 0.3)
             self.DH = np.where(on & (self.DH > base), base, self.DH)
+            fa = lv.get("flatAround")       # the ground rationalised (owner, 19 Nov 13:45, Chester: "you can rationalise the
+            if fa:                          # topo a bit from reality"): dead flat at the turf's level within r metres of
+                ring0 = Polygon(self.rings[0])   # the turf, easing back to the real ground over the next 'ease' metres
+                dist = np.array([[ring0.distance(Point(x, y)) for x in xs] for y in ys])
+                k = np.clip((dist - fa["r"]) / fa.get("ease", 100.0), 0.0, 1.0)
+                k = k * k * (3 - 2 * k)
+                self.DH = base + (self.DH - base) * k
             # OSM features whose height the tiles took for ground (Chester: the Roodee Viaduct's deck read as a bank):
             # brought down to the level of the ground either side of them
             for fx in lv.get("osmFeatures", []):

@@ -90,10 +90,34 @@ def build(S, LY, course, turf, trees, boards, opts, NM, rnd):
             S.stand_people(gi, m[0], m[1], turn, 1.0, 1.0, dens, g=y)
         return turn
 
-    n_mod = 0
+    def clear_line(line, req, iters=4, ease=15):
+        """the wall line rationalised (owner, 19 Nov 13:45, the broken wall at the castle-end bend: "this needs properly
+        fixing"): OSM's line pushed out wherever it comes closer to the turf than req(x, z) metres, then smoothed so it
+        bends gently; repeated so the smoothing doesn't pull it back in"""
+        q = np.array([line.interpolate(u).coords[0] for u in np.arange(0, line.length + 0.01, 2.0)])
+        for _ in range(iters):
+            for i, p_ in enumerate(q):
+                P_ = Point(*p_); d_ = turf.distance(P_); r_ = req(*p_)
+                if d_ < r_:
+                    near_ = np.array(turf.exterior.interpolate(turf.exterior.project(P_)).coords[0])
+                    v_ = p_ - near_; l_ = np.hypot(*v_)
+                    if l_ < 1e-6: continue
+                    if turf.contains(P_): v_ = -v_
+                    q[i] = near_ + v_ / l_ * r_
+            k_ = ease
+            pad = np.vstack([np.repeat(q[:1], k_, 0), q, np.repeat(q[-1:], k_, 0)])
+            q = np.array([pad[i:i + 2 * k_ + 1].mean(0) for i in range(len(q))])
+        return LineString(q)
+
+    def wall_nogo(m, t, n, w, d_back):
+        S.nogo.append([tuple(m - t * w / 2 + n * 4.0), tuple(m + t * w / 2 + n * 4.0), tuple(m + t * w / 2 - n * d_back), tuple(m - t * w / 2 - n * d_back)])
+
+    n_mod = 0; bays_ = []
+    gap = mw.get("gap", 14.0); gap_t = mw.get("gapTerraces", 24.0); t_from = mw.get("terracesFrom", 132.0)
     if main is not None:
         line = LineString(main)
         if line.coords[0][0] > line.coords[-1][0]: line = LineString(list(line.coords)[::-1])     # run it up the straight
+        line = clear_line(line, lambda x, z: gap_t if t_from - 30 <= x <= t_from + 160 else gap)
         L = line.length
         # the terraces: from where the stands end, in the owner's order, then plain wall to the end
         start_x = mw.get("terracesFrom", 132.0)
@@ -112,18 +136,20 @@ def build(S, LY, course, turf, trees, boards, opts, NM, rnd):
             s_ += w
         # plain wall before the terraces (behind the stands) and after them
         bay = INFO["chester_wall_bay"]["width"]
-        for a_, b_ in ((0.0, s0), (s_, L)):
+        for a_, b_, kind_ in ((0.0, s0, "behind"), (s_, L, "plain")):
             k = a_
             while k + bay <= b_ + 0.01:
                 m, t, n = frame(line, k, k + bay)
-                place("chester_wall_bay", m, n, opts.get("wallDens", 0.45)); n_mod += 1
+                place("chester_wall_bay", m, n, opts.get("wallDens", 0.45)); n_mod += 1; wall_nogo(m, t, n, bay, 6.0)
+                bays_.append((m, t, n, kind_, "main"))
                 k += bay
     for w in walls:                                                      # the other walls (the castle's)
         if w is main: continue
-        line = LineString(w); L = line.length; bay = INFO["chester_wall_bay"]["width"]; k = 0.0
+        line = clear_line(LineString(w), lambda x, z: gap); L = line.length; bay = INFO["chester_wall_bay"]["width"]; k = 0.0
         while k + bay <= L + 0.01:
             m, t, n = frame(line, k, k + bay)
-            place("chester_wall_bay", m, n, 0.25); n_mod += 1
+            place("chester_wall_bay", m, n, 0.25); n_mod += 1; wall_nogo(m, t, n, bay, 6.0)
+            bays_.append((m, t, n, "plain", id(w)))
             k += bay
     note["wall pieces"] = n_mod
     note["people on the walls and terraces"] = (len(S.people) - people0) // 4
@@ -290,7 +316,193 @@ def build(S, LY, course, turf, trees, boards, opts, NM, rnd):
                 tp = q + n * rnd.uniform(6, 18) + np.array([-n[1], n[0]]) * rnd.uniform(-20, 20)
                 if not water.contains(Point(*tp)):
                     trees.append([round(tp[0], 2), round(tp[1], 2), rnd.choice(TREE_KINDS), round(rnd.uniform(1.1, 1.5), 2), rnd.randrange(360)])
+            for k in range(4):                                           # (19 Nov: "embed buildings into scenery") big trees behind and between
+                tp = q + n * rnd.uniform(40, 62) + np.array([-n[1], n[0]]) * rnd.uniform(-24, 24)
+                if not water.buffer(3.0).contains(Point(*tp)):
+                    trees.append([round(tp[0], 2), round(tp[1], 2), rnd.choice(TREE_KINDS), round(rnd.uniform(1.4, 1.9), 2), rnd.randrange(360), 1])
     note["houses over the river"] = nh
+
+    # ---- the forecourts (owner, 19 Nov 13:44: "the way each stand module meets the track edge is wrong.. they should bleed
+    # into the usual kind of forecourt area with crowd right up to the track"; "stand terraces should continue and not
+    # just fade to grass"): one paved apron from the outer rail back to the fronts of the stands and the wall terraces,
+    # along the whole stand side, packed with a standing crowd that hugs the rail and thins towards the buildings
+    fc = opts.get("forecourt")
+    if fc:
+        from shapely.ops import unary_union as _uu
+        def fp_(gi, x, z, turn, sx=1.0):
+            a = math.radians(turn); ca, sa = math.cos(a), math.sin(a)
+            w = lambda u, v: (x + u * ca - v * sa, z - (u * sa + v * ca))
+            D = gi["depth"]; k = gi.get("kink")
+            if k:
+                r, (lx, ly) = k["right"], k["leftEnd"]; L_ = math.hypot(lx, ly); nx_, ny_ = -ly / L_, lx / L_
+                if ny_ < 0: nx_, ny_ = -nx_, -ny_
+                return Polygon([w(lx, ly), w(0, 0), w(r, 0), w(r, D), w(0, D), w(lx + nx_ * D, ly + ny_ * D)])
+            o, hw = gi.get("offset", 0.0), gi["width"] / 2 * sx
+            fa = gi.get("frontAt", 0.0)
+            return Polygon([w(o - hw, fa), w(o + hw, fa), w(o + hw, D), w(o - hw, D)])
+        blds = [fp_(INFO[q[1]], q[2], q[3], q[4], q[5]).buffer(0.4) for q in S.pieces if q[0] == MODEL and q[1] in INFO]
+        blds += [Polygon(q).buffer(0) for q in S.nogo]
+        gap_r = course["rails"]["gap"]
+        x0f, x1f = fc.get("x", [-100.0, 300.0])
+        side_box = box(x0f, -200.0, x1f, 40.0)
+        apron = Polygon(turf.exterior).buffer(fc.get("depth", 30.0)).difference(Polygon(turf.exterior).buffer(gap_r + 0.3))
+        apron = apron.intersection(side_box).difference(_uu(blds)).difference(infield)
+        parts_ = [g_ for g_ in polys_(apron) if g_.distance(turf) < gap_r + 1.0 and g_.area > 20]
+        nfc = 0
+        for g_ in parts_:
+            S.flat(fc.get("colour", "#e4d8c2"), [tuple(c_) for c_ in g_.exterior.coords][:-1], y=0.03)
+            x0_, z0_, x1_, z1_ = g_.bounds
+            for x_ in np.arange(x0_, x1_, 0.55):
+                for z_ in np.arange(z0_, z1_, 0.55):
+                    px, pz = x_ + rnd.uniform(-0.25, 0.25), z_ + rnd.uniform(-0.25, 0.25); P_ = Point(px, pz)
+                    if not g_.contains(P_): continue
+                    d_ = turf.distance(P_) - gap_r
+                    dens = fc.get("railDens", 0.95) if d_ < fc.get("railBand", 4.0) else fc.get("dens", 0.42)
+                    if rnd.random() > dens * 0.3025: continue
+                    near_ = turf.exterior.interpolate(turf.exterior.project(P_))
+                    S.person(px, 0.0, pz, NM.face(near_.x - px + rnd.uniform(-2, 2), near_.y - pz + rnd.uniform(-2, 2))); nfc += 1
+        note["forecourt crowd"] = nfc
+
+    # ---- the infield festival (owner, 19 Nov 13:44 "the festival zone sucks"; 13:50 his race-day photos of the infield):
+    # a solid crowd on the infield rail all down the home straight; behind it runs of linked blue-and-white pagodas, the
+    # two-storey bar with its crowded roof deck near the post, the long glazed marquees, the big screen at the far end
+    # facing the stands, lamp posts with speakers; deeper in, white marquees, kiosks and picnic areas among the crowd;
+    # the rest of the infield open grass with a lighter crowd on its rail
+    fe = opts.get("festival")
+    if fe:
+        PRr = course["routes"]["round"]["pathRail"]; RP_ = np.array(PRr["points"]); cen_ = np.array(infield.centroid.coords[0])
+        def on_r(d, off):
+            f_ = (d - PRr["d0"]) / PRr["spacing"]; i_ = max(0, min(len(RP_) - 2, int(f_))); k_ = f_ - i_
+            a_, b_ = RP_[i_], RP_[i_ + 1]; p_ = a_ + (b_ - a_) * k_; t_ = (b_ - a_) / np.linalg.norm(b_ - a_)
+            n_ = np.array([-t_[1], t_[0]])
+            if np.dot(n_, cen_ - p_) > 0: n_ = -n_
+            return p_ - n_ * off, n_, t_                       # off metres in from the inside rail; n_ out across the track
+        fz = Polygon(infield.exterior).buffer(-0.8)
+        def kit(piece, d, off, dens=1.2):
+            p_, n_, t_ = on_r(d, off); gi = INFO[piece]
+            turn = math.degrees(math.atan2(n_[0], n_[1]))
+            S.piece(MODEL, piece, p_[0], p_[1], turn, y=0.0)
+            if gi.get("crowd") and dens > 0: S.stand_people(gi, p_[0], p_[1], turn, 1.0, 1.0, dens, g=0.0)
+            hw = gi["width"] / 2 + 0.5; dp = gi["depth"] + 0.5
+            S.nogo.append([tuple(p_ - t_ * hw + n_ * 0.5), tuple(p_ + t_ * hw + n_ * 0.5), tuple(p_ + t_ * hw - n_ * dp), tuple(p_ - t_ * hw - n_ * dp)])
+        def prop(piece, x, z, turn, sc=1.0):
+            S.piece("site_props", piece, x, z, turn, 1.0, sc)
+            w_, d_ = NM.SP_SIZE[piece]; ca_, sa_ = math.cos(math.radians(turn)), math.sin(math.radians(turn))
+            hw, hd = w_ / 2 * sc + 0.8, d_ / 2 * sc + 0.8
+            S.nogo.append([(x + u * ca_ + v * sa_, z - u * sa_ + v * ca_) for u, v in ((-hw, -hd), (hw, -hd), (hw, hd), (-hw, hd))])
+        d0e, d1e = fe.get("straight", [-90.0, 420.0])
+        np0 = len(S.people)
+        kit("chester_bar_pavilion", fe.get("bar", -30.0), 14.0, 1.6)
+        for d_ in fe.get("pagodas", list(np.arange(20.0, 330.0, 35.0))): kit("chester_pagoda_run", d_, 13.0, 1.4)
+        nt_ = len(S.nogo)
+        kit("chester_big_screen", fe.get("screen", 362.0), 20.0, 0)
+        for d_ in fe.get("clearspans", [-78.0, 405.0]):
+            p_, n_, t_ = on_r(d_, 19.0); prop("marquee_clearspan", p_[0], p_[1], math.degrees(math.atan2(n_[0], n_[1])), 1.15)
+        for d_ in np.arange(fe.get("lampsFrom", d0e + 10), d1e, 36.0):
+            p_, n_, t_ = on_r(d_, 10.5)
+            if not S.blocked(*p_): S.piece(MODEL, "chester_lamp_speaker", p_[0], p_[1], 0.0, y=0.0)
+        # the rail crowd: solid on the rail down the straight, thinning back to the pagodas; lighter round the rest
+        nr = 0
+        for d_ in np.arange(-150.0, 1660.0, 0.6):
+            straight_ = d0e <= d_ <= d1e
+            lo_, depth_ = (0.9, 11.0) if straight_ else (fe.get("restBand", [9.0, 14.0]))   # (elsewhere behind the tracking car's lane)
+            for off in np.arange(lo_, depth_, 0.6):
+                dens = (0.95 if off < 5.0 else 0.5) if straight_ else 0.16
+                if rnd.random() > dens * 0.36: continue
+                p_, n_, t_ = on_r(d_, off + rnd.uniform(-0.25, 0.25)); p_ = p_ + t_ * rnd.uniform(-0.25, 0.25)
+                if not fz.contains(Point(*p_)) or S.blocked(*p_): continue
+                S.person(p_[0], 0.0, p_[1], NM.face(n_[0] + rnd.uniform(-0.4, 0.4), n_[1] + rnd.uniform(-0.4, 0.4))); nr += 1
+        # deeper in: the second line of the enclosure, 30-95 m in from the rail
+        zone = Polygon([tuple(on_r(d_, 28.0)[0]) for d_ in np.arange(d0e, d1e, 10.0)] + [tuple(on_r(d_, 95.0)[0]) for d_ in np.arange(d1e, d0e, -10.0)]).buffer(0).intersection(fz)
+        x0z, z0z, x1z, z1z = zone.bounds; placed_ = []
+        for piece, n_p, r_ in fe.get("deepKit", [["marquee_peaks", 9, 13.0], ["big_top", 2, 11.0], ["pagoda_kiosk", 10, 3.5], ["kiosk_awning", 8, 3.5],
+                                                  ["pergola_picnic", 8, 5.0], ["picnic_table", 28, 1.6], ["stand_open", 3, 8.5], ["marquee_clearspan", 2, 11.0]]):
+            for _ in range(n_p):
+                for _t in range(300):
+                    x_, z_ = rnd.uniform(x0z, x1z), rnd.uniform(z0z, z1z)
+                    if zone.buffer(-r_).contains(Point(x_, z_)) and not S.blocked(x_, z_) and all(math.hypot(x_ - a_, z_ - b_) > r_ + rb + 3 for a_, b_, rb in placed_):
+                        near_ = turf.exterior.interpolate(turf.exterior.project(Point(x_, z_)))
+                        tn = math.degrees(math.atan2(near_.x - x_, near_.y - z_)) + rnd.choice([0, 0, 0, 90, -90])
+                        prop(piece, x_, z_, tn if piece not in ("big_top",) else rnd.uniform(0, 360), rnd.uniform(0.95, 1.15) if "marquee" in piece else 1.0)
+                        placed_.append((x_, z_, r_)); break
+        nd = 0
+        for _ in range(int(zone.area * fe.get("deepDens", 0.07))):
+            x_, z_ = rnd.uniform(x0z, x1z), rnd.uniform(z0z, z1z)
+            if zone.contains(Point(x_, z_)) and not S.blocked(x_, z_):
+                S.person(x_, 0.0, z_, round(rnd.uniform(-3.14, 3.14), 2)); nd += 1
+        rest = fz.difference(zone.buffer(10.0)).difference(Polygon([tuple(on_r(d_, 0.0)[0]) for d_ in np.arange(d0e, d1e, 10.0)] + [tuple(on_r(d_, 30.0)[0]) for d_ in np.arange(d1e, d0e, -10.0)]).buffer(0))
+        x0r, z0r, x1r, z1r = rest.bounds
+        for _ in range(int(rest.area * fe.get("restDens", 0.004))):        # picnic groups on the open grass
+            x_, z_ = rnd.uniform(x0r, x1r), rnd.uniform(z0r, z1r)
+            if rest.contains(Point(x_, z_)) and not S.blocked(x_, z_):
+                for k_ in range(rnd.randint(2, 6)):
+                    S.person(x_ + rnd.uniform(-2, 2), 0.0, z_ + rnd.uniform(-2, 2), round(rnd.uniform(-3.14, 3.14), 2)); nd += 1
+        note["festival"] = {"rail crowd": nr, "the rest": nd, "people": (len(S.people) - np0) // 4}
+
+    # ---- the wall embedded (owner, 19 Nov 13:51, his view down the straight from the castle end: the wall a retaining
+    # wall with a grass bank at its foot, the road along its top, big trees and the Victorian houses hanging over it):
+    # a grassy bank against every plain stretch of wall facing the course, and big trees behind the wall all along it
+    vb = opts.get("wallEmbed", {})
+    if vb:
+        if not hasattr(S, "banks"): S.banks = []
+        prof = vb.get("bank", [[0.0, 3.2], [2.0, 2.7], [4.5, 1.6], [7.0, 0.6], [10.0, 0.0]])
+        run = []
+        def flush():
+            if len(run) >= 2: S.banks.append({"rows": run[:]})
+            run.clear()
+        last = None
+        for m, t, n, kind_, wid in bays_:
+            if kind_ != "plain" or turf.distance(Point(*(m + n * 11.0))) < course["rails"]["gap"] + 2.0 or S.blocked(*(m + n * 6.0)):
+                flush(); last = None; continue
+            if last is not None and (last[1] != wid or np.hypot(*(m - last[0])) > 12.0): flush()
+            for u in (-0.5, 0.0):
+                c_ = m + t * u * INFO["chester_wall_bay"]["width"]
+                row = []
+                for o, h in prof: q = c_ + n * o; row += [round(q[0], 2), h, round(q[1], 2)]
+                run.append(row)
+            last = (m, wid)
+        flush()
+        nt = 0
+        for i_, (m, t, n, kind_, wid) in enumerate(bays_):
+            if i_ % vb.get("treeEvery", 2): continue
+            for back, lo, hi in vb.get("treeRows", [[12.0, 1.45, 1.85], [21.0, 1.3, 1.7]]):
+                q = m - n * (back + rnd.uniform(-2.0, 2.0)) + t * rnd.uniform(-3.0, 3.0)
+                if S.blocked(*q) or turf.buffer(20.0).contains(Point(*q)) or water.buffer(3.0).contains(Point(*q)): continue
+                trees.append([round(q[0], 2), round(q[1], 2), rnd.choice(TREE_KINDS), round(rnd.uniform(lo, hi), 2), rnd.randrange(360), 1]); nt += 1
+        note["wall: banks, trees behind"] = [len(S.banks), nt]
+
+    # ---- the skyline (owner, 19 Nov 13:44 "ensure all vistas are terminated by buildings or trees.. faking some skyline
+    # spires etc in the distance above the trees"; 13:47 "use planting and distant architectural forms to frame the
+    # vistas"): far pieces placed by hand in world x, z, each turned to face the course; distant tree belts
+    cen_c = np.array(infield.centroid.coords[0]) if not infield.is_empty else np.array([150.0, 230.0])
+    nsk = 0
+    for piece, x_, z_, sc_ in opts.get("skyline", []):
+        v_ = cen_c - np.array([x_, z_]); turn = math.degrees(math.atan2(v_[0], v_[1]))
+        S.piece(MODEL, piece, x_, z_, turn, sx=sc_, y=S.G(x_, z_)); nsk += 1
+    for pts, rows_, lo, hi in opts.get("farBelts", []):
+        ln = LineString(pts)
+        for u in np.arange(0.0, ln.length, 11.0):
+            q = np.array(ln.interpolate(u).coords[0]); q2 = np.array(ln.interpolate(min(ln.length, u + 1.0)).coords[0])
+            t_ = (q2 - q) / (np.hypot(*(q2 - q)) or 1); nrm = np.array([-t_[1], t_[0]])
+            for k, off in enumerate(rows_):
+                tp = q + nrm * (off + rnd.uniform(-3.0, 3.0)) + t_ * rnd.uniform(-4.0, 4.0)
+                if water.buffer(4.0).contains(Point(*tp)) or S.blocked(*tp): continue
+                trees.append([round(tp[0], 2), round(tp[1], 2), rnd.choice(TREE_KINDS), round(rnd.uniform(lo, hi), 2), rnd.randrange(360), 1])
+    note["skyline pieces"] = nsk
+
+    # ---- tree belts by hand (owner, 19 Nov, the cameras: the home straight's head-on looked past the castle-end wall at an
+    # empty horizon): rows of trees along each polyline in opts["belts"], [points, rows (metres to the side), scale lo, hi]
+    nbt = 0
+    for pts, rows_, lo, hi in opts.get("belts", []):
+        ln = LineString(pts)
+        for u in np.arange(0.0, ln.length, 9.0):
+            q = np.array(ln.interpolate(u).coords[0]); q2 = np.array(ln.interpolate(min(ln.length, u + 1.0)).coords[0])
+            t_ = (q2 - q) / (np.hypot(*(q2 - q)) or 1); nrm = np.array([-t_[1], t_[0]])
+            for k, off in enumerate(rows_):
+                tp = q + nrm * (off + rnd.uniform(-2.0, 2.0)) + t_ * (rnd.uniform(-2.5, 2.5) + (4.5 if k % 2 else 0.0))
+                if water.buffer(4.0).contains(Point(*tp)) or turf.buffer(12.0).contains(Point(*tp)) or S.blocked(*tp): continue
+                trees.append([round(tp[0], 2), round(tp[1], 2), rnd.choice(TREE_KINDS), round(rnd.uniform(lo, hi), 2), rnd.randrange(360), 1]); nbt += 1
+    note["belt trees by hand"] = nbt
 
     # ---- life (owner, 00:39: "build the festival crowd etc and bring it to life"): flags along the wall's walkway over the
     # terraces, balloon pods in rows of five along the infield opposite the stands, banner flags on the rail lawn

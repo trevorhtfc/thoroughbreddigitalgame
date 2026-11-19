@@ -608,6 +608,41 @@ def view_file(cid, L, course, stalls, stands_side, cams, prelude, postlude, dire
     return out
 
 
+def level_stall_pads(ground, starts, W, behind=18.0, ahead=10.0, side=8.0):
+    """The rule for every course (owner, 19 Nov 2026, 13:46, Chester: "stalls should be aligned to the topo.. again you can
+    flatten the track in key zones if needed. this needs to be a rule in general across all courses"): the ground under
+    each start's stalls is a level pad. The race view stands the stalls as one rigid set at the ground's height at the
+    middle of the track, so a cross-fall or a slope along the track buried one end and left the other in the air. Every
+    grid point within a cell (and a bit) of the pad (the track's width plus 'side' each way, 'behind' metres behind the
+    gate line for the stalls and the horses standing in, 'ahead' in front) takes the height at the pad's middle; the
+    next ring of points goes half way. starts: {key: {insideRailAt, runningDirection, towardsOuterRail}} in world x, z.
+    Returns the biggest change made, in metres."""
+    from shapely.geometry import Polygon as _P, Point as _Pt
+    g = ground; c = g["cell"]; nx, nz = g["nx"], g["nz"]; H = g["h"]
+    def hat(x, z):
+        fx, fz = (x - g["x0"]) / c, (z - g["z0"]) / c
+        i = int(min(max(math.floor(fx), 0), nx - 2)); j = int(min(max(math.floor(fz), 0), nz - 2))
+        a, b = min(max(fx - i, 0), 1), min(max(fz - j, 0), 1)
+        return (H[j * nx + i] * (1 - a) + H[j * nx + i + 1] * a) * (1 - b) + (H[(j + 1) * nx + i] * (1 - a) + H[(j + 1) * nx + i + 1] * a) * b
+    worst = 0.0
+    for s in starts.values():
+        (x, z), (tx, tz), (ox, oz) = s["insideRailAt"], s["runningDirection"], s["towardsOuterRail"]
+        corner = lambda u, v: (x + tx * u + ox * v, z + tz * u + oz * v)
+        pad = _P([corner(-behind, -side), corner(ahead, -side), corner(ahead, W + side), corner(-behind, W + side)])
+        mx, mz = corner((ahead - behind) / 2, W / 2); h0 = hat(mx, mz)
+        inner, outer = pad.buffer(c * 1.42), pad.buffer(c * 2.6)
+        i0 = max(0, int((pad.bounds[0] - g["x0"]) / c) - 4); i1 = min(nx, int((pad.bounds[2] - g["x0"]) / c) + 5)
+        j0 = max(0, int((pad.bounds[1] - g["z0"]) / c) - 4); j1 = min(nz, int((pad.bounds[3] - g["z0"]) / c) + 5)
+        for j in range(j0, j1):
+            for i in range(i0, i1):
+                p = _Pt(g["x0"] + i * c, g["z0"] + j * c); k = j * nx + i
+                if inner.contains(p): new = h0
+                elif outer.contains(p): new = (H[k] + h0) / 2
+                else: continue
+                worst = max(worst, abs(H[k] - new)); H[k] = round(new, 2)
+    return round(worst, 2)
+
+
 def overview_after(prelude):
     """After the race (owner, 10 Nov: "maybe we also use the overview shot for the results page"): the racecard's view
     again behind the results, drifting back the other way."""

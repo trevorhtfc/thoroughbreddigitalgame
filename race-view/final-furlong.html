@@ -2562,7 +2562,9 @@ function cameraTarget(now) {
       const out = c.railSide === "outer";
       const [x, z] = toWorld(leadU + a, out ? HALF_W + c.side : -HALF_W - c.side);
       let y = c.height;
-      for (const [x0, x1, h] of c.raise || []) {
+      for (const [x0, x1, h, z0, z1] of c.raise || []) {
+        // (optional z from, z to: only that side of the course, Chester's infield crowd along the home straight)
+        if (z0 !== undefined && (z < z0 || z > z1)) continue;
         const k = Math.min(THREE.MathUtils.smoothstep(x, x0 - 40, x0), 1 - THREE.MathUtils.smoothstep(x, x1, x1 + 40));
         y = Math.max(y, c.height + (h - c.height) * k);
       }

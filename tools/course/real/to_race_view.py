@@ -146,7 +146,6 @@ def main(cid):
         "ground": ground,
         "drapeTurf": True,
     }
-    NM.write(f"{cid}.json", course)
 
     # ---- stalls: each start's stalls across the track from its inside rail, stall 1 on the inside
     asc = json.loads((OUT / "ascot-stalls.json").read_text())
@@ -168,7 +167,7 @@ def main(cid):
             "course": "straight" if straight else "round",
             "route": s["route"], "key": keys[t], "distance": s["distance"], "insideRailAt": [r2(x), r2(z)],
             "runningDirection": [round(tx, 4), round(tz, 4)], "towardsOuterRail": [round(nx, 4), round(nz, 4)],
-            "stall1": "inside rail", "onStraight": straight, "comesBack": False,
+            "stall1": "inside rail", "onStraight": straight, "comesBack": bool(V.get("stallsAway", False)),
             "stalls": [{"draw": j + 1, "fromInsideRail": round(STALL1 + STALL_PITCH * j, 3), "across": round(STALL1 + STALL_PITCH * j - W / 2, 3),
                         "at": [r2(x + nx * (STALL1 + STALL_PITCH * j)), r2(z + nz * (STALL1 + STALL_PITCH * j))]} for j in range(MAX_RUNNERS)],
         }
@@ -177,6 +176,9 @@ def main(cid):
               "horseStandsBehind": STANDS_BEHIND, "gates": asc["gates"], "kit": asc["kit"], "maxRunners": MAX_RUNNERS,
               "unitsForField": {k: v for k, v in asc["unitsForField"].items() if int(k) <= MAX_RUNNERS}, "starts": starts}
     NM.write(f"{cid}-stalls.json", stalls, 1)
+    pad = NM.level_stall_pads(ground, starts, W)          # a level pad under every start's stalls (the rule for every course)
+    print("   stall pads: the ground moved by up to %.2f m" % pad)
+    NM.write(f"{cid}.json", course)
 
     # ---- standards: rough winning times (a good horse, good ground) until the calibration sets the pars
     nm = json.loads((OUT / "newmarket-july-standards.json").read_text())
@@ -212,6 +214,8 @@ def main(cid):
     zs = -1 if hand < 0 else 1
     prelude = {"label": "The runners", "seconds": 9, "eye": [[-60, 18, -zs * 30], [-45, 17, -zs * 28]],
                "at": [[150, 6, zs * 60], [165, 6, zs * 62]], "fov": 46, "list": [7, 0.6], "cardAfter": 3.5}
+    if V.get("prelude"):                     # a course's own racecard / overview shot (Chester: down the straight from the castle end)
+        prelude.update({k: v for k, v in V["prelude"].items() if k != "note"})
     postlude = NM.overview_after(prelude)
     director = {"tracking": True, "grandstand": 2 * F}
     menu = {"straight": [["track_straight", "Tracking"], ["grandstand", "Stand"], ["headon", "Head-on"], ["drone_straight", "Drone"]],
@@ -287,6 +291,29 @@ def main(cid):
             for dd in np.arange(cs["d"], cs["d"] + ca_.get("ahead", 350.0), 25.0):
                 q = on_route(cs.get("route", default_route), dd, W / 2, 0.0)
                 zones.append(_LS([a, (q[0], q[2])]).buffer(ca_.get("width", 12.0)))
+        bzones = []                          # and the boards beyond the outer rail behind the field, for the cameras named in 'boards'
+        for k in ca_.get("boards", []):
+            cs = TVC["cams"].get(k); cm = cams.get(k)
+            if not cs or not cm or "at" not in cm: continue
+            a = (cm["at"][0], cm["at"][2])
+            for dd in np.arange(cs["d"], cs["d"] + ca_.get("boardsAhead", 0.0), 10.0):
+                q0 = on_route(cs.get("route", default_route), dd, W, 0.0); q1 = on_route(cs.get("route", default_route), dd, W + 40.0, 0.0)
+                bzones.append(_LS([a, (q0[0], q0[2]), (q1[0], q1[2])]).convex_hull.buffer(3.0))
+        bzone = prep(unary_union(bzones)) if bzones else None
+        nb = len(boards); boards[:] = [b_ for b_ in boards if not (bzone is not None and bzone.contains(_Pt(b_[0], b_[1])))]
+        pnote["boards cleared round the cameras"] = nb - len(boards)
+        tzones = []                          # and the trees in front of the cameras that look out over a tree belt (Chester's viaduct)
+        for k in ca_.get("trees", []):
+            cs = TVC["cams"].get(k); cm = cams.get(k)
+            if not cs or not cm or "at" not in cm: continue
+            a = (cm["at"][0], cm["at"][2]); tzones.append(_Pt(*a).buffer(12.0))
+            for dd in np.arange(cs["d"] - 60.0, cs["d"] + 61.0, 10.0):
+                q = on_route(cs.get("route", default_route), dd, W, 0.0)
+                tzones.append(_LS([a, (q[0], q[2])]).buffer(5.0))
+        if tzones:
+            tz = prep(unary_union(tzones)); nt = len(trees)
+            trees[:] = [t_ for t_ in trees if not tz.contains(_Pt(t_[0], t_[1]))]
+            pnote["trees cleared round the cameras"] = nt - len(trees)
         zone = prep(unary_union(zones)) if zones else None
         near = lambda x, z: zone is not None and zone.contains(_Pt(x, z))
         n0 = len(S.pieces); S.pieces[:] = [q for q in S.pieces if not (q[0] == "site_props" and near(q[2], q[3]))]
@@ -303,7 +330,7 @@ def main(cid):
         l = math.hypot(tx, tz); tx, tz = tx / l, tz / l
         S.pieces.append(["finish_line", "finish_line", r2(ax_ - cx_ * GAP), r2(az_ - cz_ * GAP),
                          round(math.degrees(math.atan2(tz, -tx)) + (180 if hand < 0 else 0), 1), 1, 1])
-    scen = NM.scenery_file(S, trees, boards, [], models, {"at": [0, -zs * GAP], "turn": 180 if hand < 0 else 0}, poles)
+    scen = NM.scenery_file(S, trees, boards, getattr(S, "banks", []), models, {"at": [0, -zs * GAP], "turn": 180 if hand < 0 else 0}, poles)
     scen["_about"] += " Basic surroundings from tools/course/real/perimeter.py (the shared rules until the course's own mark-up)."
     NM.write(f"{cid}-scenery.json", scen)
     print("   perimeter:", json.dumps(pnote))

@@ -172,7 +172,7 @@
    ],
    "stall1": "inside rail",
    "onStraight": false,
-   "comesBack": false,
+   "comesBack": true,
    "stalls": [
     {
      "draw": 1,
@@ -394,7 +394,7 @@
    ],
    "stall1": "inside rail",
    "onStraight": false,
-   "comesBack": false,
+   "comesBack": true,
    "stalls": [
     {
      "draw": 1,
@@ -616,7 +616,7 @@
    ],
    "stall1": "inside rail",
    "onStraight": false,
-   "comesBack": false,
+   "comesBack": true,
    "stalls": [
     {
      "draw": 1,
@@ -838,7 +838,7 @@
    ],
    "stall1": "inside rail",
    "onStraight": false,
-   "comesBack": false,
+   "comesBack": true,
    "stalls": [
     {
      "draw": 1,
@@ -1060,7 +1060,7 @@
    ],
    "stall1": "inside rail",
    "onStraight": false,
-   "comesBack": false,
+   "comesBack": true,
    "stalls": [
     {
      "draw": 1,
@@ -1282,7 +1282,7 @@
    ],
    "stall1": "inside rail",
    "onStraight": false,
-   "comesBack": false,
+   "comesBack": true,
    "stalls": [
     {
      "draw": 1,
@@ -1504,7 +1504,7 @@
    ],
    "stall1": "inside rail",
    "onStraight": false,
-   "comesBack": false,
+   "comesBack": true,
    "stalls": [
     {
      "draw": 1,
@@ -1726,7 +1726,7 @@
    ],
    "stall1": "inside rail",
    "onStraight": false,
-   "comesBack": false,
+   "comesBack": true,
    "stalls": [
     {
      "draw": 1,
@@ -1948,7 +1948,7 @@
    ],
    "stall1": "inside rail",
    "onStraight": false,
-   "comesBack": false,
+   "comesBack": true,
    "stalls": [
     {
      "draw": 1,
@@ -2170,7 +2170,7 @@
    ],
    "stall1": "inside rail",
    "onStraight": false,
-   "comesBack": false,
+   "comesBack": true,
    "stalls": [
     {
      "draw": 1,
@@ -2392,7 +2392,7 @@
    ],
    "stall1": "inside rail",
    "onStraight": false,
-   "comesBack": false,
+   "comesBack": true,
    "stalls": [
     {
      "draw": 1,
@@ -2614,7 +2614,7 @@
    ],
    "stall1": "inside rail",
    "onStraight": false,
-   "comesBack": false,
+   "comesBack": true,
    "stalls": [
     {
      "draw": 1,
