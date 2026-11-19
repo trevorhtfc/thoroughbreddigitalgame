@@ -279,6 +279,16 @@ body.pre .dock { display: none; }
   .rr { left: 12px; right: 12px; width: auto; top: calc(env(safe-area-inset-top, 0px) + 60px); padding: 12px 14px; }
   .rr-t { font-size: 1.3rem; margin-bottom: 6px; }
 }
+/* In the game on a phone, the name plate stops short of the game's Racecard button at the top right, so neither covers
+   the other's buttons (18 Nov: the terraces button sat under Racecard) */
+@media (max-width: 600px) {
+  .in-game .plate { max-width: calc(100vw - 140px); gap: 7px; padding: 6px 9px 7px; }
+  .in-game .plate h1 { font-size: 1rem; } .in-game .plate .togo strong { font-size: .95rem; }
+  .in-game .plate > div:first-child { min-width: 0; }
+  .in-game .plate h1 { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .in-game .plate .togo { padding-left: 8px; flex: none; }
+  .in-game .plate .snd { flex: none; }
+}
 </style>
 
 <canvas id="scene"></canvas>

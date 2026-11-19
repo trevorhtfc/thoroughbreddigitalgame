@@ -402,7 +402,7 @@ function gradeBox(r) { const g = GRADE[r.grade]; return `<div class="grade ${g.c
 // Who can run: age, and colts / fillies / open
 const ageOnly = r => r.ageLabel.replace(/ (colts|fillies).*$/, "");
 function sexTag(r) {
-  const t = r.sex === "C" ? ["C", "♂", "Colts only"] : r.sex === "F" ? ["F", "♀", r.ages[0] >= 4 ? "Fillies & mares" : "Fillies only"] : ["O", "⚥", "Open"];
+  const t = r.sex === "C" ? ["C", "♂", "Colts only"] : r.sex === "F" ? ["F", "♀", r.ages[1] >= 4 ? "Fillies & mares" : "Fillies only"] : ["O", "⚥", "Open"];
   return `<span class="sx ${t[0]}" title="${t[2]}"><i>${t[1]}</i>${t[2]}</span>`;
 }
 // The field's make-up, as dots, shown on race day only

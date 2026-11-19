@@ -402,8 +402,8 @@ function tripLadder(r) {
 function raceFace(r) {
   const x = r.sex === "C" ? "C" : r.sex === "F" ? "F" : "O";
   const trip = isBeginner() ? ["Sprint", "Mile", "Middle", "Staying"][kindOf(r.step)] : r.dist;
-  const sexWord = x === "C" ? "Colts" : x === "F" ? (r.ages[0] >= 4 ? "F & M" : "Fillies") : "Open";
-  const sexTitle = x === "C" ? "Colts only" : x === "F" ? (r.ages[0] >= 4 ? "Fillies and mares" : "Fillies only") : "Open to colts and fillies";
+  const sexWord = x === "C" ? "Colts" : x === "F" ? (r.ages[1] >= 4 ? "F & M" : "Fillies") : "Open";
+  const sexTitle = x === "C" ? "Colts only" : x === "F" ? (r.ages[1] >= 4 ? "Fillies and mares" : "Fillies only") : "Open to colts and fillies";
   const course = courseName(r) ? courseName(r).split(" ")[0] : "";
   const gw = gradeWord(r), gk = gw.length >= 8 ? `<span class="lg">${gw}</span><span class="sh">${GRADE[r.grade].short}</span>` : gw;
   // the board's card, with the trip on the ladder of every trip (owner, 16 Nov) and the facts in a row: labelled where
@@ -458,10 +458,10 @@ function racesDone(instant) {
   $("#dealBody").querySelectorAll(".dc").forEach(c => c.classList.add("up"));
   const g1 = RACES.filter(r => r.grade === "Group 1").length, open = RACES.filter(isOpenRace).length, other = RACES.length - g1 - open;
   const top = Math.max(...RACES.map(r => r.prizes[0])), low = Math.min(...RACES.map(r => r.prizes[0]));
-  $("#dealSum").innerHTML = `<b>${g1} Group 1${g1 === 1 ? "" : "s"}</b>, ${other} other Group or Listed race${other === 1 ? "" : "s"} and ${open} handicap${open === 1 ? "" : "s"}. Winners' prizes from ${money(low)} to ${money(top)}. You have ${money(isBeginner() ? BEGINNER_BUDGET : START_BUDGET)} to build a stable for them: breed at the National Stud first, then buy at Tattersalls.`;
+  $("#dealSum").innerHTML = `<b>${g1} Group 1${g1 === 1 ? "" : "s"}</b>, ${other} other Group or Listed race${other === 1 ? "" : "s"} and ${open} handicap${open === 1 ? "" : "s"}. Winners' prizes from ${money(low)} to ${money(top)}. You have ${money(isBeginner() ? BEGINNER_BUDGET : START_BUDGET)} to build a stable for them: ${isSimple() ? "" : "pick your team here, then "}breed at the National Stud, then buy at Tattersalls.`;
   $("#dealSum").classList.add("on");
   $("#dealDeck").classList.add("gone"); $("#dealSkip").hidden = true;
-  const n = $("#dealNext"); n.hidden = false; n.innerHTML = `To the National Stud <span aria-hidden="true">›</span>`;
+  const n = $("#dealNext"); n.hidden = false; n.innerHTML = `${isSimple() ? "To the National Stud" : "Draft your team"} <span aria-hidden="true">›</span>`;
 }
 function skipDeal() { clearDeal(); $("#dealBody").querySelectorAll(".dc").forEach(c => c.getAnimations().forEach(a => a.finish())); if (D && D.phase === 1) racesDone(); }
 // jockey rides you haven't booked are booked for you as you leave entries (owner, 14 Nov: "jockey cards need to be
@@ -865,7 +865,7 @@ document.addEventListener("click", e => {
     case "keep": keepFoal(($("#foalName") || {}).value); render(); break;
     case "closeDev": { const b = $("#devCard"); if (b) b.remove(); cardFrame = null; break; }
     case "changeMare": S.selMare = null; S.selStallion = null; save(); render(); sheetTop(); break;
-    case "vjob": case "vplan": S.view = t.id.slice(1); render(); sheetTop(); break;
+    case "vjob": case "vplan": S.view = t.id.slice(1); if (UI.pn) UI.pn.fresh = null; render(); sheetTop(); break;
     case "dealSkip": skipDeal(); break;
     case "dealNext": closeDeal(); break;
     case "teamDone": if (teamOn()) { S.team.gone = true; UI.tab.jockey = null; save(); story("jockey", "stud", "breed"); } break;
@@ -873,7 +873,7 @@ document.addEventListener("click", e => {
     case "saleNo": S.confirmSale = false; render(); break;
     case "saleYes": if (S.step !== 1 || S.foal || S.offer) break;
       // a Stud Master who hasn't chosen gets a stallion picked for him
-      S.confirmSale = false; S.step = 2; S.book = 1; S.view = "job"; newCatalogue(); save();
+      S.confirmSale = false; S.step = 2; S.book = 1; S.view = "job"; if (UI.pn) UI.pn.fresh = null; newCatalogue(); save();
       story("stud", "tatts", "sales", { procession: "yearlings" }); break;
     case "toEnter": if (S.step !== 2 || S.foal) break;
       // one step since 15 Nov (owner: "the trainer and entries need consolidating"): the sales lead straight to entries at

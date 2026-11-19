@@ -992,3 +992,19 @@ the Jockey Club and the auction; By horse not working. "All the buttons HAVE to 
   to Palace House by taps (draw, deal, breed, foal, planner and back, sales, an auction, entries By race and By horse,
   Fill, race week, sim, standings, home); Newmarket Beginner and Royal Ascot Simple studs. Every control on each screen
   checked as pressable (nothing on top of it). Not checked on a real iPhone.
+
+### The sweep of the other ways to play (19 Nov 2026)
+Owner, 19 Nov: "sweep through the other versions and ensure any smaller mistakes are sorted out". Played by taps on a
+phone (390×844) from the cover to Palace House: Royal Ascot Simple and Plus, Newmarket Simple and Plus, York Simple,
+Plus and Beginner (with the team draft in Plus, an auction, entries By race, By horse and Jockeys, Fill, race week, the
+standings). No page errors and no control covered on any screen. Fixed:
+- Plus: the draw's button said "To the National Stud" but the team is drafted next at the Jockey Club: it says **Draft
+  your team** there, and the draw's summary says so.
+- Races for 3-year-olds and up that are for fillies (the Yorkshire Oaks, the Sun Chariot) said "Fillies": a 4-year-old
+  filly is a mare, so any fillies' race open to 4-year-olds now says **F & M** / Fillies & mares (`r.ages[1] >= 4`).
+- Stable Form I and II (no trainer jobs, a flat boost) showed "0 of 0 jobs left · All his jobs are spent" at entries: now
+  "No jobs to give: every horse in your stable runs +N better on the day", and no Warren Hill line.
+- The planner's "<horse> is in your planner" banner from the last foal came back when the planner was opened by hand,
+  even at Tattersalls: it's cleared by the stud / sale ring tabs and on leaving the stud.
+- Watching a race on a phone: the race view's name plate ran under the game's Racecard button and hid the terraces
+  button. In the game, on phones, the plate stops short of it (race-view/final-furlong.html, the end of its style).

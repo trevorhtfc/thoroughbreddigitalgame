@@ -265,7 +265,7 @@ const pnMiniLad = r => { const k = kindOf(r.step);
 // a race's criteria in one row: trip, the rating it needs, age, sex and prize (owner, 16 Nov: "the race criteria needs to pop
 // out with sex, age and class")
 function pnCrit(r) {
-  const x = r.sex === "C" ? "C" : r.sex === "F" ? "F" : "O", w = x === "C" ? "Colts" : x === "F" ? (r.ages[0] >= 4 ? "Fillies & mares" : "Fillies") : "Colts & fillies";
+  const x = r.sex === "C" ? "C" : r.sex === "F" ? "F" : "O", w = x === "C" ? "Colts" : x === "F" ? (r.ages[1] >= 4 ? "Fillies & mares" : "Fillies") : "Colts & fillies";
   return `<div class="pn-crit"><span class="pn-cg">${pnDistNeed(r)}</span><span class="pn-cg"><span class="pn-cc">${esc2(r.ageLabel.replace(/ .*$/, ""))}</span><span class="pn-cc sx ${x}">${sexSvg(x)}${w}</span><span class="pn-cc pz">${money(r.prizes[0])}</span></span></div>`;
 }
 const pnDistNeed = r => `${pnMiniLad(r)}<b class="pn-dist">${distShow(r)}</b><span class="pn-need" title="${r.grade === "Handicap" ? `Rated ${needFor(r)} to ${HCAP_MAX} to run` : `Rated ${needFor(r)}+ to run`}">${r.grade === "Handicap" ? `${needFor(r)}–${HCAP_MAX}` : `${needFor(r)}+`}</span>`;
