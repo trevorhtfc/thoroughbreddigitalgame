@@ -502,7 +502,7 @@ def tower(x0, x1, y0, y1, H, rise=4.5):
     return H + rise + 3.0
 
 
-def kinked_stand2(angle=8.0, angle_r=None, l_link=12.3, l_roof=33.6, r_link=16.4, r_roof=44.5, stair=True):
+def kinked_stand2(angle=8.0, angle_r=None, l_link=12.3, l_roof=33.6, r_link=16.4, r_roof=44.5, stair=True, towers=True):
     """Sheet 2: the kinked stand. A middle pavilion (two galleries, a front gable with the clock, a flagpole) square to
     the course; from each side a lower link with a flat balustraded roof, then a long run under a hipped roof and a
     square tower at the end; both sides turned 'angle' degrees about the pavilion's front corners so their ends come
@@ -527,26 +527,25 @@ def kinked_stand2(angle=8.0, angle_r=None, l_link=12.3, l_roof=33.6, r_link=16.4
     ar = angle if angle_r is None else angle_r
     r1, r2 = r_link, r_link + r_roof
     def right():
-        tier_section(0.0, r1, roof="flat")
-        tier_section(r1, r2, roof="hip", ends=(False, False))
-        tower(r2, r2 + 9.0, 0.5, 13.0, 20.5)
-        if stair:
-            for j in range(18):                                                     # the open stair up the end
-                zj = 0.6 + j * 0.42
-                K.box("steps", r2 + 9.0, r2 + 12.3, 13.5 - j * 0.72, 14.3 - j * 0.72, zj - 0.25, zj)
-            for j in range(0, 18, 3):                                               # its handrail posts
-                zj = 0.6 + j * 0.42
-                K.box("trim", r2 + 12.1, r2 + 12.25, 13.9 - j * 0.72, 14.05 - j * 0.72, zj, zj + 1.0)
-            rod("trim", r2 + 12.17, 14.3, 1.6, 1.3, 8.6, r=0.05)
+        # (00:36: "the towers suck I'd get rid. Make the terrace continue along the link"): one run each side, the
+        # two tiers and the hipped roof straight on from the pavilion to a flank wall at the end
+        tier_section(0.0, r2 + (0.0 if towers else 9.0), roof="hip", ends=(False, True)) if not towers else None
+        if towers:
+            tier_section(0.0, r1, roof="flat")
+            tier_section(r1, r2, roof="hip", ends=(False, False))
+            tower(r2, r2 + 9.0, 0.5, 13.0, 20.5)
     turned(right, -ar, hp, 0.0)
     # the left side: a link, a run, the tower
     l1, l2 = l_link, l_link + l_roof
     def left():
-        tier_section(-l1, 0.0, roof="flat")
-        tier_section(-l2, -l1, roof="hip", ends=(False, False))
-        tower(-l2 - 10.3, -l2, 0.5, 13.0, 20.5)
+        if towers:
+            tier_section(-l1, 0.0, roof="flat")
+            tier_section(-l2, -l1, roof="hip", ends=(False, False))
+            tower(-l2 - 10.3, -l2, 0.5, 13.0, 20.5)
+        else:
+            tier_section(-l2 - 10.3, 0.0, roof="hip", ends=(True, False))
     turned(left, angle, -hp, 0.0)
-    RE, LE = r2 + (12.3 if stair else 9.0), l2 + 10.3
+    RE, LE = r2 + (12.3 if stair and towers else 9.0), l2 + 10.3
     k = math.radians(angle)
     def pt(px, ang, x, y):
         a = math.radians(ang); return [round(px + x * math.cos(a) - y * math.sin(a), 2), round(x * math.sin(a) + y * math.cos(a), 2)]
@@ -558,13 +557,12 @@ def kinked_stand2(angle=8.0, angle_r=None, l_link=12.3, l_roof=33.6, r_link=16.4
 
 
 # ------------------------------------------------------------------------------------------ sheet 3: the lookout stand
-def lookout_stand():
+def lookout_stand(XB=-33.5, X0=-25.5, X1=33.5, tiers=2):
     """Sheet 3: the two-tier stand. A lower terrace behind a picket fence, two stair flights up its middle; slender
     posts with brackets to the upper deck; the upper tier of seats behind a balustrade, a band of multi-pane windows
     in the back wall; posts to the eaves of a long hipped roof; at its left a plain end block with its stair inside; on
     the ridge the lookout: an X-braced trestle, a railed deck, a glazed hut under its own hipped roof.
     Origin: the middle of the front."""
-    XB, X0, X1 = -33.5, -25.5, 33.5
     yt, zt = steps("steps", X0, X1, 0.5, 0.4, 11, 0.8, 0.32)
     for c in (-1.6, 1.6):                                                         # the two middle flights
         K.prism_x("trim", c - 0.12, c + 0.12, [(0.5, 0.4), (0.5, 1.4), (yt, zt + 1.4), (yt, zt + 0.4)])
@@ -582,6 +580,15 @@ def lookout_stand():
     K.balustrade(X0, X1, yd + 0.2, zd, h=1.0, mat="trim", spacing=0.3)
     area(X0 + 0.3, X1 - 0.3, yd + 0.4, yd + 1.2, zd)
     yu, zu = steps("steps", X0, X1, yd + 1.3, zd, 8, 0.95, 0.42)
+    for t_ in range(tiers - 2):                       # (00:36: "add another tier"): a deck over the tier below, posts, seats
+        zd2 = zu + 2.6
+        posts(X0, X1, yd + 0.3, zd, zd2 - 0.4, 4.6)
+        K.box("trim", X0 - 0.3, X1 + 0.3, yd - 0.1, yu + 0.6, zd2 - 0.4, zd2)
+        K.balustrade(X0, X1, yd + 0.2, zd2, h=1.0, mat="trim", spacing=0.3)
+        area(X0 + 0.3, X1 - 0.3, yd + 0.4, yd + 1.2, zd2)
+        K.box("paint", X0, X1, yu + 0.6, yu + 1.0, zd - 0.4, zd2)
+        zd = zd2
+        yu, zu = steps("steps", X0, X1, yd + 1.3, zd, 8, 0.95, 0.42)
     yb = yu + 0.6
     e = zu + 3.2
     K.box("paint", X0, X1, yb, yb + 0.4, -1.0, e)
@@ -633,8 +640,8 @@ PIECES = [
     ("newbury_pagoda_stand", pagoda_stand),      # sheet 1: the modern stand, glazed storeys under deep bands, five pagoda roofs
     # sheet 2: the kinked stand, towers at both ends, the clock pavilion at the kink; in his plan's box 2 (00:21: "the kinked
     # stand is number 2 still from this plan"): the right side straight up the course, the left turned 35 towards the bend
-    ("newbury_kinked_stand2", lambda: kinked_stand2(35.0, 0.0, 5.0, 12.0, 8.0, 30.6, stair=False)),
-    ("newbury_lookout_stand", lookout_stand),    # sheet 3: the two-tier stand with the lookout on its ridge
+    ("newbury_kinked_stand2", lambda: kinked_stand2(35.0, 0.0, 5.0, 12.0, 8.0, 30.6, stair=False, towers=False)),
+    ("newbury_lookout_stand", lambda: lookout_stand(-42.5, -34.5, 42.5, tiers=3)),   # 00:36: box 3, another tier    # sheet 3: the two-tier stand with the lookout on its ridge
 ]
 LIB = bpy.data.collections.new("newbury_kit")
 bpy.context.scene.collection.children.link(LIB)
