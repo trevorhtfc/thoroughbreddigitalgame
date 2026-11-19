@@ -119,13 +119,17 @@ def peaked_tent(xc, yc, s, z_eave, peak, mast_top):
         K.boxm("mast", Matrix.Translation(mid_) @ q, 0.05, 0.05, L)
 
 
+D_ALL = 56.0
+
+
 def main_stand():
     width = 168.0
     x0, x1 = -width / 2, width / 2
     rows, tread, rise = 16, 0.8, 0.29
     gang = [x0 + 12 + i * 24 for i in range(int((width - 24) / 24) + 1)]
     yb, zb = terraces(x0 + 0.4, x1 - 0.4, 0.0, 0.0, rows, tread, rise, gang)          # 12.8 m deep, 4.6 m up
-    K.box("lawn_wall", x0, x1, -0.6, 0.0, -0.6, 0.45)                                # the low wall at the lawn
+    K.box("lawn_wall", x0, x1, -0.6, 0.0, -3.0, 0.45)                                # the low wall at the lawn
+    K.box("render", x0 - 0.6, x1 + 0.6, 0.0, D_ALL, -3.0, -0.5)                      # a plinth under it all, into the ground
     # the concourse floor: tall glazing between square columns
     F1 = zb                                                        # 4.64
     y_front = yb + 0.6
@@ -207,7 +211,8 @@ def eclipse_stand():
     # the brick plinth and the lawn steps up to it
     rows, tread, rise = 6, 0.9, 0.32
     yb, zb = terraces(xb0 - bay, xb1 + bay, 0.0, 0.0, rows, tread, rise, gangways=(0.0,))
-    K.box("brick", xl0, xb1 + bay, yb, yb + 1.0, -0.6, zb + 1.2)
+    K.box("brick", xl0, xb1 + bay, yb, yb + 1.0, -3.0, zb + 1.2)
+    K.box("brick", xl0 - 0.5, xb1 + bay + 0.5, -0.6, D + 4.0, -3.0, -0.5)                # a plinth under it all, into the ground
     K.box("trim", xl0, xb1 + bay, yb - 0.1, yb + 1.0, zb + 1.2, zb + 1.35)
     P = zb + 1.35                                                   # the first balcony floor
     y0 = yb + 1.0

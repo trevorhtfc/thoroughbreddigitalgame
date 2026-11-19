@@ -68,6 +68,14 @@ def ground_grid(LY, C, W, name):
     hh = np.vectorize(lambda e, n: LY.ground((e, n)))(E[..., 0], E[..., 1]) - LY.POST_GROUND
     p = np.pad(hh, 1, mode="edge")
     hh = sum(p[1 + a:1 + a + nz, 1 + b:1 + b + nx] for a in (-1, 0, 1) for b in (-1, 0, 1)) / 9.0
+    # level platforms under the stands (Sandown, owner 19 Nov 15:40: "the stand appears to be floating? it needs embedding
+    # into the ground"): the ground within each box set to its level, blended back to the real ground over 'blend' metres
+    # (the stands are built into the hillside: cut at the back, a bank of fill where the hill falls away)
+    for pf in C.get("_platforms", []):
+        bx0, bz0, bx1, bz1 = pf["box"]
+        dxx = np.maximum(np.maximum(bx0 - gx, gx - bx1), 0.0); dzz = np.maximum(np.maximum(bz0 - gz, gz - bz1), 0.0)
+        w = np.clip(np.hypot(dxx, dzz) / pf.get("blend", 16.0), 0, 1); w = w * w * (3 - 2 * w)
+        hh = pf["level"] * (1 - w) + hh * w
     edge_h = float(np.median(np.concatenate([hh[0], hh[-1], hh[:, 0], hh[:, -1]])))
     di = np.minimum(np.arange(nx), np.arange(nx)[::-1])[None, :] * GROUND_CELL
     dj = np.minimum(np.arange(nz), np.arange(nz)[::-1])[:, None] * GROUND_CELL
@@ -122,6 +130,7 @@ def main(cid):
             o = W + GAP + 0.7
             poles.append({"furlongs": k, "at": [r2(px + acr[i][0] * o), r2(pz + acr[i][1] * o)],
                           "turn": round(math.degrees(math.atan2(tz, -tx)), 1)})
+    C["_platforms"] = CF.get("ground", {}).get("platforms", [])
     ground = ground_grid(LY, C, W, name)
     default_route = V.get("defaultRoute", "round")
     # a course with no straight course (Chester): the 'straight' cameras and the furlong poles use the home straight
