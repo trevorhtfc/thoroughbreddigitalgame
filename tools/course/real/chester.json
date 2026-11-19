@@ -190,70 +190,70 @@
      "label": "Home straight, head-on",
      "route": "round",
      "d": 1680,
-     "off": 28,
-     "h": 7,
+     "off": -25,
+     "h": 3.0,
      "fov": [
-      1.5,
+      4,
       26
      ],
-     "note": "beyond the north corner on its outside, head-on down the home straight as they come past the stands the first time (11-17 s)"
+     "note": "beyond the north corner on its outside, head-on down the home straight as they come past the stands the first time (11-17 s) [19 Nov: low, from just inside the inside rail, so the city wall at the castle end is behind the field]"
     },
     "corner_headon": {
      "label": "North corner",
      "route": "round",
      "d": 1560,
-     "off": 24,
-     "h": 6,
+     "off": -20,
+     "h": 3.0,
      "fov": [
-      1.5,
+      4,
       26
      ],
-     "note": "round the north corner on the outside, the field coming at it round the curving rail (27-31 s)"
+     "note": "round the north corner, head-on from inside it, the field coming at it round the curving rail (27-31 s) [19 Nov: low, from inside the corner, so Tattersalls and the wall terraces are behind the field]"
     },
     "rail_headon": {
      "label": "Railway side, head-on",
      "route": "round",
      "d": 1150,
      "off": -6,
-     "h": 5,
+     "h": 3.0,
      "fov": [
-      1.5,
+      2,
       24
      ],
-     "note": "low in the infield ahead of them on the railway side: the inside rail in front, the boards and trees beyond (43-57 s); just inside the inside rail, clear of the infield festival"
+     "note": "low in the infield ahead of them on the railway side: the inside rail in front, the boards and trees beyond (43-57 s); just inside the inside rail, clear of the infield festival [19 Nov: lower, so the stands, walls and trees show behind the field]"
     },
     "west_wide": {
      "label": "Across the infield",
      "route": "round",
      "d": 1200,
-     "off": 45,
-     "h": 9,
+     "off": 44,
+     "h": 18,
      "fov": [
-      3,
-      40
+      30,
+      50
      ],
-     "note": "from the railway side, wide across the infield (57-63 s)"
+     "note": "from the railway side, wide across the infield (57-63 s): a camera on the Roodee Viaduct, above the trees planted in front of it"
     },
     "turn_headon": {
      "label": "Home turn",
      "route": "round",
      "d": 300,
      "off": -8,
-     "h": 7,
+     "h": 3.5,
      "fov": [
-      1.5,
+      2.5,
       26
      ],
-     "note": "head-on as they swing for home past the chute (101-107 s); from inside the bend (the city wall runs close outside it here)"
+     "note": "head-on as they swing for home past the chute (101-107 s); from inside the bend (the city wall runs close outside it here) [19 Nov: lower, so the stands, walls and trees show behind the field]"
     },
     "straight_high": {
      "label": "Into the straight, high",
      "route": "round",
      "d": 120,
      "off": 22,
-     "h": 12,
+     "h": 7.0,
      "fov": [
-      2,
+      3,
       28
      ],
      "note": "high up the straight, head-on as they come off the turn (111-119 s)"
@@ -261,11 +261,15 @@
     "grandstand": {
      "copy": "grandstand",
      "at": [
-      0,
-      27.5,
-      -44.0
+      -5,
+      14,
+      -30
      ],
-     "note": "on the County Stand's roof on the line (the basic stand camera at 16 m sat inside the stand)"
+     "note": "a camera gantry on the lawn in front of the County Stand, on the line, 14 m up (owner, 19 Nov: from the roof the picture was only grass)",
+     "fov": [
+      6,
+      42
+     ]
     }
    },
    "shots": [
@@ -353,12 +357,48 @@
      "home_headon"
     ],
     "radius": 30.0,
-    "note": "keep the head-on cameras' foregrounds clear of the infield festival",
+    "note": "keep the head-on cameras' foregrounds clear of the infield festival; 'boards': the boards beyond the outer rail cleared from behind the field for these cameras (they filled the long lens); 'trees': the trees cleared in front of these (the viaduct camera)",
     "ahead": 350.0,
-    "width": 12.0
+    "width": 12.0,
+    "boardsAhead": 400.0,
+    "trees": [
+     "west_wide"
+    ],
+    "boards": [
+     "rail_headon",
+     "turn_headon"
+    ]
    }
   },
-  "lede": "Chester's track in 3D: left-handed, just over a mile round, on its real outline and ground. The stand side modelled from your photos and sheets: the brick block at the bend, the County Stand bending round the kink, Tattersalls' gabled stands, the city wall with its terraces, covered stands and lantern, packed with people, and the city behind. Round the far side: the Roodee Viaduct's arches along the railway, the railway's bridge over the Dee, the river with the houses over it, Grosvenor Road and its bridge, and the castle at the home turn. The infield is one festival; the TV cameras cut as in your Huxley Stakes video."
+  "lede": "Chester's track in 3D: left-handed, just over a mile round, on its real outline and ground. The stand side modelled from your photos and sheets: the brick block at the bend, the County Stand bending round the kink, Tattersalls' gabled stands, the city wall with its terraces, covered stands and lantern, packed with people, and the city behind. Round the far side: the Roodee Viaduct's arches along the railway, the railway's bridge over the Dee, the river with the houses over it, Grosvenor Road and its bridge, and the castle at the home turn. The infield is one festival; the TV cameras cut as in your Huxley Stakes video.",
+  "prelude": {
+   "eye": [
+    [
+     300,
+     16,
+     22
+    ],
+    [
+     284,
+     15,
+     17
+    ]
+   ],
+   "at": [
+    [
+     20,
+     6,
+     -32
+    ],
+    [
+     12,
+     6,
+     -34
+    ]
+   ],
+   "fov": 30,
+   "note": "owner, 19 Nov 2026 (option 1 of four): the overview behind the runners card, and after the race, down the home straight from the castle end: the stands and the wall terraces with their crowd on the right, the balloons and the festival on the left; drifting in towards the stands"
+  }
  },
  "levelTurf": {
   "margin": 6,
@@ -493,6 +533,36 @@
    "farBankMin": 70,
    "farBankMax": 260,
    "houseBack": 28
-  }
+  },
+  "belts": [
+   [
+    [
+     [
+      448,
+      42
+     ],
+     [
+      520,
+      32
+     ],
+     [
+      600,
+      24
+     ],
+     [
+      665,
+      22
+     ]
+    ],
+    [
+     0,
+     9,
+     18
+    ],
+    1.2,
+    1.6
+   ]
+  ],
+  "beltsNote": "owner, 19 Nov (the cameras): a belt of trees beyond the castle-end wall, behind the home straight's head-on"
  }
 }

@@ -292,6 +292,20 @@ def build(S, LY, course, turf, trees, boards, opts, NM, rnd):
                     trees.append([round(tp[0], 2), round(tp[1], 2), rnd.choice(TREE_KINDS), round(rnd.uniform(1.1, 1.5), 2), rnd.randrange(360)])
     note["houses over the river"] = nh
 
+    # ---- tree belts by hand (owner, 19 Nov, the cameras: the home straight's head-on looked past the castle-end wall at an
+    # empty horizon): rows of trees along each polyline in opts["belts"], [points, rows (metres to the side), scale lo, hi]
+    nbt = 0
+    for pts, rows_, lo, hi in opts.get("belts", []):
+        ln = LineString(pts)
+        for u in np.arange(0.0, ln.length, 9.0):
+            q = np.array(ln.interpolate(u).coords[0]); q2 = np.array(ln.interpolate(min(ln.length, u + 1.0)).coords[0])
+            t_ = (q2 - q) / (np.hypot(*(q2 - q)) or 1); nrm = np.array([-t_[1], t_[0]])
+            for k, off in enumerate(rows_):
+                tp = q + nrm * (off + rnd.uniform(-2.0, 2.0)) + t_ * (rnd.uniform(-2.5, 2.5) + (4.5 if k % 2 else 0.0))
+                if water.buffer(4.0).contains(Point(*tp)) or turf.buffer(12.0).contains(Point(*tp)) or S.blocked(*tp): continue
+                trees.append([round(tp[0], 2), round(tp[1], 2), rnd.choice(TREE_KINDS), round(rnd.uniform(lo, hi), 2), rnd.randrange(360), 1]); nbt += 1
+    note["belt trees by hand"] = nbt
+
     # ---- life (owner, 00:39: "build the festival crowd etc and bring it to life"): flags along the wall's walkway over the
     # terraces, balloon pods in rows of five along the infield opposite the stands, banner flags on the rail lawn
     from shapely.geometry import LineString as _LS

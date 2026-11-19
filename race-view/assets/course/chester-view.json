@@ -363,13 +363,13 @@
    "label": "Stand",
    "kind": "fixed",
    "at": [
-    0,
-    27.5,
-    -44.0
+    -5,
+    14,
+    -30
    ],
    "fov": [
-    1.5,
-    24
+    6,
+    42
    ],
    "frame": "field",
    "leadRoom": 3,
@@ -383,7 +383,7 @@
     0,
     1.2
    ],
-   "note": "on the County Stand's roof on the line (the basic stand camera at 16 m sat inside the stand)"
+   "note": "a camera gantry on the lawn in front of the County Stand, on the line, 14 m up (owner, 19 Nov: from the roof the picture was only grass)"
   },
   "sideon": {
    "label": "Side-on replay",
@@ -469,97 +469,97 @@
    "label": "Home straight, head-on",
    "kind": "fixed",
    "at": [
-    35.27,
-    7,
-    -25.71
+    29.97,
+    3.0,
+    27.02
    ],
    "fov": [
-    1.5,
+    4,
     26
    ],
    "frame": "field",
    "leadRoom": 2,
    "atD": 1680,
-   "note": "beyond the north corner on its outside, head-on down the home straight as they come past the stands the first time (11-17 s)"
+   "note": "beyond the north corner on its outside, head-on down the home straight as they come past the stands the first time (11-17 s) [19 Nov: low, from just inside the inside rail, so the city wall at the castle end is behind the field]"
   },
   "corner_headon": {
    "label": "North corner",
    "kind": "fixed",
    "at": [
-    -95.19,
-    6,
-    5.48
+    -71.63,
+    3.0,
+    42.64
    ],
    "fov": [
-    1.5,
+    4,
     26
    ],
    "frame": "field",
    "leadRoom": 2,
    "atD": 1560,
-   "note": "round the north corner on the outside, the field coming at it round the curving rail (27-31 s)"
+   "note": "round the north corner, head-on from inside it, the field coming at it round the curving rail (27-31 s) [19 Nov: low, from inside the corner, so Tattersalls and the wall terraces are behind the field]"
   },
   "rail_headon": {
    "label": "Railway side, head-on",
    "kind": "fixed",
    "at": [
     -43.66,
-    5,
+    3.0,
     396.12
    ],
    "fov": [
-    1.5,
+    2,
     24
    ],
    "frame": "field",
    "leadRoom": 2,
    "atD": 1150,
-   "note": "low in the infield ahead of them on the railway side: the inside rail in front, the boards and trees beyond (43-57 s); just inside the inside rail, clear of the infield festival"
+   "note": "low in the infield ahead of them on the railway side: the inside rail in front, the boards and trees beyond (43-57 s); just inside the inside rail, clear of the infield festival [19 Nov: lower, so the stands, walls and trees show behind the field]"
   },
   "west_wide": {
    "label": "Across the infield",
    "kind": "fixed",
    "at": [
-    -116.61,
-    9,
-    380.33
+    -115.73,
+    18,
+    379.86
    ],
    "fov": [
-    3,
-    40
+    30,
+    50
    ],
    "frame": "field",
    "leadRoom": 2,
    "atD": 1200,
-   "note": "from the railway side, wide across the infield (57-63 s)"
+   "note": "from the railway side, wide across the infield (57-63 s): a camera on the Roodee Viaduct, above the trees planted in front of it"
   },
   "turn_headon": {
    "label": "Home turn",
    "kind": "fixed",
    "at": [
     294.86,
-    7,
+    3.5,
     46.79
    ],
    "fov": [
-    1.5,
+    2.5,
     26
    ],
    "frame": "field",
    "leadRoom": 2,
    "atD": 300,
-   "note": "head-on as they swing for home past the chute (101-107 s); from inside the bend (the city wall runs close outside it here)"
+   "note": "head-on as they swing for home past the chute (101-107 s); from inside the bend (the city wall runs close outside it here) [19 Nov: lower, so the stands, walls and trees show behind the field]"
   },
   "straight_high": {
    "label": "Into the straight, high",
    "kind": "fixed",
    "at": [
     122.03,
-    12,
+    7.0,
     -10.13
    ],
    "fov": [
-    2,
+    3,
     28
    ],
    "frame": "field",
@@ -675,29 +675,29 @@
    "seconds": 9,
    "eye": [
     [
-     -60,
-     18,
-     30
+     300,
+     16,
+     22
     ],
     [
-     -45,
-     17,
-     28
+     284,
+     15,
+     17
     ]
    ],
    "at": [
     [
-     150,
+     20,
      6,
-     -60
+     -32
     ],
     [
-     165,
+     12,
      6,
-     -62
+     -34
     ]
    ],
-   "fov": 46,
+   "fov": 30,
    "list": [
     7,
     0.6
@@ -709,29 +709,29 @@
    "seconds": 8,
    "eye": [
     [
-     -45,
-     17,
-     28
+     284,
+     15,
+     17
     ],
     [
-     -60,
-     18,
-     30
+     300,
+     16,
+     22
     ]
    ],
    "at": [
     [
-     165,
+     12,
      6,
-     -62
+     -34
     ],
     [
-     150,
+     20,
      6,
-     -60
+     -32
     ]
    ],
-   "fov": 46
+   "fov": 30
   }
  },
  "startSequence": {
