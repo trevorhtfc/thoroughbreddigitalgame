@@ -320,15 +320,321 @@ def old_stand(L=76.0, endblock=9.0, levels=3):
     return {"width": L + endblock, "depth": D + 1.6, "height": round(zp + 6.0, 2)}
 
 
+# ======================================================================================================================
+# The owner's own models (19 Nov, 00:11: "I have made models for you to copy for the main stands... model these as close
+# as possible to these"): three sheets, each a three-quarter view, a plan, a roof plan and elevations.
+# ======================================================================================================================
+def post(x, y, z0, z1, r=0.13, brackets=True, mat="trim", axis_x=True):
+    """A slender column with a cap and fretwork brackets either side under the beam."""
+    K.cyl(mat, x, y, z0, z1, r, segs=8)
+    K.box(mat, x - 0.25, x + 0.25, y - 0.25, y + 0.25, z1 - 0.25, z1)
+    if brackets:
+        for s_ in (-1, 1):
+            K.prism_y(mat, y - 0.05, y + 0.05, [(x, z1 - 0.2), (x + s_ * 1.1, z1 - 0.2), (x, z1 - 1.2)])
+
+
+def posts(x0, x1, y, z0, z1, every, **kw):
+    n = max(1, round((x1 - x0) / every))
+    for k in range(n + 1):
+        post(x0 + 0.3 + (x1 - x0 - 0.6) * k / n, y, z0, z1, **kw)
+
+
+def pyramid(cx, cy, w, d, z, rise, spire=4.0, lantern=0.0):
+    """A pagoda-like hipped roof (sheet 1): a glazed lantern base, flared eaves, a hip roof to a point, a finial spire."""
+    if lantern:
+        K.box("paint", cx - w / 2 + 0.6, cx + w / 2 - 0.6, cy - d / 2 + 0.6, cy + d / 2 - 0.6, z, z + lantern)
+        K.screen(cx - w / 2 + 0.8, cx + w / 2 - 0.8, cy - d / 2 + 0.55, z + 0.3, lantern - 0.6, pane=1.4)
+        z += lantern
+    K.box("trim", cx - w / 2 - 0.4, cx + w / 2 + 0.4, cy - d / 2 - 0.4, cy + d / 2 + 0.4, z, z + 0.35)
+    K.hip_roof(cx - w / 2, cx + w / 2, cy - d / 2, cy + d / 2, z + 0.35, rise, ov=0.9, mat="roof")
+    top = z + 0.35 + rise
+    K.cyl("trim", cx, cy, top - 0.4, top + 0.6, 0.35, 0.2, segs=8)
+    if spire:
+        K.cyl("trim", cx, cy, top + 0.6, top + 0.6 + spire, 0.09, 0.03, segs=6)
+    return top + 0.6 + spire
+
+
+# ------------------------------------------------------------------------------------------ sheet 1: the pagoda stand
+def pagoda_stand():
+    """Sheet 1: the big modern grandstand. In front, stepped terraces with stair flights between railed cheeks and a
+    long light canopy on columns with Y brackets; then five storeys of continuous glazing, each under a deep projecting
+    floor band (the eaves broadest at the top); an attic storey; five pagoda roofs along the top, the middle one with
+    the clock dormer, spires on all; on the left (west) a five-storey block with grid windows, a roof terrace, a
+    stair tower, a podium in front. Origin: the middle of the front (the terraces' foot)."""
+    X0, XM, X1 = -45.0, -25.0, 45.0
+    # the terraces in front of the main block: steps with stair flights between railed cheeks, a rail along the front
+    yt, zt = steps("steps", XM, X1, 0.0, 0.3, 10, 0.85, 0.32)
+    for c in (-9.0, 9.0, 27.0):
+        K.box("podium", c - 1.3, c + 1.3, 0.0, yt, -1.0, 0.3)                       # the flight
+        for i in range(10):
+            K.box("steps", c - 1.1, c + 1.1, i * 0.85, yt, -1.0, 0.3 + i * 0.32 + 0.16)
+        for sx in (-1.3, 1.3):
+            K.prism_x("podium", c + sx - 0.15, c + sx + 0.15, [(0.0, -1.0), (0.0, 1.0), (yt, zt + 1.0), (yt, -1.0)])
+            rod("iron", c + sx, 0.0, 1.9, yt, zt + 1.9, r=0.05)
+    K.balustrade(XM, X1, -0.4, 0.3, h=1.0, mat="iron", spacing=0.3)
+    # the canopy: a thin light roof on columns with Y brackets, over the back of the terraces
+    zc = 6.8
+    K.box("trim", XM - 0.5, X1 + 0.5, 2.0, yt + 1.2, zc, zc + 0.3)
+    K.box("glass", XM - 0.5, X1 + 0.5, 1.6, 2.0, zc - 0.5, zc + 0.3)
+    n = 7
+    for k in range(n + 1):
+        x = XM + 1.0 + (X1 - XM - 2.0) * k / n
+        zb = 0.3 + min(9, int(3.4 / 0.85)) * 0.32
+        K.cyl("trim", x, 3.4, zb, zc - 1.0, 0.2, segs=10)
+        for s_ in (-1, 1):
+            K.prism_y("trim", 3.3, 3.5, [(x, zc - 1.0), (x + s_ * 2.2, zc), (x + s_ * 1.9, zc), (x, zc - 0.6)])
+    # the main block: five glazed storeys behind floor bands that project; the top eaves broadest
+    yg = yt + 1.0                                         # the glazing line
+    D = yg + 16.0
+    K.box("paint", XM, X1, yt, D, -1.0, zt + 0.2)
+    K.screen(XM + 0.3, X1 - 0.3, yt + 0.6, zt + 0.2, zc - zt - 0.6, pane=2.2)       # the concourse under the canopy
+    levels = [(zc + 0.3, 3.6, 2.0), (zc + 4.6, 3.6, 2.6), (zc + 8.9, 3.6, 2.6), (zc + 13.2, 3.4, 3.4)]
+    K.box("paint", XM, X1, yg, D, zc + 0.3, zc + 17.0)
+    for z0, hgt, proj in levels:
+        K.screen(XM + 0.3, X1 - 0.3, yg - 0.05, z0 + 0.25, hgt - 0.35, pane=1.6)
+        area(XM + 1.0, X1 - 1.0, yg - proj + 0.4, yg - 0.3, z0 + 0.1) if proj > 2.1 else None
+        zb = z0 + hgt
+        K.box("trim", XM - 0.5, X1 + 0.5, yg - proj, yg + 0.3, zb - 0.1, zb + 0.6)     # the floor band above it
+        K.box("podium", XM - 0.55, X1 + 0.55, yg - proj - 0.05, yg - proj + 0.15, zb - 0.25, zb + 0.6)
+        K.balustrade(XM, X1, yg - proj + 0.3, z0 - 0.1 if z0 > zc + 1 else zb, h=1.0, mat="trim", spacing=0.35) if z0 > zc + 1 else None
+    ze = zc + 17.0
+    K.box("trim", XM - 1.5, X1 + 1.5, yg - 4.6, D + 0.8, ze, ze + 0.7)             # the deep top eaves
+    K.box("podium", XM - 1.55, X1 + 1.55, yg - 4.65, yg - 4.4, ze - 0.2, ze + 0.7)
+    # the attic storey, set back, with a row of windows, then the five pagoda roofs
+    ya0, ya1, za = yg + 2.0, D - 1.0, ze + 0.7
+    K.box("paint", XM + 2.0, X1 - 3.0, ya0, ya1, za, za + 3.2)
+    for k in range(int((X1 - XM - 6.0) // 3.0)):
+        win(XM + 4.0 + k * 3.0, ya0, za + 0.9, 1.9, 1.4)
+    K.box("trim", XM + 1.4, X1 - 2.4, ya0 - 0.6, ya1 + 0.6, za + 3.2, za + 3.6)
+    zr = za + 3.6
+    cy = (ya0 + ya1) / 2
+    tops = []
+    for cx, w, rise, lan in ((-20.0, 9.0, 4.4, 2.4), (-4.0, 15.0, 6.5, 0.0), (9.5, 17.0, 7.8, 0.0), (22.0, 15.0, 6.5, 0.0), (32.5, 9.0, 4.4, 2.4)):
+        tops.append(pyramid(cx, cy, w, ya1 - ya0 - 1.0, zr, rise, spire=4.5 if w > 10 else 0.0, lantern=lan))
+    # the clock dormer on the middle pagoda's front slope
+    gz = zr + 2.2
+    K.box("paint", 7.3, 11.7, ya0 - 1.2, ya0 + 2.0, zr, gz + 1.4)
+    rz = gable_y(7.3, 11.7, ya0 - 1.4, ya0 + 2.0, gz + 1.4, 40, 0.3, roof="roof", wall="paint")
+    clock(9.5, ya0 - 1.5, gz + 0.9, 1.2)
+    # the west block: five storeys of grid windows, a podium in front, a roof terrace, the stair tower, a chimney
+    K.box("paint", X0, XM, 2.0, D - 2.0, -1.0, 4.6)                                  # the podium
+    for x in (X0 + 3.0, X0 + 7.0, X0 + 11.0, X0 + 15.0):
+        win(x, 2.0, 1.0, 2.0, 2.0)
+    K.box("trim", X0 - 0.2, XM + 0.2, 1.8, D - 1.8, 4.6, 5.0)
+    K.box("paint", X0 + 3.0, XM, 4.0, D - 2.0, 5.0, 19.5)
+    for z in (6.0, 9.4, 12.8, 16.2):
+        for k in range(5):
+            x = X0 + 4.5 + k * 3.4
+            K.window(x, 4.0, z, 2.6, 2.6)
+    K.box("trim", X0 + 2.8, XM + 0.2, 3.8, D - 1.8, 19.5, 19.9)
+    K.balustrade(X0 + 3.0, XM, 4.1, 19.9, h=1.0, mat="iron", spacing=0.3)
+    area(X0 + 3.5, XM - 0.5, 4.4, 9.0, 19.9)
+    K.box("paint", X0, X0 + 3.0, 6.0, D - 4.0, -1.0, 24.5)                          # the stair tower
+    for z in (6.0, 10.0, 14.0, 18.0):
+        win(X0 + 1.5, 6.0, z, 1.0, 2.0)
+    K.box("paint", XM - 1.0, XM + 3.0, yg + 4.0, D - 3.0, ze, ze + 6.0)              # the shoulder and its chimney
+    K.box("paint", XM + 0.2, XM + 2.0, yg + 6.0, yg + 8.0, ze + 6.0, ze + 9.0)
+    # flank: the terraces' rake at the right-hand end, then the block's end
+    flank(X1, 1, [(-0.6, -1.0), (-0.6, 1.0), (yt, zt + 1.1), (yt, ze), (D, ze), (D, -1.0)])
+    return {"width": X1 - X0 + 3.0, "depth": round(D + 0.8, 2), "height": round(max(tops), 2),
+            "section": {"terraceBack": round(yt, 2), "canopy": zc, "eaves": ze, "attic": round(za, 2), "pagodas": round(zr, 2)}}
+
+
+# ------------------------------------------------------------------------------------------ sheet 2: the kinked stand
+SB2 = {"rows": 16, "tread": 0.9, "rise": 0.35, "deckY": 6.6, "deck": 7.4, "urows": 8, "utread": 0.95, "urise": 0.45,
+       "back": 15.6, "eaves": 14.6}
+
+
+def tier_section(x0, x1, roof="hip", ends=(False, False)):
+    """Sheet 2's section: the lower terrace from the lawn with a rail along its front; slender posts with brackets up
+    to the upper deck, which overhangs the back of the lower terrace; the upper tier of seats behind its balustrade;
+    posts again to the eaves; the back wall with windows; a long hipped roof ('hip') or a flat roof with a
+    balustrade people stand on ('flat', the links beside the middle pavilion)."""
+    r = SB2
+    yt, zt = steps("steps", x0, x1, 0.0, 0.6, r["rows"], r["tread"], r["rise"])
+    K.balustrade(x0, x1, -0.3, 0.6, h=1.0, mat="trim", spacing=0.3)
+    K.box("podium", x0, x1, -0.5, 0.0, -1.0, 0.6)
+    yd, zd = r["deckY"], r["deck"]
+    zrow = 0.6 + int(yd / r["tread"]) * r["rise"]
+    posts(x0, x1, yd + 0.3, zrow, zd - 0.4, 5.2)
+    K.box("trim", x0, x1, yd - 0.1, r["back"], zd - 0.4, zd)                         # the upper deck
+    K.box("trim", x0, x1, yd - 0.2, yd + 0.1, zd - 0.9, zd)
+    K.balustrade(x0, x1, yd + 0.2, zd, h=1.0, mat="trim", spacing=0.3)
+    area(x0 + 0.3, x1 - 0.3, yd + 0.4, yd + 1.2, zd)
+    yu, zu = steps("steps", x0, x1, yd + 1.3, zd, r["urows"], r["utread"], r["urise"])
+    yb = r["back"]
+    K.box("paint", x0, x1, yb, yb + 0.4, -1.0, r["eaves"])
+    for k in range(int((x1 - x0 - 2.0) // 3.0) + 1):
+        x = x0 + 1.5 + k * 3.0
+        if x < x1 - 1.0:
+            win(x, yb, zu + 0.9, 1.6, 1.3)
+    e = r["eaves"]
+    if roof == "hip":
+        posts(x0, x1, yd + 0.3, zd, e - 0.3, 5.2)
+        K.box("trim", x0, x1, yd - 0.2, yd + 0.4, e - 0.7, e - 0.3)
+        K.hip_roof(x0, x1, yd - 0.5, yb + 1.2, e - 0.3, 4.2, ov=0.9, mat="roof")
+    else:
+        posts(x0, x1, yd + 0.3, zd, e - 1.8, 5.2)
+        K.box("trim", x0 - 0.2, x1 + 0.2, yd - 0.4, yb + 0.6, e - 1.8, e - 1.4)
+        K.balustrade(x0, x1, yd - 0.2, e - 1.4, h=1.0, mat="trim", spacing=0.3)
+        area(x0 + 0.3, x1 - 0.3, yd + 0.1, yb, e - 1.4)
+    for x, side, on in ((x0, -1, ends[0]), (x1, 1, ends[1])):
+        if on:
+            flank(x, side, [(-0.5, -1.0), (-0.5, 1.4), (yt, zt + 1.3), (yt, zd), (yb + 0.4, e), (yb + 0.4, -1.0)])
+    return yt
+
+
+def tower(x0, x1, y0, y1, H, rise=4.5):
+    """Sheet 2's end towers: five storeys of three-light windows on the front and outer side, a cornice, a pyramid
+    roof with a finial, a little balcony at the first floor."""
+    K.box("paint", x0, x1, y0, y1, -1.0, H)
+    for z in (3.4, 7.0, 10.6, 14.2, 17.8):
+        if z + 2.0 < H:
+            for x in ((x0 + x1) / 2 - 1.2, (x0 + x1) / 2, (x0 + x1) / 2 + 1.2):
+                K.window(x, y0, z, 1.0, 2.0)
+    K.box("trim", x0 - 0.3, x1 + 0.3, y0 - 0.3, y1 + 0.3, H, H + 0.5)
+    K.box("trim", x0 - 1.0, x1 + 1.0, y0 - 1.6, y0, 2.9, 3.2)
+    K.balustrade(x0 - 0.9, x1 + 0.9, y0 - 1.4, 3.2, h=1.0, mat="trim", spacing=0.3)
+    K.hip_roof(x0, x1, y0, y1, H + 0.5, rise, ov=0.6, mat="roof")
+    cx, cy = (x0 + x1) / 2, (y0 + y1) / 2
+    K.box("paint", cx - 0.5, cx + 0.5, cy - 0.5, cy + 0.5, H + rise - 0.6, H + rise + 1.4)
+    K.cyl("trim", cx, cy, H + rise + 1.4, H + rise + 3.0, 0.1, 0.03, segs=6)
+    return H + rise + 3.0
+
+
+def kinked_stand2(angle=8.0, angle_r=None, l_link=12.3, l_roof=33.6, r_link=16.4, r_roof=44.5, stair=True):
+    """Sheet 2: the kinked stand. A middle pavilion (two galleries, a front gable with the clock, a flagpole) square to
+    the course; from each side a lower link with a flat balustraded roof, then a long run under a hipped roof and a
+    square tower at the end; both sides turned 'angle' degrees about the pavilion's front corners so their ends come
+    forward towards the course; an open stair up the right-hand end. Origin: the middle of the pavilion's front."""
+    hp = 8.2
+    # the middle pavilion
+    yt = tier_section(-hp, hp, roof="flat")
+    yb = SB2["back"]
+    K.box("paint", -hp + 0.6, hp - 0.6, 3.0, yb + 0.4, SB2["eaves"] - 1.4, SB2["eaves"] + 4.6)
+    for x in (-5.0, -2.0, 2.0, 5.0):
+        K.window(x, 3.0, SB2["eaves"] + 0.4, 1.4, 2.2)
+    K.balustrade(-hp + 0.6, hp - 0.6, 3.2, SB2["eaves"] - 1.4, h=1.0, mat="trim", spacing=0.3)
+    zg = SB2["eaves"] + 4.6
+    K.box("trim", -hp + 0.3, hp - 0.3, 2.7, yb + 0.7, zg, zg + 0.4)
+    K.hip_roof(-hp + 0.6, hp - 0.6, 3.0, yb + 0.4, zg + 0.4, 4.0, ov=0.7, mat="roof")
+    rz = gable_y(-5.2, 5.2, 2.4, 9.0, zg + 0.4, 38, 0.5, roof="roof", wall="paint")
+    clock(0.0, 2.2, zg + 0.4 + (rz - zg - 0.4) * 0.42, 1.3)
+    for x in (-hp + 0.6, hp - 0.6):
+        K.box("paint", x - 0.5, x + 0.5, 2.6, 3.4, -1.0, zg + 0.4)                    # its corner pilasters
+    flagpole(0.0, 8.0, rz + 0.2, h=8.0)
+    # the right side: a link, a run under its hipped roof, the tower, the stair
+    ar = angle if angle_r is None else angle_r
+    r1, r2 = r_link, r_link + r_roof
+    def right():
+        tier_section(0.0, r1, roof="flat")
+        tier_section(r1, r2, roof="hip", ends=(False, False))
+        tower(r2, r2 + 9.0, 0.5, 13.0, 20.5)
+        if stair:
+            for j in range(18):                                                     # the open stair up the end
+                zj = 0.6 + j * 0.42
+                K.box("steps", r2 + 9.0, r2 + 12.3, 13.5 - j * 0.72, 14.3 - j * 0.72, zj - 0.25, zj)
+            for j in range(0, 18, 3):                                               # its handrail posts
+                zj = 0.6 + j * 0.42
+                K.box("trim", r2 + 12.1, r2 + 12.25, 13.9 - j * 0.72, 14.05 - j * 0.72, zj, zj + 1.0)
+            rod("trim", r2 + 12.17, 14.3, 1.6, 1.3, 8.6, r=0.05)
+    turned(right, -ar, hp, 0.0)
+    # the left side: a link, a run, the tower
+    l1, l2 = l_link, l_link + l_roof
+    def left():
+        tier_section(-l1, 0.0, roof="flat")
+        tier_section(-l2, -l1, roof="hip", ends=(False, False))
+        tower(-l2 - 10.3, -l2, 0.5, 13.0, 20.5)
+    turned(left, angle, -hp, 0.0)
+    RE, LE = r2 + (12.3 if stair else 9.0), l2 + 10.3
+    k = math.radians(angle)
+    def pt(px, ang, x, y):
+        a = math.radians(ang); return [round(px + x * math.cos(a) - y * math.sin(a), 2), round(x * math.sin(a) + y * math.cos(a), 2)]
+    outline = [pt(-hp, angle, -LE, 0.0), pt(-hp, angle, 0.0, 0.0), pt(hp, -ar, 0.0, 0.0), pt(hp, -ar, RE, 0.0),
+               pt(hp, -ar, RE, 16.0), pt(hp, -ar, 0.0, 16.0), pt(-hp, angle, 0.0, 16.0), pt(-hp, angle, -LE, 16.0)]
+    xs = [p[0] for p in outline]
+    return {"width": round(max(xs) - min(xs), 2), "depth": 16.4, "height": round(rz + 8.2, 2), "offset": round((max(xs) + min(xs)) / 2, 2),
+            "outline": outline, "kink": {"angle": angle, "angleRight": ar, "note": "the left side turned 'angle', the right 'angleRight', about the middle pavilion's front corners"}}
+
+
+# ------------------------------------------------------------------------------------------ sheet 3: the lookout stand
+def lookout_stand():
+    """Sheet 3: the two-tier stand. A lower terrace behind a picket fence, two stair flights up its middle; slender
+    posts with brackets to the upper deck; the upper tier of seats behind a balustrade, a band of multi-pane windows
+    in the back wall; posts to the eaves of a long hipped roof; at its left a plain end block with its stair inside; on
+    the ridge the lookout: an X-braced trestle, a railed deck, a glazed hut under its own hipped roof.
+    Origin: the middle of the front."""
+    XB, X0, X1 = -33.5, -25.5, 33.5
+    yt, zt = steps("steps", X0, X1, 0.5, 0.4, 11, 0.8, 0.32)
+    for c in (-1.6, 1.6):                                                         # the two middle flights
+        K.prism_x("trim", c - 0.12, c + 0.12, [(0.5, 0.4), (0.5, 1.4), (yt, zt + 1.4), (yt, zt + 0.4)])
+    K.box("trim", X0 - 0.5, X1 + 0.5, -1.0, -0.9, 0.3, 0.42)                        # the picket fence
+    K.box("trim", X0 - 0.5, X1 + 0.5, -1.0, -0.9, 0.85, 0.97)
+    x = X0 - 0.4
+    while x < X1 + 0.5:
+        if abs(x) > 1.4:
+            K.box("trim", x - 0.04, x + 0.04, -1.0, -0.9, -0.3, 1.1)
+        x += 0.18
+    zd, yd = zt + 1.6, yt - 1.2
+    zrow = 0.4 + int((yd - 0.5) / 0.8) * 0.32
+    posts(X0, X1, yd + 0.3, zrow, zd - 0.4, 4.6)
+    K.box("trim", X0 - 0.3, X1 + 0.3, yd - 0.1, yd + 11.0, zd - 0.4, zd)
+    K.balustrade(X0, X1, yd + 0.2, zd, h=1.0, mat="trim", spacing=0.3)
+    area(X0 + 0.3, X1 - 0.3, yd + 0.4, yd + 1.2, zd)
+    yu, zu = steps("steps", X0, X1, yd + 1.3, zd, 8, 0.95, 0.42)
+    yb = yu + 0.6
+    e = zu + 3.2
+    K.box("paint", X0, X1, yb, yb + 0.4, -1.0, e)
+    K.screen(X0 + 1.0, X1 - 1.0, yb - 0.02, zu + 0.4, 1.8, pane=1.0)
+    posts(X0, X1, yd + 0.3, zd, e - 0.3, 4.6)
+    K.box("trim", X0 - 0.3, X1 + 0.3, yd - 0.2, yd + 0.4, e - 0.7, e - 0.3)
+    K.hip_roof(X0 - 0.3, X1 + 0.3, yd - 0.6, yb + 1.0, e - 0.3, 4.0, ov=1.0, mat="roof")
+    ridge = e - 0.3 + 4.0
+    # the end block on the left, with windows, a parapet, and the stair rising inside its front
+    K.box("paint", XB, X0, 0.0, yb + 0.4, -1.0, e + 0.6)
+    for z in (1.0, 4.6, 8.2):
+        if z + 1.6 < e:
+            win(XB + 2.4, 0.0, z, 1.0, 1.6)
+    K.box("trim", XB - 0.2, X0 + 0.2, -0.2, yb + 0.6, e + 0.6, e + 0.9)
+    for k in range(4):                                                            # the stair's windows climbing its front
+        win(XB + 4.4 + k * 1.0, 0.0, 1.2 + k * 1.3, 0.8, 1.0)
+    flank(X1, 1, [(-0.9, -1.0), (-0.9, 1.4), (yt, zt + 1.4), (yt, zd), (yb + 0.4, e), (yb + 0.4, -1.0)])
+    # the lookout on the ridge: an X-braced trestle, a railed deck, a glazed hut, its hipped roof
+    cx, cy = 2.0, (yd + yb) / 2
+    w, d, zt0, zt1 = 11.0, 6.0, ridge - 1.2, ridge + 2.0
+    for dx in (-w / 2 + 0.8, -w / 6, w / 6, w / 2 - 0.8):
+        for dy in (-d / 2 + 0.5, d / 2 - 0.5):
+            K.box("trim", cx + dx - 0.15, cx + dx + 0.15, cy + dy - 0.15, cy + dy + 0.15, zt0, zt1)
+    for a, b in ((-w / 2 + 0.8, -w / 6), (-w / 6, w / 6), (w / 6, w / 2 - 0.8)):
+        for dy in (-d / 2 + 0.5,):
+            for s_ in (1, -1):
+                L = math.hypot(b - a, zt1 - zt0); ang = math.atan2(zt1 - zt0, b - a) * s_
+                K.boxm("trim", Matrix.Translation((cx + (a + b) / 2, cy + dy, (zt0 + zt1) / 2)) @ Matrix.Rotation(-ang, 4, "Y"), L, 0.14, 0.14)
+    K.box("deck", cx - w / 2 - 1.2, cx + w / 2 + 1.2, cy - d / 2 - 1.2, cy + d / 2 + 1.2, zt1, zt1 + 0.3)
+    K.balustrade(cx - w / 2 - 1.1, cx + w / 2 + 1.1, cy - d / 2 - 1.1, zt1 + 0.3, h=1.0, mat="trim", spacing=0.3)
+    K.balustrade(cy - d / 2 - 1.1, cy + d / 2 + 1.1, cx - w / 2 - 1.1, zt1 + 0.3, h=1.0, mat="trim", spacing=0.3, axis="y")
+    K.balustrade(cy - d / 2 - 1.1, cy + d / 2 + 1.1, cx + w / 2 + 1.1, zt1 + 0.3, h=1.0, mat="trim", spacing=0.3, axis="y")
+    zh = zt1 + 0.3
+    K.box("paint", cx - w / 2, cx + w / 2, cy - d / 2, cy + d / 2, zh, zh + 0.9)
+    K.screen(cx - w / 2 + 0.2, cx + w / 2 - 0.2, cy - d / 2 - 0.02, zh + 0.9, 1.6, pane=1.2)
+    K.box("paint", cx - w / 2, cx + w / 2, cy - d / 2 + 0.3, cy + d / 2, zh + 0.9, zh + 2.5)
+    K.box("trim", cx - w / 2 - 0.3, cx + w / 2 + 0.3, cy - d / 2 - 0.3, cy + d / 2 + 0.3, zh + 2.5, zh + 2.8)
+    K.hip_roof(cx - w / 2, cx + w / 2, cy - d / 2, cy + d / 2, zh + 2.8, 2.6, ov=0.8, mat="roof")
+    top = zh + 2.8 + 2.6
+    K.cyl("trim", cx, cy, top - 0.3, top + 1.4, 0.12, 0.04, segs=6)
+    return {"width": X1 - XB + 1.0, "depth": round(yb + 1.4, 2), "height": round(top + 1.4, 2),
+            "section": {"terraceTop": round(zt, 2), "deck": round(zd, 2), "eaves": round(e, 2), "ridge": round(ridge, 2)}}
+
+
+
 PIECES = [
     ("newbury_glass_stand", glass_stand),
-    # 2, the kinked stand (23:23): two runs of the Rowley Mile's cranked stand and the drum where they meet; the course
-    # places the left run turned towards the bend about the kink's front corner (tools/course/real/newbury.json)
-    ("newbury_kink_right", lambda: gp_run(14, ends=(False, True), tv=-14 * BAY / 2 + 12.0)),
-    ("newbury_kink_left", lambda: gp_run(8, ends=(True, False))),
-    ("newbury_kink_joint", lambda: kink_joint(29.3, 35.0, 22.0)),
-    ("newbury_main_stand", main_stand),
-    ("newbury_old_stand", old_stand),
+    # 19 Nov 00:11, the owner's own models of the main stands, as close as can be:
+    ("newbury_pagoda_stand", pagoda_stand),      # sheet 1: the modern stand, glazed storeys under deep bands, five pagoda roofs
+    # sheet 2: the kinked stand, towers at both ends, the clock pavilion at the kink; in his plan's box 2 (00:21: "the kinked
+    # stand is number 2 still from this plan"): the right side straight up the course, the left turned 35 towards the bend
+    ("newbury_kinked_stand2", lambda: kinked_stand2(35.0, 0.0, 5.0, 12.0, 8.0, 30.6, stair=False)),
+    ("newbury_lookout_stand", lookout_stand),    # sheet 3: the two-tier stand with the lookout on its ridge
 ]
 LIB = bpy.data.collections.new("newbury_kit")
 bpy.context.scene.collection.children.link(LIB)
