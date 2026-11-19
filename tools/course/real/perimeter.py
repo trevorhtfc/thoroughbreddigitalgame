@@ -276,6 +276,9 @@ def perimeter(S, C, turf, grid_box, rnd=None, opts=None):
                         ("picnic_table", 30.0, 1.5), ("flagpole", 16.0, 1.0), ("planter_long", 14.0, 2.5), ("banner_flag", 14.0, 1.0)]}
         for fz_ in opts["festivals"]:
             g = Polygon(fz_["poly"]).buffer(0)
+            if fz_.get("clearTrees"):                    # (Newbury, 08:18: a festival along the straight where the belt was)
+                cg = prep(g); n0 = len(trees); trees[:] = [t for t in trees if not cg.contains(Point(t[0], t[1]))]
+                nb0 = len(boards); boards[:] = [b for b in boards if b[4] > 1.5 or not cg.contains(Point(b[0], b[1]))]
             g = g.difference(turf.buffer(fz_.get("offTurf", 10.0)))
             for b in boards:
                 if b[4] > 1.5: g = g.difference(Point(b[0], b[1]).buffer(8.0))
@@ -290,7 +293,7 @@ def perimeter(S, C, turf, grid_box, rnd=None, opts=None):
                 for x, z in S.spots(a_, c_, b_, d_, rc.get("dens", 0.6)):
                     if ps.contains(Point(x, z)) and not S.blocked(x, z):
                         S.person(x, 0.0, z, round(face_turf(x, z) * math.pi / 180.0 + math.pi + rnd.uniform(-0.5, 0.5), 2)); n += 1
-                res["rail crowd"] = n
+                res["rail crowd"] = n; res["rail strip m2"] = round(strip.area)
             # balloon pods in rows of five along the track edge (owner, 19:26)
             br = fz_.get("balloonRows")
             if br:

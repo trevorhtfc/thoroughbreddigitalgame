@@ -557,7 +557,7 @@ def kinked_stand2(angle=8.0, angle_r=None, l_link=12.3, l_roof=33.6, r_link=16.4
 
 
 # ------------------------------------------------------------------------------------------ sheet 3: the lookout stand
-def lookout_stand(XB=-33.5, X0=-25.5, X1=33.5, tiers=2):
+def lookout_stand(XB=-33.5, X0=-25.5, X1=33.5, tiers=2, endblock=True):
     """Sheet 3: the two-tier stand. A lower terrace behind a picket fence, two stair flights up its middle; slender
     posts with brackets to the upper deck; the upper tier of seats behind a balustrade, a band of multi-pane windows
     in the back wall; posts to the eaves of a long hipped roof; at its left a plain end block with its stair inside; on
@@ -597,14 +597,18 @@ def lookout_stand(XB=-33.5, X0=-25.5, X1=33.5, tiers=2):
     K.box("trim", X0 - 0.3, X1 + 0.3, yd - 0.2, yd + 0.4, e - 0.7, e - 0.3)
     K.hip_roof(X0 - 0.3, X1 + 0.3, yd - 0.6, yb + 1.0, e - 0.3, 4.0, ov=1.0, mat="roof")
     ridge = e - 0.3 + 4.0
+    if not endblock:                                  # (19 Nov 08:18: "the big white box bolted onto stand 3 isn't doing it")
+        flank(X0, -1, [(-0.9, -1.0), (-0.9, 1.4), (yt, zt + 1.4), (yt, zd), (yb + 0.4, e), (yb + 0.4, -1.0)])
+        XB = X0
     # the end block on the left, with windows, a parapet, and the stair rising inside its front
-    K.box("paint", XB, X0, 0.0, yb + 0.4, -1.0, e + 0.6)
-    for z in (1.0, 4.6, 8.2):
-        if z + 1.6 < e:
-            win(XB + 2.4, 0.0, z, 1.0, 1.6)
-    K.box("trim", XB - 0.2, X0 + 0.2, -0.2, yb + 0.6, e + 0.6, e + 0.9)
-    for k in range(4):                                                            # the stair's windows climbing its front
-        win(XB + 4.4 + k * 1.0, 0.0, 1.2 + k * 1.3, 0.8, 1.0)
+    if endblock:
+      K.box("paint", XB, X0, 0.0, yb + 0.4, -1.0, e + 0.6)
+      for z in (1.0, 4.6, 8.2):
+          if z + 1.6 < e:
+              win(XB + 2.4, 0.0, z, 1.0, 1.6)
+      K.box("trim", XB - 0.2, X0 + 0.2, -0.2, yb + 0.6, e + 0.6, e + 0.9)
+      for k in range(4):                                                          # the stair's windows climbing its front
+          win(XB + 4.4 + k * 1.0, 0.0, 1.2 + k * 1.3, 0.8, 1.0)
     flank(X1, 1, [(-0.9, -1.0), (-0.9, 1.4), (yt, zt + 1.4), (yt, zd), (yb + 0.4, e), (yb + 0.4, -1.0)])
     # the lookout on the ridge: an X-braced trestle, a railed deck, a glazed hut, its hipped roof
     cx, cy = 2.0, (yd + yb) / 2
@@ -641,7 +645,7 @@ PIECES = [
     # sheet 2: the kinked stand, towers at both ends, the clock pavilion at the kink; in his plan's box 2 (00:21: "the kinked
     # stand is number 2 still from this plan"): the right side straight up the course, the left turned 35 towards the bend
     ("newbury_kinked_stand2", lambda: kinked_stand2(35.0, 0.0, 5.0, 12.0, 8.0, 30.6, stair=False, towers=False)),
-    ("newbury_lookout_stand", lambda: lookout_stand(-42.5, -34.5, 42.5, tiers=3)),   # 00:36: box 3, another tier    # sheet 3: the two-tier stand with the lookout on its ridge
+    ("newbury_lookout_stand", lambda: lookout_stand(-38.5, -38.5, 38.5, tiers=3, endblock=False)),   # 00:36: box 3, another tier; 08:18 the end block off    # sheet 3: the two-tier stand with the lookout on its ridge
 ]
 LIB = bpy.data.collections.new("newbury_kit")
 bpy.context.scene.collection.children.link(LIB)
