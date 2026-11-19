@@ -346,7 +346,7 @@
     ]
    }
   },
-  "lede": "Chester's track in 3D: left-handed, just over a mile round, on its real outline (OpenStreetMap) and real ground. A first draft: the TV cameras cut as in your Huxley Stakes video, the whole infield as one festival, and the basic boards and trees outside for now. The city walls, the County Stand, the viaduct and the river come next, where the cameras look."
+  "lede": "Chester's track in 3D: left-handed, just over a mile round, on its real outline and ground. The stand side modelled from your photos and sheets: the brick block at the bend, the County Stand bending round the kink, Tattersalls' gabled stands, then the city wall with its terraces, covered stands and lantern, packed with people, and the city behind. The infield is one festival. The TV cameras cut as in your Huxley Stakes video. Still to come: the viaduct, the river and the castle corner."
  },
  "levelTurf": {
   "margin": 6,
@@ -363,57 +363,73 @@
     "kit": "infield",
     "poly": "infield",
     "offTurf": 10.0,
-    "dens": 0.012,
-    "kitScale": 0.45,
+    "dens": 0.02,
+    "kitScale": 0.6,
     "railCrowd": {
      "from": 11.0,
      "to": 17.0,
      "dens": 0.3
     },
-    "note": "the rail crowd stands back 11-17 m so the infield tracking car (6 m in) runs clear in front of it"
+    "note": "the rail crowd stands back 11-17 m so the infield tracking car (6 m in) runs clear in front of it",
+    "balloonRows": {
+     "n": 5,
+     "gap": 10,
+     "every": 140,
+     "in": 8,
+     "start": 60,
+     "end": 60
+    }
    }
   ],
-  "note": "basic rules for now; the urban edges (city walls, County Stand, viaduct, river) replace the outside belt as the views need them"
+  "note": "basic rules for now; the urban edges (city walls, County Stand, viaduct, river) replace the outside belt as the views need them",
+  "lawnX": [
+   -90,
+   270
+  ],
+  "lawnDepth": [
+   2.5,
+   9.0
+  ],
+  "lawnDens": 0.75
  },
  "stands": {
-  "_about": "Owner, 22:11, his drone photo of the grandstand edge ('a decent view of the grandstand edge'), 22:39 'yep go for it'. From the north corner along the home straight: the brick block with a hipped roof at the bend (23 Victorian house), the County Stand under its long red roof (16 York's big pavilion, twice, end to end), the smaller gabled stands (20 the July Course's old pavilion), the little pavilion beyond (28 the Rowley Mile's lookout). Numbers from the grandstand crib sheet; a first pick for him to change. [piece, x of its origin (m up the straight from the post), set back (m beyond the front line), crowd density]",
-  "front": 12.0,
+  "_about": "Owner, 23:20 'I think make detailed models from the photos', 23:34 his kinked grandstand sheet, 00:04 'the stand when it kinks shouldnt break' and his wall terraces sheet, 00:39 'Yeah looks decent embed this into the course please then build the festival crowd etc and bring it to life'. The pieces are chester_stands_kit (tools/blender/build_chester_stands.py): the brick block at the bend, the County Stand (its kink at the bend end, past the post), Tattersalls' gabled stands. The wall terraces, the plain wall and the city behind are placed along OSM's lines by edges_chester.py ('extra').",
+  "front": 10.0,
   "pieces": [
    {
-    "piece": "victorian_house",
+    "piece": "chester_brick_block",
     "at": [
-     -70.0,
-     -40.0
+     -78.0,
+     -42.0
     ],
-    "turn": 18.0,
-    "toTurf": 10.0,
-    "dens": 0.6,
-    "note": "the brick block at the bend by the Watergate (OSM: x -81..-54)"
+    "turn": 22.0,
+    "toTurf": 9.0,
+    "dens": 0.9,
+    "note": "the brick block at the bend by the Watergate"
    },
    [
-    "york_big_pavilion",
-    -22.0,
-    0,
-    0.85
+    "chester_county_stand",
+    22.0,
+    3,
+    1.3
    ],
    [
-    "york_big_pavilion",
-    34.0,
-    0,
-    0.85
-   ],
-   [
-    "old_pavilion",
-    90.0,
+    "chester_tattersalls",
+    104.0,
     2,
-    0.85
-   ],
-   [
-    "victorian_pavilion",
-    124.0,
-    4,
-    0.6
+    1.4
    ]
+  ],
+  "extra": [
+   "chester_wall_bay",
+   "chester_wt_steps",
+   "chester_wt_steps_rail",
+   "chester_wt_stand",
+   "chester_wt_stand_lantern",
+   "chester_wt_tower",
+   "chester_wt_taper",
+   "chester_terrace_row",
+   "chester_city_block"
   ]
  },
  "edges": {
@@ -427,14 +443,10 @@
    ]
   ],
   "mainWall": {
-   "terraces": [
-    70.0,
-    300.0
-   ],
-   "bay": 8.0,
-   "height": 6.5
+   "terracesFrom": 132.0
   },
-  "terraceDens": 0.85,
-  "note": "the city side of the home straight and the home turn (world box x -150..520, z -420..90, outside the infield): the placeholder trees and boards cleared; the walls from OSM (the terraces along x 70-300, past the stands); the buildings beyond the wall as boxes"
+  "terraceDens": 1.5,
+  "note": "the city side of the home straight and the home turn (world box x -150..520, z -420..90, outside the infield): the placeholder trees and boards cleared; the walls from OSM (the terraces along x 70-300, past the stands); the buildings beyond the wall as boxes",
+  "wallDens": 0.45
  }
 }

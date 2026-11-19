@@ -50,100 +50,150 @@ def build(S, LY, course, turf, trees, boards, opts, NM, rnd):
     boards[:] = [b for b in boards if not in_clear(b[0], b[1])]
     note["trees cleared"], note["boards cleared"] = n0 - len(trees), b0 - len(boards)
 
-    # ---- the walls
+    # ---- the walls and the city, from the modelled pieces (owner, 23:20 "make detailed models from the photos"; 00:04 his
+    # wall terraces sheet; 00:39 "embed this into the course"): tools/blender/build_chester_stands.py, merged into
+    # chester_stands by merge_stands.py ("extra" in the course file's stands). Each wall piece's origin is on the wall's
+    # face, its front (the steps) towards the track.
+    INFO = json.loads((REPO / "assets/models/architecture/chester_stands.json").read_text())["pieces"]
+    MODEL = "chester_stands"
     walls = [W(f["p"]) for f in E if f["kind"] == "wall"]
-    main_w = opts.get("mainWall", {})
-    terr = main_w.get("terraces", [80.0, 290.0])        # the stretch with the built-in terraces (x up the straight)
-    bay = main_w.get("bay", 8.0); top_h = main_w.get("height", 6.5)
-    people = 0; n_bays = 0; n_terr = 0
+    walls = [w for w in walls if LineString(w).length > 15 and any(in_clear(x, z) for x, z in w)]
+    # the wall along the home straight (Nun's Road): the one with the most length close to the track
+    def near_len(w):
+        ln = LineString(w); return sum(1.0 for d_ in np.arange(0, ln.length, 1.0) if turf.distance(ln.interpolate(d_)) < 70.0)
+    main = max(walls, key=near_len) if walls else None
+    mw = opts.get("mainWall", {})
+    people0 = len(S.people)
 
-    def toward_track(p, t):
+    def frame(line, s0, s1):
+        """the middle of the stretch s0..s1 of a wall line, the direction along it, and the normal towards the track"""
+        a_ = np.array(line.interpolate(s0).coords[0]); b_ = np.array(line.interpolate(s1).coords[0])
+        t = b_ - a_; t /= (np.hypot(*t) or 1); m = (a_ + b_) / 2
         n = np.array([-t[1], t[0]])
-        a, b = Point(*(p + n * 5)), Point(*(p - n * 5))
-        return n if turf.distance(a) < turf.distance(b) else -n
+        if turf.distance(Point(*(m + n * 6))) > turf.distance(Point(*(m - n * 6))): n = -n
+        return m, t, n
 
-    def yaw(t): return math.atan2(-t[1], t[0])
+    def place(piece, m, n, dens, front=0.0):
+        """a piece with its origin at m, its front looking along n; set at the ground of its front (it digs into the bank)"""
+        gi = INFO[piece]
+        turn = math.degrees(math.atan2(n[0], n[1]))
+        fr = m + n * (-gi.get("frontAt", 0.0))
+        y = min(S.G(*m), S.G(*fr))
+        S.piece(MODEL, piece, m[0], m[1], turn, y=y)
+        if gi.get("crowd") and dens > 0:
+            S.stand_people(gi, m[0], m[1], turn, 1.0, 1.0, dens, g=y)
+        return turn
 
-    keep = [w for w in walls if LineString(w).length > 15 and any(in_clear(x, z) for x, z in w)]
-    for w in keep:
-        line = LineString(w)
-        if line.length < 15: continue
+    n_mod = 0
+    if main is not None:
+        line = LineString(main)
+        if line.coords[0][0] > line.coords[-1][0]: line = LineString(list(line.coords)[::-1])     # run it up the straight
         L = line.length
-        for s in np.arange(bay / 2, L - bay / 2 + 1e-6, bay):
-            p0 = np.array(line.interpolate(s - bay / 2).coords[0]); p1 = np.array(line.interpolate(s + bay / 2).coords[0])
-            p = (p0 + p1) / 2; t = p1 - p0; t /= (np.hypot(*t) or 1)
-            if turf_b.contains(Point(*p)): continue
-            n = toward_track(p, t)
-            g = S.G(*(p + n * 2.0))                      # the ground at the wall's foot, track side
-            gt = S.G(*p)
-            top = max(g, gt) + top_h                      # the walkway's level
-            # the wall (2.6 m thick), the walkway paving on it, the parapet on the track side
-            S.box(STONE, p[0], p[1], bay + 0.05, 2.6, g - gt - 1.0, top - gt, yaw(t))
-            q = p + n * 1.1
-            S.box(COPING, q[0], q[1], bay + 0.05, 0.45, top - S.G(*q), top + 0.95 - S.G(*q), yaw(t))
-            n_bays += 1
-            # a few people walking the walls everywhere
-            for k in range(2):
-                if rnd.random() < 0.55:
-                    u = rnd.uniform(-bay / 2, bay / 2); v = rnd.uniform(-0.6, 0.6)
-                    x, z = p + t * u + n * v
-                    S.person(x, 0.0, z, NM.face(*n) + rnd.uniform(-0.6, 0.6), top); people += 1
-            on_terr = terr[0] <= p[0] <= terr[1] and abs(p[1]) < 140
-            if not on_terr: continue
-            n_terr += 1
-            # the buttress at the bay's end: deep at the foot, its upper part half as deep (a stepped slope)
-            for frac, h_to, depth in ((0.5, top - 2.2, 6.2), (0.5, top - 0.4, 3.0)):
-                c = p + t * (bay / 2 - 0.7) + n * (1.3 + depth / 2)
-                S.box(STONE, c[0], c[1], 1.4, depth, g - S.G(*c) - 0.5, h_to - S.G(*c), yaw(t))
-            # the terraces between the buttresses: four steps up to the walkway, each 1.3 m deep
-            nsteps = 4; rise = (top - 0.4 - g) / (nsteps + 0.3); width = bay - 1.4
-            mid = p - t * 0.7
-            for k in range(nsteps):
-                depth = (nsteps - k) * 1.3
-                c = mid + n * (1.3 + depth / 2)
-                y1 = g + (k + 1) * rise
-                S.box(STONE_LIT, c[0], c[1], width, depth, g - S.G(*c) - 0.5, y1 - S.G(*c), yaw(t))
-                # the people on this step's tread, in a packed row (two where the tread is deep enough)
-                tread = mid + n * (1.3 + depth - 0.65)
-                for u in np.arange(-width / 2 + 0.35, width / 2 - 0.3, 0.62):
-                    for row in (0.0,):
-                        if rnd.random() < opts.get("terraceDens", 0.85):
-                            x, z = tread + t * (u + rnd.uniform(-0.12, 0.12)) + n * (row + rnd.uniform(-0.15, 0.15))
-                            S.person(x, 0.0, z, NM.face(*n) + rnd.uniform(-0.35, 0.35), y1); people += 1
-            # the walkway on top above the terraces: packed
-            for u in np.arange(-bay / 2 + 0.4, bay / 2, 0.6):
-                for v in (-0.2, 0.5):
-                    if rnd.random() < 0.7:
-                        x, z = p + t * u + n * (v + rnd.uniform(-0.1, 0.1))
-                        S.person(x, 0.0, z, NM.face(*n) + rnd.uniform(-0.4, 0.4), top); people += 1
-    note["wall bays"], note["terrace bays"], note["people on the walls"] = n_bays, n_terr, people
+        # the terraces: from where the stands end, in the owner's order, then plain wall to the end
+        start_x = mw.get("terracesFrom", 132.0)
+        s0 = next((s_ for s_ in np.arange(0, L, 1.0) if line.interpolate(s_).x >= start_x), L)
+        seq = mw.get("sequence", ["chester_wt_tower", "chester_wt_stand", "chester_wt_steps", "chester_wt_steps_rail",
+                                  "chester_wt_stand_lantern", "chester_wt_steps", "chester_wt_steps_rail", "chester_wt_taper"])
+        s_ = s0
+        for piece in seq:
+            w = INFO[piece]["width"]
+            if s_ + w > L: break
+            m, t, n = frame(line, s_, s_ + w)
+            place(piece, m, n, opts.get("terraceDens", 1.5)); n_mod += 1
+            # keep the lawn crowd and trees out of its steps
+            S.nogo.append([tuple(m - t * w / 2), tuple(m + t * w / 2), tuple(m + t * w / 2 + n * (-INFO[piece].get("frontAt", 0.0) + 1)),
+                           tuple(m - t * w / 2 + n * (-INFO[piece].get("frontAt", 0.0) + 1))])
+            s_ += w
+        # plain wall before the terraces (behind the stands) and after them
+        bay = INFO["chester_wall_bay"]["width"]
+        for a_, b_ in ((0.0, s0), (s_, L)):
+            k = a_
+            while k + bay <= b_ + 0.01:
+                m, t, n = frame(line, k, k + bay)
+                place("chester_wall_bay", m, n, opts.get("wallDens", 0.45)); n_mod += 1
+                k += bay
+    for w in walls:                                                      # the other walls (the castle's)
+        if w is main: continue
+        line = LineString(w); L = line.length; bay = INFO["chester_wall_bay"]["width"]; k = 0.0
+        while k + bay <= L + 0.01:
+            m, t, n = frame(line, k, k + bay)
+            place("chester_wall_bay", m, n, 0.25); n_mod += 1
+            k += bay
+    note["wall pieces"] = n_mod
+    note["people on the walls and terraces"] = (len(S.people) - people0) // 4
 
-    # ---- the city beyond: the OSM buildings in the cleared area, beyond the main wall from the track
+    # ---- the city beyond: the OSM buildings in the cleared area beyond the main wall, as the terraced houses and blocks
     nb = 0
-    main = max(keep, key=lambda w: LineString(w).length) if keep else None
     stand_box = [Polygon(q) for q in S.nogo]
     for f in E:
         if f["kind"] != "b" or "p" not in f: continue
         P = Polygon(W(f["p"])).buffer(0)
-        if P.is_empty or P.area < 30: continue
+        if P.is_empty or P.area < 60: continue
         cx, cz = P.centroid.x, P.centroid.y
         if not in_clear(cx, cz) or infield.contains(Point(cx, cz)) or P.distance(turf) < 4.0: continue
         if any(P.intersects(q) for q in stand_box): continue
-        if main is not None and opts.get("beyondWallOnly", True):
-            # beyond the wall: further from the track than the wall's nearest point
-            ml = LineString(main); a = ml.interpolate(ml.project(Point(cx, cz)))
-            if turf.distance(Point(cx, cz)) < turf.distance(a) + 2.0 and ml.distance(Point(cx, cz)) < 400: continue
-        tg = f["tags"]
-        h = float(tg["height"]) if "height" in tg else (float(tg["building:levels"]) * 3.2 + 1.5 if "building:levels" in tg else rnd.choice([9.5, 11.0, 12.5]))
-        mr = P.minimum_rotated_rectangle
-        xy = np.array(mr.exterior.coords)[:4]
-        e0, e1 = xy[1] - xy[0], xy[2] - xy[1]
-        L0, L1 = np.hypot(*e0), np.hypot(*e1)
-        ax = e0 / L0 if L0 >= L1 else e1 / L1
-        c = xy.mean(0); g = S.G(*c)
-        col = rnd.choice(BRICKS)
-        S.box(col, c[0], c[1], max(L0, L1), min(L0, L1), -1.0, h, math.atan2(-ax[1], ax[0]))
-        S.box(rnd.choice(ROOFS), c[0], c[1], max(L0, L1) - 0.6, min(L0, L1) - 0.6, h, h + 0.7, math.atan2(-ax[1], ax[0]))
+        if main is not None:
+            ml = LineString(main); a_ = ml.interpolate(ml.project(Point(cx, cz)))
+            if turf.distance(Point(cx, cz)) < turf.distance(a_) + 4.0: continue        # only beyond the wall
+        mr = P.minimum_rotated_rectangle; xy = np.array(mr.exterior.coords)[:4]
+        e0, e1 = xy[1] - xy[0], xy[2] - xy[1]; L0, L1 = np.hypot(*e0), np.hypot(*e1)
+        ax = e0 / L0 if L0 >= L1 else e1 / L1; Lm, Dm = max(L0, L1), min(L0, L1)
+        c = xy.mean(0)
+        n = np.array([-ax[1], ax[0]])
+        if turf.distance(Point(*(c + n * 5))) > turf.distance(Point(*(c - n * 5))): n = -n
+        tg = f["tags"]; tall = ("building:levels" in tg and float(tg["building:levels"]) >= 5) or ("height" in tg and float(tg["height"]) > 15)
+        piece = "chester_city_block" if tall else "chester_terrace_row"
+        gi = INFO[piece]
+        turn = math.degrees(math.atan2(n[0], n[1]))
+        front = c + n * Dm / 2                                         # the piece's origin is the middle of its front
+        S.piece(MODEL, piece, front[0], front[1], turn, sx=min(1.5, max(0.5, Lm / gi["width"])), sc=1.0)
         nb += 1
     note["city buildings"] = nb
+    # ---- life (owner, 00:39: "build the festival crowd etc and bring it to life"): flags along the wall's walkway over the
+    # terraces, balloon pods in rows of five along the infield opposite the stands, banner flags on the rail lawn
+    from shapely.geometry import LineString as _LS
+    nf = 0
+    for pc in S.pieces:
+        if pc[1] in ("chester_wt_stand", "chester_wt_stand_lantern", "chester_wt_steps_rail", "chester_wt_tower"):
+            x, z, turn = pc[2], pc[3], pc[4]; a = math.radians(turn); fx, fz = math.sin(a), math.cos(a)
+            for u in ((-12.0, 12.0) if "stand" in pc[1] else (0.0,)):
+                ux, uz = math.cos(a), -math.sin(a)
+                px, pz = x + ux * u + fx * -1.2, z + uz * u + fz * -1.2
+                S.piece("site_props", "flagpole", px, pz, turn, y=(pc[7] if len(pc) > 7 else S.G(px, pz)) + 9.4); nf += 1
+    nb_ = 0
+    rows = opts.get("balloonRows", [40.0, 110.0, 180.0])
+    for xc in rows:
+        cut = infield.intersection(_LS([(xc, -500.0), (xc, 500.0)]))
+        if cut.is_empty: continue
+        zs = [cc[1] for g in getattr(cut, "geoms", [cut]) for cc in g.coords]
+        z0 = min(zs, key=lambda zz: abs(zz))                              # the infield's edge on the home straight side
+        for k in range(5):
+            x = xc + (k - 2) * 10.0; z = z0 + 14.0
+            if infield.buffer(-6).contains(Point(x, z)) and not S.blocked(x, z):
+                S.piece("site_props", "balloon_pod", x, z, rnd.uniform(0, 360)); nb_ += 1
+                S.nogo.append([(x - 3, z - 3), (x + 3, z - 3), (x + 3, z + 3), (x - 3, z + 3)])
+    for x in np.arange(-40.0, 250.0, 22.0):                             # banner flags along the rail lawn
+        cut = turf.exterior.intersection(_LS([(x, -60.0), (x, 0.0)]))
+        if cut.is_empty: continue
+        zs = [cc[1] for g in getattr(cut, "geoms", [cut]) for cc in g.coords]
+        z = min(zs) - 4.5
+        if not S.blocked(x, z): S.piece("site_props", "banner_flag", x, z, 0.0); nf += 1
+    note["flags"], note["balloon pods"] = nf, nb_
+    # the County Stand's kink comes forward of its front line: no lawn crowd inside it (its own crowd sits on its rows)
+    for pc in S.pieces:
+        if pc[1] != "chester_county_stand": continue
+        gi = INFO["chester_county_stand"]; k = gi.get("kink")
+        if not k: break
+        x, z, turn = pc[2], pc[3], pc[4]; a = math.radians(turn); ca, sa = math.cos(a), math.sin(a)
+        w = lambda u, v: (x + u * ca - v * sa, z - (u * sa + v * ca))
+        lx, ly = k["leftEnd"]; D = gi["depth"]
+        poly = prep(Polygon([w(lx, ly - 2.0), w(k["at"], -2.0), w(k["at"], D), w(lx - 2.0, ly + D)]).buffer(1.0))
+        keep, gone = [], 0
+        P_ = S.people
+        for i in range(0, len(P_), 4):
+            px, py, pz = P_[i], P_[i + 1], P_[i + 2]
+            if poly.contains(Point(px, pz)) and py < S.G(px, pz) + 1.5: gone += 1; continue
+            keep += P_[i:i + 4]
+        S.people[:] = keep
+        note["lawn people cleared from the kink"] = gone
     return note

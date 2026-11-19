@@ -262,7 +262,8 @@ def county_stand(L=62.0, Lk=26.0, kink=32.0):
     reach = Lk * ca + D * sa
     width = L + 16.0 + reach + 1.0
     return {"width": round(width, 1), "depth": round(D + 1.2, 1), "height": round(E + 2.6 + 10.0, 1), "offset": round((16.0 - reach) / 2, 2),
-            "kink": {"length": Lk, "degrees": kink, "at": x0, "forward": round(Lk * sa, 1)},
+            "kink": {"length": Lk, "degrees": kink, "at": x0, "forward": round(Lk * sa, 1),
+                     "right": round(x1 + 16.0, 2), "leftEnd": [round(x0 - Lk * ca, 2), round(-Lk * sa, 2)]},
             "note": "main stand x %.0f..%.0f; the four-storey block to %.0f; the stand bends %.0f degrees forward at x %.0f (one "
                     "continuous stand) and runs %.0f m on round the bend" % (x0, x1, x1 + 16, kink, x0, Lk)}
 

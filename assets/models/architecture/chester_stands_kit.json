@@ -32,7 +32,12 @@
 "length": 26.0,
 "degrees": 32.0,
 "at": -31.0,
-"forward": 13.8
+"forward": 13.8,
+"right": 47.0,
+"leftEnd": [
+-53.05,
+-13.78
+]
 },
 "note": "main stand x -31..31; the four-storey block to 47; the stand bends 32 degrees forward at x -31 (one continuous stand) and runs 26 m on round the bend",
 "crowd": [
