@@ -20,7 +20,18 @@
   "slate": "#8f95a8",
   "door": "#7f9f8c",
   "shade": "#5d5660",
-  "paving": "#d8cdbb"
+  "paving": "#d8cdbb",
+  "pagoda_blue": "#2f5f9e",
+  "canvas": "#f6f4ee",
+  "screen": "#2b2c33",
+  "cladding": "#a88a68",
+  "banner_pink": "#e9b5c4",
+  "sky_stone": "#bf8f7e",
+  "sky_brick": "#c49483",
+  "sky_roof": "#8d8792",
+  "sky_render": "#e7ddd0",
+  "roof": "#8d8792",
+  "wall": "#c49483"
  },
  "pieces": {
   "chester_county_stand": {
@@ -2022,24 +2033,24 @@
   },
   "chester_wall_bay": {
    "width": 8.0,
-   "depth": 5.5,
-   "height": 9.1,
+   "depth": 8.6,
+   "height": 9.42,
    "frontAt": 0.0,
-   "note": "8 m of the city wall; the buttress in the middle projects 2.9 m in front (towards the track)",
+   "note": "8 m of the city wall, 5 m thick; the buttress in the middle projects 3.6 m in front (towards the track)",
    "crowd": [
     [
      -3.7,
      3.7,
-     0.7,
-     2.1,
+     1.1,
+     4.2,
      8.05
     ]
    ],
-   "triangles": 620
+   "triangles": 606
   },
   "chester_wt_steps": {
    "width": 8.0,
-   "depth": 16.6,
+   "depth": 19.0,
    "height": 10.700000000000001,
    "frontAt": -14.0,
    "note": "origin on the wall's face; the steps run 14 m in front of it",
@@ -2164,11 +2175,11 @@
      9.35
     ]
    ],
-   "triangles": 1198
+   "triangles": 1224
   },
   "chester_wt_steps_rail": {
    "width": 8.0,
-   "depth": 16.6,
+   "depth": 19.0,
    "height": 10.700000000000001,
    "frontAt": -14.0,
    "note": "origin on the wall's face; the steps run 14 m in front of it",
@@ -2293,11 +2304,11 @@
      9.35
     ]
    ],
-   "triangles": 1366
+   "triangles": 1392
   },
   "chester_wt_stand": {
    "width": 32.0,
-   "depth": 16.6,
+   "depth": 19.0,
    "height": 10.700000000000001,
    "frontAt": -14.0,
    "note": "origin on the wall's face; a covered stand on the steps",
@@ -2457,11 +2468,11 @@
      9.35
     ]
    ],
-   "triangles": 4468
+   "triangles": 4494
   },
   "chester_wt_stand_lantern": {
    "width": 32.0,
-   "depth": 16.6,
+   "depth": 19.0,
    "height": 14.9,
    "frontAt": -14.0,
    "note": "origin on the wall's face; a covered stand on the steps, the lantern on its roof terrace",
@@ -2621,11 +2632,11 @@
      9.35
     ]
    ],
-   "triangles": 4672
+   "triangles": 4698
   },
   "chester_wt_tower": {
    "width": 7.0,
-   "depth": 16.6,
+   "depth": 19.0,
    "height": 16.1,
    "frontAt": -14.0,
    "note": "origin on the wall's face; the end pier of the wall terraces (from the owner's sheet)",
@@ -2677,7 +2688,7 @@
   },
   "chester_wt_taper": {
    "width": 16.6,
-   "depth": 16.6,
+   "depth": 19.0,
    "height": 10.700000000000001,
    "frontAt": -14.0,
    "note": "origin on the wall's face; the steps' front tapers from 14 m to 3 m",
@@ -3236,7 +3247,7 @@
      9.35
     ]
    ],
-   "triangles": 3972
+   "triangles": 4020
   },
   "chester_terrace_row": {
    "width": 40.0,
@@ -3286,6 +3297,100 @@
    "height": 19.3,
    "crowd": [],
    "triangles": 2016
+  },
+  "chester_pagoda_run": {
+   "width": 30.0,
+   "depth": 5.0,
+   "height": 5.7,
+   "note": "a run of 6 linked pagodas, 5 m each; front open (-y)",
+   "crowd": [
+    [
+     -14.6,
+     14.6,
+     0.2,
+     3.4,
+     0.0
+    ],
+    [
+     -14.8,
+     14.8,
+     -4.0,
+     -0.3,
+     0.0
+    ]
+   ],
+   "triangles": 750
+  },
+  "chester_big_screen": {
+   "width": 14.6,
+   "depth": 3.6,
+   "height": 11.3,
+   "crowd": [],
+   "triangles": 180
+  },
+  "chester_bar_pavilion": {
+   "width": 26.6,
+   "depth": 9.6,
+   "height": 5.3,
+   "crowd": [
+    [
+     -12.5,
+     12.5,
+     0.4,
+     8.5,
+     4.1
+    ],
+    [
+     -13.0,
+     13.0,
+     -5.0,
+     -0.6,
+     0.0
+    ]
+   ],
+   "triangles": 1668
+  },
+  "chester_lamp_speaker": {
+   "width": 0.8,
+   "depth": 0.8,
+   "height": 9.35,
+   "crowd": [],
+   "triangles": 124
+  },
+  "chester_sky_spire": {
+   "width": 10.0,
+   "depth": 34.0,
+   "height": 56.0,
+   "crowd": [],
+   "triangles": 172
+  },
+  "chester_sky_cathedral": {
+   "width": 60.0,
+   "depth": 86.0,
+   "height": 45.0,
+   "crowd": [],
+   "triangles": 394
+  },
+  "chester_sky_town_hall": {
+   "width": 46.0,
+   "depth": 16.0,
+   "height": 58.0,
+   "crowd": [],
+   "triangles": 340
+  },
+  "chester_sky_roofs": {
+   "width": 70.0,
+   "depth": 18.0,
+   "height": 23.0,
+   "crowd": [],
+   "triangles": 472
+  },
+  "chester_sky_roofs_b": {
+   "width": 70.0,
+   "depth": 18.0,
+   "height": 23.0,
+   "crowd": [],
+   "triangles": 528
   }
  },
  "from": {
@@ -3305,6 +3410,15 @@
   "chester_grosvenor_bridge": "chester_stands_kit",
   "chester_castle_range": "chester_stands_kit",
   "chester_agricola_tower": "chester_stands_kit",
-  "chester_city_block": "chester_stands_kit"
+  "chester_city_block": "chester_stands_kit",
+  "chester_pagoda_run": "chester_stands_kit",
+  "chester_big_screen": "chester_stands_kit",
+  "chester_bar_pavilion": "chester_stands_kit",
+  "chester_lamp_speaker": "chester_stands_kit",
+  "chester_sky_spire": "chester_stands_kit",
+  "chester_sky_cathedral": "chester_stands_kit",
+  "chester_sky_town_hall": "chester_stands_kit",
+  "chester_sky_roofs": "chester_stands_kit",
+  "chester_sky_roofs_b": "chester_stands_kit"
  }
 }

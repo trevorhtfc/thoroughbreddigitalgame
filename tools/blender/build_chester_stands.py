@@ -38,6 +38,9 @@ COL = {
     "brick": "#c98670", "brick_dark": "#b4735f", "stone": "#c58670", "stone_dark": "#b97b66", "stone_lit": "#d3a089",
     "coping": "#e2bba5", "steps": "#e6dccb", "seat": "#cf7f74", "glass": "#3f3a4d", "iron": "#5b6273",
     "concrete": "#e6d9c4", "slate": "#8f95a8", "door": "#7f9f8c", "shade": "#5d5660", "paving": "#d8cdbb",
+    "pagoda_blue": "#2f5f9e", "canvas": "#f6f4ee", "screen": "#2b2c33", "cladding": "#a88a68", "banner_pink": "#e9b5c4",
+    "sky_stone": "#bf8f7e", "sky_brick": "#c49483", "sky_roof": "#8d8792", "sky_render": "#e7ddd0",
+    "roof": "#8d8792", "wall": "#c49483",
 }
 MATS = {k: material("ch_" + k, v, rough=0.9) for k, v in COL.items()}
 K = Kit()
@@ -321,16 +324,20 @@ def brick_block(W=26.0, D=18.0, floors=4):
 
 
 # ------------------------------------------------------------------------------------------ 4: the city wall
-WALL_H, WALL_T = 8.0, 2.6
+WALL_H, WALL_T = 8.0, 5.0       # (owner, 19 Nov 13:44: "the walls are 2d? make these nice and chunky and deep": 2.6 m thick -> 5)
 import random as _random
 WALL_RND = _random.Random(7)
 
 
 def wall_section(x0, x1, buttress=True, dark=False):
-    """The wall from x0 to x1: sandstone with coursing, the coping and parapet, the walkway; a buttress at its middle."""
-    K.box("stone_dark" if dark else "stone", x0, x1, 0.0, WALL_T, -1.5, WALL_H)
+    """The wall from x0 to x1, chunky (19 Nov): a 5 m thick sandstone mass on a battered plinth that runs 3 m into the
+    ground (so a slope never shows its foot), coursed, a projecting string course, a thick solid parapet on the track
+    side with a heavy coping, the walkway, a lower parapet on the city side; a deep stepped buttress at its middle."""
+    K.box("stone_dark" if dark else "stone", x0, x1, 0.0, WALL_T, -3.0, WALL_H)
+    K.prism_x("stone_lit", x0, x1, [(0.0, -3.0), (-0.9, -3.0), (-0.9, 0.35), (-0.55, 0.9), (0.0, 1.25)])   # the battered plinth
+    K.prism_x("stone_lit", x0, x1, [(WALL_T, -3.0), (WALL_T + 0.6, -3.0), (WALL_T + 0.6, 0.4), (WALL_T, 0.9)])
     rnd = WALL_RND
-    for i in range(1, int(WALL_H / 0.62)):                               # the coursing: fine joints, just proud
+    for i in range(2, int(WALL_H / 0.62)):                               # the coursing: fine joints, just proud
         z = 0.62 * i
         K.box("stone_dark", x0, x1, -0.02, 0.0, z, z + 0.04)
         x = x0 + rnd.uniform(0, 1.2)                                     # weathered blocks: a few lighter or darker
@@ -339,23 +346,26 @@ def wall_section(x0, x1, buttress=True, dark=False):
             if rnd.random() < 0.3:
                 K.box(rnd.choice(["stone_lit", "stone_dark", "stone_lit"]), x, min(x + w, x1), -0.015, 0.0, z - 0.58, z - 0.02)
             x += w
-    K.box("coping", x0, x1, -0.12, 0.55, WALL_H, WALL_H + 0.95)          # the parapet on the track side
-    K.box("stone_lit", x0, x1, -0.18, 0.62, WALL_H + 0.95, WALL_H + 1.1)
-    K.box("paving", x0, x1, 0.55, WALL_T, WALL_H - 0.1, WALL_H + 0.05)    # the walkway
-    K.box("coping", x0, x1, WALL_T - 0.4, WALL_T, WALL_H, WALL_H + 0.6)   # its back kerb
-    if buttress:                                                         # deep, with a sloping (weathered) top
+    K.box("stone_lit", x0, x1, -0.32, 0.2, WALL_H - 1.25, WALL_H - 0.9)  # the string course below the parapet
+    K.box("coping", x0, x1, -0.2, 0.9, WALL_H, WALL_H + 1.15)            # the thick parapet on the track side
+    K.box("stone_lit", x0, x1, -0.35, 1.05, WALL_H + 1.15, WALL_H + 1.42)  # its heavy coping
+    K.box("paving", x0, x1, 0.9, WALL_T - 0.6, WALL_H - 0.1, WALL_H + 0.05)   # the walkway
+    K.box("coping", x0, x1, WALL_T - 0.6, WALL_T, WALL_H, WALL_H + 0.75)  # the city side's lower parapet
+    K.box("stone_lit", x0, x1, WALL_T - 0.7, WALL_T + 0.1, WALL_H + 0.75, WALL_H + 0.92)
+    if buttress:                                                         # deep, stepped twice, with weathered tops
         xc = (x0 + x1) / 2
-        K.prism_x("stone", xc - 0.85, xc + 0.85, [(0.0, -1.5), (-2.9, -1.5), (-2.7, 5.0), (-2.2, 5.0), (0.0, 7.4)])
-        K.prism_x("stone_lit", xc - 0.92, xc + 0.92, [(-2.2, 5.0), (-2.75, 5.0), (-2.75, 5.25), (0.02, 7.7), (0.02, 7.4)])
-        for z in [0.62 * i for i in range(1, 8)]:
-            K.box("stone_dark", xc - 0.87, xc + 0.87, -2.9 + z * 0.03 - 0.02, -2.9 + z * 0.03, z, z + 0.04)
-    area(x0 + 0.3, x1 - 0.3, 0.7, 2.1, WALL_H + 0.05)
+        K.prism_x("stone", xc - 1.25, xc + 1.25, [(0.0, -3.0), (-3.6, -3.0), (-3.6, 2.4), (-2.6, 3.2), (-2.6, 5.4), (-1.6, 6.3), (-1.6, 6.8), (0.0, 7.6)])
+        K.prism_x("stone_lit", xc - 1.32, xc + 1.32, [(-3.7, 2.2), (-3.7, 2.45), (-2.62, 3.3), (-2.62, 3.05)])
+        K.prism_x("stone_lit", xc - 1.32, xc + 1.32, [(-2.7, 5.2), (-2.7, 5.45), (-1.62, 6.4), (-1.62, 6.15)])
+        for z in [0.62 * i for i in range(1, 4)]:
+            K.box("stone_dark", xc - 1.27, xc + 1.27, -3.62, -3.6, z, z + 0.04)
+    area(x0 + 0.3, x1 - 0.3, 1.1, WALL_T - 0.8, WALL_H + 0.05)
 
 
 def wall_bay(L=8.0):
     wall_section(-L / 2, L / 2)
-    return {"width": L, "depth": WALL_T + 2.9, "height": WALL_H + 1.1, "frontAt": 0.0,
-            "note": "8 m of the city wall; the buttress in the middle projects 2.9 m in front (towards the track)"}
+    return {"width": L, "depth": WALL_T + 3.6, "height": WALL_H + 1.42, "frontAt": 0.0,
+            "note": "8 m of the city wall, 5 m thick; the buttress in the middle projects 3.6 m in front (towards the track)"}
 
 
 # ------------------------------------------------------------------------------------------ 4b: the terraces built into the wall
@@ -427,7 +437,7 @@ def arch_wall(x0, x1, z0, z1, arch=True, w=4.4, spring=3.4):
     """The wall's face from z0 to z1 over x0..x1, with a blind arch (a recess) in the middle; ashlar piers; the walkway, its
     back kerb and the X-panel railing on top."""
     xc = (x0 + x1) / 2
-    K.box("stone_dark", x0, x1, 0.6, WALL_T, -1.5, z1)                   # the recess's back (the wall's core)
+    K.box("stone_dark", x0, x1, 0.6, WALL_T, -3.0, z1)                   # the recess's back (the wall's core, 5 m thick)
     if arch:
         a0, a1 = xc - w / 2, xc + w / 2; zs = z0 + spring; r = w / 2
         prof = [(x0, z0), (a0, z0), (a0, zs)] + [(xc - r * math.cos(t), zs + r * math.sin(t)) for t in [math.pi * k / 12 for k in range(1, 12)]] + \
@@ -445,7 +455,9 @@ def arch_wall(x0, x1, z0, z1, arch=True, w=4.4, spring=3.4):
         K.box("stone_dark", x0, (xc - w / 2 - 0.35) if arch else x1, -0.02, 0.0, z, z + 0.04)
         if arch: K.box("stone_dark", xc + w / 2 + 0.35, x1, -0.02, 0.0, z, z + 0.04)
     K.box("coping", x0, x1, -0.15, 0.7, z1, z1 + 0.35)                    # the string course at the walkway
-    K.box("paving", x0, x1, 0.6, WALL_T, z1 - 0.1, z1 + 0.05)
+    K.box("paving", x0, x1, 0.6, WALL_T - 0.6, z1 - 0.1, z1 + 0.05)
+    K.box("coping", x0, x1, WALL_T - 0.6, WALL_T, z1, z1 + 0.75)          # the city side's parapet (19 Nov: chunky walls)
+    K.box("stone_lit", x0, x1, WALL_T - 0.7, WALL_T + 0.1, z1 + 0.75, z1 + 0.92)
     x_rail(x0, x1, 0.15, z1 + 0.35, h=1.0, panel=2.0)
     area(x0 + 0.3, x1 - 0.3, 0.7, 2.2, z1 + 0.05)
 
@@ -717,6 +729,170 @@ def agricola_tower(W=11.0):
     return {"width": W + 0.6, "depth": W + 0.6, "height": H + 1.8}
 
 
+# ------------------------------------------------------------------------------------------ 6: the infield festival (19 Nov)
+# Owner, 19 Nov 13:50, his photos of the infield on a race day: a solid crowd on the infield rail all down the home
+# straight; behind it a long run of linked pagoda marquees, blue and white; the big screen at the far end; a two-storey
+# bar with a crowded roof deck and pink banner panels along its balustrade (the Boodles bar); lamp posts with speakers;
+# white peaked marquees deeper in.
+def striped_pyramid(x0, x1, y0, y1, z, rise, per_face=2, mats=("pagoda_blue", "canvas")):
+    from mathutils import Vector as _V
+    cx, cy = (x0 + x1) / 2, (y0 + y1) / 2
+    apex = (cx, cy, z + rise)
+    corners = [(x0, y0), (x1, y0), (x1, y1), (x0, y1)]
+    k = 0
+    for i in range(4):
+        (ax, ay), (bx, by) = corners[i], corners[(i + 1) % 4]
+        for j in range(per_face):
+            t0, t1 = j / per_face, (j + 1) / per_face
+            bm = K.bm(mats[k % 2]); k += 1
+            v = [bm.verts.new(K.M @ _V(p_)) for p_ in ((ax + (bx - ax) * t0, ay + (by - ay) * t0, z), (ax + (bx - ax) * t1, ay + (by - ay) * t1, z), apex)]
+            bm.faces.new(v)
+
+
+def pagoda_run(n=6, w=5.0):
+    """n linked pagoda marquees in a row along x, open to the front (-y): white posts and back and side walls, a scalloped
+    white valance, blue-and-white striped roofs; a bar counter along the back; crowd under the canopies and in front."""
+    L = n * w; x0 = -L / 2; D = w; H = 2.6
+    K.box("canvas", x0, x0 + L, D - 0.15, D, 0.0, H)                       # the back wall
+    K.box("canvas", x0, x0 + 0.12, 0.0, D, 0.0, H); K.box("canvas", x0 + L - 0.12, x0 + L, 0.0, D, 0.0, H)
+    K.box("cladding", x0 + 0.4, x0 + L - 0.4, D - 1.4, D - 0.6, 0.0, 1.1)  # the counter
+    K.box("trim", x0 + 0.4, x0 + L - 0.4, D - 1.5, D - 0.5, 1.1, 1.18)
+    for i in range(n + 1):
+        K.box("trim", x0 + i * w - 0.07, x0 + i * w + 0.07, -0.07, 0.07, 0.0, H)
+    for i in range(n):
+        a = x0 + i * w
+        K.box("canvas", a, a + w, -0.1, 0.0, H - 0.45, H)                 # the valance, with blue scallops
+        for k in range(5):
+            K.box("pagoda_blue", a + 0.2 + k * (w - 0.4) / 5, a + 0.2 + (k + 0.6) * (w - 0.4) / 5, -0.13, -0.1, H - 0.4, H - 0.15)
+        striped_pyramid(a, a + w, 0.0, D, H, 2.4)
+        K.cyl("trim", a + w / 2, D / 2, H + 2.4, H + 3.1, 0.04, 0.04, segs=4, smooth=False)
+        K.box("pagoda_blue", a + w / 2, a + w / 2 + 0.6, D / 2 - 0.02, D / 2 + 0.02, H + 2.7, H + 3.05)   # a pennant
+    area(x0 + 0.4, x0 + L - 0.4, 0.2, D - 1.6, 0.0)
+    area(x0 + 0.2, x0 + L - 0.2, -4.0, -0.3, 0.0)
+    return {"width": L, "depth": D, "height": H + 3.1, "note": "a run of %d linked pagodas, %.0f m each; front open (-y)" % (n, w)}
+
+
+def big_screen(Wd=14.0, Ht=8.0):
+    """The big screen on its trailer: a dark panel in a light frame, raised on a braced frame, the trailer at its foot."""
+    z0 = 3.0
+    K.box("iron", -Wd / 2 - 0.3, Wd / 2 + 0.3, 0.0, 0.9, z0 - 0.3, z0 + Ht + 0.3)
+    K.box("screen", -Wd / 2, Wd / 2, -0.05, 0.1, z0, z0 + Ht)
+    for x in (-Wd / 2 + 1.0, 0.0, Wd / 2 - 1.0):
+        K.box("iron", x - 0.15, x + 0.15, 0.9, 1.2, 0.0, z0 + Ht * 0.7)
+        m = Matrix.Translation((x, 2.4, z0 * 0.9)) @ Matrix.Rotation(-0.75, 4, "X")
+        K.boxm("iron", m, 0.12, 0.12, 4.6)
+    K.box("trim", -Wd / 2 + 1.5, Wd / 2 - 1.5, 0.4, 3.4, 0.5, 1.6)        # the trailer
+    for x in (-Wd / 2 + 2.2, Wd / 2 - 2.2):
+        K.cyl("shade", x, 0.6, 0.0, 0.5, 0.5, segs=10)
+    return {"width": Wd + 0.6, "depth": 3.6, "height": z0 + Ht + 0.3}
+
+
+def bar_pavilion(L=26.0, D=9.0):
+    """The two-storey bar (the Boodles bar in his photo): a timber-clad ground floor with a glazed bar front under a fascia;
+    on the roof a deck behind a white balustrade hung with pink banner panels, packed with people."""
+    H = 3.6
+    K.box("cladding", -L / 2, L / 2, 0.0, D, 0.0, H)
+    for i in range(int(L / 0.35)):                                       # the boarding's lines
+        x = -L / 2 + 0.35 * i
+        K.box("timber", x, x + 0.03, -0.02, 0.0, 0.0, H)
+    K.screen(-L / 2 + 1.5, L / 2 - 1.5, -0.03, 0.9, 2.0) if hasattr(K, "screen") else None
+    K.box("trim", -L / 2 - 0.3, L / 2 + 0.3, -0.35, D + 0.3, H, H + 0.45)  # the fascia and the deck's edge
+    K.box("paving", -L / 2, L / 2, 0.0, D, H + 0.45, H + 0.5)
+    for y, xs in ((-0.25, None),):
+        K.box("trim", -L / 2, L / 2, y - 0.06, y + 0.06, H + 1.55, H + 1.65)
+        for i in range(int(L / 1.2) + 1):
+            K.box("trim", -L / 2 + i * 1.2 - 0.05, -L / 2 + i * 1.2 + 0.05, y - 0.05, y + 0.05, H + 0.5, H + 1.6)
+    for k in range(-2, 2):                                               # the pink banner panels
+        x = k * 6.5 + 0.75
+        K.box("banner_pink", x, x + 5.0, -0.36, -0.3, H + 0.6, H + 1.45)
+    for x in (-L / 2, L / 2):                                            # side and back rails
+        K.box("trim", x - 0.05, x + 0.05, 0.0, D, H + 1.55, H + 1.65)
+    K.box("trim", -L / 2, L / 2, D - 0.05, D + 0.05, H + 1.55, H + 1.65)
+    area(-L / 2 + 0.5, L / 2 - 0.5, 0.4, D - 0.5, H + 0.5)
+    area(-L / 2, L / 2, -5.0, -0.6, 0.0)
+    return {"width": L + 0.6, "depth": D + 0.6, "height": H + 1.7}
+
+
+def lamp_speaker():
+    """A tall lamp post with a cluster of loudspeakers at its head."""
+    K.cyl("iron", 0.0, 0.0, 0.0, 9.0, 0.12, 0.08, segs=8)
+    K.box("trim", -0.35, 0.35, -0.35, 0.35, 9.0, 9.35)
+    for a in (0.0, 2.1, 4.2):
+        x, y = 0.35 * math.cos(a), 0.35 * math.sin(a)
+        K.cyl("shade", x, y, 7.6, 8.2, 0.16, 0.28, segs=8)
+    return {"width": 0.8, "depth": 0.8, "height": 9.35}
+
+
+# ------------------------------------------------------------------------------------------ 7: the skyline (19 Nov)
+# Owner, 19 Nov 13:44 and 13:47: "ensure all vistas are terminated by buildings or trees.. might be worth faking some
+# skyline spires etc in the distance above the trees"; "use planting and distant architectural forms to frame the
+# vistas". Low-detail far pieces, a touch paler (the air between): a church with a tall spire, the cathedral's tower and
+# its nave, the town hall's tower and spire, a strip of city roofs.
+def sky_spire(H=56.0):
+    T = 8.0; th = H * 0.45
+    K.box("sky_stone", -T / 2, T / 2, 0.0, T, -2.0, th)
+    K.box("sky_render", -T / 2 - 0.3, T / 2 + 0.3, -0.3, T + 0.3, th, th + 0.8)
+    for cx, cy in ((-T / 2, 0), (T / 2, 0), (-T / 2, T), (T / 2, T)):
+        K.cyl("sky_stone", cx, cy, th + 0.8, th + 4.0, 0.5, 0.05, segs=4, smooth=False)
+    K.cyl("sky_stone", 0.0, T / 2, th + 0.8, H, T * 0.42, 0.15, segs=8, smooth=False)
+    K.box("sky_stone", -5.0, 5.0, T, T + 26.0, -2.0, 12.0)                # the nave behind
+    K.gable_roof(-5.0, 5.0, T, T + 26.0, 12.0, 45) if hasattr(K, "gable_roof") else None
+    return {"width": 10.0, "depth": T + 26.0, "height": H}
+
+
+def sky_cathedral():
+    T = 16.0; H = 38.0
+    K.box("sky_stone", -T / 2, T / 2, 0.0, T, -2.0, H)
+    for i in range(6):                                                   # the tower's buttresses and battlements
+        pass
+    for cx, cy in ((-T / 2, 0), (T / 2, 0), (-T / 2, T), (T / 2, T)):
+        K.box("sky_stone", cx - 1.0, cx + 1.0, cy - 1.0, cy + 1.0, -2.0, H + 3.5)
+        K.cyl("sky_stone", cx, cy, H + 3.5, H + 7.0, 0.9, 0.1, segs=4, smooth=False)
+    for k in range(7):
+        x = -T / 2 + 1.5 + k * (T - 3.0) / 6
+        K.box("sky_stone", x - 0.6, x + 0.6, -0.3, 0.5, H, H + 1.6); K.box("sky_stone", x - 0.6, x + 0.6, T - 0.5, T + 0.3, H, H + 1.6)
+    for z in (12.0, 24.0):
+        K.box("shade", -2.0, 2.0, -0.05, 0.02, z, z + 7.0)
+    K.box("sky_stone", -9.0, 9.0, T, T + 70.0, -2.0, 22.0)               # the nave and choir
+    K.gable_roof(-9.0, 9.0, T, T + 70.0, 22.0, 40) if hasattr(K, "gable_roof") else None
+    K.box("sky_stone", -30.0, 30.0, T + 8.0, T + 24.0, -2.0, 20.0)       # the transepts
+    return {"width": 60.0, "depth": T + 70.0, "height": H + 7.0}
+
+
+def sky_town_hall():
+    L, D, H = 46.0, 16.0, 17.0
+    K.box("sky_brick", -L / 2, L / 2, 0.0, D, -2.0, H)
+    K.gable_roof(-L / 2, L / 2, 0.0, D, H, 52) if hasattr(K, "gable_roof") else None
+    for k in range(9):
+        x = -L / 2 + 3 + k * (L - 6) / 8
+        for z in (4.0, 9.5):
+            K.box("shade", x - 0.7, x + 0.7, -0.05, 0.02, z, z + 3.0)
+    T = 9.0
+    K.box("sky_stone", -T / 2, T / 2, -1.0, T - 1.0, -2.0, 36.0)
+    K.box("sky_render", -T / 2 - 0.3, T / 2 + 0.3, -1.3, T - 0.7, 36.0, 37.0)
+    K.cyl("sky_roof", 0.0, T / 2 - 1.0, 37.0, 58.0, T * 0.45, 0.15, segs=8, smooth=False)
+    return {"width": L, "depth": D, "height": 58.0}
+
+
+def sky_roofs(L=70.0, seed=3):
+    """A strip of the city's roofs at a distance: houses and blocks of mixed heights with pitched roofs and chimneys."""
+    import random as _r
+    rnd = _r.Random(seed); x = -L / 2
+    while x < L / 2 - 4:
+        w = rnd.uniform(6.0, 14.0); w = min(w, L / 2 - x); h = rnd.choice([8.5, 10.0, 11.5, 13.0, 16.0, 19.0])
+        d = rnd.uniform(9.0, 14.0); y0 = rnd.uniform(0.0, 4.0)
+        K.box(rnd.choice(["sky_brick", "sky_brick", "sky_render", "sky_stone"]), x, x + w, y0, y0 + d, -2.0, h)
+        if h < 15 and hasattr(K, "gable_roof"):
+            K.gable_roof(x, x + w, y0, y0 + d, h, rnd.choice([35, 40, 45]), ov=0.3)
+        else:
+            K.box("sky_roof", x - 0.2, x + w + 0.2, y0 - 0.2, y0 + d + 0.2, h, h + 0.5)
+        for c in range(int(w // 5)):
+            cx = x + 2.0 + c * 5.0
+            K.box("sky_brick", cx - 0.4, cx + 0.4, y0 + d / 2 - 0.4, y0 + d / 2 + 0.4, h + 1.5, h + 4.5)
+        x += w + rnd.uniform(0.0, 1.5)
+    return {"width": L, "depth": 18.0, "height": 23.0}
+
+
 # ------------------------------------------------------------------------------------------ build and export
 PIECES = [
     ("chester_county_stand", county_stand),
@@ -736,6 +912,15 @@ PIECES = [
     ("chester_castle_range", castle_range),
     ("chester_agricola_tower", agricola_tower),
     ("chester_city_block", city_block),
+    ("chester_pagoda_run", pagoda_run),
+    ("chester_big_screen", big_screen),
+    ("chester_bar_pavilion", bar_pavilion),
+    ("chester_lamp_speaker", lamp_speaker),
+    ("chester_sky_spire", sky_spire),
+    ("chester_sky_cathedral", sky_cathedral),
+    ("chester_sky_town_hall", sky_town_hall),
+    ("chester_sky_roofs", sky_roofs),
+    ("chester_sky_roofs_b", lambda: sky_roofs(seed=11)),
 ]
 LIB = bpy.data.collections.new("chester_stands_kit")
 bpy.context.scene.collection.children.link(LIB)

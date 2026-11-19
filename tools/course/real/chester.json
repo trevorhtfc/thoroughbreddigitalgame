@@ -184,19 +184,28 @@
       5,
       40
      ],
-     "note": "the car in the infield just inside the inside rail: the stands and their crowd the first time past, the river trees on the far side (the video's 17-27 s, 31-41 s and 63-111 s)"
+     "note": "the car in the infield just inside the inside rail: the stands and their crowd the first time past, the river trees on the far side (the video's 17-27 s, 31-41 s and 63-111 s) [19 Nov: up to 6.5 m along the home straight, over the infield's rail crowd]",
+     "raise": [
+      [
+       -130,
+       460,
+       6.5,
+       -80,
+       160
+      ]
+     ]
     },
     "home_headon": {
      "label": "Home straight, head-on",
      "route": "round",
      "d": 1680,
-     "off": -25,
-     "h": 3.0,
+     "off": -1.5,
+     "h": 4.0,
      "fov": [
       4,
       26
      ],
-     "note": "beyond the north corner on its outside, head-on down the home straight as they come past the stands the first time (11-17 s) [19 Nov: low, from just inside the inside rail, so the city wall at the castle end is behind the field]"
+     "note": "beyond the post, head-on down the home straight as they come past the stands the first time (11-17 s) [19 Nov: on the inside rail, 4 m up, over the infield's rail crowd; the wall terraces and the trees behind]"
     },
     "corner_headon": {
      "label": "North corner",
@@ -353,13 +362,12 @@
     "cams": [
      "rail_headon",
      "turn_headon",
-     "corner_headon",
-     "home_headon"
+     "corner_headon"
     ],
     "radius": 30.0,
     "note": "keep the head-on cameras' foregrounds clear of the infield festival; 'boards': the boards beyond the outer rail cleared from behind the field for these cameras (they filled the long lens); 'trees': the trees cleared in front of these (the viaduct camera)",
     "ahead": 350.0,
-    "width": 12.0,
+    "width": 6.0,
     "boardsAhead": 400.0,
     "trees": [
      "west_wide"
@@ -415,13 +423,30 @@
     "name": "River Dee Viaduct",
     "buffer": 24.0
    }
-  ]
+  ],
+  "flatAround": {
+   "r": 160.0,
+   "ease": 140.0
+  },
+  "flatNote": "owner, 19 Nov 13:45 ('you can rationalise the topo a bit from reality to make it easier'): the ground dead flat at the turf's level within 160 m of the turf, easing to the real ground over the next 140 m, so the walls, the stands, the stalls and the city sit on one level"
  },
  "perimeter": {
   "infieldBoards": false,
   "infieldTrees": false,
   "runInBoards": null,
-  "festivals": [
+  "festivals": [],
+  "note": "basic rules for now; the urban edges (city walls, County Stand, viaduct, river) replace the outside belt as the views need them",
+  "lawnX": [
+   -90,
+   270
+  ],
+  "lawnDepth": [
+   2.5,
+   9.0
+  ],
+  "lawnDens": 0.0,
+  "lawnDensWas": 0.75,
+  "festivalsWas": [
    {
     "name": "the infield (owner, 22:08: 'the centre area will just be festival')",
     "kit": "infield",
@@ -444,17 +469,7 @@
      "end": 60
     }
    }
-  ],
-  "note": "basic rules for now; the urban edges (city walls, County Stand, viaduct, river) replace the outside belt as the views need them",
-  "lawnX": [
-   -90,
-   270
-  ],
-  "lawnDepth": [
-   2.5,
-   9.0
-  ],
-  "lawnDens": 0.75
+  ]
  },
  "stands": {
   "_about": "Owner, 23:20 'I think make detailed models from the photos', 23:34 his kinked grandstand sheet, 00:04 'the stand when it kinks shouldnt break' and his wall terraces sheet, 00:39 'Yeah looks decent embed this into the course please then build the festival crowd etc and bring it to life'. The pieces are chester_stands_kit (tools/blender/build_chester_stands.py): the brick block at the bend, the County Stand (its kink at the bend end, past the post), Tattersalls' gabled stands. The wall terraces, the plain wall and the city behind are placed along OSM's lines by edges_chester.py ('extra').",
@@ -498,7 +513,16 @@
    "chester_viaduct_span",
    "chester_grosvenor_bridge",
    "chester_castle_range",
-   "chester_agricola_tower"
+   "chester_agricola_tower",
+   "chester_pagoda_run",
+   "chester_big_screen",
+   "chester_bar_pavilion",
+   "chester_lamp_speaker",
+   "chester_sky_spire",
+   "chester_sky_cathedral",
+   "chester_sky_town_hall",
+   "chester_sky_roofs",
+   "chester_sky_roofs_b"
   ]
  },
  "edges": {
@@ -518,7 +542,10 @@
    ]
   ],
   "mainWall": {
-   "terracesFrom": 132.0
+   "terracesFrom": 132.0,
+   "gap": 14.0,
+   "gapTerraces": 24.0,
+   "gapNote": "owner, 19 Nov 13:45 (the wall broken over the track at the castle-end bend): OSM's wall line pushed out to at least 'gap' m from the turf (gapTerraces where the wall terraces' 14 m of steps stand in front of it) and smoothed"
   },
   "terraceDens": 1.5,
   "note": "the city side of the home straight and the home turn (world box x -150..520, z -420..90, outside the infield): the placeholder trees and boards cleared; the walls from OSM (the terraces along x 70-300, past the stands); the buildings beyond the wall as boxes",
@@ -563,6 +590,229 @@
     1.6
    ]
   ],
-  "beltsNote": "owner, 19 Nov (the cameras): a belt of trees beyond the castle-end wall, behind the home straight's head-on"
+  "beltsNote": "owner, 19 Nov (the cameras): a belt of trees beyond the castle-end wall, behind the home straight's head-on",
+  "forecourt": {
+   "x": [
+    -100.0,
+    300.0
+   ],
+   "depth": 30.0,
+   "railBand": 4.0,
+   "railDens": 0.95,
+   "dens": 0.42,
+   "colour": "#aaa69e",
+   "note": "owner, 19 Nov 13:44: the stands bleed into a paved forecourt with the crowd right up to the track; tarmac grey, as his aerial of the stand side (13:50)"
+  },
+  "festival": {
+   "straight": [
+    15.0,
+    310.0
+   ],
+   "bar": 150.0,
+   "screen": 292.0,
+   "clearspans": [],
+   "deepDens": 0.07,
+   "restDens": 0.004,
+   "note": "owner, 19 Nov 13:50, his race-day photos of the infield: the rail crowd solid down the home straight, pagoda runs behind it, the two-storey bar, glazed marquees, the big screen at the far end; white marquees and kiosks deeper in; the rest open grass [19 Nov: nothing tall before 80 m to go, so the north-corner head-on stays clear; the solid crowd stops before the home turn's head-on]",
+   "pagodas": [
+    100,
+    195,
+    230,
+    265
+   ],
+   "restBand": [
+    9.0,
+    14.0
+   ]
+  },
+  "balloonRows": [],
+  "wallEmbed": {
+   "treeEvery": 2,
+   "note": "owner, 19 Nov 13:51 (the view down the straight in real life): a grass bank at the foot of the plain wall, big trees behind it"
+  },
+  "skyline": [
+   [
+    "chester_sky_cathedral",
+    -60,
+    -400,
+    1.0
+   ],
+   [
+    "chester_sky_town_hall",
+    -200,
+    -340,
+    1.0
+   ],
+   [
+    "chester_sky_spire",
+    330,
+    -235,
+    1.0
+   ],
+   [
+    "chester_sky_roofs",
+    -150,
+    -285,
+    1.0
+   ],
+   [
+    "chester_sky_roofs_b",
+    -60,
+    -305,
+    1.0
+   ],
+   [
+    "chester_sky_roofs",
+    40,
+    -292,
+    1.0
+   ],
+   [
+    "chester_sky_roofs_b",
+    130,
+    -272,
+    1.0
+   ],
+   [
+    "chester_sky_roofs",
+    225,
+    -255,
+    1.0
+   ],
+   [
+    "chester_sky_roofs_b",
+    -265,
+    -190,
+    1.0
+   ],
+   [
+    "chester_sky_spire",
+    -430,
+    80,
+    0.9
+   ],
+   [
+    "chester_sky_roofs",
+    -440,
+    -40,
+    1.0
+   ],
+   [
+    "chester_sky_roofs_b",
+    -450,
+    190,
+    1.0
+   ],
+   [
+    "chester_sky_roofs",
+    700,
+    -60,
+    1.0
+   ],
+   [
+    "chester_sky_roofs_b",
+    725,
+    70,
+    1.0
+   ],
+   [
+    "chester_sky_spire",
+    780,
+    420,
+    1.0
+   ],
+   [
+    "chester_sky_roofs",
+    150,
+    705,
+    1.0
+   ],
+   [
+    "chester_sky_roofs_b",
+    320,
+    690,
+    1.0
+   ],
+   [
+    "chester_sky_roofs",
+    -20,
+    690,
+    1.0
+   ]
+  ],
+  "skylineNote": "owner, 19 Nov 13:44/13:47: distant architecture above the trees to close every vista: the cathedral and the town hall's spire over the city behind the stands, a church spire by the castle end, Handbridge's spire over the river, strips of city roofs",
+  "farBelts": [
+   [
+    [
+     [
+      -330,
+      -120
+     ],
+     [
+      -360,
+      150
+     ],
+     [
+      -340,
+      460
+     ]
+    ],
+    [
+     0,
+     12,
+     24
+    ],
+    1.3,
+    1.8
+   ],
+   [
+    [
+     [
+      640,
+      -220
+     ],
+     [
+      700,
+      -40
+     ],
+     [
+      720,
+      150
+     ]
+    ],
+    [
+     0,
+     12
+    ],
+    1.3,
+    1.8
+   ],
+   [
+    [
+     [
+      -150,
+      640
+     ],
+     [
+      150,
+      670
+     ],
+     [
+      450,
+      650
+     ],
+     [
+      700,
+      560
+     ]
+    ],
+    [
+     0,
+     12
+    ],
+    1.3,
+    1.8
+   ]
+  ]
  }
 }

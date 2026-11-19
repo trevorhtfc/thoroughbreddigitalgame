@@ -69,7 +69,7 @@
   ],
   "bankMottle": 0.03,
   "note": "Ascot's lawn and turf colours (the bake's), so the two courses read as one game",
-  "farY": 12.81
+  "farY": 12.66
  },
  "lanesStraight": {
   "x": [
@@ -463,15 +463,24 @@
    "railSide": "inside",
    "frame": "field",
    "leadRoom": 2,
-   "note": "the car in the infield just inside the inside rail: the stands and their crowd the first time past, the river trees on the far side (the video's 17-27 s, 31-41 s and 63-111 s)"
+   "note": "the car in the infield just inside the inside rail: the stands and their crowd the first time past, the river trees on the far side (the video's 17-27 s, 31-41 s and 63-111 s) [19 Nov: up to 6.5 m along the home straight, over the infield's rail crowd]",
+   "raise": [
+    [
+     -130,
+     460,
+     6.5,
+     -80,
+     160
+    ]
+   ]
   },
   "home_headon": {
    "label": "Home straight, head-on",
    "kind": "fixed",
    "at": [
-    29.97,
-    3.0,
-    27.02
+    32.32,
+    4.0,
+    3.64
    ],
    "fov": [
     4,
@@ -480,7 +489,7 @@
    "frame": "field",
    "leadRoom": 2,
    "atD": 1680,
-   "note": "beyond the north corner on its outside, head-on down the home straight as they come past the stands the first time (11-17 s) [19 Nov: low, from just inside the inside rail, so the city wall at the castle end is behind the field]"
+   "note": "beyond the post, head-on down the home straight as they come past the stands the first time (11-17 s) [19 Nov: on the inside rail, 4 m up, over the infield's rail crowd; the wall terraces and the trees behind]"
   },
   "corner_headon": {
    "label": "North corner",

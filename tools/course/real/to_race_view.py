@@ -133,7 +133,6 @@ def main(cid):
         "ground": ground,
         "drapeTurf": True,
     }
-    NM.write(f"{cid}.json", course)
 
     # ---- stalls: each start's stalls across the track from its inside rail, stall 1 on the inside
     asc = json.loads((OUT / "ascot-stalls.json").read_text())
@@ -164,6 +163,9 @@ def main(cid):
               "horseStandsBehind": STANDS_BEHIND, "gates": asc["gates"], "kit": asc["kit"], "maxRunners": MAX_RUNNERS,
               "unitsForField": {k: v for k, v in asc["unitsForField"].items() if int(k) <= MAX_RUNNERS}, "starts": starts}
     NM.write(f"{cid}-stalls.json", stalls, 1)
+    pad = NM.level_stall_pads(ground, starts, W)          # a level pad under every start's stalls (the rule for every course)
+    print("   stall pads: the ground moved by up to %.2f m" % pad)
+    NM.write(f"{cid}.json", course)
 
     # ---- standards: rough winning times (a good horse, good ground) until the calibration sets the pars
     nm = json.loads((OUT / "newmarket-july-standards.json").read_text())
@@ -302,7 +304,7 @@ def main(cid):
             keep += P_[i:i + 4]
         gone = (len(P_) - len(keep)) // 4; S.people[:] = keep
         pnote["cleared round the cameras"] = [n0 - len(S.pieces), gone]
-    scen = NM.scenery_file(S, trees, boards, [], models, {"at": [0, -zs * GAP], "turn": 180 if hand < 0 else 0}, poles)
+    scen = NM.scenery_file(S, trees, boards, getattr(S, "banks", []), models, {"at": [0, -zs * GAP], "turn": 180 if hand < 0 else 0}, poles)
     scen["_about"] += " Basic surroundings from tools/course/real/perimeter.py (the shared rules until the course's own mark-up)."
     NM.write(f"{cid}-scenery.json", scen)
     print("   perimeter:", json.dumps(pnote))
