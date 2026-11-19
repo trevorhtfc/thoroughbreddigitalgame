@@ -234,9 +234,9 @@ class Scene:
             if len(c) > 5:                       # a stretch turned c[5] degrees about (c[6], c[7]) in the piece's axes (a kink)
                 tr = math.radians(c[5]); ct, st = math.cos(tr), math.sin(tr)
                 fk = face(math.sin(a + tr), math.cos(a + tr))
-                for u0, v0 in s.spots(x0, x1, y0, y1, dens):
-                    u, v = c[6] + u0 * ct - v0 * st, c[7] + u0 * st + v0 * ct
-                    s.person(ox + u * ca - v * sa, fz, oz - (u * sa + v * ca), fk, g)
+                for u0, v0 in s.spots(x0 * sc, x1 * sc, y0 * sc, y1 * sc, dens):
+                    u, v = c[6] * sc + u0 * ct - v0 * st, c[7] * sc + u0 * st + v0 * ct
+                    s.person(ox + u * ca - v * sa, fz * sc, oz - (u * sa + v * ca), fk, g)
                 continue
             for u, v in s.spots(x0 * sx * sc, x1 * sx * sc, y0 * sc, y1 * sc, dens):
                 s.person(ox + u * ca - v * sa, fz * sc, oz - (u * sa + v * ca), f, g)
@@ -244,7 +244,7 @@ class Scene:
     def footprint(s, info, ox, oz, turn, sx=1.0, sc=1.0, pad=0.5):
         a = math.radians(turn); ca, sa = math.cos(a), math.sin(a); hw = info["width"] / 2 * sx * sc
         if info.get("outline"):                  # a footprint that is not a rectangle (Newbury's kinked stand)
-            s.nogo.append([(ox + u * ca - v * sa, oz - (u * sa + v * ca)) for u, v in info["outline"]]); return
+            s.nogo.append([(ox + u * sc * ca - v * sc * sa, oz - (u * sc * sa + v * sc * ca)) for u, v in info["outline"]]); return
         s.nogo.append([(ox + u * ca - v * sa, oz - (u * sa + v * ca)) for u, v in ((-hw, -pad), (hw, -pad), (hw, info["depth"] * sc), (-hw, info["depth"] * sc))])
 
     def blocked(s, x, z):

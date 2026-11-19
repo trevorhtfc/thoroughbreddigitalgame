@@ -45,10 +45,10 @@ NAMES = {"ring_pavilion": "Ring pavilion (Rowley Mile)", "york_stand_north": "No
          "park_roof_terrace_stand_postcard": "Roof-terrace stand with the postcard's roof pavilion, flagpole and lookout"}
 
 
-def footprint(gi, x, z, turn):
+def footprint(gi, x, z, turn, scl=1.0):
     """the piece's outline on the ground (world x, z): building axes u along the front, v into the building"""
     a = math.radians(turn); ca, sa = math.cos(a), math.sin(a)
-    def w(u, v): return (x + u * ca - v * sa, z - (u * sa + v * ca))
+    def w(u, v): u, v = u * scl, v * scl; return (x + u * ca - v * sa, z - (u * sa + v * ca))
     D = gi["depth"]
     if gi.get("outline"):                        # a footprint that is not a rectangle (Newbury's kinked stand)
         return [w(u, v) for u, v in gi["outline"]]
@@ -111,7 +111,7 @@ def main(cid):
     fps = []
     for model, piece, x, z, turn, sx, sc, *_ in S["pieces"]:
         if model != f"{cid}_stands" or piece not in info: continue
-        gi = info[piece]; fp = footprint(gi, x, z, turn)
+        gi = info[piece]; fp = footprint(gi, x, z, turn, sc)
         ax.add_patch(MP(np.array(fp), closed=True, fc="#f4efe6", ec="#5a4a32", lw=1.1, alpha=0.93, zorder=4))
         fps.append((piece, gi, fp))
     def badge(cx, cz, n, r=6.5):

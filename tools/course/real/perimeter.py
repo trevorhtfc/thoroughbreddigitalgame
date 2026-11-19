@@ -171,6 +171,7 @@ def perimeter(S, C, turf, grid_box, rnd=None, opts=None):
                 # a piece placed by hand (owner's mark-up): 'at' a seed point and 'turn'; with 'toTurf' it is slid along the
                 # way it faces until the middle of its front is that far from the turf (the stand at the bend, turned to it)
                 piece, dens, turn = e["piece"], e.get("dens", 0.5), e.get("turn", 0.0)
+                scl = e.get("scale", 1.0)                        # (Newbury, 19 Nov 10:04: "slightly up the scale")
                 gi = info[piece]; x, gz = e["at"]
                 if "toTurf" in e:
                     fx, fz = math.sin(math.radians(turn)), math.cos(math.radians(turn))
@@ -179,9 +180,9 @@ def perimeter(S, C, turf, grid_box, rnd=None, opts=None):
                         if abs(dd - e["toTurf"]) < 0.3: break
                         step = (dd - e["toTurf"]) * 0.5
                         x, gz = x + fx * step, gz + fz * step
-                S.piece(model, piece, x, gz, turn, y=LEVEL.get(ei))
-                S.stand_people(gi, x, gz, turn, 1.0, 1.0, dens, g=LEVEL.get(ei))
-                S.footprint(gi, x, gz, turn)
+                S.piece(model, piece, x, gz, turn, scl, scl, y=LEVEL.get(ei))
+                S.stand_people(gi, x, gz, turn, 1.0, scl, dens, g=LEVEL.get(ei))
+                S.footprint(gi, x, gz, turn, 1.0, scl)
                 note.setdefault("placed by hand", []).append([piece, r2(x), r2(gz), turn, "turf gap", r2(turf.distance(Polygon(S.nogo[-1])))])
                 if st.get("walkUnderHandPlaced"):           # the paved walk and the rail lawn run along these too (Newbury)
                     bx0, _, bx1, _ = Polygon(S.nogo[-1]).bounds
@@ -202,15 +203,16 @@ def perimeter(S, C, turf, grid_box, rnd=None, opts=None):
                 for g in polys(apron):
                     S.flat("#e4d8c2", [(r2(a), r2(b)) for a, b in g.exterior.coords[:-1]], 0.03)
                 continue
-            piece, x, back, dens = e
+            piece, x, back, dens = e[:4]
+            scl = e[4] if len(e) > 4 else 1.0                   # an optional fifth value: the piece's scale
             gi = info[piece]
             gz = zr + side * (st.get("front", 17.0) + back)             # the stand's foot
             turn = 0.0 if side < 0 else 180.0
-            S.piece(model, piece, x, gz, turn, y=LEVEL.get(ei))
-            S.stand_people(gi, x, gz, turn, 1.0, 1.0, dens, g=LEVEL.get(ei))
+            S.piece(model, piece, x, gz, turn, scl, scl, y=LEVEL.get(ei))
+            S.stand_people(gi, x, gz, turn, 1.0, scl, dens, g=LEVEL.get(ei))
             # (an outline is drawn about the piece's own origin: no offset; 08:28, the kinked stand's trees)
-            S.footprint(gi, x + (0.0 if gi.get("outline") else gi.get("offset", 0.0) * (1 if side < 0 else -1)), gz, turn)
-            ox = x + gi.get("offset", 0.0); hw = gi["width"] / 2
+            S.footprint(gi, x + (0.0 if gi.get("outline") else gi.get("offset", 0.0) * scl * (1 if side < 0 else -1)), gz, turn, 1.0, scl)
+            ox = x + gi.get("offset", 0.0) * scl; hw = gi["width"] / 2 * scl
             lawn_x = [min(lawn_x[0], ox - hw), max(lawn_x[1], ox + hw)]
         note["stands"] = len(st["pieces"]); note["stand people"] = (len(S.people) - 0) // 4
         # the paved walk along the stands' feet
@@ -250,6 +252,8 @@ def perimeter(S, C, turf, grid_box, rnd=None, opts=None):
     # ---- festival zones (owner's mark-up, 19:10: one in the infield along the run-in, one on the stand side up the
     # course): the site props kit on trodden ground (marquees, big tops, balloon pods, little stands, kiosks, pergolas,
     # picnic tables, flags), each with its own people, then a crowd through it
+    for x, z, r in opts.get("keepClear", []):         # ground kept clear of festival pieces and crowd (a TV camera's tower)
+        S.nogo.append([(x - r, z - r), (x + r, z - r), (x + r, z + r), (x - r, z + r)])
     if opts.get("festivals"):
         import json as _json
         from pathlib import Path as _P

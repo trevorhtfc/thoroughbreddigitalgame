@@ -216,6 +216,10 @@ def main(cid):
         else:
             cams[cn] = {"label": cs["label"], "kind": "fixed", "at": on_route(cs.get("route", default_route), cs["d"], cs["off"], cs["h"]),
                         "fov": cs["fov"], "frame": "field", "leadRoom": cs.get("leadRoom", 2), "atD": cs["d"], "note": cs.get("note", "")}
+    for cn, cs in TVC.get("set", {}).items():     # changes to the standard cameras (Newbury 19 Nov: the stand camera onto
+        cams[cn] = dict(cams[cn], **cs)             # the set-back stand)
+    if V.get("prelude"):                            # the course's own overview (the runners, before the off; reversed after)
+        prelude = dict(prelude, **V["prelude"]); postlude = NM.overview_after(prelude)
     if TVC.get("startInside"):
         cams["start"]["inside"] = True; cams["start"]["side"] = 3.0
 
