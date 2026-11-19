@@ -363,9 +363,9 @@
    "label": "Stand",
    "kind": "fixed",
    "at": [
-    0,
-    16,
-    -41.0
+    0.0,
+    17.5,
+    -91.0
    ],
    "fov": [
     1.5,
@@ -383,7 +383,7 @@
     0,
     1.2
    ],
-   "note": "the stand camera on the winning line: picks the field up down the straight, closes in on the leaders, pans round until they cross the line square on to it (Ascot's grandstand camera)"
+   "note": "the stand camera on the winning line, at the eaves of the kinked stand's long run (19 Nov: the stands set back 86 m; it had hung over the lawn)"
   },
   "sideon": {
    "label": "Side-on replay",
@@ -620,63 +620,64 @@
    "seconds": 9,
    "eye": [
     [
-     -60,
-     18,
-     30
+     -150,
+     45,
+     140
     ],
     [
-     -45,
-     17,
-     28
+     -122,
+     42,
+     128
     ]
    ],
    "at": [
     [
-     150,
-     6,
-     -60
+     60,
+     10,
+     -80
     ],
     [
-     165,
-     6,
-     -62
+     88,
+     10,
+     -82
     ]
    ],
-   "fov": 46,
+   "fov": 50,
    "list": [
     7,
     0.6
    ],
-   "cardAfter": 3.5
+   "cardAfter": 3.5,
+   "note": "the overview (19 Nov): high over the bend looking up the course, the four stands along the left and the festivals either side of the straight"
   },
   "postlude": {
    "label": "After the race",
    "seconds": 8,
    "eye": [
     [
-     -45,
-     17,
-     28
+     -122,
+     42,
+     128
     ],
     [
-     -60,
-     18,
-     30
+     -150,
+     45,
+     140
     ]
    ],
    "at": [
     [
-     165,
-     6,
-     -62
+     88,
+     10,
+     -82
     ],
     [
-     150,
-     6,
-     -60
+     60,
+     10,
+     -80
     ]
    ],
-   "fov": 46
+   "fov": 50
   }
  },
  "startSequence": {

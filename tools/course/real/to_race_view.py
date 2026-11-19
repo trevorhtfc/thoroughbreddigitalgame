@@ -240,6 +240,8 @@ def main(cid):
                 if kk in cs: cams[cn][kk] = cs[kk]
             if "look" in cs:                  # [d, off, h]: a fixed look point (the side-on replay)
                 cams[cn]["look"] = on_route(cs.get("route", default_route), *cs["look"])
+    for cn, cs in TVC.get("set", {}).items():     # changes to the standard cameras (Newbury 19 Nov: the stand camera onto
+        cams[cn] = dict(cams[cn], **cs)             # the set-back stand)
     if TVC.get("startInside"):
         cams["start"]["inside"] = True; cams["start"]["side"] = 3.0
 

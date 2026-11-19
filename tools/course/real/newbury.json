@@ -412,53 +412,82 @@
       "Drone"
      ]
     ]
+   },
+   "set": {
+    "grandstand": {
+     "at": [
+      0.0,
+      17.5,
+      -91.0
+     ],
+     "note": "the stand camera on the winning line, at the eaves of the kinked stand's long run (19 Nov: the stands set back 86 m; it had hung over the lawn)"
+    }
    }
+  },
+  "prelude": {
+   "eye": [
+    [
+     -150,
+     45,
+     140
+    ],
+    [
+     -122,
+     42,
+     128
+    ]
+   ],
+   "at": [
+    [
+     60,
+     10,
+     -80
+    ],
+    [
+     88,
+     10,
+     -82
+    ]
+   ],
+   "fov": 50,
+   "note": "the overview (19 Nov): high over the bend looking up the course, the four stands along the left and the festivals either side of the straight"
   }
  },
  "stands": {
-  "_about": "Newbury's stands, owner 18 Nov 19:38-19:39: 'same basic model' (as Doncaster) on his marked-up satellite view (1 the stand at the bend, angled; 2 the long stand, turned a little to look up the straight; 3 the stand beyond it, square on; 4 an area up the course on the stand side; 'festival' the infield opposite, along the inside rail from the bend up the course) and his old photo of Newbury's stands ('bit more pitched roof terrace etc': a brick block with a hipped roof, a long pitched-roof stand, and a separate roof-terrace stand with a little lookout pavilion on its roof). So: 1 the pitched-roof (gable) stand turned 45 to the run-in, 14 m off the turf; 2 the clock house (the brick block) and a second pitched-roof stand in one line turned 20, its left end on the front line; 3 low terraces and the roof-terrace stand with Rowley's little Victorian pavilion on its roof as the lookout. 4 is the stand-side festival zone (perimeter.festivals). Owner's mark-up on the plan, 19:42: 2 and 3 square on and set back (fronts about 65 m off the inside rail, as the real stands), in his boxes x -26..49 and 76..148; 4 the stand-side festival zone set back the same, x 170..377; 1 as it was. Owner, 21:25: 'Victorian pavilion, old pavilion, tiered stand and big pavilion maybe good for Newbury?': 1 the tiered stand (turned to the run-in); 2 the clock house and York's big pavilion; 3 the Park kit's Victorian pavilion and old pavilion. The pitched-roof stands and the roof-terrace stand with its lookout stood down (the lookout composite kept in the file). Owner, 21:26, with an old colour postcard of the stand: 'I would like to get these roof structures in there': a roof-terrace stand with a pavilion block and flagpole in the middle of its roof and a little hipped-roof lookout at one end (park_roof_terrace_stand_postcard: the Park old pavilion x0.45 and a site-props flagpole in the middle of the back block's roof, Rowley's Victorian pavilion x0.7 at the end), in area 3 between the Victorian pavilion and the old pavilion; area 3 runs on to x 187 and his area 4 (the stand-side festival) moves up to x 200. Owner, 21:51, from the numbered crib sheet, left to right: 'victorian pavilion, big pavilion, grand pavilion, rowley stand. and the roof structures should be on the grand pavilion and rowley stand as per the image': 1 at the bend the Park Victorian pavilion with towers (crib 7), turned to the run-in; 2 York's big pavilion (16) and Ascot's grand pavilion module (35); 3 the Rowley Mile's Rowley stand (26). The postcard's roof pieces split between the two as in the postcard, left to right: the pavilion block with its flagpole on the grand pavilion's ridge, the hipped-roof lookout (crib 28) at the right-hand end of the Rowley stand's roof. Area 3 runs to x 186 (the Rowley stand is 110 m); his area 4 stays at x 200..400. Owner, 22:15: 'split the 2 and 3 and then join 3 to 4. I would then make 3 and 4 kind of half and half of each across the length': a 15 m gap between the big pavilion and the grand pavilion; the grand pavilion joined to the Rowley stand in one run, half and half along its length: three grand pavilion modules (84 m, the flag block on the middle one) then the Rowley stand's 84 m cut (rowley_end, the same stand shorter, its stair drum at the far end, the lookout near it). His area 4 (the stand-side festival) moves up to x 235..435. Owner, 22:27-22:28: '3, 4 and 5 need aligning neatly. I would then create a gap to 6. We then need more festival bits and pieces between stands. Include that clock building thing?... the clock house that is. You should use this to link stands 1 and 2 maybe and 2 and 3': the joined run (clock house, big pavilion, clock house, three grand pavilions) set at one level (stands.level; each piece had stood at the ground's height under its own origin, so the modules stepped); the clock house (crib 12) linking 1 to 2 and 2 to 3; a 20 m gap before the Rowley stand with festival bits in it (festival kit 'gaps'); stand 1 moved a little towards the bend to make room for the first clock house; his area 4 moved up to x 260..460. Owner, 22:37, with an old photo of Newbury's stands (left to right: a modern glass stand; the main grandstand, three elements pushed together, a brick block, a long low stand with the flag pavilion in the middle, another block; then the old two-tier stand with a lookout turret on its roof, angled towards the course): 'the old stand with the turrets isn't quite right... we also don't have the sort of kink in the grandstands of the old photos. The flank ends of the second image stand is a bit off.. in the old photo the stand is made from sort of three elements pushed together.. can we look to use the image 2 grandstand flanked within something to create this?': the bend stand now the Park glass box (crib 10); the grand pavilion run flanked by a clock house at each end (hiding the modules' open ends); the old stand now the July Course's old pavilion and its wing (crib 20, 21) with the lookout on the ridge near its right-hand end, turned 12 degrees towards the post: the kink. Owner, 22:39-22:40 (on the 22:35 plan, four orange boxes; 'we don't want the Victorian pavilion with the towers'; asked what the boxes meant: 'so the 4 boxes should be the stands. I am trying to illustrate the kink in the second stand I want to map in'): 1 the glass box at the bend; 2 a clock house turned 40 degrees towards the bend (the kink) meeting the big pavilion's front corner; 3 the grand pavilions with a clock house at each end; 4 the old stand with the lookout (July old pavilion and wing) straight on; 2-4 set back to his boxes, fronts about 86 m off the inside rail; the lawn crowd runs back to 58 m. Owner, 22:51: 'there's all sorts of mess going on here, can you update the plan to be the 4 stands as I drew them. I'm not sure why you can't make the kinked stand'; 22:52, with a photo of the main stand's roof box (a white rendered box with a gable, a clock and a flagpole on the canopy roof; the old stand's lookout on posts): 'the box on the roof that you've made a bit of a mess of'. So four stands only: 1 the glass box at the bend; 2 York's big pavilion kinked (the whole pavilion straight, and the left half of a second one hinged at its left front corner, turned 35 towards the bend); 3 two grand pavilion modules between Ascot's end pavilions (the stand's own end caps, the left one mirrored), the roof box (the end pavilion module x0.55, white, hipped with a cupola) and its flagpole over the joint; 4 the July old pavilion and wing with the lookout. The clock houses and the brick roof block stood down. Owner, 23:06 'Hmm It's a mess'; asked, 'too many mismatched pieces, the layout/plan itself, model it properly instead', and (23:08) 'yes, build that' to: four stands modelled new from his old photos as one set (tools/blender/build_newbury_stands.py, newbury_kit.glb): 1 the glass stand at the bend; 2 the kinked stand (the brick block with a hipped roof, the covered stand up the course from it and the same turned 35 degrees towards the bend); 3 the main grandstand (the covered terrace, the upper stand, the white roof box with its gable, clock and flagpole, the pitched-roof block at its right end); 4 the old stand (two galleries over a veranda, hipped slate roof, brick end block, the lookout on posts). Every kit piece and composite stood down. Owner, 23:23: 'I'd let all the stands be a floor / terrace taller. The kinked stand is also not doing it for me with the box in the middle? We have a kinked stand from Newmarket? Could we not apply that stand to the kink here? And tweak the angle to work and then put the TV structure on the roof?': every stand a floor taller (the glass stand three glazed storeys, the main stand a storey of boxes, the old stand three galleries); the kinked stand now the Rowley Mile's cranked stand (Ascot's grand pavilion behind a lawn terrace, a podium storey under it), a 49 m run up the course and a 28 m run turned 35 degrees towards the bend about the kink's front corner, Newmarket's cream stair drum at the kink and the wedge between their backs filled in; the brick block gone; the TV structure (a white box, a railed platform, two cameras, an aerial) on the right run's roof near the kink. Owner, 19 Nov 00:11, with his own models of the main stands (three sheets: three-quarter view, plan, roof plan, elevations): 'these are in order 1, 2 and 3. Model these as close as possible to these': sheet 1 the modern pagoda stand (newbury_pagoda_stand, 93 m), sheet 2 the kinked stand with towers at both ends and the clock pavilion at the kink (newbury_kinked_stand2, 149 m, both sides turned 8 degrees), sheet 3 the two-tier lookout stand (newbury_lookout_stand, 68 m), built in tools/blender/build_newbury_stands.py and placed in that order left to right after the glass stand at the bend; fronts 86 m off the inside rail. (His sheets' sizes: sheet 2's scale bar; the others by their storeys.) Owner, 00:21, on the 23:20 plan: 'your plan is wrong... the kinked stand is number 2 still from this plan': his sheets placed by what they are on that plan: box 1 the glass stand at the bend (unchanged); box 2 sheet 2's kinked stand, its clock pavilion on the kink at x -24, the right side straight up the course to x 32, the left side turned 35 degrees towards the bend as the plan's kink; box 3 sheet 1's pagoda stand (the main grandstand, x 48..137); box 4 sheet 3's lookout stand (x 164..233). Owner, 00:36: 'What you have as 3 should be 1. 2 is 2 albeit the towers suck I'd get rid. Make the terrace continue along the link. Then 4 is 3. Add another tier to the middle. 4 is then still the pitched roof Rowley pavilion': box 1 the pagoda stand (sheet 1) at the bend, turned 25 degrees to the run-in (the glass stand gone); box 2 the kinked stand without its towers, the two tiers and the hipped roof running on through the links to flank walls; box 3 the lookout stand (sheet 3) with a third tier, drawn out to 86 m; box 4 the Rowley Mile's Rowley stand, its 84 m cut (rowley_end, crib 26). Owner, 08:18: 'It looks better other than the gaps between stands? We had the clock box thing before? The big white box bolted onto stand 3 isn't doing it! Maybe just make sure the gaps have some low level elements filling gaps. We then need something to continue along the home straight grandstand side. Maybe some trees, festival etc!': the lookout stand's end block taken off (a flank wall on the rake instead, 77 m); low terraces (crib 13) in the gap between 2 and 3, the clock house (crib 12) in the gap between 3 and 4, festival bits round them and by the bend; the stand side up the straight beyond the Rowley stand a festival with a rail crowd to x 900, trees behind it. Owner, 08:28: 'why are the crowd stood so far away from the edge of the track? Bring them closer. We also have trees clashing with the kinked stand and the clock house should move back a little bit': the lawn crowd from 0.8 m off the rail with a denser band to 10 m (perimeter.lawnFront); gap trees kept 6 m clear of every stand (gapTrees standMargin); the clock house set back 6 m more.",
+  "_about": "Newbury's stands, owner 18 Nov 19:38-19:39: 'same basic model' (as Doncaster) on his marked-up satellite view (1 the stand at the bend, angled; 2 the long stand, turned a little to look up the straight; 3 the stand beyond it, square on; 4 an area up the course on the stand side; 'festival' the infield opposite, along the inside rail from the bend up the course) and his old photo of Newbury's stands ('bit more pitched roof terrace etc': a brick block with a hipped roof, a long pitched-roof stand, and a separate roof-terrace stand with a little lookout pavilion on its roof). So: 1 the pitched-roof (gable) stand turned 45 to the run-in, 14 m off the turf; 2 the clock house (the brick block) and a second pitched-roof stand in one line turned 20, its left end on the front line; 3 low terraces and the roof-terrace stand with Rowley's little Victorian pavilion on its roof as the lookout. 4 is the stand-side festival zone (perimeter.festivals). Owner's mark-up on the plan, 19:42: 2 and 3 square on and set back (fronts about 65 m off the inside rail, as the real stands), in his boxes x -26..49 and 76..148; 4 the stand-side festival zone set back the same, x 170..377; 1 as it was. Owner, 21:25: 'Victorian pavilion, old pavilion, tiered stand and big pavilion maybe good for Newbury?': 1 the tiered stand (turned to the run-in); 2 the clock house and York's big pavilion; 3 the Park kit's Victorian pavilion and old pavilion. The pitched-roof stands and the roof-terrace stand with its lookout stood down (the lookout composite kept in the file). Owner, 21:26, with an old colour postcard of the stand: 'I would like to get these roof structures in there': a roof-terrace stand with a pavilion block and flagpole in the middle of its roof and a little hipped-roof lookout at one end (park_roof_terrace_stand_postcard: the Park old pavilion x0.45 and a site-props flagpole in the middle of the back block's roof, Rowley's Victorian pavilion x0.7 at the end), in area 3 between the Victorian pavilion and the old pavilion; area 3 runs on to x 187 and his area 4 (the stand-side festival) moves up to x 200. Owner, 21:51, from the numbered crib sheet, left to right: 'victorian pavilion, big pavilion, grand pavilion, rowley stand. and the roof structures should be on the grand pavilion and rowley stand as per the image': 1 at the bend the Park Victorian pavilion with towers (crib 7), turned to the run-in; 2 York's big pavilion (16) and Ascot's grand pavilion module (35); 3 the Rowley Mile's Rowley stand (26). The postcard's roof pieces split between the two as in the postcard, left to right: the pavilion block with its flagpole on the grand pavilion's ridge, the hipped-roof lookout (crib 28) at the right-hand end of the Rowley stand's roof. Area 3 runs to x 186 (the Rowley stand is 110 m); his area 4 stays at x 200..400. Owner, 22:15: 'split the 2 and 3 and then join 3 to 4. I would then make 3 and 4 kind of half and half of each across the length': a 15 m gap between the big pavilion and the grand pavilion; the grand pavilion joined to the Rowley stand in one run, half and half along its length: three grand pavilion modules (84 m, the flag block on the middle one) then the Rowley stand's 84 m cut (rowley_end, the same stand shorter, its stair drum at the far end, the lookout near it). His area 4 (the stand-side festival) moves up to x 235..435. Owner, 22:27-22:28: '3, 4 and 5 need aligning neatly. I would then create a gap to 6. We then need more festival bits and pieces between stands. Include that clock building thing?... the clock house that is. You should use this to link stands 1 and 2 maybe and 2 and 3': the joined run (clock house, big pavilion, clock house, three grand pavilions) set at one level (stands.level; each piece had stood at the ground's height under its own origin, so the modules stepped); the clock house (crib 12) linking 1 to 2 and 2 to 3; a 20 m gap before the Rowley stand with festival bits in it (festival kit 'gaps'); stand 1 moved a little towards the bend to make room for the first clock house; his area 4 moved up to x 260..460. Owner, 22:37, with an old photo of Newbury's stands (left to right: a modern glass stand; the main grandstand, three elements pushed together, a brick block, a long low stand with the flag pavilion in the middle, another block; then the old two-tier stand with a lookout turret on its roof, angled towards the course): 'the old stand with the turrets isn't quite right... we also don't have the sort of kink in the grandstands of the old photos. The flank ends of the second image stand is a bit off.. in the old photo the stand is made from sort of three elements pushed together.. can we look to use the image 2 grandstand flanked within something to create this?': the bend stand now the Park glass box (crib 10); the grand pavilion run flanked by a clock house at each end (hiding the modules' open ends); the old stand now the July Course's old pavilion and its wing (crib 20, 21) with the lookout on the ridge near its right-hand end, turned 12 degrees towards the post: the kink. Owner, 22:39-22:40 (on the 22:35 plan, four orange boxes; 'we don't want the Victorian pavilion with the towers'; asked what the boxes meant: 'so the 4 boxes should be the stands. I am trying to illustrate the kink in the second stand I want to map in'): 1 the glass box at the bend; 2 a clock house turned 40 degrees towards the bend (the kink) meeting the big pavilion's front corner; 3 the grand pavilions with a clock house at each end; 4 the old stand with the lookout (July old pavilion and wing) straight on; 2-4 set back to his boxes, fronts about 86 m off the inside rail; the lawn crowd runs back to 58 m. Owner, 22:51: 'there's all sorts of mess going on here, can you update the plan to be the 4 stands as I drew them. I'm not sure why you can't make the kinked stand'; 22:52, with a photo of the main stand's roof box (a white rendered box with a gable, a clock and a flagpole on the canopy roof; the old stand's lookout on posts): 'the box on the roof that you've made a bit of a mess of'. So four stands only: 1 the glass box at the bend; 2 York's big pavilion kinked (the whole pavilion straight, and the left half of a second one hinged at its left front corner, turned 35 towards the bend); 3 two grand pavilion modules between Ascot's end pavilions (the stand's own end caps, the left one mirrored), the roof box (the end pavilion module x0.55, white, hipped with a cupola) and its flagpole over the joint; 4 the July old pavilion and wing with the lookout. The clock houses and the brick roof block stood down. Owner, 23:06 'Hmm It's a mess'; asked, 'too many mismatched pieces, the layout/plan itself, model it properly instead', and (23:08) 'yes, build that' to: four stands modelled new from his old photos as one set (tools/blender/build_newbury_stands.py, newbury_kit.glb): 1 the glass stand at the bend; 2 the kinked stand (the brick block with a hipped roof, the covered stand up the course from it and the same turned 35 degrees towards the bend); 3 the main grandstand (the covered terrace, the upper stand, the white roof box with its gable, clock and flagpole, the pitched-roof block at its right end); 4 the old stand (two galleries over a veranda, hipped slate roof, brick end block, the lookout on posts). Every kit piece and composite stood down. Owner, 23:23: 'I'd let all the stands be a floor / terrace taller. The kinked stand is also not doing it for me with the box in the middle? We have a kinked stand from Newmarket? Could we not apply that stand to the kink here? And tweak the angle to work and then put the TV structure on the roof?': every stand a floor taller (the glass stand three glazed storeys, the main stand a storey of boxes, the old stand three galleries); the kinked stand now the Rowley Mile's cranked stand (Ascot's grand pavilion behind a lawn terrace, a podium storey under it), a 49 m run up the course and a 28 m run turned 35 degrees towards the bend about the kink's front corner, Newmarket's cream stair drum at the kink and the wedge between their backs filled in; the brick block gone; the TV structure (a white box, a railed platform, two cameras, an aerial) on the right run's roof near the kink. Owner, 19 Nov 00:11, with his own models of the main stands (three sheets: three-quarter view, plan, roof plan, elevations): 'these are in order 1, 2 and 3. Model these as close as possible to these': sheet 1 the modern pagoda stand (newbury_pagoda_stand, 93 m), sheet 2 the kinked stand with towers at both ends and the clock pavilion at the kink (newbury_kinked_stand2, 149 m, both sides turned 8 degrees), sheet 3 the two-tier lookout stand (newbury_lookout_stand, 68 m), built in tools/blender/build_newbury_stands.py and placed in that order left to right after the glass stand at the bend; fronts 86 m off the inside rail. (His sheets' sizes: sheet 2's scale bar; the others by their storeys.) Owner, 00:21, on the 23:20 plan: 'your plan is wrong... the kinked stand is number 2 still from this plan': his sheets placed by what they are on that plan: box 1 the glass stand at the bend (unchanged); box 2 sheet 2's kinked stand, its clock pavilion on the kink at x -24, the right side straight up the course to x 32, the left side turned 35 degrees towards the bend as the plan's kink; box 3 sheet 1's pagoda stand (the main grandstand, x 48..137); box 4 sheet 3's lookout stand (x 164..233). Owner, 00:36: 'What you have as 3 should be 1. 2 is 2 albeit the towers suck I'd get rid. Make the terrace continue along the link. Then 4 is 3. Add another tier to the middle. 4 is then still the pitched roof Rowley pavilion': box 1 the pagoda stand (sheet 1) at the bend, turned 25 degrees to the run-in (the glass stand gone); box 2 the kinked stand without its towers, the two tiers and the hipped roof running on through the links to flank walls; box 3 the lookout stand (sheet 3) with a third tier, drawn out to 86 m; box 4 the Rowley Mile's Rowley stand, its 84 m cut (rowley_end, crib 26). Owner, 08:18: 'It looks better other than the gaps between stands? We had the clock box thing before? The big white box bolted onto stand 3 isn't doing it! Maybe just make sure the gaps have some low level elements filling gaps. We then need something to continue along the home straight grandstand side. Maybe some trees, festival etc!': the lookout stand's end block taken off (a flank wall on the rake instead, 77 m); low terraces (crib 13) in the gap between 2 and 3, the clock house (crib 12) in the gap between 3 and 4, festival bits round them and by the bend; the stand side up the straight beyond the Rowley stand a festival with a rail crowd to x 900, trees behind it. Owner, 08:28: 'why are the crowd stood so far away from the edge of the track? Bring them closer. We also have trees clashing with the kinked stand and the clock house should move back a little bit': the lawn crowd from 0.8 m off the rail with a denser band to 10 m (perimeter.lawnFront); gap trees kept 6 m clear of every stand (gapTrees standMargin); the clock house set back 6 m more. Owner, 10:04: 'trim to 3 stands, basically lose the 4th Rowley stand, then slightly up the scale of the other three stands': the Rowley stand and the clock house beside it gone; the pagoda stand, the kinked stand and the lookout stand each at 1.15 (pieces may carry a scale), re-spaced; the low terraces kept between 2 and 3; the stand-side festival from x 160.",
   "front": 17.0,
   "composites": {},
   "pieces": [
    {
     "piece": "newbury_pagoda_stand",
     "at": [
-     -110.1,
-     -48.3
+     -116.0,
+     -51.0
     ],
     "turn": 25.0,
     "dens": 0.85,
-    "note": "box 1 (00:36): his sheet 1, the pagoda stand, at the bend turned to the run-in"
+    "scale": 1.15,
+    "note": "box 1: his sheet 1, the pagoda stand, at the bend turned to the run-in"
    },
    [
     "newbury_kinked_stand2",
-    -24.0,
+    -20.0,
     42.5,
-    0.85
+    0.85,
+    1.15
    ],
    [
     "park_terrace",
-    43.0,
+    55.0,
     42.5,
     0.8
    ],
    [
     "newbury_lookout_stand",
-    92.5,
+    109.8,
     42.5,
-    0.85
-   ],
-   [
-    "park_clock_house",
-    144.8,
-    48.5,
-    0.6
-   ],
-   [
-    "rowley_end",
-    201.4,
-    42.5,
-    0.85
+    0.85,
+    1.15
    ]
   ],
   "level": [],
@@ -468,32 +497,24 @@
     "pieces": [
      0
     ],
-    "parts": "terraces under a canopy, five glazed storeys, five pagoda roofs with the clock, the west block; turned 25 degrees"
+    "parts": "terraces under a canopy, five glazed storeys, five pagoda roofs with the clock, the west block; turned 25 degrees; x1.15"
    },
    {
     "name": "the kinked stand (his sheet 2)",
     "pieces": [
      1
     ],
-    "parts": "two tiers under hipped roofs through to the clock pavilion on the kink; no towers; the left side 35 degrees towards the bend"
+    "parts": "two tiers under hipped roofs through to the clock pavilion on the kink; the left side 35 degrees towards the bend; x1.15"
    },
    {
     "name": "the lookout stand (his sheet 3)",
     "pieces": [
      3
     ],
-    "parts": "three tiers under a hipped roof, the lookout on its trestle; flank walls at both ends"
-   },
-   {
-    "name": "the Rowley stand",
-    "pieces": [
-     5
-    ],
-    "parts": "the Rowley Mile's Rowley stand, 84 m, crib 26"
+    "parts": "three tiers under a hipped roof, the lookout on its trestle; x1.15"
    }
   ],
-  "walkUnderHandPlaced": true,
-  "gapPieces": "pieces 2 (low terraces) and 4 (the clock house) fill the gaps (08:18)"
+  "walkUnderHandPlaced": true
  },
  "perimeter": {
   "lawnDens": 0.3,
@@ -603,7 +624,7 @@
     "kit": "standside",
     "poly": [
      [
-      268,
+      164,
       -62
      ],
      [
@@ -615,7 +636,7 @@
       -115
      ],
      [
-      268,
+      164,
       -115
      ]
     ],
@@ -657,44 +678,19 @@
     "kit": "gaps",
     "poly": [
      [
-      33,
+      45,
       -50
      ],
      [
-      53,
+      65,
       -50
      ],
      [
-      53,
+      65,
       -84
      ],
      [
-      33,
-      -84
-     ]
-    ],
-    "offTurf": 4,
-    "dens": 0.05,
-    "minArea": 150
-   },
-   {
-    "name": "between the stands: 3 and 4",
-    "kit": "gaps",
-    "poly": [
-     [
-      131,
-      -50
-     ],
-     [
-      158,
-      -50
-     ],
-     [
-      158,
-      -84
-     ],
-     [
-      131,
+      45,
       -84
      ]
     ],
@@ -741,6 +737,13 @@
    "to": 10.0,
    "dens": 0.55
   },
-  "treesClearOfBuildings": 5.0
+  "treesClearOfBuildings": 5.0,
+  "keepClear": [
+   [
+    620.9,
+    -34.9,
+    16.0
+   ]
+  ]
  }
 }
