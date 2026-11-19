@@ -154,7 +154,7 @@ def main(cid):
             "course": "straight" if straight else "round",
             "route": s["route"], "key": keys[t], "distance": s["distance"], "insideRailAt": [r2(x), r2(z)],
             "runningDirection": [round(tx, 4), round(tz, 4)], "towardsOuterRail": [round(nx, 4), round(nz, 4)],
-            "stall1": "inside rail", "onStraight": straight, "comesBack": False,
+            "stall1": "inside rail", "onStraight": straight, "comesBack": bool(V.get("stallsAway", False)),
             "stalls": [{"draw": j + 1, "fromInsideRail": round(STALL1 + STALL_PITCH * j, 3), "across": round(STALL1 + STALL_PITCH * j - W / 2, 3),
                         "at": [r2(x + nx * (STALL1 + STALL_PITCH * j)), r2(z + nz * (STALL1 + STALL_PITCH * j))]} for j in range(MAX_RUNNERS)],
         }

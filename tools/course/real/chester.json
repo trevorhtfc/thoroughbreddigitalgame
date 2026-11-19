@@ -406,7 +406,9 @@
    ],
    "fov": 30,
    "note": "owner, 19 Nov 2026 (option 1 of four): the overview behind the runners card, and after the race, down the home straight from the castle end: the stands and the wall terraces with their crowd on the right, the balloons and the festival on the left; drifting in towards the stands"
-  }
+  },
+  "stallsAway": true,
+  "stallsAwayNote": "the stalls taken away once the field is clear of them (Chester: every race comes round past the chute and its starts again)"
  },
  "levelTurf": {
   "margin": 6,
@@ -623,7 +625,8 @@
    "restBand": [
     9.0,
     14.0
-   ]
+   ],
+   "lampsFrom": 88.0
   },
   "balloonRows": [],
   "wallEmbed": {

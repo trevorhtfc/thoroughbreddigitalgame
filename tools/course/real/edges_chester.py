@@ -398,7 +398,7 @@ def build(S, LY, course, turf, trees, boards, opts, NM, rnd):
         kit("chester_big_screen", fe.get("screen", 362.0), 20.0, 0)
         for d_ in fe.get("clearspans", [-78.0, 405.0]):
             p_, n_, t_ = on_r(d_, 19.0); prop("marquee_clearspan", p_[0], p_[1], math.degrees(math.atan2(n_[0], n_[1])), 1.15)
-        for d_ in np.arange(d0e + 10, d1e, 36.0):
+        for d_ in np.arange(fe.get("lampsFrom", d0e + 10), d1e, 36.0):
             p_, n_, t_ = on_r(d_, 10.5)
             if not S.blocked(*p_): S.piece(MODEL, "chester_lamp_speaker", p_[0], p_[1], 0.0, y=0.0)
         # the rail crowd: solid on the rail down the straight, thinning back to the pagodas; lighter round the rest

@@ -82,10 +82,13 @@ GROUP = {"chester_county_stand": ("stand", "County Stand"), "chester_tattersalls
          "chester_wall_bay": ("wall", None), "chester_terrace_row": ("city", None), "chester_city_block": ("city", None),
          "chester_viaduct_bay": ("viaduct", None), "chester_viaduct_span": ("viaduct", None),
          "chester_grosvenor_bridge": ("bridge", "Grosvenor Bridge"), "chester_castle_range": ("castle", "Castle range"),
-         "chester_agricola_tower": ("castle", "Agricola Tower")}
+         "chester_agricola_tower": ("castle", "Agricola Tower"),
+         "chester_pagoda_run": ("festival", None), "chester_big_screen": ("festival", None), "chester_bar_pavilion": ("festival", None),
+         "chester_lamp_speaker": ("lamp", None), "chester_sky_spire": ("city", None), "chester_sky_cathedral": ("city", None),
+         "chester_sky_town_hall": ("city", None), "chester_sky_roofs": ("city", None), "chester_sky_roofs_b": ("city", None)}
 STYLE = {"stand": ("#f4efe6", "#5a4a32", 1.2), "terrace": ("#e8c4ae", "#7a3f2c", 1.0), "wall": ("#b8705a", "#8a4a38", 0.4),
          "city": ("#d8cdc1", "#9a8c7c", 0.4), "viaduct": ("#9c5a45", "#6d3b2c", 0.4), "bridge": ("#cdbfa8", "#7d6d55", 0.8),
-         "castle": ("#d2c2a8", "#7d6d55", 0.8)}
+         "castle": ("#d2c2a8", "#7d6d55", 0.8), "festival": ("#2f5f9e", "#1f3f6e", 0.6), "lamp": ("#2b2b2b", "#2b2b2b", 0.4)}
 PROP = {"marquee_peaks": "#f3f0e6", "marquee_clearspan": "#dfe8ee", "big_top": "#f2d6dc", "pagoda_kiosk": "#f4e2b8",
         "kiosk_awning": "#e9cf9a", "picnic_table": "#b99a6b", "pergola_picnic": "#cdb68d", "terrace_deck": "#c9b08a",
         "stand_open": "#e0d6c6", "stand_covered": "#d6c8b2", "banner_flag": "#c0392b", "flagpole": "#2b2b2b", "balloon_pod": "#e58fa6"}
@@ -98,7 +101,7 @@ def base(ax, X0, X1, Z0, Z1, people=False, props=False, numbers=False, dot=0.3, 
         for f in fl: ax.add_patch(MP(np.array(f["pts"]), closed=True, fc=col, ec="none", zorder=1.0))
     surf = C["track"]["surface"]
     ax.add_patch(MP(np.array(surf[0]), closed=True, fc="#9cc184", ec="none", zorder=1.2))
-    for h in surf[1:]: ax.add_patch(MP(np.array(h), closed=True, fc="#e3dcc4", ec="none", zorder=1.3))
+    for h in surf[1:]: ax.add_patch(MP(np.array(h), closed=True, fc="#b7cc94", ec="none", zorder=1.3))
     for ln in C["rails"]["lines"]:
         q = np.array(ln); ax.plot(q[:, 0], q[:, 1], color="white", lw=1.2, zorder=2)
     for t in S["trees"]:
@@ -220,7 +223,7 @@ def course_plan():
     legend = ("THE TV DIRECTOR'S CUT (1m2f75y, by the leader's metres to go)\n" + "\n".join(rows) +
               "\n\n   O   the overview: behind the runners card before\n       the off, and after the race (down the home\n       straight from the castle end, 16 m up)\n\n   Each fixed camera's wedge runs to the stretch of\n   track it watches. Numbers in green: the starts.")
     pn.text(0.0, 1.0, legend, fontsize=7.4, family="DejaVu Sans Mono", color=INK, ha="left", va="top", linespacing=1.5, transform=pn.transAxes)
-    hand = [Patch(fc="#9cc184", label="turf"), Patch(fc="#e3dcc4", label="infield (festival ground)"), Patch(fc="#f4efe6", ec="#5a4a32", label="stands"),
+    hand = [Patch(fc="#9cc184", label="turf"), Patch(fc="#b7cc94", label="infield (grass; the festival along the straight)"), Patch(fc="#f4efe6", ec="#5a4a32", label="stands"),
             Patch(fc="#e8c4ae", ec="#7a3f2c", label="wall terraces"), Patch(fc="#b8705a", label="city wall"), Patch(fc="#d8cdc1", label="city buildings"),
             Patch(fc="#9c5a45", label="viaduct"), Patch(fc="#a7c1cb", label="river"), Patch(fc="#6f9a55", label="trees"),
             Line2D([], [], color="#3d5a75", lw=2, label="boards"), Line2D([], [], color="#1e7b45", lw=2, label="starts (stalls)"),
@@ -235,8 +238,7 @@ def zone_plan():
                         "every festival piece at its real footprint; grid every 50 m in race-view metres (x from the post along the home straight).")
     key = base(ax, X0, X1, Z0, Z1, people=True, props=True, numbers=True)
     # the infield rail crowd band (perimeter.festival.railCrowd: 11-17 m in from the inside rail)
-    rc = CF["perimeter"]["festivals"][0].get("railCrowd", {})
-    band = [rc.get("from", 11.0), rc.get("to", 17.0)]
+    band = [0.9, 11.0]                                     # the infield's rail crowd down the straight (edges_chester festival)
     for off in band:
         q = np.array([on(d, -off) for d in np.arange(-40, lap_len() - 5, 5)]); ax.plot(q[:, 0], q[:, 1], color="#a0522d", lw=0.6, ls=":", zorder=3.3)
     for x, z, s, kw in [(22, -100, "COUNTY STAND", {}), (104, -95, "TATTERSALLS", dict(size=8.5)), (-100, -60, "brick block", dict(size=8)),
@@ -248,7 +250,9 @@ def zone_plan():
     pn.text(0.0, 1.0, "THE STAND SIDE (numbered on the plan)\n" + "\n".join(key), fontsize=7.8, color=INK, va="top", linespacing=1.55, transform=pn.transAxes)
     from collections import Counter
     cnt = Counter(q[1] for q in S["pieces"] if q[0] == "site_props" and X0 < q[2] < X1 and Z0 < q[3] < Z1)
-    hand = [Patch(fc=PROP[k], ec="#6b5a45", label=f"{CODES[k]['name']} ({cnt[k]})") for k in PROP if k in CODES and cnt.get(k) and k not in ("banner_flag", "flagpole")]
+    kc = Counter(q[1] for q in S["pieces"] if q[0] == "chester_stands" and X0 < q[2] < X1 and Z0 < q[3] < Z1)
+    hand = [Patch(fc="#2f5f9e", ec="#1f3f6e", label=f"pagoda runs ({kc['chester_pagoda_run']}), the bar ({kc['chester_bar_pavilion']}), the big screen ({kc['chester_big_screen']})")]
+    hand += [Patch(fc=PROP[k], ec="#6b5a45", label=f"{CODES[k]['name']} ({cnt[k]})") for k in PROP if k in CODES and cnt.get(k) and k not in ("banner_flag", "flagpole")]
     hand += [Line2D([], [], marker="v", color=PROP["banner_flag"], lw=0, label=f"banner flag ({cnt.get('banner_flag', 0)})"),
              Line2D([], [], marker="|", color=INK, lw=0, label=f"flagpole ({cnt.get('flagpole', 0)})"),
              Line2D([], [], marker="o", color="#a0522d", lw=0, ms=3, label="crowd (one dot a person)")]
