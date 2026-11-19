@@ -25,6 +25,7 @@ from shapely.geometry import LineString, Point, Polygon, box
 from shapely.prepared import prep
 
 REPO = Path(__file__).resolve().parents[3]
+TREE_KINDS = ("oak_a", "oak_b", "oak_c", "wide_a", "wide_b")      # perimeter.py's KINDS
 
 STONE, STONE_LIT, COPING = "#c4836b", "#d29a83", "#ddb19a"           # red sandstone, its steps, the coping
 BRICKS = ["#c98a72", "#b97862", "#d39b80", "#bf846f", "#e2c7ad"]       # the city's brick and the odd rendered front
@@ -188,12 +189,18 @@ def build(S, LY, course, turf, trees, boards, opts, NM, rnd):
         if rv.coords[0][1] > rv.coords[-1][1]: rv = LineString(list(rv.coords)[::-1])       # from the north corner
         river_ways = [w for w in line_of(["Shrewsbury"]) if 60 < LineString(w).length < 160] + \
                      [w for w in line_of(["Crewe"]) if 60 < LineString(w).length < 160]
+        FRONTS = []
         def run(line, piece, step, offset):
             nonlocal n_v
             L = line.length; k = 0.0
             while k + step <= L + 0.01:
                 m, t, n = frame(line, k, k + step)
                 m = m + n * offset                               # the line is the railway's centre: the face is half a deck out
+                # kept clear of the track with room for the trees in front (OSM's railway runs almost on the turf's edge
+                # down the far side, and the race view's track is laid a little wider than the real one there)
+                fp = Point(*m); sd = -turf.exterior.distance(fp) if turf.contains(fp) else turf.distance(fp)
+                if sd < far.get("viaductGap", 14.0): m = m - n * (far.get("viaductGap", 14.0) - sd)
+                FRONTS.append((m.copy(), t.copy(), n.copy()))
                 gi = INFO[piece]
                 turn = math.degrees(math.atan2(n[0], n[1]))
                 S.piece(MODEL, piece, m[0], m[1], turn, y=S.G(*m))
@@ -206,16 +213,26 @@ def build(S, LY, course, turf, trees, boards, opts, NM, rnd):
                 rw = LineString(list(rw.coords)[::-1])
             run(rw, "chester_viaduct_span", INFO["chester_viaduct_span"]["width"], INFO["chester_viaduct_span"]["depth"] / 2)
         # nothing beyond the viaduct (22:08): its far side cleared of the placeholder trees and boards
-        far_side = LineString(list(rv.coords)).buffer(400.0, single_sided=True)
-        test = Point(*(np.array(rv.interpolate(rv.length / 2).coords[0]) + 50 * np.array([1.0, 0.0])))
-        if far_side.distance(turf) < 1.0 or far_side.contains(Point(turf.centroid.x, turf.centroid.y)):
-            far_side = LineString(list(rv.coords)).buffer(-400.0, single_sided=True)
+        sides = [LineString(list(rv.coords)).buffer(d_, single_sided=True) for d_ in (400.0, -400.0)]
+        far_side = min(sides, key=lambda g: g.intersection(turf).area)      # the side away from the course
         far_side = far_side.union(LineString(list(rv.coords)).buffer(8.0))
         pf = prep(far_side)
         n0, b0_ = len(trees), len(boards)
         trees[:] = [t for t in trees if not pf.contains(Point(t[0], t[1]))]
         boards[:] = [b for b in boards if not pf.contains(Point(b[0], b[1]))]
         note["cleared beyond the viaduct"] = [n0 - len(trees), b0_ - len(boards)]
+        # the trees planted thick in front of it (owner, 08:36: "The viaduct actually has trees panted pretty dense infront
+        # of it"): two staggered rows along its track side, tall enough to hide much of the arches, a gap kept to the rail
+        vb = far.get("viaductTrees", {"rows": [[3.5, 1.25, 1.6], [8.5, 1.15, 1.5], [13.0, 1.05, 1.35]], "offTurf": 3.5})
+        nt = 0
+        for face, t, n in FRONTS:
+            for j in range(2):                                           # two trees a row per 12 m bay, staggered
+                for ri, (off, s_lo, s_hi) in enumerate(vb["rows"]):
+                    q = face + n * (off + rnd.uniform(-1.0, 1.0)) + t * ((j - 0.5) * 6.0 + (1.5 if ri % 2 else -1.5) + rnd.uniform(-1.0, 1.0))
+                    if turf.distance(Point(*q)) < vb["offTurf"] or turf.contains(Point(*q)): continue
+                    trees.append([round(q[0], 2), round(q[1], 2), rnd.choice(TREE_KINDS), round(rnd.uniform(s_lo, s_hi), 2), rnd.randrange(360), 1])
+                    nt += 1
+        note["trees in front of the viaduct"] = nt
     note["viaduct pieces"] = n_v
 
     # Grosvenor Bridge, on its OSM outline; the castle's range and the Agricola Tower on the castle's
@@ -272,7 +289,7 @@ def build(S, LY, course, turf, trees, boards, opts, NM, rnd):
             for k in range(3):                                           # a few trees in front, on the bank
                 tp = q + n * rnd.uniform(6, 18) + np.array([-n[1], n[0]]) * rnd.uniform(-20, 20)
                 if not water.contains(Point(*tp)):
-                    trees.append([round(tp[0], 2), round(tp[1], 2), rnd.choice(["oak", "lime", "beech"]) if False else trees[0][2] if trees else 0, round(rnd.uniform(1.1, 1.5), 2), rnd.randrange(360)])
+                    trees.append([round(tp[0], 2), round(tp[1], 2), rnd.choice(TREE_KINDS), round(rnd.uniform(1.1, 1.5), 2), rnd.randrange(360)])
     note["houses over the river"] = nh
 
     # ---- life (owner, 00:39: "build the festival crowd etc and bring it to life"): flags along the wall's walkway over the

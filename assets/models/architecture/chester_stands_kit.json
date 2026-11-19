@@ -3250,14 +3250,14 @@
 "depth": 9.0,
 "height": 12.45,
 "crowd": [],
-"triangles": 432
+"triangles": 504
 },
 "chester_viaduct_span": {
 "width": 33.0,
 "depth": 9.0,
 "height": 14.3,
 "crowd": [],
-"triangles": 624
+"triangles": 696
 },
 "chester_grosvenor_bridge": {
 "width": 100.0,

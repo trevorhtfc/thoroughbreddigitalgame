@@ -608,6 +608,9 @@ def viaduct_bay(L=12.0, D=9.0, span=9.6, spring=5.0, deck=11.2):
     the deck with its two lines of rails."""
     x0, x1 = -L / 2, L / 2
     arc = arch_face("brick", x0, x1, 0.0, D, span, spring, deck)
+    # owner, 19 Nov 08:36: "make the arches fill to avoid views through so it's a tad more illustrative": each arch
+    # filled with a panel of darker brick set back from both faces, so the arch still reads in its reveal
+    K.prism_y("brick_dark", 0.7, D - 0.7, [(arc[0][0], -1.0)] + arc + [(arc[-1][0], -1.0)])
     for x, z in arc[1:-1:2]:                                           # the arch ring: a band of darker brick round it
         K.box("brick_dark", x - 0.45, x + 0.45, -0.06, 0.0, z - 0.1, z + 0.75)
         K.box("brick_dark", x - 0.45, x + 0.45, D, D + 0.06, z - 0.1, z + 0.75)
@@ -631,6 +634,7 @@ def viaduct_span(L=33.0, D=9.0, span=29.0, spring=3.0, rise=8.0, deck=13.0):
     """A span of the railway's bridge over the Dee: a wide segmental stone arch between piers with cutwaters."""
     x0, x1 = -L / 2, L / 2
     arc = arch_face("stone", x0, x1, 0.0, D, span, spring, deck, seg=rise)
+    K.prism_y("stone_dark", 0.8, D - 0.8, [(arc[0][0], -1.0)] + arc + [(arc[-1][0], -1.0)])      # filled (08:36)
     for x, z in arc[1:-1]:
         K.box("stone_lit", x - 0.7, x + 0.7, -0.08, 0.0, z - 0.1, z + 1.0)
         K.box("stone_lit", x - 0.7, x + 0.7, D, D + 0.08, z - 0.1, z + 1.0)
