@@ -1,0 +1,52 @@
+{
+ "_about": "Written by calibrate.mjs: the par (seconds) the race engine uses at gen-downs-l, so its winning times match the targets.",
+ "par": {
+  "g5f": 58.07,
+  "g6f": 70.86,
+  "g7f": 83.94,
+  "g1m": 99.92,
+  "g1m1f": 113.82,
+  "g1m2f": 127.94,
+  "g1m4f": 157.11,
+  "g1m6f": 186.87,
+  "g2m": 217.87
+ },
+ "measured": {
+  "g5f": {
+   "winning time (before the last step)": 58.84,
+   "target": 58.9
+  },
+  "g6f": {
+   "winning time (before the last step)": 71.28,
+   "target": 71.4
+  },
+  "g7f": {
+   "winning time (before the last step)": 84.05,
+   "target": 84.2
+  },
+  "g1m": {
+   "winning time (before the last step)": 99.84,
+   "target": 100
+  },
+  "g1m1f": {
+   "winning time (before the last step)": 113.42,
+   "target": 113.6
+  },
+  "g1m2f": {
+   "winning time (before the last step)": 127.29,
+   "target": 127.5
+  },
+  "g1m4f": {
+   "winning time (before the last step)": 155.85,
+   "target": 156.1
+  },
+  "g1m6f": {
+   "winning time (before the last step)": 184.92,
+   "target": 185.2
+  },
+  "g2m": {
+   "winning time (before the last step)": 215.08,
+   "target": 215.4
+  }
+ }
+}

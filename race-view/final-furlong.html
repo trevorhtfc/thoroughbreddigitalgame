@@ -3489,7 +3489,10 @@ const CALLER = (() => {
   }
   // the course: past the stand with a circuit to go, round the home turn, into the straight, the last two furlongs
   if (PATH && RACE.course !== "straight") {                // one path: round the bend at its top, into the straight
-    const [b0, b1] = COURSE.path.bends[0];
+    // (a course with routes, 19 Nov: the home turn is the route's last bend, the nearest the post; the generic Downs'
+    // 1m4f called "into the straight" at the end of its first bend, 7f out)
+    const BL = COURSE.path.bends.filter((b) => b[2] > 0);
+    const [b0, b1] = COURSE.routes && BL.length ? BL.reduce((a, b) => (b[1] < a[1] ? b : a)) : COURSE.path.bends[0];
     add(when(DIST - (b0 + b1) / 2), `Round the turn, ${name(order(frameAt(when(DIST - (b0 + b1) / 2)))[0][1])} in front.`, 8);
     add(when(DIST - b1), `Into the straight! ${furl(b1)} to run.`, 8);
   } else if (RACE.course !== "straight") {

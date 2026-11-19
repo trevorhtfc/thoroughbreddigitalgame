@@ -108,6 +108,10 @@ def perimeter(S, C, turf, grid_box, rnd=None, opts=None):
     note["belt trees"] = fill(around, BELT[2], BELT[3], BELT[4], belt=1)
     further = outside.buffer(OUTER[1]).difference(outside.buffer(OUTER[0])).difference(plot.buffer(12)).intersection(inside_grid)
     note["outer trees"] = fill(further, OUTER[2], OUTER[3], OUTER[4])
+    fb = opts.get("farBelt")                 # (the generic courses, 19 Nov: a distant belt of big trees closing the horizon
+    if fb:                                   # beyond the thinner trees, seen from the overview and the high cameras)
+        band = outside.buffer(fb.get("to", 260.0)).difference(outside.buffer(fb.get("from", 170.0))).difference(plot.buffer(40)).intersection(inside_grid)
+        note["far belt trees"] = fill(band, fb.get("every", 24.0), tuple(fb.get("scale", (1.7, 2.3))), fb.get("chance", 0.75), belt=1)
 
     # behind the stand plot: a belt closing the view across the stands from the start and the infield cameras
     zb0, zb1 = side * (W + depth), side * (W + depth + 45.0)
