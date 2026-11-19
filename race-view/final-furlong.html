@@ -1002,7 +1002,16 @@ function buildLineStrips() {
     LAYERS.ground.push(m); scene.add(m);
   };
   strip(0, 2.2, 0.55);                                                   // the winning line
-  for (const f of COURSE.straightMile.furlongPoles) strip(f.at[0], 1.4, 0.26);
+  // (a pole off the home straight's line, placed by the course file round a bend, has no painted line across the x axis)
+  for (const f of COURSE.straightMile.furlongPoles) if (!(f.turn !== undefined && Math.abs(f.at[1]) > W + 3)) strip(f.at[0], 1.4, 0.26);
+  // a second winning line (Sandown's sprint course finishes at its own post): across the track at 'at' along 'across'
+  for (const e of COURSE.extraPosts || []) {
+    const [ax, az] = e.across, mx = e.at[0] + ax * W / 2, mz = e.at[1] + az * W / 2;
+    const geo = new THREE.PlaneGeometry(2.2, W + 0.6).rotateX(-Math.PI / 2).rotateY(Math.atan2(ax, az)).translate(mx, 0.015 + groundY(mx, mz), mz);
+    const m = new THREE.Mesh(geo, new THREE.MeshBasicMaterial({ color: "#eef5d8", map: tex, transparent: true, opacity: 0.55, depthWrite: false,
+      polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -4 }));
+    m.renderOrder = -1; LAYERS.ground.push(m); scene.add(m);
+  }
 }
 
 // The Ascot running rail, as in the owner's photo and the finish study: a broad white board facing the track,
@@ -2312,6 +2321,9 @@ function setGrade(on) {
 const camera = new THREE.PerspectiveCamera(30, 1, 0.5, 4000);   // near 0.5 (was 0.2): 2.5 times the depth precision far off
 const focus = new THREE.Vector3();
 const RCAMS = VIEW.raceCameras, SET = VIEW.setPieces;
+// a race that finishes at its own post (Sandown's sprint course, owner 19 Nov): the view file's race names the cameras
+// that stand in for the stand camera, the head-on and the side-on replay there (races[id].cameraSwap {grandstand: id, ...})
+for (const [k, v] of Object.entries(RACE.cameraSwap || {})) if (RCAMS[v]) RCAMS[k] = RCAMS[v];
 // The runners' card shows for the prelude: long enough to read (setPieces.prelude.list: seconds, plus so many a runner).
 if (SET.prelude.list) SET.prelude.seconds = (SET.prelude.cardAfter || 0) + SET.prelude.list[0] + SET.prelude.list[1] * RUNNERS_N();
 // (setPieces.prelude.cardAfter: seconds of the view on its own before the runners' card comes up; owner, 9 Nov late)

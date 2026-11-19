@@ -64,6 +64,7 @@ def perimeter(S, C, turf, grid_box, rnd=None, opts=None):
     zr = side * (W + 0.5)
     plot = box(x0, min(zr, zr + side * depth), x1, max(zr, zr + side * depth)).difference(turf.buffer(0.5))
     home_d = C["routes"][C["defaultRoute"]]["path"]["home"]
+    home_d = opts.get("home", home_d)                       # (Sandown: a run-in that curves gently from 1f, read as a bend)
     runin = box(-150.0, min(0.0, -side * RUNIN_DEPTH), home_d + 60.0, max(0.0, -side * RUNIN_DEPTH)).intersection(infield)
     keep_out = unary_union([turf.buffer(22.0), plot])
     pk = prep(keep_out)

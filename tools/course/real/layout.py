@@ -151,6 +151,16 @@ class Course:
         self.XH = -self.RUN                                 # world x: against the running direction on the home straight
         self.ZH = left_of(self.RUN)                          # world z: the horses' left
         self.POST_GROUND = float(self.ground(self.POST + self.across(self.RUN) * self.W / 2))
+        # a route with its own winning post (Sandown's sprint course, which finishes at the west end of its strip across
+        # the middle, not at the round course's post): "post": {"x": metres east} or {"latlon": [..]} in the route's
+        # spec; its metres to go count to that post. World axes stay on the main post.
+        self.OWN_POST = {}
+        for name, spec in C["routes"].items():
+            op = spec.get("post")
+            if not op: continue
+            L = self.RAIL[name]
+            if "x" in op: self.OWN_POST[name] = float(min(np.arange(0, L.L, 0.5), key=lambda t: abs(L.at(t)[0][0] - op["x"])))
+            else: self.OWN_POST[name] = float(L.project(self.en(op["latlon"])))
 
     def en(self, ll): return np.array([(ll[1] - self.lon0) * self.KX, (ll[0] - self.lat0) * self.KY])
     def across(self, t):
@@ -172,7 +182,9 @@ class Course:
         chunks = []
         for pc in spec["pieces"]:
             if "lead" in pc: continue
-            p = resample(self.piece(pc), 2.0)
+            # {"points": [[east, north], ...]}: a run of the rail drawn by hand (Sandown's west bend, where OSM's outer
+            # edge has a sharp corner that an offset rail turns too tightly)
+            p = resample(np.array(pc["points"], float) if "points" in pc else self.piece(pc), 2.0)
             off = pc.get("offset", 0.0)
             if isinstance(off, list):        # [a, b, m]: from a to b over the piece's first m metres (m < 0: its last -m)
                 a, b, m = off; s = np.arange(len(p)) * 2.0; Lp = s[-1]
@@ -209,6 +221,7 @@ class Course:
         return [round(float(np.asarray(v) @ self.XH), 4), round(float(np.asarray(v) @ self.ZH), 4)]
 
     def post_s(self, name):
+        if name in self.OWN_POST: return self.OWN_POST[name]
         L = self.RAIL[name]; return L.project(self.POST, after=max(0, L.L - self.C["post"].get("searchLast", 2500)))
 
     def samples(self, name):

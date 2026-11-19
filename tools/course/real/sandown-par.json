@@ -1,0 +1,47 @@
+{
+ "_about": "Written by calibrate.mjs: the par (seconds) the race engine uses at sandown, so its winning times match the targets.",
+ "par": {
+  "s5f6y": 60.31,
+  "s7f16y": 89.15,
+  "s1m14y": 102.29,
+  "s1m1f": 115.72,
+  "s1m1f209y": 127.61,
+  "s1m3f91y": 147.52,
+  "s1m6f": 184.2,
+  "s2m78y": 220.11
+ },
+ "measured": {
+  "s5f6y": {
+   "winning time (before the last step)": 60.99,
+   "target": 61
+  },
+  "s7f16y": {
+   "winning time (before the last step)": 89.47,
+   "target": 89.5
+  },
+  "s1m14y": {
+   "winning time (before the last step)": 102.5,
+   "target": 102.5
+  },
+  "s1m1f": {
+   "winning time (before the last step)": 115.51,
+   "target": 115.5
+  },
+  "s1m1f209y": {
+   "winning time (before the last step)": 127.49,
+   "target": 127.5
+  },
+  "s1m3f91y": {
+   "winning time (before the last step)": 146.98,
+   "target": 147
+  },
+  "s1m6f": {
+   "winning time (before the last step)": 182.98,
+   "target": 183
+  },
+  "s2m78y": {
+   "winning time (before the last step)": 217.95,
+   "target": 218
+  }
+ }
+}

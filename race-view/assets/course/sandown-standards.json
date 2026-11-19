@@ -1,0 +1,105 @@
+{
+ "_about": "Par (standard) times at Sandown Park, DRAFT. 'winningTime' is a rough winning time for a good horse on good ground (a galloping course's typical times: to check against real results); 'seconds' is the par the engine uses, set by tools/course/real/calibrate.mjs so its winning times come out at those.",
+ "parTimes": [
+  {
+   "key": "s5f6y",
+   "course": "straight",
+   "distance": 1011.3,
+   "seconds": 60.31,
+   "winningTime": 61.0
+  },
+  {
+   "key": "s7f16y",
+   "course": "round",
+   "distance": 1422.8,
+   "seconds": 89.15,
+   "winningTime": 89.5
+  },
+  {
+   "key": "s1m14y",
+   "course": "round",
+   "distance": 1622.1,
+   "seconds": 102.29,
+   "winningTime": 102.5
+  },
+  {
+   "key": "s1m1f",
+   "course": "round",
+   "distance": 1810.5,
+   "seconds": 115.72,
+   "winningTime": 115.5
+  },
+  {
+   "key": "s1m1f209y",
+   "course": "round",
+   "distance": 2001.6,
+   "seconds": 127.61,
+   "winningTime": 127.5
+  },
+  {
+   "key": "s1m3f91y",
+   "course": "round",
+   "distance": 2296.1,
+   "seconds": 147.52,
+   "winningTime": 147.0
+  },
+  {
+   "key": "s1m6f",
+   "course": "round",
+   "distance": 2816.4,
+   "seconds": 184.2,
+   "winningTime": 183.0
+  },
+  {
+   "key": "s2m78y",
+   "course": "round",
+   "distance": 3290.0,
+   "seconds": 220.11,
+   "winningTime": 218.0
+  }
+ ],
+ "going": {
+  "Heavy": {
+   "speed": 0.95,
+   "sapping": 1.25
+  },
+  "Softer": {
+   "speed": 0.975,
+   "sapping": 1.1
+  },
+  "Good": {
+   "speed": 1.0,
+   "sapping": 1.0
+  },
+  "Quicker": {
+   "speed": 1.006,
+   "sapping": 0.97
+  },
+  "Quick": {
+   "speed": 1.012,
+   "sapping": 0.95
+  }
+ },
+ "pace": {
+  "_about": "How the dock judges the pace. Each section the leader runs is compared with par for its length at the race's average par speed; the first section (from a standing start) gets firstSectionExtra seconds of allowance. Ratio = actual time / par time.",
+  "firstSectionExtra": 1.3,
+  "bands": [
+   {
+    "label": "Fast",
+    "below": 0.98
+   },
+   {
+    "label": "Strong",
+    "below": 0.993
+   },
+   {
+    "label": "Even",
+    "below": 1.012
+   },
+   {
+    "label": "Slow",
+    "below": 99
+   }
+  ]
+ }
+}

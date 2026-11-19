@@ -112,6 +112,16 @@ def main(cid):
     rails = [[[r2(x), r2(z)] for x, z in railed.exterior.coords]] + [[[r2(x), r2(z)] for x, z in h.coords] for h in railed.interiors]
     sz = -1 if hand < 0 else 1                              # the stand side's z sign
     poles = [{"furlongs": k, "at": [r2(k * F), r2(sz * (W + GAP + 0.7))], "turn": 0} for k in range(1, 5)]
+    if V.get("polesOnRoute"):            # a run-in that bends within 4f (Sandown): the poles on the route's outer rail
+        RR = C["routes"][V["polesOnRoute"]]; _, acr, _, _ = route_bits(RR, W, hand); poles = []
+        for k in range(1, 5):
+            f = (k * F - RR["d0"]) / RR["spacing"]; i = int(f); kk = f - i
+            (ax_, az_), (bx_, bz_) = RR["insideRail"][i], RR["insideRail"][i + 1]
+            px, pz = ax_ + (bx_ - ax_) * kk, az_ + (bz_ - az_) * kk
+            tx, tz = ax_ - bx_, az_ - bz_; l = math.hypot(tx, tz) or 1; tx, tz = tx / l, tz / l
+            o = W + GAP + 0.7
+            poles.append({"furlongs": k, "at": [r2(px + acr[i][0] * o), r2(pz + acr[i][1] * o)],
+                          "turn": round(math.degrees(math.atan2(tz, -tx)), 1)})
     ground = ground_grid(LY, C, W, name)
     default_route = V.get("defaultRoute", "round")
     # a course with no straight course (Chester): the 'straight' cameras and the furlong poles use the home straight
@@ -130,6 +140,9 @@ def main(cid):
         "rails": {"gap": GAP, "lines": rails, "skip": [[-16.3, 16.7, GAP]]},
         "straightMile": {"length": round(STRAIGHT_LEN, 1), "furlongPoles": poles},
         "winningPost": [0, 0],
+        "extraPosts": [{"route": rn, "at": routes_out[rn]["pathRail"]["points"][int(-routes_out[rn]["pathRail"]["d0"] / routes_out[rn]["pathRail"]["spacing"])],
+                        "across": [r2(v) for v in route_bits(C["routes"][rn], W, hand)[1][int(-routes_out[rn]["pathRail"]["d0"] / routes_out[rn]["pathRail"]["spacing"])]]}
+                       for rn in CF["routes"] if CF["routes"][rn].get("post")],
         "ground": ground,
         "drapeTurf": True,
     }
@@ -219,6 +232,10 @@ def main(cid):
         else:
             cams[cn] = {"label": cs["label"], "kind": "fixed", "at": on_route(cs.get("route", default_route), cs["d"], cs["off"], cs["h"]),
                         "fov": cs["fov"], "frame": "field", "leadRoom": cs.get("leadRoom", 2), "atD": cs["d"], "note": cs.get("note", "")}
+            for kk in ("frame", "window"):
+                if kk in cs: cams[cn][kk] = cs[kk]
+            if "look" in cs:                  # [d, off, h]: a fixed look point (the side-on replay)
+                cams[cn]["look"] = on_route(cs.get("route", default_route), *cs["look"])
     if TVC.get("startInside"):
         cams["start"]["inside"] = True; cams["start"]["side"] = 3.0
 
@@ -233,6 +250,8 @@ def main(cid):
     view["races"]["_default"] = V.get("defaultRace", next(iter(stalls["starts"])))
     for k in stalls["starts"]:
         view["races"][k]["label"] = C["starts"][k]["label"]
+        sw_ = TVC.get("routeCams", {}).get(C["starts"][k]["route"])
+        if sw_: view["races"][k]["cameraSwap"] = sw_
     view["mapTurn"] = V.get("mapTurn", 0)
     if TVC.get("shots"):
         view["raceDirector"]["shots"] = TVC["shots"]
@@ -277,6 +296,13 @@ def main(cid):
             keep += P_[i:i + 4]
         gone = (len(P_) - len(keep)) // 4; S.people[:] = keep
         pnote["cleared round the cameras"] = [n0 - len(S.pieces), gone]
+    for ep in course["extraPosts"]:          # the finish-line kit at a route's own post, as at the main post
+        (ax_, az_), (cx_, cz_) = ep["at"], ep["across"]
+        RR = C["routes"][ep["route"]]; i0 = int(-RR["d0"] / RR["spacing"])
+        tx, tz = RR["insideRail"][i0][0] - RR["insideRail"][i0 + 1][0], RR["insideRail"][i0][1] - RR["insideRail"][i0 + 1][1]
+        l = math.hypot(tx, tz); tx, tz = tx / l, tz / l
+        S.pieces.append(["finish_line", "finish_line", r2(ax_ - cx_ * GAP), r2(az_ - cz_ * GAP),
+                         round(math.degrees(math.atan2(tz, -tx)) + (180 if hand < 0 else 0), 1), 1, 1])
     scen = NM.scenery_file(S, trees, boards, [], models, {"at": [0, -zs * GAP], "turn": 180 if hand < 0 else 0}, poles)
     scen["_about"] += " Basic surroundings from tools/course/real/perimeter.py (the shared rules until the course's own mark-up)."
     NM.write(f"{cid}-scenery.json", scen)

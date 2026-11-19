@@ -1,0 +1,762 @@
+{
+ "_about": "Sandown Park for tools/course/real/layout.py. Ring 0 = OSM's outer edge of the turf; ring 1 = the big infield (the golf course); ring 2 = the long hole between the sprint course and the home straight (the go-karts and the old jumps ground); rings 3 and 4 small holes inside the home bend (point numbers on reference/sandown/plan-draft.png, lower panel). Right-handed. The flat course runs on the outside of the turf all the way round, its inside rail 26 m in from OSM's outer edge (the jumps courses inside it). The sprint course is the strip between rings 1 and 2, running diagonally across the middle from the chute in the far (north-east) bend to its own winning post at the west end (At The Races: 'steady rise throughout'); it is its own route ('straight') with its own post. The owner's Google Maps views (19 Nov) confirm the layout.",
+ "name": "Sandown Park",
+ "date": "19 Nov 2026",
+ "hand": 1,
+ "trackWidth": 26.0,
+ "runOut": 100.0,
+ "ease": 60,
+ "post": {
+  "route": "round",
+  "x": -150,
+  "searchLast": 1200,
+  "note": "the round course's winning post, in front of the grandstand (OSM's stand building x -226..-34)"
+ },
+ "routes": {
+  "straight": {
+   "note": "the sprint course (5f), diagonally across the middle to its own post",
+   "post": {
+    "x": -411,
+    "note": "its own winning post at the west end of the strip, where the 5f6y start falls in the chute in the far bend (OSM ring 0's notch, points 32-35)"
+   },
+   "pieces": [
+    {
+     "lead": 110
+    },
+    {
+     "ring": 1,
+     "from": 2,
+     "to": 0,
+     "dir": -1,
+     "offset": 0
+    }
+   ],
+   "tail": 0,
+   "arrows": [
+    600
+   ]
+  },
+  "round": {
+   "note": "7f16y to 1m3f91y: up the west side, the back straight, the far bend",
+   "pieces": [
+    {
+     "lead": 40
+    },
+    {
+     "ring": 0,
+     "from": 2,
+     "to": 4,
+     "offset": 26
+    },
+    {
+     "points": [
+      [
+       -541.5,
+       -15.7
+      ],
+      [
+       -543.1,
+       -2.1
+      ],
+      [
+       -542.7,
+       11.5
+      ],
+      [
+       -540.4,
+       24.9
+      ],
+      [
+       -536.2,
+       37.9
+      ],
+      [
+       -530.1,
+       50.1
+      ],
+      [
+       -522.4,
+       61.4
+      ],
+      [
+       -513.1,
+       71.4
+      ],
+      [
+       -502.5,
+       80.0
+      ],
+      [
+       -490.8,
+       86.9
+      ],
+      [
+       -478.2,
+       92.2
+      ],
+      [
+       -465.0,
+       95.5
+      ]
+     ],
+     "note": "the west bend's top: a 95 m radius drawn by hand (OSM's corner at points 6-8 is sharp)"
+    },
+    {
+     "ring": 0,
+     "from": 10,
+     "to": 31,
+     "offset": 26
+    },
+    {
+     "ring": 0,
+     "from": 36,
+     "to": 38,
+     "offset": 26
+    },
+    {
+     "ring": 0,
+     "from": 44,
+     "to": 53,
+     "offset": 26
+    }
+   ],
+   "arrows": [
+    1900,
+    1200,
+    500
+   ],
+   "ease": 80
+  },
+  "loop": {
+   "note": "1m6f and 2m78y: from the home straight, once round",
+   "pieces": [
+    {
+     "lead": 30
+    },
+    {
+     "ring": 0,
+     "from": 36,
+     "to": 38,
+     "offset": 26
+    },
+    {
+     "ring": 0,
+     "from": 44,
+     "to": 53,
+     "offset": 26
+    },
+    {
+     "ring": 0,
+     "from": 0,
+     "to": 1,
+     "offset": 26
+    },
+    {
+     "ring": 0,
+     "from": 2,
+     "to": 4,
+     "offset": 26
+    },
+    {
+     "points": [
+      [
+       -541.5,
+       -15.7
+      ],
+      [
+       -543.1,
+       -2.1
+      ],
+      [
+       -542.7,
+       11.5
+      ],
+      [
+       -540.4,
+       24.9
+      ],
+      [
+       -536.2,
+       37.9
+      ],
+      [
+       -530.1,
+       50.1
+      ],
+      [
+       -522.4,
+       61.4
+      ],
+      [
+       -513.1,
+       71.4
+      ],
+      [
+       -502.5,
+       80.0
+      ],
+      [
+       -490.8,
+       86.9
+      ],
+      [
+       -478.2,
+       92.2
+      ],
+      [
+       -465.0,
+       95.5
+      ]
+     ],
+     "note": "the west bend's top: a 95 m radius drawn by hand (OSM's corner at points 6-8 is sharp)"
+    },
+    {
+     "ring": 0,
+     "from": 10,
+     "to": 31,
+     "offset": 26
+    },
+    {
+     "ring": 0,
+     "from": 36,
+     "to": 38,
+     "offset": 26
+    },
+    {
+     "ring": 0,
+     "from": 44,
+     "to": 53,
+     "offset": 26
+    }
+   ],
+   "arrows": [
+    3100
+   ],
+   "ease": 80
+  }
+ },
+ "starts": {
+  "5f6y": {
+   "route": "straight",
+   "expected": "the chute in the far bend, the sprint course across the middle",
+   "label": [
+    8,
+    8
+   ]
+  },
+  "7f16y": {
+   "route": "round",
+   "expected": "the back straight, towards the far bend",
+   "label": [
+    -10,
+    10
+   ]
+  },
+  "1m14y": {
+   "route": "round",
+   "expected": "the chute off the back straight (At The Races)",
+   "label": [
+    -10,
+    -16
+   ]
+  },
+  "1m1f": {
+   "route": "round",
+   "expected": "the back straight",
+   "label": [
+    -10,
+    10
+   ]
+  },
+  "1m1f209y": {
+   "route": "round",
+   "expected": "the top of the west bend (the Eclipse trip)",
+   "label": [
+    -14,
+    10
+   ]
+  },
+  "1m3f91y": {
+   "route": "round",
+   "expected": "the west side, going down it",
+   "label": [
+    10,
+    -4
+   ]
+  },
+  "1m6f": {
+   "route": "loop",
+   "expected": "the home straight, just before the post",
+   "label": [
+    -10,
+    -16
+   ]
+  },
+  "2m78y": {
+   "route": "loop",
+   "expected": "the home straight, towards the home turn",
+   "label": [
+    -10,
+    -16
+   ]
+  }
+ },
+ "routesNote": "The sprint course ('straight') has its own winning post at the west end of its strip, about 270 m from the round course's post; its metres to go count to that post.",
+ "numberEvery": 1,
+ "legend": "upper left",
+ "view": {
+  "defaultRace": "1m1f209y",
+  "feature": [
+   "5f6y",
+   "1m1f209y",
+   "2m78y"
+  ],
+  "routeWords": {
+   "straight": "The sprint course, uphill across the middle",
+   "round": "Round the far bend, uphill to the stands",
+   "loop": "From the home straight, once round"
+  },
+  "targets": {
+   "5f6y": 61.0,
+   "7f16y": 89.5,
+   "1m14y": 102.5,
+   "1m1f": 115.5,
+   "1m1f209y": 127.5,
+   "1m3f91y": 147.0,
+   "1m6f": 183.0,
+   "2m78y": 218.0
+  },
+  "polesOnRoute": "round",
+  "tv": {
+   "note": "Sandown (no race video yet; from the course's shape and the owner's Google Maps views, 19 Nov): the tracking car round the course; head-on as they come round the far bend and down the east side; low on the outside at the home turn, head-on up the run-in; the stand camera for the last 2 furlongs. The sprint course: the tracking car up its stand side, the head-on from beyond its own post, then its own finish camera (cameraSwap).",
+   "cams": {
+    "far_bend": {
+     "label": "Far bend",
+     "route": "round",
+     "d": 640,
+     "off": 30,
+     "h": 8,
+     "fov": [
+      1.5,
+      26
+     ],
+     "note": "on the outside at the foot of the east side, the field coming round the far bend at it"
+    },
+    "turn_headon": {
+     "label": "Home turn",
+     "route": "round",
+     "d": 300,
+     "off": 34,
+     "h": 7,
+     "fov": [
+      1.5,
+      26
+     ],
+     "note": "on the outside past the home turn, head-on as they straighten up the hill"
+    },
+    "sprint_stand": {
+     "label": "Sprint finish",
+     "route": "straight",
+     "d": 0,
+     "off": -42,
+     "h": 12,
+     "fov": [
+      1.5,
+      26
+     ],
+     "leadRoom": 3,
+     "note": "on the sprint course's line, out on the golf course side: the stands, the run-in and the festival behind the field"
+    },
+    "sprint_headon": {
+     "label": "Head-on",
+     "route": "straight",
+     "d": -70,
+     "off": 13,
+     "h": 5,
+     "fov": [
+      0.6,
+      24
+     ],
+     "frame": "leaders",
+     "window": 28,
+     "leadRoom": 3,
+     "note": "beyond the sprint course's post, the long lens down it"
+    },
+    "sprint_sideon": {
+     "label": "Side-on replay",
+     "route": "straight",
+     "d": 0,
+     "off": -36,
+     "h": 5,
+     "fov": [
+      46,
+      46
+     ],
+     "look": [
+      0,
+      13,
+      1.4
+     ],
+     "note": "square on to the sprint course's line from the golf course side"
+    },
+    "grandstand": {
+     "copy": "grandstand",
+     "at": [
+      0,
+      22.0,
+      46.0
+     ],
+     "note": "just in front of the main stand's roof edge on the line"
+    }
+   },
+   "shots": [
+    [
+     4000,
+     1060,
+     "track_loop"
+    ],
+    [
+     1060,
+     700,
+     "far_bend"
+    ],
+    [
+     700,
+     470,
+     "track_loop"
+    ],
+    [
+     470,
+     402,
+     "turn_headon"
+    ],
+    [
+     402,
+     -1,
+     "grandstand"
+    ]
+   ],
+   "shotsStraight": [
+    [
+     1100,
+     330,
+     "track_straight"
+    ],
+    [
+     330,
+     190,
+     "sprint_headon"
+    ],
+    [
+     190,
+     -1,
+     "grandstand"
+    ]
+   ],
+   "routeCams": {
+    "straight": {
+     "grandstand": "sprint_stand",
+     "headon": "sprint_headon",
+     "sideon": "sprint_sideon"
+    }
+   },
+   "menu": {
+    "straight": [
+     [
+      "track_straight",
+      "Tracking"
+     ],
+     [
+      "grandstand",
+      "Finish"
+     ],
+     [
+      "headon",
+      "Head-on"
+     ],
+     [
+      "drone_straight",
+      "Drone"
+     ]
+    ],
+    "round": [
+     [
+      "track_loop",
+      "Tracking"
+     ],
+     [
+      "far_bend",
+      "Far bend"
+     ],
+     [
+      "grandstand",
+      "Stand"
+     ],
+     [
+      "drone_straight",
+      "Drone"
+     ]
+    ]
+   },
+   "clearAround": {
+    "cams": [
+     "far_bend",
+     "turn_headon",
+     "sprint_stand",
+     "sprint_headon",
+     "sprint_sideon"
+    ],
+    "radius": 30.0,
+    "ahead": 300.0,
+    "width": 10.0
+   }
+  },
+  "lede": "Sandown Park in 3D, right-handed, on its real outline (OpenStreetMap) and real ground (AWS Terrain Tiles): the stiff climb of about 13 m up the last half-mile to the stands, and the sprint course running uphill across the middle to its own winning post. The two main grandstands modelled from your photos: the main stand with its deep ribbed roof, the fins on top and the row of white peaked tents along its back, and the Eclipse stand beside it. The festival opposite the stands, between the run-in and the sprint course.",
+  "notes": [
+   [
+    "The real track.",
+    "OpenStreetMap's outline of the turf (the west bend's sharp corner rounded by hand), the starts where At The Races' diagram puts them, and the ground under every route for the race engine: the round course climbs about 13 m in the last half-mile, the sprint course about 9 m."
+   ],
+   [
+    "The sprint course.",
+    "The 5f starts in the chute in the far bend and runs diagonally across the middle to its own post at the west end, with its own finishing line, finish camera, head-on and replay."
+   ],
+   [
+    "The stands.",
+    "The main stand and the Eclipse stand, modelled new from your photos; the tents along the main stand's back show their peaks above the roof. Trees on the hill behind, as in your photos."
+   ],
+   [
+    "The cameras.",
+    "No race video yet, so a first cut: the tracking car round the course, a camera at the foot of the far bend, a head-on at the home turn, then the stand camera for the last two furlongs. Send a race video and I'll match its cut."
+   ]
+  ]
+ },
+ "stands": {
+  "_about": "Owner, 19 Nov 10:02: 'two main grandstands with a tent like pavillion to the rear' and his photos. The pieces are sandown_stands_kit (tools/blender/build_sandown_stands.py): the main (Esher) stand with the white peaked tents along its back, and the Eclipse stand on its right seen from the course (past the post), on OSM's footprints (the main stand x -96..93, the block x -155..-105).",
+  "front": 20.0,
+  "pieces": [
+   [
+    "sandown_main_stand",
+    5.0,
+    0.0,
+    1.3
+   ],
+   [
+    "sandown_eclipse_stand",
+    -134.5,
+    6.0,
+    1.0
+   ]
+  ],
+  "level": []
+ },
+ "perimeter": {
+  "note": "Sandown (19 Nov): the infield is the golf course (north of the sprint course) and the ground between the sprint course and the run-in (the go-karts in real life): there, as every course, the festival opposite the stands. No generic infield belt (it stood in the sprint course's cameras); parkland trees scattered over the golf course instead. Behind the stands the wooded hill (his photos: tall trees behind both stands).",
+  "infieldTrees": false,
+  "infieldBoards": false,
+  "runInBoards": {
+   "from": 120.0,
+   "to": 420.0,
+   "every": 40.0,
+   "in": 7.0,
+   "scale": 2.4
+  },
+  "festivals": [
+   {
+    "name": "the run-in infield, between the run-in and the sprint course",
+    "kit": "infield",
+    "poly": [
+     [
+      -150,
+      2
+     ],
+     [
+      60,
+      2
+     ],
+     [
+      200,
+      -8
+     ],
+     [
+      330,
+      -50
+     ],
+     [
+      330,
+      -150
+     ],
+     [
+      200,
+      -160
+     ],
+     [
+      0,
+      -140
+     ],
+     [
+      -150,
+      -120
+     ]
+    ],
+    "offTurf": 10.0,
+    "dens": 0.035,
+    "railCrowd": {
+     "from": 1.5,
+     "to": 7.0,
+     "dens": 0.55
+    },
+    "balloonRows": {
+     "n": 5,
+     "gap": 10,
+     "every": 120,
+     "in": 6,
+     "start": 40,
+     "end": 40
+    }
+   },
+   {
+    "name": "stand side, up the course past the main stand",
+    "kit": "standside",
+    "poly": [
+     [
+      105,
+      40
+     ],
+     [
+      330,
+      20
+     ],
+     [
+      330,
+      -40
+     ],
+     [
+      300,
+      -60
+     ],
+     [
+      230,
+      -40
+     ],
+     [
+      150,
+      -14
+     ],
+     [
+      105,
+      -5
+     ]
+    ],
+    "offTurf": 4.0,
+    "dens": 0.04,
+    "railCrowd": {
+     "from": 1.5,
+     "to": 7.0,
+     "dens": 0.5
+    }
+   }
+  ],
+  "gapTrees": [
+   {
+    "note": "the golf course: parkland trees, scattered",
+    "poly": [
+     [
+      -330,
+      -200
+     ],
+     [
+      730,
+      -300
+     ],
+     [
+      730,
+      -470
+     ],
+     [
+      -330,
+      -470
+     ]
+    ],
+    "offTurf": 24,
+    "every": 34,
+    "chance": 0.42,
+    "scale": [
+     1.1,
+     1.6
+    ]
+   },
+   {
+    "note": "the wooded hill past the Eclipse stand, towards the west bend",
+    "poly": [
+     [
+      -420,
+      30
+     ],
+     [
+      -180,
+      30
+     ],
+     [
+      -180,
+      190
+     ],
+     [
+      -420,
+      190
+     ]
+    ],
+    "offTurf": 14,
+    "every": 9,
+    "chance": 0.85,
+    "standMargin": 8
+   },
+   {
+    "note": "the wooded hill behind the stands",
+    "poly": [
+     [
+      -180,
+      118
+     ],
+     [
+      200,
+      118
+     ],
+     [
+      200,
+      175
+     ],
+     [
+      -180,
+      175
+     ]
+    ],
+    "offTurf": 20,
+    "every": 11,
+    "chance": 0.7,
+    "standMargin": 8
+   }
+  ],
+  "backTrees": [
+   {
+    "x": [
+     -200,
+     260
+    ],
+    "z": [
+     185,
+     196
+    ],
+    "every": 10.0
+   }
+  ],
+  "lawnFront": {
+   "from": 0.8,
+   "to": 10.0,
+   "dens": 0.5
+  },
+  "lawnDens": 0.4,
+  "treesClearOfBuildings": 5,
+  "home": 470.0
+ }
+}
