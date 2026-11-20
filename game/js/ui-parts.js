@@ -140,6 +140,7 @@ function stallionCard(s, m) {
 }
 function studView() {
   if (!handDone() && dealHand()) UI.mareAnim = true;
+  fitHand();
   const m = S.selMare && byName(S.selMare);
   let rows = STALLIONS.map(s => stallion(s.name)).filter(s => (S.trip || "all") === "all" || band(s.optimumDistance) === S.trip);
   rows.sort(S.sort === "stars" ? (a, b) => b.shownStars - a.shownStars || a.fee - b.fee : S.sort === "trip" ? (a, b) => DISTANCES.indexOf(a.optimumDistance) - DISTANCES.indexOf(b.optimumDistance) || a.fee - b.fee : (a, b) => a.fee - b.fee || b.shownStars - a.shownStars);

@@ -855,9 +855,9 @@ function keepOffer(name) {
 // don't want to breed from for half her pile's price, so a player who'd rather shop at Tattersalls can. Games saved
 // before the hand (S.mh.legacy) keep buying their mares.
 const HAND = { hi: 2, mid: 2, lo: 2 }, EXTRA_MARES = 1, SEND_BACK = 0.5;
-// Beginner (owner, 18 Nov: "you don't need 6 mares in the beginner mode.. should have 5"): 2 Blue-blooded, 2 Useful,
-// 1 Moderate, and no extra mare to buy (one hand, nothing more to work out)
-const HAND_BEGINNER = { hi: 2, mid: 2, lo: 1 };
+// Beginner (owner, 20 Nov: "3 mares drawn not 6 in beginner mode"; 18 Nov it had been 5): one from each deck, Blue-blooded,
+// Useful and Moderate, and no extra mare to buy (one hand, nothing more to work out)
+const HAND_BEGINNER = { hi: 1, mid: 1, lo: 1 };
 const handSize = () => isBeginner() ? HAND_BEGINNER : HAND;
 const mh = () => (S.mh = S.mh || { dealt: false, extra: 0, up: 0, sent: [] });
 const handOn = () => !(S.mh && S.mh.legacy);
@@ -875,6 +875,17 @@ function drawHandMare(id) {
   S.hand.push(n); mh().drawn = Object.assign({}, mh().drawn, { [id]: handDrawn(id) + 1 }); mh().hand = (mh().hand || []).concat(n);
   if (PILES.every(q => handDrawn(q.id) >= (handSize()[q.id] || 0) || !pileLeft(q).length)) mh().dealt = true;
   save(); return n;
+}
+// A Beginner game dealt a bigger hand before the hand was cut (5 or 6 mares), with no mare bred yet: the extra mares go
+// back to their decks, keeping the first dealt from each
+function fitHand() {
+  if (!isBeginner() || !handOn() || !mh().dealt || S.step !== 1 || S.usedMares.length || S.foal || S.offer) return;
+  const want = handSize(), kept = {}, keep = [];
+  for (const n of S.hand) { const p = pileOf(n), id = p && p.id; if (id && (kept[id] || 0) < (want[id] || 0)) { kept[id] = (kept[id] || 0) + 1; keep.push(n); } }
+  if (keep.length === S.hand.length) return;
+  S.hand = keep; mh().hand = (mh().hand || []).filter(n => keep.includes(n)); mh().drawn = kept;
+  if (S.selMare && !keep.includes(S.selMare)) { S.selMare = null; S.selStallion = null; }
+  save();
 }
 // the rest of the hand at once
 function dealHand() {

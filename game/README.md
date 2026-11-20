@@ -1020,3 +1020,9 @@ browser draws 3D.
 - **Version marks**: `stage.py` now asks for every style and script with `?v=<fingerprint of its contents>` in the
   published pages (index.html, final-furlong.html, card.html, lab.html), so a phone can't keep an old copy after an
   update.
+
+### Beginner deals 3 mares (20 Nov 2026)
+Owner, 20 Nov: "We also said 3 mares drawn not 6 in beginner mode" (18 Nov had said 5). `HAND_BEGINNER` is now one from
+each deck (Blue-blooded, Useful, Moderate). A Beginner game already dealt a bigger hand, with no mare bred yet, puts the
+extra mares back as the stud opens (`fitHand`, rules.js), keeping the first dealt from each deck. How to play and the key
+points say three.
