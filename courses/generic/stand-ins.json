@@ -221,5 +221,84 @@
    "generic": "gen-park-l-small",
    "why": "long flat left-handed oval with a straight mile"
   }
+ },
+ "overseas": {
+  "_about": "Overseas courses on the existing generic courses (owner, 20 Nov 00:39: 'We don't need to create new ones if we have applicable ones'). Matched by direction, size, run-in and character; all on the bigger stand side. Metric distances take the nearest start (2400 m -> 1m4f, 2000 m -> 1m2f, 3200 m -> 2m). Dirt is not modelled yet: dirt races run on the turf look until a dirt switch is added.",
+  "ParisLongchamp (Arc)": {
+   "generic": "gen-downs-r-big",
+   "why": "right-handed, a long downhill turn, undulating, a run-in of about 2.7f"
+  },
+  "Chantilly": {
+   "generic": "gen-park-r-big",
+   "why": "right-handed, galloping, a long straight"
+  },
+  "Deauville": {
+   "generic": "gen-park-r-big",
+   "why": "right-handed, a straight mile"
+  },
+  "Saint-Cloud": {
+   "generic": "gen-park-l-big",
+   "why": "left-handed, galloping"
+  },
+  "Tokyo (Japan Cup)": {
+   "generic": "gen-park-l-big",
+   "why": "left-handed, big and galloping, a long straight rising to the post"
+  },
+  "Kyoto": {
+   "generic": "gen-park-r-big",
+   "why": "right-handed, big, flat"
+  },
+  "Nakayama (Arima Kinen)": {
+   "generic": "gen-hill-r-big",
+   "why": "right-handed, a short straight with a steep finishing climb"
+  },
+  "Hanshin": {
+   "generic": "gen-hill-r-big",
+   "why": "right-handed, an uphill finish"
+  },
+  "Sha Tin (Hong Kong)": {
+   "generic": "gen-tight-r-big",
+   "why": "right-handed, about 1m1\u00bdf round, a run-in of about 2f"
+  },
+  "Happy Valley": {
+   "generic": "gen-ring-r-big",
+   "why": "very tight, right-handed, floodlit"
+  },
+  "Meydan (Dubai)": {
+   "generic": "gen-park-l-big",
+   "why": "left-handed, big and galloping, floodlit (the World Cup itself is on dirt)"
+  },
+  "Flemington (Melbourne Cup)": {
+   "generic": "gen-park-l-big",
+   "why": "left-handed, big and galloping, a straight course"
+  },
+  "Randwick / Rosehill": {
+   "generic": "gen-park-r-big",
+   "why": "right-handed, galloping"
+  },
+  "Caulfield": {
+   "generic": "gen-tight-l-big",
+   "why": "left-handed, sharp turns, a short straight"
+  },
+  "Moonee Valley": {
+   "generic": "gen-ring-l-big",
+   "why": "very tight, left-handed, short straight"
+  },
+  "The Curragh": {
+   "generic": "gen-park-r-big",
+   "why": "right-handed, galloping, undulating, a straight course"
+  },
+  "Leopardstown": {
+   "generic": "gen-downs-l-big",
+   "why": "left-handed, undulating"
+  },
+  "Galway": {
+   "generic": "gen-hill-r-small",
+   "why": "right-handed, sharp, a stiff uphill run-in"
+  },
+  "Churchill Downs / Belmont / Santa Anita / Keeneland / Saratoga (Breeders' Cup, US)": {
+   "generic": "gen-ring-l-big",
+   "why": "left-handed flat ovals of about a mile with a short stretch; turf races fit as they are; dirt races need the dirt switch"
+  }
  }
 }
