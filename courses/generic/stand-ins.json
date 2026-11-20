@@ -223,7 +223,7 @@
   }
  },
  "overseas": {
-  "_about": "Overseas courses on the existing generic courses (owner, 20 Nov 00:39: 'We don't need to create new ones if we have applicable ones'). Matched by direction, size, run-in and character; all on the bigger stand side. Metric distances take the nearest start (2400 m -> 1m4f, 2000 m -> 1m2f, 3200 m -> 2m). No dirt: only the turf races are wanted from America (owner, 20 Nov 00:43: 'We only need turf American for breeders cup').",
+  "_about": "Overseas courses on the existing generic courses (owner, 20 Nov 00:39-00:43: 'We don't need to create new ones if we have applicable ones'; 'We only need turf American for breeders cup'; 'a few French playing courses including longchamp and maybe Japan cup'). All on the bigger stand side; metric trips take the nearest start (2400 m -> 1m4f, 2000 m -> 1m2f). Turf only.",
   "ParisLongchamp (Arc)": {
    "generic": "gen-downs-r-big",
    "why": "right-handed, a long downhill turn, undulating, a run-in of about 2.7f"
@@ -243,58 +243,6 @@
   "Tokyo (Japan Cup)": {
    "generic": "gen-park-l-big",
    "why": "left-handed, big and galloping, a long straight rising to the post"
-  },
-  "Kyoto": {
-   "generic": "gen-park-r-big",
-   "why": "right-handed, big, flat"
-  },
-  "Nakayama (Arima Kinen)": {
-   "generic": "gen-hill-r-big",
-   "why": "right-handed, a short straight with a steep finishing climb"
-  },
-  "Hanshin": {
-   "generic": "gen-hill-r-big",
-   "why": "right-handed, an uphill finish"
-  },
-  "Sha Tin (Hong Kong)": {
-   "generic": "gen-tight-r-big",
-   "why": "right-handed, about 1m1\u00bdf round, a run-in of about 2f"
-  },
-  "Happy Valley": {
-   "generic": "gen-ring-r-big",
-   "why": "very tight, right-handed, floodlit"
-  },
-  "Meydan (Dubai)": {
-   "generic": "gen-park-l-big",
-   "why": "left-handed, big and galloping, floodlit (turf races)"
-  },
-  "Flemington (Melbourne Cup)": {
-   "generic": "gen-park-l-big",
-   "why": "left-handed, big and galloping, a straight course"
-  },
-  "Randwick / Rosehill": {
-   "generic": "gen-park-r-big",
-   "why": "right-handed, galloping"
-  },
-  "Caulfield": {
-   "generic": "gen-tight-l-big",
-   "why": "left-handed, sharp turns, a short straight"
-  },
-  "Moonee Valley": {
-   "generic": "gen-ring-l-big",
-   "why": "very tight, left-handed, short straight"
-  },
-  "The Curragh": {
-   "generic": "gen-park-r-big",
-   "why": "right-handed, galloping, undulating, a straight course"
-  },
-  "Leopardstown": {
-   "generic": "gen-downs-l-big",
-   "why": "left-handed, undulating"
-  },
-  "Galway": {
-   "generic": "gen-hill-r-small",
-   "why": "right-handed, sharp, a stiff uphill run-in"
   },
   "Breeders' Cup (US turf races)": {
    "generic": "gen-ring-l-big",
