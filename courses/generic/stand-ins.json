@@ -20,7 +20,8 @@
   "gen-downs-l-big": "The Downs, left-handed, bigger stands",
   "gen-downs-l-small": "The Downs, left-handed, smaller stands",
   "gen-downs-r-big": "The Downs, right-handed, bigger stands",
-  "gen-downs-r-small": "The Downs, right-handed, smaller stands"
+  "gen-downs-r-small": "The Downs, right-handed, smaller stands",
+  "gen-ring-l-us": "The American Ring: the Ring's track as a turf course inside a dirt track"
  },
  "starts": {
   "park": [
@@ -245,8 +246,8 @@
    "why": "left-handed, big and galloping, a long straight rising to the post"
   },
   "Breeders' Cup (US turf races)": {
-   "generic": "gen-ring-l-big",
-   "why": "the turf course inside a left-handed oval of about a mile, a short stretch; turf races only"
+   "generic": "gen-ring-l-us",
+   "why": "the Ring's turf course inside a 24 m dirt track, as at Churchill Downs, Santa Anita and Keeneland; turf races only"
   },
   "Meydan (Dubai Sheema Classic)": {
    "generic": "gen-park-l-big",

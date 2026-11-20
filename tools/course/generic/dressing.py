@@ -46,6 +46,9 @@ CLUSTERS = {
     ("downs", "big"): ("Downland course", [("park_tent_stand", 0), ("gen_pavilion_stand_red", 0), ("park_roof_terrace_stand", 0),
                        ("york_pavilions", 6)]),
     ("downs", "small"): ("Seaside downs", [("gen_pavilion_stand_red", 0), ("park_terrace", 3), ("ring_pavilion", 6)]),
+    # the American Ring (owner, 20 Nov 09:11, his Churchill Downs and Santa Anita maps): one long white stand side
+    # down the home straight, beyond the dirt
+    ("ring", "us"): ("American racetrack", [("gen_cupola_stand", 0), ("park_mast_stand", 0), ("york_stand_north", 0)]),
 }
 # Pieces with no standing terrace of their own (owner, 19 Nov 23:57: "make sure all those grandstands have a proper terrace
 # of standing steps built into them"): a terrace module (gen_terrace_<w>) goes in front of each and the building is set
@@ -75,7 +78,10 @@ def dress(cid, fid, hand, size, S, L, C):
     zi = -side
     runin = C["facts"]["run-in m"]
     mix_name, mix = CLUSTERS[(fid, size)]
-    big = size == "big"
+    big = size in ("big", "us")
+    us = size == "us"
+    DIRT = C["dirt"]["width"] if us else 0.0          # the dirt track between the turf and the stands (the American Ring)
+    FRONT_ = FRONT + DIRT
     # ---- the stands: one cluster round the post, about 40% of it past the post (towards the post-end bend, never into it)
     def terrace_for(piece):
         if piece not in NEEDS_TERRACE: return None
@@ -98,7 +104,7 @@ def dress(cid, fid, hand, size, S, L, C):
     zr = side * (W + 0.5)
     zs = lambda m: round(zr + side * m, 1)             # metres beyond the outer rail on the stand side
     zf = lambda m: round(zi * m, 1)                    # metres into the infield from the inside rail
-    back_z = FRONT + depth + 18.0
+    back_z = FRONT_ + depth + 18.0
     # ---- festivals: the infield opposite the run-in; the stand side up the course past the stands
     # the infield festival opposite the stands, round the post too
     fx0 = max(chain[0] - 30.0, -(S["post_gap"] - 10.0))
@@ -112,7 +118,7 @@ def dress(cid, fid, hand, size, S, L, C):
     sx0, sx1 = chain[1] + 22.0, min(chain[1] + 200.0, runin - 40.0)
     if big and sx1 - sx0 > 80:
         fests.append({"name": "stand side, up the course", "kit": "standside",
-                      "poly": [[sx0, zs(4)], [sx1, zs(4)], [sx1, zs(70)], [sx0, zs(70)]],
+                      "poly": [[sx0, zs(4 + DIRT)], [sx1, zs(4 + DIRT)], [sx1, zs(70 + DIRT)], [sx0, zs(70 + DIRT)]],
                       "offTurf": 4.0, "dens": 0.04, "ground": "patches", "patch": 3.5,
                       "railCrowd": {"from": 1.5, "to": 7.0, "dens": 0.6}})
     # little festival bits in the gaps at the ends of the stands
@@ -121,7 +127,7 @@ def dress(cid, fid, hand, size, S, L, C):
         "backTrees": [{"x": [chain[0] - 40, max(chain[1], sx1) + 30], "z": [zs(back_z), zs(back_z + 11)], "every": 10.0,
                        "note": "a row of trees behind the stands"}],
         "gapTrees": [{"note": "round the post end of the stand side",
-                      "poly": [[-260, zs(14)], [chain[0] - 8, zs(14)], [chain[0] - 8, zs(back_z + 20)], [-260, zs(back_z + 20)]],
+                      "poly": [[-260, zs(14 + DIRT)], [chain[0] - 8, zs(14 + DIRT)], [chain[0] - 8, zs(back_z + 20)], [-260, zs(back_z + 20)]],
                       "offTurf": 14, "every": 8, "chance": 0.85, "standMargin": 6.0}],
         "lawnDens": 0.3 if big else 0.22, "lawnFront": {"from": 0.8, "to": 10.0, "dens": 0.55 if big else 0.45},
         "lawnX": [chain[0] - 10, chain[1] + 10],
@@ -129,12 +135,45 @@ def dress(cid, fid, hand, size, S, L, C):
         "farBelt": {"from": 175.0, "to": 245.0, "every": 34.0, "scale": [1.9, 2.5], "chance": 0.5},
     }
     if not big or sx1 - sx0 <= 80:                     # (a smaller course, or a short run-in: trees on past the stands)
-        perimeter["gapTrees"].append({"note": "past the stands, up the course", "poly": [[chain[1] + 10, zs(30)], [runin + 60, zs(30)],
+        perimeter["gapTrees"].append({"note": "past the stands, up the course", "poly": [[chain[1] + 10, zs(30 + DIRT)], [runin + 60, zs(30 + DIRT)],
                                       [runin + 60, zs(back_z + 20)], [chain[1] + 10, zs(back_z + 20)]],
                                       "offTurf": 20, "every": 13, "chance": 0.55, "standMargin": 6.0})
     stands = {"_about": f"{mix_name}: {', '.join(p for p, _ in mix)} (crib-sheet pieces, medium and smaller), from just past "
                         "the post up the course, on one front line %d m back from the outer rail." % FRONT,
-              "front": FRONT, "pieces": pieces}
+              "front": FRONT_, "pieces": pieces}
+    if us:
+        # the dirt and its boards and belts moved out past it; the crowd at the dirt's outer rail; an open American
+        # infield (no trees): a lake and a paved plaza behind the festival, the results board facing the stands; rows of
+        # stable barns beyond the back straight (both his maps)
+        mid = (chain[0] + chain[1]) / 2
+        import math as _m
+        lake = [[round(mid + 40 + 75 * _m.cos(a), 1), round(zi * (190 + 24 * _m.sin(a)), 1)] for a in [k * _m.pi / 18 for k in range(36)]]
+        plaza = [[mid - 45, zf(122)], [mid + 45, zf(122)], [mid + 45, zf(146)], [mid - 45, zf(146)]]
+        bank = [[round(mid + 40 + 81 * _m.cos(a), 1), round(zi * (190 + 30 * _m.sin(a)), 1)] for a in [k * _m.pi / 18 for k in range(36)]]
+        grove = [[round(mid + 40 + 100 * _m.cos(a), 1), round(zi * (190 + 48 * _m.sin(a)), 1)] for a in [k * _m.pi / 18 for k in range(36)]]
+        perimeter.update({
+            "beltShift": DIRT - 10.0, "boardOff": 20.0 + DIRT * 0.5 + 6.0,
+            "flats": C["dirt"]["flats"] + [{"colour": "#b9c79a", "poly": bank, "y": 0.045}, {"colour": "#8fb6c4", "poly": lake, "y": 0.08},
+                                          {"colour": "#c9866e", "poly": plaza, "y": 0.035}],
+            "lawnDepth": [DIRT + 1.2, DIRT + 9.0], "lawnFront": {"from": DIRT + 0.9, "to": DIRT + 6.0, "dens": 0.6},
+            "infieldTrees": False, "infieldBoards": False,
+        })
+        from shapely.geometry import Polygon as _Pg
+        from shapely.geometry import box as _bx
+        ring_ = _Pg(grove).difference(_Pg(bank).buffer(3.0))               # a loose ring of trees round the lake (in two
+        cz = zi * 190                                                      # halves: a region can't have a hole)
+        for half in (_bx(-1e4, cz, 1e4, 1e4), _bx(-1e4, -1e4, 1e4, cz)):
+            for g in getattr(ring_.intersection(half), "geoms", [ring_.intersection(half)]):
+                if g.geom_type == "Polygon" and g.area > 10:
+                    perimeter["gapTrees"].append({"note": "round the infield lake", "poly": [[round(a, 1), round(b, 1)] for a, b in g.exterior.coords],
+                                                  "offTurf": 20, "every": 11, "chance": 0.45, "standMargin": 4.0})
+        stands["pieces"].append({"piece": "chester_big_screen", "at": [round(mid - 20, 1), zf(110)], "turn": 180.0 if side < 0 else 0.0,
+                                 "dens": 0.0, "apron": 0.5, "note": "the infield results board, facing the stands"})
+        for row, v in enumerate((338.0, 360.0, 382.0)):
+            for k in range(14):
+                x = -170.0 + k * 27.0 + (13.0 if row % 2 else 0.0)
+                stands["pieces"].append({"piece": "park_shed", "at": [x, zf(v)], "turn": 180.0 if side < 0 else 0.0,
+                                         "dens": 0.0, "apron": 0.5, "scale": 1.25})
     words = dict(S.get("words", {}))
     # rough good-ground winning times: the shared galloping-course curve (to_race_view.py), slowed a touch for the sharp
     # and stiff courses, quicker for the downhill sprints
@@ -167,4 +206,10 @@ def dress(cid, fid, hand, size, S, L, C):
                                   "of the straight, the crowd up to the rail, the festival in the infield opposite."],
                   ["Running slowly?", "Choose Medium or Low under Quality in the race view's bar. Auto steps down by itself."]],
     }
+    if us:
+        view["lede"] = ("The American Ring: the Ring's track as a turf course inside a 24 m dirt track, as at Churchill Downs, Santa "
+                        "Anita and Keeneland (the owner's maps), for the Breeders' Cup turf races. The dirt is scenery (no racing on "
+                        "it), with its own outer rail; the chutes cross it. A long white stand side beyond the dirt, an open infield "
+                        "with a results board, a paved plaza and a lake, and rows of stable barns beyond the back straight.")
+        view["notes"][0] = ["Stands in for.", "The Breeders' Cup turf races (American turf courses)."]
     return {"perimeter": perimeter, "stands": stands, "view": view, "mix": mix_name}

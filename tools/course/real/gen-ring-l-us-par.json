@@ -1,0 +1,52 @@
+{
+ "_about": "Written by calibrate.mjs: the par (seconds) the race engine uses at gen-ring-l-big, so its winning times match the targets.",
+ "par": {
+  "g5f": 59.96,
+  "g6f": 73.21,
+  "g7f": 86.83,
+  "g1m": 100.23,
+  "g1m1f": 114.31,
+  "g1m2f": 128.67,
+  "g1m4f": 158.14,
+  "g1m5f": 172.81,
+  "g2m": 219.13
+ },
+ "measured": {
+  "g5f": {
+   "winning time (before the last step)": 60.73,
+   "target": 60.8
+  },
+  "g6f": {
+   "winning time (before the last step)": 73.68,
+   "target": 73.8
+  },
+  "g7f": {
+   "winning time (before the last step)": 86.95,
+   "target": 87.1
+  },
+  "g1m": {
+   "winning time (before the last step)": 100.44,
+   "target": 100.6
+  },
+  "g1m1f": {
+   "winning time (before the last step)": 114.11,
+   "target": 114.3
+  },
+  "g1m2f": {
+   "winning time (before the last step)": 128.05,
+   "target": 128.3
+  },
+  "g1m4f": {
+   "winning time (before the last step)": 156.65,
+   "target": 157
+  },
+  "g1m5f": {
+   "winning time (before the last step)": 171.2,
+   "target": 171.5
+  },
+  "g2m": {
+   "winning time (before the last step)": 216.28,
+   "target": 216.6
+  }
+ }
+}

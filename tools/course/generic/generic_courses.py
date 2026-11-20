@@ -110,7 +110,8 @@ def build(fid, hand, size):
     C = {
         "_about": f"{S['name']} ({hand_w}), a generic course: written by tools/course/generic/generic_courses.py from specs.py "
                   "and dressing.py. Don't edit by hand.",
-        "name": f"{S['name']} ({hand_w}, {'bigger' if size == 'big' else 'smaller'} stands)", "family": fid, "size": size, "generic": True,
+        "name": (f"{S['name']} ({hand_w}, {'bigger' if size == 'big' else 'smaller'} stands)" if size != "us"
+                 else "The American Ring (turf course inside a dirt track)"), "family": fid, "size": size, "generic": True,
         "date": "19 Nov 2026", "hand": hand, "trackWidth": W, "runOut": RUN_OUT, "ease": 16,
         "post": {"route": post_route, "x": round(L.post_u, 2), "searchLast": 400,
                  "note": "on the home straight, %d m before the post-end bend" % S["post_gap"]},
@@ -122,6 +123,28 @@ def build(fid, hand, size):
         "facts": {"circuit m": round(L.L), "circuit f": round(L.L / F, 1), "run-in m": round(L.back_of(len(S["corners"]) - 1)),
                   "run-in f": round(L.back_of(len(S["corners"]) - 1) / F, 2), "kind": S["kind"], "standsIn": S["standsIn"]},
     }
+    if size == "us":
+        # the American Ring (owner, 20 Nov 09:11: "a course with a dirt ring around the outside", with his maps of
+        # Churchill Downs and Santa Anita): the turf course inside a dirt oval, as theirs. The dirt runs from the turf's
+        # outer rail 24 m out round the loop; the chutes cross it (turf over the dirt, as at Santa Anita); its own outer
+        # rail, broken where the chutes cross. World axes: x = u - post, z = v * (infield side).
+        from shapely.geometry import Polygon as _P, LineString as _LS
+        zi = 1.0 if hand < 0 else -1.0
+        loop = _P(L.P)
+        all_turf = unary_union(strips).buffer(0.6)
+        band = loop.buffer(W + 24.6, join_style=1).difference(loop.buffer(W + 0.6, join_style=1)).difference(all_turf)
+        wpt = lambda q: [round(float(q[0] - L.post_u), 2), round(float(q[1] * zi), 2)]
+        flats = []
+        x0b, _, x1b, _ = band.bounds
+        for xa in np.arange(x0b - 1, x1b + 1, 40.0):
+            from shapely.geometry import box as _box
+            cut = band.intersection(_box(xa, -2000, xa + 40.0, 2000))
+            for g in getattr(cut, "geoms", [cut]):
+                if g.geom_type == "Polygon" and g.area > 1 and not g.interiors:
+                    flats.append({"colour": "#c79c72", "poly": [wpt(q) for q in g.simplify(0.3).exterior.coords[:-1]], "y": 0.05})
+        rail = _LS(list(loop.buffer(W + 24.6, join_style=1).exterior.coords)).difference(all_turf.buffer(1.0))
+        C["extraRails"] = [[wpt(q) for q in g.coords] for g in getattr(rail, "geoms", [rail]) if g.length > 20]
+        C["dirt"] = {"width": 24.0, "flats": flats}
     C.update(dressing.dress(cid, fid, hand, size, S, L, C))
     (REPO / f"tools/course/real/{cid}.json").write_text(json.dumps(C, indent=1))
     print(f"{cid}: circuit {L.L:.0f} m, run-in {C['facts']['run-in m']} m, {len(starts)} starts, routes {list(routes)}")
@@ -132,6 +155,7 @@ if __name__ == "__main__":
     want = sys.argv[1:]
     for fid in FAMILIES:
         for hand in (-1, 1):
-            for size in ("big", "small"):
+            for size in ("big", "small", "us"):
+                if size == "us" and not (fid == "ring" and hand < 0): continue      # the American Ring: left-handed only
                 cid = f"gen-{fid}-{'l' if hand < 0 else 'r'}-{size}"
                 if not want or cid in want: build(fid, hand, size)

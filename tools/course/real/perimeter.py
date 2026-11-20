@@ -66,7 +66,12 @@ def perimeter(S, C, turf, grid_box, rnd=None, opts=None):
     home_d = C["routes"][C["defaultRoute"]]["path"]["home"]
     home_d = opts.get("home", home_d)                       # (Sandown: a run-in that curves gently from 1f, read as a bend)
     runin = box(-150.0, min(0.0, -side * RUNIN_DEPTH), home_d + 60.0, max(0.0, -side * RUNIN_DEPTH)).intersection(infield)
-    keep_out = unary_union([turf.buffer(22.0), plot])
+    # (the American Ring, 20 Nov: a dirt track round the outside of the turf: the boards and belts move out past it)
+    shift = opts.get("beltShift", 0.0)
+    BOARD = opts.get("boardOff", BOARD_OFF)
+    BELT_ = (BELT[0] + shift, BELT[1] + shift) + BELT[2:]
+    OUTER_ = (OUTER[0] + shift, OUTER[1] + shift) + OUTER[2:]
+    keep_out = unary_union([turf.buffer(22.0 + shift), plot])
     pk = prep(keep_out)
 
     def tree(x, z, sc, belt=None, kinds=KINDS):
@@ -100,22 +105,25 @@ def perimeter(S, C, turf, grid_box, rnd=None, opts=None):
         return n
 
     # ---- outside: the boards on the 20 m line, the belt, the thinner trees
-    ring = turf.buffer(BOARD_OFF, join_style=1).exterior
+    ring = turf.buffer(BOARD, join_style=1).exterior
     plot_b = plot.buffer(10)
     pull_up = box(-260.0, min(0.0, side * (W + 140)), -40.0, max(0.0, side * (W + 140)))
     note["boards outside"] = board_run(ring, lambda q: plot_b.contains(q) or pull_up.contains(q))
-    around = outside.buffer(BELT[1]).difference(outside.buffer(BELT[0])).difference(plot.buffer(12))
-    note["belt trees"] = fill(around, BELT[2], BELT[3], BELT[4], belt=1)
-    further = outside.buffer(OUTER[1]).difference(outside.buffer(OUTER[0])).difference(plot.buffer(12)).intersection(inside_grid)
-    note["outer trees"] = fill(further, OUTER[2], OUTER[3], OUTER[4])
+    around = outside.buffer(BELT_[1]).difference(outside.buffer(BELT_[0])).difference(plot.buffer(12))
+    note["belt trees"] = fill(around, BELT_[2], BELT_[3], BELT_[4], belt=1)
+    further = outside.buffer(OUTER_[1]).difference(outside.buffer(OUTER_[0])).difference(plot.buffer(12)).intersection(inside_grid)
+    note["outer trees"] = fill(further, OUTER_[2], OUTER_[3], OUTER_[4])
+    for fl in opts.get("flats", []):         # ground colours given by the course (the dirt track, a lake, a plaza)
+        S.flat(fl["colour"], [tuple(q) for q in fl["poly"]], fl.get("y", 0.03))
+    note["flats"] = len(opts.get("flats", []))
     fb = opts.get("farBelt")                 # (the generic courses, 19 Nov: a distant belt of big trees closing the horizon
     if fb:                                   # beyond the thinner trees, seen from the overview and the high cameras)
-        band = outside.buffer(fb.get("to", 260.0)).difference(outside.buffer(fb.get("from", 170.0))).difference(plot.buffer(40)).intersection(inside_grid)
+        band = outside.buffer(fb.get("to", 260.0) + shift).difference(outside.buffer(fb.get("from", 170.0) + shift)).difference(plot.buffer(40)).intersection(inside_grid)
         note["far belt trees"] = fill(band, fb.get("every", 24.0), tuple(fb.get("scale", (1.7, 2.3))), fb.get("chance", 0.75), belt=1)
 
     # behind the stand plot: a belt closing the view across the stands from the start and the infield cameras
     zb0, zb1 = side * (W + depth), side * (W + depth + 45.0)
-    back = box(x0 - 60.0, min(zb0, zb1), x1 + 60.0, max(zb0, zb1)).difference(turf.buffer(25.0))
+    back = box(x0 - 60.0, min(zb0, zb1), x1 + 60.0, max(zb0, zb1)).difference(turf.buffer(25.0 + shift))
     note["trees behind the stand plot"] = fill(back, 9.0, (1.2, 1.6), 0.9, belt=1)
 
     # ---- the infield: boards on the inside rail (not along the run-in), a looser belt, parkland trees

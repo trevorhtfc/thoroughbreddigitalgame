@@ -110,6 +110,8 @@ def main(cid):
     surface = [[[r2(x), r2(z)] for x, z in turf.exterior.coords]] + [[[r2(x), r2(z)] for x, z in h.coords] for h in turf.interiors]
     railed = turf.buffer(GAP, join_style=2, mitre_limit=2.0).simplify(0.1)
     rails = [[[r2(x), r2(z)] for x, z in railed.exterior.coords]] + [[[r2(x), r2(z)] for x, z in h.coords] for h in railed.interiors]
+    for ln in CF.get("extraRails", []):      # (the American Ring: the dirt track's outer rail)
+        rails.append([[r2(x), r2(z)] for x, z in ln])
     sz = -1 if hand < 0 else 1                              # the stand side's z sign
     poles = [{"furlongs": k, "at": [r2(k * F), r2(sz * (W + GAP + 0.7))], "turn": 0} for k in range(1, 5)]
     if V.get("polesOnRoute"):            # a run-in that bends within 4f (Sandown): the poles on the route's outer rail
