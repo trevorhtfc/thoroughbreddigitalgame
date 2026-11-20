@@ -568,6 +568,52 @@ function playRace(X) {
   }
   requestAnimationFrame(frame);
 }
+// ---------------------------------------------------------------- the 3D race view
+// The race was run by the race engine when race day began (core.js -> engineFor; the result is already in the save).
+// The 3D view (final-furlong.html) is sent the very same race, course, going, seed and runners in stall order, so it
+// shows that result. When it can't (no engine, an old save), the 2D stand-in above plays instead.
+// Your colours until you choose your own: green and gold, as on the hub's cards.
+const MY_SILK = { body: { p: "halved", a: "#3d7153", b: "#b79042" }, sleeves: { p: "plain", a: "#b79042", b: "#b79042" }, cap: { p: "plain", a: "#3d7153", b: "#3d7153" } };
+const COAT3D = { bay: ["#7a4a2a", "#1d1714"], brown: ["#4a2e1c", "#17110d"], chestnut: ["#a3552c", "#6a3317"], black: ["#2b2523", "#141110"], grey: ["#a8a6a0", "#6d6b66"] };
+const CARDK = { "": "black", o2: "red", o3: "yellow", o4: "blue" };
+let watching = null;
+const can3D = (X) => !!(X.view && X.view.runners && window.ENGINE && !window.__no3d);
+function myIcon() { try { return window.SilksPaint ? SilksPaint.icon(MY_SILK, 96).toDataURL() : ""; } catch (e) { return ""; } }
+function watch3D(X) {
+  const r = C.RACES[X.hub.rid], V = X.view, rd = S.rd, h = S.horses.find((y) => y.id === X.hub.hid), me = myIcon();
+  const payload = { type: "race", course: V.file, race: V.key, going: V.going, seed: V.seed, handicap: V.handicap, title: r.name,
+    sound: !!(B.Sound && B.Sound.on),
+    kicker: `${day(r.m.date)} · ${trackOf(r.m)} · ${r.time}${rd.res.length > 1 ? ` · Race ${rd.i + 1} of ${rd.res.length}` : ""}`,
+    card: { grade: r.type, dist: r.dist, meeting: `${day(r.m.date)}, ${trackOf(r.m)}`, prizes: [1, 0.38, 0.19, 0.09].map((k) => Math.round(r.prize * k)), conditions: r.ages + (SEXT[r.sex] || ""),
+      next: "", silkImg: me },   // (no "Next" in the view: Back leads to the result here, with the trainer's word, then the next race)
+    runners: V.runners.map((c) => { const x = X.run.find((y) => y.n === c.name) || {}, rv = D.rivals[x.s] || D.rivals[0], col = x.you && h ? h.colour : ["bay", "bay", "bay", "chestnut", "brown", "grey", "chestnut", "black"][hash(c.name) % 8];
+      const cl = COAT3D[col] || COAT3D.bay;
+      return { ...c, ...(x.you ? { silk: "own", silkSpec: MY_SILK, silk2d: me } : { silk: rv.silk, silk2d: `img/silks/${rv.pic}.webp` }), odds: x.od, card: CARDK[oddsCls(x.od || "10/1")], coat: { body: cl[0], points: cl[1] }, mine: !!x.you }; }) };
+  const box = document.createElement("div"); box.className = "watch";
+  box.innerHTML = `<iframe src="final-furlong.html?game=1&going=${encodeURIComponent(V.going)}" title="${esc(r.name)}" allow="fullscreen"></iframe><button class="x" type="button" id="closeWatch"><span class="lg">Back to race day</span><span class="sh">Back</span></button>`;
+  document.body.appendChild(box); document.body.classList.add("watching"); if (B.Sound && B.Sound.hush) B.Sound.hush(true);
+  watching = { box, frame: box.querySelector("iframe"), payload, sent: false };
+  box.querySelector("#closeWatch").onclick = () => closeWatch("result");
+  // the 3D view didn't answer: the 2D version instead
+  watching.timer = setTimeout(() => { if (watching && !watching.sent) { closeWatch(); UI.rd.stage = "run"; render(); $("shBody").scrollTop = 0; } }, 20000);
+}
+function closeWatch(then) {
+  if (!watching) return; clearTimeout(watching.timer);
+  try { watching.frame.contentWindow.__soundStop && watching.frame.contentWindow.__soundStop(); } catch (e) {}
+  if (B.Sound && B.Sound.hush) B.Sound.hush(false);
+  watching.box.remove(); watching = null; document.body.classList.remove("watching");
+  if (then === "result" && UI.rd) { UI.rd.stage = "result"; reveal(); }
+  if (then === "next" && UI.rd) { UI.rd.stage = "result"; ACT.rdNext(); if (S.rd && UI.rd && UI.rd.stage === "card") ACT.rdWatch(); }
+}
+addEventListener("message", (e) => {
+  if (!watching || e.source !== watching.frame.contentWindow) return;
+  const d = e.data || {};
+  if (d.type === "ready") { watching.sent = true; clearTimeout(watching.timer); watching.frame.contentWindow.postMessage(watching.payload, "*"); }
+  if (d.type === "back") closeWatch("result");
+  if (d.type === "next") closeWatch("next");
+  if (d.type === "sound" && B.Sound && B.Sound.set && B.Sound.on !== !!d.on) { B.Sound.set(!!d.on); render(); }
+});
+
 // a result comes up: the bar catches up with it, and a winner gets a cheer
 function reveal() { const X = S.rd.res[S.rd.i], m = X.mine[0]; render(); $("shBody").scrollTop = 0; tumble(m.prize + (X.hub.claimed || 0)); if (m.won && B.Sound.cheer) B.Sound.cheer(3); }
 function finishWeek() { const before = S.cash; UI.rd = null; UI.report = C.endWeek(S); UI.calWeek = S.week; UI.meet = {}; save(); UI.sheet = null; open("report"); tumble(S.cash - before); }
@@ -709,8 +755,12 @@ const ACT = {
   toYard: (d) => { const ok = act(() => C.moveToYard(S, +d.h)); UI.horse = null; render(); toast(ok ? "Into the yard." : "No box free.", !ok); },
   cover: (d) => { const err = act(() => C.cover(S, +d.m, d.s)); UI.picker = null; drawPicker(); toast(err || `Covered by ${d.s}. The foal is due next spring.`, !!err); },
   // the gold button: with runners it goes to race day (every race is settled and saved first); with none the week moves on
-  advance: () => { if (S.rd) return open("raceday"); const rd = C.goRacing(S); save(); if (rd) { UI.rd = { stage: "card" }; open("raceday"); } else finishWeek(); },
-  rdWatch: () => { UI.rd.stage = "run"; render(); $("shBody").scrollTop = 0; if (B.Sound.hooves) B.Sound.hooves(4); },
+  advance: () => { if (S.rd) return open("raceday");
+    // wait for the race engine (a moment after the page opens), so the race run is the race the 3D view shows
+    if (!window.ENGINE_DONE && !UI.waiting) { UI.waiting = 1; const go = () => { UI.waiting = 0; ACT.advance(); }; addEventListener("engine-ready", go, { once: true }); setTimeout(() => { if (UI.waiting) { removeEventListener("engine-ready", go); window.ENGINE_DONE = 1; go(); } }, 8000); return; }
+    if (UI.waiting) return;
+    const rd = C.goRacing(S); save(); if (rd) { UI.rd = { stage: "card" }; open("raceday"); } else finishWeek(); },
+  rdWatch: () => { const X = S.rd.res[S.rd.i]; if (can3D(X)) return watch3D(X); UI.rd.stage = "run"; render(); $("shBody").scrollTop = 0; if (B.Sound.hooves) B.Sound.hooves(4); },
   rdResult: () => { UI.rd.stage = "result"; reveal(); },
   rdNext: () => { const rd = S.rd; if (rd.i < rd.res.length - 1) { rd.i++; UI.rd = { stage: "card" }; save(); render(); $("shBody").scrollTop = 0; } else finishWeek(); },
   rdAll: () => finishWeek(),
@@ -726,5 +776,6 @@ addEventListener("keydown", (e) => { if (e.key === "Escape") { if (UI.picker) AC
 function render() { C.use(S); drawBar(); drawNav(); drawBoard(); drawDock(); drawSheet(); drawPicker(); fitBoard(); drawEdges(); }
 if (S.rd) { UI.rd = { stage: "card" }; UI.sheet = "raceday"; }           // a reload in the middle of race day picks it up at the same race
 render();
+addEventListener("engine-ready", () => render());   // the chances allow for the engine's luck once it has loaded
 window.CAREER_UI = { get S() { return S; }, UI, open, close, render, ACT };
 })();

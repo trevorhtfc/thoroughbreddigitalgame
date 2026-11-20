@@ -67,7 +67,7 @@ for row in rows:
     else: mares.append(rec)
 A = json.loads(re.search(r"const NAME_A = (\[.*?\]);", rules).group(1)); B = json.loads(re.search(r"const NAME_B = (\[.*?\]);", rules).group(1))
 silks = json.load(open(game / "assets/newmarket/silks.json"))
-rivals = [dict(name=s["name"], tier=s["tier"], pic=s["menu"]) for s in silks["silks"]]
+rivals = [dict(name=s["name"], tier=s["tier"], pic=s["menu"], silk=s["id"]) for s in silks["silks"]]   # silk: its 3D colours in the race view (assets/silks-3d/<id>.png)
 
 out = dict(weeks=weeks, meetings=meetings, races=races, courses=courses, stallions=stallions, mares=mares, rivals=rivals, nameA=A, nameB=B)
 text = "// Built by game/tools/career_data.py from tools/calendar/calendar.json, js/rules.js and the silks. Don't edit by hand.\nwindow.CAREER_DATA = " + json.dumps(out, separators=(",", ":"), ensure_ascii=False) + ";\n"

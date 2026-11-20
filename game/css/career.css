@@ -495,3 +495,8 @@ button:focus-visible,a:focus-visible{outline:2px solid var(--tb-gold);outline-of
 .career .sh-foot .ghostb{flex:none}
 @media (prefers-reduced-motion:reduce){ .turf.go,.rev{animation:none} }
 .rcl .t b .ktg,.kopt .t b .ktg,.bigr .t b .ktg{display:inline-block;width:auto;overflow:visible}
+
+/* ---------------------------------------------------------------- the 3D race view, over everything (ui.js -> watch3D) */
+.watch{position:fixed;inset:0;z-index:80;background:#16302a;display:flex;flex-direction:column}
+.watch iframe{flex:1;width:100%;border:0;background:#16302a}
+.watch .x{position:absolute;top:calc(12px + env(safe-area-inset-top,0px));right:calc(12px + env(safe-area-inset-right,0px));z-index:2;border:0;border-radius:var(--tb-radius,8px);padding:8px 14px;font:700 14px/1.2 inherit;cursor:pointer}

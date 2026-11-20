@@ -1,9 +1,20 @@
 // Robot careers through the career hub (js/career/core.js) with the rules behind it (js/career/rules/): no errors, the
+if (process.env.LUCK) globalThis.ENGINE_LUCK = +process.env.LUCK;
 // money holds up, and the trainer's chance chips are honest.   node game/tools/career_test.js [careers] [seasons]
 const path = require("path"), dir = path.join(__dirname, "../js/career");
 globalThis.window = globalThis;
 for (const f of ["data.js", "rules/rules.js", "rules/hub-adapter.js", "core.js"]) require(path.join(dir, f));
 const C = globalThis.CAREER, R = globalThis.TBRULES, N = +process.argv[2] || 12, SEASONS = +process.argv[3] || 6;
+// the race engine and its courses, as career.html loads them (NOENGINE=1: the rules' own roll instead)
+const fs = require("fs"), A = path.join(__dirname, "../../race-view/assets");
+async function loadEngine() {
+  const { runRace, expectedPace } = await import(path.join(A, "engine/engine.js")), get = (f) => JSON.parse(fs.readFileSync(path.join(A, f), "utf8"));
+  const settings = get("engine/settings.json"), courses = {};
+  for (const c of ["ascot", "newmarket", "newmarket-july", "york"]) courses[c] = { data: { course: get(`course/${c}.json`), stalls: get(`course/${c}-stalls.json`), standards: get(`course/${c}-standards.json`), settings }, view: get(`course/${c}-view.json`) };
+  globalThis.ENGINE = { runRace, expectedPace, courses };
+}
+(async () => { if (!process.env.NOENGINE) await loadEngine(); const t0 = Date.now(); main(); console.log(`(${process.env.NOENGINE ? "the rules' own roll" : "the race engine"}, ${((Date.now() - t0) / 1000).toFixed(0)} s)`); })();
+function main() {
 const chip = C.CHIPS.map(() => [0, 0]), tiers = [], banks = [], wr = [0, 0]; let broke = 0, lowest = 1e9, claimed = 0, hurt = 0;
 for (let k = 0; k < N; k++) {
   const S = C.newGame(1000 + k * 77), tierAt = [];
@@ -36,3 +47,4 @@ console.log("bankrupt:", broke, "of", N, "| lowest bank", C.money(lowest), "| me
 console.log("win rate", (wr[1] / wr[0] * 100).toFixed(1) + "% of", wr[0], "runs,", (wr[0] / N / SEASONS).toFixed(0), "runs a season");
 C.CHIPS.forEach((c, i) => console.log(c.padEnd(14), chip[i][0] ? (chip[i][1] / chip[i][0] * 100).toFixed(0) + "% won" : "-", "of", chip[i][0]));
 console.log("avg tier after each season:", Array.from({ length: SEASONS }, (_, i) => (tiers.reduce((a, t) => a + (t[i] || 0), 0) / (tiers.filter((t) => t[i]).length || 1)).toFixed(1)).join(" "));
+}

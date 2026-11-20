@@ -210,6 +210,10 @@ function eligible(h, r) {
 }
 // ---------------------------------------------------------------- the trainer's view of a race (uses only what is known about the horse)
 const VC = new Map();
+// how much luck the trainer allows for in a race: 1 for the rules' own roll; a host whose own race has more (the race
+// engine's pace, traffic and slow starts) widens it with TBRULES.luck(k), so the chances shown stay honest
+let LUCK = 1;
+function luck(k) { if (k != null && k !== LUCK) { LUCK = k; VC.clear(); } return LUCK; }
 function view(h, r) {
   const key = h.id + '|' + r.id + '|' + h.kv + '|' + h.fresh + '|' + S.clock + '|' + r.g; let v = VC.get(key); if (v) return v;
   const g = r.g, ty = r.ty, hc = r.cap != null, k = h.k, fit = {}; let m = 0;
@@ -222,7 +226,7 @@ function view(h, r) {
   m += GREEN[Math.min(3, h.craft)] + freshMod(h.fresh);
   const est = estAb(h) + m, mine = est - (hc ? Math.max(h.or, floorOf(r)) : 0), rv = r.field.map(x => x.ab + (g == null ? 0 : groundMod(x.g, g)) - (hc ? x.or : 0));
   const R = mk(h.id * 7919 + r.id * 31 + h.kv), N = 140; let win = 0, pl = 0;
-  for (let i = 0; i < N; i++) { const me = mine + gauss(R) * 4.8; let ahead = 0; for (let j = 0; j < rv.length && ahead < 3; j++) if (rv[j] + gauss(R) * 4.5 > me) ahead++; if (!ahead) win++; if (ahead < 3) pl++; }
+  for (let i = 0; i < N; i++) { const me = mine + gauss(R) * 4.8 * LUCK; let ahead = 0; for (let j = 0; j < rv.length && ahead < 3; j++) if (rv[j] + gauss(R) * 4.5 * LUCK > me) ahead++; if (!ahead) win++; if (ahead < 3) pl++; }
   win /= N; pl /= N;
   const unsure = k.pw > 9;
   const lv = win >= 0.4 ? 4 : win >= 0.22 ? 3 : win >= 0.085 ? 2 : pl >= 0.17 ? 1 : 0, label = ['Outclassed', 'Place chance', 'In the mix', 'Big chance', 'Hard to beat'][lv];
@@ -261,28 +265,44 @@ const lbPerL = f => f <= 6 ? 3 : f <= 8 ? 2.5 : f <= 12 ? 2 : 1.6;
 const LADDER = [[1, 5, '1/5'], [1, 3, '1/3'], [1, 2, '1/2'], [4, 6, '4/6'], [1, 1, 'Evens'], [6, 4, '6/4'], [2, 1, '2/1'], [5, 2, '5/2'], [3, 1, '3/1'], [4, 1, '4/1'], [5, 1, '5/1'], [6, 1, '6/1'], [8, 1, '8/1'], [10, 1, '10/1'], [12, 1, '12/1'], [16, 1, '16/1'], [20, 1, '20/1'], [25, 1, '25/1'], [33, 1, '33/1'], [50, 1, '50/1'], [100, 1, '100/1']];
 function oddsOf(p) { const d = (1 - p) / Math.max(0.004, p) * 0.87; let b = LADDER[0]; for (const o of LADDER) if (Math.abs(Math.log(o[0] / o[1]) - Math.log(Math.max(0.15, d))) < Math.abs(Math.log(b[0] / b[1]) - Math.log(Math.max(0.15, d)))) b = o; return { t: b[2], d: b[0] / b[1] }; }
 // mine = your horses in the race. Returns the whole result: the field in finishing order, and for each of yours the prize, the new rating, the debrief and what was learned
-function runRace(r, mine) {
-  const g = r.g, ty = r.ty, hc = r.cap != null;
+// opts.decide (optional): a host's own race, such as the 3D race view's engine. It is handed `run` (every runner with
+// its race-day figure, `mean`, before luck: the rivals' ground and your horse's trip, ground, track, greenness,
+// freshness, temperament and quirks already in it, but NOT the pace, which a host's race runs for itself) and returns
+// { pace: 'slow' | 'even' | 'fast', out: [{ pos, btn, form }] } in the same order as `run`, where form is the luck on the
+// day (points) and btn the lengths behind the winner. The rules then settle the race on that result.
+function runRace(r, mine, opts) {
+  const g = r.g, ty = r.ty, hc = r.cap != null, decide = opts && opts.decide;
   const run = r.field.map(x => ({ n: x.n, s: x.s, st: x.st, or: x.or, fm: x.fm, star: x.star, mean: x.ab + (g == null ? 0 : groundMod(x.g, g)) }));
   const ctx = {};
   for (const h of mine) run.push({ you: 1, hid: h.id, n: h.n, st: h.style, or: hc ? Math.max(h.or, floorOf(r)) : h.or, low: hc && h.or < floorOf(r), fm: h.form.slice(-3).join('') });
-  const n = run.length, fr = run.filter(x => x.st === 'F').length / n, pace = fr >= 0.36 ? 'fast' : fr <= 0.13 ? 'slow' : 'even';
+  const n = run.length, fr = run.filter(x => x.st === 'F').length / n;
+  let pace = fr >= 0.36 ? 'fast' : fr <= 0.13 ? 'slow' : 'even';
   for (const x of run) {
-    if (!x.you) { x.mean += PACE[pace][x.st] * 0.6; x.fig = x.mean + gauss() * 4.5; continue; }
-    const h = horse(x.hid), m = { trip: tripMod(h.trip, r.f), gr: groundMod(h.gr, g), tr: trackMod(h.build, ty, h.prof[ty]), green: GREEN[Math.min(3, h.craft)], fresh: freshMod(h.fresh), pace: PACE[pace][h.style], temp: 0, q: 0 };
+    if (!x.you) { if (!decide) x.mean += PACE[pace][x.st] * 0.6; continue; }
+    const h = horse(x.hid), m = { trip: tripMod(h.trip, r.f), gr: groundMod(h.gr, g), tr: trackMod(h.build, ty, h.prof[ty]), green: GREEN[Math.min(3, h.craft)], fresh: freshMod(h.fresh), pace: decide ? 0 : PACE[pace][h.style], temp: 0, q: 0 };
     if (h.temp === 'hot') m.temp = (pace === 'slow' ? -2 : 0) + (n >= 16 ? -2 : 0);
     const c = ctx[h.id] = { m, pre: h.fresh, flags: {} };
     if (h.quirk === 'slowstart' && rnd() < 0.3) { m.q -= 5; c.flags.slow = 1; }
     if (h.quirk === 'fresh' && S.clock - h.last >= 3 * CFG.tpf) { m.q += 3; c.flags.freshq = 1; }
     if (h.quirk === 'bigday' && (r.cls === 'G1' || r.cls === 'G2' || r.cls === 'HH')) { m.q += 3; c.flags.big = 1; }
-    x.mean = ability(h) + m.trip + m.gr + m.tr + m.green + m.fresh + m.pace + m.temp + m.q; x.fig = x.mean + gauss() * SD[h.temp];
+    x.mean = ability(h) + m.trip + m.gr + m.tr + m.green + m.fresh + m.pace + m.temp + m.q;
   }
-  for (const x of run) x.sc = x.fig - (hc ? x.or : 0);
-  { let tot = 0; for (const x of run) { x.pm = Math.exp(((x.you ? x.mean + gauss() * 3 : x.mean) - (hc ? x.or : 0)) / 4.4); tot += x.pm; } for (const x of run) x.od = oddsOf(x.pm / tot); }
-  run.sort((a, b) => b.sc - a.sc);
-  for (const x of run) if (x.you && run[0] !== x && horse(x.hid).quirk === 'battler' && run[0].sc - x.sc < 2.5) { x.sc += 2.5; x.fig += 2.5; ctx[x.hid].flags.battle = 1; }
-  run.sort((a, b) => b.sc - a.sc);
-  run.forEach((x, i) => { x.pos = i + 1; x.btn = Math.min(40, (run[0].sc - x.sc) / lbPerL(r.f)); });
+  { let tot = 0; for (const x of run) { x.pm = Math.exp(((x.you ? x.mean + gauss() * 3 : x.mean) - (hc ? x.or : 0)) / (4.4 * LUCK)); tot += x.pm; } for (const x of run) x.od = oddsOf(x.pm / tot); }
+  if (decide) {
+    const d = decide(run, r); pace = d.pace;
+    run.forEach((x, i) => { const o = d.out[i]; x.fig = x.mean + o.form; x.pos = o.pos; x.btn = Math.min(40, o.btn); x.sc = -o.btn; });
+    for (const x of run) if (x.you) ctx[x.hid].m.pace = PACE[pace][x.st];   // (for the debrief only: the host's race ran the pace)
+    run.sort((a, b) => a.pos - b.pos);
+    // a battler shows itself in a close finish (the host's race decides it; here it is only seen)
+    for (const x of run) if (x.you && horse(x.hid).quirk === 'battler' && x.pos <= 3 && (x.pos === 1 ? (run[1] ? run[1].btn : 9) : x.btn) < 1) ctx[x.hid].flags.battle = 1;
+  } else {
+    for (const x of run) x.fig = x.mean + gauss() * (x.you ? SD[horse(x.hid).temp] : 4.5);
+    for (const x of run) x.sc = x.fig - (hc ? x.or : 0);
+    run.sort((a, b) => b.sc - a.sc);
+    for (const x of run) if (x.you && run[0] !== x && horse(x.hid).quirk === 'battler' && run[0].sc - x.sc < 2.5) { x.sc += 2.5; x.fig += 2.5; ctx[x.hid].flags.battle = 1; }
+    run.sort((a, b) => b.sc - a.sc);
+    run.forEach((x, i) => { x.pos = i + 1; x.btn = Math.min(40, (run[0].sc - x.sc) / lbPerL(r.f)); });
+  }
   for (const s of S.stars) { const x = run.find(y => y.star && y.n === s.n); if (x) s.fm.push(x.pos > 9 ? 0 : x.pos); }
   const res = { rid: r.id, big: r.big, n: r.n, co: r.co, cls: r.cls, f: r.f, p: r.p, g, ty, pace, a: r.a, sx: r.sx, cap: r.cap, run: run.map(x => ({ n: x.n, s: x.s, st: x.st, or: x.or, fm: x.fm, you: x.you, hid: x.hid, pos: x.pos, btn: Math.round(x.btn * 100) / 100, od: x.od.t, star: x.star })), mine: [] };
   for (const x of run) if (x.you) res.mine.push(settle(horse(x.hid), r, x, run, ctx[x.hid], res));
@@ -407,7 +427,7 @@ function newYear() {
 }
 
 const R = { CFG, on: ON, setData, get D() { return D; }, TRIPS, GOINGS, COURSE, TYPE, TIERS, CLS, CLASSICS, QUIRKS, QDESC, LAB, GREEN, COST, SD, BUYERS,
-  use, init, get S() { return S; }, clearViews: () => VC.clear(), newSeasonStats, cash, addRep, rnd, mk, gauss, ri, pick, clamp, wpick, nice,
+  use, init, get S() { return S; }, clearViews: () => VC.clear(), luck, newSeasonStats, cash, addRep, rnd, mk, gauss, ri, pick, clamp, wpick, nice,
   fIdx, fLabel, tripOff, tripMod, tripLabel, groundMod, groundLabel, trackMod, ctype, isAW, freshMod, floorOf, tier, T, ability, estAb, potStar, potWord, orStars,
   foal, evid, starters, genStars, std, genField, prepRace, eligible, view, options, picks, autoPick, horse, gallop, runRace, rest,
   valueOf, studStars, mareStars, canStud, studFee, sell, retire, yearlingValue, sireOf, sires, setCover, guideOf, genSale, arriving, boxesFree, nextBid, bid, pass, newYear };

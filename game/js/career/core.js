@@ -195,7 +195,7 @@ const goingOf = (S, r) => (r.m.week === S.week ? S.going[r.m.i] : null);
 const raceOf = (S, r) => { use(S); return J.raceFor(S, r, r.m.aw ? null : goingOf(S, r)); };
 function whyNot(S, h, r) { use(S); if (h.inj > 0) return "On the easy list"; return barred(S, h, r) || (R.eligible(h, raceOf(S, r)) ? null : "Not qualified for this race"); }
 // the trainer's view (the rules'), with what the hub adds: the entry fee, the claiming price, the going if it is known
-function view(S, h, r) { const v = R.view(h, raceOf(S, r)); return Object.assign({}, v, { key: v.lv, chip: v.label, fee: entryFee(r), claim: isClaim(r) ? claimPrice(r) : 0, going: goingOf(S, r) }); }
+function view(S, h, r) { useLuck(); const v = R.view(h, raceOf(S, r)); return Object.assign({}, v, { key: v.lv, chip: v.label, fee: entryFee(r), claim: isClaim(r) ? claimPrice(r) : 0, going: goingOf(S, r) }); }
 // Sellers and claimers: every runner is for sale at the race's set price. A horse too good for the race wins it and
 // is very likely bought by another stable.
 function standard(r) { if (hcapLike(r)) return { hi: r.top }; const m = /(\d+)\D+(\d+)/.exec(r.ratings); if (m) return { hi: +m[2] }; return { hi: ({ 1: 100, 2: 92, 3: 86, 4: 80, 5: 74, 6: 66 }[r.cls] || 74) - (r.ages === "2yo" ? 6 : 0) }; }
@@ -231,10 +231,71 @@ function trainerPicks(S) {
   for (const h of S.horses) {
     if (h.inj > 0 || h.fresh < 75 || h.entries[S.week] != null) continue;
     const worth = R.valueOf(h), list = weekRaces(S.week).filter((r) => !barred(S, h, r) && entryFee(r) <= Math.max(300, S.cash * 0.02) && !(isClaim(r) && worth > claimPrice(r) * 1.15) && !S.horses.some((y) => y !== h && y.entries[S.week] === r.id));
-    const p = R.autoPick(h, list.map((r) => raceOf(S, r))); if (!p) continue;
+    useLuck(); const p = R.autoPick(h, list.map((r) => raceOf(S, r))); if (!p) continue;
     const r = RACES[p.id]; if (!enter(S, h.id, r.id)) made.push({ h, r, v: view(S, h, r) });
   }
   return made;
+}
+
+// ---------------------------------------------------------------- the race engine: every race as the 3D race view runs it
+// When the engine has loaded (window.ENGINE: the race view's own engine and course files, loaded by career.html, and
+// by the robot test in Node), it runs each race: the rules hand it every runner's figure on the day, it runs the race
+// with its own pace, traffic and luck, and the rules settle on its result. The 3D view is then sent exactly the same
+// race (the course, the start, the going, the seed and the runners), so the race watched is the race recorded.
+// Without the engine (it failed to load), the rules' own roll decides, as before.
+const ENG = () => (root.ENGINE && root.ENGINE.courses && root.ENGINE.runRace ? root.ENGINE : null);
+// the race engine has more luck in it than the rules' own roll, so the trainer's chances allow for more (see TBRULES.luck)
+const ENGINE_LUCK = +(root.ENGINE_LUCK || 1.35);
+const useLuck = () => R.luck(ENG() ? ENGINE_LUCK : 1);
+// The course each meeting races on in 3D: its own when it has been built (Ascot, York, Newmarket's Rowley Mile and the
+// July Course so far), else its stand-in from the calendar (data.js -> courses -> standin, followed until a built one
+// turns up: Goodwood runs at Ascot, Epsom at York, Kempton at Sandown and so on to Ascot), else Ascot.
+function engineCourse(m) {
+  const E = ENG(); if (!E) return null; const have = (k) => !!E.courses[k];
+  let co = m.course;
+  for (let i = 0; i < 8 && co; i++) {
+    if (co === "Newmarket") { const k = m.date.slice(5) >= "06-20" && m.date.slice(5) <= "08-31" ? "newmarket-july" : "newmarket"; if (have(k)) return k; }
+    const k = co.toLowerCase().replace(/[^a-z]+/g, "-"); if (have(k)) return k;
+    co = D.courses[co] && D.courses[co].standin;
+  }
+  return have("ascot") ? "ascot" : Object.keys(E.courses)[0];
+}
+// the course's start nearest the race's trip (the straight course for a race on the straight, where there is one)
+function engineStart(k, r) {
+  const V = ENG().courses[k].view.races, want = r.f * 201.168; let best = null, bd = 1e9;
+  for (const [key, v] of Object.entries(V)) { if (key.startsWith("_") || key === "long" || key === "mile" && V["1m"]) continue;
+    const d = Math.abs(v.distance - want) + ((v.course === "straight") === !!r.straight ? 0 : 60); if (d < bd) { bd = d; best = key; } }
+  return best;
+}
+const STYLE3D = { F: "front", P: "prominent", M: "midfield", H: "holdup" };
+const PACE3D = { slow: "slow", even: "even", strong: "fast", fast: "fast" };
+// The engine's race for a calendar race, and its decider for the rules. Returns null when the engine can't run it.
+function engineFor(S, r, race) {
+  const E = ENG(), k = E && engineCourse(r.m); if (!k) return null;
+  const C = E.courses[k], key = engineStart(k, r), V = C.view.races[key], H = C.data.settings.horse;
+  if (race.field.length + 1 > C.data.stalls.maxRunners) return null;
+  const f = V.distance / 201.168; let rung = 0; H.TRIP_LADDER_FURLONGS.forEach((x, i) => { if (Math.abs(x - f) < Math.abs(H.TRIP_LADDER_FURLONGS[rung] - f)) rung = i; });
+  const going = r.m.aw ? "Good" : (goingOf(S, r) || "Good"), hc = race.cap != null;
+  const spec = { file: k, key, label: V.label, going, handicap: hc, seed: Math.floor(R.rnd() * 2147483647), draw: null, runners: null, events: null };
+  return { spec, decide(run) {
+    // the draw: stalls in a seeded random order (spec.draw[stall] = the runner's place in `run`)
+    const draw = run.map((x, i) => i); for (let i = draw.length - 1; i > 0; i--) { const j = Math.floor(R.rnd() * (i + 1)); [draw[i], draw[j]] = [draw[j], draw[i]]; }
+    const card = draw.map((i) => { const x = run[i], o = { name: x.n, rating: Math.round(x.mean * 10) / 10, style: STYLE3D[x.st] || "midfield", flex: "adaptable",
+      temperament: x.you && horse(S, x.hid).temp === "hot" ? "keen" : "calm", trip: [H.TRIP_LADDER[rung], H.TRIP_LADDER[rung]] }; if (hc) o.mark = x.or; return o; });
+    const { result } = E.runRace({ course: V.course, distance: V.distance, start: V.start, going, seed: spec.seed, handicap: hc }, card, C.data, { timeline: false });
+    const out = run.map(() => null); for (const p of result.placed) out[draw[p.runner]] = { pos: p.place, btn: p.behind, form: p.form };
+    spec.draw = draw; spec.runners = card; spec.events = result.events.filter((e) => run[draw[e.runner]] && run[draw[e.runner]].you).map((e) => ({ kind: e.kind, toGo: e.toGo, lengths: e.lengths }));
+    return { pace: PACE3D[result.pace.run] || "even", out };
+  } };
+}
+// what the 3D race showed about your runner, in the trainer's words (added to his debrief)
+function eventWords(h, evs) {
+  const He = h.sex === "f" ? "She" : "He", out = [];
+  for (const e of evs || []) {
+    if (e.kind === "missed the break") out.push(`${He} missed the break.`);
+    if (e.kind === "short of room" && e.lengths >= 1) out.push(`${He} was short of room ${e.toGo >= 201 ? Math.round(e.toGo / 201.168) + "f" : "a furlong"} out and lost about ${Math.round(e.lengths)} length${Math.round(e.lengths) === 1 ? "" : "s"}.`);
+  }
+  return out.join(" ");
 }
 
 // ---------------------------------------------------------------- race day
@@ -248,7 +309,9 @@ function goRacing(S) {
     delete h.entries[S.week];
     const why = whyNot(S, h, r); if (why) { pay(S, "Entry fees", `${h.n} could not run: ${r.name} (fee back)`, entryFee(r), h.id); continue; }
     const n0 = S.ledger.length, what = `${r.name}, ${r.m.course}`;
-    const res = R.runRace(raceOf(S, r), [h]), m = res.mine[0];
+    useLuck(); const race = raceOf(S, r), eng = engineFor(S, r, race);
+    const res = R.runRace(race, [h], eng ? { decide: eng.decide } : undefined), m = res.mine[0];
+    if (eng) { res.view = eng.spec; const w = eventWords(h, eng.spec.events); if (w && !m.inj) m.say += " " + w; }
     for (let i = n0; i < S.ledger.length; i++) if (S.ledger[i].cat === "Prize money") S.ledger[i].text = `${h.n}: ${m.pos === 1 ? "won" : ORD[m.pos] + " in"} the ${what}`;
     // reputation by the hub's own table (the rules have just given theirs: swap it)
     const base = REP[r.type] || REPCLS[r.cls] || 2, rep = m.pos === 1 ? base : m.pos === 2 ? Math.round(base * 0.4) : m.pos === 3 ? Math.round(base * 0.2) : 0;

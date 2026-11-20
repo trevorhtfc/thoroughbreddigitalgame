@@ -90,10 +90,26 @@
 <div class="tumble" id="tumble" aria-hidden="true"></div>
 
 <script>window.ICON = { %%ICONSET%% };</script>
+<script src="silks-paint.js"></script>
 <script src="js/career/data.js"></script>
 <script src="js/career/rules/rules.js"></script>
 <script src="js/career/rules/hub-adapter.js"></script>
 <script src="js/career/core.js"></script>
 <script src="js/board.js"></script>
 <script src="js/career/ui.js"></script>
+<script type="module">
+// The race engine (race-engine/engine.js in the repo) and the courses built for the 3D race view so far. Every career race
+// is run by it (js/career/core.js -> engineFor), and the 3D race view (final-furlong.html) loads the very same files, so
+// the race watched is the race recorded. A meeting at a course not built yet runs on its stand-in (data.js -> standin).
+// If this fails to load, the rules' own roll runs the races instead and "Watch the race" shows the simple 2D version.
+import { runRace, expectedPace } from "./assets/engine/engine.js";
+const files = ["ascot", "newmarket", "newmarket-july", "york"];
+const get = (p) => fetch(p).then((r) => { if (!r.ok) throw new Error(p + " " + r.status); return r.json(); });
+const one = (C, settings) => Promise.all([`assets/course/${C}.json`, `assets/course/${C}-stalls.json`, `assets/course/${C}-standards.json`, `assets/course/${C}-view.json`].map(get))
+  .then(([course, stalls, standards, view]) => [C, { data: { course, stalls, standards, settings }, view }]);
+get("assets/engine/settings.json").then((settings) => Promise.all(files.map((C) => one(C, settings))))
+  .then((list) => { window.ENGINE = { runRace, expectedPace, courses: Object.fromEntries(list) }; })
+  .catch((e) => { window.ENGINE_FAILED = String(e); console.warn("race engine", e); })
+  .finally(() => { window.ENGINE_DONE = 1; dispatchEvent(new Event("engine-ready")); });
+</script>
 <script type="module" src="js/life.js"></script>
