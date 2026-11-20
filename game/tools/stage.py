@@ -29,6 +29,10 @@ for _f in sorted(_loaded - _listed): raise SystemExit(f"index.html loads {_f}, w
 # the Race Lab (lab.html): test the race engine on any course, distance, going, field and tactics
 for f in ["lab.html", "css/lab.css", "js/lab.js", "js/lab-worker.js"]:
     add(game / f, f)
+# the career hub (career.html): the full game's home and menus, a prototype (20 Nov 2026). It loads the game's own board
+# (js/board.js, js/life.js and the board's assets, all taken above or below) and its own rules, screens and calendar data
+for f in ["career.html", "css/career.css", "js/career/data.js", "js/career/core.js", "js/career/ui.js"]:
+    add(game / f, f)
 for p in sorted((game / "img").rglob("*")):
     if p.is_file(): add(p, p.relative_to(game))
 for p in sorted((game / "video").glob("*.mp4")): add(p, p.relative_to(game))

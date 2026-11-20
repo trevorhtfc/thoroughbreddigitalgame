@@ -1,0 +1,359 @@
+# The big races of the British Flat season, placed on the 2026 calendar.
+# date | course | meeting | race | grade | furlongs | distance | ages | sex | prize to winner (blank = by grade) | note
+# grade: G1 G2 G3 L (Listed) HH (heritage handicap) H (notable handicap) C (conditions) S (sales race) M (famous maiden/novice)
+# sex: F fillies (and mares), C colts and geldings, CF colts and fillies (no geldings: the Classics), blank open
+# ---------------------------------------------------------------- TURF SEASON 2026
+2026-03-27|Doncaster|The Lincoln Meeting|Spring Mile|H|8|1m|4yo+||20000|Consolation race for horses balloted out of the Lincoln
+2026-03-28|Doncaster|Lincoln Day|Lincoln Handicap|HH|8|1m|4yo+||75000|Season opener on turf; straight mile, big field
+2026-03-28|Doncaster|Lincoln Day|Doncaster Mile|L|8|1m|4yo+||
+2026-03-28|Doncaster|Lincoln Day|Cammidge Trophy|L|6|6f|3yo+||
+2026-03-28|Doncaster|Lincoln Day|Brocklesby Stakes|C|5|5f|2yo||12000|The first two-year-old race of the year
+2026-03-28|Kempton|Spring Saturday (all-weather)|Rosebery Handicap|H|11|1m3f|4yo+||25000|
+2026-03-28|Kempton|Spring Saturday (all-weather)|Magnolia Stakes|L|10|1m2f|4yo+||
+2026-04-03|Newcastle|All-Weather Championships Finals Day|Easter Classic|C|10|1m2f|4yo+||100000|AW finals: entry only for horses that ran in the winter qualifiers
+2026-04-03|Newcastle|All-Weather Championships Finals Day|All-Weather Mile|C|8|1m|4yo+||85000|AW finals
+2026-04-03|Newcastle|All-Weather Championships Finals Day|All-Weather Sprint|C|6|6f|4yo+||85000|AW finals
+2026-04-03|Newcastle|All-Weather Championships Finals Day|Three-Year-Old Championship|C|6|6f|3yo||75000|AW finals
+2026-04-03|Newcastle|All-Weather Championships Finals Day|Fillies' and Mares' Championship|C|7|7f|4yo+|F|75000|AW finals
+2026-04-03|Newcastle|All-Weather Championships Finals Day|All-Weather Marathon|C|16|2m|4yo+||75000|AW finals
+2026-04-04|Musselburgh|Easter Saturday|Queen's Cup|HH|14|1m6f|4yo+||45000|
+2026-04-04|Musselburgh|Easter Saturday|Scottish Sprint Cup|H|5|5f|4yo+||25000|
+2026-04-04|Lingfield (AW)|Easter Saturday|International Trial Stakes|L|8|1m|3yo||
+2026-04-08|Nottingham|Spring Wednesday|Further Flight Stakes|L|14|1m6f|4yo+||
+2026-04-11|Kempton|Easter Weekend|Snowdrop Fillies' Stakes|L|8|1m|4yo+|F|
+2026-04-14|Newmarket|The Craven Meeting|Nell Gwyn Stakes|G3|7|7f|3yo|F||1000 Guineas trial
+2026-04-14|Newmarket|The Craven Meeting|Feilden Stakes|L|9|1m1f|3yo||
+2026-04-14|Newmarket|The Craven Meeting|Free Handicap|H|7|7f|3yo||20000|For last year's best two-year-olds
+2026-04-15|Newmarket|The Craven Meeting|Earl of Sefton Stakes|G3|9|1m1f|4yo+||
+2026-04-15|Newmarket|The Craven Meeting|Abernant Stakes|G3|6|6f|3yo+||
+2026-04-16|Newmarket|The Craven Meeting|Craven Stakes|G3|8|1m|3yo|C||2000 Guineas trial
+2026-04-16|Newmarket|The Craven Meeting|Wood Ditton Maiden|M|8|1m|3yo||8000|For unraced three-year-olds only
+2026-04-17|Bath|Spring Friday|Lansdown Fillies' Stakes|L|5|5f|3yo+|F|
+2026-04-18|Newbury|Greenham Day|Greenham Stakes|G3|7|7f|3yo|C||2000 Guineas trial
+2026-04-18|Newbury|Greenham Day|Fred Darling Stakes|G3|7|7f|3yo|F||1000 Guineas trial
+2026-04-18|Newbury|Greenham Day|John Porter Stakes|G3|12|1m4f|4yo+||
+2026-04-18|Newbury|Greenham Day|Spring Cup|H|8|1m|4yo+||30000|
+2026-04-22|Epsom|The Spring Meeting|City and Suburban Handicap|H|10|1m2f|4yo+||25000|
+2026-04-22|Epsom|The Spring Meeting|Great Metropolitan Handicap|H|12|1m4f|4yo+||20000|
+2026-04-22|Epsom|The Spring Meeting|Blue Riband Trial|C|10|1m2f|3yo||15000|Derby trial over the Derby course
+2026-04-24|Sandown|Sandown Mile Day|Sandown Mile|G2|8|1m|4yo+||
+2026-04-24|Sandown|Sandown Mile Day|Classic Trial|G3|10|1m2f|3yo||Derby trial
+2026-04-24|Sandown|Sandown Mile Day|Gordon Richards Stakes|G3|10|1m2f|4yo+||
+2026-04-24|Sandown|Sandown Mile Day|Esher Cup|H|8|1m|3yo||20000|
+2026-04-25|Leicester|King Richard III Day|King Richard III Stakes|L|7|7f|4yo+||
+2026-04-25|Leicester|King Richard III Day|King Richard III Cup|H|6|6f|4yo+||12000|
+2026-05-01|Ascot|Royal Ascot Trials Day|Sagaro Stakes|G3|16|2m|4yo+||Gold Cup trial
+2026-05-01|Ascot|Royal Ascot Trials Day|Pavilion Stakes|G3|6|6f|3yo||Commonwealth Cup trial
+2026-05-01|Ascot|Royal Ascot Trials Day|Paradise Stakes|L|8|1m|4yo+||
+2026-05-01|Newmarket|The Guineas Festival|Newmarket Stakes|L|10|1m2f|3yo|C||Derby trial
+2026-05-01|Newmarket|The Guineas Festival|Suffolk Stakes|HH|9|1m1f|3yo+||45000|
+2026-05-01|Goodwood|Season Opener|Conqueror Stakes|L|8|1m|3yo+|F|
+2026-05-02|Newmarket|2000 Guineas Day|2000 Guineas Stakes|G1|8|1m|3yo|CF|300000|First Classic
+2026-05-02|Newmarket|2000 Guineas Day|Jockey Club Stakes|G2|12|1m4f|4yo+||
+2026-05-02|Newmarket|2000 Guineas Day|Palace House Stakes|G3|5|5f|3yo+||
+2026-05-02|Newmarket|2000 Guineas Day|Guineas Day Sprint Handicap|HH|6|6f|4yo+||45000|
+2026-05-02|Thirsk|Hunt Cup Day|Thirsk Hunt Cup|H|8|1m|4yo+||20000|
+2026-05-03|Newmarket|1000 Guineas Day|1000 Guineas Stakes|G1|8|1m|3yo|F|300000|Second Classic
+2026-05-03|Newmarket|1000 Guineas Day|Dahlia Stakes|G2|9|1m1f|4yo+|F|
+2026-05-03|Newmarket|1000 Guineas Day|Pretty Polly Stakes|L|10|1m2f|3yo|F||Oaks trial
+2026-05-03|Newmarket|1000 Guineas Day|Guineas Day Staying Handicap|HH|14|1m6f|4yo+||45000|
+2026-05-06|Chester|The May Festival: Trials Day|Chester Vase|G3|12|1m4f|3yo|C||Derby trial
+2026-05-06|Chester|The May Festival: Trials Day|Cheshire Oaks|L|11|1m3f|3yo|F||Oaks trial
+2026-05-06|Chester|The May Festival: Trials Day|Huxley Stakes|G2|10|1m2f|4yo+||
+2026-05-07|Chester|The May Festival: Ladies Day|Ormonde Stakes|G3|13|1m5f|4yo+||
+2026-05-07|Chester|The May Festival: Ladies Day|Dee Stakes|L|10|1m2f|3yo|C||Derby trial
+2026-05-08|Chester|The May Festival: Chester Cup Day|Chester Cup|HH|18|2m2f|4yo+||75000|Round and round the Roodee
+2026-05-09|Ascot|Victoria Cup Day|Victoria Cup|HH|7|7f|4yo+||60000|
+2026-05-09|Ascot|Victoria Cup Day|Buckhounds Stakes|L|12|1m4f|4yo+||
+2026-05-09|Lingfield (turf)|Derby Trial Day|Derby Trial Stakes|L|11|1m3f|3yo|C||Derby trial round a Tattenham-like bend
+2026-05-09|Lingfield (turf)|Derby Trial Day|Oaks Trial Stakes|L|11|1m3f|3yo|F||Oaks trial
+2026-05-09|Lingfield (turf)|Derby Trial Day|Chartwell Fillies' Stakes|G3|7|7f|3yo+|F|
+2026-05-09|Haydock|Spring Saturday|Spring Trophy|L|7|7f|3yo+||
+2026-05-09|Nottingham|Spring Saturday|Kilvington Fillies' Stakes|L|6|6f|3yo+|F|
+2026-05-11|Windsor|Monday Evening|Royal Windsor Stakes|L|8|1m|3yo+|C|
+2026-05-14|York|The Dante Festival, day 1|Duke of York Stakes|G2|6|6f|3yo+||
+2026-05-14|York|The Dante Festival, day 1|Musidora Stakes|G3|10|1m2f|3yo|F||Oaks trial
+2026-05-14|York|The Dante Festival, day 1|Jorvik Handicap|H|12|1m4f|4yo+||25000|
+2026-05-15|York|The Dante Festival, day 2|Dante Stakes|G2|10|1m2f|3yo||Derby trial
+2026-05-15|York|The Dante Festival, day 2|Middleton Stakes|G2|10|1m2f|4yo+|F|
+2026-05-15|York|The Dante Festival, day 2|Marygate Fillies' Stakes|L|5|5f|2yo|F|
+2026-05-15|York|The Dante Festival, day 2|Hambleton Handicap|H|8|1m|4yo+||30000|
+2026-05-16|York|The Dante Festival, day 3|Yorkshire Cup|G2|14|1m6f|4yo+||
+2026-05-16|York|The Dante Festival, day 3|Westow Stakes|L|5|5f|3yo||
+2026-05-16|York|The Dante Festival, day 3|Michael Seely Memorial Stakes|L|8|1m|3yo|F|
+2026-05-15|Newmarket|The Spring Meeting|King Charles II Stakes|L|7|7f|3yo||
+2026-05-16|Newmarket|The Spring Meeting|Fairway Stakes|L|10|1m2f|3yo||
+2026-05-15|Newbury|Lockinge Friday|Fillies' Trial Stakes|L|10|1m2f|3yo|F|
+2026-05-16|Newbury|Lockinge Day|Lockinge Stakes|G1|8|1m|4yo+||250000|The first big all-aged mile of the year
+2026-05-16|Newbury|Lockinge Day|Aston Park Stakes|G3|12|1m4f|4yo+||
+2026-05-16|Newbury|Lockinge Day|London Gold Cup|HH|10|1m2f|3yo||45000|
+2026-05-16|Newbury|Lockinge Day|Carnarvon Stakes|L|6|6f|3yo||
+2026-05-16|Ayr|Spring Saturday|Rothesay Stakes|L|10|1m2f|4yo+|F|
+2026-05-21|Goodwood|The May Festival, day 1|Height of Fashion Stakes|L|10|1m2f|3yo|F||Oaks trial
+2026-05-21|Goodwood|The May Festival, day 1|Tapster Stakes|L|12|1m4f|4yo+||
+2026-05-22|Goodwood|The May Festival, day 2|Cocked Hat Stakes|L|11|1m3f|3yo|C||Derby trial
+2026-05-22|Goodwood|The May Festival, day 2|Festival Stakes|L|10|1m2f|4yo+||
+2026-05-23|Goodwood|The May Festival, day 3|Daisy Warwick Stakes|L|12|1m4f|4yo+|F|
+2026-05-23|Goodwood|The May Festival, day 3|Harroways Handicap|H|7|7f|3yo||15000|
+2026-05-22|Haydock|Friday Evening|Cecil Frail Stakes|L|6|6f|3yo+|F|
+2026-05-23|Haydock|Temple Stakes Day|Temple Stakes|G2|5|5f|3yo+||
+2026-05-23|Haydock|Temple Stakes Day|Sandy Lane Stakes|G2|6|6f|3yo||
+2026-05-23|Haydock|Temple Stakes Day|Silver Bowl|HH|8|1m|3yo||45000|
+2026-05-23|Haydock|Temple Stakes Day|Achilles Stakes|L|5|5f|3yo+||
+2026-05-25|Redcar|Bank Holiday Monday|Zetland Gold Cup|H|10|1m2f|3yo+||25000|
+2026-05-28|Sandown|Brigadier Gerard Evening|Brigadier Gerard Stakes|G3|10|1m2f|4yo+||
+2026-05-28|Sandown|Brigadier Gerard Evening|Henry II Stakes|G3|16|2m|4yo+||Gold Cup trial
+2026-05-28|Sandown|Brigadier Gerard Evening|Heron Stakes|L|8|1m|3yo||
+2026-05-28|Sandown|Brigadier Gerard Evening|National Stakes|L|5|5f|2yo||
+2026-05-28|Sandown|Brigadier Gerard Evening|Whitsun Cup|H|8|1m|4yo+||20000|
+2026-06-01|Windsor|Monday Evening|Leisure Stakes|L|6|6f|3yo+||
+2026-06-04|Nottingham|Thursday|Nottinghamshire Oaks|L|10|1m2f|4yo+|F|
+2026-06-05|Epsom|The Derby Festival: Oaks Day|The Oaks|G1|12|1m4f|3yo|F|300000|Third Classic
+2026-06-05|Epsom|The Derby Festival: Oaks Day|Coronation Cup|G1|12|1m4f|4yo+||250000|
+2026-06-05|Epsom|The Derby Festival: Oaks Day|Princess Elizabeth Stakes|G3|8.5|1m113y|3yo+|F|
+2026-06-05|Epsom|The Derby Festival: Oaks Day|Surrey Stakes|L|7|7f|3yo||
+2026-06-05|Epsom|The Derby Festival: Oaks Day|Woodcote Stakes|L|6|6f|2yo||
+2026-06-05|Epsom|The Derby Festival: Oaks Day|Northern Dancer Handicap|H|12|1m4f|4yo+||25000|
+2026-06-06|Epsom|The Derby Festival: Derby Day|The Derby|G1|12|1m4f|3yo|CF|900000|The big one: fourth Classic
+2026-06-06|Epsom|The Derby Festival: Derby Day|Diomed Stakes|G3|8.5|1m113y|3yo+||
+2026-06-06|Epsom|The Derby Festival: Derby Day|Epsom Dash|HH|5|5f|3yo+||60000|Fastest five furlongs in the world, downhill
+2026-06-06|Epsom|The Derby Festival: Derby Day|Derby Day Three-Year-Old Handicap|H|10|1m2f|3yo||20000|
+2026-06-06|Haydock|Saturday|John of Gaunt Stakes|G3|7|7f|4yo+||
+2026-06-06|Haydock|Saturday|Lester Piggott Fillies' Stakes|G3|12|1m4f|4yo+|F|
+2026-06-11|Sandown|Thursday Evening|Scurry Stakes|L|5|5f|3yo||
+2026-06-11|Newbury|Thursday|Ballymacoll Stud Stakes|L|10|1m2f|3yo|F|
+2026-06-13|York|Summer Saturday|Ganton Stakes|L|8|1m|3yo+||
+2026-06-13|York|Summer Saturday|Three-Year-Old Sprint Handicap|H|6|6f|3yo||25000|
+2026-06-14|Salisbury|Sunday|Cathedral Stakes|L|6|6f|3yo+||
+ROYAL_ASCOT
+2026-06-20|Ayr|Saturday|Land O'Burns Fillies' Stakes|L|5|5f|3yo+|F|
+2026-06-24|Carlisle|Carlisle Bell Day|Carlisle Bell|H|8|1m|3yo+||15000|
+2026-06-24|Carlisle|Carlisle Bell Day|Eternal Stakes|L|7|7f|3yo|F|
+2026-06-26|Newcastle|Northumberland Plate Festival, Friday|Hoppings Stakes|G3|10|1m2f|3yo+|F|
+2026-06-27|Newcastle|Northumberland Plate Day|Northumberland Plate|HH|16|2m|3yo+||120000|The Pitmen's Derby
+2026-06-27|Newcastle|Northumberland Plate Day|Chipchase Stakes|G3|6|6f|3yo+||
+2026-06-27|Newcastle|Northumberland Plate Day|Gosforth Park Cup|H|5|5f|3yo+||25000|
+2026-06-27|Newmarket|Summer Saturday (July Course)|Fred Archer Stakes|L|12|1m4f|4yo+||
+2026-06-27|Newmarket|Summer Saturday (July Course)|Empress Fillies' Stakes|L|6|6f|2yo|F|
+2026-06-28|Pontefract|Sunday|Pontefract Castle Stakes|L|12|1m4f|4yo+||
+2026-06-30|Pontefract|Tuesday|Pipalong Stakes|L|8|1m|4yo+|F|
+2026-07-03|Sandown|Eclipse Friday|Dragon Stakes|L|5|5f|2yo||
+2026-07-03|Sandown|Eclipse Friday|Gala Stakes|L|10|1m2f|3yo+||
+2026-07-03|Sandown|Eclipse Friday|Sandown Marathon|L|16|2m|4yo+||
+2026-07-04|Sandown|Eclipse Day|Eclipse Stakes|G1|10|1m2f|3yo+||450000|First clash of the Classic generation and their elders
+2026-07-04|Sandown|Eclipse Day|Sprint Stakes|G3|5|5f|3yo+||
+2026-07-04|Sandown|Eclipse Day|Sandown Distaff|L|8|1m|3yo|F|
+2026-07-04|Sandown|Eclipse Day|Sandown Challenge Handicap|H|8|1m|3yo+||30000|
+2026-07-04|Haydock|Lancashire Oaks Day|Lancashire Oaks|G2|12|1m4f|3yo+|F|
+2026-07-04|Haydock|Lancashire Oaks Day|Old Newton Cup|H|12|1m4f|3yo+||45000|
+2026-07-04|Haydock|Lancashire Oaks Day|Three-Year-Old Staying Handicap|H|14|1m6f|3yo||20000|
+2026-07-09|Newmarket|The July Festival, day 1|Princess of Wales's Stakes|G2|12|1m4f|3yo+||
+2026-07-09|Newmarket|The July Festival, day 1|July Stakes|G2|6|6f|2yo|C|
+2026-07-09|Newmarket|The July Festival, day 1|Bahrain Trophy|G3|13|1m5f|3yo||St Leger trial
+2026-07-09|Newmarket|The July Festival, day 1|July Festival Three-Year-Old Sprint|HH|6|6f|3yo||45000|
+2026-07-10|Newmarket|The July Festival, day 2|Falmouth Stakes|G1|8|1m|3yo+|F|250000|
+2026-07-10|Newmarket|The July Festival, day 2|Duchess of Cambridge Stakes|G2|6|6f|2yo|F|
+2026-07-10|Newmarket|The July Festival, day 2|Sir Henry Cecil Stakes|L|8|1m|3yo||
+2026-07-10|Newmarket|The July Festival, day 2|July Festival Three-Year-Old Handicap|HH|10|1m2f|3yo||45000|
+2026-07-11|Newmarket|The July Festival, day 3|July Cup|G1|6|6f|3yo+||300000|Sprinting's midsummer championship
+2026-07-11|Newmarket|The July Festival, day 3|Superlative Stakes|G2|7|7f|2yo||
+2026-07-11|Newmarket|The July Festival, day 3|Bunbury Cup|HH|7|7f|3yo+||60000|
+2026-07-11|Newmarket|The July Festival, day 3|July Festival Staying Handicap|HH|14|1m6f|4yo+||45000|
+2026-07-10|York|Summer Friday|Summer Stakes|G3|6|6f|3yo+|F|
+2026-07-11|York|John Smith's Cup Day|John Smith's Cup|HH|10|1m2f|3yo+||100000|
+2026-07-11|York|John Smith's Cup Day|Silver Cup|G3|14|1m6f|4yo+||
+2026-07-11|York|John Smith's Cup Day|City Walls Stakes|L|5|5f|3yo+||
+2026-07-11|Ascot|Summer Mile Day|Summer Mile|G2|8|1m|4yo+||
+2026-07-11|Chester|Saturday|City Plate|L|7|7f|3yo+||
+2026-07-17|Hamilton|Friday Evening|Glasgow Stakes|L|11|1m3f|3yo||
+2026-07-17|Newbury|Friday|Steventon Stakes|L|10|1m2f|3yo+||
+2026-07-18|Newbury|Super Sprint Day|Super Sprint|S|5|5f|2yo||125000|Only for two-year-olds that cost little as yearlings: Books 3 and 4
+2026-07-18|Newbury|Super Sprint Day|Hackwood Stakes|G3|6|6f|3yo+||
+2026-07-18|Newbury|Super Sprint Day|Newbury Summer Staying Handicap|H|16|2m|3yo+||25000|
+2026-07-23|Sandown|Thursday Evening|Star Stakes|L|7|7f|2yo|F|
+2026-07-24|Ascot|King George Friday|Valiant Stakes|G3|8|1m|3yo+|F|
+2026-07-24|Ascot|King George Friday|Pat Eddery Stakes|L|7|7f|2yo||
+2026-07-25|Ascot|King George Day|King George VI and Queen Elizabeth Stakes|G1|12|1m4f|3yo+||1100000|The summer's middle-distance championship
+2026-07-25|Ascot|King George Day|Princess Margaret Stakes|G3|6|6f|2yo|F|
+2026-07-25|Ascot|King George Day|International Stakes|HH|7|7f|3yo+||75000|
+2026-07-25|Ascot|King George Day|King George Day Sprint Handicap|HH|5|5f|3yo+||45000|
+2026-07-25|York|Summer Saturday|Lyric Stakes|L|10|1m2f|3yo+|F|
+2026-07-25|York|Summer Saturday|York Summer Dash|H|6|6f|3yo+||30000|
+2026-07-26|Pontefract|Sunday|Pomfret Stakes|L|8|1m|3yo+||
+2026-07-28|Goodwood|Glorious Goodwood, Tuesday|Goodwood Cup|G1|16|2m|3yo+||300000|The stayers' summer championship
+2026-07-28|Goodwood|Glorious Goodwood, Tuesday|Vintage Stakes|G2|7|7f|2yo||
+2026-07-28|Goodwood|Glorious Goodwood, Tuesday|Lennox Stakes|G2|7|7f|3yo+||
+2026-07-28|Goodwood|Glorious Goodwood, Tuesday|Gordon Stakes|G3|12|1m4f|3yo||St Leger trial
+2026-07-29|Goodwood|Glorious Goodwood, Wednesday|Sussex Stakes|G1|8|1m|3yo+||550000|Three-year-olds take on their elders over a mile
+2026-07-29|Goodwood|Glorious Goodwood, Wednesday|Molecomb Stakes|G3|5|5f|2yo||
+2026-07-29|Goodwood|Glorious Goodwood, Wednesday|Goodwood Handicap|H|20|2m4f|3yo+||30000|
+2026-07-29|Goodwood|Glorious Goodwood, Wednesday|Three-Year-Old Fillies' Handicap|H|10|1m2f|3yo|F|25000|
+2026-07-30|Goodwood|Glorious Goodwood, Thursday|Nassau Stakes|G1|10|1m2f|3yo+|F|350000|
+2026-07-30|Goodwood|Glorious Goodwood, Thursday|Thoroughbred Stakes|G3|8|1m|3yo||
+2026-07-30|Goodwood|Glorious Goodwood, Thursday|Glorious Stakes|G3|12|1m4f|4yo+||
+2026-07-30|Goodwood|Glorious Goodwood, Thursday|Chesterfield Cup|H|10|1m2f|4yo+||30000|
+2026-07-31|Goodwood|Glorious Goodwood, Friday|King George Stakes|G2|5|5f|3yo+||
+2026-07-31|Goodwood|Glorious Goodwood, Friday|Oak Tree Stakes|G3|7|7f|3yo+|F|
+2026-07-31|Goodwood|Glorious Goodwood, Friday|Golden Mile|HH|8|1m|3yo+||75000|
+2026-07-31|Goodwood|Glorious Goodwood, Friday|Summer Handicap|H|14|1m6f|3yo+||25000|
+2026-08-01|Goodwood|Glorious Goodwood, Saturday|Stewards' Cup|HH|6|6f|3yo+||110000|Downhill cavalry charge
+2026-08-01|Goodwood|Glorious Goodwood, Saturday|Lillie Langtry Stakes|G2|14|1m6f|3yo+|F|
+2026-08-01|Goodwood|Glorious Goodwood, Saturday|Richmond Stakes|G2|6|6f|2yo|C|
+2026-08-01|Goodwood|Glorious Goodwood, Saturday|Goodwood Sprint Handicap|H|5|5f|3yo+||25000|
+2026-08-02|Chester|Sunday|Queensferry Stakes|L|6|6f|3yo+||
+2026-08-05|Brighton|Brighton Festival, Wednesday|Brighton Mile|H|8|1m|3yo+||15000|
+2026-08-08|Ascot|Shergar Cup|Shergar Cup Dash|H|5|5f|3yo+||25000|Team jockeys' day: six handicaps, riders picked for you
+2026-08-08|Ascot|Shergar Cup|Shergar Cup Sprint|H|6|6f|3yo||25000|
+2026-08-08|Ascot|Shergar Cup|Shergar Cup Mile|H|8|1m|4yo+||25000|
+2026-08-08|Ascot|Shergar Cup|Shergar Cup Classic|H|12|1m4f|3yo||25000|
+2026-08-08|Ascot|Shergar Cup|Shergar Cup Challenge|H|12|1m4f|4yo+||25000|
+2026-08-08|Ascot|Shergar Cup|Shergar Cup Stayers|H|16|2m|4yo+||25000|
+2026-08-08|Haydock|Rose of Lancaster Day|Rose of Lancaster Stakes|G3|10|1m2f|3yo+||
+2026-08-08|Haydock|Rose of Lancaster Day|Dick Hern Fillies' Stakes|L|8|1m|3yo+|F|
+2026-08-08|Newmarket|Summer Saturday (July Course)|Sweet Solera Stakes|G3|7|7f|2yo|F|
+2026-08-08|Newmarket|Summer Saturday (July Course)|Chalice Stakes|L|12|1m4f|3yo+|F|
+2026-08-08|Newmarket|Summer Saturday (July Course)|Hopeful Stakes|L|6|6f|3yo+||
+2026-08-12|Salisbury|Wednesday|Upavon Fillies' Stakes|L|10|1m2f|3yo+|F|
+2026-08-14|Salisbury|Friday|Stonehenge Stakes|L|8|1m|2yo||
+2026-08-14|Hamilton|Friday Evening|Lanark Silver Bell|HH|12|1m4f|3yo+||40000|
+2026-08-14|Newbury|Friday|St Hugh's Stakes|L|5|5f|2yo|F|
+2026-08-15|Newbury|Hungerford Day|Hungerford Stakes|G2|7|7f|3yo+||
+2026-08-15|Newbury|Hungerford Day|Geoffrey Freer Stakes|G3|13|1m5f|3yo+||
+2026-08-15|Newbury|Hungerford Day|Washington Singer Stakes|L|7|7f|2yo||
+2026-08-15|Ripon|Great St Wilfrid Day|Great St Wilfrid|H|6|6f|3yo+||35000|
+2026-08-15|Newmarket|Summer Saturday (July Course)|Grey Horse Handicap|H|6|6f|3yo+||12000|
+2026-08-16|Pontefract|Sunday|Flying Fillies' Stakes|L|6|6f|3yo+|F|
+2026-08-19|York|The Ebor Festival, Wednesday|International Stakes|G1|10|1m2f|3yo+||600000|Often the best race of the year
+2026-08-19|York|The Ebor Festival, Wednesday|Great Voltigeur Stakes|G2|12|1m4f|3yo|C||St Leger trial
+2026-08-19|York|The Ebor Festival, Wednesday|Acomb Stakes|G3|7|7f|2yo||
+2026-08-19|York|The Ebor Festival, Wednesday|Stayers' Handicap|HH|16|2m|4yo+||45000|
+2026-08-20|York|The Ebor Festival, Thursday|Yorkshire Oaks|G1|12|1m4f|3yo+|F|300000|
+2026-08-20|York|The Ebor Festival, Thursday|Lowther Stakes|G2|6|6f|2yo|F|
+2026-08-20|York|The Ebor Festival, Thursday|Galtres Stakes|L|12|1m4f|3yo+|F|
+2026-08-20|York|The Ebor Festival, Thursday|Knavesmire Handicap|HH|7|7f|3yo+||45000|
+2026-08-20|York|The Ebor Festival, Thursday|Premier Yearling Stakes|S|6|6f|2yo||100000|Only for two-year-olds bought at a yearling sale
+2026-08-21|York|The Ebor Festival, Friday|Nunthorpe Stakes|G1|5|5f|2yo+||300000|Two-year-olds may run, with a big weight allowance
+2026-08-21|York|The Ebor Festival, Friday|Gimcrack Stakes|G2|6|6f|2yo|C|
+2026-08-21|York|The Ebor Festival, Friday|Lonsdale Cup|G2|16|2m|3yo+||
+2026-08-21|York|The Ebor Festival, Friday|Roses Stakes|L|5|5f|2yo||
+2026-08-21|York|The Ebor Festival, Friday|Clipper Handicap|HH|8|1m|3yo+||45000|
+2026-08-22|York|The Ebor Festival, Saturday|The Ebor|HH|14|1m6f|4yo+||300000|Europe's richest Flat handicap
+2026-08-22|York|The Ebor Festival, Saturday|City of York Stakes|G2|7|7f|3yo+||
+2026-08-22|York|The Ebor Festival, Saturday|Strensall Stakes|G3|9|1m1f|3yo+||
+2026-08-22|York|The Ebor Festival, Saturday|Melrose Handicap|HH|14|1m6f|3yo||45000|
+2026-08-22|York|The Ebor Festival, Saturday|Constantine Handicap|HH|6|6f|3yo+||45000|
+2026-08-22|Windsor|Saturday|Winter Hill Stakes|G3|10|1m2f|3yo+||
+2026-08-29|Goodwood|Bank Holiday Saturday|Celebration Mile|G2|8|1m|3yo+||
+2026-08-29|Goodwood|Bank Holiday Saturday|Prestige Stakes|G3|7|7f|2yo|F|
+2026-08-29|Goodwood|Bank Holiday Saturday|March Stakes|L|14|1m6f|3yo+||St Leger trial
+2026-08-29|Sandown|Solario Day|Solario Stakes|G3|7|7f|2yo||
+2026-08-29|Sandown|Solario Day|Atalanta Stakes|G3|8|1m|3yo+|F|
+2026-08-29|Beverley|Beverley Bullet Day|Beverley Bullet|L|5|5f|3yo+||
+2026-08-29|Windsor|Saturday|Sprint Series Final|H|6|6f|3yo+||25000|Only for horses that ran in the summer sprint qualifiers
+2026-08-31|Ripon|Bank Holiday Monday|Champion Two-Year-Old Trophy|L|6|6f|2yo||
+2026-09-03|Salisbury|Thursday|Dick Poole Fillies' Stakes|G3|6|6f|2yo|F|
+2026-09-04|Haydock|Sprint Cup Festival, Friday|Ascendant Stakes|L|8|1m|2yo||
+2026-09-05|Haydock|Sprint Cup Day|Sprint Cup|G1|6|6f|3yo+||250000|
+2026-09-05|Haydock|Sprint Cup Day|Superior Mile|G3|8|1m|3yo+||
+2026-09-05|Haydock|Sprint Cup Day|Old Borough Cup|H|14|1m6f|3yo+||30000|
+2026-09-05|Kempton|September Stakes Day (all-weather)|September Stakes|G3|12|1m4f|3yo+||
+2026-09-05|Kempton|September Stakes Day (all-weather)|Sirenia Stakes|G3|6|6f|2yo||
+2026-09-05|Kempton|September Stakes Day (all-weather)|London Mile Series Final|H|8|1m|3yo+||25000|Only for horses that ran in the London Mile qualifiers
+2026-09-05|Ascot|September Saturday|Ascot Three-Year-Old Heritage Handicap|HH|12|1m4f|3yo||45000|
+2026-09-09|Sandown|Wednesday|Fortune Stakes|L|8|1m|3yo+||
+2026-09-10|Doncaster|The St Leger Festival, Thursday|May Hill Stakes|G2|8|1m|2yo|F|
+2026-09-10|Doncaster|The St Leger Festival, Thursday|Park Hill Stakes|G2|14|1m6f|3yo+|F|
+2026-09-10|Doncaster|The St Leger Festival, Thursday|Scarbrough Stakes|L|5|5f|2yo+||
+2026-09-11|Doncaster|The St Leger Festival, Friday|Doncaster Cup|G2|18|2m2f|3yo+||
+2026-09-11|Doncaster|The St Leger Festival, Friday|Flying Childers Stakes|G2|5|5f|2yo||
+2026-09-11|Doncaster|The St Leger Festival, Friday|Flying Scotsman Stakes|L|7|7f|2yo||
+2026-09-11|Doncaster|The St Leger Festival, Friday|Mallard Handicap|H|14|1m6f|3yo+||25000|
+2026-09-12|Doncaster|St Leger Day|St Leger Stakes|G1|14|1m6f|3yo|CF|400000|The final Classic, and the oldest (250th running in 2026)
+2026-09-12|Doncaster|St Leger Day|Champagne Stakes|G2|7|7f|2yo|C|
+2026-09-12|Doncaster|St Leger Day|Park Stakes|G2|7|7f|3yo+||
+2026-09-12|Doncaster|St Leger Day|Portland Handicap|HH|6|5½f|3yo+||60000|
+2026-09-13|Doncaster|The St Leger Festival, Sunday|Sceptre Stakes|G3|7|7f|3yo+|F|
+2026-09-11|Chester|Autumn Festival, Friday|Stand Cup|L|12|1m4f|3yo+||
+2026-09-12|Chester|Autumn Festival, Saturday|Watergate Cup|HH|16|2m|3yo+||40000|
+2026-09-16|Yarmouth|The Eastern Festival, Wednesday|John Musker Fillies' Stakes|L|10|1m2f|3yo+|F|
+2026-09-18|Ayr|The Western Meeting, Friday|Firth of Clyde Stakes|G3|6|6f|2yo|F|
+2026-09-18|Ayr|The Western Meeting, Friday|Doonside Cup|L|10|1m2f|3yo+||
+2026-09-19|Ayr|Ayr Gold Cup Day|Ayr Gold Cup|HH|6|6f|3yo+||110000|Up to 25 sprinters straight across the track
+2026-09-19|Ayr|Ayr Gold Cup Day|Harry Rosebery Stakes|L|5|5f|2yo||
+2026-09-19|Newbury|Mill Reef Day|Mill Reef Stakes|G2|6|6f|2yo||
+2026-09-19|Newbury|Mill Reef Day|World Trophy|G3|5|5f|3yo+||
+2026-09-19|Newbury|Mill Reef Day|Newbury Autumn Cup|H|13|1m5f|3yo+||25000|
+2026-09-19|Newbury|Mill Reef Day|Dubai Duty Free Cup|L|7|7f|3yo+||
+2026-09-19|Newmarket|Cesarewitch Trial Day|Godolphin Stakes|L|12|1m4f|3yo+||
+2026-09-19|Newmarket|Cesarewitch Trial Day|Cesarewitch Trial|H|18|2m2f|3yo+||20000|
+2026-09-24|Newmarket|The Cambridgeshire Meeting, Thursday|Somerville Tattersall Stakes|G3|7|7f|2yo|C|
+2026-09-24|Newmarket|The Cambridgeshire Meeting, Thursday|October Auction Stakes|S|6|6f|2yo||150000|Only for two-year-olds bought at the October yearling sale
+2026-09-25|Newmarket|The Cambridgeshire Meeting, Friday|Rockfel Stakes|G2|7|7f|2yo|F|
+2026-09-25|Newmarket|The Cambridgeshire Meeting, Friday|Joel Stakes|G2|8|1m|3yo+||
+2026-09-25|Newmarket|The Cambridgeshire Meeting, Friday|Princess Royal Stakes|G3|12|1m4f|3yo+|F|
+2026-09-25|Newmarket|The Cambridgeshire Meeting, Friday|Rosemary Stakes|L|8|1m|3yo+|F|
+2026-09-26|Newmarket|Cambridgeshire Day|Cheveley Park Stakes|G1|6|6f|2yo|F|200000|
+2026-09-26|Newmarket|Cambridgeshire Day|Middle Park Stakes|G1|6|6f|2yo|C|200000|
+2026-09-26|Newmarket|Cambridgeshire Day|Royal Lodge Stakes|G2|8|1m|2yo|C|
+2026-09-26|Newmarket|Cambridgeshire Day|The Cambridgeshire|HH|9|1m1f|3yo+||110000|First leg of the Autumn Double
+2026-09-26|Newmarket|Cambridgeshire Day|Rose Bowl Stakes|L|6|6f|2yo||
+2026-10-02|Ascot|Autumn Friday|Noel Murless Stakes|L|14|1m6f|3yo||
+2026-10-03|Ascot|Autumn Saturday|Cumberland Lodge Stakes|G3|12|1m4f|3yo+||
+2026-10-03|Ascot|Autumn Saturday|Bengough Stakes|G3|6|6f|3yo+||
+2026-10-03|Ascot|Autumn Saturday|Challenge Cup|HH|7|7f|3yo+||60000|
+2026-10-03|Ascot|Autumn Saturday|Rous Stakes|L|5|5f|3yo+||
+2026-10-03|Ascot|Autumn Saturday|October Stakes|L|7|7f|3yo+|F|
+2026-10-03|Newmarket|Sun Chariot Day|Sun Chariot Stakes|G1|8|1m|3yo+|F|250000|
+2026-10-03|Newmarket|Sun Chariot Day|Jockey Club Rose Bowl|L|16|2m|3yo+||
+2026-10-03|Redcar|Two-Year-Old Trophy Day|Two-Year-Old Trophy|S|6|6f|2yo||75000|Weights by what the horse cost as a yearling: cheap buys get weight off
+2026-10-03|Redcar|Two-Year-Old Trophy Day|Guisborough Stakes|L|7|7f|3yo+||
+2026-10-07|Bath|Wednesday|Beckford Stakes|L|14|1m6f|3yo+|F|
+2026-10-09|Newmarket|The Future Champions Festival, Friday|Fillies' Mile|G1|8|1m|2yo|F|250000|
+2026-10-09|Newmarket|The Future Champions Festival, Friday|Oh So Sharp Stakes|G3|7|7f|2yo|F|
+2026-10-09|Newmarket|The Future Champions Festival, Friday|Cornwallis Stakes|G3|5|5f|2yo||
+2026-10-09|Newmarket|The Future Champions Festival, Friday|Pride Stakes|G3|10|1m2f|3yo+|F|
+2026-10-09|Newmarket|The Future Champions Festival, Friday|Zetland Stakes|G3|10|1m2f|2yo||
+2026-10-09|Newmarket|The Future Champions Festival, Friday|Old Rowley Cup|HH|12|1m4f|3yo||45000|
+2026-10-10|Newmarket|Future Champions Day|Dewhurst Stakes|G1|7|7f|2yo|CF|300000|The two-year-old championship
+2026-10-10|Newmarket|Future Champions Day|The Cesarewitch|HH|18|2m2f|3yo+||110000|Second leg of the Autumn Double
+2026-10-10|Newmarket|Future Champions Day|Challenge Stakes|G2|7|7f|3yo+||
+2026-10-10|Newmarket|Future Champions Day|Autumn Stakes|G3|8|1m|2yo||
+2026-10-10|Newmarket|Future Champions Day|Darley Stakes|G3|9|1m1f|3yo+||
+2026-10-10|York|Autumn Saturday|Rockingham Stakes|L|6|6f|2yo||
+2026-10-10|York|Autumn Saturday|Sprint Trophy|HH|6|6f|3yo+||45000|
+2026-10-10|York|Autumn Saturday|York Finale Handicap|HH|14|1m6f|3yo||45000|
+2026-10-15|Lingfield (AW)|Thursday|River Eden Fillies' Stakes|L|13|1m5f|3yo+|F|
+2026-10-15|Lingfield (AW)|Thursday|Fleur de Lys Fillies' Stakes|L|8|1m|3yo+|F|
+2026-10-17|Ascot|British Champions Day|Champion Stakes|G1|10|1m2f|3yo+||750000|The season's finale and richest day
+2026-10-17|Ascot|British Champions Day|Queen Elizabeth II Stakes|G1|8|1m|3yo+||600000|
+2026-10-17|Ascot|British Champions Day|Champions Fillies' and Mares' Stakes|G1|12|1m4f|3yo+|F|350000|
+2026-10-17|Ascot|British Champions Day|Champions Sprint Stakes|G1|6|6f|3yo+||350000|
+2026-10-17|Ascot|British Champions Day|Champions Long Distance Cup|G2|16|2m|3yo+||200000|
+2026-10-17|Ascot|British Champions Day|Balmoral Handicap|HH|8|1m|3yo+||90000|
+2026-10-19|Pontefract|Monday|Silver Tankard Stakes|L|8|1m|2yo||
+2026-10-23|Doncaster|Futurity Friday|Doncaster Stakes|L|6|6f|2yo||
+2026-10-24|Doncaster|Futurity Trophy Day|Futurity Trophy|G1|8|1m|2yo|CF|200000|Next year's Derby horses often start here
+2026-10-24|Newbury|St Simon Day|St Simon Stakes|G3|12|1m4f|3yo+||
+2026-10-24|Newbury|St Simon Day|Horris Hill Stakes|G3|7|7f|2yo|C|
+2026-10-24|Newbury|St Simon Day|Radley Stakes|L|7|7f|2yo|F|
+2026-10-30|Newmarket|The Final Meeting, Friday|Bosra Sham Stakes|L|6|6f|2yo|F|
+2026-10-30|Newmarket|The Final Meeting, Friday|Montrose Fillies' Stakes|L|8|1m|2yo|F|
+2026-10-31|Newmarket|The Final Meeting, Saturday|Ben Marshall Stakes|L|8|1m|3yo+||
+2026-10-31|Newmarket|The Final Meeting, Saturday|James Seymour Stakes|L|10|1m2f|3yo+||
+2026-11-07|Doncaster|November Handicap Day|November Handicap|HH|12|1m4f|3yo+||60000|The last big race on turf
+2026-11-07|Doncaster|November Handicap Day|Wentworth Stakes|L|6|6f|3yo+||
+2026-11-07|Doncaster|November Handicap Day|Gillies Fillies' Stakes|L|10|1m2f|3yo+|F|
+# ---------------------------------------------------------------- WINTER (ALL-WEATHER) 2026-27
+2026-11-18|Kempton|Wednesday Evening (all-weather)|Floodlit Stakes|L|12|1m4f|3yo+||
+2026-11-18|Kempton|Wednesday Evening (all-weather)|Hyde Stakes|L|8|1m|3yo+||
+2026-11-21|Lingfield (AW)|Saturday (all-weather)|Churchill Stakes|L|10|1m2f|3yo+||
+2026-11-21|Lingfield (AW)|Saturday (all-weather)|Golden Rose Stakes|L|6|6f|3yo+||
+2026-12-02|Kempton|Wednesday Evening (all-weather)|Wild Flower Stakes|L|12|1m4f|3yo+||
+2026-12-19|Lingfield (AW)|Saturday (all-weather)|Quebec Stakes|L|10|1m2f|3yo+||
+2027-01-23|Lingfield (AW)|Saturday (all-weather)|Winter Oaks|H|10|1m2f|4yo+|F|20000|
+2027-02-06|Lingfield (AW)|Winter Million weekend|Winter Derby Trial|L|10|1m2f|4yo+||
+2027-02-06|Lingfield (AW)|Winter Million weekend|Cleves Stakes|L|6|6f|4yo+||
+2027-02-06|Lingfield (AW)|Winter Million weekend|Hever Sprint Stakes|L|5|5f|4yo+||
+2027-02-27|Southwell|Winter Derby Day|Winter Derby|G3|11|1m3f|4yo+||
+2027-03-13|Wolverhampton|Saturday (all-weather)|Lady Wulfruna Stakes|L|7|7f|4yo+||
+2027-03-20|Lingfield (AW)|Saturday (all-weather)|Spring Cup|L|7|7f|3yo||
