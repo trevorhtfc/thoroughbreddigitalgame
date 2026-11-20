@@ -1023,6 +1023,7 @@ browser draws 3D.
 
 ### Beginner deals 3 mares (20 Nov 2026)
 Owner, 20 Nov: "We also said 3 mares drawn not 6 in beginner mode" (18 Nov had said 5). `HAND_BEGINNER` is now one from
-each deck (Blue-blooded, Useful, Moderate). A Beginner game already dealt a bigger hand, with no mare bred yet, puts the
-extra mares back as the stud opens (`fitHand`, rules.js), keeping the first dealt from each deck. How to play and the key
+each deck (Blue-blooded, Useful, Moderate). A Beginner game already dealt a bigger hand puts the extra mares still waiting
+back when the game opens and when the stud opens (`fitHand`, rules.js), keeping the first dealt from each deck; mares
+already bred count towards the three and stay bred (owner, 20 Nov: "I opened a previous game and still have 5 mares"). How to play and the key
 points say three.

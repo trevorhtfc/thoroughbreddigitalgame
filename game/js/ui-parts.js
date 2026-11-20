@@ -92,6 +92,7 @@ function breedBody() {
   // (owner, 18 Nov: "you have the decks but no draw pile.. you then click a button about going to stallions and then they
   // appear?.. this should be much simpler": the hand is dealt straight into your mares, and they're the ones you tap)
   if (S.step === 1 && !handDone() && dealHand()) UI.mareAnim = true;
+  fitHand();
   return `<div class="tb-head"><h1 class="tb-h">BREED</h1>
     <p class="tb-lede short" ${onJob() ? "" : "hidden"}>${S.stable.length ? `<b>${money(S.budget)}</b> left · ${S.stable.length} horse${S.stable.length === 1 ? "" : "s"} for ${RACES.length} races.` : `<b>${money(S.budget)}</b> to build a stable for ${RACES.length} races.`} ${S.hand.length ? "Keep some back for Tattersalls." : "Every mare is covered: on to Tattersalls when you're ready."}</p></div>
     ${viewTabs("The stud")}

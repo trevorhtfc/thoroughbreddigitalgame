@@ -700,7 +700,7 @@ function dailySave(play) { try { const v = JSON.parse(localStorage.getItem(slotK
 function load(mode, play) {
   mode = mode || "random";
   try { const v = JSON.parse(renamed(localStorage.getItem(slotKey(mode, play)) || "null")); if (v && v.seed && Array.isArray(v.stable)) {
-    S = v; S.open = null; S.mode = mode === "daily" && S.day ? "daily" : "random"; S.pileN = S.pileN || {}; S.play = S.play || "plus"; CARD = makeCard(S.seed, S.mix, S.ground); ownLuck(); migrate();
+    S = v; S.open = null; S.mode = mode === "daily" && S.day ? "daily" : "random"; S.pileN = S.pileN || {}; S.play = S.play || "plus"; CARD = makeCard(S.seed, S.mix, S.ground); ownLuck(); migrate(); if (typeof fitHand === "function") fitHand();
     // left in the middle of an auction: that lot has gone through the ring without you
     if (S.ring) { S.sale = (S.sale || []).filter(x => x.id !== S.ring); S.ring = null; save(); }
     return true; } } catch (e) {}
@@ -876,14 +876,17 @@ function drawHandMare(id) {
   if (PILES.every(q => handDrawn(q.id) >= (handSize()[q.id] || 0) || !pileLeft(q).length)) mh().dealt = true;
   save(); return n;
 }
-// A Beginner game dealt a bigger hand before the hand was cut (5 or 6 mares), with no mare bred yet: the extra mares go
-// back to their decks, keeping the first dealt from each
+// A Beginner game dealt a bigger hand before the hand was cut (5 or 6 mares): the extra mares still waiting go back to
+// their decks, keeping the first dealt from each
 function fitHand() {
-  if (!isBeginner() || !handOn() || !mh().dealt || S.step !== 1 || S.usedMares.length || S.foal || S.offer) return;
+  // (20 Nov: also once a mare or two has been bred: the mares already covered count towards the three, and only the
+  // ones still waiting go back)
+  if (!isBeginner() || !handOn() || !mh().dealt || S.step !== 1 || S.foal || S.offer) return;
   const want = handSize(), kept = {}, keep = [];
+  for (const n of S.usedMares) { const p = pileOf(n), id = p && p.id; if (id) kept[id] = (kept[id] || 0) + 1; }
   for (const n of S.hand) { const p = pileOf(n), id = p && p.id; if (id && (kept[id] || 0) < (want[id] || 0)) { kept[id] = (kept[id] || 0) + 1; keep.push(n); } }
   if (keep.length === S.hand.length) return;
-  S.hand = keep; mh().hand = (mh().hand || []).filter(n => keep.includes(n)); mh().drawn = kept;
+  S.hand = keep; mh().hand = (mh().hand || []).filter(n => keep.includes(n) || S.usedMares.includes(n)); mh().drawn = kept;
   if (S.selMare && !keep.includes(S.selMare)) { S.selMare = null; S.selStallion = null; }
   save();
 }
