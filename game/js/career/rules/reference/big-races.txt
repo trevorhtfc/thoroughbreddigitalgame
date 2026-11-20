@@ -1,0 +1,322 @@
+# MMDD|course|race|grade|furlongs|ages|sex|prize to winner (k)   — from the calendar draft (claude/calendar/big_races.txt), compacted
+0327|Doncaster|Spring Mile|H|8|4+||20
+0328|Doncaster|Lincoln Handicap|HH|8|4+||75
+0328|Doncaster|Doncaster Mile|L|8|4+||
+0328|Doncaster|Cammidge Trophy|L|6|3+||
+0328|Doncaster|Brocklesby Stakes|C|5|2||12
+0328|Kempton|Rosebery Handicap|H|11|4+||25
+0328|Kempton|Magnolia Stakes|L|10|4+||
+0404|Musselburgh|Queen's Cup|HH|14|4+||45
+0404|Musselburgh|Scottish Sprint Cup|H|5|4+||25
+0404|Lingfield|International Trial Stakes|L|8|3||
+0408|Nottingham|Further Flight Stakes|L|14|4+||
+0411|Kempton|Snowdrop Fillies' Stakes|L|8|4+|F|
+0414|Newmarket|Nell Gwyn Stakes|G3|7|3|F|
+0414|Newmarket|Feilden Stakes|L|9|3||
+0414|Newmarket|Free Handicap|H|7|3||20
+0415|Newmarket|Earl of Sefton Stakes|G3|9|4+||
+0415|Newmarket|Abernant Stakes|G3|6|3+||
+0416|Newmarket|Craven Stakes|G3|8|3|C|
+0416|Newmarket|Wood Ditton Maiden|M|8|3||8
+0417|Bath|Lansdown Fillies' Stakes|L|5|3+|F|
+0418|Newbury|Greenham Stakes|G3|7|3|C|
+0418|Newbury|Fred Darling Stakes|G3|7|3|F|
+0418|Newbury|John Porter Stakes|G3|12|4+||
+0418|Newbury|Spring Cup|H|8|4+||30
+0422|Epsom|City and Suburban Handicap|H|10|4+||25
+0422|Epsom|Great Metropolitan Handicap|H|12|4+||20
+0422|Epsom|Blue Riband Trial|C|10|3||15
+0424|Sandown|Sandown Mile|G2|8|4+||
+0424|Sandown|Classic Trial|G3|10|3||
+0424|Sandown|Gordon Richards Stakes|G3|10|4+||
+0424|Sandown|Esher Cup|H|8|3||20
+0425|Leicester|King Richard III Stakes|L|7|4+||
+0425|Leicester|King Richard III Cup|H|6|4+||12
+0501|Ascot|Sagaro Stakes|G3|16|4+||
+0501|Ascot|Pavilion Stakes|G3|6|3||
+0501|Ascot|Paradise Stakes|L|8|4+||
+0501|Newmarket|Newmarket Stakes|L|10|3|C|
+0501|Newmarket|Suffolk Stakes|HH|9|3+||45
+0501|Goodwood|Conqueror Stakes|L|8|3+|F|
+0502|Newmarket|2000 Guineas|G1|8|3||300
+0502|Newmarket|Jockey Club Stakes|G2|12|4+||
+0502|Newmarket|Palace House Stakes|G3|5|3+||
+0502|Newmarket|Guineas Day Sprint Handicap|HH|6|4+||45
+0502|Thirsk|Thirsk Hunt Cup|H|8|4+||20
+0503|Newmarket|1000 Guineas|G1|8|3|F|300
+0503|Newmarket|Dahlia Stakes|G2|9|4+|F|
+0503|Newmarket|Pretty Polly Stakes|L|10|3|F|
+0503|Newmarket|Guineas Day Staying Handicap|HH|14|4+||45
+0506|Chester|Chester Vase|G3|12|3|C|
+0506|Chester|Cheshire Oaks|L|11|3|F|
+0506|Chester|Huxley Stakes|G2|10|4+||
+0507|Chester|Ormonde Stakes|G3|13|4+||
+0507|Chester|Dee Stakes|L|10|3|C|
+0508|Chester|Chester Cup|HH|18|4+||75
+0509|Ascot|Victoria Cup|HH|7|4+||60
+0509|Ascot|Buckhounds Stakes|L|12|4+||
+0509|Lingfield|Derby Trial Stakes|L|11|3|C|
+0509|Lingfield|Oaks Trial Stakes|L|11|3|F|
+0509|Lingfield|Chartwell Fillies' Stakes|G3|7|3+|F|
+0509|Haydock|Spring Trophy|L|7|3+||
+0509|Nottingham|Kilvington Fillies' Stakes|L|6|3+|F|
+0511|Windsor|Royal Windsor Stakes|L|8|3+|C|
+0514|York|Duke of York Stakes|G2|6|3+||
+0514|York|Musidora Stakes|G3|10|3|F|
+0514|York|Jorvik Handicap|H|12|4+||25
+0515|York|Dante Stakes|G2|10|3||
+0515|York|Middleton Stakes|G2|10|4+|F|
+0515|York|Marygate Fillies' Stakes|L|5|2|F|
+0515|York|Hambleton Handicap|H|8|4+||30
+0516|York|Yorkshire Cup|G2|14|4+||
+0516|York|Westow Stakes|L|5|3||
+0516|York|Michael Seely Memorial Stakes|L|8|3|F|
+0515|Newmarket|King Charles II Stakes|L|7|3||
+0516|Newmarket|Fairway Stakes|L|10|3||
+0515|Newbury|Fillies' Trial Stakes|L|10|3|F|
+0516|Newbury|Lockinge Stakes|G1|8|4+||250
+0516|Newbury|Aston Park Stakes|G3|12|4+||
+0516|Newbury|London Gold Cup|HH|10|3||45
+0516|Newbury|Carnarvon Stakes|L|6|3||
+0516|Ayr|Rothesay Stakes|L|10|4+|F|
+0521|Goodwood|Height of Fashion Stakes|L|10|3|F|
+0521|Goodwood|Tapster Stakes|L|12|4+||
+0522|Goodwood|Cocked Hat Stakes|L|11|3|C|
+0522|Goodwood|Festival Stakes|L|10|4+||
+0523|Goodwood|Daisy Warwick Stakes|L|12|4+|F|
+0523|Goodwood|Harroways Handicap|H|7|3||15
+0522|Haydock|Cecil Frail Stakes|L|6|3+|F|
+0523|Haydock|Temple Stakes|G2|5|3+||
+0523|Haydock|Sandy Lane Stakes|G2|6|3||
+0523|Haydock|Silver Bowl|HH|8|3||45
+0523|Haydock|Achilles Stakes|L|5|3+||
+0525|Redcar|Zetland Gold Cup|H|10|3+||25
+0528|Sandown|Brigadier Gerard Stakes|G3|10|4+||
+0528|Sandown|Henry II Stakes|G3|16|4+||
+0528|Sandown|Heron Stakes|L|8|3||
+0528|Sandown|National Stakes|L|5|2||
+0528|Sandown|Whitsun Cup|H|8|4+||20
+0601|Windsor|Leisure Stakes|L|6|3+||
+0604|Nottingham|Nottinghamshire Oaks|L|10|4+|F|
+0605|Epsom|The Oaks|G1|12|3|F|300
+0605|Epsom|Coronation Cup|G1|12|4+||250
+0605|Epsom|Princess Elizabeth Stakes|G3|8.5|3+|F|
+0605|Epsom|Surrey Stakes|L|7|3||
+0605|Epsom|Woodcote Stakes|L|6|2||
+0605|Epsom|Northern Dancer Handicap|H|12|4+||25
+0606|Epsom|The Derby|G1|12|3||900
+0606|Epsom|Diomed Stakes|G3|8.5|3+||
+0606|Epsom|Epsom Dash|HH|5|3+||60
+0606|Epsom|Derby Day Three-Year-Old Handicap|H|10|3||20
+0606|Haydock|John of Gaunt Stakes|G3|7|4+||
+0606|Haydock|Lester Piggott Fillies' Stakes|G3|12|4+|F|
+0611|Sandown|Scurry Stakes|L|5|3||
+0611|Newbury|Ballymacoll Stud Stakes|L|10|3|F|
+0613|York|Ganton Stakes|L|8|3+||
+0613|York|Three-Year-Old Sprint Handicap|H|6|3||25
+0614|Salisbury|Cathedral Stakes|L|6|3+||
+ROYAL_ASCOT
+0620|Ayr|Land O'Burns Fillies' Stakes|L|5|3+|F|
+0624|Carlisle|Carlisle Bell|H|8|3+||15
+0624|Carlisle|Eternal Stakes|L|7|3|F|
+0626|Newcastle|Hoppings Stakes|G3|10|3+|F|
+0627|Newcastle|Northumberland Plate|HH|16|3+||120
+0627|Newcastle|Chipchase Stakes|G3|6|3+||
+0627|Newcastle|Gosforth Park Cup|H|5|3+||25
+0627|Newmarket|Fred Archer Stakes|L|12|4+||
+0627|Newmarket|Empress Fillies' Stakes|L|6|2|F|
+0628|Pontefract|Pontefract Castle Stakes|L|12|4+||
+0630|Pontefract|Pipalong Stakes|L|8|4+|F|
+0703|Sandown|Dragon Stakes|L|5|2||
+0703|Sandown|Gala Stakes|L|10|3+||
+0703|Sandown|Sandown Marathon|L|16|4+||
+0704|Sandown|Eclipse Stakes|G1|10|3+||450
+0704|Sandown|Sprint Stakes|G3|5|3+||
+0704|Sandown|Sandown Distaff|L|8|3|F|
+0704|Sandown|Sandown Challenge Handicap|H|8|3+||30
+0704|Haydock|Lancashire Oaks|G2|12|3+|F|
+0704|Haydock|Old Newton Cup|H|12|3+||45
+0704|Haydock|Three-Year-Old Staying Handicap|H|14|3||20
+0709|Newmarket|Princess of Wales's Stakes|G2|12|3+||
+0709|Newmarket|July Stakes|G2|6|2|C|
+0709|Newmarket|Bahrain Trophy|G3|13|3||
+0709|Newmarket|July Festival Three-Year-Old Sprint|HH|6|3||45
+0710|Newmarket|Falmouth Stakes|G1|8|3+|F|250
+0710|Newmarket|Duchess of Cambridge Stakes|G2|6|2|F|
+0710|Newmarket|Sir Henry Cecil Stakes|L|8|3||
+0710|Newmarket|July Festival Three-Year-Old Handicap|HH|10|3||45
+0711|Newmarket|July Cup|G1|6|3+||300
+0711|Newmarket|Superlative Stakes|G2|7|2||
+0711|Newmarket|Bunbury Cup|HH|7|3+||60
+0711|Newmarket|July Festival Staying Handicap|HH|14|4+||45
+0710|York|Summer Stakes|G3|6|3+|F|
+0711|York|John Smith's Cup|HH|10|3+||100
+0711|York|Silver Cup|G3|14|4+||
+0711|York|City Walls Stakes|L|5|3+||
+0711|Ascot|Summer Mile|G2|8|4+||
+0711|Chester|City Plate|L|7|3+||
+0717|Hamilton|Glasgow Stakes|L|11|3||
+0717|Newbury|Steventon Stakes|L|10|3+||
+0718|Newbury|Hackwood Stakes|G3|6|3+||
+0718|Newbury|Newbury Summer Staying Handicap|H|16|3+||25
+0723|Sandown|Star Stakes|L|7|2|F|
+0724|Ascot|Valiant Stakes|G3|8|3+|F|
+0724|Ascot|Pat Eddery Stakes|L|7|2||
+0725|Ascot|King George VI and Queen Elizabeth Stakes|G1|12|3+||1100
+0725|Ascot|Princess Margaret Stakes|G3|6|2|F|
+0725|Ascot|International Handicap|HH|7|3+||75
+0725|Ascot|King George Day Sprint Handicap|HH|5|3+||45
+0725|York|Lyric Stakes|L|10|3+|F|
+0725|York|York Summer Dash|H|6|3+||30
+0726|Pontefract|Pomfret Stakes|L|8|3+||
+0728|Goodwood|Goodwood Cup|G1|16|3+||300
+0728|Goodwood|Vintage Stakes|G2|7|2||
+0728|Goodwood|Lennox Stakes|G2|7|3+||
+0728|Goodwood|Gordon Stakes|G3|12|3||
+0729|Goodwood|Sussex Stakes|G1|8|3+||550
+0729|Goodwood|Molecomb Stakes|G3|5|2||
+0729|Goodwood|Goodwood Handicap|H|20|3+||30
+0729|Goodwood|Three-Year-Old Fillies' Handicap|H|10|3|F|25
+0730|Goodwood|Nassau Stakes|G1|10|3+|F|350
+0730|Goodwood|Thoroughbred Stakes|G3|8|3||
+0730|Goodwood|Glorious Stakes|G3|12|4+||
+0730|Goodwood|Chesterfield Cup|H|10|4+||30
+0731|Goodwood|King George Stakes|G2|5|3+||
+0731|Goodwood|Oak Tree Stakes|G3|7|3+|F|
+0731|Goodwood|Golden Mile|HH|8|3+||75
+0731|Goodwood|Summer Handicap|H|14|3+||25
+0801|Goodwood|Stewards' Cup|HH|6|3+||110
+0801|Goodwood|Lillie Langtry Stakes|G2|14|3+|F|
+0801|Goodwood|Richmond Stakes|G2|6|2|C|
+0801|Goodwood|Goodwood Sprint Handicap|H|5|3+||25
+0802|Chester|Queensferry Stakes|L|6|3+||
+0805|Brighton|Brighton Mile|H|8|3+||15
+0808|Haydock|Rose of Lancaster Stakes|G3|10|3+||
+0808|Haydock|Dick Hern Fillies' Stakes|L|8|3+|F|
+0808|Newmarket|Sweet Solera Stakes|G3|7|2|F|
+0808|Newmarket|Chalice Stakes|L|12|3+|F|
+0808|Newmarket|Hopeful Stakes|L|6|3+||
+0812|Salisbury|Upavon Fillies' Stakes|L|10|3+|F|
+0814|Salisbury|Stonehenge Stakes|L|8|2||
+0814|Hamilton|Lanark Silver Bell|HH|12|3+||40
+0814|Newbury|St Hugh's Stakes|L|5|2|F|
+0815|Newbury|Hungerford Stakes|G2|7|3+||
+0815|Newbury|Geoffrey Freer Stakes|G3|13|3+||
+0815|Newbury|Washington Singer Stakes|L|7|2||
+0815|Ripon|Great St Wilfrid|H|6|3+||35
+0816|Pontefract|Flying Fillies' Stakes|L|6|3+|F|
+0819|York|International Stakes|G1|10|3+||600
+0819|York|Great Voltigeur Stakes|G2|12|3|C|
+0819|York|Acomb Stakes|G3|7|2||
+0819|York|Stayers' Handicap|HH|16|4+||45
+0820|York|Yorkshire Oaks|G1|12|3+|F|300
+0820|York|Lowther Stakes|G2|6|2|F|
+0820|York|Galtres Stakes|L|12|3+|F|
+0820|York|Knavesmire Handicap|HH|7|3+||45
+0821|York|Nunthorpe Stakes|G1|5|3+||300
+0821|York|Gimcrack Stakes|G2|6|2|C|
+0821|York|Lonsdale Cup|G2|16|3+||
+0821|York|Roses Stakes|L|5|2||
+0821|York|Clipper Handicap|HH|8|3+||45
+0822|York|The Ebor|HH|14|4+||300
+0822|York|City of York Stakes|G2|7|3+||
+0822|York|Strensall Stakes|G3|9|3+||
+0822|York|Melrose Handicap|HH|14|3||45
+0822|York|Constantine Handicap|HH|6|3+||45
+0822|Windsor|Winter Hill Stakes|G3|10|3+||
+0829|Goodwood|Celebration Mile|G2|8|3+||
+0829|Goodwood|Prestige Stakes|G3|7|2|F|
+0829|Goodwood|March Stakes|L|14|3+||
+0829|Sandown|Solario Stakes|G3|7|2||
+0829|Sandown|Atalanta Stakes|G3|8|3+|F|
+0829|Beverley|Beverley Bullet|L|5|3+||
+0831|Ripon|Champion Two-Year-Old Trophy|L|6|2||
+0903|Salisbury|Dick Poole Fillies' Stakes|G3|6|2|F|
+0904|Haydock|Ascendant Stakes|L|8|2||
+0905|Haydock|Sprint Cup|G1|6|3+||250
+0905|Haydock|Superior Mile|G3|8|3+||
+0905|Haydock|Old Borough Cup|H|14|3+||30
+0905|Kempton|September Stakes|G3|12|3+||
+0905|Kempton|Sirenia Stakes|G3|6|2||
+0905|Ascot|Ascot Three-Year-Old Heritage Handicap|HH|12|3||45
+0909|Sandown|Fortune Stakes|L|8|3+||
+0910|Doncaster|May Hill Stakes|G2|8|2|F|
+0910|Doncaster|Park Hill Stakes|G2|14|3+|F|
+0910|Doncaster|Scarbrough Stakes|L|5|3+||
+0911|Doncaster|Doncaster Cup|G2|18|3+||
+0911|Doncaster|Flying Childers Stakes|G2|5|2||
+0911|Doncaster|Flying Scotsman Stakes|L|7|2||
+0911|Doncaster|Mallard Handicap|H|14|3+||25
+0912|Doncaster|St Leger|G1|14|3||400
+0912|Doncaster|Champagne Stakes|G2|7|2|C|
+0912|Doncaster|Park Stakes|G2|7|3+||
+0912|Doncaster|Portland Handicap|HH|5.5|3+||60
+0913|Doncaster|Sceptre Stakes|G3|7|3+|F|
+0911|Chester|Stand Cup|L|12|3+||
+0912|Chester|Watergate Cup|HH|16|3+||40
+0916|Yarmouth|John Musker Fillies' Stakes|L|10|3+|F|
+0918|Ayr|Firth of Clyde Stakes|G3|6|2|F|
+0918|Ayr|Doonside Cup|L|10|3+||
+0919|Ayr|Ayr Gold Cup|HH|6|3+||110
+0919|Ayr|Harry Rosebery Stakes|L|5|2||
+0919|Newbury|Mill Reef Stakes|G2|6|2||
+0919|Newbury|World Trophy|G3|5|3+||
+0919|Newbury|Newbury Autumn Cup|H|13|3+||25
+0919|Newbury|Dubai Duty Free Cup|L|7|3+||
+0919|Newmarket|Godolphin Stakes|L|12|3+||
+0919|Newmarket|Cesarewitch Trial|H|18|3+||20
+0924|Newmarket|Somerville Tattersall Stakes|G3|7|2|C|
+0925|Newmarket|Rockfel Stakes|G2|7|2|F|
+0925|Newmarket|Joel Stakes|G2|8|3+||
+0925|Newmarket|Princess Royal Stakes|G3|12|3+|F|
+0925|Newmarket|Rosemary Stakes|L|8|3+|F|
+0926|Newmarket|Cheveley Park Stakes|G1|6|2|F|200
+0926|Newmarket|Middle Park Stakes|G1|6|2|C|200
+0926|Newmarket|Royal Lodge Stakes|G2|8|2|C|
+0926|Newmarket|The Cambridgeshire|HH|9|3+||110
+0926|Newmarket|Rose Bowl Stakes|L|6|2||
+1002|Ascot|Noel Murless Stakes|L|14|3||
+1003|Ascot|Cumberland Lodge Stakes|G3|12|3+||
+1003|Ascot|Bengough Stakes|G3|6|3+||
+1003|Ascot|Challenge Cup|HH|7|3+||60
+1003|Ascot|Rous Stakes|L|5|3+||
+1003|Ascot|October Stakes|L|7|3+|F|
+1003|Newmarket|Sun Chariot Stakes|G1|8|3+|F|250
+1003|Newmarket|Jockey Club Rose Bowl|L|16|3+||
+1003|Redcar|Guisborough Stakes|L|7|3+||
+1007|Bath|Beckford Stakes|L|14|3+|F|
+1009|Newmarket|Fillies' Mile|G1|8|2|F|250
+1009|Newmarket|Oh So Sharp Stakes|G3|7|2|F|
+1009|Newmarket|Cornwallis Stakes|G3|5|2||
+1009|Newmarket|Pride Stakes|G3|10|3+|F|
+1009|Newmarket|Zetland Stakes|G3|10|2||
+1009|Newmarket|Old Rowley Cup|HH|12|3||45
+1010|Newmarket|Dewhurst Stakes|G1|7|2||300
+1010|Newmarket|The Cesarewitch|HH|18|3+||110
+1010|Newmarket|Challenge Stakes|G2|7|3+||
+1010|Newmarket|Autumn Stakes|G3|8|2||
+1010|Newmarket|Darley Stakes|G3|9|3+||
+1010|York|Rockingham Stakes|L|6|2||
+1010|York|Sprint Trophy|HH|6|3+||45
+1010|York|York Finale Handicap|HH|14|3||45
+1015|Lingfield|River Eden Fillies' Stakes|L|13|3+|F|
+1015|Lingfield|Fleur de Lys Fillies' Stakes|L|8|3+|F|
+1017|Ascot|Champion Stakes|G1|10|3+||750
+1017|Ascot|Queen Elizabeth II Stakes|G1|8|3+||600
+1017|Ascot|Champions Fillies' and Mares' Stakes|G1|12|3+|F|350
+1017|Ascot|Champions Sprint Stakes|G1|6|3+||350
+1017|Ascot|Champions Long Distance Cup|G2|16|3+||200
+1017|Ascot|Balmoral Handicap|HH|8|3+||90
+1019|Pontefract|Silver Tankard Stakes|L|8|2||
+1023|Doncaster|Doncaster Stakes|L|6|2||
+1024|Doncaster|Futurity Trophy|G1|8|2||200
+1024|Newbury|St Simon Stakes|G3|12|3+||
+1024|Newbury|Horris Hill Stakes|G3|7|2|C|
+1024|Newbury|Radley Stakes|L|7|2|F|
+1030|Newmarket|Bosra Sham Stakes|L|6|2|F|
+1030|Newmarket|Montrose Fillies' Stakes|L|8|2|F|
+1031|Newmarket|Ben Marshall Stakes|L|8|3+||
+1031|Newmarket|James Seymour Stakes|L|10|3+||
+1107|Doncaster|November Handicap|HH|12|3+||60
+1107|Doncaster|Wentworth Stakes|L|6|3+||
+1107|Doncaster|Gillies Fillies' Stakes|L|10|3+|F|
