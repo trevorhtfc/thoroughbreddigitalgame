@@ -327,7 +327,7 @@ function pnRace(r) {
   const sum = fh ? `<span class="pn-sum1">${PN_FLAG}<b>${esc2(fh.name)}</b>${fo ? pnStars(fo.v, "sm") : ""}</span>${pnAlsoFl(fh, r)}`
     : fits.length ? `<span class="pn-sum1 amber">No flag yet · ${fits.length} could run</span>` : `<span class="pn-sum1 none">Nobody yet</span>`;
   const shown = UI.pn.more[r.id] ? fits : fits.slice(0, 2), rest = fits.length - shown.length;
-  const empty = `<p class="pn-empty">Nobody can run here yet. It's for ${esc2(r.ageLabel)} over ${distShow(r)}, rated ${needFor(r)}+${r.grade === "Handicap" ? ` and no more than ${HCAP_MAX}` : ""}.</p>`;
+  const empty = `<p class="pn-empty">${S.stable.length ? "Nobody can run here yet." : "No horses yet."} It's for ${esc2(r.ageLabel)} over ${distShow(r)}, rated ${needFor(r)}+${r.grade === "Handicap" ? ` and no more than ${HCAP_MAX}` : ""}.</p>`;
   return `<article class="pn-race ${open ? "open" : ""}" data-race="${r.id}">
     <button class="pn-rh" type="button" data-ropen="${r.id}" aria-expanded="${open}">
       <span class="pn-r1"><i class="pn-dot ${dot}" aria-hidden="true"></i><span class="pn-rname">${esc2(r.name)}</span><span class="g ${g.cls} full">${r.grade}</span><i class="pn-chev" aria-hidden="true"></i></span>
@@ -448,7 +448,10 @@ function pnByHorse() {
 }
 function pnPlanner() {
   if (S.stable.length && !(S.seenTips && S.seenTips.plan)) setTimeout(() => { if (document.querySelector(".pn") && !document.querySelector(".foal-wrap")) pnPlanTips(); }, 500);
-  if (!S.stable.length) return `<section class="pn"><p class="tb-empty">No horses yet. Every horse you breed or buy drops in here, with the races it could run.</p></section>`;
+  // no horses yet: still the races, so you can see what you're breeding and buying for (owner, 20 Nov: "the race planner
+  // doesn't work until you breed.. so we can't see what races")
+  if (!S.stable.length) return `<section class="pn"><div class="pn-info"><span><b>Your ${RACES.length} races.</b> No horses yet: every horse you breed or buy drops in under each race it could run, with its stars. Tap a race to see what it needs.</span></div>
+    ${pnNewmarket() ? `<div class="pn-info"><span><b>Newmarket:</b> a horse stays one age all season and can run once at each meeting. Developing it moves it up an age for every meeting.</span></div>` : ""}${pnRaceList()}</section>`;
   const T = pnFlags(), flagged = RACES.filter(r => horse(T[r.id])).length;
   const fresh = UI.pn.fresh && (UI.sheet === "stud" || UI.sheet === "tatts") && horse(UI.pn.fresh);
   let banner = "";

@@ -856,12 +856,13 @@ function keepOffer(name) {
 // before the hand (S.mh.legacy) keep buying their mares.
 const HAND = { hi: 2, mid: 2, lo: 2 }, EXTRA_MARES = 1, SEND_BACK = 0.5;
 // Beginner (owner, 20 Nov: "3 mares drawn not 6 in beginner mode"; 18 Nov it had been 5): one from each deck, Blue-blooded,
-// Useful and Moderate, and no extra mare to buy (one hand, nothing more to work out)
+// Useful and Moderate, and the extra mare to buy (a choice of two) as in Simple and Plus (owner, 20 Nov: "we used to be
+// able to buy an extra mare?.. with a choice of 2?.. what happened to that?")
 const HAND_BEGINNER = { hi: 1, mid: 1, lo: 1 };
 const handSize = () => isBeginner() ? HAND_BEGINNER : HAND;
 const mh = () => (S.mh = S.mh || { dealt: false, extra: 0, up: 0, sent: [] });
 const handOn = () => !(S.mh && S.mh.legacy);
-const extraLeft = () => handOn() ? (isBeginner() ? 0 : EXTRA_MARES - (mh().extra || 0)) : 99;
+const extraLeft = () => handOn() ? EXTRA_MARES - (mh().extra || 0) : 99;
 const pileOf = name => { const m = byName(name); return PILES.find(p => p.stars.includes(m.stars)); };
 const sendBackFor = name => Math.round(pileOf(name).price * SEND_BACK / 500) * 500;
 // Drawn like the board: tap a Weatherbys deck and its top mare is yours, two from each (owner, 14 Nov: "it would be
@@ -881,11 +882,14 @@ function drawHandMare(id) {
 function fitHand() {
   // (20 Nov: also once a mare or two has been bred: the mares already covered count towards the three, and only the
   // ones still waiting go back)
-  if (!isBeginner() || !handOn() || !mh().dealt || S.step !== 1 || S.foal || S.offer) return;
-  const want = handSize(), kept = {}, keep = [];
+  if (!isBeginner() || !handOn() || !mh().dealt || S.step !== 1 || S.foal || S.offer || mh().fitted || mh().extra) return;
+  const want = handSize(), kept = {}, keep = [], dealt = Object.values(mh().drawn || {}).reduce((a, n) => a + n, 0);
+  // only a hand dealt bigger than Beginner's three, once (a mare bought as the extra is never put back)
+  if (dealt <= want.hi + want.mid + want.lo) { mh().fitted = true; return; }
   for (const n of S.usedMares) { const p = pileOf(n), id = p && p.id; if (id) kept[id] = (kept[id] || 0) + 1; }
   for (const n of S.hand) { const p = pileOf(n), id = p && p.id; if (id && (kept[id] || 0) < (want[id] || 0)) { kept[id] = (kept[id] || 0) + 1; keep.push(n); } }
-  if (keep.length === S.hand.length) return;
+  mh().fitted = true;
+  if (keep.length === S.hand.length) { save(); return; }
   S.hand = keep; mh().hand = (mh().hand || []).filter(n => keep.includes(n) || S.usedMares.includes(n)); mh().drawn = kept;
   if (S.selMare && !keep.includes(S.selMare)) { S.selMare = null; S.selStallion = null; }
   save();

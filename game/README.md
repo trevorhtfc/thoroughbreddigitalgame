@@ -1027,3 +1027,13 @@ each deck (Blue-blooded, Useful, Moderate). A Beginner game already dealt a bigg
 back when the game opens and when the stud opens (`fitHand`, rules.js), keeping the first dealt from each deck; mares
 already bred count towards the three and stay bred (owner, 20 Nov: "I opened a previous game and still have 5 mares"). How to play and the key
 points say three.
+
+### The planner before any horse, and Beginner's extra mare (20 Nov 2026)
+Owner, 20 Nov: "the race planner doesn't work until you breed.. so we can't see what races" and "we used to be able to
+buy an extra mare?.. with a choice of 2?.. what happened to that?"
+- With no horses yet, the race planner shows **your races** day by day (`pnPlanner` → `pnRaceList`), each opening to what
+  it needs ("No horses yet. It's for 4YO+ over Middle distance, rated 90+"), under a line saying every horse you breed or
+  buy drops in under each race it could run. It was a blank "No horses yet" page.
+- **Beginner has the extra mare again** (pay a deck's price, see two, keep one), as Simple and Plus: it had been taken
+  out of Beginner on 18 Nov. `fitHand` runs once per game (`mh().fitted`), only on a hand dealt bigger than three, and
+  never on a game that has bought its extra mare, so a bought mare is never put back.
