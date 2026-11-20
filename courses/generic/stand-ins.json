@@ -223,7 +223,7 @@
   }
  },
  "overseas": {
-  "_about": "Overseas courses on the existing generic courses (owner, 20 Nov 00:39: 'We don't need to create new ones if we have applicable ones'). Matched by direction, size, run-in and character; all on the bigger stand side. Metric distances take the nearest start (2400 m -> 1m4f, 2000 m -> 1m2f, 3200 m -> 2m). Dirt is not modelled yet: dirt races run on the turf look until a dirt switch is added.",
+  "_about": "Overseas courses on the existing generic courses (owner, 20 Nov 00:39: 'We don't need to create new ones if we have applicable ones'). Matched by direction, size, run-in and character; all on the bigger stand side. Metric distances take the nearest start (2400 m -> 1m4f, 2000 m -> 1m2f, 3200 m -> 2m). No dirt: only the turf races are wanted from America (owner, 20 Nov 00:43: 'We only need turf American for breeders cup').",
   "ParisLongchamp (Arc)": {
    "generic": "gen-downs-r-big",
    "why": "right-handed, a long downhill turn, undulating, a run-in of about 2.7f"
@@ -266,7 +266,7 @@
   },
   "Meydan (Dubai)": {
    "generic": "gen-park-l-big",
-   "why": "left-handed, big and galloping, floodlit (the World Cup itself is on dirt)"
+   "why": "left-handed, big and galloping, floodlit (turf races)"
   },
   "Flemington (Melbourne Cup)": {
    "generic": "gen-park-l-big",
@@ -296,9 +296,9 @@
    "generic": "gen-hill-r-small",
    "why": "right-handed, sharp, a stiff uphill run-in"
   },
-  "Churchill Downs / Belmont / Santa Anita / Keeneland / Saratoga (Breeders' Cup, US)": {
+  "Breeders' Cup (US turf races)": {
    "generic": "gen-ring-l-big",
-   "why": "left-handed flat ovals of about a mile with a short stretch; turf races fit as they are; dirt races need the dirt switch"
+   "why": "the turf course inside a left-handed oval of about a mile, a short stretch; turf races only"
   }
  }
 }
