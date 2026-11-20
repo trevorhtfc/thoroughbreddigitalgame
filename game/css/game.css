@@ -988,7 +988,7 @@ details.fold > summary > span{font-size:13px}
 @media (max-width:480px){ .vtab{padding:9px 7px;font-size:11px;letter-spacing:.04em} .vtab i{margin-left:4px;padding:1px 5px;font-size:11px} }
 
 /* ----- the new foal and develop pop-ups: name and buttons in sight on a phone ----- */
-@media (max-width:700px){ .cardbox{height:min(38vh,340px);min-height:230px} }
+/* (20 Nov: the card is never small: see "the card always big" at the end of this file) */
 
 /* ----- your horses as tidy rows ----- */
 .hr-wrap{margin-top:12px}
@@ -1759,27 +1759,45 @@ details.fold > summary > span{font-size:13px}
   .dl-day.n1 .rf-lad span,.prog-r .rf-lad span{font-size:8.5px}
 }
 
-/* ----- the new foal and a horse's card on a phone: big for the reveal (or while it develops), then a small card beside the
-   name with the outlook and the races under it ----- */
-@media (max-width:700px){
+/* ----- the new foal and a horse's card on a phone (owner, 20 Nov: "This needs to be bigger for the reveal including all
+   versions of the game. The card should be full screen with just name and sex for the reveal before collapsing a bit
+   for the other bits.. the card should always be big though"): the reveal is the card filling the screen with only the
+   sex and the name under it; then it shrinks a little, staying big, and the outlook and the races come up under it ----- */
+@media (max-width:1000px){
   .foal.pn-foal .cardbox,.foal.pn-hc .cardbox{view-transition-name:foalcard}
-  .foal.compact{grid-template-columns:112px minmax(0,1fr);grid-auto-flow:row dense;column-gap:12px;row-gap:4px;align-items:start}
-  .foal.compact .fc-in{display:contents}
-  .foal.compact .cardbox{grid-column:1;grid-row:1 / span 4;height:164px;min-height:0;align-self:start}
-  .foal.compact .fc-in > *{grid-column:1 / -1}
-  .foal.compact .fc-in > .fc-kicker,.foal.compact .fc-in > .fc-sex,.foal.compact .fc-in > .fc-name,.foal.compact .fc-in > .fc-ped,
-  .foal.compact .fc-in > .fc-dev,.foal.compact .fc-in > .pn-hctop{grid-column:2;text-align:left;margin:0}
-  .foal.compact .pn-hctop{justify-content:flex-start;padding-top:4px}
-  .foal.compact .pn-hctop .tb-btn{display:none}
-  .foal.compact .fc-kicker{font-size:10.5px;letter-spacing:.16em;padding-top:4px}
-  .foal.compact .fc-sex{font-size:16px;letter-spacing:.14em}
-  .foal.compact .fc-dev{font-size:19px}
+  .foal.pn-foal,.foal.pn-hc{width:min(760px,100%)}
+  .foal-wrap:has(.pn-foal:not(.compact)),.foal-wrap:has(.pn-hc:not(.compact)){padding:calc(6px + env(safe-area-inset-top,0px)) 6px calc(6px + env(safe-area-inset-bottom,0px))}
+  .foal.pn-foal,.foal.pn-hc{grid-template-columns:minmax(0,1fr);gap:8px;padding:8px}
+  /* the reveal: the card as big as the screen allows, then the sex and the name, nothing else */
+  .foal.pn-foal:not(.compact){min-height:calc(100vh - 12px);min-height:calc(100dvh - 12px - env(safe-area-inset-top,0px) - env(safe-area-inset-bottom,0px));align-content:center}
+  .foal.pn-foal:not(.compact) .cardbox{height:calc(100vh - 150px);height:calc(100dvh - 150px - env(safe-area-inset-top,0px) - env(safe-area-inset-bottom,0px));min-height:360px;border:0;background:radial-gradient(circle at 50% 42%,#fbf9f4 0%,#ece5d6 100%)}
+  .foal.pn-foal:not(.compact) .fc-in{gap:6px}
+  .foal.pn-foal:not(.compact) .fc-kicker,.foal.pn-foal:not(.compact) .fc-wait,.foal.pn-foal:not(.compact) .fc-skip,
+  .foal.pn-foal:not(.compact) .fc-name > span{display:none}
+  .foal.pn-foal:not(.compact) .fc-sex{font-size:20px}
+  .foal.pn-foal:not(.compact) .fc-name input{font-size:24px;padding:6px 8px}
+  /* after the reveal (and a horse's card from the planner): still a big card, a little shorter, then everything else */
+  .foal.compact .cardbox{height:min(54vh,500px);height:min(54dvh,500px);min-height:300px}
+  .foal.compact .fc-in{gap:8px}
+  .foal.compact .pn-hctop{justify-content:space-between}
+  .foal.compact .fc-kicker{font-size:11px;letter-spacing:.18em}
+  .foal.compact .fc-sex{font-size:18px;letter-spacing:.16em}
   .foal.compact .fc-name > span{display:none}
-  .foal.compact .fc-name input{font-size:17px;text-align:left;padding:5px 8px}
-  .foal.compact .fc-ped{font-size:13px;line-height:1.3}
-  .foal.compact .fc-facts{justify-content:flex-start;font-size:13px;gap:2px 12px;margin-top:4px}
-  .foal.compact .pn-devd{margin-top:4px}
-  .foal.compact .pn-out{margin-top:6px;zoom:.8}
+  .foal.compact .fc-name input{font-size:20px;padding:5px 8px}
+  .foal.compact .fc-ped{font-size:14px;line-height:1.35}
+  .foal.compact .fc-facts{font-size:13.5px;gap:2px 12px}
+  .foal.pn-hc:not(.compact) .cardbox{height:min(62vh,560px);height:min(62dvh,560px);min-height:320px}
+}
+/* on a computer (or an iPad on its side) the reveal is the card alone too, filling the height, with the sex and the
+   name under it; then the card sits big on the left with everything else beside it */
+@media (min-width:1001px){
+  .foal.pn-foal{width:min(1040px,100%)}
+  .foal.pn-foal .cardbox,.foal.pn-hc .cardbox{height:min(84vh,820px)}
+  .foal.pn-foal:not(.compact){width:min(640px,100%);grid-template-columns:minmax(0,1fr);gap:8px}
+  .foal.pn-foal:not(.compact) .cardbox{height:calc(100vh - 170px);min-height:420px;border:0}
+  .foal.pn-foal:not(.compact) .fc-kicker,.foal.pn-foal:not(.compact) .fc-wait,.foal.pn-foal:not(.compact) .fc-skip,
+  .foal.pn-foal:not(.compact) .fc-name > span{display:none}
+  .foal.pn-foal:not(.compact) .fc-in{gap:6px}
 }
 ::view-transition-group(foalcard){animation-duration:.55s;animation-timing-function:cubic-bezier(.3,.8,.3,1)}
 ::view-transition-old(root),::view-transition-new(root){animation-duration:.4s}

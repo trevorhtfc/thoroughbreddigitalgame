@@ -1037,3 +1037,15 @@ buy an extra mare?.. with a choice of 2?.. what happened to that?"
 - **Beginner has the extra mare again** (pay a deck's price, see two, keep one), as Simple and Plus: it had been taken
   out of Beginner on 18 Nov. `fitHand` runs once per game (`mh().fitted`), only on a hand dealt bigger than three, and
   never on a game that has bought its extra mare, so a bought mare is never put back.
+
+### The new horse's card is big (20 Nov 2026)
+Owner, 20 Nov (iPhone screenshot of a foal's reveal): "This needs to be bigger for the reveal including all versions of
+the game. The card should be full screen with just name and sex for the reveal before collapsing a bit for the other
+bits.. the card should always be big though".
+- **The reveal** (`.foal.pn-foal:not(.compact)`, every way to play, bred or bought): the card fills the screen, with only
+  the sex and the name under it. No kicker, no Skip button (a tap anywhere but the name still skips), and the outlook,
+  options and buttons are left out until it's done. On a computer the same, with the card filling the height.
+- **After it** (`.compact`): on phones and iPads in portrait (to 1000px) the card stays big (54% of the screen high)
+  with everything under it; the old 112×164 thumbnail beside the name is gone. A horse's card from the planner opens the
+  same way. On a computer, the card sits big on the left with everything beside it.
+- card.html draws the card at 92% of its box (was 84%).
