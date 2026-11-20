@@ -1008,3 +1008,15 @@ standings). No page errors and no control covered on any screen. Fixed:
   even at Tattersalls: it's cleared by the stud / sale ring tabs and on leaving the stud.
 - Watching a race on a phone: the race view's name plate ran under the game's Racecard button and hid the terraces
   button. In the game, on phones, the plate stops short of it (race-view/final-furlong.html, the end of its style).
+
+### The race cards' backs, again (20 Nov 2026)
+Owner, 20 Nov, iPhone screenshot of the draw: the backs' "ROYAL ASCOT / Group 2" still mirrored over the faces after the
+18 Nov fix (which only hid the back with `visibility`; iPhone still drew the back's lettering). Now a card that has
+turned over keeps no back at all: `turnUp` (ui.js) takes the back out of the page as the card is edge-on, halfway
+through its turn, and once it has landed the card goes flat (`.dc.done`: no 3D transform left). A card dealt at once
+(reopening the Jockey Club, Skip, reduced motion) never keeps its back. The horse card (card.html) hides its back once
+face up too. Chrome and WebKitGTK never showed the fault, so it can't be watched here: the fix doesn't depend on how a
+browser draws 3D.
+- **Version marks**: `stage.py` now asks for every style and script with `?v=<fingerprint of its contents>` in the
+  published pages (index.html, final-furlong.html, card.html, lab.html), so a phone can't keep an old copy after an
+  update.

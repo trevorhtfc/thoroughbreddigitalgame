@@ -417,6 +417,16 @@ function raceFace(r) {
 // the back of a race card, like the board's: the metal of its class, a fine inner edge, the stripes and its class
 const raceBack = r => `<div class="dc-back rcd-back t-${rcTier(r)}"><span><em>${W.cardBack}</em><b>${gradeWord(r)}</b></span></div>`;
 const cardBack = (k, t) => `<div class="dc-back"><span>${k}<b>${t}</b></span></div>`;
+// A card turned face up is then settled: its back is taken away and it stops being a 3D card at all, so no browser can
+// draw the back through the face (owner, 20 Nov, iPhone: the cards' backs still showed mirrored over the races, after
+// the 18 Nov fix that only hid the back)
+function turnUp(c, now) {
+  c.classList.add("up");
+  const unback = () => { const b = c.querySelector(".dc-back"); if (b) b.remove(); };
+  const settle = () => { unback(); c.classList.add("done"); };
+  // the back goes as the card is edge-on, halfway through its turn; once it has landed it goes flat
+  if (now) settle(); else { setTimeout(unback, 300); setTimeout(settle, 700); }
+}
 function dealCard(face, backHTML, cls) { return `<div class="dc ${cls || ""}"><div class="dc-in">${backHTML}<div class="dc-face">${face}</div></div></div>`; }
 function drawBody() {
   return `<div class="deal in-sheet" id="deal"><div class="deal-in">
@@ -446,16 +456,16 @@ function dealRaces(instant) {
   $("#dealBody").innerHTML = `<div class="dl-grid">${DAYS.map((d, k) => `<div class="dl-day n${RACES.filter(r => r.day === k).length}"><h4>${dayTag(k)}</h4>
     ${RACES.filter(r => r.day === k).map(r => dealCard(raceFace(r), raceBack(r), "rc " + GRADE[r.grade].cls)).join("")}</div>`).join("")}</div>`;
   const cards = [...$("#dealBody").querySelectorAll(".dc")];
-  if (instant || still()) { cards.forEach(c => c.classList.add("up")); if (!instant) racesDone(); return; }
+  if (instant || still()) { cards.forEach(c => turnUp(c, true)); if (!instant) racesDone(); return; }
   flyIn(cards, 95);
   BOARD.Sound.chime();
   const t0 = cards.length * 95 + 650;
-  cards.forEach((c, i) => dealTimers(() => c.classList.add("up"), t0 + i * 170));
+  cards.forEach((c, i) => dealTimers(() => turnUp(c), t0 + i * 170));
   dealTimers(racesDone, t0 + cards.length * 170 + 500);
 }
 function racesDone(instant) {
   if (!D || (!instant && D.phase !== 1) || !$("#dealBody")) return; D.phase = 2;
-  $("#dealBody").querySelectorAll(".dc").forEach(c => c.classList.add("up"));
+  $("#dealBody").querySelectorAll(".dc").forEach(c => { if (!c.classList.contains("up")) turnUp(c); });
   const g1 = RACES.filter(r => r.grade === "Group 1").length, open = RACES.filter(isOpenRace).length, other = RACES.length - g1 - open;
   const top = Math.max(...RACES.map(r => r.prizes[0])), low = Math.min(...RACES.map(r => r.prizes[0]));
   $("#dealSum").innerHTML = `<b>${g1} Group 1${g1 === 1 ? "" : "s"}</b>, ${other} other Group or Listed race${other === 1 ? "" : "s"} and ${open} handicap${open === 1 ? "" : "s"}. Winners' prizes from ${money(low)} to ${money(top)}. You have ${money(isBeginner() ? BEGINNER_BUDGET : START_BUDGET)} to build a stable for them: ${isSimple() ? "" : "pick your team here, then "}breed at the National Stud, then buy at Tattersalls.`;
@@ -463,7 +473,7 @@ function racesDone(instant) {
   $("#dealDeck").classList.add("gone"); $("#dealSkip").hidden = true;
   const n = $("#dealNext"); n.hidden = false; n.innerHTML = `${isSimple() ? "To the National Stud" : "Draft your team"} <span aria-hidden="true">›</span>`;
 }
-function skipDeal() { clearDeal(); $("#dealBody").querySelectorAll(".dc").forEach(c => c.getAnimations().forEach(a => a.finish())); if (D && D.phase === 1) racesDone(); }
+function skipDeal() { clearDeal(); $("#dealBody").querySelectorAll(".dc").forEach(c => { c.getAnimations().forEach(a => a.finish()); turnUp(c, true); }); if (D && D.phase === 1) racesDone(); }
 // jockey rides you haven't booked are booked for you as you leave entries (owner, 14 Nov: "jockey cards need to be
 // more clear you have to play them. I forgot and just wasted them")
 function bookForgotten() {

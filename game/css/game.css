@@ -1944,3 +1944,6 @@ details.fold > summary > span{font-size:13px}
 .dc .dc-face{visibility:hidden;transition:visibility 0s .3s}
 .dc.up .dc-face{visibility:visible}
 .mflip-b{visibility:hidden}   /* shown only while a mare's card is turning over (mareDealAnim) */
+/* a settled card (turnUp): flat, its back gone, its face the right way round with no 3D at all */
+.dc.done .dc-in{transform:none!important;transition:none;transform-style:flat}
+.dc.done .dc-face{transform:none;visibility:visible;-webkit-backface-visibility:visible;backface-visibility:visible}

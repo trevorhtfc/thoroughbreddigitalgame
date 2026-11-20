@@ -100,5 +100,18 @@ for src, dst in take:
         shutil.copystat(src, dst)
     else:
         shutil.copy2(src, dst)
+# Every published page asks for its styles and scripts with a version mark (?v=<their contents' fingerprint>), so a phone
+# can never keep an old copy of a style or script after an update (owner, 20 Nov: an iPhone still showed the race cards'
+# old fault after the fix was live)
+import hashlib
+def _versioned(page):
+    t = page.read_text(encoding="ascii")
+    def mark(m):
+        f = page.parent / m.group(2)
+        if not f.exists(): return m.group(0)
+        return f'{m.group(1)}="{m.group(2)}?v={hashlib.sha1(f.read_bytes()).hexdigest()[:10]}"'
+    page.write_text(re.sub(r'\b(href|src)="((?![a-z]+:|//)[\w./-]+\.(?:css|js))"', mark, t), encoding="ascii")
+for _p in ["index.html", "final-furlong.html", "card.html", "lab.html"]:
+    if (out / _p).exists(): _versioned(out / _p)
 size = sum(d.stat().st_size for _, d in take)
 print(f"{len(take)} files, {size / 1e6:.1f} MB in {out}")

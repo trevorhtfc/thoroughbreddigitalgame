@@ -21,6 +21,8 @@ body{display:flex;align-items:center;justify-content:center;font-family:"Figtree
 .face{position:absolute;inset:0;backface-visibility:hidden;-webkit-backface-visibility:hidden;filter:drop-shadow(0 14px 24px rgba(0,0,0,.35))}
 .face svg{width:100%;height:100%;display:block;overflow:visible}
 .front{transform:rotateY(180deg)}
+/* face up, the back is switched off outright: iPhone (Safari) can draw a back through its face, more so with a filter on it */
+.flipper.faceup .face.back{visibility:hidden}
 #sparks{position:absolute;left:-12%;top:-12%;width:124%;height:124%;pointer-events:none}
 @keyframes rippleLight{0%{opacity:0}35%{opacity:1}100%{opacity:0}}
 @keyframes idlePulse{0%{opacity:0}14%{opacity:.38}34%{opacity:0}100%{opacity:0}}
