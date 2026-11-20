@@ -139,7 +139,7 @@ The horse records, the money, the reputation and the trophies are already update
 | Breeding | Foal races two seasons after covering | Foal, yearling, then in training | `newYear()` makes the foal with `due = season + 2` and brings it in when due. If the hub moves young stock itself, clear `due` and push the horse into `horses` at age 2. |
 | Reputation for a win | `TBRULES.CLS[cls].rep` (Group 1 120, Classic 180, Class 5 3) | The hub's `REP` table | Use the rules' (they come through `addRep`). The tier thresholds are the same in both: 40, 180, 550, 1,500. |
 | Goals, the owners' table, news, the ledger | Three goals a season | The hub's own | Keep the hub's. Feed them from `on.money`, `on.rep` and the season counts in `S.ss`. |
-| Stable name and colours | Has a maker | Not yet | `vSetup` and `silk()` in `reference/ui.js`. |
+| Stable name and colours | A quick stand-in picker, drawn for the prototype only | Not yet | **Do not copy the reference's picker or its `silk()` drawing.** Use the short game's own colours maker (`game/js/colours.js` with `race-view/silks-paint.js`: its jackets, sleeves, caps and 12-colour palette) and the colours it has already saved (`tb-colours`), so a player's silks are the same in both games. Draw rival owners from their real silk pictures (`CAREER_DATA.rivals[i].pic`), as the hub's owners' table does. |
 
 ## Screens worth lifting from `reference/ui.js`
 
@@ -168,4 +168,5 @@ Run `node tools/test-hub-join.js 16 8` and `node tools/test-careers.js 30 16` af
 - **Keep the luck in the save.** `rs` is the rules' seed. `view()` uses its own fixed luck, so looking at a race never changes what happens in it.
 - **A racecard must be the race that is run.** `raceFor` keeps each race's field in `S.cards` for that reason. Do not rebuild a field between showing it and running it.
 - **Racecards are sorted by odds, never by finishing order.** The result is already in `run` when the card is shown.
+- **Silks are the short game's, not the reference's.** The reference page draws simplified silks and has its own small picker because it had to stand alone. In the joined game the player's colours come from the short game's maker and saved colours, and a runner's `s` is an owner in `CAREER_DATA.rivals` with a real silk picture.
 - **Old saves.** `season16.js` shows how a save from before a change is brought up to date (`migrate`).
