@@ -47,6 +47,12 @@ CLUSTERS = {
                        ("york_pavilions", 6)]),
     ("downs", "small"): ("Seaside downs", [("gen_pavilion_stand_red", 0), ("park_terrace", 3), ("ring_pavilion", 6)]),
 }
+# Pieces with no standing terrace of their own (owner, 19 Nov 23:57: "make sure all those grandstands have a proper terrace
+# of standing steps built into them"): a terrace module (gen_terrace_<w>) goes in front of each and the building is set
+# back behind it. (The little lookout and kiosks are not grandstands: none.)
+NEEDS_TERRACE = {"old_pavilion_wing", "park_old_pavilion", "ring_pavilion", "ring_pavilion_small", "victorian_house",
+                 "york_clock_tower", "york_pavilions", "park_clock_house"}
+TERRACE_WIDTHS = (18, 20, 24, 26, 28, 30, 32)
 SOURCES = ["park_stands", "york_stands", "july_stands", "rowley_stands", "chester_stands_kit", "generic_stands_kit"]
 GAP = 4.0              # between neighbouring stands
 FRONT = 18.0           # the stands' front line, metres back from the outer rail
@@ -71,12 +77,21 @@ def dress(cid, fid, hand, size, S, L, C):
     mix_name, mix = CLUSTERS[(fid, size)]
     big = size == "big"
     # ---- the stands: one cluster round the post, about 40% of it past the post (towards the post-end bend, never into it)
-    T = sum(I[p]["width"] for p, _ in mix) + GAP * (len(mix) - 1)
+    def terrace_for(piece):
+        if piece not in NEEDS_TERRACE: return None
+        w = I[piece]["width"]
+        return "gen_terrace_%d" % min(TERRACE_WIDTHS, key=lambda t: (abs(t - w), t))
+    span = lambda p: max(I[p]["width"], I[terrace_for(p)]["width"] if terrace_for(p) else 0)
+    T = sum(span(p) for p, _ in mix) + GAP * (len(mix) - 1)
     x0 = max(-0.4 * T, -(S["post_gap"] - 22.0))
     pieces, x, depth = [], x0, 0.0
     for piece, back in mix:
-        g = I[piece]; w = g["width"]; off = g.get("offset", 0.0) * (1 if side < 0 else -1)
+        g = I[piece]; w = span(piece); off = g.get("offset", 0.0) * (1 if side < 0 else -1)
         cx = x + w / 2                                 # where the piece's body is centred
+        tm = terrace_for(piece)
+        if tm:                                         # its standing terrace at the front line, the building behind it
+            pieces.append([tm, round(cx, 2), 0.0, 0.85])
+            back = I[tm]["depth"] - 0.4
         pieces.append([piece, round(cx - off, 2), back, 0.85])
         x += w + GAP; depth = max(depth, g.get("depth", 30) + back)
     chain = (x0, x - GAP)

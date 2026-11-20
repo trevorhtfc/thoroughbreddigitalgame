@@ -45,8 +45,59 @@ K = Kit()
 CROWD = []
 
 
+OFF = [0.0, 0.0]                 # the current lift (y, z): a building set on its podium behind its terrace
+
+
 def area(x0, x1, y0, y1, z):
-    CROWD.append([round(x0, 2), round(x1, 2), round(y0, 2), round(y1, 2), round(z, 2)])
+    CROWD.append([round(x0, 2), round(x1, 2), round(y0 + OFF[0], 2), round(y1 + OFF[0], 2), round(z + OFF[1], 2)])
+
+
+def lift(dy, dz):
+    K.push(Matrix.Translation((0.0, dy, dz))); OFF[0] += dy; OFF[1] += dz
+
+
+def unlift(dy, dz):
+    K.pop(); OFF[0] -= dy; OFF[1] -= dz
+
+
+def standing_terrace(x0, x1, y0=0.0, rows=14, tread=0.5, rise=0.21, z0=0.25, barrier_every=4, gangway=14.0, walk=1.5,
+                     flanks=True, flank_mat="render", front=True):
+    """A proper terrace of standing steps (owner, 19 Nov 23:57: "make sure all those grandstands have a proper terrace of
+    standing steps built into them"): a pitch wall with a rail along the front, shallow standing steps (half a metre
+    going, about 0.2 m rise), crush barriers every few steps (galvanised rails on posts, broken at the gangways),
+    gangways with handrails up the rake, a walkway along the top, and flank walls on the rake at both ends (the
+    owner's rule). Returns (y at the back of the walkway, height of the top step)."""
+    L = x1 - x0
+    if front:
+        K.box("render", x0, x1, y0 - 0.35, y0, -0.5, z0 + 0.85)                  # the pitch wall
+        K.box("trim", x0 - 0.05, x1 + 0.05, y0 - 0.42, y0 + 0.05, z0 + 0.85, z0 + 0.97)
+    ng = max(1, round(L / gangway)); gx = [x0 + L * (k + 0.5) / ng for k in range(ng)]
+    for i in range(rows):
+        ya, yb = y0 + i * tread, y0 + (i + 1) * tread
+        zt = z0 + (i + 1) * rise
+        K.box("steps", x0, x1, ya, yb if i < rows - 1 else yb + 0.3, -0.5, zt)
+        K.box("concrete", x0, x1, yb - 0.04, yb + 0.0, zt - rise, zt)               # the riser's shadow line
+        area(x0 + 0.3, x1 - 0.3, ya + 0.08, yb - 0.12, zt)
+        if barrier_every and (i + 1) % barrier_every == 0 and i < rows - 1:         # crush barriers
+            edges = [x0 + 0.2] + sum(([g - 0.75, g + 0.75] for g in gx), []) + [x1 - 0.2]
+            for a, b in zip(edges[::2], edges[1::2]):
+                if b - a < 1.0: continue
+                K.box("iron", a, b, yb - 0.25, yb - 0.17, zt + 1.0, zt + 1.08)
+                for k in range(int((b - a) / 2.6) + 1):
+                    xx = a + min(b - a, k * 2.6)
+                    K.box("iron", xx - 0.04, xx + 0.04, yb - 0.25, yb - 0.17, zt, zt + 1.08)
+    yt, ztop = y0 + rows * tread, z0 + rows * rise
+    for g in gx:                                                                    # gangways: handrails both sides
+        for dx in (-0.75, 0.75):
+            rail_on(g + dx, y0 + 0.1, z0 + 0.1, yt - 0.2, ztop - 0.05, mat="iron", h=0.95)
+    if walk > 0:
+        K.box("concrete", x0, x1, yt, yt + walk, -0.5, ztop)
+    yb = yt + walk
+    if flanks:
+        for a, b in ((x0 - 0.35, x0), (x1, x1 + 0.35)):
+            flank(a, b, [(y0 - 0.35, -0.5), (y0 - 0.35, z0 + 1.0), (yt, ztop + 1.0), (yb, ztop + 1.0), (yb, -0.5)], mat=flank_mat)
+            K.box("trim", a - 0.04, b + 0.04, yt, yb, ztop + 1.0, ztop + 1.12)
+    return yb, ztop
 
 
 # ------------------------------------------------------------------------------------------ helpers
@@ -216,12 +267,9 @@ def pavilion_stand(n=10, bay=4.4, roof="slate_pale", gables="boards", centre=Tru
     for zr in (0.45, 0.95):
         K.box("trim", X0, X1, -1.24, -1.12, zr, zr + 0.1)
     K.box("render", X0, X1, 0.0, 0.35, -0.5, 0.55)
-    rows = 9 if small else 11
-    yt, zt = raked(X0 + 0.05, X1 - 0.05, 0.35, 0.3, rows, 0.78, 0.33)
-    for k in range(1, 5 if not small else 3):                          # aisles with handrails both sides
-        x = X0 + L * k / (5 if not small else 3)
-        for dx in (-0.65, 0.65):
-            rail_on(x + dx, 0.35, 0.3, yt - 0.4, zt - 0.1)
+    rows, TR, RS = (14 if small else 17), 0.5, 0.215
+    yt, zt = standing_terrace(X0 + 0.05, X1 - 0.05, 0.35, rows=rows, tread=TR, rise=RS, z0=0.3, walk=0.0, flanks=False, front=False,
+                              gangway=11.0)
     # the concourse behind the terrace, under the gallery, glazed at the back
     yb = yt + 5.0
     K.box("render", X0, X1, yt, yb, -0.5, zt)
@@ -234,7 +282,7 @@ def pavilion_stand(n=10, bay=4.4, roof="slate_pale", gables="boards", centre=Tru
     K.box("trim", X0 - 0.05, X1 + 0.05, yf - 0.05, yf + 0.25, zf - 0.6, zf - 0.3)
     for i in range(n + 1):
         x = X0 + i * bay
-        zc = 0.3 + 0.33 * max(0, min(rows, math.ceil((yf + 0.3 - 0.35) / 0.78)))
+        zc = 0.3 + RS * max(0, min(rows, math.ceil((yf + 0.3 - 0.35) / TR)))
         K.cyl("trim", x, yf + 0.3, zc, zf - 0.45, 0.17, 0.15, segs=10)
         K.box("trim", x - 0.25, x + 0.25, yf + 0.05, yf + 0.55, zc, zc + 0.35)
         K.box("trim", x - 0.25, x + 0.25, yf + 0.05, yf + 0.55, zf - 0.75, zf - 0.45)
@@ -297,6 +345,11 @@ def pavilion_stand(n=10, bay=4.4, roof="slate_pale", gables="boards", centre=Tru
 def veranda_stand(L=50.0):
     X0, X1 = -L / 2, L / 2
     D = 13.0
+    # a standing terrace in front (owner, 23:57), the stand on a podium behind it, its veranda level with the top
+    TY, TZ = standing_terrace(X0, X1, 0.0, rows=12, tread=0.5, rise=0.2, z0=0.25, walk=1.2, gangway=12.5)
+    DY, DZ = TY + 0.4, TZ - 0.35
+    K.box("render", X0, X1, TY, TY + D + 0.4, -0.5, TZ)
+    lift(DY, DZ)
     # the ground floor: glazed behind a veranda of green posts; a low step at the front
     K.box("concrete", X0, X1, -0.4, D, -0.5, 0.35)
     K.screen(X0 + 0.4, X1 - 0.4, 3.2, 0.35, 2.9, pane=1.6)
@@ -332,12 +385,17 @@ def veranda_stand(L=50.0):
     # the ends: flank walls (no tower: the owner's rule)
     for xa, xb in ((X0 - 0.35, X0), (X1, X1 + 0.35)):
         flank(xa, xb, [(-0.4, -0.5), (-0.4, 4.0), (2.6, 4.0), (2.6, 7.3), (D, 7.3), (D, -0.5)])
-    return {"width": L + 1.4, "depth": D + 0.8, "height": 17.6}
+    unlift(DY, DZ)
+    return {"width": L + 1.4, "depth": round(DY + D + 0.8, 2), "height": round(17.6 + DZ, 2)}
 
 
 def veranda_wing(L=34.0):
     X0, X1 = -L / 2, L / 2
     D = 11.0
+    TY, TZ = standing_terrace(X0, X1, 0.0, rows=12, tread=0.5, rise=0.2, z0=0.25, walk=1.2, gangway=11.5)
+    DY, DZ = TY + 0.4, TZ - 0.35
+    K.box("render", X0, X1, TY, TY + D + 0.4, -0.5, TZ)
+    lift(DY, DZ)
     K.box("concrete", X0, X1, -0.4, D, -0.5, 0.35)
     K.screen(X0 + 0.4, X1 - 0.4, 3.0, 0.35, 4.2, pane=1.5)
     K.box("render", X0, X1, 3.05, D, 0.35, 5.0)
@@ -356,21 +414,24 @@ def veranda_wing(L=34.0):
     for x in (X0 + 8, X1 - 8):                                                            # roof vents
         K.box("slate_dark", x - 0.6, x + 0.6, D * 0.45, D * 0.55, 7.6, 9.4)
         K.hip_roof(x - 0.6, x + 0.6, D * 0.45, D * 0.55, 9.4, 0.5, ov=0.2, mat="slate")
-    return {"width": L + 1.2, "depth": D + 0.8, "height": 10.0}
+    unlift(DY, DZ)
+    return {"width": L + 1.2, "depth": round(DY + D + 0.8, 2), "height": round(10.0 + DZ, 2)}
 
 
 # ------------------------------------------------------------------------------------------ 3: photo 2 (Ripon)
 def garden_stand(L=58.0):
     X0, X1 = -L / 2, L / 2
     D = 15.0
-    # open standing under the balcony: a few low steps, dark posts, the dark back
-    yt, zt = raked(X0 + 0.1, X1 - 0.1, 0.8, 0.15, 7, 0.9, 0.22)
-    K.box("brick_dark", X0, X1, 0.0, 0.8, -0.5, 0.5)
-    K.box("shade", X0, X1, yt, D, -0.5, 4.4)
+    # a proper standing terrace (owner, 23:57) running back under the balcony: the open standing of his Ripon photo,
+    # dark posts, the dark back; the building above set back and raised to clear it
+    TY, TZ = standing_terrace(X0 + 0.1, X1 - 0.1, 0.4, rows=15, tread=0.5, rise=0.21, z0=0.2, walk=1.5, flanks=False, gangway=14.5)
+    DY, DZ = 3.0, 1.55
+    K.box("shade", X0, X1, TY, D + DY, -0.5, 4.45 + DZ)
     for i in range(10):
         x = X0 + 0.4 + (L - 0.8) * i / 9
-        zc = 0.15 + 0.22 * 2
-        K.box("brown", x - 0.18, x + 0.18, 2.2, 2.55, zc, 4.6)
+        zc = 0.2 + 0.21 * math.ceil((5.2 - 0.4) / 0.5)
+        K.box("brown", x - 0.18, x + 0.18, 5.2, 5.55, zc, 4.6 + DZ)
+    lift(DY, DZ)
     # the balcony: deck, the name band, flower boxes along the rail
     K.box("brown", X0, X1, 1.0, D, 4.45, 4.95)
     K.box("band", X0 - 0.2, X1 + 0.2, 0.9, 1.15, 4.3, 5.6)                                # the fascia band (no name)
@@ -403,10 +464,11 @@ def garden_stand(L=58.0):
     for x in (X0 + 5.0, X1 - 5.0):                                                      # chimneys
         K.box("brick", x - 0.6, x + 0.6, D - 3.0, D - 1.8, 9.0, 14.4)
         K.box("brick_dark", x - 0.7, x + 0.7, D - 3.1, D - 1.7, 14.2, 14.6)
-    # flank walls in brick on the low steps' rake
+    unlift(DY, DZ)
+    # flank walls in brick on the terrace's rake (the owner's rule)
     for xa, xb in ((X0 - 0.4, X0), (X1, X1 + 0.4)):
-        flank(xa, xb, [(0.0, -0.5), (0.0, 1.0), (yt, zt + 1.0), (yt, 8.6), (D, 8.6), (D, -0.5)], mat="brick")
-    return {"width": L + 2.2, "depth": D + 1.4, "height": 19.6}
+        flank(xa, xb, [(0.05, -0.5), (0.05, 1.2), (TY - 1.5, TZ + 1.2), (TY, TZ + 1.2), (TY, 8.6 + DZ), (D + DY, 8.6 + DZ), (D + DY, -0.5)], mat="brick")
+    return {"width": L + 2.2, "depth": round(D + DY + 1.4, 2), "height": round(19.6 + DZ, 2)}
 
 
 # ------------------------------------------------------------------------------------------ 4: photo 3, the cupola stand
@@ -414,10 +476,7 @@ def cupola_stand(L=50.0):
     X0, X1 = -L / 2, L / 2
     D = 16.0
     # the terrace up from the lawn, the glazed ground floor behind under a canopy
-    yt, zt = raked(X0 + 0.1, X1 - 0.1, 0.3, 0.2, 8, 0.8, 0.34)
-    for k in (1, 2, 3):
-        x = X0 + L * k / 4
-        for dx in (-0.6, 0.6): rail_on(x + dx, 0.3, 0.2, yt - 0.3, zt - 0.1)
+    yt, zt = standing_terrace(X0 + 0.1, X1 - 0.1, 0.3, rows=13, tread=0.5, rise=0.22, z0=0.2, walk=0.0, flanks=False, gangway=12.5)
     K.box("render", X0, X1, yt, D, -0.5, zt)
     K.screen(X0 + 0.5, X1 - 0.5, yt + 1.6, zt, 2.6, pane=1.2)
     K.box("green", X0 + 0.5, X1 - 0.5, yt + 1.5, yt + 1.6, zt + 2.6, zt + 2.75)
@@ -480,6 +539,21 @@ def cupola_stand(L=50.0):
     return {"width": L + 5.6, "depth": D + 1.2, "height": round(zc + 9.6, 2)}
 
 
+# ------------------------------------------------------------------------------------------ 5: terrace modules
+def terrace_module(w):
+    """A standing terrace on its own, to sit in front of the old pavilions and houses that have none (dressing.py puts
+    one in front of each and sets the building back behind it): ten steps, crush barriers, gangways, a walkway along
+    the top with a rail at the back, flank walls on the rake."""
+    yb, zt = standing_terrace(-w / 2, w / 2, 0.0, rows=10, tread=0.5, rise=0.2, z0=0.25, walk=1.8, gangway=12.0)
+    K.box("trim", -w / 2, w / 2, yb - 0.1, yb, zt + 0.95, zt + 1.05)
+    for k in range(int(w / 2.0) + 1):
+        x = -w / 2 + k * w / int(w / 2.0)
+        K.box("trim", x - 0.04, x + 0.04, yb - 0.1, yb, zt, zt + 1.05)
+    return {"width": round(w + 0.7, 2), "depth": round(yb + 0.4, 2), "height": round(zt + 1.12, 2), "terrace": True}
+
+
+TERRACE_WIDTHS = (18, 20, 24, 26, 28, 30, 32)
+
 # ------------------------------------------------------------------------------------------ build and export
 PIECES = [
     ("gen_pavilion_stand", lambda: pavilion_stand()),
@@ -489,7 +563,7 @@ PIECES = [
     ("gen_veranda_wing", veranda_wing),
     ("gen_garden_stand", garden_stand),
     ("gen_cupola_stand", cupola_stand),
-]
+] + [("gen_terrace_%d" % w, (lambda w=w: terrace_module(w))) for w in TERRACE_WIDTHS]
 LIB = bpy.data.collections.new("generic_stands_kit")
 bpy.context.scene.collection.children.link(LIB)
 OBJ, INFO = {}, {}
@@ -531,6 +605,7 @@ if os.environ.get("SHEET"):
     scene.view_settings.view_transform = "AgX"
     os.makedirs(rp("reference/generic/renders"), exist_ok=True)
     for name, ob in OBJ.items():
+        if name.startswith("gen_terrace_") and name != "gen_terrace_24": continue
         for o in LIB.objects: o.hide_render = o is not ob
         w, h = INFO[name]["width"], INFO[name]["height"]
         dist = max(w * 1.12, h * 2.4)
