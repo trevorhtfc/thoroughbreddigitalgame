@@ -498,7 +498,10 @@ export function runRace(race, runners, data, options = {}) {
       else if (P.HOLD_LINE_S && straight && kick[i]) tz = z[i] + (tz - z[i]) * 0.2;
       // and, once it has had to switch, never steers back into a lane that's taken (it would only be held up against the horse there)
       if (P.HOLD_LINE_S && nSw[i] && ((tz < z[i] - 0.05 && !cIn) || (tz > z[i] + 0.05 && !cOut))) tz = z[i];
-      let az = clip((tz - z[i]) * P.STEER_GAIN, -P.STEER_MAX, P.STEER_MAX);
+      // from the off to the end of the first bend a jockey drawn wide angles in more firmly, to find a place on the
+      // rail or tucked in behind before the turn (owner, 21 Nov: horses ran 5 or 6 wide round the early bends)
+      const steerMax = !straight && P.EARLY_STEER_MAX && bends.length && toGo > bends[0][1] ? P.EARLY_STEER_MAX : P.STEER_MAX;
+      let az = clip((tz - z[i]) * P.STEER_GAIN, -steerMax, steerMax);
       const fanSide = straight ? (z[i] >= tz ? 1 : -1) : 1;
       const clearFan = fanSide > 0 ? cOut : cIn;
       if (inlane && clearFan && toGo < P.FAN_FROM && rank[i] >= 1 && (!straight || P.FAN_STRAIGHT > 0)) az = fanSide * P.FAN_RATE;
@@ -509,8 +512,10 @@ export function runRace(race, runners, data, options = {}) {
       if (sideIn && nvz < 0) nvz = 0;
       vz[i] = nvz;
       if (!straight) {
-        const settling = z[i] > P.SETTLE_WIDE && alongside && toGo <= join + P.SETTLE_FROM && toGo > home && !kick[i] && x[i] > P.SETTLE_MIN_X;
-        if (settling) want[i] *= card[i].ridden >= 2 ? 1 - P.EASE : 1 + P.PUSH;
+        // stuck wide with a horse on its inside as a bend comes up: a jockey drops in behind it (or, riding forward, goes
+        // on to cross): the TUCK_ figures where set (owner, 21 Nov), else the bench's EASE / PUSH from SETTLE_FROM out
+        const settling = z[i] > P.SETTLE_WIDE && alongside && toGo <= join + (P.TUCK_FROM ?? P.SETTLE_FROM) && toGo > home && !kick[i] && x[i] > P.SETTLE_MIN_X;
+        if (settling) want[i] *= card[i].ridden >= 2 ? 1 - (P.TUCK_EASE ?? P.EASE) : 1 + (P.TUCK_PUSH ?? P.PUSH);
         if (blocked[i]) want[i] = Math.min(want[i], vfront[i]);
       }
       if (switchT[i] > 0 && kick[i]) want[i] *= 1 - P.SWITCH_COST * (1 - 0.5 * card[i].reader);

@@ -183,3 +183,14 @@ and hold-up horses 1.2–1.65 over 1m–1m2f on the Rowley Mile. The Race Lab ca
 
 New in each runner's result (for checking): `switches`, `sideChanges`, `heldSeconds` (time tracking or held behind a
 slower horse), `bumpedSeconds` (time pressed against one), `energyAtKick` and `energyLeft` (shares of its tank).
+
+## Not so wide on the first bend (21 Nov 2026)
+
+Owner, playing Beginner Ascot: "The race engine seems too happy to let horses be 5/6 wide in early turns in the races.. this feel unrealistic."
+
+- Before the first bend a horse may only drift across at `EARLY_STEER_MAX` (1.2, was the full `STEER_MAX`), so the field doesn't fan out wide going into it.
+- From `TUCK_FROM` (300 m) before a bend, a horse stuck wide with a horse alongside either eases a touch (`TUCK_EASE`, if its rider is holding it up) or pushes on a touch (`TUCK_PUSH`), to drop in behind or get across.
+- `check/width.mjs` counts how wide the runners are halfway round the first bend. With 1m and 1m6f at Ascot, 5 wide or more went from 11-12% of runners to 3-5%. The widest horse went from about 5 lanes out to about 4. Other trips are 0-1%.
+- Front runners against hold-ups, 400 races a trip: 1.06/0.94 (was 0.96/1.04). That is still within the target band.
+
+Also: Ascot's 2m6f now starts on the straight mile, as the Queen Alexandra does (`tools/course/place_stalls.py`, `ON_STRAIGHT`). The race is 4299.1 m, par 4m 49.0s.

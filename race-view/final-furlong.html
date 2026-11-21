@@ -2361,6 +2361,9 @@ function cameraTarget(now) {
   const leadU = leaderAt(now);
   const id = directorShot(DIST - leadU, leadU);
   const c = RCAMS[id], R = rangeFor(c.fov);
+  // a moving camera on a phone held upright never goes wider than 58 degrees (owner, 21 Nov: random zooms out): the
+  // ones at the back drop out of the picture first, as on a wide screen
+  if ((c.kind === "track" || c.kind === "drone") && camera.aspect < 1) R[1] = Math.max(R[0], Math.min(R[1], 58));
   // a terrace camera keeps at least 'hfov' degrees across the screen (on a phone held upright, more of the stand and sky)
   if (c.hfov) R[0] = Math.min(Math.max(R[0], 2 * THREE.MathUtils.radToDeg(Math.atan(Math.tan(THREE.MathUtils.degToRad(c.hfov) / 2) / camera.aspect))), R[1]);
   // The finish (owner, 7 Nov): once the winner is past the post the grandstand camera stops following it and holds on
@@ -2386,8 +2389,10 @@ function cameraTarget(now) {
   // behind the leader (about 15 lengths on a wide screen, was 8), and every so often in the TV director's cut every
   // camera opens out to the whole field for a few seconds (raceDirector.breathe: [every, for] seconds), so the ones at
   // the back are seen; only the last 300 m stays on the leaders
-  const B = DIR_.breathe || [15, 5], tb = state.t - 9;
-  const breathe = state.cam === "auto" && state.phase === "race" && c.frame !== "leaders" && tb > 0 && tb % B[0] < B[1] && DIST - leadU > 300;
+  // (owner, 21 Nov: "the camera keeps popping out to strange long range shots.. it's like 0.5 zoom": the opening out is
+  // off unless a course's view file asks for it)
+  const B = DIR_.breathe, tb = state.t - 9;
+  const breathe = !!B && state.cam === "auto" && state.phase === "race" && c.frame !== "leaders" && tb > 0 && tb % B[0] < B[1] && DIST - leadU > 300;
   const span = c.frame === "all" || breathe ? Infinity : moving ? THREE.MathUtils.clamp(8 + 16 * camera.aspect, 18, 40) : camera.aspect < 1 && !straightNow ? 16 : Infinity;
   let pts = c.frame === "leaders" ? field.filter((p, i) => i < 2 || leadU - p.u <= (c.window || 12))
     : field.filter((p, i) => i < 3 || leadU - p.u <= span);
@@ -2422,8 +2427,11 @@ function cameraTarget(now) {
   };
   let eye;
   if (c.ahead) {
-    let want = c.ahead[c.ahead.length - 1];
-    for (const a of c.ahead) if (fitFov(eyeAt(a), centre, pts, R) < R[1] * 0.8) { want = a; break; }
+    // on a phone held upright the tracking car and the drone stay close (no further than 30 m ahead of the leader):
+    // further out the field is a strip of specks (owner, 21 Nov: "tracking cam ... too high up and random zooms")
+    const aheads = camera.aspect < 1 && c.kind !== "start" && c.ahead.some((a) => a <= 30) ? c.ahead.filter((a) => a <= 30) : c.ahead;
+    let want = aheads[aheads.length - 1];
+    for (const a of aheads) if (fitFov(eyeAt(a), centre, pts, R) < R[1] * 0.8) { want = a; break; }
     if (state.aheadFor !== id || snap) { state.aheadFor = id; state.ahead = want; }
     state.ahead += (want - state.ahead) * (1 - Math.exp(-(state.dt || 0.016) * 0.7));   // ease, never jump
     eye = eyeAt(state.ahead);
@@ -2967,7 +2975,9 @@ function updateCamera(now, dt) {
     const guard = fitFov(T.eye, focus, T.guard, T.range, 1.12);
     let f = Math.max(T.fov, guard);
     if (snap) camera.fov = f;
-    else camera.fov += (f - camera.fov) * (1 - Math.exp(-dt * (f > camera.fov ? 6 : 0.9)));
+    // (owner, 21 Nov: "random zooms": the zoom opens out more gently, at under half the old rate; the guard below still
+    // keeps the leaders in)
+    else camera.fov += (f - camera.fov) * (1 - Math.exp(-dt * (f > camera.fov ? 2.4 : 0.9)));
     camera.fov = Math.max(camera.fov, guard);
   } else { focus.copy(T.look); camera.fov = T.fov; }
   camera.updateProjectionMatrix();

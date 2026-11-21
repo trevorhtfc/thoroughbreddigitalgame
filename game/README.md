@@ -1049,3 +1049,9 @@ bits.. the card should always be big though".
   with everything under it; the old 112×164 thumbnail beside the name is gone. A horse's card from the planner opens the
   same way. On a computer, the card sits big on the left with everything beside it.
 - card.html draws the card at 92% of its box (was 84%).
+
+## Three things from a Beginner race at Ascot (21 Nov 2026)
+
+- **2m6f** starts on the straight mile, and runs up it and once round, as the real race does. It had started on the round course.
+- **Wide on the first bend**: horses no longer fan out 5 or 6 wide going into the first turn. See race-engine/README.md.
+- **Camera**: The director no longer opens out to the whole field every 15 seconds. The zoom opens out more slowly. On a phone held upright, a moving camera stays within 58 degrees and no more than 30 m ahead of the leader: the back runners drop out of the picture rather than the camera zooming out. The tracking car stays within 52 m, the straight-course drone flies 9 m up (was 15) and the bend camera 10 m (was 14).

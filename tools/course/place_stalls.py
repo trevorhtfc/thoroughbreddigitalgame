@@ -82,7 +82,7 @@ STRAIGHT = [("fiveFurlongs", "5f (straight)", 5 * FUR), ("sixFurlongs", "6f (str
             ("sevenFurlongs", "7f (straight)", 7 * FUR), ("straightMile", "Straight mile (8f)", sm["length"])]
 ROUND = [("mileTwo", "1m2f", 10 * FUR), ("mileFour", "1m4f", 12 * FUR), ("mileSix", "1m6f", 14 * FUR),
          ("twoMiles", "2 miles", 3218.7), ("twoMilesFour", "2m4f", 20 * FUR),
-         ("twoMilesSix", "2m6f", 22 * FUR)]
+         ("twoMilesSix", "2m6f", None)]
 starts = {}
 for key, label, d in STRAIGHT:
     starts[key] = {"label": label, "course": "straight", "distance": d, "rail": [d, 0.0] if key != "straightMile" else sm["stalls"],
@@ -90,11 +90,15 @@ for key, label, d in STRAIGHT:
                    else "the straight mile's stalls at the top of the straight course"}
 starts["roundMile"] = {"label": "Round mile (8.2f)", "course": "roundMile", "distance": sp["startDistance"],
                        "rail": sp["from"], "run": ((tx - fx) / l, (tz - fz) / l), "where": "the start of the chute (round-mile spur) at the top of the right-hand straight"}
-ON_STRAIGHT = {"twoMilesFour"}
+# (owner, 21 Nov: "2m6f start is wrong.. should be on the straight course", as the real Queen Alexandra Stakes): it
+# starts at the top of the straight course, the straight mile's stalls, runs down past the stand and goes once round:
+# the straight mile and a circuit, 2m5f80y (the real race is 2m5f143y; the straight course ends at the mile start)
+ON_STRAIGHT = {"twoMilesFour", "twoMilesSix"}
 for key, label, d in ROUND:
+    if d is None: d = LOOP + sm["length"]
     if key in ON_STRAIGHT:
         x = d - LOOP
-        assert 0 < x < sm["length"]
+        assert 0 < x <= sm["length"] + 1e-6
         starts[key] = {"label": label, "course": "round", "distance": d, "rail": [round(x, 2), 0.0], "run": (-1.0, 0.0),
                        "onStraight": True, "where": "on the straight course, %.0f m before the post: the field runs past the stand, "
                        "then once round the loop" % x}
